@@ -26,6 +26,14 @@ def main() -> int:
     print("상품 코드 형태(P+숫자 6자리) 개수:", len(set(CODE.findall(page))))
     text = html.unescape(re.sub(r"<[^>]+>", " ", page))
     text = re.sub(r"\s+", " ", text)
+    title = re.search(r"<title>(.*?)</title>", page, re.S)
+    print("제목:", title.group(1).strip() if title else "없음")
+    print("본문 앞부분:", text[:300])
+    endpoints = sorted(set(re.findall(r"[\w/]+\.do", page)))
+    print(f"페이지 안의 .do 주소 {len(endpoints)}개:", ", ".join(endpoints[:80]))
+    for word in ("공시", "판매중", "상품목록", "약관"):
+        hits = [re.sub(r"\s+", " ", text[max(0, m.start() - 50): m.end() + 70]) for m in re.finditer(word, text)][:4]
+        print(f"'{word}' 주변:", " // ".join(hits) or "없음")
     for name in NAMES:
         print(f"\n== {name} ==")
         seen = set()
