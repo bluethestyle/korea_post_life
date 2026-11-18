@@ -1,0 +1,51 @@
+name: 표준담보 매핑
+
+# 시트의 급부를 표준담보 사전에 잇는다. 이미 행이 있는 급부는 건너뛰고, 담당자가 손댄 행은 건드리지 않는다.
+on:
+  workflow_dispatch:
+    inputs:
+      remap:
+        description: "담당자가 손대지 않은 행을 모두 다시 묻는다"
+        type: boolean
+        default: false
+      dry_run:
+        description: "시트에 쓰지 않고 흐름만 확인"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extract
+  cancel-in-progress: false
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      INPUT_REMAP: ${{ inputs.remap }}
+      INPUT_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 매핑
+        run: |
+          args=()
+          if [ "$INPUT_REMAP" = "true" ]; then args+=(--remap); fi
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python scripts/map_benefits.py --result result/mapping.json "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mapping-result
+          path: result
+          retention-days: 3
