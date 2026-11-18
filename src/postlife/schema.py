@@ -48,6 +48,8 @@ TABS: dict[str, Tab] = {
             Column("고지최근소견개월", "int", False),
             Column("고지입원수술년수", "int", False),
             Column("고지중대질병년수", "int", False),
+            Column("고지수술포함여부", "bool", False),
+            Column("고지중대질병수", "int", False),
             Column("갱신유형", "str", True),
             Column("갱신주기년", "int", False),
             Column("환급유형", "str", False),
