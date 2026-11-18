@@ -54,7 +54,7 @@ def test_download_rejects_non_pdf():
     import pytest
 
     doc = epost.parse_documents("P500130", DOCS)[0]
-    ok = FakeSession(b"%PDF-1.7 ...")
+    ok = FakeSession(b"\r\n\r\n\r\n%PDF-1.7 ...")   # 실제 응답은 앞에 빈 줄이 붙어 온다
     assert epost.download(ok, doc).startswith(b"%PDF-")
     assert ok.sent[0][1]["data"]["localFilePath"] == doc.path
     with pytest.raises(ValueError):

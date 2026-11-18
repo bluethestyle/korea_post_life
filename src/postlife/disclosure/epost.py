@@ -89,7 +89,9 @@ def download(session: Any, doc: Document) -> bytes:
     r = session.post(BASE + "/pdfviewer.do", data={"fileName": doc.path.rsplit("/", 1)[-1], "localFilePath": doc.path},
                      headers=form, timeout=180)
     r.raise_for_status()
-    if r.content[:5] != b"%PDF-":
+    # 보기 화면은 PDF 앞에 빈 줄을 몇 개 붙여 내려 준다. 문서 시작 표식부터 잘라 쓴다.
+    start = r.content[:2048].find(b"%PDF-")
+    if start < 0:
         head = r.content[:200].decode("utf-8", errors="replace").replace("\n", " ")
         raise ValueError(f"PDF가 아닌 응답({r.headers.get('Content-Type', '')}): {doc.path} | {head}")
-    return r.content
+    return r.content[start:]
