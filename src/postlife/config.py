@@ -8,7 +8,17 @@ MODEL_SEARCH = "gemini-2.5-flash-lite"       # 검색 그라운딩. 하루 20회
 MODEL_EXTRACT = "gemini-3.5-flash-lite"      # 추출·분류·해설. 하루 500회
 MODEL_EXTRACT_ALT = "gemini-3.1-flash-lite"  # 보조·재추출
 MODEL_DECIDE = "gemini-decision-1"           # 판정 전용
-MODEL_SUMMARY = "gemini-3.8-flash"           # 주간 요약 최종본. 하루 20회
+MODEL_SUMMARY = "gemini-3.8-flash"           # 주간 요약 최종본, 추출이 두 번 어긋난 특약의 마지막 재추출. 하루 20회
+EXTRACT_ESCALATIONS_PER_RUN = 12           # 한 번 실행에서 상위 모델로 다시 뽑는 횟수 상한 (하루 20회 가운데 주간 요약 몫을 남긴다)
+
+# 분당 한도(6.1)에 맞춘 모델별 최소 호출 간격(초). 여유를 조금 둔다.
+MIN_INTERVAL = {
+    MODEL_SEARCH: 7.0,        # 분당 10회
+    MODEL_EXTRACT: 4.5,       # 분당 15회
+    MODEL_EXTRACT_ALT: 4.5,   # 분당 15회
+    MODEL_DECIDE: 0.5,        # 분당 200회
+    MODEL_SUMMARY: 13.0,      # 분당 5회
+}
 
 SEARCH_DAILY_LIMIT = 20
 MAX_QUERIES_PER_RUN = 6    # 질의마다 최대 3회 시도해도 하루 검색 한도 안에 들어오는 수

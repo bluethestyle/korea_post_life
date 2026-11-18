@@ -22,6 +22,7 @@ from .gemini import Gemini, GeminiError, SearchResult
 from .sheets_io import SheetStore
 from .snapshot import KST
 from .validate import check_row
+from .worklog import WorkLog
 
 REDIRECT_HOST = "vertexaisearch.cloud.google.com"
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -326,31 +327,6 @@ def load_thresholds(rows: list[dict[str, Any]]) -> dict[str, float]:
     return out
 
 
-class _Logger:
-    def __init__(self, now: datetime):
-        self.stamp = now.isoformat(timespec="seconds")
-        self.rows: list[dict[str, Any]] = []
-
-    def add(self, step: str, target: str, result: str, reason: str = "",
-            model: str = "", prob: float | None = None, column: str = "",
-            before: str = "") -> None:
-        row = {
-            "로그ID": f"LOG_{ids.short_hash(self.stamp, step, target, str(len(self.rows)), length=14)}",
-            "실행일시": self.stamp,
-            "작업단계": step,
-            "대상탭": "sys_시장동향",
-            "대상행ID": target,
-            "대상열": column or None,
-            "변경전값": before or None,
-            "변경후값": None,
-            "호출모델": model or None,
-            "판정확률": None if prob is None else round(prob, 4),
-            "결과": result,
-            "사유": reason or None,
-        }
-        self.rows.append(row)
-
-
 def failed_queries(logs: list[dict[str, Any]], week: str, now: date) -> list[config.Query]:
     """이번 주에 실패한 채로 남은 질의를 찾는다. 일요일 재수집에 쓴다."""
     state: dict[str, str] = {}
@@ -411,7 +387,7 @@ def run(
     queries = queries[:limit]
 
     report = Report(now.isoformat(timespec="seconds"), day, (start.isoformat(), end.isoformat()))
-    log = _Logger(now)
+    log = WorkLog(now, "sys_시장동향")
 
     for q in queries:
         key = query_key(q)

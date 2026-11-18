@@ -83,6 +83,8 @@ class Gemini:
         post: Callable[..., Any] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         max_retries: int = 2,
+        min_interval: dict[str, float] | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
         if not self.api_key:
@@ -95,17 +97,37 @@ class Gemini:
         self._sleep = sleep
         self.max_retries = max_retries
         self.calls: dict[str, int] = {}
+        # 모델별 최소 호출 간격(초). 분당 한도를 넘지 않게 호출 사이를 띄운다.
+        self.min_interval = dict(min_interval or {})
+        self._clock = clock
+        self._last: dict[str, float] = {}
+
+    def _pace(self, model: str) -> None:
+        gap = self.min_interval.get(model)
+        if gap and model in self._last:
+            wait = gap - (self._clock() - self._last[model])
+            if wait > 0:
+                self._sleep(wait)
+        self._last[model] = self._clock()
 
     def _call(self, url: str, body: dict, model: str) -> dict:
         last: GeminiError | None = None
         for attempt in range(self.max_retries + 1):
+            self._pace(model)
             self.calls[model] = self.calls.get(model, 0) + 1
-            resp = self._post(
-                url,
-                headers={"x-goog-api-key": self.api_key, "Content-Type": "application/json"},
-                json=body,
-                timeout=120,
-            )
+            try:
+                resp = self._post(
+                    url,
+                    headers={"x-goog-api-key": self.api_key, "Content-Type": "application/json"},
+                    json=body,
+                    timeout=90,
+                )
+            except (TimeoutError, ConnectionError, OSError) as e:   # requests의 시간 초과·연결 오류는 OSError의 하위 종류
+                # 응답이 끊기거나 오래 걸리면 한 번만 더 해 보고 넘긴다. 호출한 쪽이 다른 모델로 바꿔 시도한다.
+                last = GeminiError(0, f"응답 없음: {type(e).__name__}")
+                if attempt >= 1:
+                    break
+                continue
             if resp.status_code < 400:
                 return resp.json()
             try:
@@ -133,9 +155,10 @@ class Gemini:
         prompt: str,
         schema: dict | None = None,
         temperature: float = 0.0,
+        max_output_tokens: int = 8192,
     ) -> Any:
         """schema를 주면 JSON으로 받아 파싱해 돌려준다."""
-        config: dict[str, Any] = {"temperature": temperature}
+        config: dict[str, Any] = {"temperature": temperature, "maxOutputTokens": max_output_tokens}
         if schema is not None:
             config["responseMimeType"] = "application/json"
             config["responseSchema"] = schema
@@ -144,7 +167,10 @@ class Gemini:
         text = self._text(out)
         if schema is None:
             return text
-        return json.loads(text)
+        try:
+            return json.loads(text)
+        except ValueError as e:   # 끊긴 JSON, 끝없이 이어진 숫자 등
+            raise GeminiError(0, f"JSON으로 읽을 수 없는 응답: {str(e)[:120]}") from None
 
     def search(self, model: str, prompt: str) -> SearchResult:
         body = {

@@ -46,3 +46,11 @@ def test_revision_pattern_ignores_ordinary_numbers():
     assert ids.strip_revision("1004 플랜") == "1004 플랜"
     assert ids.strip_revision("3112 특약") == "3112 특약"
     assert ids.revision_of("우체국간편한건강보험 2606") == "2606"
+
+
+def test_rider_lineage_survives_the_simple_type_prefix_dropped_in_2606():
+    before = ids.rider_lineage_key("무배당 간편Ⅲ암진단특약(20년갱신형) 2504")
+    assert before == ids.rider_lineage_key("무배당 간편Ⅱ암진단특약(20년갱신형) 2504")
+    assert before == ids.rider_lineage_key("무배당 암진단특약(20년갱신형) 2606")
+    # 이름 뒤의 판 번호(재해치료특약Ⅱ)는 다른 특약이므로 떼지 않는다
+    assert ids.rider_lineage_key("무배당 재해치료특약Ⅱ 2504") != ids.rider_lineage_key("무배당 재해치료특약 2504")

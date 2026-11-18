@@ -1,0 +1,52 @@
+name: 급부 추출·검증
+
+# 공시 문서를 받아 종형·특약·급부를 뽑고, 검증을 거쳐 시트에 쓴다. 원본 PDF는 저장소에도 결과물에도 남기지 않는다.
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "이 공시상품코드만 처리 (여러 개면 공백으로 구분). 비우면 전체"
+        required: false
+      dry_run:
+        description: "시트에 쓰지 않고 흐름만 확인"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extract
+  cancel-in-progress: false
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      INPUT_ONLY: ${{ inputs.only }}
+      INPUT_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt pdfplumber
+      - name: 공시 문서 받기
+        run: python scripts/fetch_disclosure.py --out out
+      - name: 추출·검증·기록
+        run: |
+          args=()
+          for code in $INPUT_ONLY; do args+=(--only "$code"); done
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python scripts/extract_product.py --docs out --targets data/targets/epost.json --result result/extract.json "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: extract-result
+          path: result
+          retention-days: 3

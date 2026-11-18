@@ -66,13 +66,17 @@ def strip_dividend(name: str) -> str:
     return _DIVIDEND.sub("", str(name))
 
 
+# 우체국 간편보험은 2504판까지 특약 이름 앞에 가입유형 표시("간편Ⅱ", "간편Ⅲ")를 붙였고 2606판에서 뗐다
+_SIMPLE_TYPE = re.compile(r"^간편\s*(?:[ⅠⅡⅢ]|I{1,3})(?=[가-힣])")
+
+
 def rider_lineage_key(raw_rider_name: str) -> str:
-    """특약계보키. 배당 표기와 개정 연월을 뗀 이름으로 만든다.
+    """특약계보키. 배당 표기, 개정 연월, 이름 앞의 간편 가입유형 표시를 뗀 이름으로 만든다.
 
     같은 특약을 요약서는 "(무)암진단특약", 사업방법서는 "무배당 암진단특약 2606"으로 적어도
     같은 키가 나와야 보험료와 결합 제약이 한 특약에 붙는다.
     """
-    return short_hash(strip_revision(strip_dividend(raw_rider_name)), length=12)
+    return short_hash(_SIMPLE_TYPE.sub("", strip_revision(strip_dividend(raw_rider_name)).strip()), length=12)
 
 
 def rider_id(variant: str, raw_rider_name: str) -> str:

@@ -1,0 +1,184 @@
+"""상품요약서 한 건을 급부 행으로 바꾸는 전체 흐름.
+
+추출(생성 모델) → 코드 대조 → 판정(판정 전용 모델) → 세 구간 분기 → 재추출(다른 모델) → 기록.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+
+from .. import config, ids
+from ..gemini import GeminiError
+from ..worklog import WorkLog
+from . import benefits as B
+from . import verify as V
+from .segment import Block, rider_blocks
+
+FIELD_NAMES = {"기준지급금액만원": "지급액", "감액지급률1": "감액 기간·금액(없으면 빈칸)", "면책기간일수": "보장개시일 조건(start_condition)", "지급횟수제한": "지급 한도(limit)"}
+# 2026-11-18 우체국 요약서 2건으로 맞춘 값 (docs/progress.md). 시트의 hum_기준값이 있으면 그 값을 쓴다.
+DEFAULT_THRESHOLDS = {"추출검증_통과": 0.75, "추출검증_재추출": 0.40}
+
+
+@dataclass
+class BlockResult:
+    extraction: B.Extraction
+    probs: dict[str, dict[str, float]]
+    status: dict[str, str]                 # 급부 이름 → 확정 / 검토
+    retried: bool = False
+
+
+@dataclass
+class Result:
+    riders: list[dict[str, Any]] = field(default_factory=list)
+    benefits: list[dict[str, Any]] = field(default_factory=list)
+    logs: list[dict[str, Any]] = field(default_factory=list)
+    blocks: list[BlockResult] = field(default_factory=list)
+    stats: dict[str, int] = field(default_factory=dict)
+
+
+def thresholds_from(rows: list[dict[str, Any]]) -> dict[str, float]:
+    out = dict(DEFAULT_THRESHOLDS)
+    for r in rows:
+        if r.get("기준분류") == "판정구간" and r.get("기준키") in out and r.get("수치값") is not None:
+            out[r["기준키"]] = float(r["수치값"])
+    return out
+
+
+_AMOUNT_FIELDS = {"기준지급금액만원", "감액지급률1", "감액지급률2", "감액개월1", "감액개월2"}
+
+
+@dataclass
+class _Try:
+    ex: B.Extraction
+    probs: dict[str, dict[str, float]]
+    literal: dict[str, list[str]]
+
+    @property
+    def invented(self) -> int:
+        """원문에 없는 금액이나 감액 기간을 적은 줄 수. 지어낸 값일 가능성이 높다."""
+        return sum(1 for fields in self.literal.values() if _AMOUNT_FIELDS & set(fields))
+
+    @property
+    def score(self) -> tuple[int, float]:
+        """작을수록 낫다: (형식 문제 + 원문에 없는 금액, -가장 낮은 판정 확률)."""
+        return (len(self.ex.problems) + self.invented, -V.worst(self.probs))
+
+    def needs_retry(self, thresholds: dict[str, float]) -> bool:
+        return (not self.ex.benefits) or bool(self.ex.problems) or self.invented > 0 or any(
+            V.classify(self.probs.get(b.label, {}), thresholds)[0] == "재추출" for b in self.ex.benefits)
+
+    def feedback(self, thresholds: dict[str, float]) -> list[str]:
+        out = list(self.ex.problems)
+        for b in self.ex.benefits:
+            if _AMOUNT_FIELDS & set(self.literal.get(b.label, [])):
+                out.append(f"'{b.label}' 줄에 원문에 없는 금액이나 기간을 적음. 금액과 기간은 원문 글자 그대로만 옮김")
+            band, name, _ = V.classify(self.probs.get(b.label, {}), thresholds)
+            if band == "재추출":
+                out.append(f"'{b.label}' 줄의 {FIELD_NAMES.get(name, name)}이(가) 원문과 맞지 않아 보임")
+        return out
+
+
+def _attempt(gemini: Any, block: Block, model: str, feedback: list[str] | None = None) -> _Try:
+    ex = B.extract(gemini, block, model, feedback)
+    return _Try(ex, V.judge(gemini, ex, config.MODEL_DECIDE), B.literal_problems(ex))
+
+
+def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: WorkLog, variant_id: str,
+              budget: dict[str, int] | None = None) -> BlockResult | None:
+    """한 특약을 처리한다. 값이 의심스러우면 다른 모델로, 그래도 안 되면 상위 모델로 다시 뽑는다.
+
+    budget: {"상위모델": 남은 횟수}. 상위 모델은 하루 한도가 작아 한 번 실행에 쓸 횟수를 정해 둔다.
+    """
+    rider = ids.rider_id(variant_id, block.rider_name)
+    budget = budget if budget is not None else {"상위모델": 0}
+    best: _Try | None = None
+    retried = False
+    for step, model in enumerate((config.MODEL_EXTRACT, config.MODEL_EXTRACT_ALT, config.MODEL_SUMMARY)):
+        if best is not None and not best.needs_retry(thresholds):
+            break
+        if model == config.MODEL_SUMMARY:
+            if budget.get("상위모델", 0) <= 0:
+                break
+            budget["상위모델"] -= 1
+        stage = "추출" if best is None else "재추출"
+        try:
+            got = _attempt(gemini, block, model, best.feedback(thresholds) if best else None)
+        except (GeminiError, ValueError, KeyError) as e:
+            log.add(stage, rider, "보류", f"호출 실패: {str(e)[:200]}", model=model)
+            continue
+        for b in got.ex.benefits:       # 코드 대조에서 걸린 줄은 시도마다 남긴다
+            if got.literal.get(b.label):
+                log.add("코드대조", ids.benefit_id(rider, b.label), "보류", "원문에서 글자 그대로 확인되지 않아 판정으로 넘김",
+                        model=model, column=", ".join(got.literal[b.label]))
+        if best is None:
+            best = got
+            log.add("추출", rider, "통과", f"{block.rider_name}: 급부 {len(got.ex.benefits)}건" +
+                    (f", 형식 문제 {len(got.ex.problems)}건" if got.ex.problems else ""), model=model)
+            continue
+        retried = True
+        better = bool(got.ex.benefits) and got.score < best.score
+        before, after = V.worst(best.probs), V.worst(got.probs)
+        log.add("재추출", rider, "통과" if better else "반려",
+                f"{block.rider_name}: 가장 낮은 확률 {before:.2f} → {after:.2f}, "
+                f"형식 문제·원문에 없는 금액 {best.score[0]}건 → {got.score[0]}건. " +
+                ("다시 뽑은 값으로 바꿈" if better else "앞선 값을 유지"),
+                model=model, prob=after, before=f"급부 {len(best.ex.benefits)}건", after=f"급부 {len(got.ex.benefits)}건")
+        if better:
+            best = got
+    if best is None:
+        return None
+    ex, probs = best.ex, best.probs
+
+    for b in ex.benefits:
+        target = ids.benefit_id(rider, b.label)
+        if not best.literal.get(b.label):
+            log.add("코드대조", target, "통과", "금액과 기간이 원문에 글자 그대로 있음")
+
+    status: dict[str, str] = {}
+    for b in ex.benefits:
+        target = ids.benefit_id(rider, b.label)
+        band, name, low = V.classify(probs.get(b.label, {}), thresholds)
+        flawed = bool(_AMOUNT_FIELDS & set(best.literal.get(b.label, []))) or any(b.label in p for p in ex.problems)
+        if band == "확정" and flawed:      # 판정 확률이 높아도 코드가 잡은 문제가 있으면 사람이 본다
+            band, name = "검토", name or "기준지급금액만원"
+        if band == "확정":
+            status[b.label] = "확정"
+            log.add("판정", target, "통과", model=config.MODEL_DECIDE, prob=low, column=name)
+        else:
+            status[b.label] = "검토"
+            log.add("판정", target, "반려" if band == "재추출" else "보류",
+                    f"원문과 일치할 확률이 낮은 항목: {name}", model=config.MODEL_DECIDE, prob=low, column=name)
+            log.add("사람검토이관", target, "보류", f"{b.label}: {name} 확인 필요 (근거 {block.first_page}쪽)",
+                    model=config.MODEL_DECIDE, prob=low, column=name)
+    return BlockResult(ex, probs, status, retried)
+
+
+def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now: datetime,
+                thresholds: dict[str, float] | None = None, product_renewal_years: int | None = None,
+                only: list[str] | None = None, budget: dict[str, int] | None = None) -> Result:
+    """상품요약서 한 건을 처리한다. 여러 종이 한 요약서를 함께 쓰면 뽑은 값을 종마다 같은 내용으로 싣는다."""
+    thresholds = thresholds or dict(DEFAULT_THRESHOLDS)
+    log = WorkLog(now, "sys_급부")
+    result = Result()
+    blocks = [b for b in rider_blocks(pages) if not only or any(k in b.title for k in only)]
+    # 상위 모델은 하루 한도가 작다. 여러 요약서를 한 번에 돌릴 때는 호출한 쪽이 넘긴 횟수를 함께 쓴다.
+    budget = budget if budget is not None else {"상위모델": config.EXTRACT_ESCALATIONS_PER_RUN}
+    start = budget["상위모델"]
+    for block in blocks:
+        done = run_block(gemini, block, thresholds, log, variant_ids[0], budget)
+        if done is None:
+            continue
+        result.blocks.append(done)
+        for variant in variant_ids:
+            result.riders.append(B.rider_row(variant, block, product_renewal_years))
+            result.benefits.extend(B.benefit_rows(variant, done.extraction))
+    result.logs = log.rows
+    statuses = [s for b in result.blocks for s in b.status.values()]
+    result.stats = {
+        "조각": len(blocks), "처리한 조각": len(result.blocks),
+        "급부": len(statuses), "확정": statuses.count("확정"), "검토": statuses.count("검토"),
+        "재추출한 조각": sum(b.retried for b in result.blocks),
+        "상위 모델 사용": start - budget["상위모델"],
+    }
+    return result

@@ -105,3 +105,51 @@ def test_missing_choice_is_zero_not_one_minus_confidence():
     assert only_confidence.prob("일반암 진단비") == 0.08
     # 참·거짓 문항에서는 1 - 확신도가 성립한다
     assert Answer(True, 0.9, {}).prob(False) == pytest.approx(0.1)
+
+
+def test_calls_are_spaced_to_respect_rate_limits():
+    now = [0.0]
+    waits = []
+
+    def sleep(seconds):
+        waits.append(round(seconds, 2))
+        now[0] += seconds
+
+    sent = []
+
+    def post(url, headers=None, json=None, timeout=None):
+        sent.append(url)
+        now[0] += 1.0   # 호출 한 번에 1초 걸린다고 가정
+        return Resp(200, {"candidates": []})
+
+    g = Gemini(api_key="k", post=post, sleep=sleep, min_interval={"m": 4.5}, clock=lambda: now[0])
+    for _ in range(3):
+        g.generate("m", "p")
+    assert waits == [3.5, 3.5] and len(sent) == 3
+    g.generate("other", "p")          # 간격을 정하지 않은 모델은 기다리지 않는다
+    assert waits == [3.5, 3.5]
+
+
+def test_timeout_and_broken_json_become_gemini_errors():
+    import pytest
+    import requests
+
+    from postlife.gemini import Gemini, GeminiError
+
+    def slow(*a, **k):
+        raise requests.ReadTimeout("read timed out")
+
+    g = Gemini(api_key="k", post=slow, sleep=lambda s: None)
+    with pytest.raises(GeminiError, match="응답 없음"):
+        g.generate("m", "p")
+    assert g.calls["m"] == 2          # 한 번만 더 해 본다
+
+    class R:
+        status_code = 200
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": '{"benefits": [{"amount_manwon": 1'}]}}]}
+
+    g = Gemini(api_key="k", post=lambda *a, **k: R(), sleep=lambda s: None)
+    with pytest.raises(GeminiError, match="JSON으로 읽을 수 없는"):
+        g.generate("m", "p", schema={"type": "object"})
