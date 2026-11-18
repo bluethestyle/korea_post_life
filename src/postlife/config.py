@@ -11,6 +11,7 @@ MODEL_DECIDE = "gemini-decision-1"           # 판정 전용
 MODEL_SUMMARY = "gemini-3.8-flash"           # 주간 요약 최종본. 하루 20회
 
 SEARCH_DAILY_LIMIT = 20
+MAX_QUERIES_PER_RUN = 6    # 질의마다 최대 3회 시도해도 하루 검색 한도 안에 들어오는 수
 SEARCH_LOOKBACK_DAYS = 14  # 요일별로 주 1회 도는 것을 감안해 2주를 훑고 중복은 병합한다
 
 # 기관코드 → 기관명 (2.2)
@@ -72,6 +73,7 @@ class Query:
     orgs: tuple[str, ...]      # 기관코드
     topics: tuple[str, ...]    # 분류유형
     focus: str = ""            # 공통 질의에 덧붙이는 초점
+    any_org: bool = False      # 참이면 소식을 19개 기관 가운데 실제 회사에 귀속시킨다
 
 
 def _pairs(orgs: tuple[str, ...]) -> list[Query]:
@@ -94,11 +96,11 @@ DAILY_PLAN: dict[int, list[Query]] = {
     + [Query(("HEUNGKUKFIRE",), TOPIC_ALL)]
     + _pairs(("EPOST",)),
     5: [
-        Query(("KLIA",), ("배타적사용권",), "생명보험협회 신상품심의위원회의 배타적 사용권 부여 결과"),
-        Query(("KNIA",), ("배타적사용권",), "손해보험협회 신상품심의위원회의 배타적 사용권 부여 결과"),
+        Query(("KLIA",), ("배타적사용권",), "생명보험협회 신상품심의위원회의 배타적 사용권 부여 결과", any_org=True),
+        Query(("KNIA",), ("배타적사용권",), "손해보험협회 신상품심의위원회의 배타적 사용권 부여 결과", any_org=True),
         Query(("FSC", "FSS"), ("제도변화",), "건강보험·제3보험 상품, 간편심사보험, 보장 한도에 관한 금융당국의 규제·감독 방침"),
         Query(("COMMON",), ("제도변화",), "보험 표준약관 개정과 한국표준질병사인분류(KCD) 개정이 보험 상품에 주는 영향"),
-        Query(("COMMON",), ("판매중지", "한도한시상향"), "보험업계 전반의 절판 마케팅과 가입 한도 경쟁"),
+        Query(("COMMON",), ("판매중지", "한도한시상향"), "보험업계 전반의 절판 마케팅과 가입 한도 경쟁", any_org=True),
     ],
     6: [],
 }

@@ -92,3 +92,16 @@ def test_missing_key_is_an_error(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     with pytest.raises(GeminiError):
         Gemini()
+
+
+def test_missing_choice_is_zero_not_one_minus_confidence():
+    from postlife.gemini import Answer
+
+    # 선택지가 50개인 문항에서 1위 확신도가 낮다고 "해당없음"이 0.92가 되면 안 된다
+    listed = Answer("일반암 진단비", 0.08, {"일반암 진단비": 0.08, "소액암 진단비": 0.07})
+    assert listed.prob("해당없음") == 0.0
+    only_confidence = Answer("일반암 진단비", 0.08, {})
+    assert only_confidence.prob("해당없음") == 0.0
+    assert only_confidence.prob("일반암 진단비") == 0.08
+    # 참·거짓 문항에서는 1 - 확신도가 성립한다
+    assert Answer(True, 0.9, {}).prob(False) == pytest.approx(0.1)

@@ -97,3 +97,95 @@ def test_snapshot_is_order_independent(tmp_path):
     snapshot.write_snapshot({"sys_특약": rows}, tmp_path)
     assert snapshot.read_snapshot(tmp_path)["sys_특약"][0]["특약ID"] == "V1_T1"
     assert "snapshot_at" not in (tmp_path / "sys_특약.jsonl").read_text(encoding="utf-8")
+
+
+class FakeResp:
+    def __init__(self, status=200, body=None):
+        self.status_code = status
+        self._body = body or {}
+        self.text = "오류"
+
+    def json(self):
+        return self._body
+
+
+class FakeSession:
+    def __init__(self, responses=None):
+        self.sent = []
+        self.responses = list(responses or [])
+
+    def _next(self, method, url, **kw):
+        self.sent.append((method, url.rsplit("/", 1)[-1], kw))
+        return self.responses.pop(0) if self.responses else FakeResp()
+
+    def get(self, url, **kw):
+        return self._next("get", url, **kw)
+
+    def post(self, url, **kw):
+        return self._next("post", url, **kw)
+
+
+def test_overwrite_writes_first_then_clears_only_the_rows_below():
+    from postlife.sheets_io import RestBackend
+
+    session = FakeSession()
+    RestBackend("SHEET", session, sleep=lambda s: None).overwrite("hum_기준값", [["a", "b", "c"], [1, 2, 3]])
+    assert [s[1] for s in session.sent] == ["values:batchUpdate", "values:batchClear"]
+    assert session.sent[1][2]["json"]["ranges"] == ["'hum_기준값'!A3:C"]
+
+    # 쓰기가 실패하면 지우는 요청은 나가지 않는다. 머리행과 기존 자료가 남는다.
+    failing = FakeSession([FakeResp(400)])
+    with pytest.raises(RuntimeError):
+        RestBackend("SHEET", failing, sleep=lambda s: None).overwrite("hum_기준값", [["a"]])
+    assert len(failing.sent) == 1
+
+
+def test_rest_backend_retries_rate_limit():
+    from postlife.sheets_io import RestBackend
+
+    waits = []
+    session = FakeSession([FakeResp(429), FakeResp(503), FakeResp(200, {"valueRanges": [{"values": [["x"]]}]})])
+    out = RestBackend("SHEET", session, sleep=waits.append).get(["sys_특약"])
+    assert out == {"sys_특약": [["x"]]} and waits == [5, 10]
+
+
+def test_values_edited_by_hand_are_read_back_in_schema_types():
+    tab = TABS["hum_기준값"]
+    # 담당자가 화면에서 고치면 날짜는 일련번호로, 문자값 "325"는 숫자로 돌아온다
+    values = [tab.header, ["K", "대표조건", "간편고지 약칭", "", 325, "", "", 46345]]
+    back = values_to_rows(tab, values)[0]
+    assert back["적용시작일"] == "2026-11-19" and back["문자값"] == "325"
+    loose = values_to_rows(tab, [tab.header, ["K", "대표조건", "이름", 50, "", "", "", "2026. 11. 9"]])[0]
+    assert loose["적용시작일"] == "2026-11-09" and loose["수치값"] == 50
+    flags = values_to_rows(TABS["hum_표준담보사전"], [TABS["hum_표준담보사전"].header,
+                                                 ["S", "암보장", "암진단", "일반암", "진단", 1000, "TRUE"]])[0]
+    assert flags["사용여부"] is True
+
+
+def test_mapping_merge_keeps_what_the_reviewer_decided():
+    from postlife.sheets_io import merge_mapping
+
+    def m(key, state, confirmed=None, memo=None, rec="STD_A"):
+        return row("hum_담보매핑", 급부ID=key, 추천표준담보ID=rec, 확정표준담보ID=confirmed, 검토상태=state, 담당자메모=memo)
+
+    existing = [m("B1", "승인", "STD_X"), m("B2", "대기", memo="확인 중"), m("B3", "자동확정", "STD_A"), m("B9", "수정", "STD_Z")]
+    proposed = [m("B1", "자동확정", "STD_A"), m("B2", "자동확정", "STD_B", rec="STD_B"), m("B3", "대기"), m("B4", "대상외")]
+    merged = {r["급부ID"]: r for r in merge_mapping(existing, proposed)}
+    assert merged["B1"]["검토상태"] == "승인" and merged["B1"]["확정표준담보ID"] == "STD_X"
+    assert merged["B2"]["검토상태"] == "자동확정" and merged["B2"]["담당자메모"] == "확인 중"
+    assert merged["B3"]["검토상태"] == "대기"
+    assert merged["B4"]["검토상태"] == "대상외" and merged["B9"]["검토상태"] == "수정"
+    # 다시 돌려도 행이 늘지 않는다
+    again = merge_mapping(list(merged.values()), proposed)
+    assert len(again) == 5
+    with pytest.raises(ValueError):
+        merge_mapping([], [m("B1", "대기"), m("B1", "대기")])
+
+
+def test_append_is_only_for_cumulative_tabs():
+    store = SheetStore(MemoryBackend())
+    with pytest.raises(ValueError):
+        store.append("hum_담보매핑", [row("hum_담보매핑", 급부ID="B1")])
+    store.upsert_mapping([row("hum_담보매핑", 급부ID="B1", 검토상태="대기")])
+    store.upsert_mapping([row("hum_담보매핑", 급부ID="B1", 검토상태="자동확정")])
+    assert [r["검토상태"] for r in store.read(["hum_담보매핑"])["hum_담보매핑"]] == ["자동확정"]

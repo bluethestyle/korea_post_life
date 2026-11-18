@@ -32,7 +32,8 @@ class FakeGemini:
             raise GeminiError(429, "한도 초과")
         return SearchResult(
             text="2026-11-10 한화생명이 ... [1]",
-            sources=[Source(1, "example-news.kr", self.url)],
+            sources=[Source(1, "example-news.kr", self.url)]
+            + [Source(n, "example-news.kr", f"https://example-news.kr/a{n}") for n in range(2, 6)],
         )
 
     def generate(self, model, prompt, schema=None, temperature=0.0):
@@ -100,13 +101,15 @@ def test_week_label():
 
 
 def test_out_of_window_items_are_dropped_by_code():
-    g = FakeGemini([item("새 암보험"), item("7월 소식", published="2026-07-03")])
+    g = FakeGemini([item("새 암보험"), item("7월 소식", published="2026-07-03", sources=(2,))])
     report, store = run(g)
     assert [r["핵심요약"] for r in report.written] == ["새 암보험을 출시했다."]
     assert report.out_of_window == 1
     # 구간 밖 기사는 판정 모델까지 가지 않는다
     assert g.calls[config.MODEL_DECIDE] == 1
-    assert any(l["대상열"] == "발표일자" and l["변경전값"] == "2026-07-03" for l in report.logs)
+    # 구간 밖 소식은 검증이 잡은 오류가 아니므로 건마다 반려로 남기지 않고 질의 기록에 건수만 적는다
+    assert [l["결과"] for l in report.logs] == ["통과", "통과"]
+    assert "수집 구간 밖 1건 제외" in report.logs[0]["사유"]
 
 
 def test_rows_written_follow_schema_and_log_everything():
@@ -121,17 +124,43 @@ def test_rows_written_follow_schema_and_log_everything():
 
 def test_screening_three_way_split():
     g = FakeGemini(
-        [item("새 암보험"), item("사회공헌 행사"), item("애매한 소식")],
+        [item("새 암보험"), item("사회공헌 행사", sources=(2,)), item("애매한 소식", sources=(3,))],
         screens={"사회공헌 행사": (0.05, "해당없음"), "애매한 소식": (0.55, "상품개정")},
     )
-    report, _ = run(g)
-    assert len(report.written) == 1 and report.rejected == 1 and report.held == 1
+    report, store = run(g)
+    assert report.rejected == 1 and report.held == 1
+    # 검토 대기 소식도 시트에 적는다. 적지 않으면 다음 주에 같은 기사가 다시 잡혀 보류 기록만 쌓인다.
+    assert sorted(r["판정확률"] for r in report.written) == [0.55, 0.95]
     held = [l for l in report.logs if l["작업단계"] == "사람검토이관"]
-    assert held and held[0]["결과"] == "보류" and "example-news.kr" in held[0]["사유"]
+    assert len(held) == 1 and held[0]["결과"] == "보류" and held[0]["대상행ID"].startswith("TRD_")
+    # 화면 1·5에는 통과 기준을 넘은 소식만 낸다
+    rows = store.read(["sys_시장동향"])["sys_시장동향"]
+    assert [r["판정확률"] for r in collect.visible(rows, config.DEFAULT_THRESHOLDS)] == [0.95]
+
+
+def test_held_news_is_not_logged_again_next_week():
+    backend = MemoryBackend()
+    g = lambda: FakeGemini([item("애매한 소식")], screens={"애매한 소식": (0.55, "상품개정")})
+    first, _ = run(g(), backend=backend)
+    second, _ = run(g(), backend=backend)
+    assert len(first.written) == 1 and second.written == [] and second.duplicates == 1
+    assert not [l for l in second.logs if l["작업단계"] == "사람검토이관"]
+
+
+def test_passing_news_supersedes_a_held_duplicate():
+    backend = MemoryBackend()
+    low = item("배타적 사용권 획득", summary="새 특약으로 배타적 사용권을 받았다.")
+    high = item("배타적 사용권 획득", summary="신규 특약이 6개월 배타적 사용권을 획득했다.", sources=(2,))
+    run(FakeGemini([low], screens={"배타적 사용권": (0.6, "배타적사용권")}, same=0.9), backend=backend)
+    again, store = run(FakeGemini([high], screens={"배타적 사용권": (0.9, "배타적사용권")}, same=0.9), backend=backend)
+    assert len(again.written) == 1 and again.duplicates == 0
+    rows = store.read(["sys_시장동향"])["sys_시장동향"]
+    assert len(rows) == 2 and len(collect.visible(rows, config.DEFAULT_THRESHOLDS)) == 1
 
 
 def test_items_without_source_or_wrong_org_are_rejected():
     g = FakeGemini([item("출처 없음", sources=()), item("다른 회사", org="KYOBO"), item("날짜 없음", published="11월 초")])
+    assert not config.DAILY_PLAN[0][0].any_org
     report, _ = run(g)
     assert report.written == [] and report.rejected == 3
     assert config.MODEL_DECIDE not in g.calls
@@ -139,7 +168,7 @@ def test_items_without_source_or_wrong_org_are_rejected():
 
 def test_duplicates_are_merged_within_run_and_against_sheet():
     same = item("새 암보험", summary="삼성생명이 새 암보험을 출시했다.")
-    near = item("암보험 신상품", summary="삼성생명이 새 암보험을 출시하였다")
+    near = item("암보험 신상품", summary="삼성생명이 새 암보험을 출시하였다", sources=(2,))
     report, store = run(FakeGemini([same, near]))
     assert len(report.written) == 1 and report.duplicates == 1
 
@@ -150,9 +179,58 @@ def test_duplicates_are_merged_within_run_and_against_sheet():
     assert again.logs[-1]["작업단계"] == "판정"
     different, _ = run(FakeGemini([other], same=0.1, url="https://other-news.kr/b2"), backend=store.backend)
     assert len(different.written) == 1
-    # 같은 기사 주소면 묻지 않고 합친다
-    same_url, _ = run(FakeGemini([other], same=0.1), backend=store.backend)
+    # 같은 기사 주소에 같은 분류면 묻지 않고 합친다. 추적용 매개변수는 떼고 비교한다.
+    tracked = item("암보험 출시 소식", summary="전혀 다른 문장으로 쓴 요약.")
+    same_url, _ = run(
+        FakeGemini([tracked], same=0.1, url="https://example-news.kr/a1?utm_source=x#top"), backend=store.backend
+    )
     assert same_url.duplicates == 1 and same_url.logs[-1]["작업단계"] == "코드대조"
+
+
+def test_same_article_under_another_category_is_merged():
+    # 같은 기사가 두 갈래 질의에서 각각 다른 분류로 잡혀도 한 번만 적는다
+    backend = MemoryBackend()
+    first = item("간편보험 개정", summary="간편보험의 고지 항목을 줄여 개정 출시했다.")
+    run(FakeGemini([first], screens={"간편보험": (0.9, "상품개정")}), backend=backend)
+    second, _ = run(FakeGemini([first], screens={"간편보험": (0.9, "간편고지완화")}), backend=backend)
+    assert second.written == [] and second.duplicates == 1
+
+
+def test_association_query_attributes_news_to_the_insurer():
+    klia = config.DAILY_PLAN[5][0]
+    assert klia.any_org and klia.orgs == ("KLIA",)
+    result = SearchResult("...", [Source(1, "news.kr", "https://news.kr/1")])
+    good, bad = collect.to_candidates(
+        [item("배타적 사용권", org="HANWHALIFE"), item("협회 공통", org="KLIA"), item("없는 코드", org="XX")],
+        result, klia, lambda u: u,
+    )
+    assert [c.org for c in good] == ["HANWHALIFE", "KLIA"] and len(bad) == 1
+    prompt = collect.build_structure_prompt(result, klia, date(2026, 11, 7), date(2026, 11, 21))
+    assert "HANWHALIFE: 한화생명" in prompt and "SAMSUNGFIRE: 삼성화재" in prompt
+
+
+def test_backfill_uses_the_week_of_publication():
+    old = item("석 달 전 소식", published="2026-08-20")
+    report, _ = run(FakeGemini([old]), lookback_days=120)
+    assert report.written[0]["수집주차"] == "2026-W34"
+    normal, _ = run(FakeGemini([item("새 암보험")]))
+    assert normal.written[0]["수집주차"] == "2026-W47"
+
+
+def test_normal_query_with_rejections_is_not_retried():
+    # 후보가 반려돼도 질의 자체는 성공한 것이다. 일요일에 다시 돌면 검색 한도를 넘긴다.
+    backend = MemoryBackend()
+    g = FakeGemini([item("새 암보험"), item("사회공헌", sources=(2,)), item("출처 없음", sources=())],
+                   screens={"사회공헌": (0.05, "해당없음")})
+    report, _ = run(g, backend=backend)
+    assert report.logs[-1]["결과"] == "반려" and report.logs[-1]["대상행ID"].startswith("Q|")
+    logs = SheetStore(backend).read(["sys_작업로그"])["sys_작업로그"]
+    assert collect.failed_queries(logs, "2026-W47", NOW.date()) == []
+
+
+def test_run_never_exceeds_query_cap():
+    report, _ = run(FakeGemini([]), max_queries=50)
+    assert report.queries == config.MAX_QUERIES_PER_RUN
 
 
 def test_failed_query_is_logged_and_retried_on_sunday():

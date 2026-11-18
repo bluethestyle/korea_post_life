@@ -58,10 +58,10 @@ def main() -> int:
     print(f"수집 구간 {report.window[0]} ~ {report.window[1]}, 질의 {report.queries}건"
           f"(실패 {len(report.failed_queries)}건)")
     print(f"추출 {report.extracted}건 → 구간 밖 {report.out_of_window}, 반려 {report.rejected}, "
-          f"보류 {report.held}, 중복 {report.duplicates}, 기록 {len(report.written)}")
+          f"중복 {report.duplicates}, 기록 {len(report.written)}(그중 검토 대기 {report.held})")
     print("모델별 호출 수:", report.calls)
     for row in report.written:
-        print(f"- {row['발표일자']} [{row['기관코드']}/{row['분류유형']}] {row['핵심요약']} ({row['판정확률']})")
+        print(f"- {row['발표일자']} [{row['기관코드']}/{row['분류유형']}] {row['핵심요약'][:60]} ({row['판정확률']})")
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(json.dumps(asdict(report), ensure_ascii=False, indent=2), encoding="utf-8")

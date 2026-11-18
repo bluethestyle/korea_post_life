@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import kcd
 from .schema import TABS
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -85,6 +86,11 @@ def _logic(tab_name: str, row: dict[str, Any]) -> list[str]:
         start, end = row.get("적용시작일"), row.get("판매종료일")
         if start and end and str(end) < str(start):
             out.append("판매종료일이 적용시작일보다 앞섬")
+        if row.get("비교역할구분") == "정밀비교":
+            # 관문 표시에만 쓰는 종형 때문에 선택 열로 둔 값이지만, 정밀 비교에서는 색상 규칙에 필요하다
+            for name in ("환급유형", "납입면제적용", "요약서해시"):
+                if row.get(name) in (None, ""):
+                    out.append(f"정밀비교 종형인데 {name}이(가) 비어 있음")
     if tab_name == "sys_특약":
         if row.get("갱신여부") is True and row.get("갱신주기년") in (None, ""):
             out.append("갱신형 특약인데 갱신주기년이 비어 있음")
@@ -100,10 +106,14 @@ def _logic(tab_name: str, row: dict[str, Any]) -> list[str]:
     if tab_name == "sys_결합제약":
         if row.get("제약수치") not in (None, "") and row.get("제약단위") in (None, ""):
             out.append("제약수치가 있는데 제약단위가 비어 있음")
-    if tab_name == "sys_급부질병코드":
+    if tab_name in ("sys_급부질병코드", "hum_표준질병군"):
         s, e = row.get("시작코드"), row.get("끝코드")
-        if isinstance(s, str) and isinstance(e, str) and e < s:
-            out.append(f"끝코드({e})가 시작코드({s})보다 앞섬")
+        if isinstance(s, str) and isinstance(e, str):
+            try:
+                if not kcd.ordered(s, e):
+                    out.append(f"끝코드({e})가 시작코드({s})보다 앞섬")
+            except ValueError as err:
+                out.append(str(err))
     if tab_name == "sys_보험료예시":
         if isinstance(row.get("월납보험료원"), int) and row["월납보험료원"] <= 0:
             out.append("월납보험료원이 0 이하")

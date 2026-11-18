@@ -10,13 +10,21 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Iterable, Protocol
+import re
+import time
+from datetime import date, datetime, timedelta
+from typing import Any, Callable, Iterable, Protocol
 
 from .schema import TABS, Tab
 
 Row = dict[str, Any]
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 API = "https://sheets.googleapis.com/v4/spreadsheets"
+RETRY_STATUS = {429, 500, 502, 503, 504}
+RETRIES = 3
+HUMAN_REVIEWED = {"승인", "수정", "오류"}   # 담당자가 손댄 매핑 행. 배치는 읽기만 한다.
+_EPOCH = date(1899, 12, 30)                  # 시트 날짜 일련번호의 기준일
+_LOOSE_DATE = re.compile(r"^(\d{4})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{1,2})\.?$")
 
 
 class Backend(Protocol):
@@ -50,9 +58,10 @@ class MemoryBackend:
 class RestBackend:
     """서비스 계정으로 Sheets API를 호출한다."""
 
-    def __init__(self, spreadsheet_id: str, session: Any):
+    def __init__(self, spreadsheet_id: str, session: Any, sleep: Callable[[float], None] = time.sleep):
         self.spreadsheet_id = spreadsheet_id
         self.session = session
+        self.sleep = sleep
 
     @classmethod
     def from_env(cls) -> "RestBackend":
@@ -66,46 +75,92 @@ class RestBackend:
     def _url(self, suffix: str) -> str:
         return f"{API}/{self.spreadsheet_id}/{suffix}"
 
-    def _check(self, resp: Any) -> dict:
-        if resp.status_code >= 400:
-            raise RuntimeError(f"Sheets API {resp.status_code}: {resp.text[:500]}")
-        return resp.json()
+    def _request(self, method: str, suffix: str, **kwargs: Any) -> dict:
+        """429와 5xx는 간격을 늘려 가며 다시 시도한다."""
+        for attempt in range(RETRIES + 1):
+            resp = getattr(self.session, method)(self._url(suffix), **kwargs)
+            if resp.status_code < 400:
+                return resp.json()
+            if resp.status_code not in RETRY_STATUS or attempt == RETRIES:
+                raise RuntimeError(f"Sheets API {resp.status_code}: {resp.text[:500]}")
+            self.sleep(5 * 2 ** attempt)
+        raise AssertionError("도달하지 않음")
 
     def get(self, tabs: list[str]) -> dict[str, list[list[Any]]]:
         params = [("ranges", f"'{t}'") for t in tabs]
         params += [("valueRenderOption", "UNFORMATTED_VALUE"), ("majorDimension", "ROWS")]
-        body = self._check(self.session.get(self._url("values:batchGet"), params=params))
+        body = self._request("get", "values:batchGet", params=params)
         ranges = body.get("valueRanges", [])
         return {t: vr.get("values", []) for t, vr in zip(tabs, ranges)}
 
     def overwrite(self, tab: str, values: list[list[Any]]) -> None:
-        self._check(self.session.post(self._url("values:batchClear"), json={"ranges": [f"'{tab}'"]}))
-        self._check(
-            self.session.post(
-                self._url("values:batchUpdate"),
-                json={
-                    "valueInputOption": "RAW",
-                    "data": [{"range": f"'{tab}'!A1", "values": values}],
-                },
-            )
+        """새 값을 먼저 쓰고, 그 아래 남은 행만 지운다.
+
+        먼저 비우고 쓰면 쓰기가 실패했을 때 머리행과 기존 자료가 사라진다.
+        """
+        self._request(
+            "post",
+            "values:batchUpdate",
+            json={"valueInputOption": "RAW", "data": [{"range": f"'{tab}'!A1", "values": values}]},
+        )
+        last = _column_letter(max(len(r) for r in values))
+        self._request(
+            "post", "values:batchClear", json={"ranges": [f"'{tab}'!A{len(values) + 1}:{last}"]}
         )
 
     def append(self, tab: str, values: list[list[Any]]) -> None:
-        self._check(
-            self.session.post(
-                self._url(f"values/'{tab}'!A1:append"),
-                params={"valueInputOption": "RAW", "insertDataOption": "INSERT_ROWS"},
-                json={"values": values},
-            )
+        self._request(
+            "post",
+            f"values/'{tab}'!A1:append",
+            params={"valueInputOption": "RAW", "insertDataOption": "INSERT_ROWS"},
+            json={"values": values},
         )
+
+
+def _column_letter(n: int) -> str:
+    """1 → A, 26 → Z, 27 → AA."""
+    out = ""
+    while n > 0:
+        n, rem = divmod(n - 1, 26)
+        out = chr(65 + rem) + out
+    return out
 
 
 def _to_cell(value: Any) -> Any:
     return "" if value is None else value
 
 
-def _from_cell(value: Any) -> Any:
-    return None if value == "" else value
+def _from_cell(value: Any, kind: str = "str") -> Any:
+    """시트에서 읽은 값을 열 정의의 자료형에 맞춘다.
+
+    담당자가 화면에서 직접 고친 칸은 시트가 날짜·숫자로 바꿔 저장한다.
+    날짜는 일련번호로, 숫자처럼 보이는 문자열은 숫자로 돌아오므로 여기서 되돌린다.
+    """
+    if value == "" or value is None:
+        return None
+    number = isinstance(value, (int, float)) and not isinstance(value, bool)
+    if kind == "date":
+        if number:
+            return (_EPOCH + timedelta(days=int(value))).isoformat()
+        m = _LOOSE_DATE.match(str(value).strip())
+        if m:
+            return f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+    elif kind == "datetime":
+        if number:
+            moment = datetime(1899, 12, 30) + timedelta(days=float(value))
+            return moment.replace(microsecond=0).isoformat() + "+09:00"
+    elif kind == "str":
+        if isinstance(value, bool):
+            return "TRUE" if value else "FALSE"
+        if number:
+            return str(int(value)) if float(value).is_integer() else str(value)
+    elif kind == "int":
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+    elif kind == "bool":
+        if isinstance(value, str) and value.strip().upper() in ("TRUE", "FALSE"):
+            return value.strip().upper() == "TRUE"
+    return value
 
 
 def rows_to_values(tab: Tab, rows: Iterable[Row]) -> list[list[Any]]:
@@ -126,7 +181,7 @@ def values_to_rows(tab: Tab, values: list[list[Any]]) -> list[Row]:
         if not any(v != "" for v in raw):
             continue
         padded = list(raw) + [""] * (len(header) - len(raw))
-        rows.append({h: _from_cell(v) for h, v in zip(header, padded)})
+        rows.append({c.name: _from_cell(v, c.type) for c, v in zip(tab.columns, padded)})
     return rows
 
 
@@ -160,6 +215,30 @@ def merge_replace(
     return merged
 
 
+def merge_mapping(existing: list[Row], proposed: list[Row]) -> list[Row]:
+    """hum_담보매핑에 배치의 새 추천을 합친다 (docs/planning.md 5.4).
+
+    - 담당자가 손댄 행(검토상태가 승인·수정·오류)은 그대로 둔다.
+    - 그 밖의 행은 새 추천으로 바꾸되 담당자메모는 지키고, 새 급부는 추가한다.
+    - 이번에 추천이 오지 않은 기존 행은 지우지 않는다.
+    """
+    tab = TABS["hum_담보매핑"]
+    keys = [r[tab.key] for r in proposed]
+    dup = {k for k in keys if keys.count(k) > 1}
+    if dup:
+        raise ValueError(f"hum_담보매핑: 추천에 급부ID 중복 {sorted(dup)[:5]}")
+    merged = {r[tab.key]: dict(r) for r in existing}
+    for new in proposed:
+        old = merged.get(new[tab.key])
+        if old is not None and old.get("검토상태") in HUMAN_REVIEWED:
+            continue
+        row = dict(new)
+        if old is not None and old.get("담당자메모"):
+            row["담당자메모"] = old["담당자메모"]
+        merged[new[tab.key]] = row
+    return sorted(merged.values(), key=lambda r: str(r[tab.key]))
+
+
 class SheetStore:
     def __init__(self, backend: Backend):
         self.backend = backend
@@ -175,7 +254,7 @@ class SheetStore:
 
     def append(self, name: str, rows: list[Row]) -> None:
         tab = TABS[name]
-        if tab.mode != "append" and name != "hum_담보매핑":
+        if tab.mode != "append":
             raise ValueError(f"{name}은 덧붙이는 탭이 아닙니다")
         if rows:
             self.backend.append(name, rows_to_values(tab, rows))
@@ -186,3 +265,8 @@ class SheetStore:
         merged = merge_replace(self.read(replace_tabs), new, variant_ids)
         for name in replace_tabs:
             self.write_tab(name, merged[name])
+
+    def upsert_mapping(self, proposed: list[Row]) -> None:
+        """담보 매핑 추천을 반영한다. 담당자가 확정한 행은 건드리지 않는다."""
+        existing = self.read(["hum_담보매핑"])["hum_담보매핑"]
+        self.write_tab("hum_담보매핑", merge_mapping(existing, proposed))

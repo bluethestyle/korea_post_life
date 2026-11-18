@@ -33,3 +33,16 @@ def test_lineage_links_revisions():
     assert ids.revision_id("EPOST_SIMPLE", "2606") == "EPOST_SIMPLE_2606"
     key = ids.variant_lineage_key("EPOST_SIMPLE", "간편심사", "325", "갱신", None)
     assert key == "EPOST_SIMPLE|간편심사|325|갱신|미지정"
+
+
+def test_dividend_marker_does_not_split_a_rider():
+    # 요약서와 사업방법서가 같은 특약을 다르게 적어도 한 특약으로 이어진다
+    names = ["(무)암입원수술특약", "무배당 암입원수술특약", "(무배당)암입원수술특약 2606", "무배당암입원수술특약"]
+    assert len({ids.rider_lineage_key(n) for n in names}) == 1
+    assert ids.rider_lineage_key("(무)암입원수술특약") != ids.rider_lineage_key("(무)암진단특약")
+
+
+def test_revision_pattern_ignores_ordinary_numbers():
+    assert ids.strip_revision("1004 플랜") == "1004 플랜"
+    assert ids.strip_revision("3112 특약") == "3112 특약"
+    assert ids.revision_of("우체국간편한건강보험 2606") == "2606"

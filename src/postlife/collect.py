@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from difflib import SequenceMatcher
 from typing import Any, Callable
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from . import config, ids
 from .gemini import Gemini, GeminiError, SearchResult
@@ -66,9 +67,9 @@ class Report:
     queries: int = 0
     failed_queries: list[str] = field(default_factory=list)
     extracted: int = 0
-    out_of_window: int = 0
+    out_of_window: int = 0     # 수집 구간 밖이라 뺀 건수. 검증이 잡은 오류로 세지 않는다
     rejected: int = 0
-    held: int = 0
+    held: int = 0              # 기록은 하되 화면에는 검토 대기로만 보이는 건수
     duplicates: int = 0
     written: list[dict[str, Any]] = field(default_factory=list)
     logs: list[dict[str, Any]] = field(default_factory=list)
@@ -89,14 +90,31 @@ def query_key(q: config.Query) -> str:
     return f"Q|{'+'.join(q.orgs)}|{'+'.join(q.topics)}"
 
 
+def _months(start: date, end: date) -> list[str]:
+    out, y, m = [], start.year, start.month
+    while (y, m) <= (end.year, end.month):
+        out.append(f"{y}년 {m}월")
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+def allowed_orgs(q: config.Query) -> dict[str, str]:
+    """이 질의의 소식을 귀속시킬 수 있는 기관. 협회·공통 질의는 실제 보험사에도 귀속시킨다."""
+    codes = list(config.INSTITUTIONS) + list(q.orgs) if q.any_org else list(q.orgs)
+    return {c: config.ALL_ORGS[c] for c in dict.fromkeys(codes)}
+
+
 def build_search_prompt(q: config.Query, start: date, end: date) -> str:
     names = ", ".join(config.ALL_ORGS[c] for c in q.orgs)
     topics = "\n".join(f"- {t}: {config.CATEGORIES[t]}" for t in q.topics)
     focus = f"\n특히 다음을 찾습니다: {q.focus}" if q.focus else ""
+    months = ", ".join(f'"{m}"' for m in _months(start, end))
     return f"""대상: {names}
 기간: {start.isoformat()}부터 {end.isoformat()}까지 발행된 기사와 보도자료만 찾습니다.{focus}
 
-찾는 소식 (보장성 보험, 그중에서도 건강·암·뇌·심장·간편심사 보험 중심):
+검색할 때는 검색어에 {months}을 함께 넣고, after:{start.isoformat()} before:{(end + timedelta(days=1)).isoformat()} 조건을 붙입니다.
+
+찾는 소식 (생명·손해보험의 보장성 보험. 건강·암·뇌·심장·간편심사 보험 중심):
 {topics}
 
 제외: {config.EXCLUDED_TOPICS}.
@@ -109,7 +127,9 @@ def build_search_prompt(q: config.Query, start: date, end: date) -> str:
 
 
 def build_structure_prompt(result: SearchResult, q: config.Query, start: date, end: date) -> str:
-    orgs = "\n".join(f"- {c}: {config.ALL_ORGS[c]}" for c in q.orgs)
+    orgs = "\n".join(f"- {c}: {name}" for c, name in allowed_orgs(q).items())
+    if q.any_org:
+        orgs += f"\n특정 보험사의 소식이면 그 보험사 코드를, 여러 회사에 걸친 소식이면 {q.orgs[0]}를 씁니다."
     sources = "\n".join(f"[{s.index}] {s.title}" for s in result.sources) or "(출처 목록 없음)"
     return f"""아래 검색 결과에서 보험 소식을 한 건씩 뽑아 JSON 배열로 정리합니다.
 
@@ -148,11 +168,23 @@ def resolve_url(uri: str, get: Callable[..., Any] | None = None) -> str:
         return uri
 
 
+_TRACKING = ("utm_", "fbclid", "gclid", "ref", "cmpid")
+
+
+def normalize_url(url: str) -> str:
+    """추적용 매개변수와 조각을 떼 같은 기사가 같은 주소가 되게 한다."""
+    parts = urlsplit(url.strip())
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+             if not k.lower().startswith(_TRACKING)]
+    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path, urlencode(query), ""))
+
+
 def to_candidates(
     raw: list[dict], result: SearchResult, q: config.Query, resolve: Callable[[str], str]
 ) -> tuple[list[Candidate], list[tuple[dict, str]]]:
     """정형화 결과를 후보로 바꾼다. 형식이 어긋난 건은 사유와 함께 따로 돌려준다."""
     by_index = {s.index: s for s in result.sources}
+    orgs = allowed_orgs(q)
     good: list[Candidate] = []
     bad: list[tuple[dict, str]] = []
     for item in raw:
@@ -162,7 +194,7 @@ def to_candidates(
         if not _DATE.match(published):
             bad.append((item, "발행일 형식이 아님"))
             continue
-        if org not in q.orgs:
+        if org not in orgs:
             bad.append((item, f"질의 대상이 아닌 기관: {org}"))
             continue
         if not summary:
@@ -182,7 +214,7 @@ def to_candidates(
                 title=str(item.get("title", "")).strip(),
                 summary=summary,
                 media=str(item.get("media", "")).strip() or source.title,
-                url=resolve(source.uri),
+                url=normalize_url(resolve(source.uri)),
             )
         )
     return good, bad
@@ -205,9 +237,12 @@ def screen_questions(topics: tuple[str, ...] | None = None) -> dict[str, dict]:
         "is_target": {
             "type": "noul",
             "instructions": (
-                "이 소식이 보장성 보험(건강·암·뇌·심장·간편심사·종신·정기) 상품이나 인수 기준, "
-                "또는 그에 영향을 주는 제도의 구체적인 변화를 다루면 참. "
-                f"{config.EXCLUDED_TOPICS} 소식이거나 구체적인 변화가 없는 홍보성 소식이면 거짓."
+                "생명·손해보험의 보장성 보험(건강·암·뇌·심장·간편심사·어린이·종신·정기 등)에 관해 "
+                "다음 가운데 하나를 다루면 참: 배타적 사용권 신청·획득, 신상품·신담보 출시, 상품 개정, "
+                "판매중지, 간편고지 완화, 가입 한도 조정, 여러 회사에 영향을 주는 제도 변화. "
+                "배타적 사용권 획득 소식은 그 자체로 참이다. "
+                f"{config.EXCLUDED_TOPICS} 소식이거나, 위 일곱 가지 가운데 어느 것도 다루지 않는 "
+                "실적·순위·홍보 소식이면 거짓."
             ),
         },
         "category": {
@@ -248,31 +283,34 @@ def same_event(gemini: Gemini, a: str, b: str) -> float:
 
 
 def find_duplicate(
-    gemini: Gemini, c: Candidate, pool: list[dict[str, Any]], threshold: float
-) -> tuple[str | None, float, str]:
-    """같은 기관·분류 안에서 발표일이 7일 이내로 가까운 기존 소식 가운데 같은 사건을 찾는다.
+    gemini: Gemini, c: Candidate, pool: list[dict[str, Any]], threshold: float, days: int
+) -> tuple[dict[str, Any] | None, float, str]:
+    """같은 기관의 기존 소식 가운데 같은 사건을 찾는다. (기존 행, 확률, 가린 주체)를 돌려준다.
 
-    (동향ID, 확률, 가린 주체)를 돌려준다. 주소나 글자가 거의 같으면 코드가,
-    표현이 다르면 판정 모델이 가린다.
+    분류가 달라도 비교한다. 같은 기사가 질의 갈래에 따라 다른 분류로 잡히기 때문이다.
+    1. 같은 기관, 같은 분류, 같은 기사 주소면 묻지 않고 같은 사건으로 본다.
+    2. 발표일이 수집 구간 길이 이내로 가까운 소식은 글자가 거의 같으면 코드가,
+       표현이 다르면 판정 모델이 가린다. 주소가 같아도 분류가 다르면 여기서 가린다.
+       한 기사가 한 회사의 서로 다른 조치 둘을 함께 다루는 경우가 있어서다.
     """
+    same_org = [r for r in pool if r["기관코드"] == c.org]
+    for row in same_org:
+        if row["분류유형"] == c.category and normalize_url(str(row["출처URL"])) == c.url:
+            return row, 1.0, "코드대조"
     day = date.fromisoformat(c.published)
-    for row in pool:
-        if row["기관코드"] != c.org or row["분류유형"] != c.category:
-            continue
+    for row in same_org:
         try:
             gap = abs((date.fromisoformat(str(row["발표일자"])) - day).days)
         except ValueError:
             continue
-        if gap > 7:
+        if gap > days:
             continue
-        if row["출처URL"] == c.url:
-            return row["동향ID"], 1.0, "코드대조"
         ratio = similarity(c.summary, str(row["핵심요약"]))
         if ratio >= 0.8:
-            return row["동향ID"], ratio, "코드대조"
+            return row, ratio, "코드대조"
         prob = same_event(gemini, c.text, str(row["핵심요약"]))
         if prob >= threshold:
-            return row["동향ID"], prob, "판정"
+            return row, prob, "판정"
     return None, 0.0, ""
 
 
@@ -314,7 +352,9 @@ def failed_queries(logs: list[dict[str, Any]], week: str, now: date) -> list[con
     state: dict[str, str] = {}
     for r in sorted(logs, key=lambda r: str(r["실행일시"])):
         key = str(r.get("대상행ID", ""))
-        if not key.startswith("Q|"):
+        # 질의가 실행됐는지는 "추출" 단계 기록만 말해 준다. 같은 키로 남는 후보 단위
+        # 반려·보류 기록까지 보면 정상 질의가 실패로 잘못 잡힌다.
+        if not key.startswith("Q|") or r.get("작업단계") != "추출":
             continue
         try:
             if week_of(date.fromisoformat(str(r["실행일시"])[:10])) != week:
@@ -352,15 +392,19 @@ def run(
     day = today.weekday() if weekday is None else weekday
     start, end = window(today, lookback_days)
     week = week_of(today)
+    # 처음 자료를 채우려고 구간을 넓힌 실행에서는 수집주차에 발표일의 주차를 적는다.
+    # 실행 주차를 적으면 몇 달 전 소식이 모두 "이번 주 소식"으로 잡힌다.
+    backfill = lookback_days > config.SEARCH_LOOKBACK_DAYS
 
     existing = store.read(["sys_시장동향", "sys_작업로그", "hum_기준값"])
     thresholds = load_thresholds(existing["hum_기준값"])
+    passing = thresholds["기사선별_통과"]
     pool = list(existing["sys_시장동향"])
     known = {r["동향ID"] for r in pool}
 
     queries = list(config.DAILY_PLAN[day]) or failed_queries(existing["sys_작업로그"], week, today)
-    if max_queries is not None:
-        queries = queries[:max_queries]
+    limit = config.MAX_QUERIES_PER_RUN if max_queries is None else min(max_queries, config.MAX_QUERIES_PER_RUN)
+    queries = queries[:limit]
 
     report = Report(now.isoformat(timespec="seconds"), day, (start.isoformat(), end.isoformat()))
     log = _Logger(now)
@@ -379,23 +423,24 @@ def run(
             continue
 
         candidates, bad = to_candidates(raw if isinstance(raw, list) else [], result, q, resolve)
+        inside = [c for c in candidates if in_window(c.published, start, end)]
+        outside = len(candidates) - len(inside)
         report.extracted += len(candidates) + len(bad)
-        log.add("추출", key, "통과", f"소식 {len(candidates) + len(bad)}건, 출처 {len(result.sources)}건",
+        report.out_of_window += outside
+        # 수집 구간 밖 소식은 추출 오류가 아니라 검색 결과의 범위 문제다. 건마다 반려로
+        # 남기지 않고 질의 기록에 건수만 적는다.
+        log.add("추출", key, "통과",
+                f"소식 {len(candidates) + len(bad)}건, 출처 {len(result.sources)}건, 수집 구간 밖 {outside}건 제외",
                 model=config.MODEL_EXTRACT)
         for item, reason in bad:
             report.rejected += 1
             log.add("코드대조", key, "반려", f"{reason}: {str(item.get('title', ''))[:80]}")
 
-        for c in candidates:
-            if not in_window(c.published, start, end):
-                report.out_of_window += 1
-                log.add("코드대조", key, "반려", f"수집 구간 밖: {c.title[:80]}",
-                        column="발표일자", before=c.published)
-                continue
+        for c in inside:
             try:
                 prob, category = screen(gemini, c)
             except (GeminiError, KeyError) as e:
-                report.held += 1
+                report.rejected += 1
                 log.add("판정", key, "보류", f"판정 실패({e}): {c.title[:80]}"[:300], model=config.MODEL_DECIDE)
                 continue
             c.probability, c.category = prob, category
@@ -404,28 +449,32 @@ def run(
                 log.add("판정", key, "반려", f"대상 아님({category}): {c.title[:80]}",
                         model=config.MODEL_DECIDE, prob=prob)
                 continue
-            if prob < thresholds["기사선별_통과"]:
-                report.held += 1
-                log.add("사람검토이관", key, "보류", f"[{category}] {c.summary[:150]} | {c.url}"[:400],
-                        model=config.MODEL_DECIDE, prob=prob)
-                continue
 
             trend = ids.trend_id(c.org, c.category, c.published, c.summary)
             try:
-                dup, dup_prob, dup_by = (trend, 1.0, "코드대조") if trend in known else find_duplicate(
-                    gemini, c, pool, thresholds["중복판정_동일"]
-                )
+                if trend in known:
+                    dup, dup_prob, dup_by = next(r for r in pool if r["동향ID"] == trend), 1.0, "코드대조"
+                else:
+                    dup, dup_prob, dup_by = find_duplicate(
+                        gemini, c, pool, thresholds["중복판정_동일"], lookback_days
+                    )
             except (GeminiError, KeyError):
                 dup, dup_prob, dup_by = None, 0.0, ""
-            if dup:
+            # 기존 행이 검토 대기(통과 기준 미만)이고 새 소식이 기준을 넘으면 새 소식을 기록한다.
+            # 누적 탭이라 기존 행을 고칠 수 없고, 화면은 기준을 넘은 행만 보여 주기 때문이다.
+            supersedes = (
+                dup is not None and trend != dup["동향ID"]
+                and prob >= passing > float(dup.get("판정확률") or 0.0)
+            )
+            if dup is not None and not supersedes:
                 report.duplicates += 1
-                log.add(dup_by, dup, "반려", f"중복 소식 병합: {c.title[:80]}",
+                log.add(dup_by, dup["동향ID"], "반려", f"중복 소식 병합: {c.title[:80]}",
                         model=config.MODEL_DECIDE if dup_by == "판정" else "", prob=dup_prob)
                 continue
 
             row = {
                 "동향ID": trend,
-                "수집주차": week,
+                "수집주차": week_of(date.fromisoformat(c.published)) if backfill else week,
                 "발표일자": c.published,
                 "기관코드": c.org,
                 "분류유형": c.category,
@@ -445,7 +494,13 @@ def run(
             pool.append(row)
             known.add(trend)
             report.written.append(row)
-            log.add("판정", trend, "통과", model=config.MODEL_DECIDE, prob=prob)
+            if prob >= passing:
+                log.add("판정", trend, "통과", model=config.MODEL_DECIDE, prob=prob)
+            else:
+                # 기록은 하되 화면 1·5에는 내지 않는다. 화면 6의 검토 대기 목록에 보인다.
+                report.held += 1
+                log.add("사람검토이관", trend, "보류", "선별 확률이 통과 기준에 못 미침",
+                        model=config.MODEL_DECIDE, prob=prob)
 
     report.logs = log.rows
     report.calls = dict(gemini.calls)
@@ -454,3 +509,7 @@ def run(
         store.append("sys_작업로그", report.logs)
     return report
 
+
+def visible(rows: list[dict[str, Any]], thresholds: dict[str, float]) -> list[dict[str, Any]]:
+    """화면 1·5에 내는 소식. 선별 확률이 통과 기준 이상인 행만 고른다."""
+    return [r for r in rows if float(r.get("판정확률") or 0.0) >= thresholds["기사선별_통과"]]

@@ -43,14 +43,22 @@ class Answer:
     probabilities: dict[str, float] = field(default_factory=dict)
 
     def prob(self, option: Any) -> float:
-        """선택지 하나의 확률. noul은 True/False, choice는 선택지 이름으로 묻는다."""
+        """선택지 하나의 확률. noul은 True/False, choice는 선택지 이름으로 묻는다.
+
+        선택지가 여러 개인 문항에서 목록에 없는 선택지는 0으로 본다.
+        "1 - 확신도"는 참·거짓 문항에서만 성립하므로 그때만 쓴다.
+        """
         key = str(option).lower() if isinstance(option, bool) else str(option)
         for k, v in self.probabilities.items():
             if str(k).lower() == key.lower():
                 return float(v)
-        if self.confidence is not None:
-            return float(self.confidence) if self.value == option else 1.0 - float(self.confidence)
-        return 0.0
+        if self.probabilities:
+            return 0.0
+        if self.confidence is None:
+            return 0.0
+        if self.value == option:
+            return float(self.confidence)
+        return 1.0 - float(self.confidence) if isinstance(option, bool) else 0.0
 
 
 def annotate(text: str, supports: list[dict]) -> str:

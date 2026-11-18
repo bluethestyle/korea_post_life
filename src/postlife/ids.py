@@ -10,7 +10,9 @@ import re
 import unicodedata
 
 # 상품명·특약명에 붙는 개정 표기. 예: "2504", "(2404.10)", "2608.9"
-_REVISION = re.compile(r"\(?(?<!\d)(\d{2})(0[1-9]|1[0-2])(?:\.\d+)?(?!\d)\)?")
+_REVISION = re.compile(r"\(?(?<!\d)(2\d)(0[1-9]|1[0-2])(?:\.\d+)?(?!\d)\)?")
+# 문서마다 다르게 적는 배당 표기. 요약서는 "(무)", 사업방법서는 "무배당"으로 적는 일이 흔하다.
+_DIVIDEND = re.compile(r"^\s*(?:\(\s*무배당\s*\)|\(\s*무\s*\)|무배당)\s*")
 _SPACES = re.compile(r"\s+")
 
 
@@ -59,9 +61,18 @@ def variant_lineage_key(
     )
 
 
+def strip_dividend(name: str) -> str:
+    """이름 앞의 "무배당", "(무)", "(무배당)"을 뗀다."""
+    return _DIVIDEND.sub("", str(name))
+
+
 def rider_lineage_key(raw_rider_name: str) -> str:
-    """특약계보키. 개정 연월을 뗀 이름으로 만든다."""
-    return short_hash(strip_revision(raw_rider_name), length=12)
+    """특약계보키. 배당 표기와 개정 연월을 뗀 이름으로 만든다.
+
+    같은 특약을 요약서는 "(무)암진단특약", 사업방법서는 "무배당 암진단특약 2606"으로 적어도
+    같은 키가 나와야 보험료와 결합 제약이 한 특약에 붙는다.
+    """
+    return short_hash(strip_revision(strip_dividend(raw_rider_name)), length=12)
 
 
 def rider_id(variant: str, raw_rider_name: str) -> str:
