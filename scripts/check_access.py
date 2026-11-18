@@ -11,7 +11,9 @@ import time
 import requests
 
 TARGETS = [
-    ("우체국보험", "https://www.epostlife.go.kr/"),
+    ("우체국보험", "https://epostlife.go.kr/"),
+    ("우체국보험 (www)", "https://www.epostlife.go.kr/"),
+    ("우체국보험 공시 목록", "https://epostlife.go.kr/ASISDM00AT.do"),
     ("생명보험협회", "https://www.klia.or.kr/"),
     ("생명보험협회 공시실", "https://pub.insure.or.kr/"),
     ("손해보험협회", "https://www.knia.or.kr/"),
@@ -29,7 +31,7 @@ def check(url: str) -> tuple[str, str]:
         r = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
         return str(r.status_code), f"{time.time() - started:.1f}초, {len(r.content):,}바이트"
     except requests.RequestException as e:
-        return "접속 실패", type(e).__name__
+        return "접속 실패", f"{type(e).__name__}: {str(e)[:120]}".replace("|", "/")
 
 
 def main() -> int:
