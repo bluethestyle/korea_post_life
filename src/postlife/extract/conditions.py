@@ -18,15 +18,29 @@ from .benefits import money_token, parse_money, squash
 from .segment import _lines
 
 # ---------- 절 찾기 ----------
+#
+# 절 제목은 회사 이름이 아니라 문서에 적힌 모양으로 알아본다. 제목 모양을 여러 개 두고 먼저 맞는 줄을 쓴다.
+# - 가입나이: "2. 가입나이, 보험기간, …" / "2. 보험기간, 보험료 납입기간, … 및 피보험자 가입나이" / "4. 보험기간, …, 가입나이 및 …"
+# - 특약부가: "4. 특약부가에 관한 사항" / "5. 의무가입에 관한 사항"
+# - 자격요건(요약서): "② 보험가입 자격요건" / "2."와 "보험가입자격요건"이 두 줄로 갈린 제목 / "□ 가입자격제한"
 
 _HEADS = {
-    "가입나이": re.compile(r"^\d+\.\s*가입나이"),
+    "가입나이": re.compile(r"^\d+\.\s*(?:가입나이|보험기간\s*,[^.]*가입나이)"),
     "가입한도": re.compile(r"^\d+\.\s*보험가입금액의?\s*한도"),
-    "특약부가": re.compile(r"^\d+\.\s*특약\s*부가"),
+    "특약부가": re.compile(r"^\d+\.\s*(?:특약\s*부가|의무\s*가입에\s*관한)"),
 }
-_NEXT = re.compile(r"^\d+\.\s*[가-힣]")
-_ELIGIBLE = re.compile(r"^[②2][\s.)]*보험가입\s*자격요건")
-_ELIGIBLE_END = re.compile(r"^■\s*건강진단|^◆|^①\s*상품의\s*구성")
+_OTHER = re.compile(r"^\d+\.\s*기타\s*사항")
+_NEXT = re.compile(r"^(\d+)\.\s*[가-힣]")
+# (제목, 절이 끝나는 줄) 짝. 제목이 맞은 모양의 끝 표시만 쓴다
+_ELIGIBLE = (
+    (re.compile(r"^[②2][\s.)]*보험가입\s*자격요건"), re.compile(r"^■\s*건강진단|^◆|^①\s*상품의\s*구성")),
+    (re.compile(r"^보험가입\s*자격\s*요건\s*$"), re.compile(r"^[가-하]\.\s*건강진단\s*여부|^보험금\s*지급사유\s*및\s*지급제한")),
+    (re.compile(r"^□\s*가입자격\s*제한\s*$"), re.compile(r"^□|^●")),
+)
+_NUMBER_ONLY = re.compile(r"^\d+\.$")
+_ITEM = re.compile(r"^([가-하])\.\s")
+# 본문이 끝나고 별첨이 시작되는 줄. 예: "[별첨1] 부가가능 독립특별약관", "( 별첨 2 )". 본문 속의 "[별첨3], 335·5는 …"은 아니다
+_APPENDIX = re.compile(r"^[\[(<]\s*별첨\s*[\d\-]*\s*[\])>]\s*[가-힣A-Za-z ]{0,30}$")
 
 
 @dataclass(frozen=True)
@@ -42,27 +56,88 @@ def _cut(lines: list[tuple[int, str]], start: int, end: int, kind: str) -> Secti
     return Section(kind, "\n".join(l for _, l in body).strip(), body[0][0], body[-1][0])
 
 
-def method_sections(pages: dict[int, str]) -> dict[str, Section]:
-    """사업방법서에서 가입나이·가입한도·특약부가 절을 찾는다. 없는 절은 빠진다."""
+def _span(lines: list[tuple[int, str]], head: re.Pattern[str]) -> tuple[int, int] | None:
+    """제목이 head에 맞는 절의 (제목 줄, 끝 다음 줄). 절은 번호가 더 큰 다음 제목이나 별첨 앞에서 끝난다.
+
+    번호가 0으로 시작하는 줄("01. 건강 모듈 보장")과 번호가 절 번호보다 크지 않은 줄은 절 안의 항목으로 보고 지나간다.
+    """
+    start = next((i for i, (_, l) in enumerate(lines) if head.match(l.strip())), None)
+    if start is None:
+        return None
+    number = int(_NEXT.match(lines[start][1].strip()).group(1))
+    for i in range(start + 1, len(lines)):
+        line = lines[i][1].strip()
+        m = _NEXT.match(line)
+        if (m and not m.group(1).startswith("0") and int(m.group(1)) > number) or _APPENDIX.match(line):
+            return start, i
+    return start, len(lines)
+
+
+def _names_scope(line: str, scope: str) -> bool:
+    """항목 제목이 그 종(가입유형)을 가리키는가. "1종"이 "11종"에 걸리지 않게 앞 글자가 숫자인 경우는 뺀다."""
+    return re.search(r"(?<!\d)" + re.escape(scope.replace(" ", "")), line.replace(" ", "")) is not None
+
+
+def _section(kind: str, lines: list[tuple[int, str]], start: int, end: int, scope: str | None,
+             whole: bool = True) -> Section | None:
+    """절이 "가. 1종, 9종 및 11종", "라. 8종"처럼 종별 항목으로 나뉘어 있으면 scope의 항목만 남긴다.
+
+    남기는 것은 절 제목부터 첫 항목 앞까지의 줄과 scope를 이름에 가진 항목이다. 쪽 번호는 남긴 항목의 것을 적는다.
+    scope가 없거나 scope를 가진 항목이 없으면 절을 통째로 돌려준다(whole이 거짓이면 None).
+    항목 제목은 "가.", "나." 순서로 나오는 줄만 본다(같은 글자가 되풀이되는 것은 받아들인다). 본문 속의 "가. …" 줄에 끊기지 않게 하기 위함이다.
+    """
+    heads: list[int] = []
+    last = ""
+    for i in range(start + 1, end) if scope else ():
+        m = _ITEM.match(lines[i][1].strip())
+        if m and m.group(1) >= last:
+            heads.append(i)
+            last = m.group(1)
+    if not scope or not any(_names_scope(lines[i][1], scope) for i in heads):
+        return _cut(lines, start, end, kind) if whole else None
+    kept: list[tuple[int, str]] = []
+    for n, i in enumerate(heads):
+        if _names_scope(lines[i][1], scope):
+            kept += lines[i:heads[n + 1] if n + 1 < len(heads) else end]
+    text = "\n".join(l for _, l in lines[start:heads[0]] + kept).strip()
+    return Section(kind, text, kept[0][0], kept[-1][0])
+
+
+def method_sections(pages: dict[int, str], scope: str | None = None) -> dict[str, Section]:
+    """사업방법서에서 가입나이·가입한도·특약부가 절을 찾는다. 없는 절은 빠진다.
+
+    scope: 여러 종을 한 문서에 담아 절 안을 "가. 1종, 9종 및 11종", "라. 8종"처럼 종별 항목으로 나눈 문서에서,
+    남길 항목의 이름(항목 제목에 적힌 글자. 예: "8종", "간편고지"). 그 이름의 항목이 없는 절은 통째로 돌려준다.
+    scope를 준 경우, "기타사항" 절에 그 종의 항목이 있으면 "기타사항"으로 함께 돌려준다.
+    이런 문서는 특약 사이의 동시가입·선행가입·가입금액 연동 조건을 기타사항의 종별 항목에 적는다.
+    """
     lines = _lines(pages)
     out: dict[str, Section] = {}
     for kind, head in _HEADS.items():
-        start = next((i for i, (_, l) in enumerate(lines) if head.match(l.strip())), None)
-        if start is None:
-            continue
-        end = next((i for i in range(start + 1, len(lines)) if _NEXT.match(lines[i][1].strip())), len(lines))
-        out[kind] = _cut(lines, start, end, kind)
+        span = _span(lines, head)
+        if span:
+            out[kind] = _section(kind, lines, *span, scope)
+    span = _span(lines, _OTHER) if scope else None
+    other = _section("기타사항", lines, *span, scope, whole=False) if span else None
+    if other:
+        out["기타사항"] = other
     return out
 
 
-def eligibility_section(pages: dict[int, str]) -> Section | None:
-    """상품요약서의 "보험가입 자격요건" 절. 주석에 특약 사이의 제약이 적혀 있다."""
+def eligibility_section(pages: dict[int, str], scope: str | None = None) -> Section | None:
+    """상품요약서의 "보험가입 자격요건"("가입자격제한") 절. 주석에 특약 사이의 제약이 적혀 있다.
+
+    scope: 절이 "가. 7종(납입면제형)", "나. 8종(일반형)"처럼 종별 항목으로 나뉜 문서에서 남길 항목의 이름.
+    """
     lines = _lines(pages)
-    start = next((i for i, (_, l) in enumerate(lines) if _ELIGIBLE.match(l.strip())), None)
-    if start is None:
+    found = next(((i, stop) for i, (_, l) in enumerate(lines) for head, stop in _ELIGIBLE if head.match(l.strip())), None)
+    if found is None:
         return None
-    end = next((i for i in range(start + 1, len(lines)) if _ELIGIBLE_END.match(lines[i][1].strip())), len(lines))
-    return _cut(lines, start, end, "자격요건")
+    start, stop = found
+    end = next((i for i in range(start + 1, len(lines)) if stop.match(lines[i][1].strip())), len(lines))
+    if end < len(lines) and end - 1 > start and _NUMBER_ONLY.match(lines[end - 1][1].strip()):
+        end -= 1                # 다음 절의 번호가 제목 윗줄에 따로 적혀 있으면 그 줄도 뺀다
+    return _section("자격요건", lines, start, end, scope)
 
 
 # ---------- 모델에 주는 형식과 지시문 ----------
