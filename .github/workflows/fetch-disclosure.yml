@@ -1,0 +1,29 @@
+name: 공시 문서 수집
+
+# 비교 대상 상품의 공시 문서를 받아 글자를 뽑는다. 원본은 저장소에 올리지 않고 결과물로만 하루 보관한다.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/fetch_disclosure.py
+      - .github/workflows/fetch-disclosure.yml
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests pdfplumber
+      - run: python scripts/fetch_disclosure.py --out out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: disclosure
+          path: out
+          retention-days: 1
