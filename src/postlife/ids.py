@@ -87,8 +87,9 @@ def benefit_id(rider: str, raw_benefit_name: str) -> str:
     return f"{rider}_B{short_hash(raw_benefit_name, length=8)}"
 
 
-def condition_id(variant: str, term: str, payment: str, rider: str = "", sex: str = "") -> str:
-    return f"{variant}_C{short_hash(term, payment, rider, sex, length=8)}"
+def condition_id(variant: str, term: str, payment: str, rider: str = "", sex: str = "", ages: str = "") -> str:
+    """조건행ID. ages는 "20-65"처럼 나이 구간. 한도가 나이에 따라 갈려 같은 기간에 행이 여럿일 때 구분한다."""
+    return f"{variant}_C{short_hash(term, payment, rider, sex, ages, length=8)}"
 
 
 def premium_id(rider: str, age: int, sex: str, term: str, payment: str, source: str) -> str:

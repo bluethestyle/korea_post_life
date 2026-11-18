@@ -30,6 +30,7 @@ def main() -> int:
     p.add_argument("--targets", type=Path, required=True)
     p.add_argument("--only", action="append", help="이 공시상품코드의 종형만 처리")
     p.add_argument("--dry-run", action="store_true", help="시트에 쓰지 않는다")
+    p.add_argument("--parts", default="급부,가입조건", help="돌릴 부분. 급부(요약서), 가입조건(사업방법서). 쉼표로 구분")
     p.add_argument("--result", type=Path, help="뽑은 행과 기록을 JSON으로 남길 경로")
     args = p.parse_args()
 
@@ -51,7 +52,8 @@ def main() -> int:
 
     gemini = Gemini(min_interval=config.MIN_INTERVAL, timeout=config.TIMEOUT)
     report = job.run(gemini, store, targets, index, read_text, datetime.now(KST), only=args.only,
-                     dry_run=args.dry_run, read_thresholds=has_sheet)
+                     dry_run=args.dry_run, read_thresholds=has_sheet,
+                     parts=tuple(x.strip() for x in args.parts.split(",") if x.strip()))
     text = report.markdown(gemini.calls)
     print(text)
     if args.result:
@@ -61,17 +63,17 @@ def main() -> int:
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as f:
-            f.write("## 급부 추출·검증\n\n" + text)
+            f.write("## 추출·검증\n\n" + text)
     if report.errors:
         print("형식 검사에 걸려 시트에 쓰지 않았습니다:", json.dumps(report.errors, ensure_ascii=False)[:2000])
         return 1
-    if not report.done:
+    if not (report.done or report.conditions_done):
         print("처리한 종형이 없습니다.")
         return 1
     if report.written:
         rows = report.rows
         print(f"시트에 씀: 종형 {len(rows['sys_상품종형'])}, 특약 {len(rows['sys_특약'])}, 급부 {len(rows['sys_급부'])}, "
-              f"기록 {len(report.logs)}행")
+              f"가입조건 {len(rows['sys_가입조건'])}, 결합제약 {len(rows['sys_결합제약'])}, 기록 {len(report.logs)}행")
     else:
         print("--dry-run: 시트에 쓰지 않았습니다.")
     return 0

@@ -1,11 +1,14 @@
-name: 급부 추출·검증
+name: 추출·검증
 
-# 공시 문서를 받아 종형·특약·급부를 뽑고, 검증을 거쳐 시트에 쓴다. 원본 PDF는 저장소에도 결과물에도 남기지 않는다.
+# 공시 문서를 받아 종형·특약·급부와 가입조건·결합 제약을 뽑고, 검증을 거쳐 시트에 쓴다. 원본 PDF는 저장소에도 결과물에도 남기지 않는다.
 on:
   workflow_dispatch:
     inputs:
       only:
         description: "이 공시상품코드만 처리 (여러 개면 공백으로 구분). 비우면 전체"
+        required: false
+      parts:
+        description: "돌릴 부분: 급부,가입조건 (비우면 둘 다). 가입조건만 돌리면 시트의 특약을 기준으로 뽑는다"
         required: false
       dry_run:
         description: "시트에 쓰지 않고 흐름만 확인"
@@ -29,6 +32,7 @@ jobs:
       SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
       INPUT_ONLY: ${{ inputs.only }}
       INPUT_DRY_RUN: ${{ inputs.dry_run }}
+      INPUT_PARTS: ${{ inputs.parts }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,6 +47,7 @@ jobs:
           args=()
           for code in $INPUT_ONLY; do args+=(--only "$code"); done
           if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          if [ -n "$INPUT_PARTS" ]; then args+=(--parts "$INPUT_PARTS"); fi
           python scripts/extract_product.py --docs out --targets data/targets/epost.json --result result/extract.json "${args[@]}"
       - uses: actions/upload-artifact@v4
         if: always()

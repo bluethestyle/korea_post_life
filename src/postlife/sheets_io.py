@@ -186,12 +186,14 @@ def values_to_rows(tab: Tab, values: list[list[Any]]) -> list[Row]:
 
 
 def merge_replace(
-    existing: dict[str, list[Row]], new: dict[str, list[Row]], variant_ids: set[str]
+    existing: dict[str, list[Row]], new: dict[str, list[Row]], variant_ids: set[str],
+    only: list[str] | None = None,
 ) -> dict[str, list[Row]]:
     """지정한 종형의 기존 행만 걷어내고 새 행을 합친다.
 
     하위 탭에는 종형ID 열이 없으므로 종형ID → 특약ID → 급부ID 사슬로 찾는다.
     existing에는 replace 탭 전체가 들어 있어야 한다.
+    only를 주면 그 탭만 바꾼 결과를 돌려준다. 가입조건만 다시 뽑을 때 급부 탭을 건드리지 않기 위함이다.
     """
     replace_tabs = [n for n, t in TABS.items() if t.mode == "replace"]
     missing = [n for n in replace_tabs if n not in existing]
@@ -203,7 +205,7 @@ def merge_replace(
     owned = {"종형ID": variant_ids, "특약ID": old_riders, "급부ID": old_benefits}
 
     merged: dict[str, list[Row]] = {}
-    for name in replace_tabs:
+    for name in (only or replace_tabs):
         tab = TABS[name]
         kept = [r for r in existing[name] if r[tab.parent] not in owned[tab.parent]]
         added = list(new.get(name, []))
@@ -259,11 +261,11 @@ class SheetStore:
         if rows:
             self.backend.append(name, rows_to_values(tab, rows))
 
-    def replace_variants(self, new: dict[str, list[Row]], variant_ids: set[str]) -> None:
-        """지정한 종형을 다시 추출한 결과로 바꾼다. 다른 상품의 행은 그대로 둔다."""
+    def replace_variants(self, new: dict[str, list[Row]], variant_ids: set[str], only: list[str] | None = None) -> None:
+        """지정한 종형을 다시 추출한 결과로 바꾼다. 다른 상품의 행은 그대로 둔다. only를 주면 그 탭만 바꾼다."""
         replace_tabs = [n for n, t in TABS.items() if t.mode == "replace"]
-        merged = merge_replace(self.read(replace_tabs), new, variant_ids)
-        for name in replace_tabs:
+        merged = merge_replace(self.read(replace_tabs), new, variant_ids, only)
+        for name in merged:
             self.write_tab(name, merged[name])
 
     def upsert_mapping(self, proposed: list[Row]) -> None:

@@ -24,7 +24,7 @@ DEFAULT_THRESHOLDS = {"추출검증_통과": 0.75, "추출검증_재추출": 0.4
 class BlockResult:
     extraction: B.Extraction
     probs: dict[str, dict[str, float]]
-    status: dict[str, str]                 # 급부 이름 → 확정 / 검토
+    status: dict[str, str]                 # 급부 이름 → 확정 / 검토 / 제외(시트에 쓰지 않음)
     retried: bool = False
 
 
@@ -158,10 +158,16 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
         if band == "확정":
             status[b.label] = "확정"
             log.add("판정", target, "통과", model=config.MODEL_DECIDE, prob=low, column=name)
+        elif band == "재추출":
+            # 다시 뽑아도 재추출 구간이면 틀린 값일 가능성이 높다. 시트에 쓰지 않고 사람에게 넘긴다.
+            status[b.label] = "제외"
+            log.add("판정", target, "반려", f"다시 뽑아도 원문과 맞지 않아 보여 시트에 쓰지 않음: {name}",
+                    model=config.MODEL_DECIDE, prob=low, column=name)
+            log.add("사람검토이관", target, "보류", f"{b.label}: 시트에 쓰지 않음. {name} 확인 필요 (근거 {block.first_page}쪽)",
+                    model=config.MODEL_DECIDE, prob=low, column=name)
         else:
             status[b.label] = "검토"
-            log.add("판정", target, "반려" if band == "재추출" else "보류",
-                    f"원문과 일치할 확률이 낮은 항목: {name}", model=config.MODEL_DECIDE, prob=low, column=name)
+            log.add("판정", target, "보류", f"원문과 일치할 확률이 낮은 항목: {name}", model=config.MODEL_DECIDE, prob=low, column=name)
             log.add("사람검토이관", target, "보류", f"{b.label}: {name} 확인 필요 (근거 {block.first_page}쪽)",
                     model=config.MODEL_DECIDE, prob=low, column=name)
     return BlockResult(ex, probs, status, retried)
@@ -186,12 +192,13 @@ def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now:
         result.blocks.append(done)
         for variant in variant_ids:
             result.riders.append(B.rider_row(variant, block, product_renewal_years, plain_renewal_years))
-            result.benefits.extend(B.benefit_rows(variant, done.extraction))
+            dropped = {label for label, state in done.status.items() if state == "제외"}
+            result.benefits.extend(B.benefit_rows(variant, done.extraction, skip=dropped))
     result.logs = log.rows
     statuses = [s for b in result.blocks for s in b.status.values()]
     result.stats = {
         "조각": len(blocks), "처리한 조각": len(result.blocks),
-        "급부": len(statuses), "확정": statuses.count("확정"), "검토": statuses.count("검토"),
+        "급부": len(statuses), "확정": statuses.count("확정"), "검토": statuses.count("검토"), "제외": statuses.count("제외"),
         "재추출한 조각": sum(b.retried for b in result.blocks),
         "상위 모델 사용": start - budget["상위모델"],
     }

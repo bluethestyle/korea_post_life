@@ -18,6 +18,7 @@ class Variant:
     row: dict[str, Any]            # sys_상품종형 한 행
     summary: dict[str, Any] | None  # 공시 수집 목록의 상품요약서 항목 (저장이름·해시·쪽수)
     plain_renewal_years: int | None = None   # 이름에 "(갱신형)"만 있는 특약의 갱신 주기
+    method: dict[str, Any] | None = None     # 공시 수집 목록의 사업방법서 항목
 
     @property
     def id(self) -> str:
@@ -64,7 +65,7 @@ def build(targets: dict[str, Any], index: list[dict[str, Any]]) -> tuple[list[Va
                 "공시목록URL": targets["공시목록URL"],
                 **{column: (found.get(kind) or {}).get("해시") for kind, column in DOC_HASH.items()},
             }
-            out.append(Variant(row, found.get("상품요약서"), product.get("갱신형특약주기년")))
+            out.append(Variant(row, found.get("상품요약서"), product.get("갱신형특약주기년"), found.get("사업방법서")))
     return out, problems
 
 

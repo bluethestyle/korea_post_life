@@ -69,7 +69,7 @@ def run(g):
 def test_wrong_value_is_caught_reextracted_and_logged():
     g = FakeGemini()
     r = run(g)
-    assert r.stats == {"조각": 2, "처리한 조각": 2, "급부": 2, "확정": 2, "검토": 0, "재추출한 조각": 1, "상위 모델 사용": 0}
+    assert r.stats == {"조각": 2, "처리한 조각": 2, "급부": 2, "확정": 2, "검토": 0, "제외": 0, "재추출한 조각": 1, "상위 모델 사용": 0}
     assert g.calls[config.MODEL_EXTRACT] == 2 and g.calls[config.MODEL_EXTRACT_ALT] == 1
     amounts = sorted({row["기준지급금액만원"] for row in r.benefits})
     assert amounts == [2, 1000]                      # 틀린 3000은 남지 않는다
@@ -89,11 +89,13 @@ def test_rows_are_repeated_for_each_variant_sharing_the_document():
     assert {row["특약ID"] for row in r.benefits} == rider_ids
 
 
-def test_value_still_wrong_after_retry_goes_to_human_review():
+def test_value_still_wrong_after_retry_is_left_out_and_handed_to_a_person():
     r = run(FakeGemini(retry_fixes=False))
-    assert r.stats["검토"] == 1 and r.stats["확정"] == 1
+    assert r.stats["제외"] == 1 and r.stats["확정"] == 1 and r.stats["검토"] == 0
+    assert sorted({row["기준지급금액만원"] for row in r.benefits}) == [2]      # 틀린 3,000만원은 시트에 가지 않는다
+    assert len(r.riders) == 4                                              # 특약 행은 남는다
     review = [l for l in r.logs if l["작업단계"] == "사람검토이관"]
-    assert len(review) == 1 and "기준지급금액만원" in review[0]["사유"] and "10쪽" in review[0]["사유"]
+    assert len(review) == 1 and "시트에 쓰지 않음" in review[0]["사유"] and "10쪽" in review[0]["사유"]
     assert ("재추출", "반려") in [(l["작업단계"], l["결과"]) for l in r.logs]
 
 
@@ -111,7 +113,7 @@ def test_upper_model_budget_is_respected(monkeypatch):
     monkeypatch.setattr(config, "EXTRACT_ESCALATIONS_PER_RUN", 0)
     g = FakeGemini(retry_fixes=False, upper_fixes=True)
     r = run(g)
-    assert config.MODEL_SUMMARY not in g.calls and r.stats["검토"] == 1
+    assert config.MODEL_SUMMARY not in g.calls and r.stats["제외"] == 1
 
 
 def test_thresholds_can_come_from_the_sheet():

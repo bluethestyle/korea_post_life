@@ -343,10 +343,14 @@ def rider_row(variant_id: str, block: Block, product_renewal_years: int | None,
     }
 
 
-def benefit_rows(variant_id: str, ex: Extraction, doc_kind: str = "요약서") -> list[dict[str, Any]]:
+def benefit_rows(variant_id: str, ex: Extraction, doc_kind: str = "요약서",
+                 skip: set[str] | None = None) -> list[dict[str, Any]]:
+    """skip: 시트에 쓰지 않을 급부 이름 (다시 뽑아도 원문과 맞지 않아 보인 줄)."""
     rider = ids.rider_id(variant_id, ex.block.rider_name)
     rows = []
     for b in ex.benefits:
+        if skip and b.label in skip:
+            continue
         rows.append({
             "급부ID": ids.benefit_id(rider, b.label),
             "특약ID": rider,
