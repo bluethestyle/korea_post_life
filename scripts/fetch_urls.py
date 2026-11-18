@@ -31,7 +31,9 @@ def main() -> int:
         try:
             if method == "POST":
                 headers = {**HEADERS, "X-Requested-With": "XMLHttpRequest", "Referer": url,
-                           "Content-Type": "application/json" if (body or "").startswith("{") else
+                           "Accept": "application/json, text/javascript, */*; q=0.01",
+                           "Accept-Language": "ko-KR,ko;q=0.9",
+                           "Content-Type": "application/json; charset=UTF-8" if (body or "").startswith("{") else
                            "application/x-www-form-urlencoded; charset=UTF-8"}
                 r = session.post(url, data=(body or "").encode("utf-8"), headers=headers, timeout=30)
             else:
