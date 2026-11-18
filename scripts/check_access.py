@@ -31,7 +31,7 @@ def check(url: str) -> tuple[str, str]:
         r = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
         return str(r.status_code), f"{time.time() - started:.1f}초, {len(r.content):,}바이트"
     except requests.RequestException as e:
-        return "접속 실패", f"{type(e).__name__}: {str(e)[:120]}".replace("|", "/")
+        return "접속 실패", f"{type(e).__name__}: {str(e)[-110:]}".replace("|", "/")
 
 
 def main() -> int:
