@@ -76,6 +76,7 @@ def main() -> int:
                 data = epost.download(s, doc)
                 pages = pdf_pages(data)
             except Exception as e:  # noqa: BLE001
+                print(f"  실패 {product.code} {doc.kind}: {e}"[:400])
                 rows.append(f"| {product.code} | {product.name} | {doc.kind} | {doc.file_name} | 실패: {type(e).__name__} | |")
                 continue
             stem = doc.file_name.rsplit(".", 1)[0]

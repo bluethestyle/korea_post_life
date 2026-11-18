@@ -42,6 +42,7 @@ class FakeSession:
 
         class R:
             content = outer.content
+            headers = {"Content-Type": "application/pdf"}
 
             def raise_for_status(self):
                 pass
