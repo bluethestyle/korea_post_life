@@ -1,0 +1,24 @@
+name: 접속 시험
+
+# 국내 공시실·협회 사이트가 GitHub Actions의 해외 주소를 막는지 확인한다.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/check_access.py
+      - .github/workflows/access-check.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python scripts/check_access.py

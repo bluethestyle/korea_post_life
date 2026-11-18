@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+*.pdf
+service-account*.json
+credentials*.json
+local/
