@@ -5,10 +5,12 @@
 from __future__ import annotations
 
 import os
+import ssl
 import sys
 import time
 
 import requests
+from requests.adapters import HTTPAdapter
 
 TARGETS = [
     ("우체국보험", "https://epostlife.go.kr/"),
@@ -25,11 +27,34 @@ TARGETS = [
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; postlife-access-check)"}
 
 
+class LegacyCipherAdapter(HTTPAdapter):
+    """구형 암호 방식만 받는 서버용. 인증서 검증은 그대로 한다."""
+
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = ssl.create_default_context()
+        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+        kwargs["ssl_context"] = ctx
+        return super().init_poolmanager(*args, **kwargs)
+
+
+def _get(url: str, legacy: bool) -> requests.Response:
+    session = requests.Session()
+    if legacy:
+        session.mount("https://", LegacyCipherAdapter())
+    return session.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+
+
 def check(url: str) -> tuple[str, str]:
     started = time.time()
     try:
-        r = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+        r = _get(url, legacy=False)
         return str(r.status_code), f"{time.time() - started:.1f}초, {len(r.content):,}바이트"
+    except requests.exceptions.SSLError as first:
+        try:
+            r = _get(url, legacy=True)
+            return str(r.status_code), f"구형 암호 방식을 허용해야 접속됨, {len(r.content):,}바이트"
+        except requests.RequestException as e:
+            return "접속 실패", f"{type(e).__name__}: {str(e)[-110:]}".replace("|", "/")
     except requests.RequestException as e:
         return "접속 실패", f"{type(e).__name__}: {str(e)[-110:]}".replace("|", "/")
 
