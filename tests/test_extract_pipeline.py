@@ -189,15 +189,20 @@ def test_job_writes_only_the_reextracted_variants_and_appends_logs():
     assert not dry.written and len(dry.rows["sys_급부"]) == 4
 
 
-def test_retry_that_looks_clean_but_scores_lower_is_not_adopted():
+def test_retry_is_judged_by_likely_wrong_rows_before_rows_to_review():
     from postlife.extract import benefits as B
     from postlife.extract.segment import Block
 
     block = Block("t", "x", 1, 1)
-    good = B.Benefit("a", "", 100, 0, "", "주급부", "")
-    first = P._Try(B.Extraction(block, 0, [good], "m1", ["감액 기간과 감액 금액 중 하나만 적힘: a"]), {"a": {"기준지급금액만원": 0.63}}, {})
-    retry = P._Try(B.Extraction(block, 0, [good], "m2", []), {"a": {"기준지급금액만원": 0.07}}, {})
+    rows = [B.Benefit("생활자금", t, 100, 0, "", "주급부", "") for t in ("100%", "80%", "50%")]
     t = P.DEFAULT_THRESHOLDS
-    assert first.score(t) < retry.score(t)          # 둘 다 확정할 수 없는 줄이 하나씩이면 확률이 높은 쪽이 낫다
-    fixed = P._Try(B.Extraction(block, 0, [good], "m3", []), {"a": {"기준지급금액만원": 0.9}}, {})
-    assert fixed.score(t) < first.score(t)
+    # 맞게 뽑았지만 세 줄 모두 통과 기준에 조금 못 미친 결과
+    right = P._Try(B.Extraction(block, 0, rows, "m3", []), {r.label: {"기준지급금액만원": 0.6} for r in rows}, {})
+    # 한 줄을 빠뜨리고 한 줄의 확률이 바닥인 결과
+    wrong = P._Try(B.Extraction(block, 0, rows[:2], "m2", []),
+                   {rows[0].label: {"기준지급금액만원": 0.71}, rows[1].label: {"기준지급금액만원": 0.07}}, {})
+    assert right.score(t) < wrong.score(t)
+    # 형식 문제가 있던 결과보다는 문제 없는 쪽이 낫다
+    flawed = P._Try(B.Extraction(block, 0, rows, "m1", [f"감액 기간과 감액 금액 중 하나만 적힘: {rows[0].label}"]),
+                    {r.label: {"기준지급금액만원": 0.9} for r in rows}, {})
+    assert right.score(t) < flawed.score(t)

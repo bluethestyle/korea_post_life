@@ -63,16 +63,19 @@ class _Try:
         """코드가 문제를 잡은 줄인가 (형식 문제, 원문에 없는 금액·기간)."""
         return bool(_AMOUNT_FIELDS & set(self.literal.get(label, []))) or any(label in p for p in self.ex.problems)
 
-    def score(self, thresholds: dict[str, float]) -> tuple[int, float]:
-        """작을수록 낫다: (확정할 수 없는 줄 수 + 줄에 묶이지 않은 형식 문제 수, -가장 낮은 판정 확률).
+    def score(self, thresholds: dict[str, float]) -> tuple[int, int, float]:
+        """작을수록 낫다: (틀렸다고 볼 줄 수, 사람이 볼 줄 수, -가장 낮은 판정 확률).
 
-        문제 수만 보면, 형식은 깨끗한데 값이 틀린 결과가 형식 문제 하나 있는 맞는 결과를 밀어낸다.
+        틀렸다고 볼 줄: 코드가 문제를 잡았거나 판정 확률이 재추출 구간인 줄, 그리고 줄에 묶이지 않은 형식 문제.
+        사람이 볼 줄: 확률이 통과 기준에 조금 못 미친 줄. 맞는 줄도 여기에 드는 일이 있어 가볍게 센다.
+        이렇게 나누지 않으면, 줄 하나를 빠뜨리고 값이 틀린 결과가 "확인할 줄이 적다"는 이유로 맞는 결과를 밀어낸다.
         """
         labels = [b.label for b in self.ex.benefits]
-        open_rows = sum(1 for label in labels if self.flawed(label)
-                        or V.classify(self.probs.get(label, {}), thresholds)[0] != "확정")
-        loose = sum(1 for p in self.ex.problems if not any(label in p for label in labels))
-        return (open_rows + loose, -V.worst(self.probs))
+        bands = {label: V.classify(self.probs.get(label, {}), thresholds)[0] for label in labels}
+        hard = sum(1 for label in labels if self.flawed(label) or bands[label] == "재추출")
+        hard += sum(1 for p in self.ex.problems if not any(label in p for label in labels))
+        soft = sum(1 for label in labels if bands[label] == "검토" and not self.flawed(label))
+        return (hard, soft, -V.worst(self.probs))
 
     def needs_retry(self, thresholds: dict[str, float]) -> bool:
         return (not self.ex.benefits) or bool(self.ex.problems) or self.invented > 0 or any(
@@ -131,7 +134,8 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
         better = bool(got.ex.benefits) and now < was
         before, after = V.worst(best.probs), V.worst(got.probs)
         log.add("재추출", rider, "통과" if better else "반려",
-                f"{block.rider_name}: 확정할 수 없는 줄 {was[0]}건 → {now[0]}건, 가장 낮은 확률 {before:.2f} → {after:.2f}. " +
+                f"{block.rider_name}: 틀렸다고 볼 줄 {was[0]}건 → {now[0]}건, 사람이 볼 줄 {was[1]}건 → {now[1]}건, "
+                f"가장 낮은 확률 {before:.2f} → {after:.2f}. " +
                 ("다시 뽑은 값으로 바꿈" if better else "앞선 값을 유지"),
                 model=model, prob=after, before=f"급부 {len(best.ex.benefits)}건", after=f"급부 {len(got.ex.benefits)}건")
         if better:
