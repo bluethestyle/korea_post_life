@@ -49,7 +49,7 @@ def main() -> int:
         path = args.docs / f"{stem}.txt"
         return path.read_text(encoding="utf-8") if path.exists() else None
 
-    gemini = Gemini(min_interval=config.MIN_INTERVAL)
+    gemini = Gemini(min_interval=config.MIN_INTERVAL, timeout=config.TIMEOUT)
     report = job.run(gemini, store, targets, index, read_text, datetime.now(KST), only=args.only,
                      dry_run=args.dry_run, read_thresholds=has_sheet)
     text = report.markdown(gemini.calls)

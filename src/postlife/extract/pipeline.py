@@ -59,10 +59,20 @@ class _Try:
         """원문에 없는 금액이나 감액 기간을 적은 줄 수. 지어낸 값일 가능성이 높다."""
         return sum(1 for fields in self.literal.values() if _AMOUNT_FIELDS & set(fields))
 
-    @property
-    def score(self) -> tuple[int, float]:
-        """작을수록 낫다: (형식 문제 + 원문에 없는 금액, -가장 낮은 판정 확률)."""
-        return (len(self.ex.problems) + self.invented, -V.worst(self.probs))
+    def flawed(self, label: str) -> bool:
+        """코드가 문제를 잡은 줄인가 (형식 문제, 원문에 없는 금액·기간)."""
+        return bool(_AMOUNT_FIELDS & set(self.literal.get(label, []))) or any(label in p for p in self.ex.problems)
+
+    def score(self, thresholds: dict[str, float]) -> tuple[int, float]:
+        """작을수록 낫다: (확정할 수 없는 줄 수 + 줄에 묶이지 않은 형식 문제 수, -가장 낮은 판정 확률).
+
+        문제 수만 보면, 형식은 깨끗한데 값이 틀린 결과가 형식 문제 하나 있는 맞는 결과를 밀어낸다.
+        """
+        labels = [b.label for b in self.ex.benefits]
+        open_rows = sum(1 for label in labels if self.flawed(label)
+                        or V.classify(self.probs.get(label, {}), thresholds)[0] != "확정")
+        loose = sum(1 for p in self.ex.problems if not any(label in p for label in labels))
+        return (open_rows + loose, -V.worst(self.probs))
 
     def needs_retry(self, thresholds: dict[str, float]) -> bool:
         return (not self.ex.benefits) or bool(self.ex.problems) or self.invented > 0 or any(
@@ -117,11 +127,11 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
                     (f", 형식 문제 {len(got.ex.problems)}건" if got.ex.problems else ""), model=model)
             continue
         retried = True
-        better = bool(got.ex.benefits) and got.score < best.score
+        was, now = best.score(thresholds), got.score(thresholds)
+        better = bool(got.ex.benefits) and now < was
         before, after = V.worst(best.probs), V.worst(got.probs)
         log.add("재추출", rider, "통과" if better else "반려",
-                f"{block.rider_name}: 가장 낮은 확률 {before:.2f} → {after:.2f}, "
-                f"형식 문제·원문에 없는 금액 {best.score[0]}건 → {got.score[0]}건. " +
+                f"{block.rider_name}: 확정할 수 없는 줄 {was[0]}건 → {now[0]}건, 가장 낮은 확률 {before:.2f} → {after:.2f}. " +
                 ("다시 뽑은 값으로 바꿈" if better else "앞선 값을 유지"),
                 model=model, prob=after, before=f"급부 {len(best.ex.benefits)}건", after=f"급부 {len(got.ex.benefits)}건")
         if better:
@@ -139,8 +149,7 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
     for b in ex.benefits:
         target = ids.benefit_id(rider, b.label)
         band, name, low = V.classify(probs.get(b.label, {}), thresholds)
-        flawed = bool(_AMOUNT_FIELDS & set(best.literal.get(b.label, []))) or any(b.label in p for p in ex.problems)
-        if band == "확정" and flawed:      # 판정 확률이 높아도 코드가 잡은 문제가 있으면 사람이 본다
+        if band == "확정" and best.flawed(b.label):      # 판정 확률이 높아도 코드가 잡은 문제가 있으면 사람이 본다
             band, name = "검토", name or "기준지급금액만원"
         if band == "확정":
             status[b.label] = "확정"
@@ -156,7 +165,8 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
 
 def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now: datetime,
                 thresholds: dict[str, float] | None = None, product_renewal_years: int | None = None,
-                only: list[str] | None = None, budget: dict[str, int] | None = None) -> Result:
+                only: list[str] | None = None, budget: dict[str, int] | None = None,
+                plain_renewal_years: int | None = None) -> Result:
     """상품요약서 한 건을 처리한다. 여러 종이 한 요약서를 함께 쓰면 뽑은 값을 종마다 같은 내용으로 싣는다."""
     thresholds = thresholds or dict(DEFAULT_THRESHOLDS)
     log = WorkLog(now, "sys_급부")
@@ -171,7 +181,7 @@ def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now:
             continue
         result.blocks.append(done)
         for variant in variant_ids:
-            result.riders.append(B.rider_row(variant, block, product_renewal_years))
+            result.riders.append(B.rider_row(variant, block, product_renewal_years, plain_renewal_years))
             result.benefits.extend(B.benefit_rows(variant, done.extraction))
     result.logs = log.rows
     statuses = [s for b in result.blocks for s in b.status.values()]

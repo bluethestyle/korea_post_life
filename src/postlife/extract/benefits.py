@@ -166,6 +166,13 @@ def parse_months(text: Any) -> int | None:
     return n * 12 if m.group(2) == "년" else n if m.group(2) == "개월" else max(1, round(n / 30))
 
 
+def period_token(text: str) -> str:
+    """기간 글자에서 기간만. "보험계약일부터 1년 미만" → "1년미만". 표에서는 앞말과 기간 사이에 금액이 끼어 있기도 하다."""
+    flat = squash(text or "")
+    m = re.search(r"\d+(?:년|개월|일)(?:미만|이내|이하)?", flat)
+    return m.group(0) if m else flat
+
+
 def _text(value: Any) -> str:
     return "" if value is None or isinstance(value, (int, float)) else str(value).strip()
 
@@ -297,7 +304,7 @@ def literal_problems(ex: Extraction) -> dict[str, list[str]]:
             if not any(f and f in source for f in forms):
                 missing.append(label)
         for label, months, text in (("감액개월1", b.reduced_months, b.period_text), ("감액개월2", b.reduced2_months, b.period2_text)):
-            if months is not None and text and squash(text) not in source:      # "2년미만"이라 적었는데 원문에 그 글자가 없다
+            if months is not None and text and period_token(text) not in source:   # "2년미만"이라 적었는데 원문에 그 글자가 없다
                 missing.append(label)
         if b.waiting_days and b.waiting_days not in waiting_definitions(ex.block.text).values():
             missing.append("면책기간일수")
@@ -313,13 +320,15 @@ def literal_problems(ex: Extraction) -> dict[str, list[str]]:
 _RENEWAL = re.compile(r"\((\d+)년갱신형\)|\(갱신형\)")
 
 
-def rider_row(variant_id: str, block: Block, product_renewal_years: int | None) -> dict[str, Any]:
+def rider_row(variant_id: str, block: Block, product_renewal_years: int | None,
+              plain_renewal_years: int | None = None) -> dict[str, Any]:
+    """plain_renewal_years: 이름에 "(갱신형)"만 있고 주기가 없는 특약의 갱신 주기. 사업방법서에서 확인해 설정에 적은 값."""
     name = block.rider_name
     m = _RENEWAL.search(name)
     if block.is_main:
         renewal, years = product_renewal_years is not None, product_renewal_years
     else:
-        renewal, years = bool(m), int(m.group(1)) if m and m.group(1) else None
+        renewal, years = bool(m), (int(m.group(1)) if m.group(1) else plain_renewal_years) if m else None
     return {
         "특약ID": ids.rider_id(variant_id, name),
         "종형ID": variant_id,

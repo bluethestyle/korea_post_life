@@ -82,7 +82,11 @@ def main() -> int:
         key, path = pair.split("=", 1)
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         rows = data.get("rows") or {"sys_특약": data["riders"], "sys_급부": data["benefits"]}
-        results[key] = (rows["sys_특약"], rows["sys_급부"])
+        riders = rows["sys_특약"]
+        if rows.get("sys_상품종형"):      # 여러 상품이 든 결과면 이름이 맞는 상품의 종형 하나만 본다
+            match = [v["종형ID"] for v in rows["sys_상품종형"] if key in squash(v["공시상품명"])]
+            riders = [r for r in riders if r["종형ID"] == (match[0] if match else None)]
+        results[key] = (riders, rows["sys_급부"])
     tally: dict[str, int] = {}
     for line in GOLD.read_text(encoding="utf-8").splitlines():
         item = json.loads(line)

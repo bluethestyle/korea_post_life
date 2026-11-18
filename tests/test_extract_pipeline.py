@@ -187,3 +187,17 @@ def test_job_writes_only_the_reextracted_variants_and_appends_logs():
     dry = job.run(FakeGemini(), SheetStore(MemoryBackend()), targets, index, lambda stem: TEXT, now, dry_run=True,
                   read_thresholds=False)
     assert not dry.written and len(dry.rows["sys_급부"]) == 4
+
+
+def test_retry_that_looks_clean_but_scores_lower_is_not_adopted():
+    from postlife.extract import benefits as B
+    from postlife.extract.segment import Block
+
+    block = Block("t", "x", 1, 1)
+    good = B.Benefit("a", "", 100, 0, "", "주급부", "")
+    first = P._Try(B.Extraction(block, 0, [good], "m1", ["감액 기간과 감액 금액 중 하나만 적힘: a"]), {"a": {"기준지급금액만원": 0.63}}, {})
+    retry = P._Try(B.Extraction(block, 0, [good], "m2", []), {"a": {"기준지급금액만원": 0.07}}, {})
+    t = P.DEFAULT_THRESHOLDS
+    assert first.score(t) < retry.score(t)          # 둘 다 확정할 수 없는 줄이 하나씩이면 확률이 높은 쪽이 낫다
+    fixed = P._Try(B.Extraction(block, 0, [good], "m3", []), {"a": {"기준지급금액만원": 0.9}}, {})
+    assert fixed.score(t) < first.score(t)

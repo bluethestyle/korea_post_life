@@ -33,7 +33,7 @@ def main() -> int:
     if args.swap_models:
         config.MODEL_EXTRACT, config.MODEL_EXTRACT_ALT = config.MODEL_EXTRACT_ALT, config.MODEL_EXTRACT
 
-    gemini = Gemini(min_interval=config.MIN_INTERVAL)
+    gemini = Gemini(min_interval=config.MIN_INTERVAL, timeout=config.TIMEOUT)
     pages = pages_from_text(args.text.read_text(encoding="utf-8"))
     result = pipeline.run_summary(gemini, pages, args.variant, datetime.now(KST),
                                   product_renewal_years=args.renewal_years, only=args.only)

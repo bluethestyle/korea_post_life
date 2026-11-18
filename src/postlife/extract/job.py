@@ -59,7 +59,7 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
             continue
         years = first.row["갱신주기년"] if first.row["갱신유형"] == "갱신" else None
         result = pipeline.run_summary(gemini, pages_from_text(text), [v.id for v in group], now, thresholds, years,
-                                      budget=budget)
+                                      budget=budget, plain_renewal_years=first.plain_renewal_years)
         report.logs += result.logs
         if not result.benefits:
             report.notes.append(f"{name}: 급부를 뽑지 못해 기존 행을 그대로 둠")

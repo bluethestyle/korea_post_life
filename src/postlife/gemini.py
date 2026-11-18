@@ -85,6 +85,7 @@ class Gemini:
         max_retries: int = 2,
         min_interval: dict[str, float] | None = None,
         clock: Callable[[], float] = time.monotonic,
+        timeout: dict[str, float] | None = None,
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
         if not self.api_key:
@@ -99,6 +100,7 @@ class Gemini:
         self.calls: dict[str, int] = {}
         # 모델별 최소 호출 간격(초). 분당 한도를 넘지 않게 호출 사이를 띄운다.
         self.min_interval = dict(min_interval or {})
+        self.timeout = dict(timeout or {})          # 모델별 응답 대기 시간(초). 없으면 90초
         self._clock = clock
         self._last: dict[str, float] = {}
 
@@ -120,7 +122,7 @@ class Gemini:
                     url,
                     headers={"x-goog-api-key": self.api_key, "Content-Type": "application/json"},
                     json=body,
-                    timeout=90,
+                    timeout=self.timeout.get(model, 90),
                 )
             except (TimeoutError, ConnectionError, OSError) as e:   # requests의 시간 초과·연결 오류는 OSError의 하위 종류
                 # 응답이 끊기거나 오래 걸리면 한 번만 더 해 보고 넘긴다. 호출한 쪽이 다른 모델로 바꿔 시도한다.

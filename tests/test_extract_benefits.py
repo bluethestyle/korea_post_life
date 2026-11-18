@@ -140,3 +140,18 @@ def test_reduction_period_not_in_the_source_is_flagged_by_code():
     ex = B.parse(BLOCK, wrong, "m")
     assert ex.benefits[0].reduced_months == 24
     assert B.literal_problems(ex) == {"암진단보험금(암)": ["감액개월1"]}
+
+
+def test_plain_renewal_rider_takes_its_cycle_from_the_targets_file():
+    block = Block("무배당 수술특약(갱신형) 2504", "■ 무배당 수술특약(갱신형) 2504", 22, 22)
+    row = B.rider_row("V", block, None, plain_renewal_years=10)
+    assert row["갱신여부"] is True and row["갱신주기년"] == 10 and check_rows("sys_특약", [row]) == {}
+    assert check_rows("sys_특약", [B.rider_row("V", block, None)]) != {}      # 주기를 모르면 형식 검사에 걸린다
+
+
+def test_period_check_ignores_words_around_the_period():
+    block = Block("t", "■ t\n보험계약일부터\n1만5천원\n1년미만\n보험계약일부터 3만원 1년이상", 1, 1)
+    raw = {"benefits": [{"name": "입원보험금", "target": "", "amount": "3만원", "reduced_period": "보험계약일부터 1년미만",
+                         "reduced_amount": "1만5천원", "start_condition": "", "limit": "", "role": "주급부", "quote": ""}]}
+    assert B.literal_problems(B.parse(block, raw, "m")) == {}
+    assert B.period_token("보험계약일부터 2년 미만") == "2년미만"
