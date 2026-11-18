@@ -5,12 +5,15 @@
 from __future__ import annotations
 
 import os
-import ssl
 import sys
 import time
+from pathlib import Path
 
 import requests
-from requests.adapters import HTTPAdapter
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from postlife.disclosure.http import session  # noqa: E402
 
 TARGETS = [
     ("우체국보험", "https://epostlife.go.kr/"),
@@ -27,21 +30,9 @@ TARGETS = [
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; postlife-access-check)"}
 
 
-class LegacyCipherAdapter(HTTPAdapter):
-    """구형 암호 방식만 받는 서버용. 인증서 검증은 그대로 한다."""
-
-    def init_poolmanager(self, *args, **kwargs):
-        ctx = ssl.create_default_context()
-        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
-        kwargs["ssl_context"] = ctx
-        return super().init_poolmanager(*args, **kwargs)
-
-
 def _get(url: str, legacy: bool) -> requests.Response:
-    session = requests.Session()
-    if legacy:
-        session.mount("https://", LegacyCipherAdapter())
-    return session.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+    client = session() if legacy else requests.Session()
+    return client.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
 
 
 def check(url: str) -> tuple[str, str]:

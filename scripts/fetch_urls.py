@@ -11,18 +11,15 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from check_access import HEADERS, LegacyCipherAdapter  # noqa: E402
-
-import requests  # noqa: E402
+from postlife.disclosure.http import HEADERS, session as make_session  # noqa: E402
 
 
 def main() -> int:
     out = Path("out")
     out.mkdir(exist_ok=True)
-    session = requests.Session()
-    session.mount("https://", LegacyCipherAdapter())
+    session = make_session()
     lines = [l.strip() for l in os.environ.get("URLS", "").splitlines() if l.strip()]
     for n, line in enumerate(lines, 1):
         parts = line.split(" ", 2)
