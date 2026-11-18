@@ -28,6 +28,7 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--remap", action="store_true")
     p.add_argument("--dry-run", action="store_true", help="시트에 쓰지 않는다")
+    p.add_argument("--prune", action="store_true", help="시트에 더는 없는 급부의 매핑 행을 걷어낸다 (담당자가 손댄 행은 남김)")
     p.add_argument("--result", type=Path)
     args = p.parse_args()
     if not (os.environ.get("GEMINI_API_KEY") and os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON") and os.environ.get("SPREADSHEET_ID")):
@@ -35,10 +36,17 @@ def main() -> int:
         return 0
     store = SheetStore(RestBackend.from_env())
     data = store.read(["sys_상품종형", "sys_특약", "sys_급부", "hum_표준담보사전", "hum_담보매핑", "hum_기준값"])
+    existing = data["hum_담보매핑"]
+    pruned = 0
+    if args.prune:
+        existing, pruned, orphans = mapping.prune(existing, {b["급부ID"] for b in data["sys_급부"]})
+        print(f"급부가 없어진 매핑 행 {pruned}개를 걷어냄" + (f", 담당자가 손댄 행 {len(orphans)}개는 남김" if orphans else ""))
+        if pruned and not args.dry_run:
+            store.write_tab("hum_담보매핑", existing)
     # 판정 모델의 분당 토큰 한도 때문에 호출 사이를 띄운다
     gemini = Gemini(min_interval={**config.MIN_INTERVAL, config.MODEL_DECIDE: 7.0}, timeout=config.TIMEOUT, max_retries=3)
     result = mapping.run(gemini, data["sys_상품종형"], data["sys_특약"], data["sys_급부"], data["hum_표준담보사전"],
-                         data["hum_담보매핑"], datetime.now(KST), mapping.thresholds_from(data["hum_기준값"]), remap=args.remap)
+                         existing, datetime.now(KST), mapping.thresholds_from(data["hum_기준값"]), remap=args.remap)
     text = f"매핑 결과: {result.stats}\n모델별 호출 수: {gemini.calls}\n"
     if result.waiting:
         text += "\n담당자 검토 대기\n" + "\n".join(result.waiting) + "\n"

@@ -74,7 +74,7 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
                          FROM_DAY_ONE: "그 경우의 지급사유 문장에 보장개시일이라는 말이 없다"},
         }, AFTER_START if b.waiting_days else FROM_DAY_ONE)
     if b.limit and not formula and squash(b.limit) not in squash(source):
-        out["지급횟수제한"] = (statement(f"{who}의 지급 횟수·한도 조건이 '{b.limit}'이다"), True)
+        out["지급횟수제한"] = (statement(f"{who}의 지급 횟수·한도 조건은 '{b.limit}'이고, 원문에 적힌 조건에서 빠진 말이 없다"), True)
     return out
 
 

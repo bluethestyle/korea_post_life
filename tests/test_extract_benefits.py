@@ -155,3 +155,27 @@ def test_period_check_ignores_words_around_the_period():
                          "reduced_amount": "1만5천원", "start_condition": "", "limit": "", "role": "주급부", "quote": ""}]}
     assert B.literal_problems(B.parse(block, raw, "m")) == {}
     assert B.period_token("보험계약일부터 2년 미만") == "2년미만"
+
+
+def test_limit_that_copies_only_part_of_the_condition_is_flagged():
+    text = ("■ 표적항암\n암보장개시일 이후에 … 받았을 때(단, 암, 갑상선암, 기타피부암 또는 대장점막내암 중 최초\n1회에 한함) 1,000만원\n"
+            "보험기간 중 재해로 입원하였을 때(1일 이상 입원\n보험계약일부터\n2만원\n일수 1일당, 120일 한도)\n수술을 받았을 때 (수술 1회당) 30만원")
+    flat = B.squash(text)
+    assert B.limit_is_partial("최초 1회에 한함", flat)                       # "암 … 중"이 빠지면 뜻이 달라진다
+    assert not B.limit_is_partial("암, 갑상선암, 기타피부암 또는 대장점막내암 중 최초 1회에 한함", flat)
+    assert B.limit_is_partial("1일당, 120일 한도", flat)                     # 끼어든 금액 글자는 빼고 견준다
+    assert not B.limit_is_partial("1일 이상 입원일수 1일당, 120일 한도", flat)
+    assert not B.limit_is_partial("수술 1회당", flat)
+    block = Block("t", text, 1, 1)
+    ex = B.parse(block, {"benefits": [dict(RAW["benefits"][0], amount="1,000만원", reduced_period="", reduced_amount="",
+                                           start_condition="", limit="최초 1회에 한함")]}, "m")
+    assert B.literal_problems(ex) == {"암진단보험금(암)": ["지급한도일부"]}
+
+
+def test_multiplier_is_kept_in_the_limit_column():
+    block = Block("t", "■ 재해보장\n재해장해보험금 1,000만원 ×\n해당\n장해지급률", 1, 1)
+    ex = B.parse(block, {"benefits": [{"name": "재해장해보험금", "target": "", "amount": "1,000만원", "reduced_period": "",
+                                       "reduced_amount": "", "start_condition": "", "limit": "", "role": "주급부",
+                                       "quote": "1,000만원 × 해당 장해지급률"}]}, "m")
+    assert ex.benefits[0].amount == 1000 and ex.benefits[0].limit == "× 해당 장해지급률"
+    assert B.benefit_rows("V", ex)[0]["지급횟수제한"] == "× 해당 장해지급률"

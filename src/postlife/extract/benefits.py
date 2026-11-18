@@ -64,7 +64,9 @@ PROMPT = """아래는 보험 상품요약서에서 한 특약의 "보험금 지�
 - reduced2_period, reduced2_amount: 감액 구간이 둘일 때 두 번째 구간. 없으면 둘 다 빈 문자열.
 - start_condition: 지급사유 문장이 "암보장개시일 이후에", "치매보장개시일 이후에"처럼 보장개시일 뒤를 조건으로 삼는 줄에만
   그 보장개시일 이름을 적습니다. 예: "암보장개시일". 지급사유가 "보험기간 중"으로 시작하는 경우는 빈 문자열.
-- limit: 지급 횟수나 한도를 원문 그대로 짧게. 예: "최초 1회에 한함", "수술 1회당", "1일당, 120일 한도". 없으면 빈 문자열.
+- limit: 지급사유 문장에 붙은 지급 횟수·한도 조건(대개 괄호 안)을 원문 그대로 빠짐없이 옮깁니다. 줄여 쓰지 않습니다.
+  예: "1일 이상 입원일수 1일당, 120일 한도", "4일 이상 입원일수 1일당, 120일한도", "수술 1회당",
+  "암, 갑상선암, 기타피부암 또는 대장점막내암 중 최초 1회에 한함". 맨 앞의 "단,"은 뺍니다. 없으면 빈 문자열.
 - role: 특약 이름이 가리키는 대표 보장은 "주급부". 같은 특약 안에서 금액이 훨씬 작은 유사 보장(갑상선암·제자리암 등)은 "부수급부".
   성격이 다른 보장이 나란히 묶인 특약(예: 입원과 수술)은 모든 줄을 "대등복합".
 - quote: 그 줄의 금액이 적힌 원문 조각을 20자 안팎으로 그대로.
@@ -78,7 +80,7 @@ PROMPT = """아래는 보험 상품요약서에서 한 특약의 "보험금 지�
 
 보기 2
 원문: "보험기간 중 질병으로 입원하였을 때 (1일이상 입원일수 1일당, 120일 한도) 보험계약일부터 1년미만 1만5천원 보험계약일부터 1년이상 3만원"
-결과: 한 줄. name 질병입원보험금, target 질병, amount "3만원", reduced_period "1년미만", reduced_amount "1만5천원", start_condition "", limit "1일당, 120일 한도", role 주급부
+결과: 한 줄. name 질병입원보험금, target 질병, amount "3만원", reduced_period "1년미만", reduced_amount "1만5천원", start_condition "", limit "1일이상 입원일수 1일당, 120일 한도", role 주급부
 
 특약 이름: {title}
 
@@ -212,6 +214,13 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
             )
             if trouble:
                 problems.append(f"{trouble}: {b.label}")
+            # "1,000만원 × 해당 장해지급률"처럼 비율을 곱하는 금액은 그 사실이 시트에 남도록 한도 칸에 적는다
+            for text in (b.amount_text, b.quote):
+                if "×" in text:
+                    tail = " ".join(text.split("×", 1)[1].split())
+                    if tail and squash(tail) not in squash(b.limit):
+                        b.limit = f"× {tail}" + (f", {b.limit}" if b.limit else "")
+                    break
         except (KeyError, TypeError, ValueError) as e:
             problems.append(f"형식 오류: {e}")
             continue
@@ -286,6 +295,28 @@ def waiting_definitions(text: str) -> dict[str, int]:
     return out
 
 
+_NOISE = re.compile(r"보험계약일부터|\d+억\d*천?만?원|\d+천만원|\d+만\d*천?원|\d+천원|\d+(?:년|개월)(?:미만|이상)")
+
+
+def limit_is_partial(limit: str, squashed_source: str) -> bool:
+    """한도 글자가 원문 괄호 안 조건의 일부만 옮긴 것인가.
+
+    "(단, 암, 갑상선암 … 중 최초 1회에 한함)"에서 "최초 1회에 한함"만 옮기면 뜻이 달라진다.
+    표가 글자로 풀리면서 괄호 안에 끼어든 다른 칸의 글자(보험계약일부터, 금액, 1년미만 등)는 빼고 견준다.
+    """
+    flat = squash(limit)
+    at = squashed_source.find(flat)
+    if at < 0:
+        return False
+    left = squashed_source.rfind("(", 0, at)
+    right = squashed_source.find(")", at + len(flat))
+    if left < 0 or right < 0 or squashed_source.rfind(")", 0, at) > left:
+        return False                      # 괄호 안에 있지 않다
+    inner = _NOISE.sub("", squashed_source[left + 1:right])
+    inner = inner[1:] if inner.startswith("단") else inner
+    return len(inner) - len(_NOISE.sub("", flat)) >= 3
+
+
 def literal_problems(ex: Extraction) -> dict[str, list[str]]:
     """급부별로, 원문에서 글자 그대로 확인되지 않은 항목. 여기 걸린 항목은 판정 모델이 다시 본다.
 
@@ -310,6 +341,8 @@ def literal_problems(ex: Extraction) -> dict[str, list[str]]:
             missing.append("면책기간일수")
         if b.limit and squash(b.limit) not in source:
             missing.append("지급횟수제한")
+        elif b.limit and limit_is_partial(b.limit, source):
+            missing.append("지급한도일부")
         if missing:
             out[b.label] = missing
     return out

@@ -69,6 +69,23 @@ def decide(answer: Any, options: dict[str, str], thresholds: dict[str, float]) -
     return Pick(best, top, none_prob, "자동확정" if top >= thresholds["담보매핑_자동확정"] else "대기")
 
 
+def prune(existing: list[dict[str, Any]], live_ids: set[str]) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]]]:
+    """시트에 더는 없는 급부의 매핑 행을 걷어낸다. (남길 행, 걷어낸 수, 담당자가 손댔는데 급부가 없어진 행)
+
+    담당자가 승인·수정·오류로 표시한 행은 급부가 없어졌어도 지우지 않고 따로 알린다.
+    """
+    kept, removed, orphans = [], 0, []
+    for row in existing:
+        if row["급부ID"] in live_ids:
+            kept.append(row)
+        elif row.get("검토상태") in ("승인", "수정", "오류"):
+            kept.append(row)
+            orphans.append(row)
+        else:
+            removed += 1
+    return kept, removed, orphans
+
+
 @dataclass
 class Result:
     rows: list[dict[str, Any]] = field(default_factory=list)

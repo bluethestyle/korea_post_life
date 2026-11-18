@@ -90,3 +90,9 @@ def test_options_come_from_the_dictionary_and_thresholds_from_the_sheet():
     pick = M.decide(Answer("일반암 진단비", None, {"일반암 진단비": 0.85, M.NONE: 0.1}), options, t)
     assert pick.state == "자동확정" and M.decide(Answer(M.NONE, None, {M.NONE: 0.7}), options, t).state == "대기"
     assert M.DEFAULT_THRESHOLDS["담보매핑_자동확정"] == 0.80
+
+
+def test_prune_drops_rows_of_vanished_benefits_but_keeps_reviewed_ones():
+    rows = [{"급부ID": "a", "검토상태": "자동확정"}, {"급부ID": "b", "검토상태": "대기"}, {"급부ID": "c", "검토상태": "수정"}]
+    kept, removed, orphans = M.prune(rows, {"a"})
+    assert [r["급부ID"] for r in kept] == ["a", "c"] and removed == 1 and [r["급부ID"] for r in orphans] == ["c"]

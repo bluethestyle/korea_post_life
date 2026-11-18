@@ -54,3 +54,11 @@ def test_rider_lineage_survives_the_simple_type_prefix_dropped_in_2606():
     assert before == ids.rider_lineage_key("무배당 암진단특약(20년갱신형) 2606")
     # 이름 뒤의 판 번호(재해치료특약Ⅱ)는 다른 특약이므로 떼지 않는다
     assert ids.rider_lineage_key("무배당 재해치료특약Ⅱ 2504") != ids.rider_lineage_key("무배당 재해치료특약 2504")
+
+
+def test_benefit_id_ignores_punctuation_the_model_varies():
+    r = ids.rider_id("V", "무배당 암진단특약(20년갱신형) 2606")
+    a = ids.benefit_id(r, "암진단보험금(갑상선암·기타피부암·대장점막내암·제자리암·경계성종양)")
+    assert a == ids.benefit_id(r, "암진단보험금(갑상선암, 기타피부암, 대장점막내암, 제자리암 또는 경계성 종양)")
+    assert a != ids.benefit_id(r, "암진단보험금(암)")
+    assert ids.benefit_id(r, "수술보험금(1종)") != ids.benefit_id(r, "수술보험금(2종)")

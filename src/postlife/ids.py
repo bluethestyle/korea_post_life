@@ -83,8 +83,13 @@ def rider_id(variant: str, raw_rider_name: str) -> str:
     return f"{variant}_T{rider_lineage_key(raw_rider_name)}"
 
 
+# 급부 이름은 모델이 옮겨 적어 실행마다 구두점이 달라진다("갑상선암·기타피부암", "갑상선암, 기타피부암 또는 …").
+# ID가 흔들리면 담보 매핑이 끊기므로 구두점과 이음말을 떼고 만든다.
+_LOOSE = re.compile(r"[\s·ㆍ‧,、()\[\]~∼\-]|또는|및")
+
+
 def benefit_id(rider: str, raw_benefit_name: str) -> str:
-    return f"{rider}_B{short_hash(raw_benefit_name, length=8)}"
+    return f"{rider}_B{short_hash(_LOOSE.sub('', normalize(raw_benefit_name)), length=8)}"
 
 
 def condition_id(variant: str, term: str, payment: str, rider: str = "", sex: str = "", ages: str = "") -> str:

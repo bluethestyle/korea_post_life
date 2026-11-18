@@ -45,7 +45,8 @@ def thresholds_from(rows: list[dict[str, Any]]) -> dict[str, float]:
     return out
 
 
-_AMOUNT_FIELDS = {"기준지급금액만원", "감액지급률1", "감액지급률2", "감액개월1", "감액개월2"}
+# 코드 대조에서 걸리면 다시 뽑게 하는 칸. "지급한도일부"는 한도 조건을 일부만 옮긴 경우다.
+_AMOUNT_FIELDS = {"기준지급금액만원", "감액지급률1", "감액지급률2", "감액개월1", "감액개월2", "지급한도일부"}
 
 
 @dataclass
@@ -84,7 +85,9 @@ class _Try:
     def feedback(self, thresholds: dict[str, float]) -> list[str]:
         out = list(self.ex.problems)
         for b in self.ex.benefits:
-            if _AMOUNT_FIELDS & set(self.literal.get(b.label, [])):
+            if "지급한도일부" in self.literal.get(b.label, []):
+                out.append(f"'{b.label}' 줄의 limit이 원문 괄호 안 조건의 일부만 옮김. 괄호 안 조건을 빠짐없이 옮길 것")
+            if (_AMOUNT_FIELDS - {"지급한도일부"}) & set(self.literal.get(b.label, [])):
                 out.append(f"'{b.label}' 줄에 원문에 없는 금액이나 기간을 적음. 금액과 기간은 원문 글자 그대로만 옮김")
             band, name, _ = V.classify(self.probs.get(b.label, {}), thresholds)
             if band == "재추출":
