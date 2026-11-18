@@ -86,6 +86,7 @@ class Gemini:
         min_interval: dict[str, float] | None = None,
         clock: Callable[[], float] = time.monotonic,
         timeout: dict[str, float] | None = None,
+        retry_wait: dict[str, float] | None = None,
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
         if not self.api_key:
@@ -101,6 +102,7 @@ class Gemini:
         # 모델별 최소 호출 간격(초). 분당 한도를 넘지 않게 호출 사이를 띄운다.
         self.min_interval = dict(min_interval or {})
         self.timeout = dict(timeout or {})          # 모델별 응답 대기 시간(초). 없으면 90초
+        self.retry_wait = dict(retry_wait or {})    # 모델별 재시도 대기(초). 없으면 8초씩 늘려 기다린다
         self._clock = clock
         self._last: dict[str, float] = {}
 
@@ -139,7 +141,7 @@ class Gemini:
             last = GeminiError(resp.status_code, message[:400])
             if resp.status_code not in RETRY_STATUS or attempt == self.max_retries:
                 break
-            self._sleep(8 * (attempt + 1))
+            self._sleep(self.retry_wait.get(model, 8) * (attempt + 1))
         assert last is not None
         raise last
 

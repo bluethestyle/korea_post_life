@@ -41,7 +41,7 @@ def main() -> int:
         variant_ids = list(dict.fromkeys(r["종형ID"] for r in riders))
         names = args.variant_name or ["단일"] * len(variant_ids)
         targets = [C.target_of(v, n, riders) for v, n in zip(variant_ids, names)]
-    gemini = Gemini(min_interval=config.MIN_INTERVAL, timeout=config.TIMEOUT)
+    gemini = Gemini(min_interval=config.MIN_INTERVAL, timeout=config.TIMEOUT, retry_wait=config.RETRY_WAIT)
     result = conditions_run.run(
         gemini, pages_from_text(args.method.read_text(encoding="utf-8")),
         pages_from_text(args.summary.read_text(encoding="utf-8")) if args.summary else None,

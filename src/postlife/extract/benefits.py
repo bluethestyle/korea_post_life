@@ -298,6 +298,12 @@ def waiting_definitions(text: str) -> dict[str, int]:
 _NOISE = re.compile(r"보험계약일부터|\d+억\d*천?만?원|\d+천만원|\d+만\d*천?원|\d+천원|\d+(?:년|개월)(?:미만|이상)")
 
 
+def limit_in_source(limit: str, squashed_source: str) -> bool:
+    """한도 글자가 원문에 그대로 있는가. 표가 풀리며 사이에 끼어든 다른 칸의 글자(금액, 1년미만 등)는 빼고 견준다."""
+    flat = squash(limit)
+    return flat in squashed_source or _NOISE.sub("", flat) in _NOISE.sub("", squashed_source)
+
+
 def limit_is_partial(limit: str, squashed_source: str) -> bool:
     """한도 글자가 원문 괄호 안 조건의 일부만 옮긴 것인가.
 
@@ -339,7 +345,7 @@ def literal_problems(ex: Extraction) -> dict[str, list[str]]:
                 missing.append(label)
         if b.waiting_days and b.waiting_days not in waiting_definitions(ex.block.text).values():
             missing.append("면책기간일수")
-        if b.limit and squash(b.limit) not in source:
+        if b.limit and not limit_in_source(b.limit, source):
             missing.append("지급횟수제한")
         elif b.limit and limit_is_partial(b.limit, source):
             missing.append("지급한도일부")

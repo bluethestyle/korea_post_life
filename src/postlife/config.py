@@ -128,3 +128,6 @@ DEFAULT_THRESHOLDS = {
 
 # 응답 대기 시간(초). 상위 모델은 긴 특약에서 90초를 넘기는 일이 있었다.
 TIMEOUT = {MODEL_SUMMARY: 240.0}
+
+# 재시도 대기(초). 상위 모델은 "이용량 과다"(503)가 잦아 더 오래 기다렸다 다시 부른다 (30초, 60초).
+RETRY_WAIT = {MODEL_SUMMARY: 30.0}

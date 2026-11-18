@@ -156,6 +156,15 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
     for b in ex.benefits:
         target = ids.benefit_id(rider, b.label)
         band, name, low = V.classify(probs.get(b.label, {}), thresholds)
+        broken = [p for p in ex.problems if b.label in p]
+        if broken:
+            # 값끼리 앞뒤가 안 맞는 줄(감액 금액이 지급액 이상 등)은 그대로 쓰면 틀린 값이 된다
+            status[b.label] = "제외"
+            log.add("판정", target, "반려", f"값이 앞뒤가 맞지 않아 시트에 쓰지 않음: {broken[0]}"[:300],
+                    model=config.MODEL_DECIDE, prob=low, column=name or "기준지급금액만원")
+            log.add("사람검토이관", target, "보류", f"{b.label}: 시트에 쓰지 않음. {broken[0]} (근거 {block.first_page}쪽)"[:300],
+                    model=config.MODEL_DECIDE, prob=low, column=name or "기준지급금액만원")
+            continue
         if band == "확정" and best.flawed(b.label):      # 판정 확률이 높아도 코드가 잡은 문제가 있으면 사람이 본다
             band, name = "검토", name or "기준지급금액만원"
         if band == "확정":

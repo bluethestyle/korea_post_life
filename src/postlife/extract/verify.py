@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .benefits import Benefit, Extraction, money_token, squash, waiting_definitions
+from .benefits import Benefit, Extraction, limit_in_source, money_token, squash, waiting_definitions
 
 RULES = (
     "원문은 표가 글자로 풀린 것이라 줄이 뒤섞여 있다. 낱말이 여러 줄에 갈려 있어도 같은 칸의 글자면 이어서 읽는다. "
@@ -73,7 +73,7 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
             "criteria": {AFTER_START: "그 경우의 지급사유 문장에 '○○보장개시일 이후'라는 말이 들어 있다",
                          FROM_DAY_ONE: "그 경우의 지급사유 문장에 보장개시일이라는 말이 없다"},
         }, AFTER_START if b.waiting_days else FROM_DAY_ONE)
-    if b.limit and not formula and squash(b.limit) not in squash(source):
+    if b.limit and not formula and not limit_in_source(b.limit, squash(source)):
         out["지급횟수제한"] = (statement(f"{who}의 지급 횟수·한도 조건은 '{b.limit}'이고, 원문에 적힌 조건에서 빠진 말이 없다"), True)
     return out
 

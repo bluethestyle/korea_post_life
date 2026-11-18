@@ -208,3 +208,25 @@ def test_retry_is_judged_by_likely_wrong_rows_before_rows_to_review():
     flawed = P._Try(B.Extraction(block, 0, rows, "m1", [f"감액 기간과 감액 금액 중 하나만 적힘: {rows[0].label}"]),
                     {r.label: {"기준지급금액만원": 0.9} for r in rows}, {})
     assert right.score(t) < flawed.score(t)
+
+
+def test_row_with_contradictory_values_is_left_out():
+    class Broken(FakeGemini):
+        def generate(self, model, prompt, schema=None, temperature=0.0):
+            if "재해입원특약" in prompt.split("본문")[0]:
+                return GOOD["재해입원"]
+            # 어느 모델로 뽑아도 감액 금액이 지급액과 같다
+            return {"base_amount": "1,000만원", "benefits": [dict(GOOD["암진단"]["benefits"][0], reduced_amount="1,000만원")]}
+
+    r = run(Broken())
+    assert r.stats["제외"] == 1 and sorted({row["기준지급금액만원"] for row in r.benefits}) == [2]
+    assert check_rows("sys_급부", r.benefits) == {}
+    assert any("앞뒤가 맞지 않아" in str(l["사유"]) for l in r.logs)
+
+
+def test_limit_check_tolerates_text_from_other_columns():
+    from postlife.extract import benefits as B
+
+    flat = B.squash("입원하였을 때(1일 이상 입원\n보험계약일부터\n2만원\n일수 1일당, 120일 한도)")
+    assert B.limit_in_source("1일 이상 입원일수 1일당, 120일 한도", flat)
+    assert not B.limit_in_source("4일 이상 입원일수 1일당, 120일 한도", flat)

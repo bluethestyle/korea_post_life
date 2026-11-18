@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Callable
 
-from .. import config
+from .. import config, ids
 from ..schema import TABS
 from ..sheets_io import SheetStore
 from ..validate import check_rows
@@ -134,6 +134,18 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
         if "급부" in parts or group_ids & report.conditions_done:
             report.rows["sys_특약"] += riders
 
+    # 급부·가입조건·제약에서 형식 검사에 걸린 행은 그 행만 빼고 쓴다. 한 줄 때문에 전체를 버리지 않는다.
+    key_of = {"sys_급부": "급부ID", "sys_가입조건": "조건행ID", "sys_결합제약": "제약ID"}
+    for tab, key in key_of.items():
+        bad = check_rows(tab, report.rows[tab])
+        if bad:
+            report.rows[tab] = [r for r in report.rows[tab] if r[key] not in bad]
+            for row_id, reasons in bad.items():
+                report.notes.append(f"{tab} {row_id}: 형식 검사에 걸려 쓰지 않음 ({'; '.join(reasons)})")
+                report.logs.append({"로그ID": f"LOG_{ids.short_hash(now.isoformat(), tab, row_id, 'drop', length=14)}",
+                                    "실행일시": now.isoformat(timespec="seconds"), "작업단계": "코드대조", "대상탭": tab,
+                                    "대상행ID": row_id, "대상열": None, "변경전값": None, "변경후값": None, "호출모델": None,
+                                    "판정확률": None, "결과": "반려", "사유": f"형식 검사에 걸려 시트에 쓰지 않음: {'; '.join(reasons)}"[:400]})
     report.errors = {tab: e for tab, rows in report.rows.items() if (e := check_rows(tab, rows))}
     if report.errors or not (report.done or report.conditions_done) or dry_run:
         return report
