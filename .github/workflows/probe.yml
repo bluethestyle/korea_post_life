@@ -1,12 +1,16 @@
 name: 주소 점검
+run-name: 주소 점검 ${{ inputs.tag }}
 
 # 공시실 화면이 문서 주소를 어떻게 내려 주는지 확인할 때 쓰는 점검 도구. 결과물은 하루만 보관한다.
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: "한 줄에 하나씩: GET 주소 / POST 주소 본문"
+        description: "한 줄에 하나씩: GET 주소 / POST 주소 본문 / H 이름: 값"
         required: true
+      tag:
+        description: "실행을 구분하는 이름"
+        required: false
 
 permissions:
   contents: read
