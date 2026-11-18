@@ -258,3 +258,11 @@ def test_thresholds_come_from_sheet_when_present():
     rows = [{"기준키": "기사선별_통과", "기준분류": "판정구간", "수치값": 0.9}]
     assert collect.load_thresholds(rows)["기사선별_통과"] == 0.9
     assert collect.load_thresholds([])["기사선별_통과"] == config.DEFAULT_THRESHOLDS["기사선별_통과"]
+
+
+def test_screening_question_names_the_seven_types_and_excluded_lines():
+    q = collect.screen_questions()
+    text = q["is_target"]["instructions"]
+    for word in ("배타적 사용권", "판매중지", "간편고지 완화", "반려동물", "자동차보험"):
+        assert word in text
+    assert set(q["category"]["criteria"]) == set(config.CATEGORIES) | {config.NOT_APPLICABLE}

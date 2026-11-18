@@ -117,7 +117,7 @@ def build_search_prompt(q: config.Query, start: date, end: date) -> str:
 찾는 소식 (생명·손해보험의 보장성 보험. 건강·암·뇌·심장·간편심사 보험 중심):
 {topics}
 
-제외: {config.EXCLUDED_TOPICS}.
+제외: {config.EXCLUDED_TOPICS}, {config.EXCLUDED_LINES}.
 
 규칙
 1. 소식마다 발행일(YYYY-MM-DD)을 맨 앞에 적습니다.
@@ -139,7 +139,7 @@ def build_structure_prompt(result: SearchResult, q: config.Query, start: date, e
 규칙
 - published_date: 본문에 적힌 발행일을 YYYY-MM-DD로 적습니다. 본문에 발행일이 없으면 그 소식은 넣지 않습니다. 날짜를 짐작해서 채우지 않습니다.
 - title: 소식을 가리키는 짧은 제목.
-- summary: 누가 무엇을 어떻게 바꿨는지 한 문장으로. 본문에 있는 수치는 그대로 씁니다. 본문에 없는 내용은 쓰지 않습니다.
+- summary: 누가 어떤 종류의 보험(건강보험, 암보험, 간편보험, 어린이보험, 운전자보험, 펫보험, 자동차보험 등)에서 무엇을 어떻게 바꿨는지 한 문장으로. 보험 종류를 빼먹지 않습니다. 본문에 있는 수치는 그대로 쓰고, 본문에 없는 내용은 쓰지 않습니다.
 - media: 매체명. 알 수 없으면 빈 문자열.
 - source_numbers: 그 소식 문장 뒤에 붙은 대괄호 번호. 번호가 없으면 빈 배열.
 - 같은 사건을 다룬 문장이 여러 개면 한 건으로 합칩니다.
@@ -231,18 +231,20 @@ def in_window(published: str, start: date, end: date) -> bool:
 def screen_questions(topics: tuple[str, ...] | None = None) -> dict[str, dict]:
     criteria = dict(config.CATEGORIES)
     criteria[config.NOT_APPLICABLE] = (
-        f"위 일곱 가지에 들지 않는 소식. {config.EXCLUDED_TOPICS} 소식도 여기에 해당"
+        f"위 일곱 가지에 들지 않는 소식. {config.EXCLUDED_TOPICS}, {config.EXCLUDED_LINES} 소식도 여기에 해당"
     )
     return {
         "is_target": {
             "type": "noul",
             "instructions": (
-                "생명·손해보험의 보장성 보험(건강·암·뇌·심장·간편심사·어린이·종신·정기 등)에 관해 "
+                "생명·손해보험의 사람을 대상으로 한 보장성 보험(건강·암·뇌·심장·간편심사·어린이·운전자·종신·정기 등)에 관해 "
                 "다음 가운데 하나를 다루면 참: 배타적 사용권 신청·획득, 신상품·신담보 출시, 상품 개정, "
                 "판매중지, 간편고지 완화, 가입 한도 조정, 여러 회사에 영향을 주는 제도 변화. "
-                "배타적 사용권 획득 소식은 그 자체로 참이다. "
-                f"{config.EXCLUDED_TOPICS} 소식이거나, 위 일곱 가지 가운데 어느 것도 다루지 않는 "
-                "실적·순위·홍보 소식이면 거짓."
+                "배타적 사용권 획득 소식은 홍보성 소식으로 보지 않는다. "
+                f"다만 {config.EXCLUDED_LINES}, 자동차보험, 퇴직연금, 변액보험에 관한 소식은 "
+                "위 일곱 가지에 해당하더라도 거짓. "
+                f"{config.EXCLUDED_TOPICS} 소식이거나, 일곱 가지 가운데 어느 것도 다루지 않는 "
+                "실적·순위·홍보 소식도 거짓."
             ),
         },
         "category": {
@@ -273,8 +275,10 @@ def same_event(gemini: Gemini, a: str, b: str) -> float:
             "same": {
                 "type": "noul",
                 "instructions": (
-                    "두 소식이 같은 회사의 같은 사건(같은 상품의 같은 출시·개정·판매중지 등)을 다루면 참. "
-                    "같은 회사라도 다른 상품이거나 다른 시점의 다른 조치면 거짓."
+                    "두 소식이 같은 회사가 같은 시기에 한 같은 발표(같은 상품의 출시·개정·판매중지, "
+                    "같은 배타적 사용권 등)를 다루면 참. 기사마다 강조점과 표현이 달라도, 한쪽이 "
+                    "다른 쪽보다 자세해도, 분류가 다르게 붙어 있어도 같은 발표면 참이다. "
+                    "같은 회사라도 서로 다른 상품이거나 다른 시점의 다른 조치면 거짓."
                 ),
             }
         },
