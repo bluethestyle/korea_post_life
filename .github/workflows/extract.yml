@@ -19,9 +19,13 @@ on:
         description: "시트에 쓰지 않고 흐름만 확인"
         type: boolean
         default: false
+      docs_run:
+        description: "이미 끝난 '공시 문서 수집' 실행 번호. 주면 공시 사이트에 다시 접속하지 않고 그 실행이 남긴 문서를 쓴다 (사이트가 막혔을 때)"
+        required: false
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: extract
@@ -39,6 +43,8 @@ jobs:
       INPUT_ONLY: ${{ inputs.only }}
       INPUT_DRY_RUN: ${{ inputs.dry_run }}
       INPUT_PARTS: ${{ inputs.parts }}
+      INPUT_DOCS_RUN: ${{ inputs.docs_run }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,7 +53,13 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt pdfplumber
       - name: 공시 문서 받기
-        run: python scripts/fetch_disclosure.py --out out --org "$INPUT_ORG"
+        run: |
+          if [ -n "$INPUT_DOCS_RUN" ]; then
+            gh run download "$INPUT_DOCS_RUN" --repo "$GITHUB_REPOSITORY" -n disclosure -D out
+            test -s out/index.json
+          else
+            python scripts/fetch_disclosure.py --out out --org "$INPUT_ORG"
+          fi
       - name: 추출·검증·기록
         run: |
           args=()
