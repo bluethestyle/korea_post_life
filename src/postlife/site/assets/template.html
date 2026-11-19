@@ -23,6 +23,17 @@
   </div>
   <div id="detail-body" class="detail-body"></div>
 </dialog>
+<dialog id="card" class="detail card-dialog" aria-labelledby="card-title">
+  <div class="detail-head">
+    <h2 id="card-title">응대 카드 미리 보기</h2>
+    <div class="card-actions">
+      <button type="button" id="card-print" class="btn primary">인쇄</button>
+      <button type="button" id="card-close" class="btn">닫기</button>
+    </div>
+  </div>
+  <div id="card-body" class="detail-body"></div>
+</dialog>
+<div id="print-card" class="print-card" aria-hidden="true"></div>
 <noscript><p class="notice">이 화면은 자바스크립트가 켜져 있어야 보입니다.</p></noscript>
 <script type="application/json" id="data">/*__DATA__*/</script>
 <script>

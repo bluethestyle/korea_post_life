@@ -1,17 +1,21 @@
-"""맨 위 안내 줄과 화면 1(자리만 둠)에 쓰는 사실 집계. 자료에 있는 것만 센다."""
+"""맨 위 안내 줄과 화면 1에 쓰는 사실 집계. 자료에 있는 것만 센다.
+
+이번 주에 달라진 것(개정판, 시장 소식, 대표 조건의 우열 변화)은 weekly.py가 만들고 여기서 함께 싣는다.
+"""
 from __future__ import annotations
 
 from typing import Any
 
+from . import weekly
 from .model import CONFIRMED_STATES, Data, EXCLUDED_STATE, HOME_ORG, WAITING_STATE, _blank
 
 
-def build(data: Data) -> dict[str, Any]:
+def build(data: Data, previous: Data | None = None) -> dict[str, Any]:
     orgs: dict[str, int] = {}
     for v in data.variants.values():
         orgs[v["기관코드"]] = orgs.get(v["기관코드"], 0) + 1
-    passed = data.setting_num("기사선별_통과")
-    trends = [t for t in data.trends if passed is None or t.get("판정확률") is None or t["판정확률"] >= passed]
+    # 판정확률이 있고 통과 기준 이상인 소식만 센다. 판정확률이 없는 소식은 "미판정" 건수로만 적는다.
+    trends = [t for t in data.trends if weekly.news_state(data, t) == "passed"]
     by_kind: dict[str, int] = {}
     by_org: dict[str, int] = {}
     for t in trends:
@@ -42,8 +46,10 @@ def build(data: Data) -> dict[str, Any]:
             "premiums": len(data.tables.get("sys_보험료예시", [])), "diseaseCodes": len(data.tables.get("sys_급부질병코드", [])),
             "logs": len(data.logs),
         },
+        **weekly.build(data, previous),
         "trends": {
             "total": len(data.trends), "shown": len(trends),
+            "undecided": sum(1 for t in data.trends if weekly.news_state(data, t) == "undecided"),
             "weeks": sorted({str(t["수집주차"]) for t in trends}),
             "from": min((str(t["발표일자"]) for t in trends), default=None),
             "to": max((str(t["발표일자"]) for t in trends), default=None),

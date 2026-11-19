@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .. import ids
-from . import combo, compare, eligibility, overview, pack, revision, worklog
+from . import card, combo, commentary, compare, eligibility, overview, pack, revision, worklog
 from .model import Data, HOME_ORG, MAIN_KIND, MAX_AGE, _blank, load
 
 ASSETS = Path(__file__).parent / "assets"
@@ -43,8 +43,11 @@ def rider_view(data: Data, tid: str) -> dict[str, Any]:
     }
 
 
-def payload(data: Data) -> dict[str, Any]:
+def payload(data: Data, previous: Data | None = None, texts: dict[str, Any] | None = None) -> dict[str, Any]:
+    """화면에 싣는 자료 전부. previous는 지난주 사본(화면 1의 우열 변화), texts는 검사를 마친 해설 글(없으면 기본 파일을 읽는다)."""
     conds = data.conds()
+    if texts is None:
+        texts = commentary.load()[0]
     age = data.setting_num("REP_WEEKLY_AGE")
     sex = data.setting_text("REP_WEEKLY_SEX_1", "M")
     return {
@@ -59,7 +62,9 @@ def payload(data: Data) -> dict[str, Any]:
         "benefits": {bid: data.benefit_view(bid) for bid in data.benefits},
         "std": {sid: {"id": sid, "name": s["표준담보명"], "major": s["보장대분류"], "mid": s["보장중분류"],
                       "type": s["급부유형"], "unit": s["비교기준단위만원"]} for sid, s in data.std.items()},
-        "s1": overview.build(data),
+        "commentary": {"texts": texts, "s3Margin": data.setting_num("COMMENT_S3_MARGIN", 0)},
+        "card": card.build(data),
+        "s1": overview.build(data, previous),
         "s2": eligibility.build(data, conds),
         "s3": compare.build(data, conds),
         "s4": combo.build(data, conds),
@@ -74,14 +79,14 @@ def embed_json(obj: Any) -> str:
     return text.replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
 
 
-def render(data: Data) -> str:
+def render(data: Data, previous: Data | None = None, texts: dict[str, Any] | None = None) -> str:
     """자료는 pack으로 줄여 적어 넣는다(내용은 그대로이고, 화면이 열릴 때 calc.js의 unpack이 되살린다)."""
     html = (ASSETS / "template.html").read_text(encoding="utf-8")
     parts = {
         "/*__CSS__*/": (ASSETS / "app.css").read_text(encoding="utf-8"),
         "/*__CALC__*/": (ASSETS / "calc.js").read_text(encoding="utf-8"),
         "/*__APP__*/": (ASSETS / "app.js").read_text(encoding="utf-8"),
-        "/*__DATA__*/": embed_json(pack.pack(payload(data))),
+        "/*__DATA__*/": embed_json(pack.pack(payload(data, previous, texts))),
     }
     for mark, text in parts.items():
         if html.count(mark) != 1:
@@ -98,11 +103,20 @@ def read_payload(html: str) -> dict[str, Any]:
     return pack.unpack(json.loads(html[start:html.index("</script>", start)]))
 
 
-def build_site(snapshot_dir: Path, out_path: Path) -> dict[str, Any]:
+def build_site(snapshot_dir: Path, out_path: Path, previous_dir: Path | None = None,
+               commentary_path: Path | None = None) -> dict[str, Any]:
+    """previous_dir를 주면 지난주 사본과 견줘 화면 1에 대표 조건의 우열 변화를 싣는다. 해설 글에서 버린 글은 warnings에 남긴다."""
     data = load(snapshot_dir)
-    html = render(data)
+    previous = None
+    if previous_dir is not None:
+        if not Path(previous_dir).is_dir():
+            raise FileNotFoundError(f"지난주 사본 폴더가 없습니다: {previous_dir}")
+        previous = load(previous_dir)
+    texts, warnings = commentary.load(commentary_path)
+    html = render(data, previous, texts)
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html, encoding="utf-8")
     return {"out": str(out_path), "bytes": len(html.encode("utf-8")), "variants": len(data.variants),
-            "benefits": len(data.benefits), "logs": len(data.logs), "snapshot_at": data.meta.get("snapshot_at")}
+            "benefits": len(data.benefits), "logs": len(data.logs), "snapshot_at": data.meta.get("snapshot_at"),
+            "previous_at": previous.meta.get("snapshot_at") if previous else None, "warnings": warnings}

@@ -262,6 +262,67 @@ table.log td.words { overflow-wrap: normal; }   /* 열 이름은 낱말 가운�
   .tab { padding: 6px 9px; font-size: 13.5px; }
   .tile .v { font-size: 19px; }
 }
+
+/* 해설: 결론 한 줄은 늘 보이고 나머지는 접어 둔다 */
+.comment { margin-top: 8px; }
+.comment .conclusion { font-size: 15px; }
+.comment .clabel { display: inline-block; background: var(--ink2); color: #fff; border-radius: 4px; padding: 0 6px; margin-right: 6px; font-size: 12px; font-weight: 700; line-height: 1.6; vertical-align: 1px; }
+.comment .conclusion .tag { vertical-align: 1px; }
+.comment dl.kv { grid-template-columns: minmax(84px, 18%) 1fr; }
+@media (max-width: 560px) {
+  .comment dl.kv { grid-template-columns: 1fr; gap: 0; }
+  .comment dl.kv dt { font-weight: 600; color: var(--ink2); }
+  .comment dl.kv dd + dt { margin-top: 6px; }
+}
+.controls .hint { color: var(--muted); font-size: 13px; flex: 1 1 220px; }
+
+/* 화면 1: 개정판 줄과 시장 소식 카드 */
+.wrow { padding: 8px 0; border-bottom: 1px solid var(--line2); }
+.wrow:last-of-type { border-bottom: 0; }
+.whead { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.newslist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 8px; }
+.news { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-size: 13.5px; min-width: 0; }
+.nhead { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.nsum { margin-top: 4px; }
+.nurl { margin-top: 2px; font-size: 12.5px; word-break: break-all; }
+
+/* 응대 카드: 미리 보기 창과 인쇄될 한 장(A4 세로, 위아래 여백 10mm, 양옆 12mm → 본문 186mm × 277mm) */
+dialog.card-dialog { width: min(780px, calc(100vw - 24px)); }
+.card-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.card-frame { margin-top: 10px; background: #e9e8e3; border: 1px solid var(--line); }
+.print-card { display: none; }
+.sheet { width: 186mm; background: #fff; color: #111; font-size: 8.6pt; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
+/* 미리 보기는 여백까지 그린 A4 한 장(210mm × 297mm). 본문 폭은 인쇄와 같은 186mm라 글자 배치가 같다 */
+.card-frame .sheet { width: 210mm; min-height: 297mm; padding: 10mm 12mm; box-shadow: 0 0 0 1px #c9c8c2; }
+.sheet h3 { font-size: 9.2pt; margin: 2.2mm 0 0.8mm; padding-bottom: 0.4mm; border-bottom: 0.5pt solid #9a9994; }
+.sheet .c-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 1mm 4mm; border-bottom: 1.4pt solid #111; padding-bottom: 1.2mm; }
+.sheet .banner { font-size: 10.5pt; font-weight: 700; }
+.sheet .c-cond { font-size: 8.4pt; color: #333; }
+.sheet .c-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-top: 1.6mm; }
+.sheet .c-pair .who { font-size: 7.8pt; color: #555; }
+.sheet .c-pair .name { font-size: 9.8pt; font-weight: 700; }
+.sheet .c-pair .types { font-size: 7.8pt; color: #333; }
+.sheet .c-concl { font-size: 9.2pt; font-weight: 600; }
+.sheet .c-tally { font-size: 8.2pt; color: #333; margin-top: 0.6mm; }
+.sheet table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7.8pt; line-height: 1.25; }
+.sheet th, .sheet td { padding: 0.5mm 1.1mm; border-bottom: 0.4pt solid #c4c3be; text-align: left; vertical-align: top; white-space: normal; }
+.sheet thead th { background: #ecebe7; font-weight: 700; border-bottom: 0.6pt solid #888; }
+.sheet tbody th { font-weight: 600; }
+.sheet col.c-k { width: 22%; }
+.sheet col.c-std { width: 27%; }
+.sheet col.c-v { width: 11%; }
+.sheet .sub { font-size: 7.1pt; color: #444; }
+.sheet td.c-more { color: #333; font-size: 7.8pt; }
+.sheet ul { margin: 0; padding-left: 4mm; }
+.sheet li + li { margin-top: 0.3mm; }
+.sheet .c-foot { margin-top: 2.4mm; border-top: 1.2pt solid #111; padding-top: 1.1mm; font-size: 7.4pt; line-height: 1.28; color: #222; }
+.sheet .c-foot p + p { margin-top: 0.5mm; }
+
 @media print {
   .tabs, .condbar { display: none; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
+  /* 응대 카드를 연 채 인쇄하면 카드 한 장만 나온다 */
+  body.card-print { background: #fff; }
+  body.card-print > *:not(.print-card) { display: none !important; }
+  body.card-print .print-card { display: block; }
 }

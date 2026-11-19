@@ -1,6 +1,7 @@
-/* 화면 4의 조합 계산과 금액 표기. 화면 요소를 건드리지 않는 순수 함수만 둔다.
+/* 화면 4의 조합 계산, 금액 표기, 해설 글 채우기. 화면 요소를 건드리지 않는 순수 함수만 둔다.
    evaluate, payouts, pickRep, scaled는 src/postlife/site/combo.py, compare.py의 같은 이름 함수와 규칙이 같아야 한다.
-   시험(tests/test_site.py)이 같은 입력을 양쪽에 넣어 결과를 맞대 본다. */
+   시험(tests/test_site.py)이 같은 입력을 양쪽에 넣어 결과를 맞대 본다.
+   fillText, commentItems는 해설 글(commentary.py가 검사한 글)의 {변수} 자리에 값을 끼운다. 시험은 tests/test_site_text.py. */
 var PostlifeCalc = (function () {
   'use strict';
 
@@ -219,7 +220,48 @@ var PostlifeCalc = (function () {
     return dec(packed.d);
   }
 
-  return {money: money, comma: comma, scaled: scaled, pickRep: pickRep, evaluate: evaluate, payouts: payouts, unpack: unpack};
+  /* ---------- 해설 글 ---------- */
+  var COMMENT_ITEMS = ['결론', '읽는법', '이유', '유의점', '출처'];
+  var EMPTY = '없을때';
+
+  /* 글의 {변수} 자리에 값을 끼운다. 글이 없으면 undefined, 쓰인 변수 가운데 값이 없는 것이 있으면 null.
+     숫자는 세 자리마다 쉼표를 찍는다. 끼우지 못한 중괄호가 남으면 null이어서 화면에 "{…}"가 보이지 않는다. */
+  function fillText(text, values) {
+    if (typeof text !== 'string') return undefined;
+    var missing = false;
+    var out = text.replace(/\{([^{}]*)\}/g, function (_, name) {
+      var v = values ? values[name] : undefined;
+      if (v === null || v === undefined || v === '' || (typeof v === 'number' && !isFinite(v))) { missing = true; return ''; }
+      return typeof v === 'number' ? comma(v) : String(v);
+    });
+    if (missing || /[{}]/.test(out)) return null;
+    return out;
+  }
+
+  /* 한 화면의 해설에서 보여 줄 항목 [{item, text}]. variant는 화면 3의 우위·대등·열위·없을때(다른 화면은 비움).
+     결론을 채울 수 없거나 variant가 없을때이면 "없을때" 글이 있는 항목은 그 글을 쓴다(결론과 이유가 서로 어긋나지 않게).
+     그 밖에는 본래 글을 쓰고, 값이 빠졌으면 없을때 글, 그것도 없으면 그 항목을 내지 않는다. */
+  function commentItems(entry, values, variant) {
+    var out = [];
+    if (!entry) return out;
+    var empty = entry[EMPTY] || {};
+    function main(item) {
+      var raw = entry[item];
+      if (raw !== null && typeof raw === 'object') return variant ? raw[variant] : undefined;
+      return raw;
+    }
+    var emptyMode = variant === EMPTY || fillText(main('결론'), values) === null;
+    COMMENT_ITEMS.forEach(function (item) {
+      var a = fillText(main(item), values), b = fillText(empty[item], values), text = null;
+      if (emptyMode) text = typeof b === 'string' ? b : (typeof a === 'string' ? a : null);
+      else text = typeof a === 'string' ? a : (a === null && typeof b === 'string' ? b : null);
+      if (text) out.push({item: item, text: text});
+    });
+    return out;
+  }
+
+  return {money: money, comma: comma, scaled: scaled, pickRep: pickRep, evaluate: evaluate, payouts: payouts, unpack: unpack,
+    fillText: fillText, commentItems: commentItems};
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

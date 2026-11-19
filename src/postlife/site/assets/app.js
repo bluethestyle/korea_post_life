@@ -19,15 +19,17 @@
   const COND_TABS = {s2: true, s3: true, s4: true};
   const LIST_SIZE = 20;      // 접어 둔 목록과 작업 기록의 한 쪽
   const RIDER_SIZE = 25;     // 화면 4 특약 목록의 한 쪽
+  const NEWS_SIZE = 6;       // 화면 1 시장 소식 카드의 한 쪽
   const ALL = '*';
 
   const state = {
     tab: 's1',
     age: D.defaults.age,
+    s1: {news: {page: 0}, shifts: {page: 0}},
     sex: D.defaults.sex,
     open: {},                // 접어 둔 구획 가운데 열어 둔 것. 화면을 다시 그려도 닫히지 않게 기억한다
     s2: {ended: false, org: ''},
-    s3: {base: D.s3.defaultBase, cols: null, showEmpty: false, major: null, q: '', diff: '',
+    s3: {base: D.s3.defaultBase, cols: null, showEmpty: false, major: null, q: '', diff: '', cardPeer: null,
       wait: {org: '', rec: '', q: '', page: 0}},
     s4: {vid: D.s4.variants[0] || null, want: {}, list: {q: '', picked: false, page: 0}, others: {q: '', page: 0}},
     s5: {pair: 0},
@@ -262,6 +264,29 @@
     }).join(', ');
   }
 
+  /* ---------- 해설 ----------
+     글은 data/site_text/commentary.json(빌드할 때 commentary.py가 검사함)에 있고, 화면은 지금 고른 조건에서 변수 값만 계산해 끼운다.
+     값이 없는 변수가 있으면 "없을때" 글을 쓰고, 그것도 없으면 그 항목을 내지 않는다(calc.js의 commentItems). */
+  const COMMENT_LABEL = {'읽는법': '읽는 법', '이유': '이유', '유의점': '실무 유의점', '출처': '출처'};
+  function commentBlock(sid, values, variant, mark, fallback) {
+    const items = C.commentItems((D.commentary.texts || {})[sid], values, variant);
+    const head = items.filter(function (x) { return x.item === '결론'; })[0];
+    const rest = items.filter(function (x) { return x.item !== '결론'; });
+    const lead = fallback ? h('p', {class: 'lead'}, fallback) : null;
+    if (!head && !rest.length) return lead;
+    return h('div', {class: 'comment'},
+      head ? h('p', {class: 'conclusion'}, h('span', {class: 'clabel', text: '해설'}), head.text, mark ? [' ', mark] : null) : lead,
+      rest.length ? fold('cm-' + sid, '해설 더 보기: ' + rest.map(function (x) { return COMMENT_LABEL[x.item]; }).join(', '), function () {
+        return [kv(rest.map(function (x) { return [COMMENT_LABEL[x.item], x.text]; })),
+          h('p', {class: 'note', text: '해설은 미리 써 둔 문장 틀에 화면이 지금 고른 조건의 숫자와 이름을 끼워 넣은 글입니다.'})];
+      }) : null);
+  }
+  /* 해설 글의 {condLabel}. needAge면 나이를 비웠을 때 값이 없다(화면 2는 없을때 글을 쓴다). */
+  function condLabel(needAge) {
+    if (state.age === null) return needAge ? null : '나이를 정하지 않은';
+    return condText();
+  }
+
   /* ---------- 틀 ---------- */
   function renderFacts() {
     const s1 = D.s1;
@@ -414,39 +439,122 @@
       ]));
   }
 
-  /* ---------- 화면 1 ---------- */
+  /* ---------- 화면 1 ----------
+     코드가 먼저 추려 확정한 세 가지(weekly.py): 이번 주에 시작되거나 끝난 개정판, 이번 주차 시장 소식, 대표 조건의 우열 변화.
+     모델이 쓰는 주간 요약 문장은 아직 없어서, 맨 위 결론은 해설 글 틀에 코드가 집계한 값을 끼운 것이다. */
+  function revisionRow(e) {
+    const products = uniq(e.variants.map(function (v) { return D.variants[v].product; }));
+    const kinds = e.variants.map(function (v) { return D.variants[v].kind; }).filter(Boolean);
+    return h('div', {class: 'wrow'},
+      h('div', {class: 'whead'}, tag('plain', '', (e.kind === 'start' ? '적용 시작 ' : '판매 종료 ') + e.date),
+        h('strong', {text: e.orgName}), h('span', {text: products.join(', ')})),
+      h('p', {class: 'sub', text: '종형 ' + e.variants.length + '개' + (kinds.length ? '(' + kinds.join(', ') + ')' : '') + ', 개정판ID ' + e.rev}));
+  }
+  function newsCard(n) {
+    return h('article', {class: 'news'},
+      h('div', {class: 'nhead'}, h('strong', {text: n.orgName}), tag('plain', '', n.kind), h('span', {class: 'sub', text: '발표 ' + orNone(n.date)})),
+      h('p', {class: 'nsum', text: n.summary}),
+      h('p', {class: 'sub', text: '매체 ' + orNone(n.media) + ', 수집 경로 ' + orNone(n.via) + ', 판정확률 ' + prob(n.prob)}),
+      n.url ? h('p', {class: 'nurl'}, h('a', {href: n.url, target: '_blank', rel: 'noopener noreferrer', text: n.url})) : null);
+  }
+  function shiftsBlock(sh) {
+    const rep = sh.rep;
+    const repText = rep.age === null || !rep.sexes.length ? '기준값 탭에 대표 조건이 없습니다.'
+      : '대표 조건은 ' + rep.sexes.map(function (x) { return rep.age + '세 ' + sexText(x); }).join(', ')
+        + (rep.uws.length ? ', 심사 유형 ' + rep.uws.map(function (u) { return u.label; }).join(', ') : '') + '입니다.';
+    const out = [h('p', {class: 'note', text: repText + ' 우체국 기준 종형과 심사 유형이 같은 다른 회사 종형의 판정(보장 조건)을 지난주 사본과 견줍니다.'})];
+    if (!sh.available) {
+      out.push(h('p', {class: 'empty', text: '지난주 사본이 없어 이번 주는 비교하지 않았습니다.'}));
+      return out;
+    }
+    out.push(h('p', null, '지난주 사본(자료 기준 시각 ' + when(sh.previousAt) + ')과 견준 짝 ' + sh.pairs + '개에서 개정으로 우열 표시가 바뀐 표준담보 ' + sh.changes.length + '건입니다.'));
+    const why = function (c) {
+      const parts = [];
+      if (c.baseRevised) parts.push('기준 종형 개정판 ' + c.prev.base.rev + ' → ' + D.variants[c.base].rev);
+      if (c.peerRevised) parts.push('비교 종형 개정판 ' + c.prev.peer.rev + ' → ' + D.variants[c.peer].rev);
+      return parts.join(', ');
+    };
+    const mark = function (code) { return verdictTag(code) || tag('plain', '', '없음'); };
+    if (sh.changes.length) {
+      out.push(listPanel({
+        key: 's1-shifts', st: state.s1.shifts, size: LIST_SIZE, unit: '건', items: function () { return sh.changes; },
+        draw: function (slice) {
+          return scrollBox(table(null, ['표준담보', '조건', '기준 종형', '비교 종형', '지난주', '이번 주', '바뀐 까닭'], slice.map(function (c) {
+            return h('tr', null, h('th', {scope: 'row', text: D.std[c.std] ? D.std[c.std].name : c.std}),
+              h('td', {text: c.uw + ', ' + c.sexes.map(function (x) { return rep.age + '세 ' + sexText(x); }).join(', ')}),
+              h('td', {text: vLabel(c.base)}), h('td', {text: vLabel(c.peer)}),
+              h('td', null, mark(c.before)), h('td', null, mark(c.after)), h('td', {text: why(c)}));
+          })), '대표 조건에서 우열 표시가 바뀐 표준담보', 860);
+        }
+      }));
+    }
+    if (sh.corrections) {
+      out.push(h('p', {class: 'note', text: '개정판은 그대로인데 값이 달라져 우열 표시가 바뀐 ' + sh.corrections + '건은 자료 정정이라 여기 싣지 않고 AI 작업 내역에 건수만 적었습니다.'}));
+    }
+    if (sh.newPairs || sh.gonePairs) {
+      out.push(h('p', {class: 'note', text: '이번 주에 새로 생긴 짝 ' + sh.newPairs + '개와 없어진 짝 ' + sh.gonePairs + '개는 견줄 지난주 판정이 없어 뺐습니다.'}));
+    }
+    out.push(h('p', {class: 'note', text: '표시는 비교 종형을 기준 종형과 견준 판정입니다(화면 3과 같음).'}));
+    return out;
+  }
   screens.s1 = function () {
-    const s = D.s1, c = s.counts, t = s.trends;
-    const list = function (pairs) { return pairs.map(function (p) { return p[0] + ' ' + p[1] + '건'; }).join(', '); };
-    const trendLines = t.shown
-      ? [h('p', null, '시장 소식 ' + t.shown + '건 수집됨' + (t.weeks.length ? ' (수집주차 ' + t.weeks.join(', ') + ', 발표일 ' + t.from + ' ~ ' + t.to + ')' : '') + '.'),
-        h('ul', {class: 'plain'},
-          h('li', {text: '분류별: ' + list(t.byKind)}),
-          h('li', {text: '기관별: ' + list(t.byOrg)}),
-          t.total > t.shown ? h('li', {text: '선별 확률이 통과 기준에 못 미쳐 화면에 내지 않는 소식 ' + (t.total - t.shown) + '건'}) : null)]
-      : [h('p', {class: 'empty', text: '수집된 시장 소식이 없습니다.'})];
+    const s = D.s1, c = s.counts, wk = s.week, rv = s.revisions, nw = s.news, tw = nw.thisWeek;
+    const weekVids = uniq([].concat.apply([], rv.thisWeek.map(function (e) { return e.variants; })));
+    const quiet = !weekVids.length && !tw.passed;      // 이번 주에 달라진 것이 하나도 없으면 결론은 없을때 글을 쓴다
+    const values = {
+      snapshotDate: wk ? wk.today : null, orgCount: s.orgs.length, variantCount: c.variants,
+      weekVariantCount: quiet ? null : weekVids.length, trendShownCount: quiet ? null : tw.passed,
+      onSaleCount: c.onSale, waitingCount: c.waiting
+    };
     const missing = [];
     if (s.orgs.length <= 1) missing.push('민영 비교사 상품 자료가 없습니다. 지금 비교는 ' + s.homeName + ' 상품끼리만 됩니다.');
+    if (!c.premiums) missing.push('보험료 자료가 없습니다(2단계). 보험료와 가격 비교는 화면에 내지 않습니다.');
+    if (!c.diseaseCodes) missing.push('급부별 질병코드 자료가 없습니다. 보장 범위(질병코드 폭) 비교는 아직 할 수 없습니다.');
     s.limitGaps.forEach(function (g) {
       const what = [];
       if (g.noMax) what.push('특약 가입 한도(' + (g.noMax < g.riders ? '특약 ' + C.comma(g.riders) + '개 가운데 ' + C.comma(g.noMax) + '개' : '특약 ' + C.comma(g.riders) + '개 모두') + ')');
       if (g.noAge) what.push('주계약 가입 나이');
-      missing.push(g.name + ' 종형 ' + g.variants + '개는 공시 문서에 ' + what.join('와 ') + ' 자료가 없습니다.'
-        + (g.noMax ? ' 이 종형은 "최대로 가입했을 때 지급액"을 계산하지 않고, 기준 가입금액에 대한 지급액과 면책·감액 조건만 보여 줍니다.' : ''));
+      missing.push(g.name + ' 종형 ' + g.variants + '개는 지금 자료에 ' + what.join('와 ') + ' 자료가 없습니다.'
+        + (g.noMax ? ' 이 종형은 "최대로 가입했을 때 지급액"을 계산하지 않고, 기준 가입금액에 대한 지급액과 면책, 감액 조건만 보여 줍니다.' : ''));
     });
-    if (!c.premiums) missing.push('보험료 자료가 없습니다(2단계). 보험료와 가격 비교는 화면에 내지 않습니다.');
-    if (!c.diseaseCodes) missing.push('급부별 질병코드 자료가 없습니다. 보장 범위(질병코드 폭) 비교는 아직 할 수 없습니다.');
-    return screen('이번 주 달라진 점', '주간 요약은 준비 중입니다. 지금은 모아 둔 자료의 현황만 적습니다.',
-      block('시장 소식', trendLines, h('p', {class: 'note', text: '소식 목록과 주간 요약 문장은 준비 중입니다.'})),
-      block('들어 있는 자료',
-        h('div', {class: 'tiles'},
-          tile('종형', c.variants + '개', '판매 중 ' + c.onSale + '개 · 개정판 ' + c.revisions + '개'),
-          tile('특약(주계약 포함)', C.comma(c.riders) + '개'),
-          tile('급부', C.comma(c.benefits) + '줄', '표준담보 확정 ' + C.comma(c.mapped) + ' · 매핑 검토 대기 ' + C.comma(c.waiting) + ' · 대상외 ' + C.comma(c.excluded)),
-          tile('값 검토 대기 급부', C.comma(c.pendingBenefits) + '줄', '가입조건은 ' + C.comma(c.pendingConditions) + '행이 검토 대기'),
-          tile('AI 작업 기록', C.comma(c.logs) + '건')),
-        h('p', {class: 'note', text: '회사별 종형 수: ' + s.orgs.map(function (o) { return o.name + ' ' + o.variants + '개'; }).join(', ') + '.'})),
-      missing.length ? block('아직 없는 자료', h('ul', {class: 'plain'}, missing.map(function (m) { return h('li', {text: m}); }))) : null);
+
+    const revBlock = block('이번 주에 적용이 시작되거나 판매가 끝난 개정판',
+      rv.thisWeek.length ? rv.thisWeek.map(revisionRow)
+        : [h('p', {class: 'empty', text: '이번 주에는 없습니다.'}),
+          rv.latest ? [h('p', {class: 'note', text: '가장 최근 것 한 건'}), revisionRow(rv.latest)] : null],
+      h('p', {class: 'note', text: '종형이 아니라 개정판ID 단위로 묶고, 적용 시작과 판매 종료를 나눠 적습니다.'}));
+
+    const skipped = [];
+    if (tw.undecided) skipped.push('판정확률이 없는 미판정 소식 ' + tw.undecided + '건');
+    if (tw.below) skipped.push('통과 기준에 못 미친 소식 ' + tw.below + '건');
+    const newsBlock = block('이번 주차 시장 소식',
+      h('p', {class: 'note', text: '수집주차가 ' + (wk ? wk.id : '정해지지 않은 주') + '인 소식 가운데 선별 판정확률이 통과 기준'
+        + (nw.threshold !== null && nw.threshold !== undefined ? '(' + nw.threshold + ')' : '') + ' 이상인 것만 싣습니다.'}),
+      nw.fallback ? h('p', {class: 'notice', text: '이번 주차에는 선별을 통과한 소식이 없어, 가장 최근 수집주차(' + nw.week + ')의 소식을 참고용으로 보여 줍니다.'}) : null,
+      nw.items.length ? listPanel({key: 's1-news', st: state.s1.news, size: NEWS_SIZE, unit: '건', items: function () { return nw.items; },
+        draw: function (slice) { return h('div', {class: 'newslist'}, slice.map(newsCard)); }})
+        : h('p', {class: 'empty', text: '선별을 통과한 시장 소식이 없습니다.'}),
+      skipped.length ? h('p', {class: 'note', text: '이번 주차 소식 가운데 ' + skipped.join(', ') + '은 싣지 않았습니다.'}) : null,
+      nw.items.length ? h('p', {class: 'note', text: '출처 주소는 누르면 새 창에서 열립니다. 이 화면이 스스로 바깥 주소를 부르지는 않습니다.'}) : null);
+
+    const dataFold = fold('s1-data', '종형, 특약, 급부, 작업 기록 건수 보기', function () {
+      return [h('div', {class: 'tiles'},
+        tile('종형', c.variants + '개', '판매 중 ' + c.onSale + '개, 개정판 ' + c.revisions + '개'),
+        tile('특약(주계약 포함)', C.comma(c.riders) + '개'),
+        tile('급부', C.comma(c.benefits) + '줄', '표준담보 확정 ' + C.comma(c.mapped) + ', 매핑 검토 대기 ' + C.comma(c.waiting) + ', 대상외 ' + C.comma(c.excluded)),
+        tile('값 검토 대기 급부', C.comma(c.pendingBenefits) + '줄', '가입조건은 ' + C.comma(c.pendingConditions) + '행이 검토 대기'),
+        tile('AI 작업 기록', C.comma(c.logs) + '건')),
+        h('p', {class: 'note', text: '회사별 종형 수: ' + s.orgs.map(function (o) { return o.name + ' ' + o.variants + '개'; }).join(', ') + '.'})];
+    });
+
+    return screen('이번 주 달라진 점', null,
+      commentBlock('s1', values, null, tag('plain', '', '코드가 집계한 요약')),
+      h('p', {class: 'note', text: wk ? '이번 주는 ' + wk.id + '(' + wk.from + ' ~ ' + wk.to + ')입니다. 자료 기준 시각을 서울 시간으로 본 ISO 주입니다.'
+        : '자료 기준 시각이 없어 이번 주를 정하지 못했습니다.'}),
+      missing.length ? h('div', {class: 'notice'}, h('ul', {class: 'plain'}, missing.map(function (m) { return h('li', {text: m}); }))) : null,
+      revBlock, newsBlock,
+      block('대표 조건에서 우열 표시가 바뀐 표준담보', shiftsBlock(s.shifts)),
+      block('들어 있는 자료', dataFold));
   };
 
   /* ---------- 화면 2 ---------- */
@@ -499,6 +607,10 @@
     const lead = state.age === null
       ? '나이를 넣으면 종형마다 주계약 가입 가능 여부와 가입할 수 있는 특약 수가 나옵니다.' + unknownNote
       : condText() + ': 가입 나이 자료가 있는 종형 ' + known.length + '개 가운데 ' + okCount + '개의 주계약에 가입할 수 있는 나이입니다.' + unknownNote;
+    const comment = commentBlock('s2', {
+      condLabel: condLabel(true), shownCount: vids.length, knownCount: known.length, okCount: okCount,
+      noCondCount: vids.length - known.length, simpleCount: vids.filter(function (v) { return D.variants[v].uw === '간편심사'; }).length
+    }, null, null, lead);      // 해설 결론이 안내 줄을 대신한다. 결론을 채우지 못하면 안내 줄을 그대로 쓴다
 
     const row = function (vid) {
       const x = S.byVariant[vid], segs = x.seg[state.sex];
@@ -507,7 +619,7 @@
         head.push(tag('plain', '', '가입 나이·한도 자료 없음'));
         const riders = x.riders.length;
         return h('div', {class: 'vrow'}, h('div', {class: 'vhead'}, head),
-          h('p', {class: 'note', text: '공시 문서에 주계약 가입 나이와 가입 한도가 없어 나이별 적격을 따지지 못합니다.'
+          h('p', {class: 'note', text: '지금 자료에 주계약 가입 나이와 가입 한도가 없어 나이별 적격을 따지지 못합니다.'
             + (riders ? ' 특약 ' + C.comma(riders) + '개도 가입 나이 자료가 없습니다.' : '')}));
       }
       if (state.age !== null) {
@@ -582,7 +694,7 @@
     });
     const gate = table(null, ['종형', '심사', '최근 소견', '입원·수술', '중대질병'], gateRows);
 
-    return screen('가입 적격·간편심사 관문 비교', lead,
+    return screen('가입 적격·간편심사 관문 비교', null, comment,
       orgs.length > 1 ? choice('s2-org', '회사', [{value: '', label: '전체 (종형 ' + onSale.length + '개)'}].concat(orgs.map(function (o) {
         const mine = onSale.filter(function (v) { return D.variants[v].org === o; });
         return {value: o, label: D.variants[mine[0]].orgName + ' (' + mine.length + '개)'};
@@ -792,14 +904,38 @@
           + C.comma(rest.reduce(function (n, x) { return n + x[1]; }, 0)) + '가지'}) : null)) : null,
       fold('s3-wait', '목록 보기 · 회사, 추천 표준담보, 이름으로 찾기 (' + C.comma(sum.groups) + '가지)', list));
   }
+  /* 처음에는 기준 종형과 심사 유형이 같은 종형만 열로 보여 준다. 종형이 늘어도 표가 옆으로 길어지지 않는다. */
+  function s3Cols() {
+    const S = D.s3, st = state.s3;
+    const peers = S.peers[st.base] || S.variants;
+    return S.variants.filter(function (v) { return v === st.base || (st.cols ? st.cols[v] : peers.indexOf(v) >= 0); });
+  }
+  function s3Pool() { return state.s3.showEmpty ? D.s3.rows : D.s3.rows.filter(function (r) { return r.any; }); }
+  /* 해설과 응대 카드가 견주는 비교 종형: 지금 보이는 열 가운데 기준이 아닌 첫 민영사 열, 없으면 첫 다른 열 */
+  function commentPeer(cols, base) {
+    const others = cols.filter(function (v) { return v !== base; });
+    return others.filter(function (v) { return D.variants[v].org !== D.s1.homeOrg; })[0] || others[0] || null;
+  }
+  /* 해설 글의 벌 고르기. verdict(비교, 기준)의 w가 기준 종형이 나은 담보, b가 비교 종형이 나은 담보다.
+     판정한 담보(나음, 같음, 못함, 엇갈림)가 없으면 없을때, 차이가 문턱(기준값 탭 COMMENT_S3_MARGIN, 없으면 0)을 넘어야 우위나 열위다. */
+  function s3Variant(sum) {
+    if (!sum || sum.b + sum.w + sum.s + sum.m === 0) return '없을때';
+    const margin = D.commentary.s3Margin || 0;
+    if (sum.w - sum.b > margin) return '우위';
+    if (sum.b - sum.w > margin) return '열위';
+    return '대등';
+  }
+  function s3Values(base, peer, sum) {
+    return {condLabel: condLabel(false), baseLabel: vLabel(base), peerLabel: peer ? vLabel(peer) : null,
+      baseBetterCount: sum ? sum.w : null, peerBetterCount: sum ? sum.b : null, sameCount: sum ? sum.s : null,
+      mixedCount: sum ? sum.m : null, gapCount: sum ? sum.n : null};
+  }
   screens.s3 = function () {
     const S = D.s3, st = state.s3, k = condIndex();
     if (!S.variants.length) {
       return screen('담보 비교표와 빈자리 특약', null, h('p', {class: 'empty', text: '정밀 비교 대상 종형 자료가 없습니다.'}));
     }
-    /* 처음에는 기준 종형과 심사 유형이 같은 종형만 열로 보여 준다. 종형이 늘어도 표가 옆으로 길어지지 않는다. */
-    const peers = S.peers[st.base] || S.variants;
-    const cols = S.variants.filter(function (v) { return v === st.base || (st.cols ? st.cols[v] : peers.indexOf(v) >= 0); });
+    const cols = s3Cols();
     const setCols = function (change) {
       const next = {};
       cols.forEach(function (v) { next[v] = true; });
@@ -814,7 +950,9 @@
 
     /* 종형별 요약: 비교표에 나오는 표준담보 전체(보장 분야를 가리지 않음)를 기준 종형과 견준 결과의 분포.
        좁은 화면에서도 옆으로 밀지 않고 읽도록 표 대신 줄 목록으로 그린다. 여기서 비교표에 넣을 열도 고른다. */
-    const pool = st.showEmpty ? S.rows : withData;
+    const pool = s3Pool();
+    const peer = commentPeer(cols, st.base);
+    const peerSum = peer ? tally(pool, peer, k, bi) : null;
     const waitOnly = S.rows.filter(function (r) { return !r.any && Object.keys(r.cells).length > 0; }).length;
     const count = function (cls, icon, word, n) { return n ? tag(cls, icon, word + ' ' + n) : null; };   // 0건인 항목은 적지 않는다
     const sumList = h('div', {class: 'sumlist'});
@@ -931,12 +1069,205 @@
       tableBox,
       h('p', {class: 'note', text: '판정은 지급액(최대 가입 기준), 면책기간, 감액 조건만 봅니다. 셋이 서로 다른 방향이면 "엇갈림"입니다. 입원 며칠째부터 주는지 같은 지급 한도 문구는 글자로만 보여 주고, 기준과 다르면 "지급 한도 문구 다름"을 붙입니다. 사람 검토를 기다리는 값이 대표 급부에 있으면 판정을 미룹니다.'}));
 
-    return screen('담보 비교표와 빈자리 특약',
-      '칸의 큰 숫자는 그 특약을 최대로 가입했을 때 받는 금액입니다(' + condText() + '). 기준 종형과 견주어 지급액·면책·감액 조건이 나은지 표시합니다. 보험료는 넣지 않았습니다.',
+    return screen('담보 비교표와 빈자리 특약', null,
+      commentBlock('s3', s3Values(st.base, peer, peerSum), s3Variant(peerSum)),
+      h('p', {class: 'lead', text: '칸의 큰 숫자는 그 특약을 최대로 가입했을 때 받는 금액입니다(' + condText() + '). 기준 종형과 견주어 지급액·면책·감액 조건이 나은지 표시합니다. 보험료는 넣지 않았습니다.'}),
       gaps.length ? h('p', {class: 'notice', text: gapNames(gaps) + '는 공시 문서에 특약 가입 한도가 없어 "최대로 가입했을 때 지급액"을 계산하지 못합니다. 이 종형의 칸에는 기준 가입금액에 대한 지급액과 면책·감액 조건을 적고, 우열 판정은 하지 않습니다.'}) : null,
       variantPicker('s3-base', '기준 ', S.bases, st.base, function (v) { st.base = v; renderMain(); }),
+      cardControls(cols, st.base),
       sumBlock, cmpBlock, waitingBlock());
   };
+
+  /* ---------- 응대 카드 (기획 3.5) ----------
+     화면 3에서 기준 종형, 비교 종형 하나, 나이와 성별이 정해지면 A4 세로 한 장으로 인쇄한다(window.print).
+     묶음과 줄 수 상한, 고정 글은 card.py가 정한다. 값은 화면 3이 가진 자료에서 고르기만 한다.
+     미리 보기는 인쇄될 한 장을 화면 폭에 맞춰 줄여 보여 주고, 인쇄용 사본(#print-card)은 인쇄할 때만 보인다. */
+  const cardDialog = document.getElementById('card');
+  function cardOthers() { return s3Cols().filter(function (v) { return v !== state.s3.base; }); }
+  function cardControls(cols, base) {
+    const others = cols.filter(function (v) { return v !== base; });
+    const why = state.age === null ? '나이를 넣으면 만들 수 있습니다.'
+      : !others.length ? '비교할 종형 열을 하나 이상 켜면 만들 수 있습니다.' : null;
+    return h('div', {class: 'controls'},
+      h('button', {type: 'button', class: 'btn', 'data-key': 's3-card', disabled: !!why, text: '응대 카드', onclick: openCard}),
+      h('span', {class: 'hint', text: why || '기준 종형과 비교 종형 하나를 A4 한 장으로 인쇄합니다. 내부 교육과 비교 참고용입니다.'}));
+  }
+  function openCard() {
+    const others = cardOthers();
+    if (state.age === null || !others.length) return;
+    if (others.indexOf(state.s3.cardPeer) < 0) state.s3.cardPeer = commentPeer(s3Cols(), state.s3.base);
+    if (typeof cardDialog.showModal === 'function') {
+      if (!cardDialog.open) cardDialog.showModal();
+    } else {
+      cardDialog.setAttribute('open', '');
+    }
+    document.body.classList.add('card-print');
+    drawCard();
+    document.getElementById('card-body').scrollTop = 0;
+  }
+  const PAGE_MM = 277;                          // A4 세로 297mm에서 위아래 여백(app.css의 @page)을 뺀 본문 높이
+  function drawCard() {
+    const others = cardOthers(), peer = state.s3.cardPeer;
+    const body = document.getElementById('card-body');
+    const frame = h('div', {class: 'card-frame'});
+    body.textContent = '';
+    add(body, [
+      others.length > 1 ? choice('card-peer', '비교 종형', others.map(function (v) { return {value: v, label: vLabel(v)}; }), peer,
+        function (v) { state.s3.cardPeer = v; drawCard(); }) : null,
+      h('p', {class: 'note', text: '인쇄하면 이 카드만 A4 세로 한 장으로 나옵니다. 아래는 그 한 장을 화면 폭에 맞춰 줄인 모습입니다.'}),
+      frame
+    ]);
+    /* 이름이 긴 종형이 들어와도 한 장을 넘지 않도록, 넘치면 비교표의 행을 하나씩 줄여 "외 N개" 줄로 넘긴다 */
+    let rows = D.card.rows, sheet = null;
+    for (;;) {
+      frame.textContent = '';
+      sheet = cardSheet(state.s3.base, peer, rows);
+      frame.appendChild(sheet);
+      if (rows <= 3 || !frame.clientWidth || sheetHeightMm(sheet) <= PAGE_MM) break;
+      rows--;
+    }
+    const print = document.getElementById('print-card');
+    print.textContent = '';
+    print.appendChild(cardSheet(state.s3.base, peer, rows));
+    fitCard();
+  }
+  /* 미리 보기 한 장의 본문 높이(mm). 줄이기 전 크기로, 여백과 최소 높이(A4)는 빼고 잰다 */
+  function sheetHeightMm(sheet) {
+    sheet.style.zoom = '';
+    sheet.style.minHeight = '0';
+    const cs = getComputedStyle(sheet);
+    const px = sheet.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    sheet.style.minHeight = '';
+    return px * 25.4 / 96;
+  }
+  /* 미리 보기의 한 장을 화면 폭에 맞춰 줄인다. 글자 배치는 인쇄와 같다. */
+  function fitCard() {
+    const frame = document.querySelector('#card-body .card-frame');
+    if (!frame || !frame.firstChild) return;
+    const sheet = frame.firstChild;
+    if (!frame.clientWidth) return;            // 인쇄 중처럼 미리 보기가 숨어 있으면 그대로 둔다
+    sheet.style.zoom = '';
+    const scale = Math.min(1, frame.clientWidth / sheet.offsetWidth);
+    if (scale < 1) sheet.style.zoom = String(Math.floor(scale * 1000) / 1000);
+  }
+  function closeCard() {
+    if (typeof cardDialog.close === 'function' && cardDialog.open) cardDialog.close();
+    else cardDialog.removeAttribute('open');
+    document.body.classList.remove('card-print');
+  }
+  document.getElementById('card-close').addEventListener('click', closeCard);
+  document.getElementById('card-print').addEventListener('click', function () { window.print(); });
+  cardDialog.addEventListener('close', function () { document.body.classList.remove('card-print'); });
+  cardDialog.addEventListener('click', function (e) { if (e.target === cardDialog) closeCard(); });
+  window.addEventListener('resize', function () { if (cardDialog.open) fitCard(); });
+
+  function uwText(vid) {
+    const v = D.variants[vid];
+    const renew = v.renew === '갱신' ? (v.renewYears ? v.renewYears + '년 갱신' : '갱신형') : v.renew;
+    return [v.uw + (v.uw === '간편심사' && v.simple ? ' ' + v.simple : ''), renew, v.refund].filter(Boolean).join(', ');
+  }
+  function gateText(vid) {
+    const v = D.variants[vid], g = v.gate;
+    const none = function (x) { return x === null || x === undefined; };
+    if (v.uw !== '간편심사') return D.texts.gateGeneral || '일반심사';
+    return [none(g.months) ? '최근 소견 자료 없음' : '최근 ' + g.months + '개월 이내 소견',
+      none(g.hospYears) ? '입원 질문 자료 없음' : g.hospYears + '년 이내 입원' + (g.surgery === true ? '과 수술' : g.surgery === false ? '(수술은 묻지 않음)' : '(수술 포함 여부 자료 없음)'),
+      none(g.majorYears) ? '중대질병 자료 없음' : g.majorYears + '년 이내 중대질병' + (none(g.majorCount) ? '' : ' ' + g.majorCount + '개')].join(', ');
+  }
+  function mainAgeText(vid, k) {
+    const x = D.s2.byVariant[vid];
+    if (!x || x.noCond) return '자료 없음';
+    if (!x.ok[k]) return '가입할 수 없는 나이';
+    const seg = x.seg[state.sex].filter(function (s) { return s.lo <= state.age && state.age <= s.hi; })[0];
+    return '가입 가능, ' + (seg ? ageRange(seg.lo, seg.hi) + ' 구간, ' : '') + (x.lim[k] === null ? '한도 자료 없음' : '최대 ' + money(x.lim[k]));
+  }
+  const CARD_VERDICT = {w: '기준 우위', b: '비교 우위', s: '같음', m: '엇갈림'};
+  function cardSheet(base, peer, maxRows) {
+    const K = D.card, S = D.s3, k = condIndex(), bi = S.bases.indexOf(base), limit = maxRows || K.rows;
+    const pool = s3Pool();
+    const sum = tally(pool, peer, k, bi);
+    const items = C.commentItems((D.commentary.texts || {}).s3, s3Values(base, peer, sum), s3Variant(sum));
+    const concl = items.filter(function (x) { return x.item === '결론'; })[0];
+    const major = state.s3.major && state.s3.major !== ALL ? state.s3.major : null;
+    const rows = pool.filter(function (r) { return !major || r.major === major; });
+    const stOf = function (r, v) { const c = r.cells[v]; return c ? c.st[c.by[k]] : null; };
+    const noCap = function (st) { return !!st && st.kind === 'ok' && st.caps[st.rep] === null; };
+    const head = function (r) { return headOf(r, peer, k, bi); };
+    /* 묶음 4: 우열 차이가 있는 담보를 먼저, 남는 줄에 같음과 한도 미공시 담보. 넘치면 마지막 줄을 "외 N개"로 쓴다 */
+    const diff = rows.filter(function (r) { return 'wbm'.indexOf(head(r) || '-') >= 0; });
+    const plain = rows.filter(function (r) { const x = head(r); return x === 's' || (x === 'x' && (noCap(stOf(r, peer)) || noCap(stOf(r, base)))); });
+    const listed = diff.concat(plain);
+    const shown = listed.length > limit ? listed.slice(0, limit - 1) : listed;
+    const cellText = function (r, v) {
+      const st = stOf(r, v);
+      if (!st) return h('span', {class: 'sub', text: '없음'});
+      if (st.kind === 'unavail') return '이 나이 가입 불가';
+      if (st.kind !== 'ok') return h('span', {class: 'sub', text: '확정 급부 없음'});
+      const b = D.benefits[r.cells[v].lines[st.rep]];
+      const terms = waitText(b.wait) + ', ' + redText(b.red);
+      /* 가입 한도 자료가 없는 종형: 최대 가입 지급액 대신 문서의 기준 가입금액과 그 지급액을 적는다 */
+      if (st.caps[st.rep] === null) return [h('b', {text: '기준 가입 ' + money(b.base) + '에 ' + money(b.pay)}), h('br'), h('span', {class: 'sub', text: '특약 한도 미공시, ' + terms})];
+      return [h('b', {text: money(st.vals[st.rep])}), ' (최대 가입 ' + money(st.caps[st.rep]) + ')', h('br'), h('span', {class: 'sub', text: terms})];
+    };
+    const tableRows = shown.map(function (r) {
+      const word = CARD_VERDICT[head(r)];
+      return h('tr', null, h('th', {scope: 'row'}, r.name, h('br'), h('span', {class: 'sub', text: r.mid})),
+        h('td', null, cellText(r, base)), h('td', null, cellText(r, peer)),
+        h('td', null, word ? h('b', {text: word}) : h('span', {class: 'sub', text: '판정 안 함'})));
+    });
+    if (listed.length > shown.length) {
+      tableRows.push(h('tr', null, h('td', {colspan: '4', class: 'c-more', text: '외 ' + (listed.length - shown.length) + '개 담보는 화면 3의 비교표에서 볼 수 있습니다.'})));
+    }
+    const names = function (code) {
+      const list = rows.filter(function (r) { return head(r) === code; }).map(function (r) { return r.name; });
+      return list.length + '개' + (list.length ? ': ' + list.slice(0, K.names).join(', ') + (list.length > K.names ? ' 외 ' + (list.length - K.names) + '개' : '') : '');
+    };
+    const gaps = [];
+    const counts = D.s1.counts;
+    if (!counts.premiums || !counts.diseaseCodes) {
+      gaps.push((!counts.premiums ? '보험료 자료가 없어 가격은 견주지 않았습니다. ' : '')
+        + (!counts.diseaseCodes ? '약관 별표의 질병코드 범위 자료가 없어 보장 범위의 폭도 견주지 않았습니다.' : ''));
+    }
+    const noLimit = [base, peer].filter(function (v) { return D.variants[v].gap && D.variants[v].gap.noMax; });
+    if (noLimit.length) gaps.push(noLimit.map(vLabel).join(', ') + ' 종형은 공시 문서에 특약 가입 한도가 없어 최대 가입 지급액 대신 기준 가입금액 조건만 적었습니다.');
+    const held = sum.p + sum.q, noMoney = sum.x - sum.noCap;
+    if (held || noMoney) {
+      gaps.push((held ? '검토 대기라 판정에서 뺀 담보 ' + held + '개' : '') + (held && noMoney ? ', ' : '')
+        + (noMoney ? '금액 자료가 없어 판정하지 않은 담보 ' + noMoney + '개' : '') + '가 있습니다.');
+    }
+    gaps.push('근거: 각 회사 상품요약서와 사업방법서, 개정판ID ' + D.variants[base].rev + ', ' + D.variants[peer].rev);
+    const side = function (who, vid) {
+      return h('div', null, h('span', {class: 'who', text: who + ' 종형: ' + D.variants[vid].orgName}),
+        h('div', {class: 'name', text: vLabel(vid)}), h('div', {class: 'types', text: uwText(vid)}));
+    };
+    const gateDiff = D.variants[base].uw === '간편심사' && D.variants[peer].uw === '간편심사' && D.variants[base].gate.surgery !== D.variants[peer].gate.surgery;
+    return h('div', {class: 'sheet', 'data-rows': String(limit)},
+      h('div', {class: 'c-top'}, h('span', {class: 'banner', text: K.banner}),
+        h('span', {class: 'c-cond', text: condText() + ', 자료 기준일 ' + (D.s1.week ? D.s1.week.today : String(D.meta.snapshotAt || '').slice(0, 10))})),
+      h('div', {class: 'c-pair'}, side('기준', base), side('비교', peer)),
+      h('h3', {text: '결론'}),
+      concl ? h('p', {class: 'c-concl', text: concl.text}) : null,
+      h('p', {class: 'c-tally', text: '보장 분야 전체 표준담보 ' + pool.length + '개 기준: 기준 우위 ' + sum.w + ', 비교 우위 ' + sum.b + ', 같음 ' + sum.s
+        + ', 엇갈림 ' + sum.m + ', 빈자리 ' + sum.n + ', 판정 보류 ' + (sum.p + sum.q + sum.x)}),
+      h('h3', {text: '가입 적격과 간편심사 관문'}),
+      h('table', {class: 'c-gate'}, h('colgroup', null, h('col', {class: 'c-k'}), h('col'), h('col')),
+        h('thead', null, h('tr', null, h('th', {scope: 'col', text: '항목'}), h('th', {scope: 'col', text: '기준 종형'}), h('th', {scope: 'col', text: '비교 종형'}))),
+        h('tbody', null,
+          h('tr', null, h('th', {scope: 'row', text: '심사 유형'}), h('td', {text: uwText(base)}), h('td', {text: uwText(peer)})),
+          h('tr', null, h('th', {scope: 'row', text: '고지 관문' + (gateDiff ? '(수술 포함 여부 다름)' : '')}), h('td', {text: gateText(base)}), h('td', {text: gateText(peer)})),
+          h('tr', null, h('th', {scope: 'row', text: condText() + ' 주계약'}), h('td', {text: mainAgeText(base, k)}), h('td', {text: mainAgeText(peer, k)})))),
+      h('h3', {text: '핵심 표준담보 비교 (보장 분야: ' + (major || '전체') + ')'}),
+      shown.length ? h('table', {class: 'c-cmp'}, h('colgroup', null, h('col', {class: 'c-std'}), h('col'), h('col'), h('col', {class: 'c-v'})),
+        h('thead', null, h('tr', null, h('th', {scope: 'col', text: '표준담보'}), h('th', {scope: 'col', text: '기준 종형'}),
+          h('th', {scope: 'col', text: '비교 종형'}), h('th', {scope: 'col', text: '판정'}))),
+        h('tbody', null, tableRows)) : h('p', {class: 'sub', text: '견줄 수 있는 담보가 없습니다.'}),
+      h('h3', {text: '한쪽에만 있는 담보'}),
+      h('p', {text: '기준 종형에만 있는 담보 ' + names('n')}),
+      h('p', {text: '비교 종형에만 있는 담보 ' + names('o')}),
+      h('h3', {text: '자료 공백과 근거'}),
+      h('ul', null, gaps.map(function (g) { return h('li', {text: g}); })),
+      h('div', {class: 'c-foot'}, K.footer.map(function (t) { return h('p', {text: t}); })));
+  }
 
   /* ---------- 화면 4 ---------- */
   function stepOf(lo) {
@@ -1151,9 +1482,15 @@
     if (allUnknown) fillNote = '이 종형은 가입 한도 자료가 없어 "최대"를 알 수 없습니다. "기준 가입금액으로 모두 담기"는 모든 특약을 급부표의 기준 가입금액으로 담습니다.';
     else if (unknown.length) fillNote += ' 가입 한도 자료가 없는 특약 ' + unknown.length + '개는 급부표의 기준 가입금액으로 담습니다.';
 
-    return screen('특약 조합별 실제 지급액', lead,
+    const mainOn = !!(mainRow && mainRow.on);
+    const comment = commentBlock('s4', {
+      condLabel: condLabel(false), variantLabel: vLabel(vid), mainAmount: mainOn ? money(mainRow.amount) : null,
+      riderTotalCount: riderCount, pickedRiderCount: onCount, stdPayoutCount: groups.length ? groups.length : null,   // 지급액이 없으면 없을때 글
+      ruleCount: vm.rules.length, noLimitCount: unknown.length
+    }, null, null, lead);
+    return screen('특약 조합별 실제 지급액', null, comment,
       picker,
-      unknown.length ? h('p', {class: 'notice', text: (allUnknown ? '이 종형은 공시 문서에 특약 가입 한도' + (allNoCond ? '와 가입 나이' : '') + '가 없습니다.'
+      unknown.length ? h('p', {class: 'notice', text: (allUnknown ? (allNoCond ? '이 종형은 지금 자료에 특약 가입 한도와 가입 나이가 없습니다.' : '이 종형은 공시 문서에 특약 가입 한도가 없습니다.')
         : '이 종형의 특약 ' + vm.riders.length + '개 가운데 ' + unknown.length + '개는 공시 문서에 가입 한도가 없습니다.')
         + ' 그런 특약을 고르면 급부표의 기준 가입금액을 넣어 두며, 금액은 직접 고칠 수 있습니다. 한도를 넘는 금액인지는 이 화면이 확인하지 못합니다.'}) : null,
       h('div', {class: 'controls'},
@@ -1224,7 +1561,7 @@
   screens.s5 = function () {
     const S = D.s5;
     if (!S.pairs.length) {
-      return screen('개정 전후 비교', '같은 종형계보키로 이어지는 개정 전후 종형이 자료에 없습니다.',
+      return screen('개정 전후 비교', null, commentBlock('s5', {}, null, null, '같은 종형계보키로 이어지는 개정 전후 종형이 자료에 없습니다.'),
         block('출시·판매중지 시간선', timeline()));
     }
     const p = S.pairs[Math.min(state.s5.pair, S.pairs.length - 1)];
@@ -1300,8 +1637,11 @@
         h('td', {text: segsText(p.ages.old[state.sex])}), h('td', {text: segsText(p.ages.new[state.sex])}),
         changeCell(p.ages.old[state.sex], p.ages.new[state.sex]))]);
 
-    return screen('개정 전후 비교',
-      '값이 달라진 급부 ' + changedBenefits + '줄, 없어진 특약 ' + p.removedRiders.length + '개, 새로 생긴 특약 ' + p.addedRiders.length + '개, 달라진 곳이 없는 특약 ' + p.sameRiders + '개입니다.',
+    const comment = commentBlock('s5', {
+      oldLabel: vLabel(p.old), newLabel: vLabel(p.new), newStartDate: D.variants[p.new].start, changedBenefitCount: changedBenefits,
+      addedRiderCount: p.addedRiders.length, removedRiderCount: p.removedRiders.length, sameRiderCount: p.sameRiders
+    }, null, null, '값이 달라진 급부 ' + changedBenefits + '줄, 없어진 특약 ' + p.removedRiders.length + '개, 새로 생긴 특약 ' + p.addedRiders.length + '개, 달라진 곳이 없는 특약 ' + p.sameRiders + '개입니다.');
+    return screen('개정 전후 비교', null, comment,
       select,
       block('출시·판매중지 시간선', timeline()),
       block('달라진 급부 값', rows.length ? scrollBox(diffTable, '개정 전후로 달라진 급부 값') : h('p', {class: 'empty', text: '이어진 특약에서 달라진 값이 없습니다.'}),
@@ -1411,13 +1751,19 @@
       }
     });
 
-    return screen('AI 작업 내역',
-      '추출·코드 대조·판정·재추출·사람 검토 이관 기록 ' + C.comma(sum.total) + '건입니다(실행 ' + sum.runs + '회). 판정확률은 판정 전용 모델이 매긴 값입니다.',
+    const comment = commentBlock('s6', sum.total ? {
+      runCount: sum.runs, totalCount: sum.total, rejectedCount: sum.byStep.reduce(function (n, x) { return n + x['반려']; }, 0),
+      reviewCount: sum.review.count, reviewTargetCount: sum.review.targets, retryAdoptedCount: sum.retry.adopted, retryKeptCount: sum.retry.kept
+    } : {}, null, null, '추출·코드 대조·판정·재추출·사람 검토 이관 기록 ' + C.comma(sum.total) + '건입니다(실행 ' + sum.runs + '회). 판정확률은 판정 전용 모델이 매긴 값입니다.');
+    const shifts = D.s1.shifts;      // 지난주 사본과 견준 자료 정정(개정판은 그대로인데 대표 조건의 우열 표시가 바뀐 것)은 건수만 여기 적는다
+    return screen('AI 작업 내역', null, comment,
+      h('p', {class: 'note', text: '판정확률은 판정 전용 모델이 매긴 값입니다.'}),
       block('요약',
         h('div', {class: 'tiles'},
           tile('전체 기록', C.comma(sum.total) + '건', '실행 ' + sum.runs + '회'),
           tile('재추출한 값으로 바꾼 건', sum.retry.adopted + '건', '앞선 값 유지 ' + sum.retry.kept + '건 · 호출 실패 등 ' + sum.retry.failed + '건'),
-          tile('사람 검토로 넘긴 건', C.comma(sum.review.count) + '건', '대상 ' + C.comma(sum.review.targets) + '개(같은 대상을 다시 넘긴 기록 포함)'))),
+          tile('사람 검토로 넘긴 건', C.comma(sum.review.count) + '건', '대상 ' + C.comma(sum.review.targets) + '개(같은 대상을 다시 넘긴 기록 포함)'),
+          shifts.available ? tile('지난주 사본과 다른 자료 정정', C.comma(shifts.corrections) + '건', '개정판은 그대로인데 대표 조건의 우열 표시가 바뀐 표준담보') : null)),
       block('단계별 통과·반려·보류', scrollBox(stepTable, '단계별 결과 건수', 330)),
       block('모델별 호출 기록 수', scrollBox(modelTable, '모델별 기록 수', 300)),
       block('사람 검토로 넘긴 목록 ' + C.comma(sum.review.count) + '건',

@@ -7,13 +7,21 @@
 - 글자가 잘린 요소, 세로로 찌그러진 칸, 서로 겹친 글자가 없는지
 - 처음 높이가 한도(380px 폭 12,000px, 1280px 폭 8,000px)를 넘지 않는지
 - 접어 둔 목록을 펼친 상태, 거르기·찾기·쪽 넘기기를 쓴 상태에서도 위 문제가 없는지
+- 탭마다 해설 결론이 있고, 해설을 펼쳐도 위 문제가 없으며, 끼우지 못한 {변수} 자리가 보이지 않는지
+- 화면 1의 접힌 묶음을 펼친 상태
+- 응대 카드: 기본 상태와 줄이 가장 많이 차는 상태(우체국 통합건강보험 2504 대 한화 일반가입형, 전체 분야)에서
+  미리 보기와 인쇄용 한 장에 넘침, 잘림, 겹침이 없는지, 인쇄 매체로 만든 A4 PDF가 한 쪽인지
 - 탭별·상태별 화면 사진 저장
 """
 import json
+import logging
 import sys
 from pathlib import Path
 
+import pdfplumber
 from playwright.sync_api import sync_playwright
+
+logging.getLogger("pdfminer").setLevel(logging.ERROR)     # 글꼴 정보 경고는 쪽 수 확인과 관계없다
 
 SITE = Path(sys.argv[1]).resolve()
 OUT = Path(sys.argv[2])
@@ -21,6 +29,9 @@ OUT.mkdir(parents=True, exist_ok=True)
 TABS = ["s1", "s2", "s3", "s4", "s5", "s6"]
 LIMIT = {380: 12000, 1280: 8000}          # 펼치기 전 화면 높이 한도
 HEIGHT = "document.documentElement.scrollHeight"
+PRINT_HEIGHT_MM = 297 - 2 * 10           # A4 세로에서 위아래 여백(app.css의 @page)을 뺀 높이
+PX_PER_MM = 96 / 25.4
+SLOTS_JS = "() => [...document.querySelectorAll('.comment, .sheet')].filter(e => /[{}]/.test(e.innerText)).length"
 
 OVERFLOW_JS = """
 () => {
@@ -95,6 +106,49 @@ OVERLAP_JS = """
 """
 
 
+# 응대 카드 한 장 안에서: 한 장 밖으로 나간 요소, 잘린 글자, 칸 밖으로 삐진 글자, 겹친 글자와 묶음, 끼우지 못한 변수 자리
+CARD_JS = """
+(sel) => {
+  const root = document.querySelector(sel);
+  if (!root) return [{kind: 'card missing', sel}];
+  const out = [];
+  const box = root.getBoundingClientRect();
+  const text = el => (el.textContent || '').trim().slice(0, 40);
+  for (const el of root.querySelectorAll('*')) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    if (r.right > box.right + 1 || r.left < box.left - 1 || r.bottom > box.bottom + 1) out.push({kind: 'card outside', tag: el.tagName, text: text(el)});
+    const cs = getComputedStyle(el);
+    const clips = ['hidden', 'clip'].includes(cs.overflowX) || ['hidden', 'clip'].includes(cs.overflowY) || cs.textOverflow === 'ellipsis';
+    if (clips && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) && text(el)) out.push({kind: 'card clipped', tag: el.tagName, text: text(el)});
+  }
+  for (const cell of root.querySelectorAll('td, th')) {
+    const c = cell.getBoundingClientRect();
+    for (const el of cell.querySelectorAll('*')) {
+      const r = el.getBoundingClientRect();
+      if (r.width && (r.right > c.right + 1 || r.left < c.left - 1)) { out.push({kind: 'card spill', text: text(el)}); break; }
+    }
+  }
+  const leaves = [...root.querySelectorAll('*')].filter(el => !el.children.length && text(el) && el.getBoundingClientRect().width > 0);
+  const byParent = new Map();
+  for (const el of leaves) { if (!byParent.has(el.parentElement)) byParent.set(el.parentElement, []); byParent.get(el.parentElement).push(el); }
+  for (const group of byParent.values()) {
+    for (let i = 0; i < group.length; i++) for (let j = i + 1; j < group.length; j++) {
+      const a = group[i].getBoundingClientRect(), b = group[j].getBoundingClientRect();
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) out.push({kind: 'card overlap', a: text(group[i]), b: text(group[j])});
+    }
+  }
+  const kids = [...root.children].filter(el => el.getBoundingClientRect().height > 0);
+  for (let i = 0; i + 1 < kids.length; i++) {
+    const a = kids[i].getBoundingClientRect(), b = kids[i + 1].getBoundingClientRect();
+    if (b.top < a.bottom - 1) out.push({kind: 'card blocks overlap', a: kids[i].className || kids[i].tagName, b: kids[i + 1].className || kids[i + 1].tagName});
+  }
+  if (/[{}]/.test(root.innerText)) out.push({kind: 'card unfilled slot'});
+  return out.slice(0, 20);
+}
+"""
+
+
 class Run:
     def __init__(self, page, width, problems):
         self.page, self.width, self.problems, self.counts = page, width, problems, {}
@@ -108,6 +162,9 @@ class Run:
         if shot:
             page.screenshot(path=str(OUT / f"{shot}_{self.width}.png"), full_page=True)
         self.counts[label] = (len(over), len(lap), height)
+        slots = page.evaluate(SLOTS_JS)
+        if slots:
+            self.problems.append((self.width, label, {"kind": "unfilled slot", "blocks": slots}))
         note = ""
         if limit is not None and height > limit:
             note = f"  ← 한도 {limit}px 초과"
@@ -129,8 +186,41 @@ class Run:
     def rows(self, selector):
         return self.page.locator(selector).count()
 
+    def card(self, label, pages):
+        """열려 있는 응대 카드를 본다: 미리 보기, 인쇄 매체의 한 장(높이 한도), A4 PDF 쪽 수."""
+        page, width = self.page, self.width
+        page.wait_for_selector("#card[open] .sheet")
+        found = page.evaluate(CARD_JS, "#card-body .sheet")
+        page.screenshot(path=str(OUT / f"card_{label}_{width}.png"))
+        page.emulate_media(media="print")
+        found += page.evaluate(CARD_JS, "#print-card .sheet")
+        shown = page.evaluate("""() => ({main: getComputedStyle(document.getElementById('main')).display,
+            dialog: getComputedStyle(document.getElementById('card')).display,
+            card: getComputedStyle(document.getElementById('print-card')).display,
+            height: document.querySelector('#print-card .sheet').getBoundingClientRect().height,
+            rows: document.querySelector('#print-card .sheet').dataset.rows})""")
+        page.emulate_media(media="null")         # 흉내를 끈다. page.pdf는 인쇄 매체로 만든다
+        height_mm = shown["height"] / PX_PER_MM
+        if shown["main"] != "none" or shown["dialog"] != "none" or shown["card"] == "none":
+            found.append({"kind": "print shows more than the card", **shown})
+        if height_mm > PRINT_HEIGHT_MM:
+            found.append({"kind": "card taller than A4", "mm": round(height_mm, 1)})
+        pdf = OUT / f"card_{label}_{width}.pdf"
+        page.pdf(path=str(pdf), format="A4", print_background=True)
+        with pdfplumber.open(pdf) as doc:
+            count = len(doc.pages)
+            first = doc.pages[0].extract_text() or ""
+        if count != 1:
+            found.append({"kind": "card pdf pages", "pages": count})
+        if "배포" not in first or "심사 결과" not in first.replace("\n", " "):
+            found.append({"kind": "card pdf text", "head": first[:60]})
+        pages.append((width, label, count))
+        print(f"[{width}px] 응대 카드 {label}: PDF {count}쪽, 인쇄 높이 {height_mm:.0f}mm / {PRINT_HEIGHT_MM}mm, "
+              f"비교표 상한 {shown['rows']}행, 넘침·잘림·겹침 {len(found)}건")
+        self.problems += [(width, f"card {label}", f) for f in found]
 
-def check_width(browser, width, problems):
+
+def check_width(browser, width, problems, pages):
     context = browser.new_context(viewport={"width": width, "height": 900}, device_scale_factor=1, offline=True)
     page = context.new_page()
     errors, requests = [], []
@@ -140,11 +230,26 @@ def check_width(browser, width, problems):
     page.goto(SITE.as_uri())
     run = Run(page, width, problems)
 
-    # ---- 처음 상태: 탭마다 높이 한도 ----
+    # ---- 처음 상태: 탭마다 높이 한도, 해설 결론, 해설 펼침 ----
     for tab in TABS:
         page.click(f"#tab-{tab}")
         page.wait_for_selector(f"#screen-{tab}")
         run.look(f"{tab} 처음", shot=tab, limit=LIMIT[width])
+        assert page.locator("#main .comment .conclusion").count() == 1, f"{tab}에 해설 결론이 없음"
+        page.click(f'[data-key="fold-cm-{tab}"]')
+        assert page.locator(f"#main details.fold[open] dl.kv").count() >= 1, f"{tab} 해설을 펼치지 못함"
+        run.look(f"{tab} 해설 펼침", shot=f"{tab}_comment")
+        page.click(f'[data-key="fold-cm-{tab}"]')
+
+    # ---- 화면 1: 묶음 셋과 접힌 곳 ----
+    page.click("#tab-s1")
+    text = page.inner_text("#main")
+    assert "코드가 집계한 요약" in text and "이번 주차 시장 소식" in text and "우열 표시가 바뀐 표준담보" in text, "화면 1 묶음이 빠짐"
+    assert "보험료 자료가 없습니다" in text, "화면 1의 늘 보이는 유의 줄이 없음"
+    for i in range(page.locator('#main details:not([open]) > summary').count()):
+        page.locator('#main details:not([open]) > summary').first.click()
+    assert page.locator("#main .tiles .tile").count() >= 5, "들어 있는 자료 타일이 펼쳐지지 않음"
+    run.look("s1 접힌 곳 모두 펼침", shot="s1_open")
 
     # ---- 화면 2: 나이, 회사 거르기, 판매 종료 포함 ----
     page.click("#tab-s2")
@@ -274,6 +379,36 @@ def check_width(browser, width, problems):
         page.click("#detail-close")
     else:
         print(f"[{width}px] 가입 한도 자료가 없는 칸이 처음 화면에 없음")
+
+    # ---- 응대 카드 ----
+    page.fill("#age", "")
+    assert page.locator('[data-key="s3-card"]').is_disabled(), "나이가 없는데 응대 카드 단추가 켜짐"
+    page.fill("#age", "50")
+    page.click('[data-key="s3-cols-peers"]') if page.locator('[data-key="s3-cols-peers"]').count() else None
+    page.click('[data-key="s3-card"]')
+    run.card("기본", pages)
+    peers = page.locator('[data-key^="card-peer-"]')
+    if peers.count() > 1:
+        peers.nth(1).click()
+        run.card("비교 종형 바꿈", pages)
+    page.click("#card-close")
+    assert not page.evaluate("document.body.classList.contains('card-print')"), "카드를 닫아도 인쇄가 카드로 남음"
+    # 줄이 가장 많이 차는 상태: 우체국 통합건강보험 2504 대 한화 일반가입형, 전체 분야
+    total = page.locator('[data-key^="s3-base-rev-"]', has_text="통합건강보험")
+    if total.count():
+        total.first.click()
+        page.click('[data-key="s3-major-*"]')
+        page.click('[data-key="s3-card"]')
+        page.wait_for_selector("#card[open] .sheet")
+        title = page.inner_text("#card-body .sheet .c-pair")
+        assert "통합건강보험" in title and "일반가입형" in title, f"카드의 두 종형이 다름: {title}"
+        body_rows = page.locator("#card-body .sheet table.c-cmp tbody tr").count()
+        assert 0 < body_rows <= 12, f"카드 비교표 본문이 {body_rows}행"
+        run.card("통합2504 대 한화 일반가입형 전체 분야", pages)
+        page.click("#card-close")
+        page.locator('[data-key^="s3-base-rev-"]').first.click()
+    else:
+        problems.append((width, "card", {"kind": "통합건강보험 기준 종형을 찾지 못함"}))
 
     # ---- 화면 4 ----
     page.click("#tab-s4")
@@ -410,16 +545,17 @@ def check_width(browser, width, problems):
 
 
 def main() -> int:
-    problems = []
+    problems, pages = [], []
     with sync_playwright() as p:
         browser = p.chromium.launch()
         for width in (380, 1280):
             try:
-                check_width(browser, width, problems)
+                check_width(browser, width, problems, pages)
             except Exception as error:          # 중간에 멈춰도 그때까지 찾은 문제는 보여 준다
                 problems.append((width, "점검 중단", repr(error)[:300]))
         browser.close()
     print(f"파일 크기 {SITE.stat().st_size:,}바이트")
+    print("응대 카드 PDF 쪽 수: " + (", ".join(f"[{w}px] {label} {n}쪽" for w, label, n in pages) or "만들지 못함"))
     # 같은 문제가 여러 상태에서 되풀이되면 한 줄로 묶어 보여 준다
     seen = {}
     for width, label, what in problems:
