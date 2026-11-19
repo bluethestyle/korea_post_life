@@ -65,7 +65,7 @@ python3 -m pytest -q                         # 전체 시험
 python3 scripts/fetch_disclosure.py --org samsungfire --out <폴더>   # 삼성화재 문서와 급부 표 조각 받기 (--list-only는 목록만)
 python3 scripts/build_site.py                # data/snapshot → site/index.html
 python3 scripts/dev/check_site_browser.py site/index.html <사진 폴더>   # 380px·1280px 화면 점검 (playwright)
-python3 scripts/score_goldset.py             # 정답셋 채점
+python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON>   # 정답셋 채점 (--result는 필수)
 python3 scripts/compare_table_rules.py <표 조각.json> --against data/crosscheck/<파일>.jsonl   # 삼성화재 규칙 추출 대조
 
 # 배치는 GitHub Actions에서 돈다 (시트 쓰기 포함)
