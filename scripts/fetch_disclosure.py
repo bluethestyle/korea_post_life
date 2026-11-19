@@ -86,12 +86,13 @@ def save_riders(out: Path, name: str, stem: str, data: bytes, variants: list[dic
     stem은 방금 저장한 요약서의 저장이름이다. 급부 절의 쪽 범위는 그 글자 파일에서 찾는다.
     variants는 이 요약서를 쓰는 종형들(대상 설정의 항목)이다. 종형명으로 그 종에 해당하는 줄만 남긴다.
     한 공시상품코드에 종형이 여럿이어도 표는 하나만 쓰므로, 종형마다 남는 줄이 같지 않으면 만들지 않는다.
+    급부구간도 종형마다 같아야 한다. 일부 종형에만 적혀 있으면 다른 것으로 본다(모두 비어 있으면 구간 없이 찾는다).
     """
     names = list(dict.fromkeys(v["종형명"] for v in variants))
-    sections = list(dict.fromkeys(v["급부구간"] for v in variants if v.get("급부구간")))
+    sections = list(dict.fromkeys(v.get("급부구간") or "" for v in variants))
     if len(sections) > 1:
         raise ValueError(f"같은 공시상품코드의 종형에 급부구간이 다르게 적혀 있습니다: {sections}")
-    section = sections[0] if sections else None
+    section = sections[0] or None
     found = tables.benefit_pages(pages_from_text((out / f"{stem}.txt").read_text(encoding="utf-8")), section)
     first, last = found.first_page, found.last_page
     riders = tables.riders_from_pdf(data, first, last)
@@ -106,12 +107,14 @@ def save_riders(out: Path, name: str, stem: str, data: bytes, variants: list[dic
             "급부표쪽": [first, last]}
 
 
-def fetch_samsungfire(s, out: Path, targets: Path, list_only: bool) -> tuple[list[dict], list[str], list[str]]:
+def fetch_samsungfire(s, out: Path, targets: Path,
+                      list_only: bool) -> tuple[list[dict], list[str], dict[str, list[str]]]:
     """설정 파일(data/targets/samsungfire.json)에 적힌 공시상품코드의 사업방법서와 상품요약서를 받는다.
 
     약관과 상품설명서는 받지 않는다. 상품 목록은 한 번만 요청한다(전 상품의 서류 경로가 함께 온다).
     코드마다 지금 판매 중인 판매기간의 서류를 고르고, 상품요약서는 급부 표 조각도 만든다.
-    세 번째 값은 급부 표 조각을 만들지 못한 공시상품코드다.
+    받기 전에 그 코드의 이전 급부 표 조각 파일을 지운다. 이번에 만들지 못한 표가 폴더에 남지 않게 하려는 것이다.
+    세 번째 값은 공시상품코드마다 갖추지 못한 것(사업방법서, 상품요약서, 급부표 가운데)이다. 다 갖춘 코드는 빠진다.
     """
     variants: dict[str, list[dict]] = {}
     for product in json.loads(targets.read_text(encoding="utf-8"))["상품"]:
@@ -121,6 +124,8 @@ def fetch_samsungfire(s, out: Path, targets: Path, list_only: bool) -> tuple[lis
     selling = samsungfire.list_products(s, selling=True)
     index, rows = [], []
     for code in codes:
+        if not list_only:
+            (out / f"samsungfire_{code}_급부표.json").unlink(missing_ok=True)
         periods = [x for x in selling if x.code == code and x.jong == "0"]
         if not periods:
             rows.append(f"| {code} | (판매상품 목록에 없음) | | | | |")
@@ -159,8 +164,14 @@ def fetch_samsungfire(s, out: Path, targets: Path, list_only: bool) -> tuple[lis
                     rows.append(f"| {code} | {product.name} | 급부표 | {table} | {first}~{last} | "
                                 f"조각 {made['급부표조각수']}, 세부보장 {made['급부표세부보장수']} |")
             index.append({**entry, **saved})
-    failed = [] if list_only else [c for c in codes if not any(e["상품코드"] == c and e.get("급부표") for e in index)]
-    return index, rows, failed
+    missing = {}
+    for code in codes:
+        mine = [e for e in index if e["상품코드"] == code]
+        have = {e["문서"] for e in mine} | {"급부표" for e in mine if e.get("급부표")}
+        lack = [k for k in (*SAMSUNGFIRE_KINDS, "급부표") if k not in have]
+        if lack and not list_only:
+            missing[code] = lack
+    return index, rows, missing
 
 
 def main() -> int:
@@ -190,18 +201,19 @@ def main() -> int:
         return 0 if index or args.list_only else 1
 
     if args.org == "samsungfire":
-        index, rows, failed = fetch_samsungfire(s, args.out, args.targets, args.list_only)
+        index, rows, missing = fetch_samsungfire(s, args.out, args.targets, args.list_only)
         (args.out / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
         table = "\n".join(head + rows)
-        if failed:
-            table += "\n\n급부 표 조각을 만들지 못한 상품: " + ", ".join(failed)
+        if missing:
+            table += "\n\n갖추지 못한 상품: " + ", ".join(f"{code}({', '.join(lack)})" for code, lack in missing.items())
         print(table)
         summary = os.environ.get("GITHUB_STEP_SUMMARY")
         if summary:
             with open(summary, "a", encoding="utf-8") as f:
                 f.write("## 공시 문서 수집 (삼성화재)\n\n" + table + "\n")
-        # 대상 요약서 가운데 표 조각이 없는 것이 하나라도 있으면 실패로 끝낸다. 받은 문서와 목록은 위에서 이미 남겼다
-        return 0 if args.list_only or (index and not failed) else 1
+        # 대상 코드 가운데 사업방법서, 상품요약서, 급부표 중 하나라도 빠진 것이 있으면 실패로 끝낸다.
+        # 받은 문서와 목록은 위에서 이미 남겼다
+        return 0 if args.list_only or (index and not missing) else 1
 
     selling = epost.list_products(s, selling=True)
     stopped = epost.list_products(s, selling=False)

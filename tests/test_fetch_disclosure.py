@@ -27,10 +27,10 @@ A, B, OTHER, GONE = "ZZA000010", "ZZB000020", "ZZC000030", "ZZD000040"
 NAME_A, NAME_B = "무배당 가나 건강보험(2610.1)(일반형)", "무배당 다라 간편보험(2607.5) 7종(마바형)"
 
 
-def row(code, name, start, end="99991231", files=(1, 2, 3), **more):
-    return {"prdName": name, "prdGun": "장기", "prdGb": "건강", "saleChannel": "대면", "prdCode": code, "jongGb": "0",
+def row(code, name, start, end="99991231", files=(1, 2, 3), jong="0", **more):
+    return {"prdName": name, "prdGun": "장기", "prdGb": "건강", "saleChannel": "대면", "prdCode": code, "jongGb": jong,
             "saleStDt": start, "saleEnDt": end,
-            **{f"prdfilename{n}": f"/publication/pdf/{code}_0_{start}_file{n}.pdf" for n in files}, **more}
+            **{f"prdfilename{n}": f"/publication/pdf/{code}_{jong}_{start}_file{n}.pdf" for n in files}, **more}
 
 
 def listing(rows):
@@ -182,13 +182,23 @@ def test_list_only_downloads_nothing(bench, capsys):
     assert "20260818" not in printed and "20260401" not in printed          # 지난 판매기간의 서류
 
 
+def test_old_style_jong_rows_of_a_target_code_are_not_picked(bench):
+    # 옛 상품처럼 같은 코드에 종 구분 1이 붙은 판매기간이 판매개시일이 더 늦게 섞여 와도 종 구분 0의 기간을 고른다
+    rows = [row(A, NAME_A, "20261012", files=(1, 2, 3, 4)), row(A, "무배당 가나 건강보험(구형 1종)", "20261101", jong="1"),
+            row(B, NAME_B, "20260701")]
+    assert bench.run(session=FakeSession(listing(rows))) == 0
+    assert bench.session.gets == [path(A, "20261012", 2), path(A, "20261012", 3),
+                                  path(B, "20260701", 2), path(B, "20260701", 3)]
+    assert {(e["상품명"], e["판매시작일"]) for e in bench.index() if e["상품코드"] == A} == {(NAME_A, "2026-10-12")}
+
+
 def test_code_missing_from_the_selling_list_fails_but_the_rest_is_kept(bench, tmp_path, capsys):
     gone = [{"모상품ID": "X_D", "종형": [{"공시상품코드": GONE, "종형명": "8종(일반형)"}]}]
     assert bench.run(targets=write_targets(tmp_path, TARGETS + gone)) == 1
     assert {e["상품코드"] for e in bench.index()} == {A, B}
     printed = capsys.readouterr().out
     assert f"| {GONE} | (판매상품 목록에 없음) | | | | |" in printed
-    assert f"급부 표 조각을 만들지 못한 상품: {GONE}" in printed
+    assert printed.splitlines()[-1] == f"갖추지 못한 상품: {GONE}(사업방법서, 상품요약서, 급부표)"
     # 내려받지 않는 --list-only는 목록만 보여 주고 성공으로 끝난다
     assert bench.run("--list-only", targets=write_targets(tmp_path, TARGETS + gone)) == 0
 
@@ -252,18 +262,47 @@ def test_step_summary_gets_a_table_like_the_other_companies(bench, monkeypatch, 
 
 
 def test_one_failed_document_does_not_stop_the_rest(bench, capsys):
-    # 사업방법서 하나가 PDF가 아닌 응답으로 와도 나머지 셋을 받고, 표 조각은 다 만들었으므로 성공이다
-    assert bench.run(session=FakeSession(broken=[path(A, "20261012", 2)])) == 0
+    # 사업방법서 하나가 PDF가 아닌 응답으로 와도 나머지 셋을 받는다. 표 조각은 다 만들었어도 서류가 빠졌으므로 실패다
+    assert bench.run(session=FakeSession(broken=[path(A, "20261012", 2)])) == 1
     assert len(bench.session.gets) == 4
     assert [(e["상품코드"], e["문서"]) for e in bench.index()] == [(A, "상품요약서"), (B, "사업방법서"), (B, "상품요약서")]
-    assert f"| {A} | {NAME_A} | 사업방법서 | {A}_0_20261012_file2.pdf | 실패: ValueError | |" in capsys.readouterr().out
+    printed = capsys.readouterr().out
+    assert f"| {A} | {NAME_A} | 사업방법서 | {A}_0_20261012_file2.pdf | 실패: ValueError | |" in printed
+    assert printed.splitlines()[-1] == f"갖추지 못한 상품: {A}(사업방법서)"
     assert not (bench.out / f"samsungfire_{A}_사업방법서.pdf").exists()
+    assert (bench.out / f"samsungfire_{A}_급부표.json").exists()
+
+
+@pytest.mark.parametrize("n, other, missing", [(2, "상품요약서", "사업방법서"), (3, "사업방법서", "상품요약서, 급부표")])
+def test_document_without_a_path_in_the_listing_fails_but_the_rest_is_fetched(bench, capsys, n, other, missing):
+    # 공시 목록에서 대상 코드의 서류 경로(prdfilenameN)가 빈 값으로 온 경우
+    rows = [row(A, NAME_A, "20261012", files=(1, 2, 3, 4), **{f"prdfilename{n}": ""}), row(B, NAME_B, "20260701")]
+    assert bench.run(session=FakeSession(listing(rows))) == 1
+    assert bench.session.gets == [path(A, "20261012", 5 - n), path(B, "20260701", 2), path(B, "20260701", 3)]
+    assert [(e["상품코드"], e["문서"]) for e in bench.index()] == [(A, other), (B, "사업방법서"), (B, "상품요약서")]
+    printed = capsys.readouterr().out
+    assert f"| {A} | {NAME_A} | {samsungfire.DOC_KINDS[n]} | (공시 목록에 서류 경로 없음) | | |" in printed
+    assert printed.splitlines()[-1] == f"갖추지 못한 상품: {A}({missing})"
+    # 내려받지 않는 --list-only는 지금처럼 성공으로 끝난다
+    assert bench.run("--list-only", session=FakeSession(listing(rows))) == 0
 
 
 def test_failed_summary_leaves_its_code_without_a_table(bench):
     assert bench.run(session=FakeSession(broken=[path(A, "20261012", 3)])) == 1
     assert [(e["상품코드"], e["문서"]) for e in bench.index()] == [(A, "사업방법서"), (B, "사업방법서"), (B, "상품요약서")]
     assert (bench.out / f"samsungfire_{B}_급부표.json").exists()
+
+
+def test_rerun_into_the_same_folder_drops_tables_it_did_not_make_again(bench, tmp_path):
+    assert bench.run() == 0 and (bench.out / f"samsungfire_{A}_급부표.json").exists()
+    # 목록만 보는 실행은 이전 표를 지우지 않는다
+    assert bench.run("--list-only") == 0 and (bench.out / f"samsungfire_{A}_급부표.json").exists()
+    # 지금은 판매 목록에 없는 코드의 표가 그보다 앞선 실행에서 남아 있다고 친다
+    (bench.out / f"samsungfire_{GONE}_급부표.json").write_text("{}", encoding="utf-8")
+    gone = [{"종형": [{"공시상품코드": GONE, "종형명": "8종(일반형)"}]}]
+    assert bench.run(session=FakeSession(broken=[path(A, "20261012", 3)]), targets=write_targets(tmp_path, TARGETS + gone)) == 1
+    assert [e.get("급부표") for e in bench.index()] == [None, None, f"samsungfire_{B}_급부표.json"]
+    assert sorted(p.name for p in bench.out.glob("*급부표.json")) == [f"samsungfire_{B}_급부표.json"]
 
 
 # ---------------------------------------------------------------------------
@@ -302,7 +341,7 @@ def test_table_failure_keeps_documents_and_index_but_exits_nonzero(bench, capsys
     assert (bench.out / f"samsungfire_{A}_상품요약서.pdf").exists() and not list(bench.out.glob("*급부표.json"))
     printed = capsys.readouterr().out
     assert f"| {A} | {NAME_A} | 급부표 | samsungfire_{A}_급부표.json | 실패: ValueError | |" in printed
-    assert f"급부 표 조각을 만들지 못한 상품: {A}, {B}" in printed
+    assert printed.splitlines()[-1] == f"갖추지 못한 상품: {A}(급부표), {B}(급부표)"
 
 
 def test_one_missing_table_is_enough_to_fail(bench, monkeypatch):
@@ -336,6 +375,22 @@ def test_section_title_in_targets_picks_one_of_several_benefit_sections(bench, t
     # 한 코드의 종형에 구간 제목이 서로 다르게 적혀 있으면 표를 만들지 않는다
     products[0]["종형"].append({"공시상품코드": A, "종형명": "2종(다라형) 둘째", "급부구간": "1. 1종(가나형)"})
     assert bench.run(targets=write_targets(tmp_path, products)) == 1
+
+
+def test_section_title_on_only_some_variants_of_a_code_is_a_mismatch(bench, tmp_path, capsys):
+    bench.pages["file3"] = TWO_SECTIONS
+    bench.tables = [PageTable(5, HEAD + [["사아 진단비", None, "사아로 진단 확정된 경우", "가입금액"]], "기본계약")]
+    # 한 종형에만 구간 제목이 있고 다른 종형은 비어 있으면, 적힌 구간의 표를 모든 종형에 쓰지 않는다
+    products = [{"종형": [{"공시상품코드": A, "종형명": "2종(다라형)", "급부구간": "2. 2종(다라형)"},
+                         {"공시상품코드": A, "종형명": "2종(다라형) 둘째", "급부구간": ""}]}]
+    assert bench.run(targets=write_targets(tmp_path, products)) == 1
+    assert bench.read == [] and not list(bench.out.glob("*급부표.json"))
+    printed = capsys.readouterr().out
+    assert f"| {A} | {NAME_A} | 급부표 | samsungfire_{A}_급부표.json | 실패: ValueError | |" in printed
+    assert "급부구간이 다르게 적혀 있습니다" in printed
+    # 열쇠가 아예 없는 종형도 빈 값과 같다
+    del products[0]["종형"][1]["급부구간"]
+    assert bench.run(targets=write_targets(tmp_path, products)) == 1 and bench.read == []
 
 
 def test_variants_of_one_code_must_keep_the_same_lines(bench, tmp_path):
