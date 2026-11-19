@@ -52,10 +52,11 @@ _AMOUNT_FIELDS = {"기준지급금액만원", "감액지급률1", "감액지급�
 def _about(problem: str, label: str, labels: list[str]) -> bool:
     """형식 문제 한 줄이 이 급부를 가리키는가.
 
-    문제 문구에는 급부 이름이 들어 있다("…: 수술보험금(1종)"). 이름이 다른 이름의 일부일 수 있어("수술보험금"),
-    문구에 더 긴 이름이 함께 들어 있으면 그 긴 이름의 문제로 본다.
+    급부에 묶인 문제는 "…: 급부 이름"으로 끝난다. 이름이 문구 어딘가에 들어 있다는 것만으로 묶지 않는다.
+    줄을 만들지 못한 항목의 문제("이름이나 금액이 비어 있음: {… '플러스사망보험금' …}")에 다른 급부의 이름("사망보험금")이
+    글자로 들어 있을 수 있고, 그 때문에 맞게 뽑은 급부까지 빠지면 안 된다.
     """
-    return label in problem and not any(other != label and label in other and other in problem for other in labels)
+    return problem.endswith(f": {label}")
 
 
 @dataclass
@@ -96,7 +97,7 @@ class _Try:
         labels = self.labels
         bands = {label: V.classify(self.probs.get(label, {}), thresholds)[0] for label in labels}
         hard = sum(1 for label in labels if self.flawed(label) or bands[label] == "재추출")
-        hard += sum(1 for p in self.ex.problems if not any(label in p for label in labels))
+        hard += sum(1 for p in self.ex.problems if not any(_about(p, label, labels) for label in labels))
         soft = sum(1 for label in labels if bands[label] == "검토" and not self.flawed(label))
         return (hard, soft, -V.worst(self.probs))
 

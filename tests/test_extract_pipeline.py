@@ -259,6 +259,30 @@ def test_problem_of_a_longer_name_does_not_exclude_the_shorter_name():
     assert sorted({row["원시급부명"] for row in r.benefits}) == ["암진단보험금", "재해입원보험금"]
 
 
+def test_problem_of_an_item_that_made_no_row_does_not_exclude_a_good_row():
+    from postlife.extract import benefits as B
+    from postlife.extract.segment import Block
+
+    # 줄을 만들지 못한 항목("덤사망보험금", 금액 칸에 금액이 없음)의 문제 문구에 맞게 뽑은 급부의 이름("사망보험금")이 글자로 들어 있다
+    good = B.Benefit("사망보험금", "", 2000, 0, "", "주급부", "")
+    problem = "이름이나 금액이 비어 있음: {'name': '덤사망보험금', 'amount': '덤보험금'}"
+    t = P._Try(B.Extraction(Block("t", "x", 1, 1), 0, [good], "m", [problem]), {good.label: {"기준지급금액만원": 0.9}}, {})
+    assert not t.flawed(good.label) and t.broken(good.label) == []
+    assert t.score(P.DEFAULT_THRESHOLDS)[0] == 1      # 줄에 묶이지 않은 문제로 한 건 센다 (다시 뽑아 볼 이유는 된다)
+
+    class Extra(FakeGemini):
+        def generate(self, model, prompt, schema=None, temperature=0.0):
+            if "재해입원특약" in prompt.split("본문")[0]:
+                return GOOD["재해입원"]
+            first = GOOD["암진단"]["benefits"][0]
+            return {"base_amount": "1,000만원", "benefits": [first, dict(first, name="덤" + first["name"], amount="덤보험금")]}
+
+    r = run(Extra())
+    cancer = next(b for b in r.blocks if "암진단" in b.extraction.block.title)
+    assert cancer.status == {"암진단보험금": "확정"}
+    assert "암진단보험금" in {row["원시급부명"] for row in r.benefits}
+
+
 def test_retry_with_rows_replaces_an_empty_first_result():
     from postlife.extract import benefits as B
     from postlife.extract.segment import Block
