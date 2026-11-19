@@ -70,8 +70,9 @@ def strip_dividend(name: str) -> str:
 _SIMPLE_TYPE = re.compile(r"^간편\s*(?:[ⅠⅡⅢ]|I{1,3})(?=[가-힣])")
 
 
-# 한화생명은 특약 이름 끝에 "(KTA1.1)", "(TA2.1)" 같은 표기를 붙인다. 판이 바뀌면 숫자가 달라지므로 계보에서는 뗀다
-_TAIL_CODE = re.compile(r"\s*\(K?TA\d+(?:\.\d+)?\)\s*(?:무배당)?\s*$")
+# 한화생명은 특약 이름 끝에 "(KTA1.1)", "(TA2.1)" 같은 표기를 붙인다. 판이 바뀌면 숫자가 달라지므로 계보에서는 뗀다.
+# 같은 특약을 요약서의 목록은 "…(고지통합)(무)"로 적으므로 끝의 "(무)"도 뗀다
+_TAIL_CODE = re.compile(r"\s*(?:\(K?TA\d+(?:\.\d+)?\)\s*(?:무배당)?|\(무\))\s*$")
 
 
 def rider_lineage_key(raw_rider_name: str) -> str:

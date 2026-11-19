@@ -100,18 +100,29 @@ def run(gemini: Any, method_pages: dict[int, str], summary_pages: dict[int, str]
     """사업방법서 한 건(과 그 요약서의 자격요건 절)을 처리한다. targets는 이 문서를 함께 쓰는 종형들."""
     budget = budget if budget is not None else {"상위모델": 0}
     result = Result()
-    sections = C.method_sections(method_pages)
+    # 여러 가입유형을 한 표에 담은 문서(가입최고나이 표)는 대상 종형의 줄 묶음만 남긴다. 그런 표가 없는 문서는 절이 그대로다
+    sections = C.method_sections(method_pages, types=[t.variant_name for t in targets])
     anchor = targets[0].variant_id
     logs = {tab: WorkLog(now, tab) for tab in ("sys_가입조건", "sys_결합제약")}
 
     jobs: list[tuple[str, str, C.Section]] = []
+    # 사업방법서에 가입한도 절이 없으면 요약서 자격요건 절의 "가입한도" 항목에서 읽는다
+    summary_limits = C.eligibility_limits(summary_pages) if summary_pages and "가입한도" not in sections else None
     for kind in ("가입나이", "가입한도"):
         if kind in sections:
             jobs.append((kind, kind, sections[kind]))
+        elif kind == "가입한도" and summary_limits:
+            jobs.append((kind, "가입한도(요약서)", summary_limits))
         else:
             result.notes.append(f"사업방법서에서 {kind} 절을 찾지 못함")
     # 제약은 사업방법서의 가입한도·특약부가 절과 요약서의 자격요건 절에 흩어져 있다
     rule_parts = [sections[k] for k in ("가입한도", "특약부가") if k in sections]
+    if rule_parts and all(C.says_none(s) for s in rule_parts):
+        # "해당 없음"만 적힌 절은 옮길 것이 없다. 모델을 부르지 않고, 절을 확인했다는 기록만 남긴다
+        pages = f"{rule_parts[0].first_page}~{rule_parts[-1].last_page}쪽"
+        logs["sys_결합제약"].add("코드대조", f"{anchor}:결합제약(사업방법서)", "통과",
+                              f"사업방법서의 의무가입 절({pages})에 '해당 없음'이라고만 적혀 있어 옮길 제약이 없음")
+        rule_parts = []
     if rule_parts:
         jobs.append(("결합제약", "결합제약(사업방법서)", C.Section(
             "결합제약", "\n".join(s.text for s in rule_parts), rule_parts[0].first_page, rule_parts[-1].last_page)))
