@@ -16,7 +16,7 @@ import pytest
 
 from postlife.schema import TABS
 from postlife.site import build, combo, compare, eligibility, overview, pack, revision, worklog
-from postlife.site.model import Cond, Data, load
+from postlife.site.model import BASIS_COLUMN, RATIO_BASIS, Cond, Data, is_ratio, load, pay_rate
 
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "data" / "snapshot"
@@ -565,6 +565,135 @@ def test_실제_지급액은_가입금액에_비례하고_감액_금액을_함�
     assert {l["bid"] for l in result["others"]} == {f"{NEW_A}_Tmain_Bdeath", f"{NEW_A}_Thosp_Bhth"}   # 대상외와 매핑 검토 대기
 
 
+# ---------- 가입금액 대비 비율로 적힌 급부(삼성화재) ----------
+SF = "SAMSUNGFIRE_S1_ffffff"
+
+
+def ratio_tables(caps=False, epost_caps=True):
+    """급부가 금액 대신 가입금액 대비 지급률로 적힌 종형을 더한다. 시트에는 기준가입금액만원 100, 기준지급금액만원 = 지급률(%)로 적는다.
+
+    caps가 거짓이면 공시 문서에 특약 가입 한도가 없는 꼴이다. epost_caps가 거짓이면 우체국 2종(기준 종형)의 가입 한도 자료를 비운다.
+    """
+    tables = fake_tables()
+    tables["sys_상품종형"].append(variant(SF, "SAMSUNGFIRE", "SAMSUNGFIRE_Z_2610", "SAMSUNGFIRE_Z|일반심사|일반|갱신|표준형",
+                                      "무배당 시험화재 건강보험", "1종", "정밀비교", "일반심사", "일반", (None, None, None, None, None),
+                                      "2026-10-01", None, "hs", "ms"))
+    tables["sys_특약"] += [rider(SF, "main", "기본계약", None, 1000 if caps else None, "주계약"),
+                         rider(SF, "ca", "암 진단비", None, 3000 if caps else None)]
+    rows = [
+        (benefit(SF, "main", "death", "상해사망", "주급부", 100, limit=None, base=100), "대상외", None),
+        (benefit(SF, "ca", "ca", "암 진단비", "주급부", 100, 90, (12, 0.5), base=100), "자동확정", "STD_CA_DX_GENERAL"),
+        (benefit(SF, "ca", "th", "유사암 진단비", "부수급부", 20, base=100), "자동확정", "STD_CA_DX_PSEUDO"),
+    ]
+    for b, state, sid in rows:
+        b[BASIS_COLUMN] = RATIO_BASIS                 # 스키마에 아직 없는 선택 열이라 row()를 거치지 않고 붙인다
+        tables["sys_급부"].append(b)
+        tables["hum_담보매핑"].append(mapped(b["급부ID"], state, sid))
+    if not epost_caps:
+        for r in tables["sys_특약"]:
+            if r["종형ID"] == NEW_B:
+                r["최소가입금액만원"] = r["최대가입금액만원"] = None
+        tables["sys_가입조건"] = [r for r in tables["sys_가입조건"] if r["종형ID"] != NEW_B]
+    return tables
+
+
+def test_비율_급부는_지급률을_싣고_열이_없거나_비면_금액_급부다():
+    tables = ratio_tables()
+    empty = next(b for b in tables["sys_급부"] if b["급부ID"] == f"{NEW_B}_Tcancer_Bca")
+    empty[BASIS_COLUMN] = ""
+    no_pay = next(b for b in tables["sys_급부"] if b["급부ID"] == f"{SF}_Tmain_Bdeath")
+    no_pay["기준지급금액만원"] = None
+    data = Data(tables)
+
+    cancer = data.benefit_view(f"{SF}_Tca_Bca")
+    assert cancer["ratio"] is True and cancer["rate"] == 100 and (cancer["base"], cancer["pay"]) == (100, 100)   # 환산에 쓰는 값은 그대로
+    assert data.benefit_view(f"{SF}_Tca_Bth")["rate"] == 20
+    death = data.benefit_view(f"{SF}_Tmain_Bdeath")                                      # 지급률을 모르는 비율 급부
+    assert death["ratio"] is True and death["pay"] is None and death["rate"] is None
+    assert BASIS_COLUMN not in data.benefits[f"{NEW_A}_Tcancer_Bca"]                       # 열이 없는 행
+    for bid in (f"{NEW_A}_Tcancer_Bca", f"{NEW_B}_Tcancer_Bca"):                           # 열이 없는 행, 비어 있는 행
+        view = data.benefit_view(bid)
+        assert view["ratio"] is False and view["rate"] is None and (view["base"], view["pay"]) == (1000, 1000)
+
+    for value, expected in [(None, False), ("", False), ("금액", False), ("비율", False), ("가입금액비율", True), (" 가입금액비율 ", True)]:
+        assert is_ratio({BASIS_COLUMN: value}) is expected, value
+    assert is_ratio({}) is False
+    assert pay_rate(20, 100) == 20 and pay_rate(500, 1000) == 50 and pay_rate(0.3, 100) == 0.3 and pay_rate(2.5, 100) == 2.5
+    assert pay_rate(None, 100) is None and pay_rate(5, 0) is None and pay_rate(5, None) is None
+
+    payload = build.payload(data)
+    assert payload["benefits"][f"{SF}_Tca_Bth"]["ratio"] is True and payload["benefits"][f"{NEW_A}_Tcancer_Bca"]["ratio"] is False
+    assert build.read_payload(build.render(data)) == json.loads(json.dumps(payload, ensure_ascii=False))   # 줄여 적어도 그대로
+
+
+def test_가입_한도가_없는_비율_급부_칸은_최대_가입_금액을_만들지_않는다():
+    data = Data(ratio_tables())
+    s3 = compare.build(data, data.conds())
+    assert SF in s3["variants"] and SF in s3["peers"][NEW_B]
+    cell, st = cell_at(s3, "STD_CA_DX_GENERAL", SF, 0)
+    assert st["kind"] == "ok" and st["vals"] == [None] and st["caps"] == [None] and "no" not in st
+    assert data.benefit_view(cell["lines"][st["rep"]])["rate"] == 100        # 화면은 이 줄을 "가입금액의 100%"로 적는다
+
+
+def test_금액_급부와_비율_급부가_만나도_양쪽_다_최대_가입_금액이_있을_때만_판정한다():
+    def verdicts(tables):
+        data = Data(tables)
+        s3 = compare.build(data, data.conds())
+        assert s3["bases"] == [NEW_A, NEW_B]
+        out = {}
+        for sid in ("STD_CA_DX_GENERAL", "STD_CA_DX_PSEUDO"):
+            _, st = cell_at(s3, sid, SF, 0)
+            out[sid] = (st["vals"][st["rep"]], st["vs"])
+        return out
+
+    # 양쪽 다 가입 한도가 있으면 비율 급부도 한도 × 지급률로 환산해 지금 규칙대로 가린다
+    # 암 진단비: 3,000만원 × 100% 대 우체국 4,000만원 / 유사암: 3,000만원 × 20% 대 우체국 800만원(감액 있음)
+    both = verdicts(ratio_tables(caps=True))
+    assert both == {"STD_CA_DX_GENERAL": (3000, ["w-==.", "w-==."]), "STD_CA_DX_PSEUDO": (600, ["m-=+.", "m-=+."])}
+    # 비율 급부 쪽에 가입 한도가 없으면 판정하지 않는다
+    assert verdicts(ratio_tables()) == {"STD_CA_DX_GENERAL": (None, ["x", "x"]), "STD_CA_DX_PSEUDO": (None, ["x", "x"])}
+    # 기준 종형(금액 급부) 쪽에 가입 한도가 없어도 판정하지 않는다. 한도가 있는 다른 기준 종형과는 판정한다
+    assert verdicts(ratio_tables(caps=True, epost_caps=False)) == {
+        "STD_CA_DX_GENERAL": (3000, ["w-==.", "x"]), "STD_CA_DX_PSEUDO": (600, ["m-=+.", "x"])}
+    # 판정은 지급기준구분과 관계없다: 같은 내용을 금액으로 적은 급부(가입 1,000만원에 1,000만원, 200만원)와 결과가 같다
+    as_amount = ratio_tables(caps=True)
+    for b in as_amount["sys_급부"]:
+        if b.pop(BASIS_COLUMN, None):
+            b["기준가입금액만원"], b["기준지급금액만원"] = 1000, b["기준지급금액만원"] * 10
+    assert verdicts(as_amount) == both
+
+
+def test_조합_화면은_비율_급부도_넣은_가입금액에_지급률을_곱한다():
+    data = Data(ratio_tables())
+    conds = data.conds()
+    vm = combo.variant_model(data, SF, conds)
+    # 가입 한도가 없어 처음에 넣어 둘 금액은 급부표의 100만원이고, 그 값이 비율 급부에서 왔다는 표시가 붙는다
+    assert [(r["tid"].split("_T")[1], r["ref"], r["refRatio"], r["max"], r["lim"][0]) for r in vm["riders"]] == [
+        ("main", 100, True, None, None), ("ca", 100, True, None, None)]
+    assert not any(r["refRatio"] for r in combo.variant_model(data, NEW_A, conds)["riders"])
+    assert not any(r["refRatio"] for r in combo.variant_model(Data(no_limit_tables()), PRIV, conds)["riders"])
+    views = {bid: data.benefit_view(bid) for bid in data.benefits}
+    for amount in (100, 3000):
+        rows = combo.evaluate(vm, 0, {f"{SF}_Tmain": 100, f"{SF}_Tca": amount})["rows"]
+        result = combo.payouts(vm, views, rows)
+        groups = {g["std"]: g["lines"] for g in result["groups"]}
+        assert groups["STD_CA_DX_GENERAL"] == [{"bid": f"{SF}_Tca_Bca", "val": amount, "reduced": [[12, amount * 0.5]]}]
+        assert groups["STD_CA_DX_PSEUDO"][0]["val"] == pytest.approx(amount * 0.2)
+        assert [l["bid"] for l in result["others"]] == [f"{SF}_Tmain_Bdeath"]
+
+    # 가입 한도가 있으면 "최대로 담기"의 지급액이 화면 3의 최대 가입 기준 금액(한도 × 지급률)과 같다
+    capped = Data(ratio_tables(caps=True))
+    vm = combo.variant_model(capped, SF, capped.conds())
+    assert [r["ref"] for r in vm["riders"]] == [100, 100] and [r["max"] for r in vm["riders"]] == [1000, 3000]
+    rows = combo.evaluate(vm, 0, {r["tid"]: None for r in vm["riders"]})["rows"]
+    result = combo.payouts(vm, {bid: capped.benefit_view(bid) for bid in capped.benefits}, rows)
+    s3 = compare.build(capped, capped.conds())
+    for g in result["groups"]:
+        _, st = cell_at(s3, g["std"], SF, 0)
+        assert g["lines"][g["rep"]]["val"] == pytest.approx(st["vals"][st["rep"]])
+    assert sorted(g["lines"][g["rep"]]["val"] for g in result["groups"]) == [600, 3000]
+
+
 # ---------- 화면 5 ----------
 def test_개정_전후는_종형계보키로_짝짓는다(data):
     assert revision.variant_pairs(data) == [(OLD_A, NEW_A)]
@@ -771,6 +900,18 @@ def test_실제_자료에서_가입_한도가_없는_종형(built, real):
         assert base in peers and set(peers) <= set(payload["s3"]["variants"])
 
 
+def test_실제_자료의_지급기준구분(built, real):
+    """지금 사본에는 지급기준구분 열이 없어 모두 금액 급부다. 열이 생긴 뒤에도 비율 급부가 아닌 줄은 지급률을 싣지 않는다."""
+    _, _, payload = built
+    for bid, b in payload["benefits"].items():
+        assert b["ratio"] is is_ratio(real.benefits[bid])
+        if not b["ratio"]:
+            assert b["rate"] is None
+    if not any(BASIS_COLUMN in b for b in real.benefits.values()):
+        assert not any(b["ratio"] for b in payload["benefits"].values())
+        assert not any(r["refRatio"] for vm in payload["s4"]["byVariant"].values() for r in vm["riders"])
+
+
 def test_실제_자료의_칸_값은_환산식과_같다(built, real):
     _, _, payload = built
     conds = real.conds()
@@ -802,7 +943,7 @@ process.stdin.setEncoding('utf8');
 process.stdin.on('data', c => text += c).on('end', () => {
   const input = JSON.parse(text);
   if (input.packed) { process.stdout.write(JSON.stringify(calc.unpack(input.packed))); return; }
-  const out = {money: (input.money || []).map(calc.money), cases: []};
+  const out = {money: (input.money || []).map(calc.money), percent: (input.percent || []).map(calc.percent), cases: []};
   for (const c of input.cases || []) {
     const result = calc.evaluate(input.models[c.model], c.k, c.want);
     out.cases.push({rows: result.rows, pay: calc.payouts(input.models[c.model], input.benefits, result.rows)});
@@ -825,6 +966,12 @@ def test_금액_표기():
     assert run_node({"money": amounts})["money"] == [
         "1,000만원", "2만5천원", "5천원", "500원", "1억원", "1억 2,000만원", "1만5천원", "150만원", "2만5,432원", "0원", "자료 없음",
         "4,000만원", "1억 5천원"]
+
+
+@needs_node
+def test_지급률_표기():
+    rates = [100, 20.0, 50, 2.5, 0.3, 1000, 33.333333, 0, None]
+    assert run_node({"percent": rates})["percent"] == ["100%", "20%", "50%", "2.5%", "0.3%", "1,000%", "33.33%", "0%", "자료 없음"]
 
 
 def cases_for(models, conds, seed=7):
@@ -864,6 +1011,16 @@ def test_calc_js는_Python_규칙과_결과가_같다_가짜_자료(data):
         models[name]["riders"] = [{**r, "ok": [True] * len(conds), "lim": [1000] * len(conds)} for r in models[name]["riders"]]
     benefits = {bid: data.benefit_view(bid) for bid in data.benefits}
     assert_same_as_python(models, benefits, cases_for(models, conds))
+
+
+@needs_node
+def test_calc_js는_비율_급부도_Python_규칙과_결과가_같다():
+    for tables in (ratio_tables(), ratio_tables(caps=True)):
+        data = Data(tables)
+        conds = data.conds()
+        models = {vid: combo.variant_model(data, vid, conds) for vid in (SF, NEW_B)}
+        benefits = {bid: data.benefit_view(bid) for bid in data.benefits}
+        assert_same_as_python(models, benefits, cases_for(models, conds, seed=3))
 
 
 @needs_node

@@ -17,20 +17,24 @@ from __future__ import annotations
 from typing import Any
 
 from .compare import COMPARE_ROLE, pick_rep, scaled
-from .model import Cond, Data
+from .model import Cond, Data, is_ratio
 
 KNOWN_RULES = {"선행가입", "최대연동", "배타선택", "의무부가"}
 
 
 # ---------- 화면에 넘길 자료 ----------
 def variant_model(data: Data, vid: str, conds: list[Cond]) -> dict[str, Any]:
+    """refRatio는 ref가 비율 급부의 기준가입금액인지다. 그 금액(관례로 100만원)은 지급률을 적으려고 둔 값이라
+    공시 문서의 기준 가입금액이 아니므로, 화면은 처음 넣어 두는 금액을 "계산용 예시 금액"이라고 밝힌다."""
     riders = []
     for tid in data.riders_of.get(vid, []):
         r = data.riders[tid]
         limits = [data.age_limit(tid, c) for c in conds]
+        ref_bid = reference_benefit(data, tid)
         riders.append({
             "tid": tid, "min": r.get("최소가입금액만원"), "max": r.get("최대가입금액만원"),
-            "ref": reference_amount(data, tid),
+            "ref": data.benefits[ref_bid]["기준가입금액만원"] if ref_bid else None,
+            "refRatio": bool(ref_bid and is_ratio(data.benefits[ref_bid])),
             "ok": [l.ok for l in limits],
             "lim": [l.amount if l.ok else None for l in limits],
             "limPend": [l.pending for l in limits],
@@ -49,15 +53,14 @@ def variant_model(data: Data, vid: str, conds: list[Cond]) -> dict[str, Any]:
     return {"main": data.main_rider(vid), "riders": riders, "rules": rules, "skipped": skipped}
 
 
-def reference_amount(data: Data, tid: str) -> float | None:
-    """급부표가 기준으로 삼은 가입금액. 가입 한도 자료가 없는 특약을 고를 때 화면이 처음에 넣어 두는 금액이다.
+def reference_benefit(data: Data, tid: str) -> str | None:
+    """급부표가 기준으로 삼은 가입금액(ref)을 가진 급부. ref는 가입 한도 자료가 없는 특약을 고를 때 화면이 처음에 넣어 두는 금액이다.
 
     계산 규칙(evaluate)은 이 값을 쓰지 않는다. 급부마다 기준이 다르면 대표 순서(주급부, 금액 큰 순)의 첫 줄을 따른다.
     """
     for bid in data.benefits_of.get(tid, []):
-        base = data.benefits[bid].get("기준가입금액만원")
-        if base:
-            return base
+        if data.benefits[bid].get("기준가입금액만원"):
+            return bid
     return None
 
 

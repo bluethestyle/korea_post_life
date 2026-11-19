@@ -27,6 +27,10 @@ VERDICT_COLUMNS = {"기준가입금액만원", "기준지급금액만원", "면�
 ROLE_ORDER = {"주급부": 0, "대등복합": 1, "부수급부": 2}
 MAIN_KIND = "주계약"
 MAX_AGE = 120                            # 나이 입력의 상한
+# sys_급부의 선택 열. 금액이 아니라 가입금액 대비 지급률로 적힌 급부(삼성화재 요약서)는 "가입금액비율"이고,
+# 기준가입금액만원 100, 기준지급금액만원 = 지급률(%)로 적는다. 열이 없거나 비어 있으면 "금액"으로 본다.
+BASIS_COLUMN = "지급기준구분"
+RATIO_BASIS = "가입금액비율"
 
 
 @dataclass(frozen=True)
@@ -54,6 +58,18 @@ def _blank(value: Any) -> bool:
 def _columns(text: Any) -> list[str]:
     """작업로그의 대상열. "감액개월1, 지급횟수제한"처럼 여러 열이 함께 적히기도 한다."""
     return [c.strip() for c in str(text or "").split(",") if c.strip()]
+
+
+def is_ratio(row: dict[str, Any]) -> bool:
+    """가입금액 대비 비율로 적힌 급부인지. 지급기준구분 열이 없거나 비어 있거나 "금액"이면 금액 급부다."""
+    return str(row.get(BASIS_COLUMN) or "").strip() == RATIO_BASIS
+
+
+def pay_rate(pay: float | None, base: float | None) -> float | None:
+    """가입금액 대비 지급률(%). 기준지급금액 ÷ 기준가입금액 × 100. 화면 표기에만 쓰고, 환산은 지금 식(compare.scaled) 그대로다."""
+    if pay is None or not base:
+        return None
+    return round(pay * 100 / base, 6)
 
 
 class Data:
@@ -205,8 +221,13 @@ class Data:
 
     # ---- 급부 ----
     def benefit_view(self, bid: str) -> dict[str, Any]:
-        """급부 한 줄을 화면이 쓰는 꼴로. std는 확정된 표준담보만 담는다."""
+        """급부 한 줄을 화면이 쓰는 꼴로. std는 확정된 표준담보만 담는다.
+
+        ratio는 가입금액 대비 비율로 적힌 급부인지, rate는 그 지급률(%)이다. 금액 급부의 rate는 None이다.
+        화면은 비율 급부를 "기준 가입 100만원에 50만원" 대신 "가입금액의 50%"로 적는다.
+        """
         b = self.benefits[bid]
+        ratio = is_ratio(b)
         m = self.mapping.get(bid)
         state = m["검토상태"] if m else "매핑 없음"
         std = m.get("확정표준담보ID") if m and state in CONFIRMED_STATES else None
@@ -223,6 +244,7 @@ class Data:
             "state": state, "prob": m.get("매핑확률") if m else None,
             "std": std, "rec": (m.get("추천표준담보ID") if m and state == WAITING_STATE else None),
             "pend": self.pending_benefit.get(bid, []),
+            "ratio": ratio, "rate": pay_rate(b.get("기준지급금액만원"), b.get("기준가입금액만원")) if ratio else None,
         }
 
     def verdict_pending(self, view: dict[str, Any]) -> bool:

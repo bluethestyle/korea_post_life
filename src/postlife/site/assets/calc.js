@@ -26,6 +26,13 @@ var PostlifeCalc = (function () {
     return sign + out + '원';
   }
 
+  /* 지급률(%) 숫자를 "50%", "2.5%", "1,000%"처럼 적는다. 소수 둘째 자리까지. 값이 없으면 "자료 없음".
+     가입금액 대비 비율로 적힌 급부(삼성화재)의 "가입금액의 N%" 표기에 쓴다. */
+  function percent(value) {
+    if (value === null || value === undefined || isNaN(value)) return '자료 없음';
+    return comma(Math.round(Number(value) * 100) / 100) + '%';
+  }
+
   /* 가입금액이 amount일 때의 지급액: 기준지급금액 ÷ 기준가입금액 × 가입금액 */
   function scaled(pay, base, amount) {
     if (pay === null || pay === undefined || !base || amount === null || amount === undefined) return null;
@@ -260,7 +267,7 @@ var PostlifeCalc = (function () {
     return out;
   }
 
-  return {money: money, comma: comma, scaled: scaled, pickRep: pickRep, evaluate: evaluate, payouts: payouts, unpack: unpack,
+  return {money: money, percent: percent, comma: comma, scaled: scaled, pickRep: pickRep, evaluate: evaluate, payouts: payouts, unpack: unpack,
     fillText: fillText, commentItems: commentItems};
 })();
 
