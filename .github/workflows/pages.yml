@@ -1,0 +1,57 @@
+name: 화면 배포
+
+# site/index.html 한 파일을 GitHub Pages에 올린다. 화면은 여기서 다시 만들지 않고 저장소에 커밋된 파일을 그대로 쓴다
+# (화면은 사본을 확인한 뒤 scripts/build_site.py로 만들어 커밋한다).
+# 처음 한 번은 저장소 Settings → Pages → Source를 "GitHub Actions"로 바꿔야 한다.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 올릴 파일 확인
+        run: |
+          test -s site/index.html
+          python3 - <<'PY'
+          import re
+          import sys
+
+          html = open("site/index.html", encoding="utf-8").read()
+          # 화면에 실린 자료(JSON)는 글자일 뿐이라 검사에서 뺀다. 소식 요약에 "@import" 같은 글자가 있어도 걸리지 않게 한다
+          html = re.sub(r'<script type="application/json" id="data">.*?</script>', "", html, flags=re.S)
+          # 오프라인 단독 파일이어야 한다. 밖에서 불러오는 스크립트, 스타일, 그림, 글꼴이 있으면 멈춘다
+          outside = re.findall(
+              r"""<(?:script|img|iframe|link|source|video|audio|embed|object)\b[^>]*\s(?:src|href|data)\s*=\s*["']?(?:https?:)?//[^\s"'>]+"""
+              r"""|url\(\s*["']?(?:https?:)?//[^)\s]+|@import\s+[^;]+""", html, flags=re.I)
+          if outside:
+              print("site/index.html이 외부 자원을 부릅니다:")
+              for found in outside[:10]:
+                  print("  " + found[:160])
+              sys.exit(1)
+          PY
+          echo "site/index.html $(wc -c < site/index.html) 바이트" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v5
