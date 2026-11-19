@@ -400,6 +400,10 @@ def check_width(browser, width, problems, pages):
         page.click('[data-key="s3-major-*"]')
         page.click('[data-key="s3-card"]')
         page.wait_for_selector("#card[open] .sheet")
+        # 카드가 처음 고르는 비교 종형은 판정할 수 있는 담보가 있는 열이다(한도 미공시인 한화는 아님). 한화 일반가입형을 직접 고른다
+        hanwha = page.locator('[data-key^="card-peer-"]', has_text="일반가입형")
+        if hanwha.count():
+            hanwha.first.click()
         title = page.inner_text("#card-body .sheet .c-pair")
         assert "통합건강보험" in title and "일반가입형" in title, f"카드의 두 종형이 다름: {title}"
         body_rows = page.locator("#card-body .sheet table.c-cmp tbody tr").count()

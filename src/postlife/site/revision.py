@@ -79,11 +79,25 @@ def match_benefits(old: list[dict], new: list[dict]) -> tuple[list[tuple[dict, d
 
 
 def benefit_changes(o: dict, n: dict, top_old: float | None, top_new: float | None) -> list[dict[str, Any]]:
-    """급부 한 쌍에서 달라진 항목. dir은 개정 후가 나아졌으면 "+", 못해졌으면 "-", 엇갈리면 "~", 가릴 수 없으면 None."""
+    """급부 한 쌍에서 달라진 항목. dir은 개정 후가 나아졌으면 "+", 못해졌으면 "-", 엇갈리면 "~", 가릴 수 없으면 None.
+
+    지급액(pay)은 지급 기준에 따라 견준다. 금액 급부끼리는 (기준지급금액, 기준가입금액)이 다르면 달라진 것이다.
+    가입금액 대비 비율로 적힌 급부끼리는 지급률이 다를 때만 달라진 것이다(같은 50%를 100에 50, 1,000에 500으로 적은 것은 같다).
+    금액 급부가 비율 급부로(또는 그 반대로) 바뀌면 숫자가 같아도 달라진 것으로 적고, 가입금액당 지급액이 같으면 방향은 None이다.
+    """
     items: list[dict[str, Any]] = []
     unit_old, unit_new = scaled(o["pay"], o["base"], 1), scaled(n["pay"], n["base"], 1)
-    if (o["pay"], o["base"]) != (n["pay"], n["base"]):
+    ratio_old, ratio_new = bool(o.get("ratio")), bool(n.get("ratio"))
+    if ratio_old != ratio_new:
+        pay_changed = True
+    elif ratio_old:
+        pay_changed = o.get("rate") != n.get("rate")
+    else:
+        pay_changed = (o["pay"], o["base"]) != (n["pay"], n["base"])
+    if pay_changed:
         direction = _sign(unit_new, unit_old) if unit_old is not None and unit_new is not None else None
+        if ratio_old != ratio_new and direction == "=":
+            direction = None
         items.append({"field": "pay", "old": [o["base"], o["pay"]], "new": [n["base"], n["pay"]], "dir": direction})
     if top_old != top_new:
         direction = _sign(top_new, top_old) if top_old is not None and top_new is not None else None

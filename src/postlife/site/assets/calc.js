@@ -39,13 +39,19 @@ var PostlifeCalc = (function () {
     return pay / base * amount;
   }
 
-  /* 대표 줄 고르기: 주급부 우선, 금액이 큰 줄, 같으면 기준지급금액이 큰 줄, 그래도 같으면 조건이 엄격한 줄 */
+  /* 대표 줄 고르기: 주급부 우선, 금액이 큰 줄, 같거나 모르면 기준지급금액이 큰 줄, 그래도 같으면 조건이 엄격한 줄.
+     비율로 적힌 급부(ratio)가 끼어 있으면 기준지급금액이 지급률 숫자라 금액과 견줄 수 없으므로, 모든 줄을 기준지급금액 ÷ 기준가입금액으로 견준다 */
   function pickRep(cands) {
     if (!cands.length) return null;
     var mains = cands.filter(function (c) { return c.role === '주급부'; });
     var pool = mains.length ? mains : cands;
+    var byRate = pool.some(function (c) { return !!c.ratio; });
+    function second(c) {
+      if (!byRate) return c.pay || 0;
+      return c.pay !== null && c.pay !== undefined && c.base ? c.pay / c.base : 0;
+    }
     function key(c) {
-      return [-(c.val === null || c.val === undefined ? -1 : c.val), -(c.pay || 0), -(c.wait || 0),
+      return [-(c.val === null || c.val === undefined ? -1 : c.val), -second(c), -(c.wait || 0),
         (c.red && c.red.length) ? 0 : 1, String(c.name)];
     }
     var sorted = pool.slice().sort(function (a, b) {
@@ -169,7 +175,7 @@ var PostlifeCalc = (function () {
         var lines = groups[std];
         var cands = lines.map(function (l, i) {
           var b = benefits[l.bid];
-          return {i: i, role: b.role, val: l.val, pay: b.pay, wait: b.wait, red: b.red, name: b.name};
+          return {i: i, role: b.role, val: l.val, pay: b.pay, base: b.base, ratio: b.ratio, wait: b.wait, red: b.red, name: b.name};
         });
         return {std: std, rep: pickRep(cands), lines: lines};
       }),

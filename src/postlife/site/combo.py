@@ -57,11 +57,12 @@ def reference_benefit(data: Data, tid: str) -> str | None:
     """급부표가 기준으로 삼은 가입금액(ref)을 가진 급부. ref는 가입 한도 자료가 없는 특약을 고를 때 화면이 처음에 넣어 두는 금액이다.
 
     계산 규칙(evaluate)은 이 값을 쓰지 않는다. 급부마다 기준이 다르면 대표 순서(주급부, 금액 큰 순)의 첫 줄을 따른다.
+    금액 급부와 비율 급부가 섞인 특약은 금액 급부의 줄을 먼저 쓴다. 비율 급부의 기준가입금액(관례로 100)은 지급률을 적으려고 둔 값이라
+    공시 문서의 기준 가입금액이 아니고, 대표 순서의 "금액"도 비율 급부에서는 지급률 숫자라 금액과 견줄 수 없기 때문이다.
+    금액 급부에 기준가입금액이 없을 때만 비율 급부의 줄을 쓰고, 화면은 그 금액을 계산용 예시 금액이라고 밝힌다(refRatio).
     """
-    for bid in data.benefits_of.get(tid, []):
-        if data.benefits[bid].get("기준가입금액만원"):
-            return bid
-    return None
+    found = [bid for bid in data.benefits_of.get(tid, []) if data.benefits[bid].get("기준가입금액만원")]
+    return next((bid for bid in found if not is_ratio(data.benefits[bid])), found[0] if found else None)
 
 
 def build(data: Data, conds: list[Cond]) -> dict[str, Any]:
@@ -187,6 +188,7 @@ def payouts(vm: dict[str, Any], benefits: dict[str, dict[str, Any]], rows: list[
     out = []
     for std, lines in groups.items():
         cands = [{"i": i, "role": benefits[l["bid"]]["role"], "val": l["val"], "pay": benefits[l["bid"]].get("pay"),
+                  "base": benefits[l["bid"]].get("base"), "ratio": benefits[l["bid"]].get("ratio"),
                   "wait": benefits[l["bid"]].get("wait"), "red": benefits[l["bid"]].get("red"),
                   "name": benefits[l["bid"]]["name"]} for i, l in enumerate(lines)]
         out.append({"std": std, "rep": pick_rep(cands), "lines": lines})

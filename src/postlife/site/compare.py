@@ -30,13 +30,23 @@ def pick_rep(cands: list[dict[str, Any]]) -> int | None:
 
     1. 급부역할이 주급부인 줄이 있으면 그 가운데서, 없으면 전체에서 고른다.
     2. 금액(val)이 가장 큰 줄. 종별 수술비는 이 규칙으로 최고 종이 대표가 된다.
-    3. 금액이 같으면 기준지급금액이 큰 줄, 그래도 같으면 조건이 더 엄격한 줄(면책이 긴 줄, 감액이 있는 줄).
+    3. 금액이 같거나 모르면(가입 한도 자료가 없는 줄) 기준지급금액이 큰 줄, 그래도 같으면 조건이 더 엄격한 줄(면책이 긴 줄, 감액이 있는 줄).
        좋은 조건을 대표로 내세워 실제보다 유리하게 보이는 일을 막기 위함이다.
+       다만 가입금액 대비 비율로 적힌 급부(ratio)가 끼어 있으면, 그 기준지급금액은 지급률 숫자라 금액과 바로 견줄 수 없다.
+       그때는 모든 줄을 기준가입금액 대비 지급률(기준지급금액 ÷ 기준가입금액)로 견준다. 금액 급부끼리는 기준지급금액으로 견준다.
     """
     if not cands:
         return None
     pool = [c for c in cands if c.get("role") == MAIN_ROLE] or cands
-    best = sorted(pool, key=lambda c: (-(c["val"] if c.get("val") is not None else -1.0), -(c.get("pay") or 0),
+    by_rate = any(c.get("ratio") for c in pool)
+
+    def second(c: dict[str, Any]) -> float:
+        pay = c.get("pay")
+        if not by_rate:
+            return pay or 0
+        return pay / c["base"] if pay is not None and c.get("base") else 0
+
+    best = sorted(pool, key=lambda c: (-(c["val"] if c.get("val") is not None else -1.0), -second(c),
                                        -(c.get("wait") or 0), 0 if c.get("red") else 1, str(c.get("name"))))[0]
     return best["i"]
 
@@ -142,7 +152,8 @@ def cell_core(data: Data, views: list[dict], cond: Cond, waiting: bool = False) 
         return {"kind": "none", "waiting": waiting}
     caps: list[Limit] = [data.rider_cap(v["tid"], cond) for v in views]
     vals = [scaled(v["pay"], v["base"], c.amount) if c.ok else None for v, c in zip(views, caps)]
-    cands = [{"i": i, "role": v["role"], "val": vals[i], "pay": v["pay"], "wait": v["wait"], "red": v["red"], "name": v["name"]}
+    cands = [{"i": i, "role": v["role"], "val": vals[i], "pay": v["pay"], "base": v["base"], "ratio": v["ratio"],
+              "wait": v["wait"], "red": v["red"], "name": v["name"]}
              for i, v in enumerate(views) if caps[i].ok]
     rep = pick_rep(cands)
     if rep is None:

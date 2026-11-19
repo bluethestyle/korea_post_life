@@ -663,6 +663,89 @@ def test_금액_급부와_비율_급부가_만나도_양쪽_다_최대_가입_�
     assert verdicts(as_amount) == both
 
 
+def ratio_cand(i, pay, base, ratio, val=None):
+    return {**cand(i, "주급부", val, pay=pay), "base": base, "ratio": ratio}
+
+
+def test_최대_가입_금액을_모르면_비율_급부는_지급률로_견주어_대표를_고른다():
+    # 비율 급부의 기준지급금액(지급률 100)과 금액 급부의 기준지급금액(500만원)은 단위가 달라 바로 견주지 않는다
+    assert compare.pick_rep([ratio_cand(0, 500, 1000, False), ratio_cand(1, 100, 100, True)]) == 1    # 50% 대 100%
+    assert compare.pick_rep([ratio_cand(0, 500, 1000, True), ratio_cand(1, 100, 100, True)]) == 1     # 비율 급부끼리도 지급률로
+    # 금액 급부끼리는 지금처럼 기준지급금액으로 견주고, 최대 가입 금액을 알면 그 금액이 먼저다
+    assert compare.pick_rep([ratio_cand(0, 500, 1000, False), ratio_cand(1, 300, 100, False)]) == 0
+    assert compare.pick_rep([ratio_cand(0, 500, 1000, False, val=2000), ratio_cand(1, 100, 100, True, val=1000)]) == 0
+
+
+def mixed_ratio_tables(pay):
+    """삼성화재 암 진단비 특약(가입금액의 100%)에 금액으로 적힌 급부(가입 1,000만원에 pay만원)를 더한다."""
+    tables = ratio_tables()
+    b = benefit(SF, "ca", "cash", "암 진단 생활자금", "주급부", pay, base=1000)
+    tables["sys_급부"].append(b)
+    tables["hum_담보매핑"].append(mapped(b["급부ID"], "자동확정", "STD_CA_DX_GENERAL"))
+    return tables
+
+
+def test_가입_한도가_없는_칸에서_금액_급부와_비율_급부가_섞이면_지급률로_대표를_고른다():
+    data = Data(mixed_ratio_tables(500))                 # 기준지급금액은 500이 100보다 크지만 지급률은 50%로 100%보다 낮다
+    cell, st = cell_at(compare.build(data, data.conds()), "STD_CA_DX_GENERAL", SF, 0)
+    assert st["vals"] == [None, None] and data.benefits[cell["lines"][st["rep"]]]["원시급부명"] == "암 진단비"
+
+
+def test_금액_급부와_비율_급부가_섞인_특약은_금액_급부의_기준_가입금액을_처음_값으로_쓴다():
+    data = Data(mixed_ratio_tables(50))                  # 대표 순서(기준지급금액 큰 순)로는 비율 급부(100)가 앞선다
+    vm = combo.variant_model(data, SF, data.conds())
+    assert [(r["tid"].split("_T")[1], r["ref"], r["refRatio"]) for r in vm["riders"]] == [("main", 100, True), ("ca", 1000, False)]
+    assert combo.reference_benefit(data, f"{SF}_Tca") == f"{SF}_Tca_Bcash"
+
+
+def test_비율_급부의_개정_전후는_지급률과_지급_기준이_달라졌을_때만_적는다():
+    def view(pay, base, ratio):
+        return {"pay": pay, "base": base, "ratio": ratio, "rate": pay_rate(pay, base) if ratio else None,
+                "red": [], "wait": 0, "limit": None, "std": "STD_CA_DX_GENERAL"}
+
+    def pay_items(old, new):
+        return [(i["field"], i["dir"]) for i in revision.benefit_changes(old, new, None, None)]
+
+    assert pay_items(view(50, 100, True), view(500, 1000, True)) == []              # 같은 50%를 다른 숫자로 적었을 뿐
+    assert pay_items(view(50, 100, True), view(60, 100, True)) == [("pay", "+")]
+    assert pay_items(view(50, 100, False), view(50, 100, True)) == [("pay", None)]  # 금액 급부가 비율 급부로 바뀜
+    assert pay_items(view(50, 100, True), view(500, 1000, False)) == [("pay", None)]
+    assert pay_items(view(50, 100, False), view(500, 1000, False)) == [("pay", "=")]  # 금액 급부끼리는 지금 규칙 그대로
+    assert pay_items(view(50, 100, False), view(50, 100, False)) == []
+
+
+SF_OLD = "SAMSUNGFIRE_S0_hhhhhh"
+
+
+def ratio_revision_tables():
+    """삼성화재 종형의 직전 개정판을 더한다. 암 진단비는 같은 100%를 다른 숫자(가입 1,000에 1,000)로 적었고,
+    상해사망은 같은 숫자(가입 100에 100)를 금액 급부로 적었다. 유사암은 두 판이 같다."""
+    tables = ratio_tables()
+    tables["sys_상품종형"].append(variant(SF_OLD, "SAMSUNGFIRE", "SAMSUNGFIRE_Z_2604", "SAMSUNGFIRE_Z|일반심사|일반|갱신|표준형",
+                                      "무배당 시험화재 건강보험", "1종", "직전개정시연", "일반심사", "일반", (None, None, None, None, None),
+                                      "2026-04-01", "2026-09-30", "hs0", "ms0"))
+    tables["sys_특약"] += [rider(SF_OLD, "main", "기본계약", None, None, "주계약"), rider(SF_OLD, "ca", "암 진단비", None, None)]
+    rows = [
+        (benefit(SF_OLD, "main", "death", "상해사망", "주급부", 100, limit=None, base=100), False, "대상외", None),
+        (benefit(SF_OLD, "ca", "ca", "암 진단비", "주급부", 1000, 90, (12, 0.5), base=1000), True, "자동확정", "STD_CA_DX_GENERAL"),
+        (benefit(SF_OLD, "ca", "th", "유사암 진단비", "부수급부", 20, base=100), True, "자동확정", "STD_CA_DX_PSEUDO"),
+    ]
+    for b, ratio, state, sid in rows:
+        if ratio:
+            b[BASIS_COLUMN] = RATIO_BASIS
+        tables["sys_급부"].append(b)
+        tables["hum_담보매핑"].append(mapped(b["급부ID"], state, sid))
+    return tables
+
+
+def test_비율_급부_종형의_개정_전후는_지급률이_같으면_지급액_변화로_적지_않는다():
+    data = Data(ratio_revision_tables())
+    assert (SF_OLD, SF) in revision.variant_pairs(data)
+    diff = revision.diff_pair(data, SF_OLD, SF)
+    items = {b["new"].rsplit("_B", 1)[1]: [(i["field"], i["dir"]) for i in b["items"]] for c in diff["changes"] for b in c["benefits"]}
+    assert items == {"death": [("pay", None)]}            # 암 진단비는 같은 100%, 상해사망은 금액 급부에서 비율 급부로 바뀜
+
+
 def test_조합_화면은_비율_급부도_넣은_가입금액에_지급률을_곱한다():
     data = Data(ratio_tables())
     conds = data.conds()
@@ -1021,6 +1104,32 @@ def test_calc_js는_비율_급부도_Python_규칙과_결과가_같다():
         models = {vid: combo.variant_model(data, vid, conds) for vid in (SF, NEW_B)}
         benefits = {bid: data.benefit_view(bid) for bid in data.benefits}
         assert_same_as_python(models, benefits, cases_for(models, conds, seed=3))
+
+
+PICK_HARNESS = """
+const calc = require(process.argv[1]);
+let text = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', c => text += c).on('end', () => { process.stdout.write(JSON.stringify(JSON.parse(text).map(calc.pickRep))); });
+"""
+
+
+@needs_node
+def test_calc_js의_대표_고르기는_Python과_같다():
+    rng = random.Random(5)
+    pools = [[ratio_cand(0, 500, 1000, False), ratio_cand(1, 100, 100, True)], [ratio_cand(0, 500, 1000, True), ratio_cand(1, 100, 100, True)],
+             [ratio_cand(0, 500, 1000, False), ratio_cand(1, 300, 100, False)]]
+    for _ in range(200):
+        pools.append([{**ratio_cand(i, rng.choice([None, 20, 50, 100, 500]), rng.choice([None, 0, 100, 1000]), rng.random() < 0.5,
+                                    val=rng.choice([None, None, 100.0, 500.0])), "role": rng.choice(["주급부", "부수급부"]),
+                       "wait": rng.choice([0, 90]), "name": f"급부{i}"} for i in range(rng.randint(1, 4))])
+    done = subprocess.run([NODE, "-e", PICK_HARNESS, str(CALC_JS)], input=json.dumps(pools, ensure_ascii=False),
+                          capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert done.returncode == 0, done.stderr
+    assert json.loads(done.stdout) == [compare.pick_rep(p) for p in pools]
+    data = Data(mixed_ratio_tables(500))
+    models = {SF: combo.variant_model(data, SF, data.conds())}
+    assert_same_as_python(models, {bid: data.benefit_view(bid) for bid in data.benefits}, cases_for(models, data.conds(), seed=9))
 
 
 @needs_node

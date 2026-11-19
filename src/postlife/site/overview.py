@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import weekly
-from .model import CONFIRMED_STATES, Data, EXCLUDED_STATE, HOME_ORG, WAITING_STATE, _blank
+from .model import CONFIRMED_STATES, Data, EXCLUDED_STATE, HOME_ORG, WAITING_STATE
 
 
 def build(data: Data, previous: Data | None = None) -> dict[str, Any]:
@@ -33,12 +33,13 @@ def build(data: Data, previous: Data | None = None) -> dict[str, Any]:
             g["noAge"] += 1 if gap["noAge"] else 0
     states = [m.get("검토상태") for m in data.mapping.values()]
     revisions = {v["개정판ID"] for v in data.variants.values()}
+    today = weekly.today_of(data)           # 판매 중은 대표 조건의 우열 비교와 같은 기준으로 센다(weekly.on_sale)
     return {
         "homeOrg": HOME_ORG, "homeName": data.org_name(HOME_ORG),
         "limitGaps": [gaps[c] for c in sorted(gaps, key=lambda c: (c != HOME_ORG, c))],
         "orgs": [{"code": c, "name": data.org_name(c), "variants": n} for c, n in sorted(orgs.items(), key=lambda kv: (kv[0] != HOME_ORG, kv[0]))],
         "counts": {
-            "variants": len(data.variants), "onSale": sum(1 for v in data.variants.values() if _blank(v.get("판매종료일"))),
+            "variants": len(data.variants), "onSale": sum(1 for v in data.variants.values() if weekly.on_sale(v, today)),
             "revisions": len(revisions), "riders": len(data.riders), "benefits": len(data.benefits),
             "mapped": sum(1 for s in states if s in CONFIRMED_STATES), "waiting": states.count(WAITING_STATE),
             "excluded": states.count(EXCLUDED_STATE),
