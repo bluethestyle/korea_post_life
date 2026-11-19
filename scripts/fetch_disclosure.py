@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from postlife.disclosure import epost  # noqa: E402
+from postlife.disclosure import epost, hanwha  # noqa: E402
 from postlife.disclosure.http import session  # noqa: E402
 from postlife.snapshot import KST  # noqa: E402
 
@@ -33,14 +33,67 @@ def pdf_pages(data: bytes) -> list[str]:
         return [page.extract_text() or "" for page in pdf.pages]
 
 
+def save(out: Path, stem: str, data: bytes) -> dict:
+    pages = pdf_pages(data)
+    (out / f"{stem}.pdf").write_bytes(data)
+    (out / f"{stem}.txt").write_text(
+        "\n".join(f"\n===== {i + 1}쪽 =====\n{t}" for i, t in enumerate(pages)), encoding="utf-8")
+    return {"쪽수": len(pages), "해시": hashlib.sha256(data).hexdigest()[:16], "저장이름": stem}
+
+
+def fetch_hanwha(s, out: Path, targets: Path, list_only: bool) -> tuple[list[dict], list[str]]:
+    """설정 파일(data/targets/hanwha.json)에 적힌 공시 상품번호의 요약서와 사업방법서를 받는다. 약관은 받지 않는다."""
+    codes = sorted({v["공시상품코드"] for product in json.loads(targets.read_text(encoding="utf-8"))["상품"]
+                    for v in product["종형"]})
+    names = {x.code: x.name for x in hanwha.list_products(s, selling=True)}
+    index, rows = [], []
+    for code in codes:
+        name = names.get(code, "")
+        if not name:
+            rows.append(f"| {code} | (판매상품 목록에 없음) | | | | |")
+            continue
+        for doc in hanwha.list_documents(s, code):
+            if doc.kind == "약관":
+                continue
+            entry = {"기관": "HANWHALIFE", "상품코드": code, "상품명": name, "판매시작일": doc.start,
+                     "판매종료일": doc.end, "문서": doc.kind, "파일": doc.file_name, "등록일": doc.start}
+            if list_only:
+                rows.append(f"| {code} | {name} | {doc.kind} | {doc.file_name} | | |")
+                continue
+            try:
+                data = hanwha.download(s, doc)
+                saved = save(out, f"hanwha_{code}_{doc.kind}", data)
+            except Exception as e:  # noqa: BLE001
+                print(f"  실패 {code} {doc.kind}: {e}"[:400])
+                rows.append(f"| {code} | {name} | {doc.kind} | {doc.file_name} | 실패: {type(e).__name__} | |")
+                continue
+            index.append({**entry, **saved})
+            rows.append(f"| {code} | {name} | {doc.kind} | {doc.file_name} | {saved['쪽수']} | {len(data):,} |")
+    return index, rows
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--out", type=Path, default=Path("out"))
     p.add_argument("--list-only", action="store_true")
+    p.add_argument("--org", default="epost", choices=["epost", "hanwha"], help="받을 회사")
+    p.add_argument("--targets", type=Path, default=Path("data/targets/hanwha.json"), help="한화생명 추출 대상 설정")
     args = p.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     s = session()
     today = datetime.now(KST).date().isoformat()
+    head = ["| 상품코드 | 상품명 | 문서 | 파일 | 쪽수 | 크기 |", "| --- | --- | --- | --- | --- | --- |"]
+
+    if args.org == "hanwha":
+        index, rows = fetch_hanwha(s, args.out, args.targets, args.list_only)
+        (args.out / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+        table = "\n".join(head + rows)
+        print(table)
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with open(summary, "a", encoding="utf-8") as f:
+                f.write("## 공시 문서 수집 (한화생명)\n\n" + table + "\n")
+        return 0 if index or args.list_only else 1
 
     selling = epost.list_products(s, selling=True)
     stopped = epost.list_products(s, selling=False)

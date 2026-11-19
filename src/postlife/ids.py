@@ -70,13 +70,18 @@ def strip_dividend(name: str) -> str:
 _SIMPLE_TYPE = re.compile(r"^간편\s*(?:[ⅠⅡⅢ]|I{1,3})(?=[가-힣])")
 
 
+# 한화생명은 특약 이름 끝에 "(KTA1.1)", "(TA2.1)" 같은 표기를 붙인다. 판이 바뀌면 숫자가 달라지므로 계보에서는 뗀다
+_TAIL_CODE = re.compile(r"\s*\(K?TA\d+(?:\.\d+)?\)\s*(?:무배당)?\s*$")
+
+
 def rider_lineage_key(raw_rider_name: str) -> str:
-    """특약계보키. 배당 표기, 개정 연월, 이름 앞의 간편 가입유형 표시를 뗀 이름으로 만든다.
+    """특약계보키. 배당 표기, 개정 연월, 이름 앞의 간편 가입유형 표시, 이름 끝의 "(TA1.1)" 표기를 뗀 이름으로 만든다.
 
     같은 특약을 요약서는 "(무)암진단특약", 사업방법서는 "무배당 암진단특약 2606"으로 적어도
     같은 키가 나와야 보험료와 결합 제약이 한 특약에 붙는다.
     """
-    return short_hash(_SIMPLE_TYPE.sub("", strip_revision(strip_dividend(raw_rider_name)).strip()), length=12)
+    name = strip_revision(strip_dividend(raw_rider_name)).strip()
+    return short_hash(_TAIL_CODE.sub("", _SIMPLE_TYPE.sub("", name)), length=12)
 
 
 def rider_id(variant: str, raw_rider_name: str) -> str:

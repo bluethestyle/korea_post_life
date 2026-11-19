@@ -4,6 +4,11 @@ name: 추출·검증
 on:
   workflow_dispatch:
     inputs:
+      org:
+        description: "회사: epost(우체국) 또는 hanwha(한화생명)"
+        type: choice
+        options: [epost, hanwha]
+        default: epost
       only:
         description: "이 공시상품코드만 처리 (여러 개면 공백으로 구분). 비우면 전체"
         required: false
@@ -25,11 +30,12 @@ concurrency:
 jobs:
   extract:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 240
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
       SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      INPUT_ORG: ${{ inputs.org || 'epost' }}
       INPUT_ONLY: ${{ inputs.only }}
       INPUT_DRY_RUN: ${{ inputs.dry_run }}
       INPUT_PARTS: ${{ inputs.parts }}
@@ -41,14 +47,14 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt pdfplumber
       - name: 공시 문서 받기
-        run: python scripts/fetch_disclosure.py --out out
+        run: python scripts/fetch_disclosure.py --out out --org "$INPUT_ORG"
       - name: 추출·검증·기록
         run: |
           args=()
           for code in $INPUT_ONLY; do args+=(--only "$code"); done
           if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           if [ -n "$INPUT_PARTS" ]; then args+=(--parts "$INPUT_PARTS"); fi
-          python scripts/extract_product.py --docs out --targets data/targets/epost.json --result result/extract.json "${args[@]}"
+          python scripts/extract_product.py --docs out --targets "data/targets/$INPUT_ORG.json" --result result/extract.json "${args[@]}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

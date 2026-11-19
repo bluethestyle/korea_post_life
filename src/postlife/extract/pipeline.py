@@ -13,7 +13,7 @@ from ..gemini import GeminiError
 from ..worklog import WorkLog
 from . import benefits as B
 from . import verify as V
-from .segment import Block, rider_blocks
+from .segment import Block, renewal_periods, rider_blocks, rider_key, scope_matches, scope_parts
 
 FIELD_NAMES = {"기준지급금액만원": "지급액", "감액지급률1": "감액 기간·금액(없으면 빈칸)", "면책기간일수": "보장개시일 조건(start_condition)", "지급횟수제한": "지급 한도(limit)"}
 # 2026-11-18 우체국 요약서 2건으로 맞춘 값 (docs/progress.md). 시트의 hum_기준값이 있으면 그 값을 쓴다.
@@ -188,28 +188,47 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
 def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now: datetime,
                 thresholds: dict[str, float] | None = None, product_renewal_years: int | None = None,
                 only: list[str] | None = None, budget: dict[str, int] | None = None,
-                plain_renewal_years: int | None = None) -> Result:
-    """상품요약서 한 건을 처리한다. 여러 종이 한 요약서를 함께 쓰면 뽑은 값을 종마다 같은 내용으로 싣는다."""
+                plain_renewal_years: int | None = None, variant_names: dict[str, str] | None = None) -> Result:
+    """상품요약서 한 건을 처리한다. 여러 종이 한 요약서를 함께 쓰면 뽑은 값을 종마다 같은 내용으로 싣는다.
+
+    variant_names: {종형ID: 종형명}. 조각 안의 표가 "[간편가입형]"처럼 가입유형별로 갈린 요약서에서는 이 이름으로
+    부분마다 해당하는 종형을 가린다. 해당하는 종형이 없는 부분은 모델을 부르지 않고 건너뛴다.
+    이름에 "(갱신형)"만 있는 특약의 주기는 요약서의 갱신형 특약 목록에서 읽고, 주기가 여럿이면 가장 짧은 것을 적는다.
+    """
     thresholds = thresholds or dict(DEFAULT_THRESHOLDS)
     log = WorkLog(now, "sys_급부")
     result = Result()
     blocks = [b for b in rider_blocks(pages) if not only or any(k in b.title for k in only)]
+    periods = renewal_periods(pages)
     # 상위 모델은 하루 한도가 작다. 여러 요약서를 한 번에 돌릴 때는 호출한 쪽이 넘긴 횟수를 함께 쓴다.
     budget = budget if budget is not None else {"상위모델": config.EXTRACT_ESCALATIONS_PER_RUN}
     start = budget["상위모델"]
+    units = 0
     for block in blocks:
-        done = run_block(gemini, block, thresholds, log, variant_ids[0], budget)
-        if done is None:
-            continue
-        result.blocks.append(done)
-        for variant in variant_ids:
-            result.riders.append(B.rider_row(variant, block, product_renewal_years, plain_renewal_years))
+        parts = scope_parts(block) if variant_names else [("", block.text)]
+        listed = periods.get(rider_key(block.rider_name))
+        years = min(listed) if listed else plain_renewal_years
+        with_rider: set[str] = set()
+        for scope, text in parts:
+            matched = [v for v in variant_ids if not scope or scope_matches(scope, (variant_names or {}).get(v, ""))]
+            if not matched:
+                continue
+            units += 1
+            part = block if len(parts) == 1 else Block(block.title, text, block.first_page, block.last_page)
+            done = run_block(gemini, part, thresholds, log, matched[0], budget)
+            if done is None:
+                continue
+            result.blocks.append(done)
             dropped = {label for label, state in done.status.items() if state == "제외"}
-            result.benefits.extend(B.benefit_rows(variant, done.extraction, skip=dropped))
+            for variant in matched:
+                if variant not in with_rider:
+                    with_rider.add(variant)
+                    result.riders.append(B.rider_row(variant, block, product_renewal_years, years))
+                result.benefits.extend(B.benefit_rows(variant, done.extraction, skip=dropped))
     result.logs = log.rows
     statuses = [s for b in result.blocks for s in b.status.values()]
     result.stats = {
-        "조각": len(blocks), "처리한 조각": len(result.blocks),
+        "조각": units, "처리한 조각": len(result.blocks),
         "급부": len(statuses), "확정": statuses.count("확정"), "검토": statuses.count("검토"), "제외": statuses.count("제외"),
         "재추출한 조각": sum(b.retried for b in result.blocks),
         "상위 모델 사용": start - budget["상위모델"],

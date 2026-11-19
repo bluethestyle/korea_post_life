@@ -1,0 +1,144 @@
+"""가입유형별로 표가 갈린 요약서(한화생명 형식)를 종형에 맞게 나눠 싣는지, 그리고 그 형식에서 쓰는 읽기 규칙."""
+from datetime import datetime
+
+from postlife import ids
+from postlife.extract import benefits as B
+from postlife.extract import pipeline as P
+from postlife.extract import verify as V
+from postlife.extract.segment import pages_from_text, renewal_periods, rider_key, scope_matches
+from postlife.gemini import Answer
+from postlife.snapshot import KST
+from postlife.validate import check_rows
+
+TEXT = """
+===== 11쪽 =====
+▪ 갱신형 특약 :
+- 5년만기, 10년만기 자동갱신(최대 종신)
+· 고지혈증보장특약(진단및약물치료)(고지통합)(갱신형)(무)
+- 10년만기, 20년만기, 30년만기 자동갱신(최대 종신)
+· 계속받는 비급여(급여 전액본인부담 포함) 항암약물·방사선통합치료보장특약(1천만원한도)(고지
+통합)(갱신형)(무)
+· 뇌혈관질환진단보장특약(고지통합)(갱신형)(무)
+11/567
+===== 12쪽 =====
+· 암진단보장특약(고지통합)(갱신형)(무)
+- 50%질병장해보험료납입면제특약(고지통합)(갱신형)(무): 부가대상 계약의 납입기간과 동일
+다. 보험료 납입기간 및 납입주기
+· 여기는 목록이 아님(갱신형)(무)
+===== 24쪽 =====
+나. 보험금 지급사유 및 보험급부별 보험금 지급제한 사유
+■ 급성심근경색증진단보장특약(고지통합)(KTA1.1) 무배당
+[간편가입형]
+(기준 : 특약가입금액 1,000만원)
+급부명칭 지급사유 지급금액
+급성심근경색증 진단자금 최초 1회한 1년미만 500만원 1년이상 1,000만원
+[일반가입형 및 건강가입형]
+(기준 : 특약가입금액 1,000만원)
+급부명칭 지급사유 지급금액
+급성심근경색증 진단자금 최초 1회한 1,000만원
+■ 뇌혈관질환진단보장특약(고지통합)(갱신형)(TA1.1) 무배당
+(기준 : 특약가입금액 1,000만원)
+급부명칭 지급사유 지급금액
+뇌혈관질환 진단자금 최초 1회한 1년미만 500만원 1년이상 1,000만원
+4. 보험료 산출기초
+"""
+NAMES = {"V1": "간편가입형(1년)", "V5": "간편가입형(5년)", "VG": "일반가입형"}
+
+
+def row(name, reduced):
+    item = {"name": name, "target": "", "amount": "1,000만원", "start_condition": "", "limit": "최초 1회한",
+            "role": "주급부", "quote": "1,000만원"}
+    if reduced:
+        item.update(reduced_period="1년미만", reduced_amount="500만원")
+    return {"base_amount": "1,000만원", "benefits": [item]}
+
+
+class FakeGemini:
+    def __init__(self):
+        self.texts = []
+
+    def generate(self, model, prompt, schema=None, temperature=0.0):
+        body = prompt.split("특약 이름:")[-1]
+        self.texts.append(body)
+        if "뇌혈관질환" in body:
+            return row("뇌혈관질환 진단자금", True)
+        return row("급성심근경색증 진단자금", "1년미만" in body)
+
+    def decide(self, model, input_text, questions):
+        return {k: (Answer(V.FROM_DAY_ONE, None, {V.FROM_DAY_ONE: 0.97, V.AFTER_START: 0.03}) if q["type"] == "choice"
+                    else Answer(True, None, {"true": 0.97, "false": 0.03})) for k, q in questions.items()}
+
+
+def run(variant_names):
+    g = FakeGemini()
+    r = P.run_summary(g, pages_from_text(TEXT), list(variant_names), datetime(2026, 11, 19, 10, 0, tzinfo=KST),
+                      variant_names=variant_names)
+    return g, r
+
+
+def test_scope_matches_by_prefix_and_joined_names():
+    assert scope_matches("간편가입형", "간편가입형(5년)")
+    assert scope_matches("일반가입형 및 건강가입형", "일반가입형")
+    assert scope_matches("일반가입형 및 건강가입형", "건강가입형(6년)")
+    assert not scope_matches("일반가입형 및 건강가입형", "간편가입형(1년)")
+    assert scope_matches("", "무엇이든")
+
+
+def test_each_variant_gets_the_table_of_its_own_scope():
+    g, r = run(NAMES)
+    assert r.stats["조각"] == 3 and r.stats["처리한 조각"] == 3      # 급성심근경색 2부분 + 뇌혈관 1조각
+    rider = {v: ids.rider_id(v, "급성심근경색증진단보장특약(고지통합)(KTA1.1) 무배당") for v in NAMES}
+    cut = {b["특약ID"]: b["감액지급률1"] for b in r.benefits if b["특약ID"] in rider.values()}
+    assert cut == {rider["V1"]: 0.5, rider["V5"]: 0.5, rider["VG"]: None}
+    assert len(r.riders) == 6 and len({x["특약ID"] for x in r.riders}) == 6      # 종형마다 특약 행은 한 번씩
+    assert check_rows("sys_특약", r.riders) == {} and check_rows("sys_급부", r.benefits) == {}
+    # 부분마다 머리줄은 붙고, 다른 가입유형의 표는 섞이지 않는다
+    simple = next(t for t in g.texts if "급성심근경색증" in t and "1년미만" in t)
+    assert "[일반가입형" not in simple and "급성심근경색증진단보장특약" in simple
+
+
+def test_part_without_matching_variant_is_not_sent_to_the_model():
+    g, r = run({"V1": "간편가입형(1년)"})
+    assert r.stats["조각"] == 2
+    assert not any("급성심근경색증" in t and "1년미만" not in t for t in g.texts)
+
+
+def test_renewal_years_come_from_the_list_and_take_the_shortest():
+    periods = renewal_periods(pages_from_text(TEXT))
+    assert periods[rider_key("뇌혈관질환진단보장특약(고지통합)(갱신형)(TA1.1) 무배당")] == [10, 20, 30]
+    assert periods[rider_key("고지혈증보장특약(진단및약물치료)(고지통합)(갱신형)(KTA1.1) 무배당")] == [5, 10]
+    long_name = "계속받는 비급여(급여 전액본인부담 포함) 항암약물·방사선통합치료보장특약(1천만원한도)(고지통합)(갱신형)(TA1.1) 무배당"
+    assert periods[rider_key(long_name)] == [10, 20, 30]                       # 두 줄로 갈린 이름
+    assert rider_key("암진단보장특약(고지통합)(갱신형)(무)") in periods         # 쪽이 바뀌어도 이어 읽는다
+    assert not any("납입면제" in k or "목록이아님" in k for k in periods)
+    _, r = run(NAMES)
+    brain = next(x for x in r.riders if "뇌혈관" in x["원시특약명"])
+    assert (brain["갱신여부"], brain["갱신주기년"]) == (True, 10)
+
+
+def test_without_variant_names_blocks_are_not_split():
+    g = FakeGemini()
+    r = P.run_summary(g, pages_from_text(TEXT), ["V1"], datetime(2026, 11, 19, 10, 0, tzinfo=KST))
+    assert r.stats["조각"] == 2
+
+
+def test_plain_won_amounts_are_read():
+    assert B.parse_money("입원1일당 5,000원") == 0.5
+    assert B.parse_money("1,000만원") == 1000 and B.parse_money("2만5천원") == 2.5
+    assert B.money_token("입원1일당 5,000원") == "5000원"
+    assert "5000원" in B.amount_forms(0.5)
+
+
+def test_day_based_period_is_asked_in_source_words():
+    b = B.Benefit(name="암다빈치로봇수술자금", target="암", amount=1000.0, waiting_days=None, limit="최초 1회한", role="주급부",
+                  quote="", reduced_months=6, reduced_amount=250.0, reduced2_months=12, reduced2_amount=500.0,
+                  amount_text="1,000만원", reduced_text="250만원", reduced2_text="500만원",
+                  period_text="180일이내", period2_text="1년미만")
+    q = V.checks(b, "원문")["감액지급률1"][0]["instructions"]
+    assert "180일이내에는 250만원" in q and "12개월 미만에는 500만원" in q
+
+
+def test_lineage_key_ignores_trailing_rate_code():
+    a = ids.rider_lineage_key("80+암진단보장특약(고지통합)(KTA1.1) 무배당")
+    assert a == ids.rider_lineage_key("80+암진단보장특약(고지통합)(TA1.2) 무배당")
+    assert a != ids.rider_lineage_key("80+암진단보장특약(고지통합)(갱신형)(TA1.2) 무배당")

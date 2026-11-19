@@ -7,18 +7,26 @@ from __future__ import annotations
 
 from typing import Any
 
-from .benefits import Benefit, Extraction, limit_in_source, money_token, squash, waiting_definitions
+from .benefits import Benefit, Extraction, limit_in_source, money_token, period_token, squash, waiting_definitions
 
 RULES = (
     "원문은 표가 글자로 풀린 것이라 줄이 뒤섞여 있다. 낱말이 여러 줄에 갈려 있어도 같은 칸의 글자면 이어서 읽는다. "
     "'계약일부터 그 날을 포함하여 90일이 지난날의 다음날'은 기다리는 기간 90일로, '1년이 지난 날의 다음날'은 365일로 본다. "
     "'1년미만 500만원, 1년이상 1,000만원'은 계약 후 12개월 미만 감액 500만원, 이후 지급액 1,000만원으로 본다. "
-    "1만5천원은 1.5만원이다."
+    "1만5천원은 1.5만원이다. "
+    "'1년미만 500만원 ※ 단, 계약일부터 180일이내 …시 250만원'은 180일 이내 250만원, 그 뒤 1년 미만 500만원으로 본다. "
+    "지급금액 칸의 '※ 단, 재해로 인한 …시 금액'은 원인에 따른 예외이므로, 금액과 감액을 볼 때는 따지지 않는다."
 )
 
 
 def _money(v: float) -> str:
     return f"{int(v):,}만원" if float(v).is_integer() else f"{v}만원"
+
+
+def _span(months: int, text: str) -> str:
+    """감액 기간을 문항에 적는 말. 날수로 적힌 기간("180일이내")은 개월로 바꾸지 않고 원문 글자로 묻는다."""
+    token = period_token(text)
+    return token if "일" in token else f"{months}개월 미만"
 
 
 AFTER_START, FROM_DAY_ONE = "보장개시일 조건 있음", "보장개시일 조건 없음"
@@ -56,9 +64,9 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
         late = " (경과기간에 따라 금액이 나뉘어 있으면 가장 늦은 구간의 금액을 지급액으로 본다)"
         out["기준지급금액만원"] = (statement(f"원문 표에 {who}이 있고, 그 지급액은 {_money(b.amount)}이다{late}"), True)
     if reduced:
-        cut = f"계약일부터 {b.reduced_months}개월 미만에는 {_money(b.reduced_amount)}"
+        cut = f"계약일부터 {_span(b.reduced_months, b.period_text)}에는 {_money(b.reduced_amount)}"
         if b.reduced2_amount is not None and b.reduced2_months is not None:
-            cut += f", {b.reduced2_months}개월 미만에는 {_money(b.reduced2_amount)}"
+            cut += f", {_span(b.reduced2_months, b.period2_text)}에는 {_money(b.reduced2_amount)}"
         out["감액지급률1"] = (statement(f"{who}은 {cut}을 지급한다"), True)
     else:
         out["감액지급률1"] = (statement(f"{who}의 지급액은 한 가지 금액만 적혀 있고, 계약일부터 1년 미만·2년 미만 같은 "

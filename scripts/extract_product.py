@@ -64,6 +64,9 @@ def main() -> int:
     if summary:
         with open(summary, "a", encoding="utf-8") as f:
             f.write("## 추출·검증\n\n" + text)
+    if report.write_error:
+        print("시트에 쓰지 못했습니다. 뽑은 행은 결과 파일에 남겼습니다:", report.write_error)
+        return 1
     if report.errors:
         print("형식 검사에 걸려 시트에 쓰지 않았습니다:", json.dumps(report.errors, ensure_ascii=False)[:2000])
         return 1

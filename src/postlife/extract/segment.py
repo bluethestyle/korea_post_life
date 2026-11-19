@@ -180,3 +180,82 @@ def scope_parts(block: Block) -> list[tuple[str, str]]:
     if not parts:
         return [("", block.text)]
     return [(scope, "\n".join(head + body).strip()) for scope, body in parts]
+
+
+_SCOPE_SPLIT = re.compile(r"\s*(?:및|,|·|/)\s*")
+
+
+def scope_matches(scope: str, variant_name: str) -> bool:
+    """가입유형 표시가 이 종형에 해당하는가. 표시가 비어 있으면 모든 종형에 해당한다.
+
+    "[일반가입형 및 건강가입형]"은 "일반가입형"과 "건강가입형"에, "[간편가입형]"은 "간편가입형(1년)"처럼
+    그 글자로 시작하는 종형 모두에 해당한다.
+    """
+    if not scope.strip():
+        return True
+    name = variant_name.replace(" ", "")
+    return any(name.startswith(part.replace(" ", "")) for part in _SCOPE_SPLIT.split(scope.strip()) if part.strip())
+
+
+_RENEWAL_LIST = re.compile(r"^[▪■□ㆍ·-]?\s*갱신형\s*특약\s*:?\s*$")
+_RENEWAL_GROUP = re.compile(r"^-\s*((?:\d+\s*년만기\s*,?\s*)+)자동갱신")
+_RENEWAL_ITEM = re.compile(r"^[·∙ㆍ]\s*(.+)$")
+_RENEWAL_STOP = re.compile(r"^(?:[가-하]\.\s|▪|-\s)")
+_PAGE_FOOT = re.compile(r"^\d+\s*/\s*\d+$")
+
+
+def rider_key(name: str) -> str:
+    """특약 이름을 목록과 머리줄에서 서로 맞춰 볼 수 있게 줄인다.
+
+    목록에는 "…(갱신형)(무)", 급부 표의 머리줄에는 "…(갱신형)(TA1.1) 무배당"으로 적힌다. 끝의 표기와 빈칸,
+    가운뎃점 모양 차이를 없앤다.
+    """
+    key = re.sub(r"\s+", "", name)
+    key = re.sub(r"(?:\((?:무|K?TA[\d.]+)\))?(?:무배당)?$", "", key)
+    return re.sub(r"[·∙ㆍ•]", "·", key)
+
+
+def renewal_periods(pages: dict[int, str]) -> dict[str, list[int]]:
+    """요약서의 "갱신형 특약" 목록에서 특약별 갱신 주기(년)를 읽는다. {rider_key(이름): [5, 10]}. 목록이 없으면 빈 dict.
+
+    "- 10년만기, 20년만기, 30년만기 자동갱신(최대 종신)" 같은 줄 아래 "· 특약명"이 이어지는 모양을 읽는다.
+    이름이 길어 다음 줄로 넘어간 것은 이어 붙인다.
+    """
+    out: dict[str, list[int]] = {}
+    years: list[int] | None = None
+    inside = False
+    name: str | None = None
+
+    def close() -> None:
+        nonlocal name
+        if name and years:
+            out[rider_key(name)] = years
+        name = None
+
+    for _, raw in _lines(pages):
+        line = raw.strip()
+        if not inside:
+            inside = bool(_RENEWAL_LIST.match(line))
+            continue
+        if not line or _PAGE_FOOT.match(line):
+            continue
+        group = _RENEWAL_GROUP.match(line)
+        if group:
+            close()
+            years = [int(n) for n in re.findall(r"(\d+)\s*년만기", group.group(1))]
+            continue
+        item = _RENEWAL_ITEM.match(line)
+        if item:
+            close()
+            name = item.group(1)
+            continue
+        if _RENEWAL_STOP.match(line):       # 다음 절이나 주기 없는 줄("- …납입면제특약: 부가대상 계약…")
+            close()
+            years = None
+            if not line.startswith("-"):
+                break
+            continue
+        if name is not None:
+            name += line
+    close()
+    return out

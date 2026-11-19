@@ -55,6 +55,8 @@ PROMPT = """아래는 보험 상품요약서에서 한 특약의 "보험금 지�
   같은 name의 줄끼리는 target이 서로 달라야 합니다. 구분이 둘이면 함께 적습니다. 예: "암·관혈수술".
   한 지급사유에 "암보장개시일 이후에 암으로 …하였거나, 보험기간 중 갑상선암…으로 …하였을 때"처럼 조건이 다른 두 경우가 함께 적혀 있으면
   경우마다 줄을 나누고 금액은 같게 적습니다. 예: "암·관혈수술" 300만원, "갑상선암·기타피부암·대장점막내암·제자리암·경계성종양·관혈수술" 300만원.
+  특약 안에 "□ 보장형 계약", "□ 연장형 계약"처럼 계약 구분마다 표가 따로 있으면 표마다 줄을 나누고, target 앞에 그 구분을 적습니다.
+  예: "보장형 계약·암", "연장형 계약·암".
 - amount: 감액이 끝난 뒤의 지급액. "1년미만 500만원 / 1년이상 1,000만원"이면 "1,000만원". 1일당·1회당·매월·매년 금액은 그 단위 금액.
   "1,000만원 × 해당 장해지급률"처럼 비율을 곱하는 금액은 곱하기 앞의 금액만 적고, 곱하는 내용은 limit에 적습니다.
 - reduced_period, reduced_amount: 계약일부터 일정 기간 안에는 덜 지급하는 경우, 그 기간과 금액을 원문 글자로 함께 적습니다.
@@ -62,6 +64,10 @@ PROMPT = """아래는 보험 상품요약서에서 한 특약의 "보험금 지�
   감액이 없으면 둘 다 빈 문자열. 한쪽만 채우지 않습니다. reduced_amount는 언제나 amount보다 작은 금액입니다.
   금액이 "1년미만"과 "1년이상" 두 칸으로 적혀 있어도 줄은 하나입니다. 1년이상 금액이 amount, 1년미만 금액이 reduced_amount입니다.
 - reduced2_period, reduced2_amount: 감액 구간이 둘일 때 두 번째 구간. 없으면 둘 다 빈 문자열.
+  "1년미만 500만원 ※ 단, 계약일부터 180일이내 …시 250만원"처럼 더 짧은 기간의 금액이 따로 적혀 있으면 감액 구간이 둘입니다.
+  짧은 기간을 reduced에("180일이내", "250만원"), 긴 기간을 reduced2에("1년미만", "500만원") 적습니다.
+- 지급금액 칸에 "※ 단, 재해로 인한 수술시 100만원"처럼 원인에 따라 감액하지 않는다는 예외가 붙어 있어도 줄을 나누지 않습니다.
+  그 예외 금액은 옮기지 않고, 경과기간별 금액만 amount와 감액 칸에 적습니다.
 - start_condition: 지급사유 문장이 "암보장개시일 이후에", "치매보장개시일 이후에"처럼 보장개시일 뒤를 조건으로 삼는 줄에만
   그 보장개시일 이름을 적습니다. 예: "암보장개시일". 지급사유가 "보험기간 중"으로 시작하는 경우는 빈 문자열.
 - limit: 지급사유 문장에 붙은 지급 횟수·한도 조건(대개 괄호 안)을 원문 그대로 빠짐없이 옮깁니다. 줄여 쓰지 않습니다.
@@ -81,6 +87,11 @@ PROMPT = """아래는 보험 상품요약서에서 한 특약의 "보험금 지�
 보기 2
 원문: "보험기간 중 질병으로 입원하였을 때 (1일이상 입원일수 1일당, 120일 한도) 보험계약일부터 1년미만 1만5천원 보험계약일부터 1년이상 3만원"
 결과: 한 줄. name 질병입원보험금, target 질병, amount "3만원", reduced_period "1년미만", reduced_amount "1만5천원", start_condition "", limit "1일이상 입원일수 1일당, 120일 한도", role 주급부
+
+보기 3
+원문: "보험기간 중 피보험자가 질병 또는 재해의 치료를 직접적인 목적으로 수술을 받았을 경우 (수술 1회당) 경과기간 1년미만 50만원 ※ 단, 재해로 인한 수술시 100만원 1년이상 100만원"
+결과: 한 줄. name 수술자금, target "", amount "100만원", reduced_period "1년미만", reduced_amount "50만원", start_condition "", limit "수술 1회당", role 주급부
+(질병과 재해로 줄을 나누지 않고, "※ 단, 재해로 인한 수술시 100만원"은 옮기지 않습니다.)
 
 특약 이름: {title}
 
@@ -128,10 +139,11 @@ class Extraction:
 
 
 _MONEY = re.compile(r"(?:(\d+)억)?(?:(\d+)천만|(\d+)만)?(?:(\d+)천)?원")
+_WON = re.compile(r"(?<![\d억만천])(\d+)원")      # "5,000원"처럼 단위 없이 원으로만 적힌 금액
 
 
 def parse_money(text: Any) -> float | None:
-    """"1,000만원", "2만5천원", "5천원", "1억5천만원" 같은 글자를 만 원 단위 숫자로. 읽을 수 없으면 None."""
+    """"1,000만원", "2만5천원", "5천원", "1억5천만원", "5,000원" 같은 글자를 만 원 단위 숫자로. 읽을 수 없으면 None."""
     if text is None:
         return None
     if isinstance(text, (int, float)):
@@ -141,6 +153,9 @@ def parse_money(text: Any) -> float | None:
         value = eok * 10000 + cheonman * 1000 + man + cheon / 10
         if value:
             return value
+    m = _WON.search(squash(str(text)))
+    if m and int(m.group(1)):
+        return int(m.group(1)) / 10000
     return None
 
 
@@ -149,7 +164,8 @@ def money_token(text: str) -> str:
     for m in _MONEY.finditer(squash(text or "")):
         if any(m.groups()):
             return m.group(0)
-    return ""
+    m = _WON.search(squash(text or ""))
+    return m.group(0) if m else ""
 
 
 _PERIOD = re.compile(r"(\d+)(년|개월|일)")
@@ -268,6 +284,8 @@ def amount_forms(manwon: float) -> list[str]:
         if frac:
             forms.append(f"{whole}만{frac}천원" if whole else f"{frac}천원")
         forms.append(f"{manwon}만원")
+        if float(manwon * 10000).is_integer():
+            forms.append(f"{int(manwon * 10000)}원")
     return forms
 
 
@@ -295,7 +313,7 @@ def waiting_definitions(text: str) -> dict[str, int]:
     return out
 
 
-_NOISE = re.compile(r"보험계약일부터|\d+억\d*천?만?원|\d+천만원|\d+만\d*천?원|\d+천원|\d+(?:년|개월)(?:미만|이상)")
+_NOISE = re.compile(r"보험계약일부터|\d+억\d*천?만?원|\d+천만원|\d+만\d*천?원|\d+천원|\d+원|\d+(?:년|개월)(?:미만|이상)")
 
 
 def limit_in_source(limit: str, squashed_source: str) -> bool:

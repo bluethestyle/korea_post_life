@@ -35,6 +35,7 @@ class Report:
     notes: list[str] = field(default_factory=list)
     errors: dict[str, dict[str, list[str]]] = field(default_factory=dict)
     written: bool = False
+    write_error: str | None = None
 
     def markdown(self, calls: dict[str, int]) -> str:
         out = ""
@@ -83,7 +84,8 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
                 continue
             years = first.row["갱신주기년"] if first.row["갱신유형"] == "갱신" else None
             result = pipeline.run_summary(gemini, pages_from_text(summary_text), [v.id for v in group], now, thresholds,
-                                          years, budget=budget, plain_renewal_years=first.plain_renewal_years)
+                                          years, budget=budget, plain_renewal_years=first.plain_renewal_years,
+                                          variant_names={v.id: v.row["종형명"] for v in group})
             report.logs += result.logs
             if not result.benefits:
                 report.notes.append(f"{name}: 급부를 뽑지 못해 기존 행을 그대로 둠")
@@ -149,15 +151,20 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
     report.errors = {tab: e for tab, rows in report.rows.items() if (e := check_rows(tab, rows))}
     if report.errors or not (report.done or report.conditions_done) or dry_run:
         return report
-    if report.done:
-        tabs = [n for n, t in TABS.items() if t.mode == "replace" and n not in CONDITION_TABS]
-        store.replace_variants({t: [r for r in report.rows.get(t, []) if _variant_of(r, report) in report.done] for t in tabs},
-                               report.done, only=tabs)
-    if report.conditions_done:
-        tabs = CONDITION_TABS + ([] if "급부" in parts else ["sys_특약"])
-        store.replace_variants({t: [r for r in report.rows[t] if r["종형ID"] in report.conditions_done] for t in tabs},
-                               report.conditions_done, only=tabs)
-    store.append("sys_작업로그", report.logs)
+    try:
+        if report.done:
+            tabs = [n for n, t in TABS.items() if t.mode == "replace" and n not in CONDITION_TABS]
+            store.replace_variants({t: [r for r in report.rows.get(t, []) if _variant_of(r, report) in report.done] for t in tabs},
+                                   report.done, only=tabs)
+        if report.conditions_done:
+            tabs = CONDITION_TABS + ([] if "급부" in parts else ["sys_특약"])
+            store.replace_variants({t: [r for r in report.rows[t] if r["종형ID"] in report.conditions_done] for t in tabs},
+                                   report.conditions_done, only=tabs)
+        store.append("sys_작업로그", report.logs)
+    except Exception as e:  # noqa: BLE001  뽑은 결과는 호출한 쪽이 파일로 남길 수 있게 돌려준다
+        report.write_error = f"{type(e).__name__}: {str(e)[:300]}"
+        report.notes.append(f"시트에 쓰지 못함: {report.write_error}")
+        return report
     report.written = True
     return report
 
