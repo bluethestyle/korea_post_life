@@ -27,13 +27,13 @@ SCHEMA = {
                 "properties": {
                     "name": _TEXT, "target": _TEXT, "amount": _TEXT,
                     "reduced_period": _TEXT, "reduced_amount": _TEXT,
-                    "reduced2_period": _TEXT, "reduced2_amount": _TEXT,
+                    "reduced2_period": _TEXT, "reduced2_amount": _TEXT, "reduction_exception": _TEXT,
                     "start_condition": _TEXT, "limit": _TEXT,
                     "role": {"type": "STRING", "enum": ["주급부", "부수급부", "대등복합"]},
                     "quote": _TEXT,
                 },
                 "required": ["name", "target", "amount", "reduced_period", "reduced_amount", "reduced2_period",
-                             "reduced2_amount", "start_condition", "limit", "role", "quote"],
+                             "reduced2_amount", "reduction_exception", "start_condition", "limit", "role", "quote"],
             },
         },
     },
@@ -66,8 +66,10 @@ PROMPT = """아래는 보험 상품요약서에서 한 특약의 "보험금 지�
 - reduced2_period, reduced2_amount: 감액 구간이 둘일 때 두 번째 구간. 없으면 둘 다 빈 문자열.
   "1년미만 500만원 ※ 단, 계약일부터 180일이내 …시 250만원"처럼 더 짧은 기간의 금액이 따로 적혀 있으면 감액 구간이 둘입니다.
   짧은 기간을 reduced에("180일이내", "250만원"), 긴 기간을 reduced2에("1년미만", "500만원") 적습니다.
-- 지급금액 칸에 "※ 단, 재해로 인한 수술시 100만원"처럼 원인에 따라 감액하지 않는다는 예외가 붙어 있어도 줄을 나누지 않습니다.
-  그 예외 금액은 옮기지 않고, 경과기간별 금액만 amount와 감액 칸에 적습니다.
+- reduction_exception: 감액이 있는 줄에 "이런 경우에는 감액하지 않는다"는 예외가 적혀 있으면 그 문구를 원문 글자 그대로 옮깁니다.
+  지급금액 칸에 붙은 "※ 단, 재해로 인한 수술시 100만원"이면 "재해로 인한 수술시 100만원"("※ 단,"은 뺍니다).
+  주석에 "재해를 직접적인 원인으로 …한 경우에는 경과기간 1년 미만의 보험금 감액은 적용하지 않습니다"처럼 적혀 있으면
+  그 주석이 가리키는 줄에 그 문장을 옮깁니다. 예외가 있어도 줄은 나누지 않습니다. 감액이 없거나 예외가 없으면 빈 문자열.
 - start_condition: 지급사유 문장이 "암보장개시일 이후에", "치매보장개시일 이후에"처럼 보장개시일 뒤를 조건으로 삼는 줄에만
   그 보장개시일 이름을 적습니다. 예: "암보장개시일". 지급사유가 "보험기간 중"으로 시작하는 경우는 빈 문자열.
 - limit: 지급사유 문장에 붙은 지급 횟수·한도 조건(대개 괄호 안)을 원문 그대로 빠짐없이 옮깁니다. 줄여 쓰지 않습니다.
@@ -90,8 +92,8 @@ PROMPT = """아래는 보험 상품요약서에서 한 특약의 "보험금 지�
 
 보기 3
 원문: "보험기간 중 피보험자가 질병 또는 재해의 치료를 직접적인 목적으로 수술을 받았을 경우 (수술 1회당) 경과기간 1년미만 50만원 ※ 단, 재해로 인한 수술시 100만원 1년이상 100만원"
-결과: 한 줄. name 수술자금, target "", amount "100만원", reduced_period "1년미만", reduced_amount "50만원", start_condition "", limit "수술 1회당", role 주급부
-(질병과 재해로 줄을 나누지 않고, "※ 단, 재해로 인한 수술시 100만원"은 옮기지 않습니다.)
+결과: 한 줄. name 수술자금, target "", amount "100만원", reduced_period "1년미만", reduced_amount "50만원", reduction_exception "재해로 인한 수술시 100만원", start_condition "", limit "수술 1회당", role 주급부
+(질병과 재해로 줄을 나누지 않습니다.)
 
 특약 이름: {title}
 
@@ -117,6 +119,7 @@ class Benefit:
     reduced2_text: str = ""
     period_text: str = ""            # 감액 기간을 적은 글자. 예: "1년미만"
     period2_text: str = ""
+    exception: str = ""              # 감액하지 않는 예외 문구. 감액이 없는 줄에는 비운다
 
     @property
     def label(self) -> str:
@@ -191,6 +194,12 @@ def period_token(text: str) -> str:
     return m.group(0) if m else flat
 
 
+def _exception(value: Any) -> str:
+    """감액 예외 문구. 앞의 "※", "단,"과 줄바꿈을 정리한다."""
+    text = " ".join(str(value or "").split())
+    return re.sub(r"^(?:※\s*)?(?:단\s*,\s*)?", "", text).strip()
+
+
 def _text(value: Any) -> str:
     return "" if value is None or isinstance(value, (int, float)) else str(value).strip()
 
@@ -227,7 +236,10 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
                 amount_text=_text(item["amount"]), reduced_text=_text(item.get("reduced_amount")),
                 reduced2_text=_text(item.get("reduced2_amount")),
                 period_text=_text(item.get("reduced_period")), period2_text=_text(item.get("reduced2_period")),
+                exception=_exception(item.get("reduction_exception")),
             )
+            if b.reduced_amount is None:
+                b.exception = ""
             if trouble:
                 problems.append(f"{trouble}: {b.label}")
             # "1,000만원 × 해당 장해지급률"처럼 비율을 곱하는 금액은 그 사실이 시트에 남도록 한도 칸에 적는다
@@ -363,6 +375,8 @@ def literal_problems(ex: Extraction) -> dict[str, list[str]]:
                 missing.append(label)
         if b.waiting_days and b.waiting_days not in waiting_definitions(ex.block.text).values():
             missing.append("면책기간일수")
+        if b.exception and not limit_in_source(b.exception, source):
+            missing.append("감액예외")
         if b.limit and not limit_in_source(b.limit, source):
             missing.append("지급횟수제한")
         elif b.limit and limit_is_partial(b.limit, source):
@@ -421,6 +435,7 @@ def benefit_rows(variant_id: str, ex: Extraction, doc_kind: str = "요약서",
             "감액지급률1": b.rate(b.reduced_amount) if b.reduced_months is not None else None,
             "감액개월2": b.reduced2_months if b.reduced2_amount is not None else None,
             "감액지급률2": b.rate(b.reduced2_amount) if b.reduced2_months is not None else None,
+            "감액예외": b.exception or None,
             "근거문서종류": doc_kind,
             "근거문서쪽수": ex.block.first_page,
         })

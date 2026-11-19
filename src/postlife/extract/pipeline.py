@@ -15,7 +15,7 @@ from . import benefits as B
 from . import verify as V
 from .segment import Block, renewal_periods, rider_blocks, rider_key, scope_matches, scope_parts
 
-FIELD_NAMES = {"기준지급금액만원": "지급액", "감액지급률1": "감액 기간·금액(없으면 빈칸)", "면책기간일수": "보장개시일 조건(start_condition)", "지급횟수제한": "지급 한도(limit)"}
+FIELD_NAMES = {"기준지급금액만원": "지급액", "감액지급률1": "감액 기간·금액(없으면 빈칸)", "면책기간일수": "보장개시일 조건(start_condition)", "지급횟수제한": "지급 한도(limit)", "감액예외": "감액 예외(reduction_exception)"}
 # 2026-11-18 우체국 요약서 2건으로 맞춘 값 (docs/progress.md). 시트의 hum_기준값이 있으면 그 값을 쓴다.
 DEFAULT_THRESHOLDS = {"추출검증_통과": 0.75, "추출검증_재추출": 0.40}
 

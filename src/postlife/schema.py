@@ -115,6 +115,7 @@ TABS: dict[str, Tab] = {
             Column("감액지급률1", "float", False),
             Column("감액개월2", "int", False),
             Column("감액지급률2", "float", False),
+            Column("감액예외", "str", False),     # 감액하지 않는 예외 문구(원문 그대로). 예: 재해로 인한 수술시 100만원
             Column("근거문서종류", "str", False),
             Column("근거문서쪽수", "int", False),
         ),

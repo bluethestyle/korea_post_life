@@ -142,3 +142,41 @@ def test_lineage_key_ignores_trailing_rate_code():
     a = ids.rider_lineage_key("80+암진단보장특약(고지통합)(KTA1.1) 무배당")
     assert a == ids.rider_lineage_key("80+암진단보장특약(고지통합)(TA1.2) 무배당")
     assert a != ids.rider_lineage_key("80+암진단보장특약(고지통합)(갱신형)(TA1.2) 무배당")
+
+
+def test_reduction_exception_is_kept_only_with_a_reduction_and_checked_against_source():
+    from postlife.extract.segment import Block
+    text = ("■ 수술보장특약(고지통합)(TA1.1) 무배당\n(기준 : 특약가입금액 100만원)\n급부명칭 지급사유 지급금액\n경과기간\n"
+            "수술자금 수술을 받았을 경우(수술 1회당) 1년미만 50만원\n※ 단, 재해로 인한 수술시 100만원\n1년이상 100만원\n"
+            "입원자금 입원하였을 경우 3만원")
+    raw = {"base_amount": "100만원", "benefits": [
+        {"name": "수술자금", "target": "", "amount": "100만원", "reduced_period": "1년미만", "reduced_amount": "50만원",
+         "reduction_exception": "※ 단, 재해로 인한 수술시 100만원", "start_condition": "", "limit": "수술 1회당", "role": "주급부", "quote": ""},
+        {"name": "입원자금", "target": "", "amount": "3만원", "reduction_exception": "재해로 인한 입원시 3만원",
+         "start_condition": "", "limit": "", "role": "주급부", "quote": ""}]}
+    ex = B.parse(Block("수술보장특약(고지통합)(TA1.1) 무배당", text, 1, 1), raw, "m")
+    surgery, stay = ex.benefits
+    assert surgery.exception == "재해로 인한 수술시 100만원" and stay.exception == ""     # 감액이 없는 줄에는 남기지 않는다
+    assert "감액예외" not in B.literal_problems(ex).get(surgery.label, [])
+    rows = B.benefit_rows("V1", ex)
+    assert [r["감액예외"] for r in rows] == ["재해로 인한 수술시 100만원", None]
+    assert check_rows("sys_급부", rows) == {}
+    surgery.exception = "질병으로 인한 수술시 100만원"                                    # 원문에 없는 예외
+    assert "감액예외" in B.literal_problems(ex)[surgery.label]
+    assert "감액예외" in V.checks(surgery, text)
+
+
+def test_add_column_widens_rows_once():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("add_column", Path(__file__).resolve().parents[1] / "scripts/add_column.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    header = ["가", "나", "새", "다"]
+    assert mod.widen([["가", "나", "다"], [1, 2, 3], [4]], header, "새") == [header, [1, 2, "", 3], [4, "", "", ""]]
+    assert mod.widen([header, [1, 2, "", 3]], header, "새") is None
+    try:
+        mod.widen([["가", "다"]], header, "새")
+        assert False
+    except ValueError:
+        pass

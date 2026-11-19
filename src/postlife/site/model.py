@@ -203,6 +203,7 @@ class Data:
             "id": bid, "tid": b["특약ID"], "name": b["원시급부명"], "role": b["급부역할"],
             "base": b.get("기준가입금액만원"), "pay": b.get("기준지급금액만원"),
             "limit": b.get("지급횟수제한"), "wait": b.get("면책기간일수") or 0, "red": reduce,
+            "exc": b.get("감액예외") or None,
             "doc": b.get("근거문서종류"), "page": b.get("근거문서쪽수"),
             "state": state, "prob": m.get("매핑확률") if m else None,
             "std": std, "rec": (m.get("추천표준담보ID") if m and state == WAITING_STATE else None),
