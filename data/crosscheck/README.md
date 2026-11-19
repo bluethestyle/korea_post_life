@@ -13,6 +13,7 @@
 | `samsungfire_refresh7_conditions_gemini.jsonl` | 삼성화재 간편보험 새로고침(자동갱신형) 7종 특약 244개의 가입조건 911줄. 사업방법서 4항의 간편고지 최초계약 표. 1종이나 3종에만 가입할 수 있는 특약 3개는 "해당 없음" (2026-11-19) |
 | `samsungfire_refresh7_constraints_gemini.jsonl` | 같은 상품의 특약 결합 제약 133줄. 사업방법서 4항 주석, 5항, 23항의 공통사항과 간편고지 절 (2026-11-19) |
 | `code_review_gemini.md` | 추출·검증 코드(커밋 f319ac9)를 읽고 낸 검토 지적 26건 원문. 지적은 재현되는 것만 고치며, 처리 결과는 `docs/progress.md`에 적습니다 (2026-11-19) |
+| `benefit_id_renames_20261119.jsonl` | 2026-11-19 재추출로 급부ID만 바뀐 1,079줄의 이전 ID와 새 ID. 이 짝대로 `hum_담보매핑` 행을 새 ID로 옮겼습니다 |
 
 - 매핑 의견은 확정이 아닙니다. 확정은 담당자가 `hum_담보매핑`에서 합니다.
 - 삼성화재 구조화 결과는 코드 규칙(`extract/table_rules.py`)으로 뽑은 값과 줄마다 맞춰 보는 데 씁니다: `python scripts/compare_table_rules.py 조각.json --against <이 폴더의 파일>`
