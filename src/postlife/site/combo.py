@@ -30,6 +30,7 @@ def variant_model(data: Data, vid: str, conds: list[Cond]) -> dict[str, Any]:
         limits = [data.age_limit(tid, c) for c in conds]
         riders.append({
             "tid": tid, "min": r.get("최소가입금액만원"), "max": r.get("최대가입금액만원"),
+            "ref": reference_amount(data, tid),
             "ok": [l.ok for l in limits],
             "lim": [l.amount if l.ok else None for l in limits],
             "limPend": [l.pending for l in limits],
@@ -46,6 +47,18 @@ def variant_model(data: Data, vid: str, conds: list[Cond]) -> dict[str, Any]:
         else:
             skipped.append(rule)
     return {"main": data.main_rider(vid), "riders": riders, "rules": rules, "skipped": skipped}
+
+
+def reference_amount(data: Data, tid: str) -> float | None:
+    """급부표가 기준으로 삼은 가입금액. 가입 한도 자료가 없는 특약을 고를 때 화면이 처음에 넣어 두는 금액이다.
+
+    계산 규칙(evaluate)은 이 값을 쓰지 않는다. 급부마다 기준이 다르면 대표 순서(주급부, 금액 큰 순)의 첫 줄을 따른다.
+    """
+    for bid in data.benefits_of.get(tid, []):
+        base = data.benefits[bid].get("기준가입금액만원")
+        if base:
+            return base
+    return None
 
 
 def build(data: Data, conds: list[Cond]) -> dict[str, Any]:

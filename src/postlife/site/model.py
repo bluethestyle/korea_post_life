@@ -120,6 +120,21 @@ class Data:
     def variant_of_rider(self, tid: str) -> str:
         return self.riders[tid]["종형ID"]
 
+    def limit_gap(self, vid: str) -> dict[str, Any] | None:
+        """가입 한도·가입 나이 자료가 비어 있는 종형인지. 빠진 것이 없으면 None.
+
+        공시 문서에 특약 가입 한도가 없는 회사(한화생명)는 "최대 가입 시 지급액"을 계산할 수 없다.
+        화면은 이 표시를 보고 그 사실을 알리고, 기준 가입금액 기준 지급액과 조건만 보여 준다.
+        riders는 주계약을 포함한 특약 수, noMax는 그 가운데 최대 가입금액이 없는 수, noAge는 주계약 가입 나이 자료가 없는지.
+        """
+        tids = self.riders_of.get(vid, [])
+        no_max = sum(1 for t in tids if self.rider_cap(t, Cond()).amount is None)
+        main = self.main_rider(vid)
+        no_age = not (main and self.condition_rows(main))
+        if not no_max and not no_age:
+            return None
+        return {"riders": len(tids), "noMax": no_max, "noAge": no_age}
+
     # ---- 기준값 ----
     def setting_num(self, key: str, default: float | None = None) -> float | None:
         row = self.settings.get(key)

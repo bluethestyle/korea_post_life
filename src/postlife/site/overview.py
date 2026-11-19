@@ -17,10 +17,21 @@ def build(data: Data) -> dict[str, Any]:
     for t in trends:
         by_kind[t["분류유형"]] = by_kind.get(t["분류유형"], 0) + 1
         by_org[t["기관코드"]] = by_org.get(t["기관코드"], 0) + 1
+    gaps: dict[str, dict[str, Any]] = {}
+    for vid, v in data.variants.items():
+        gap = data.limit_gap(vid)
+        if gap:
+            g = gaps.setdefault(v["기관코드"], {"code": v["기관코드"], "name": data.org_name(v["기관코드"]), "variants": 0,
+                                               "riders": 0, "noMax": 0, "noAge": 0})
+            g["variants"] += 1
+            g["riders"] += gap["riders"]
+            g["noMax"] += gap["noMax"]
+            g["noAge"] += 1 if gap["noAge"] else 0
     states = [m.get("검토상태") for m in data.mapping.values()]
     revisions = {v["개정판ID"] for v in data.variants.values()}
     return {
         "homeOrg": HOME_ORG, "homeName": data.org_name(HOME_ORG),
+        "limitGaps": [gaps[c] for c in sorted(gaps, key=lambda c: (c != HOME_ORG, c))],
         "orgs": [{"code": c, "name": data.org_name(c), "variants": n} for c, n in sorted(orgs.items(), key=lambda kv: (kv[0] != HOME_ORG, kv[0]))],
         "counts": {
             "variants": len(data.variants), "onSale": sum(1 for v in data.variants.values() if _blank(v.get("판매종료일"))),

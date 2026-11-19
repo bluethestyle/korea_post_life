@@ -169,7 +169,57 @@ var PostlifeCalc = (function () {
     };
   }
 
-  return {money: money, comma: comma, scaled: scaled, pickRep: pickRep, evaluate: evaluate, payouts: payouts};
+  /* 줄여 적은 자료를 원래 모양으로 되살린다. src/postlife/site/pack.py의 unpack과 규칙이 같아야 한다.
+     "~번호"는 글자 목록(s)의 자리, "~~…"는 "~"로 시작하는 글자 그대로.
+     {"~=": [값, 개수]} 같은 값 반복 / {"~+": [조각…]} " · "로 이어 붙인 글자 /
+     {"~#": [[키…], [값…]…]} 키가 같은 묶음의 배열 / {"~@": [[키…], [이름, 값…]…]} 키가 같은 묶음의 묶음 */
+  function unpack(packed) {
+    var table = packed.s;
+    function word(text) {
+      if (text.charAt(0) !== '~') return text;
+      if (text.charAt(1) === '~') return text.slice(1);
+      return table[parseInt(text.slice(1), 36)];
+    }
+    function record(keys, row, from) {
+      var out = {};
+      for (var i = 0; i < keys.length; i++) out[keys[i]] = dec(row[i + from]);
+      return out;
+    }
+    function dec(node) {
+      if (typeof node === 'string') return word(node);
+      if (node === null || typeof node !== 'object') return node;
+      if (Array.isArray(node)) return node.map(dec);
+      var names = Object.keys(node);
+      if (names.length === 1) {
+        var kind = names[0], body = node[kind], keys, out, i;
+        if (kind === '~=') {
+          out = [];
+          var value = dec(body[0]);
+          for (i = 0; i < body[1]; i++) out.push(value);
+          return out;
+        }
+        if (kind === '~+') return body.map(word).join(' · ');
+        if (kind === '~#') {
+          keys = body[0].map(word);
+          out = [];
+          for (i = 1; i < body.length; i++) out.push(record(keys, body[i], 0));
+          return out;
+        }
+        if (kind === '~@') {
+          keys = body[0].map(word);
+          out = {};
+          for (i = 1; i < body.length; i++) out[word(body[i][0])] = record(keys, body[i], 1);
+          return out;
+        }
+      }
+      var plain = {};
+      names.forEach(function (name) { plain[word(name)] = dec(node[name]); });
+      return plain;
+    }
+    return dec(packed.d);
+  }
+
+  return {money: money, comma: comma, scaled: scaled, pickRep: pickRep, evaluate: evaluate, payouts: payouts, unpack: unpack};
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

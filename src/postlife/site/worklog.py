@@ -80,6 +80,10 @@ def build(data: Data) -> dict[str, Any]:
 
     retry = [r for r in logs if r.get("작업단계") == RETRY_STEP]
     review = [i for i, r in enumerate(logs) if r.get("작업단계") == REVIEW_STEP]
+    statuses = [review_status(data, logs[i]) for i in review]
+    by_status: dict[str, int] = {}
+    for status in statuses:
+        by_status[status] = by_status.get(status, 0) + 1
     models: dict[str, int] = {}
     for r in logs:
         key = r.get("호출모델") or ""
@@ -96,7 +100,8 @@ def build(data: Data) -> dict[str, Any]:
                       "failed": sum(1 for r in retry if r.get("결과") not in ("통과", "반려")),
                       "rows": [i for i, r in enumerate(logs) if r.get("작업단계") == RETRY_STEP]},
             "review": {"count": len(review), "targets": len({logs[i].get("대상행ID") for i in review}),
-                       "rows": review, "status": [review_status(data, logs[i]) for i in review]},
+                       "rows": review, "status": statuses,
+                       "byStatus": sorted(by_status.items(), key=lambda kv: (-kv[1], kv[0]))},
             "byModel": [{"model": m or None, "n": n} for m, n in sorted(models.items(), key=lambda kv: (-kv[1], kv[0]))],
             "tabs": sorted({str(r.get("대상탭")) for r in logs}),
             "steps": steps,

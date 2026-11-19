@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .. import ids
-from . import combo, compare, eligibility, overview, revision, worklog
+from . import combo, compare, eligibility, overview, pack, revision, worklog
 from .model import Data, HOME_ORG, MAIN_KIND, MAX_AGE, _blank, load
 
 ASSETS = Path(__file__).parent / "assets"
@@ -30,6 +30,7 @@ def variant_view(data: Data, vid: str) -> dict[str, Any]:
         "refund": v.get("환급유형"), "waiver": v.get("납입면제적용"),
         "start": v.get("적용시작일"), "end": v.get("판매종료일") if not _blank(v.get("판매종료일")) else None,
         "url": v.get("공시목록URL"), "summaryHash": v.get("요약서해시"),
+        "gap": data.limit_gap(vid),
     }
 
 
@@ -74,12 +75,13 @@ def embed_json(obj: Any) -> str:
 
 
 def render(data: Data) -> str:
+    """자료는 pack으로 줄여 적어 넣는다(내용은 그대로이고, 화면이 열릴 때 calc.js의 unpack이 되살린다)."""
     html = (ASSETS / "template.html").read_text(encoding="utf-8")
     parts = {
         "/*__CSS__*/": (ASSETS / "app.css").read_text(encoding="utf-8"),
         "/*__CALC__*/": (ASSETS / "calc.js").read_text(encoding="utf-8"),
         "/*__APP__*/": (ASSETS / "app.js").read_text(encoding="utf-8"),
-        "/*__DATA__*/": embed_json(payload(data)),
+        "/*__DATA__*/": embed_json(pack.pack(payload(data))),
     }
     for mark, text in parts.items():
         if html.count(mark) != 1:
@@ -88,6 +90,12 @@ def render(data: Data) -> str:
             raise ValueError(f"{mark}에 넣을 내용에 닫는 태그가 들어 있습니다")
         html = html.replace(mark, text)
     return html
+
+
+def read_payload(html: str) -> dict[str, Any]:
+    """만든 HTML에서 자료를 꺼내 원래 모양으로 되살린다. 시험과 점검에 쓴다."""
+    start = html.index('<script type="application/json" id="data">') + len('<script type="application/json" id="data">')
+    return pack.unpack(json.loads(html[start:html.index("</script>", start)]))
 
 
 def build_site(snapshot_dir: Path, out_path: Path) -> dict[str, Any]:

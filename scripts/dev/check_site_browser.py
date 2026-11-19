@@ -1,0 +1,435 @@
+"""site/index.html을 file://로 열어 폭 380px·1280px에서 탭마다 확인한다.
+
+    python3 scripts/dev/check_site_browser.py site/index.html <스크린숏 폴더>
+
+- 콘솔 error, 페이지 오류, 외부로 나가는 요청이 없는지
+- 가로로 화면을 벗어나는 요소가 없는지(표의 가로 스크롤 영역 안쪽은 제외)
+- 글자가 잘린 요소, 세로로 찌그러진 칸, 서로 겹친 글자가 없는지
+- 처음 높이가 한도(380px 폭 12,000px, 1280px 폭 8,000px)를 넘지 않는지
+- 접어 둔 목록을 펼친 상태, 거르기·찾기·쪽 넘기기를 쓴 상태에서도 위 문제가 없는지
+- 탭별·상태별 화면 사진 저장
+"""
+import json
+import sys
+from pathlib import Path
+
+from playwright.sync_api import sync_playwright
+
+SITE = Path(sys.argv[1]).resolve()
+OUT = Path(sys.argv[2])
+OUT.mkdir(parents=True, exist_ok=True)
+TABS = ["s1", "s2", "s3", "s4", "s5", "s6"]
+LIMIT = {380: 12000, 1280: 8000}          # 펼치기 전 화면 높이 한도
+HEIGHT = "document.documentElement.scrollHeight"
+
+OVERFLOW_JS = """
+() => {
+  const vw = document.documentElement.clientWidth;
+  const out = [];
+  const inScroll = el => el.closest('.scroll') !== null;
+  if (document.documentElement.scrollWidth > vw + 1) out.push({kind: 'page', sw: document.documentElement.scrollWidth, vw});
+  for (const el of document.querySelectorAll('body *')) {
+    if (el.closest('dialog:not([open])')) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) continue;
+    if (!inScroll(el) && (r.right > vw + 1 || r.left < -1)) {
+      out.push({kind: 'outside', tag: el.tagName, cls: el.className, left: Math.round(r.left), right: Math.round(r.right), text: (el.textContent || '').slice(0, 40)});
+    }
+    const cs = getComputedStyle(el);
+    const clips = ['hidden', 'clip'].includes(cs.overflowX) || ['hidden', 'clip'].includes(cs.overflowY) || cs.textOverflow === 'ellipsis';
+    if (clips && el.tagName !== 'SELECT' && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) && (el.textContent || '').trim()) {
+      out.push({kind: 'clipped', tag: el.tagName, cls: el.className, text: (el.textContent || '').slice(0, 40)});
+    }
+  }
+  // 표 칸 안에서 옆 칸으로 삐져나온 글자(가로 스크롤 영역 안쪽도 본다)
+  for (const cell of document.querySelectorAll('.scroll td, .scroll th')) {
+    const c = cell.getBoundingClientRect();
+    if (c.width === 0) continue;
+    for (const el of cell.querySelectorAll('*')) {
+      const r = el.getBoundingClientRect();
+      if (r.width && (r.right > c.right + 1 || r.left < c.left - 1)) {
+        out.push({kind: 'spill', tag: el.tagName, cls: el.className, over: Math.round(r.right - c.right), text: (el.textContent || '').slice(0, 40)});
+        break;
+      }
+    }
+  }
+  // 글자가 한두 자씩 세로로 찌그러진 칸
+  for (const el of document.querySelectorAll('td, th, button, label, li, p, span, dd, dt')) {
+    if (el.closest('dialog:not([open])')) continue;
+    const text = (el.textContent || '').trim();
+    const r = el.getBoundingClientRect();
+    if (text.length >= 5 && r.width > 0 && r.width < 34 && r.height > 60) {
+      out.push({kind: 'crushed', tag: el.tagName, cls: el.className, w: Math.round(r.width), text: text.slice(0, 30)});
+    }
+  }
+  return out.slice(0, 20);
+}
+"""
+
+# 글자끼리 겹치는지: 같은 부모 안에서 글자를 가진 요소 상자가 서로 겹치면 잡는다
+OVERLAP_JS = """
+() => {
+  const out = [];
+  const leaves = [...document.querySelectorAll('#main *, header *, nav *, #condbar *')].filter(el => {
+    if (el.children.length) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && (el.textContent || '').trim() && !['OPTION'].includes(el.tagName)
+      && !el.closest('.agebar') && !el.closest('.ttrack');
+  });
+  const byParent = new Map();
+  for (const el of leaves) {
+    const key = el.parentElement;
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key).push(el);
+  }
+  for (const group of byParent.values()) {
+    for (let i = 0; i < group.length; i++) for (let j = i + 1; j < group.length; j++) {
+      const a = group[i].getBoundingClientRect(), b = group[j].getBoundingClientRect();
+      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const hgt = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (w > 2 && hgt > 2) out.push({a: group[i].textContent.slice(0, 30), b: group[j].textContent.slice(0, 30), cls: group[i].parentElement.className});
+    }
+  }
+  return out.slice(0, 20);
+}
+"""
+
+
+class Run:
+    def __init__(self, page, width, problems):
+        self.page, self.width, self.problems, self.counts = page, width, problems, {}
+
+    def look(self, label, shot=None, limit=None):
+        """지금 상태에서 넘침·잘림·겹침을 세고, 필요하면 사진을 찍고 높이 한도를 본다."""
+        page = self.page
+        over = page.evaluate(OVERFLOW_JS)
+        lap = page.evaluate(OVERLAP_JS)
+        height = page.evaluate(HEIGHT)
+        if shot:
+            page.screenshot(path=str(OUT / f"{shot}_{self.width}.png"), full_page=True)
+        self.counts[label] = (len(over), len(lap), height)
+        note = ""
+        if limit is not None and height > limit:
+            note = f"  ← 한도 {limit}px 초과"
+            self.problems.append((self.width, label, {"kind": "too tall", "height": height, "limit": limit}))
+        print(f"[{self.width}px] {label}: 벗어남·잘림 {len(over)}건, 겹침 {len(lap)}건, 높이 {height}px{note}")
+        self.problems += [(self.width, label, o) for o in over + lap]
+        return height
+
+    def typing(self, key, text):
+        """찾기 상자에 한 글자씩 쳐 넣는다. 치는 동안 입력 상자가 다시 만들어지면(한글 입력이 끊김) 문제로 적는다."""
+        box = self.page.locator(f'[data-key="{key}"]')
+        box.click()
+        self.page.evaluate("key => { window.__box = document.querySelector('[data-key=\"' + key + '\"]'); }", key)
+        box.press_sequentially(text)
+        same = self.page.evaluate("key => document.activeElement === window.__box && window.__box.isConnected && window.__box.value", key)
+        if same != text:
+            self.problems.append((self.width, f"찾기 {key}", {"kind": "input replaced", "value": same}))
+
+    def rows(self, selector):
+        return self.page.locator(selector).count()
+
+
+def check_width(browser, width, problems):
+    context = browser.new_context(viewport={"width": width, "height": 900}, device_scale_factor=1, offline=True)
+    page = context.new_page()
+    errors, requests = [], []
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("request", lambda r: requests.append(r.url) if not r.url.startswith("file://") and not r.url.startswith("data:") else None)
+    page.goto(SITE.as_uri())
+    run = Run(page, width, problems)
+
+    # ---- 처음 상태: 탭마다 높이 한도 ----
+    for tab in TABS:
+        page.click(f"#tab-{tab}")
+        page.wait_for_selector(f"#screen-{tab}")
+        run.look(f"{tab} 처음", shot=tab, limit=LIMIT[width])
+
+    # ---- 화면 2: 나이, 회사 거르기, 판매 종료 포함 ----
+    page.click("#tab-s2")
+    for age in ("85", "", "70"):
+        page.fill("#age", age)
+        run.look(f"s2 나이 {age or '없음'}", limit=LIMIT[width])
+    orgs = page.locator('[data-key^="s2-org-"]')
+    for i in range(orgs.count()):
+        orgs.nth(i).click()
+        run.look(f"s2 회사 {i}", shot=f"s2_org{i}" if i == orgs.count() - 1 else None, limit=LIMIT[width])
+    if orgs.count():
+        orgs.nth(0).click()
+    if page.locator('[data-key="s2-ended"]').count():
+        page.click('[data-key="s2-ended"]')
+        run.look("s2 판매 종료 포함", shot="s2_all", limit=LIMIT[width])
+    for i in range(page.locator('#main details > summary').count()):
+        page.locator('#main details > summary').nth(i).click()
+    run.look("s2 접힌 곳 모두 펼침", shot="s2_open")
+
+    # ---- 화면 3 ----
+    page.click("#tab-s3")
+    page.fill("#age", "50")
+    # 기준 종형 바꾸기(상품 → 종형). 처음에는 심사 유형이 같은 종형만 열로 나온다
+    kinds = '[data-key^="s3-base-"]:not([data-key*="-rev-"]):not([data-key*="-org-"])'
+    for r in range(max(1, page.locator('[data-key^="s3-base-rev-"]').count())):
+        if page.locator('[data-key^="s3-base-rev-"]').count():
+            page.locator('[data-key^="s3-base-rev-"]').nth(r).click()
+        for i in range(max(1, page.locator(kinds).count())):
+            if page.locator(kinds).count():
+                page.locator(kinds).nth(i).click()
+            shown = run.rows("table.cmp thead th") - 1
+            assert 1 <= shown <= 4, f"처음 보이는 종형 열이 너무 많음: {shown}"
+            run.look(f"s3 기준 {page.locator('.picked strong').inner_text()} ({shown}열)", limit=LIMIT[width])
+    if page.locator('[data-key^="s3-base-rev-"]').count():
+        page.locator('[data-key^="s3-base-rev-"]').first.click()
+    cols_default = run.rows("table.cmp thead th") - 1
+    # 보장 분야 하나씩, 전체
+    majors = page.locator('[data-key^="s3-major-"]')
+    for i in range(majors.count()):
+        majors.nth(i).click()
+        last = i == majors.count() - 1
+        run.look(f"s3 보장 분야 {majors.nth(i).inner_text()}", shot="s3_major_all" if last else None)
+    # 모든 종형을 열로
+    page.click('[data-key="s3-cols-all"]')
+    all_cols = run.rows("table.cmp thead th") - 1
+    assert all_cols > cols_default, "모든 종형 보기가 열을 늘리지 않음"
+    run.look(f"s3 모든 종형({all_cols}열)·전체 분야", shot="s3_allcols")
+    page.evaluate("() => { const b = document.querySelector('.scroll:has(table.cmp)'); b.scrollLeft = 500; b.scrollIntoView(); }")
+    page.screenshot(path=str(OUT / f"s3_allcols_scrolled_{width}.png"))
+    run.look("s3 모든 종형·옆으로 민 상태")
+    page.evaluate("() => { document.querySelector('.scroll:has(table.cmp)').scrollLeft = 0; }")
+    page.click('[data-key="s3-cols-peers"]')
+    assert run.rows("table.cmp thead th") - 1 == cols_default
+    majors.nth(0).click()
+    # 이름 찾기, 차이만 보기
+    run.typing("s3-q", "수술")
+    found = run.rows("table.cmp tbody th[scope=row]")
+    assert found > 0 and all("수술" in t for t in page.locator("table.cmp tbody th[scope=row]").all_inner_texts()), "표준담보 찾기 결과가 다름"
+    run.look(f"s3 표준담보 찾기 '수술' {found}개", shot="s3_search")
+    page.fill('[data-key="s3-q"]', "없는이름")
+    assert "조건에 맞는 표준담보가 없습니다" in page.inner_text("#main")
+    page.fill('[data-key="s3-q"]', "")
+    for value in ("diff", "gap", "hold", ""):
+        page.select_option('[data-key="s3-diff"]', value)
+        run.look(f"s3 보기 {value or '모든 담보'}")
+    if page.locator('[data-key="s3-empty"]').count():
+        page.click('[data-key="s3-empty"]')
+        run.look("s3 빈 표준담보 포함")
+        page.click('[data-key="s3-empty"]')
+    for age in ("85", "", "70"):
+        page.fill("#age", age)
+        run.look(f"s3 나이 {age or '없음'}", shot=f"s3_age{age or 'none'}", limit=LIMIT[width])
+    page.fill("#age", "50")
+    # 매핑 검토 대기 목록: 펼치기, 거르기, 찾기, 쪽 넘기기
+    page.click('[data-key="fold-s3-wait"]')
+    run.look("s3 검토 대기 목록 펼침", shot="s3_wait_open")
+    assert 0 < run.rows("#main details.fold[open] table tbody tr") <= 20
+    if page.locator('[data-key="s3-wait-top-next"]').count():
+        page.click('[data-key="s3-wait-bottom-next"]')
+        assert "2 /" in page.locator("#main details.fold[open] .pager").first.inner_text()
+        run.look("s3 검토 대기 2쪽")
+    if page.locator('[data-key="s3-wait-org"]').count():
+        page.select_option('[data-key="s3-wait-org"]', index=1)
+        run.look("s3 검토 대기 회사 거르기")
+        page.select_option('[data-key="s3-wait-org"]', "")
+    page.select_option('[data-key="s3-wait-rec"]', "-")
+    assert all("추천 없음" in t for t in page.locator("#main details.fold[open] table tbody tr").all_inner_texts())
+    run.look("s3 검토 대기 추천 없음만")
+    page.select_option('[data-key="s3-wait-rec"]', "")
+    run.typing("s3-wait-q", "수술")
+    texts = page.locator("#main details.fold[open] table tbody tr").all_inner_texts()
+    assert texts and all("수술" in t for t in texts), "검토 대기 찾기 결과가 다름"
+    run.look("s3 검토 대기 찾기 '수술'", shot="s3_wait_search")
+    page.locator('#main details.fold[open] table .btn').first.click()
+    page.wait_for_selector("dialog[open]")
+    assert "매핑 검토 대기" in page.inner_text("#detail-body")
+    run.look("s3 검토 대기 근거 창")
+    page.click("#detail-close")
+    page.fill('[data-key="s3-wait-q"]', "")
+    tops = page.locator('[data-key^="s3-wait-top-"]')
+    if tops.count():
+        tops.first.click()
+        run.look("s3 추천 표준담보 단추로 거르기")
+        page.select_option('[data-key="s3-wait-rec"]', "")
+    page.click('[data-key="fold-s3-wait"]')
+    # 근거 창: 대표 급부가 맨 위, 가입 한도 자료가 없는 종형은 그 사실을 적는다
+    page.click(".cellbtn")
+    page.wait_for_selector("dialog[open]")
+    assert "대표" in page.locator("#detail-body .ev").first.inner_text(), "근거 창의 첫 줄이 대표 급부가 아님"
+    over = page.evaluate(OVERFLOW_JS)
+    page.screenshot(path=str(OUT / f"s3_detail_{width}.png"))
+    print(f"[{width}px] 근거 창: 벗어남·잘림 {len(over)}건")
+    run.problems += [(width, "detail", o) for o in over]
+    page.click("#detail-close")
+    soft = page.locator(".cellbtn:has(.main.soft)")
+    if soft.count():
+        cell_text = soft.first.inner_text()
+        assert "기준 가입" in cell_text and "자료 없음" in cell_text, cell_text
+        soft.first.click()
+        page.wait_for_selector("dialog[open]")
+        body = page.inner_text("#detail-body")
+        assert "가입 한도" in body and "이 나이에는 가입할 수 없음" not in body, "가입 한도 자료가 없는 줄을 가입 불가로 적음"
+        over = page.evaluate(OVERFLOW_JS)
+        page.screenshot(path=str(OUT / f"s3_detail_nocap_{width}.png"))
+        print(f"[{width}px] 근거 창(가입 한도 자료 없음): 벗어남·잘림 {len(over)}건")
+        run.problems += [(width, "detail nocap", o) for o in over]
+        page.click("#detail-close")
+    else:
+        print(f"[{width}px] 가입 한도 자료가 없는 칸이 처음 화면에 없음")
+
+    # ---- 화면 4 ----
+    page.click("#tab-s4")
+    page.click('[data-key="s4-max"]')
+    run.look("s4 최대로 담기", shot="s4_max", limit=LIMIT[width])
+    names = page.eval_on_selector_all(".rider .rname", "els => els.map(e => e.textContent)")
+    base = next(i for i, n in enumerate(names) if "암입원수술" in n)
+    dependent = next(i for i, n in enumerate(names) if "요양병원암입원" in n)
+    page.locator(".rider input[type=checkbox]").nth(base).uncheck()
+    row = page.locator(".rider").nth(dependent)
+    assert row.locator("input[type=checkbox]").is_disabled() and "가입해야 부가할 수 있음" in row.inner_text(), "선행가입 제약이 걸리지 않음"
+    page.locator(".rider input[type=checkbox]").nth(base).check()
+    main = page.locator(".rider").nth(0).locator("input.amount")
+    main.fill("1000")
+    main.press("Tab")
+    amounts = [float(v) for v in page.eval_on_selector_all("input.amount", "els => els.map(e => e.value)")]
+    names = page.eval_on_selector_all(".rider:has(input.amount) .rname", "els => els.map(e => e.textContent)")
+    linked = [a for n, a in zip(names, amounts) if "암진단" in n or "뇌출혈진단" in n]
+    assert linked and all(a <= 1000 for a in linked), f"최대연동 제약이 걸리지 않음: {linked}"
+    run.look("s4 주계약 1,000만원", shot="s4_main1000")
+    for age in ("85", "", "70"):
+        page.fill("#age", age)
+        run.look(f"s4 나이 {age or '없음'}")
+    page.fill("#age", "50")
+    # 종형 고르기: 회사마다, 상품마다, 종형마다 처음 상태와 모두 담은 상태
+    tallest = 0
+    for o in range(max(1, page.locator('[data-key^="s4-variant-org-"]').count())):
+        if page.locator('[data-key^="s4-variant-org-"]').count():
+            page.locator('[data-key^="s4-variant-org-"]').nth(o).click()
+        for r in range(max(1, page.locator('[data-key^="s4-variant-rev-"]').count())):
+            if page.locator('[data-key^="s4-variant-rev-"]').count():
+                page.locator('[data-key^="s4-variant-rev-"]').nth(r).click()
+            kinds = '[data-key^="s4-variant-"]:not([data-key*="-org-"]):not([data-key*="-rev-"])'
+            for kind in range(max(1, page.locator(kinds).count())):
+                if page.locator(kinds).count():
+                    page.locator(kinds).nth(kind).click()
+                label = page.locator(".picked strong").inner_text()
+                first = run.look(f"s4 {label} 처음", limit=LIMIT[width])
+                page.click('[data-key="s4-max"]')
+                filled = run.look(f"s4 {label} 모두 담음", limit=LIMIT[width])
+                tallest = max(tallest, first, filled)
+    print(f"[{width}px] s4 종형별 최대 높이 {tallest}px")
+    # 마지막 종형(특약이 가장 많은 회사)에서 목록 다루기
+    total = page.locator("#main .list .pager").first.inner_text()
+    run.look("s4 특약 많은 종형 모두 담음", shot="s4_big")
+    notice = page.locator("#main p.notice")
+    if notice.count():
+        assert "가입 한도" in notice.first.inner_text()
+        amounts = [float(v) for v in page.eval_on_selector_all("input.amount", "els => els.map(e => e.value)")]
+        assert amounts and all(a > 0 for a in amounts), "가입 한도 자료가 없는 특약의 가입금액이 0으로 들어감"
+        bars = page.locator(".barval:not(.soft)").all_inner_texts()
+        assert bars and not all(t.strip() == "0원" for t in bars), "지급액이 모두 0원"
+    if page.locator('[data-key="s4-list-top-next"]').count():
+        page.click('[data-key="s4-list-bottom-next"]')
+        assert "2 /" in page.locator("#main .list .pager").first.inner_text()
+        run.look("s4 특약 목록 2쪽", shot="s4_page2")
+    run.typing("s4-q", "암진단")
+    names = page.eval_on_selector_all(".rider .rname", "els => els.map(e => e.textContent)")
+    assert names and all("암진단" in n.replace(" ", "") for n in names), f"특약 찾기 결과가 다름: {names[:3]}"
+    run.look(f"s4 특약 찾기 '암진단' {len(names)}개", shot="s4_search")
+    page.fill('[data-key="s4-q"]', "")
+    page.click('[data-key="s4-clear"]')
+    page.locator(".rider input[type=checkbox]:not(:disabled)").nth(1).check()
+    page.click('[data-key="s4-picked"]')
+    picked = run.rows(".rider")
+    assert picked == 2, f"고른 특약만 보기에 {picked}개가 보임(주계약과 특약 1개여야 함)"
+    run.look("s4 고른 특약만 보기", shot="s4_picked")
+    page.click('[data-key="s4-picked"]')
+    page.click('[data-key="s4-max"]')
+    if page.locator('[data-key="fold-s4-others"]').count():
+        page.click('[data-key="fold-s4-others"]')
+        assert 0 < run.rows("#main details.fold[open] table tbody tr") <= 20
+        run.look("s4 표준담보 밖 급부 펼침", shot="s4_others")
+        if page.locator('[data-key="s4-others-bottom-next"]').count():
+            page.click('[data-key="s4-others-bottom-next"]')
+            run.look("s4 표준담보 밖 급부 2쪽")
+        page.fill('[data-key="s4-others-q"]', "사망")
+        run.look("s4 표준담보 밖 급부 찾기")
+        page.fill('[data-key="s4-others-q"]', "")
+        page.click('[data-key="fold-s4-others"]')
+    if page.locator('.btn[data-key^="ev-"]').count():
+        page.locator('.btn[data-key^="ev-"]').first.click()
+        page.wait_for_selector("dialog[open]")
+        run.problems += [(width, "s4 근거 창", o) for o in page.evaluate(OVERFLOW_JS)]
+        page.click("#detail-close")
+    print(f"[{width}px] s4 특약 목록: {total}")
+
+    # ---- 화면 5: 짝마다 ----
+    page.click("#tab-s5")
+    for i in range(page.locator('[data-key^="s5-pair-"]').count()):
+        page.locator('[data-key^="s5-pair-"]').nth(i).click()
+        run.look(f"s5 짝 {i}", limit=LIMIT[width])
+
+    # ---- 화면 6 ----
+    page.click("#tab-s6")
+    assert 0 < run.rows("#main .list table.log tbody tr") <= 20
+    page.click('[data-key="s6-log-bottom-next"]')
+    assert "2 /" in page.locator("#main .list .pager").last.inner_text()
+    run.look("s6 전체 기록 2쪽")
+    page.select_option('[data-key="s6-step"]', "사람검토이관")
+    shown = run.rows("#main .list table.log tbody tr")
+    assert 0 < shown <= 20, f"사람검토이관 기록 수가 다름: {shown}"
+    assert all("사람검토이관" in t for t in page.locator("#main .list table.log tbody tr").all_inner_texts())
+    run.look("s6 작업단계 거르기", shot="s6_step")
+    page.select_option('[data-key="s6-step"]', "")
+    page.select_option('[data-key="s6-result"]', "반려")
+    run.look("s6 결과 반려만")
+    page.select_option('[data-key="s6-result"]', "")
+    run.typing("s6-q", "암진단")
+    texts = page.locator("#main .list table.log tbody tr").all_inner_texts()
+    assert texts and all("암진단" in t.replace(" ", "") for t in texts), "작업 기록 찾기 결과가 다름"
+    run.look("s6 기록 찾기 '암진단'", shot="s6_search")
+    page.fill('[data-key="s6-q"]', "없는글자zz")
+    assert "조건에 맞는 기록이 없습니다" in page.inner_text("#main")
+    page.fill('[data-key="s6-q"]', "")
+    page.click('[data-key="fold-s6-review"]')
+    assert 0 < run.rows("#main details.fold[open] table tbody tr") <= 20
+    run.look("s6 사람 검토 목록 펼침", shot="s6_review_open")
+    if page.locator('[data-key="s6-review-bottom-next"]').count():
+        page.click('[data-key="s6-review-bottom-next"]')
+        run.look("s6 사람 검토 목록 2쪽")
+    page.select_option('[data-key="s6-review-status"]', index=2)
+    run.look("s6 사람 검토 상태 거르기", shot="s6_review_status")
+    page.select_option('[data-key="s6-review-status"]', "")
+    run.typing("s6-review-q", "수술")
+    run.look("s6 사람 검토 찾기 '수술'")
+    page.fill('[data-key="s6-review-q"]', "")
+    page.select_option('[data-key="s6-review-tab"]', index=1)
+    run.look("s6 사람 검토 대상탭 거르기")
+
+    print(f"[{width}px] 콘솔 오류 {len(errors)}건, 외부 요청 {len(requests)}건")
+    run.problems += [(width, "console", e) for e in errors] + [(width, "request", r) for r in requests]
+    context.close()
+
+
+def main() -> int:
+    problems = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        for width in (380, 1280):
+            try:
+                check_width(browser, width, problems)
+            except Exception as error:          # 중간에 멈춰도 그때까지 찾은 문제는 보여 준다
+                problems.append((width, "점검 중단", repr(error)[:300]))
+        browser.close()
+    print(f"파일 크기 {SITE.stat().st_size:,}바이트")
+    # 같은 문제가 여러 상태에서 되풀이되면 한 줄로 묶어 보여 준다
+    seen = {}
+    for width, label, what in problems:
+        key = (width, json.dumps(what, ensure_ascii=False, sort_keys=True))
+        seen.setdefault(key, []).append(label)
+    for (width, what), labels in seen.items():
+        print(f"문제 [{width}px] {len(labels)}번 ({labels[0]} 등):", what)
+    print(f"문제 {len(problems)}건({len(seen)}가지)")
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

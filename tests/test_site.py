@@ -3,6 +3,7 @@
 앞부분은 작은 가짜 자료로 규칙을 하나씩 확인하고, 뒷부분은 data/snapshot 실제 자료로
 빌드가 되는지와 만든 HTML이 외부 주소를 부르지 않는지 확인한다.
 화면 4의 조합 계산은 화면(calc.js)이 하므로, node가 있으면 같은 입력을 Python과 calc.js에 넣어 결과를 맞대 본다.
+HTML에는 자료를 줄여 적어 넣는다(pack.py). 줄였다 되살린 자료가 원래와 같은지도 Python과 calc.js 양쪽에서 확인한다.
 """
 import json
 import random
@@ -14,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from postlife.schema import TABS
-from postlife.site import build, combo, compare, eligibility, overview, revision, worklog
+from postlife.site import build, combo, compare, eligibility, overview, pack, revision, worklog
 from postlife.site.model import Cond, Data, load
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -394,6 +395,80 @@ def test_매핑_검토_대기만_있는_칸은_빈자리로_세지_않는다():
     assert compare.verdict({**ok, "val": None}, ok) == "x"
 
 
+def test_처음_보여_줄_열은_기준과_심사_유형이_같은_종형이다(data):
+    s3 = compare.build(data, data.conds())
+    assert s3["peers"][NEW_B] == [NEW_B, PRIV]                 # 일반심사끼리
+    assert s3["peers"][NEW_A] == [NEW_A, NEW_B, PRIV]           # 같은 심사 유형이 없으면 전부
+    tables = fake_tables()
+    tables["sys_상품종형"].append(variant("HANWHALIFE_H2_eeeeee", "HANWHALIFE", "HANWHA_Y_2610", "HANWHA_Y|간편심사|3.2.5|갱신|표준형",
+                                      "민영 시험보험 무배당", "간편가입형(2년)", "정밀비교", "간편심사", "3.2.5", (3, 2, 5, True, 6),
+                                      "2026-10-01", None, "hp", "mp"))
+    more = compare.build(Data(tables), [Cond()])
+    assert more["peers"][NEW_A] == [NEW_A, "HANWHALIFE_H2_eeeeee"]
+
+
+def test_매핑_검토_대기_요약(data):
+    s3 = compare.build(data, data.conds())
+    summary = s3["waitingSummary"]
+    assert summary["groups"] == len(s3["waiting"]) == 2 and summary["lines"] == 4      # 두 종형에 같은 급부가 두 가지
+    assert summary["withRec"] == 2 and dict(map(tuple, summary["byRec"])) == {"STD_CA_HOSP": 1, "STD_CM_SURG_GRADE": 1}
+    assert summary["byOrg"] == [{"code": "EPOST", "name": data.org_name("EPOST"), "n": 2}]
+
+
+def no_limit_tables():
+    """민영사 종형의 가입 한도와 가입 나이 자료를 모두 비운다(공시 문서에 한도가 없는 회사)."""
+    tables = fake_tables()
+    for r in tables["sys_특약"]:
+        if r["종형ID"] == PRIV:
+            r["최소가입금액만원"] = r["최대가입금액만원"] = None
+    tables["sys_가입조건"] = [r for r in tables["sys_가입조건"] if r["종형ID"] != PRIV]
+    return tables
+
+
+def test_가입_한도_자료가_없는_종형은_최대_가입_금액을_만들지_않는다():
+    data = Data(no_limit_tables(), {"snapshot_at": "2026-11-18T17:00:00+09:00"})
+    assert data.limit_gap(PRIV) == {"riders": 2, "noMax": 2, "noAge": True} and data.limit_gap(NEW_A) is None
+    conds = data.conds()
+    s3 = compare.build(data, conds)
+    base = s3["bases"].index(NEW_B)
+    for k in (0, cond_index(conds, 50), cond_index(conds, 85)):
+        _, st = cell_at(s3, "STD_CA_DX_GENERAL", PRIV, k)
+        assert st["kind"] == "ok" and st["vals"] == [None] and st["caps"] == [None] and "no" not in st   # 가입 불가가 아니라 한도 자료 없음
+    assert cell_at(s3, "STD_CA_DX_GENERAL", PRIV, 0)[1]["vs"][base] == "x"                              # 우열 판정은 하지 않는다
+    views = build.payload(data)
+    assert views["variants"][PRIV]["gap"] == {"riders": 2, "noMax": 2, "noAge": True} and views["variants"][NEW_A]["gap"] is None
+    assert views["s1"]["limitGaps"] == [{"code": "HANWHALIFE", "name": data.org_name("HANWHALIFE"), "variants": 1,
+                                        "riders": 2, "noMax": 2, "noAge": 1}]
+    assert views["s2"]["byVariant"][PRIV]["noCond"] is True
+
+    # 화면 4: 한도가 없으면 급부표의 기준 가입금액을 넣어 두고 그 금액으로 환산한다
+    vm = combo.variant_model(data, PRIV, conds)
+    assert [(r["tid"].split("_T")[1], r["ref"], r["max"], r["lim"][0]) for r in vm["riders"]] == [("main", None, None, None), ("pc", 1000, None, None)]
+    rows = combo.evaluate(vm, 0, {f"{PRIV}_Tpc": 1000})["rows"]
+    pay = combo.payouts(vm, {bid: data.benefit_view(bid) for bid in data.benefits}, rows)
+    assert pay["groups"][0]["lines"][0]["val"] == 1000
+
+
+def test_가입_한도가_있는_종형은_빈_곳_표시가_없다(data):
+    assert all(data.limit_gap(v) is None for v in data.variants)
+    assert overview.build(data)["limitGaps"] == []
+    assert combo.variant_model(data, NEW_A, [Cond()])["riders"][1]["ref"] == 1000
+
+
+def test_칸은_이_나이에_가입할_수_없는_줄을_따로_적는다():
+    tables = fake_tables()
+    for m in tables["hum_담보매핑"]:
+        if m["급부ID"].endswith("_Tnursing_Bnca"):
+            m["확정표준담보ID"] = "STD_CA_HOSP"                     # 가입 나이가 다른 두 특약의 급부를 한 표준담보에 잇는다
+    data = Data(tables)
+    conds = data.conds()
+    s3 = compare.build(data, conds)
+    cell, st = cell_at(s3, "STD_CA_HOSP", NEW_A, cond_index(conds, 75))
+    assert [b.rsplit("_B", 1)[1] for b in cell["lines"]] == ["hca", "nca"]
+    assert st["kind"] == "ok" and st["no"] == [1] and st["caps"] == [500, None]
+    assert "no" not in cell_at(s3, "STD_CA_HOSP", NEW_A, cond_index(conds, 50))[1]
+
+
 # ---------- 화면 4 ----------
 def on_rows(result):
     return {r["tid"].split("_T")[1]: r["amount"] for r in result["rows"] if r["on"]}
@@ -558,6 +633,7 @@ def test_작업_기록_요약(data):
     assert sorted(summary["review"]["status"]) == sorted([
         "검토 대기", "검토 대기", "검토 대기", "나중 실행에서 다시 판정됨", "지금 사본에 없는 행", "매핑 대기"])
     assert {m["model"]: m["n"] for m in summary["byModel"]}["gemini-decision-1"] == 8
+    assert summary["review"]["byStatus"] == [("검토 대기", 3), ("나중 실행에서 다시 판정됨", 1), ("매핑 대기", 1), ("지금 사본에 없는 행", 1)]
     assert len(s6["rows"]) == 12 and s6["rows"][0][s6["cols"].index("실행일시")] >= s6["rows"][-1][s6["cols"].index("실행일시")]
     assert s6["labels"][f"{NEW_A}_Tnursing_Bnca"].endswith("요양병원암입원보험금(암)")
 
@@ -574,9 +650,30 @@ def test_자료_글자는_script_안에서도_안전하다():
     assert "<" not in text and json.loads(text)["사유"].startswith("</script>")
 
 
+# ---------- 자료 줄여 적기 ----------
+def test_줄여_적은_자료는_그대로_되살아난다():
+    row_a = {"id": "EPOST_X_T1_B1", "name": "암진단보험금(암)", "ok": [True] * 6, "lim": [None] * 5, "by": [0, 0, 0, 0], "few": [1, 1, 1]}
+    row_b = {"id": "EPOST_X_T1_B2", "name": "암진단보험금(암)", "ok": [True, False, True, True], "lim": [4000.0] * 4, "by": [0, 1], "few": []}
+    sample = {
+        "rows": [row_a, row_b, dict(row_a, id="EPOST_X_T1_B3")],
+        "byId": {"EPOST_X_T1_B1": row_a, "EPOST_X_T1_B2": row_b},
+        "labels": {"EPOST_X_T1_B1": "시험건강보험 2606 · 무배당 암진단특약 2606 · 암진단보험금(암)",
+                   "EPOST_X_T1_B2": "시험건강보험 2606 · 무배당 암진단특약 2606 · 암진단보험금(갑상선암 등)"},
+        "odd": ["~물결로 시작", "~~두 번", "~0", "", " · ", "가 · ", {"~=": 1}, {"~#": [1]}, {"~@": {}}, {"~+": "x"}, {"~0": "~0"}],
+        "mixed": [1, True, 1.0, "1", None], "ones": [1, 1, 1, 1], "trues": [True, True, True, True], "mixrun": [1, True, 1, True],
+        "nested": [[0, 0, 0, 0], [[], {}]], "empty": {}, "text": "한 번만 나오는 글자", "~key": 1,
+    }
+    packed = json.loads(json.dumps(pack.pack(sample), ensure_ascii=False))
+    back = pack.unpack(packed)
+    assert back == sample
+    assert [type(x) for x in back["mixrun"]] == [int, bool, int, bool] and back["trues"][0] is True and back["ones"][0] is not True
+    assert len(json.dumps(packed, ensure_ascii=False)) < len(json.dumps(sample, ensure_ascii=False))
+
+
 def test_가짜_자료로도_빌드된다(data):
     html = build.render(data)
-    payload = json.loads(re.search(r'<script type="application/json" id="data">(.*?)</script>', html, re.S).group(1))
+    payload = build.read_payload(html)
+    assert payload == json.loads(json.dumps(build.payload(data), ensure_ascii=False))   # 줄여 적어도 내용은 그대로다
     assert payload["variantOrder"] == [NEW_A, NEW_B, OLD_A, PRIV]
     assert payload["variants"][NEW_A]["product"] == "시험건강보험 2606" and payload["variants"][NEW_A]["kind"] == "1종(간편가입325)"
     assert payload["defaults"] == {"age": 50, "sex": "M", "maxAge": 120}
@@ -605,13 +702,13 @@ def built(tmp_path_factory):
     out = tmp_path_factory.mktemp("site") / "index.html"
     info = build.build_site(SNAPSHOT, out)
     html = out.read_text(encoding="utf-8")
-    payload = json.loads(re.search(r'<script type="application/json" id="data">(.*?)</script>', html, re.S).group(1))
-    return info, html, payload
+    return info, html, build.read_payload(html)
 
 
 def test_실제_자료로_빌드되고_외부_자원을_부르지_않는다(built):
     info, html, payload = built
     assert info["variants"] == len(payload["variants"]) > 0
+    assert info["bytes"] == len(html.encode("utf-8")) < 4_000_000   # 자료가 열 배로 늘어도 한 파일 4MB를 넘기지 않는다
     for pattern in EXTERNAL:
         found = re.search(pattern, html, re.I)
         assert found is None, f"외부 자원 참조: {html[max(0, found.start() - 40):found.end() + 60]!r}"
@@ -638,6 +735,40 @@ def test_실제_자료_화면_구성(built, real):
             assert all(payload["benefits"][b]["state"] == "대기" for b in cell["wait"])
             assert len(cell["by"]) == len(payload["conds"])
     assert payload["s1"]["counts"]["premiums"] == 0               # 보험료 자료는 없고, 화면도 보험료를 만들지 않는다
+
+
+def test_실제_자료는_줄여_적어도_하나도_빠지지_않는다(built, real):
+    _, html, payload = built
+    full = json.loads(json.dumps(build.payload(real), ensure_ascii=False))
+    assert payload == full
+    raw = len(json.dumps(full, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    assert len(html.encode("utf-8")) < raw                          # 줄여 적은 HTML 전체가 원래 자료보다 작다
+    # 작업 기록, 검토 대기 급부, 급부는 화면이 요약만 먼저 보여 줄 뿐 전부 실려 있다
+    assert len(payload["s6"]["rows"]) == len(real.logs) == payload["s6"]["summary"]["total"]
+    assert payload["s3"]["waitingSummary"]["groups"] == len(payload["s3"]["waiting"])
+    waiting = {b for g in payload["s3"]["waiting"] for b in g["bids"]}
+    compared = {bid for bid, b in payload["benefits"].items() if payload["riders"][b["tid"]]["vid"] in payload["s3"]["variants"]}
+    assert waiting == {bid for bid in compared if payload["benefits"][bid]["state"] == "대기"}
+    assert payload["s3"]["waitingSummary"]["lines"] == len(waiting)
+
+
+def test_실제_자료에서_가입_한도가_없는_종형(built, real):
+    _, _, payload = built
+    gaps = {vid: v["gap"] for vid, v in payload["variants"].items() if v["gap"]}
+    assert payload["s1"]["limitGaps"] and sum(g["variants"] for g in payload["s1"]["limitGaps"]) == len(gaps)
+    for vid, gap in gaps.items():
+        assert gap["riders"] == len(real.riders_of[vid]) and 0 <= gap["noMax"] <= gap["riders"]
+    for vid in payload["s3"]["variants"]:
+        if vid in gaps and gaps[vid]["noMax"] == gaps[vid]["riders"]:
+            # 한도가 하나도 없는 종형: 어느 칸에도 최대 가입 기준 금액이 없고, 화면 4는 기준 가입금액을 넣어 둔다
+            for r in payload["s3"]["rows"]:
+                cell = r["cells"].get(vid)
+                if cell:
+                    assert all(v is None for st in cell["st"] for v in st.get("vals", []))
+            assert all(r["max"] is None for r in payload["s4"]["byVariant"][vid]["riders"])
+            assert any(r["ref"] for r in payload["s4"]["byVariant"][vid]["riders"])
+    for base, peers in payload["s3"]["peers"].items():
+        assert base in peers and set(peers) <= set(payload["s3"]["variants"])
 
 
 def test_실제_자료의_칸_값은_환산식과_같다(built, real):
@@ -667,8 +798,10 @@ needs_node = pytest.mark.skipif(NODE is None, reason="node가 없어 calc.js를 
 HARNESS = """
 const calc = require(process.argv[1]);
 let text = '';
+process.stdin.setEncoding('utf8');
 process.stdin.on('data', c => text += c).on('end', () => {
   const input = JSON.parse(text);
+  if (input.packed) { process.stdout.write(JSON.stringify(calc.unpack(input.packed))); return; }
   const out = {money: (input.money || []).map(calc.money), cases: []};
   for (const c of input.cases || []) {
     const result = calc.evaluate(input.models[c.model], c.k, c.want);
@@ -739,3 +872,12 @@ def test_calc_js는_Python_규칙과_결과가_같다_실제_자료(built):
     models = payload["s4"]["byVariant"]
     conds = payload["conds"]
     assert_same_as_python(models, payload["benefits"], cases_for(models, conds, seed=11))
+
+
+@needs_node
+def test_calc_js의_unpack은_Python과_같은_자료를_되살린다(data, real):
+    odd = {"odd": ["~물결", "~~두 번", "~0", " · ", {"~=": 1}, {"~#": [1]}, {"~@": {}}, {"~+": "x"}], "run": [None] * 5, "t": [True] * 4,
+           "rows": [{"a": "되풀이되는 긴 글자입니다", "b": [1, 2]}, {"a": "되풀이되는 긴 글자입니다", "b": []}]}
+    for source in (odd, build.payload(data), build.payload(real)):
+        full = json.loads(json.dumps(source, ensure_ascii=False))
+        assert run_node({"packed": pack.pack(source)}) == full

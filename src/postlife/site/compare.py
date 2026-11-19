@@ -136,6 +136,7 @@ def cell_core(data: Data, views: list[dict], cond: Cond, waiting: bool = False) 
     """한 조건에서 칸의 값. kind: none(확정 급부 없음) / unavail(이 나이에 가입할 수 없음) / ok.
 
     waiting은 이 칸에 매핑 검토 대기 급부가 있는지. 확정 급부가 없을 때 빈자리와 구분하는 데 쓴다.
+    caps의 None은 두 가지다: 이 나이에 가입할 수 없는 줄(no에 번호를 적음)이거나, 가입은 되는데 가입 한도 자료가 없는 줄.
     """
     if not views:
         return {"kind": "none", "waiting": waiting}
@@ -147,7 +148,9 @@ def cell_core(data: Data, views: list[dict], cond: Cond, waiting: bool = False) 
     if rep is None:
         return {"kind": "unavail", "vals": vals, "caps": [None] * len(views)}
     view = views[rep]
+    blocked = [i for i, c in enumerate(caps) if not c.ok]
     return {
+        **({"no": blocked} if blocked else {}),
         "kind": "ok", "rep": rep, "vals": vals, "caps": [c.amount if c.ok else None for c in caps],
         "val": vals[rep], "wait": view["wait"], "red": view["red"], "limit": view["limit"],
         "pend": data.verdict_pending(view) or caps[rep].pending,
@@ -184,7 +187,7 @@ def build(data: Data, conds: list[Cond]) -> dict[str, Any]:
             cores = {vid: cell_core(data, views[vid], cond, bool(waits[vid])) for vid in vids}
             for vid in vids:
                 core = cores[vid]
-                state = {k: core[k] for k in ("kind", "rep", "vals", "caps", "capPend") if k in core}
+                state = {k: core[k] for k in ("kind", "rep", "vals", "caps", "capPend", "no") if k in core}
                 state["vs"] = ["B" if b == vid else verdict(core, cores[b]) for b in bases]
                 key = json.dumps(state, ensure_ascii=False, sort_keys=True)
                 states, index = tables[vid]
@@ -207,9 +210,45 @@ def build(data: Data, conds: list[Cond]) -> dict[str, Any]:
             "any": any(views[vid] for vid in vids),
         })
 
+    waiting = waiting_groups(data, vids, parts)
     return {
         "variants": vids, "bases": bases, "defaultBase": default_base(data, bases),
-        "rows": rows, "waiting": waiting_groups(data, vids, parts),
+        "peers": {b: peers(data, b, vids) for b in bases},
+        "rows": rows, "waiting": waiting, "waitingSummary": waiting_summary(data, waiting),
+    }
+
+
+def _uw_key(variant: dict, exact: bool = True) -> tuple:
+    digits = "".join(c for c in str(variant.get("간편고지약칭") or "") if c.isdigit())
+    return (variant.get("심사유형"), digits if exact else "")
+
+
+def peers(data: Data, base: str, vids: list[str]) -> list[str]:
+    """기준 종형과 나란히 놓고 볼 종형. 비교표가 처음에 보여 주는 열이다(나머지 종형은 화면에서 골라 더한다).
+
+    심사 유형과 간편고지 약칭(3.2.5 등)이 같은 종형을 고른다. 그런 종형이 없으면 심사 유형이 같은 종형, 그것도 없으면 전부.
+    종형이 늘어도 표가 옆으로 끝없이 길어지지 않게 하려는 것이고, 우열 판정에는 쓰지 않는다.
+    """
+    for exact in (True, False):
+        same = [v for v in vids if _uw_key(data.variants[v], exact) == _uw_key(data.variants[base], exact)]
+        if len(same) > 1:
+            return same
+    return list(vids)
+
+
+def waiting_summary(data: Data, groups: list[dict[str, Any]]) -> dict[str, Any]:
+    """매핑 검토 대기 급부의 분포. 화면은 이 요약을 먼저 보여 주고 목록은 접어 둔다."""
+    by_rec: dict[Any, int] = {}
+    by_org: dict[str, int] = {}
+    for g in groups:
+        by_rec[g["rec"]] = by_rec.get(g["rec"], 0) + 1
+        org = data.variants[g["variants"][0]]["기관코드"]
+        by_org[org] = by_org.get(org, 0) + 1
+    return {
+        "groups": len(groups), "lines": sum(len(g["bids"]) for g in groups),
+        "withRec": sum(n for rec, n in by_rec.items() if rec is not None),
+        "byRec": [[rec, n] for rec, n in sorted(by_rec.items(), key=lambda kv: (kv[0] is None, -kv[1], str(kv[0])))],
+        "byOrg": [{"code": c, "name": data.org_name(c), "n": n} for c, n in sorted(by_org.items(), key=lambda kv: (kv[0] != HOME_ORG, -kv[1], kv[0]))],
     }
 
 
