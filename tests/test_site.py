@@ -652,6 +652,9 @@ def test_실제_자료의_칸_값은_환산식과_같다(built, real):
                     continue
                 b = real.benefits[cell["lines"][st["rep"]]]
                 cap = real.rider_cap(b["특약ID"], conds[k])
+                if cap.amount is None:        # 가입 한도가 공시 문서에 없는 특약(한화생명): 최대 가입 기준 금액을 만들지 않는다
+                    assert st["vals"][st["rep"]] is None
+                    continue
                 assert st["vals"][st["rep"]] == pytest.approx(b["기준지급금액만원"] / b["기준가입금액만원"] * cap.amount)
                 assert cap.amount <= real.riders[b["특약ID"]]["최대가입금액만원"]
                 checked += 1
