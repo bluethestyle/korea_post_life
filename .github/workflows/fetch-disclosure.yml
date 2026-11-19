@@ -1,8 +1,15 @@
 name: 공시 문서 수집
 
 # 비교 대상 상품의 공시 문서를 받아 글자를 뽑는다. 원본은 저장소에 올리지 않고 결과물로만 하루 보관한다.
+# 삼성화재는 상품요약서의 급부 표 조각(JSON)도 같은 결과물에 담는다.
 on:
   workflow_dispatch:
+    inputs:
+      org:
+        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재)"
+        type: choice
+        options: [epost, hanwha, samsungfire]
+        default: epost
 
 permissions:
   contents: read
@@ -10,14 +17,18 @@ permissions:
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    env:
+      INPUT_ORG: ${{ inputs.org || 'epost' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install requests pdfplumber
-      - run: python scripts/fetch_disclosure.py --out out
+      - run: python scripts/fetch_disclosure.py --out out --org "$INPUT_ORG"
+      # 표 조각을 만들지 못해 실패로 끝나도 받은 문서는 결과물로 올린다
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: disclosure
           path: out
