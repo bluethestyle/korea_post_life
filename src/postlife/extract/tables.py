@@ -37,7 +37,9 @@ _SECTION_START = re.compile(r"^□\s*보험금\s*지급사유\s*및\s*지급금�
 _SECTION_END = re.compile(r"^□\s*보험금\s*지급제한\s*사항")
 _LABEL = re.compile(r"^◆\s*(.+?)\s*$")                       # 표 위의 "◆ 기본계약", "◆ 선택계약"
 _ONLY = re.compile(r"\s*[*＊※]\s*([^*＊※]*?에\s*한함)\s*")       # 이름 칸에 붙은 "*7종에 한함"
-_VARIANT = re.compile(r"(?<!\d)(\d+)\s*종")
+# 종 번호. "7종", 그리고 번호를 이어 적은 "1, 2, 3종", "1~3종"
+_VARIANT = re.compile(r"(?<!\d)(\d+(?:\s*(?:[,·ㆍ/~∼-]|및)\s*\d+)*)\s*종")
+_VARIANT_STEP = re.compile(r"([~∼-])?\s*(\d+)")
 # 칸 안에서 새 문단을 여는 줄. 이런 줄 앞에서는 줄을 잇지 않는다
 _PARAGRAPH = re.compile(r"^(?:[※▷▶◆■□●○·∙ㆍ•*＊]|[-–]\s|주\s*\d*\)|\d+[.)]\s|\(\d+\)|[①-⑳])")
 _INNER = re.compile(r"^· ([^:\n]*): (.*)$")                   # 칸 안의 작은 표를 풀어 적은 줄
@@ -372,7 +374,7 @@ def group_riders(lines: Iterable[Line]) -> list[Rider]:
 
         if current is not None and _continues(prev, line):
             last = current.rows[-1]
-            if rider and name_key(join_name(rider)) != name_key(current.title):
+            if rider and _title_key(rider) != name_key(current.title):
                 current.name.append(line.rider)
             if cover:
                 last["name"].append(line.cover)
@@ -383,7 +385,7 @@ def group_riders(lines: Iterable[Line]) -> list[Rider]:
             elif amount:
                 last["amount"] += ["", line.amount]         # 두 쪽에 다 금액이 적힌 경우. 문단을 갈라 둘 다 남긴다
         else:
-            same = current is not None and rider and name_key(join_name(rider)) == name_key(current.title)
+            same = current is not None and rider and _title_key(rider) == name_key(current.title)
             if rider and not (same and cover):
                 close()
                 current = _Open(line.label, line.rider)
@@ -398,6 +400,11 @@ def group_riders(lines: Iterable[Line]) -> list[Rider]:
     return riders
 
 
+def _title_key(cell: str) -> str:
+    """특별약관 이름 칸의 글자를 묶는 중인 특별약관의 제목과 견줄 수 있게 줄인다. 제목처럼 "*7종에 한함"을 떼고 견준다."""
+    return name_key(split_only(join_name(cell))[0])
+
+
 def riders_from_tables(tables: Iterable[PageTable]) -> list[Rider]:
     """쪽 순서로 읽은 표들을 특별약관 조각으로 바꾼다. 급부 표가 아닌 표는 건너뛴다."""
     return group_riders(line for table in tables for line in table_lines(table))
@@ -409,8 +416,21 @@ def applies_to(only: str, variant_name: str) -> bool:
     "7종에 한함"은 "7종(납입면제형)"에 해당하고 "8종(일반형)"에는 해당하지 않는다.
     종 번호가 없는 표시는 가릴 수 없으므로 해당하는 것으로 둔다.
     """
-    wanted = set(_VARIANT.findall(only))
-    return not wanted or bool(wanted & set(_VARIANT.findall(variant_name)))
+    wanted = variant_numbers(only)
+    return not wanted or bool(wanted & variant_numbers(variant_name))
+
+
+def variant_numbers(text: str) -> set[int]:
+    """글에 적힌 종 번호들. "7종" → {7}, "1, 2, 3종" → {1, 2, 3}, "1~3종" → {1, 2, 3}, "6종, 7종 및 8종" → {6, 7, 8}."""
+    out: set[int] = set()
+    for run in _VARIANT.findall(text):
+        last = None
+        for sign, digits in _VARIANT_STEP.findall(run):
+            n = int(digits)
+            # "1~3"은 사이의 번호까지. 앞뒤가 뒤집혔거나 터무니없이 넓으면 범위로 보지 않고 적힌 번호만 넣는다
+            out |= set(range(last, n + 1)) if sign and last is not None and 0 < n - last <= 30 else {n}
+            last = n
+    return out
 
 
 def for_variant(riders: Iterable[Rider], variant_name: str) -> list[Rider]:

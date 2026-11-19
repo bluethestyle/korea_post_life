@@ -45,6 +45,8 @@ _NUMBER_ONLY = re.compile(r"^\d+\.$")
 _ITEM = re.compile(r"^([가-하])\.\s")
 # 본문이 끝나고 별첨이 시작되는 줄. 예: "[별첨1] 부가가능 독립특별약관", "( 별첨 2 )". 본문 속의 "[별첨3], 335·5는 …"은 아니다
 _APPENDIX = re.compile(r"^[\[(<]\s*별첨\s*[\d\-]*\s*[\])>]\s*[가-힣A-Za-z ]{0,30}$")
+# 목차의 줄. 제목 뒤에 점선과 쪽 번호가 붙는다. 예: "2. 가입나이, 보험기간 ·········· 4". 본문의 절 제목으로 치지 않는다
+_TOC = re.compile(r"(?:[.·…‥⋯∙]\s*){2,}\d+\s*$")
 
 
 @dataclass(frozen=True)
@@ -65,7 +67,7 @@ def _span(lines: list[tuple[int, str]], head: re.Pattern[str]) -> tuple[int, int
 
     번호가 0으로 시작하는 줄("01. 건강 모듈 보장")과 번호가 절 번호보다 크지 않은 줄은 절 안의 항목으로 보고 지나간다.
     """
-    start = next((i for i, (_, l) in enumerate(lines) if head.match(l.strip())), None)
+    start = next((i for i, (_, l) in enumerate(lines) if head.match(l.strip()) and not _TOC.search(l.strip())), None)
     if start is None:
         return None
     number = int(_NEXT.match(lines[start][1].strip()).group(1))
@@ -85,9 +87,19 @@ def _names_scope(line: str, scope: str) -> bool:
 # 맨 앞 칸(가입유형)이 여러 줄에 걸쳐 합쳐진 표. 가입최고나이 표가 이 모양이다.
 # 글자로 풀면 납입기간 줄("10년납 79세 79세 80세 80세")이 이어지고, 가입유형 이름은 그 유형의 줄들 사이에 한 줄로 끼어 있거나
 # ("간편가입형(1년)") 줄 앞에 붙어 있다("일반가입형 20년납 69세 …"). 납입기간이 다시 작아지는 줄부터 다음 가입유형이다.
-_PAY_ROW = re.compile(r"^(.*?)\s*(\d+)\s*년납((?:\s+\d+\s*세)+)\s*$")
+# 납입기간은 "10년납" 말고 "전기납", "일시납", "60세납"으로도 적히고, 팔지 않는 칸은 나이 대신 "-"로 적힌다.
+_PAY_ROW = re.compile(r"^(.*?)\s*(\d+\s*년납|\d+\s*세납|전기납|일시납)((?:\s+(?:\d+\s*세|[-–×]))+)\s*$")
 _PAGE_MARK = re.compile(r"^\d+\s*[-/]\s*\d+$")          # 쪽 번호. 예: "1 - 2", "14/567"
-_AGE_CELL = re.compile(r"\d+\s*세")
+_AGE_CELL = re.compile(r"\d+\s*세|[-–×]")
+
+
+def _pay_row(line: str) -> tuple[str, str, list[str]] | None:
+    """납입기간 줄이면 (줄 앞에 붙은 글자, 납입기간, 칸들). 나이가 적힌 칸이 하나도 없는 줄은 납입기간 줄로 보지 않는다."""
+    m = _PAY_ROW.match(line.strip())
+    cells = [c.replace(" ", "") for c in _AGE_CELL.findall(m.group(3))] if m else []
+    if not any(c.endswith("세") for c in cells):
+        return None
+    return m.group(1).strip(), m.group(2).replace(" ", ""), cells
 
 
 @dataclass
@@ -104,28 +116,31 @@ def row_groups(texts: Sequence[str]) -> tuple[int, int, list[RowGroup]] | None:
 
     묶음이 둘 이상이고 묶음마다 이름이 꼭 하나씩 잡힐 때만 돌려준다. 그렇지 않으면 이 모양의 표가 아니라고 보고 None.
     표 위에 있던 줄(표 머리)이 쪽이 넘어가며 되풀이된 것과 쪽 번호는 이름으로 치지 않는다.
+    다음 묶음은 "N년납"의 햇수가 다시 작아지거나, 그 묶음에 이미 나온 납입기간("전기납" 등)이 또 나오는 줄에서 시작한다.
     """
-    marks = [i for i, t in enumerate(texts) if _PAY_ROW.match(t.strip())]
+    marks = [i for i, t in enumerate(texts) if _pay_row(t)]
     if len(marks) < 2:
         return None
     first, last = marks[0], marks[-1] + 1
     above = {t.strip() for t in texts[:first]}
     groups: list[RowGroup] = []
     names: list[set[str]] = []
-    before = 0
+    before: int | None = None
     for i in range(first, last):
         line = texts[i].strip()
-        m = _PAY_ROW.match(line)
-        if m:
-            years = int(m.group(2))
-            if not groups or years <= before:
+        row = _pay_row(line)
+        if row:
+            name, pay, cells = row
+            years = int(pay[:-2]) if pay.endswith("년납") else None
+            if (not groups or any(pay == p for p, _ in groups[-1].rows)
+                    or (years is not None and before is not None and years <= before)):
                 if groups:
                     groups[-1].end = i
                 groups.append(RowGroup("", i, last, []))
                 names.append(set())
-            before = years
-            groups[-1].rows.append((f"{years}년납", [c.replace(" ", "") for c in _AGE_CELL.findall(m.group(3))]))
-            name = m.group(1).strip()
+                before = None
+            before = years if years is not None else before
+            groups[-1].rows.append((pay, cells))
         else:
             name = "" if _PAGE_MARK.match(line) or line in above else line
         if name:
@@ -208,7 +223,8 @@ def method_sections(pages: dict[int, str], scope: str | None = None,
 
 def _eligible_span(lines: list[tuple[int, str]]) -> tuple[int, int] | None:
     """자격요건 절의 (제목 줄, 끝 다음 줄)."""
-    found = next(((i, stop) for i, (_, l) in enumerate(lines) for head, stop in _ELIGIBLE if head.match(l.strip())), None)
+    found = next(((i, stop) for i, (_, l) in enumerate(lines) for head, stop in _ELIGIBLE
+                  if head.match(l.strip()) and not _TOC.search(l.strip())), None)
     if found is None:
         return None
     start, stop = found
@@ -378,18 +394,22 @@ _NOTES = {"가입나이": ((_BY_MAX_AGE, AGE_BY_MAX_NOTE),), "가입한도": ((_
 # ---------- 글자를 숫자로 ----------
 
 _AGE = re.compile(r"(\d+)\s*세?\s*[~∼\-]\s*(\d+)\s*세")
-_BAND_LE = re.compile(r"(\d+)세이하")
-_BAND_GE = re.compile(r"(\d+)세이상")
-_BAND_UPTO = re.compile(r"^[~∼](\d+)세$")        # "~70세"
-_BAND_FROM = re.compile(r"^(\d+)세[~∼]$")        # "71세~"
-_LIST = re.compile(r"^(\d+(?:,\d+)+)(\D.*)$")
+_AGE_BARE = re.compile(r"만?(\d+)[~∼](\d+)")       # "15~80"처럼 "세" 없이 숫자와 물결표만 적은 나이
+_BAND_WORD = re.compile(r"(\d+)세(이하|이상|미만|초과)")
+_BAND_UPTO = re.compile(r"^[~∼]만?(\d+)세$")      # "~70세"
+_BAND_FROM = re.compile(r"^만?(\d+)세[~∼]$")      # "71세~", "만71세~"
+_PERIOD_ITEM = re.compile(r"\d+(?:[년세].*)?|전기납|일시납|종신")      # 기간 나열의 조각. 예: "10", "30년납", "100세만기", "전기납"
 _TILDE = re.compile(r"[~∼]")
 MAX_AGE = 999
 
 
 def parse_age_range(text: str) -> tuple[int, int] | None:
-    """"20~80세", "만15~50세" → (20, 80), (15, 50). "만25~(주계약 만기나이-1)세"처럼 숫자로 끝나지 않으면 None."""
-    m = _AGE.search(str(text or "").replace(" ", ""))
+    """"20~80세", "만15~50세" → (20, 80), (15, 50). "만25~(주계약 만기나이-1)세"처럼 숫자로 끝나지 않으면 None.
+
+    "세" 없이 "15~80"으로만 적은 글자도 읽는다. 다른 글자가 섞인 "1~10년" 같은 것은 나이가 아니므로 읽지 않는다.
+    """
+    flat = str(text or "").replace(" ", "")
+    m = _AGE.search(flat) or _AGE_BARE.fullmatch(flat)
     return (int(m.group(1)), int(m.group(2))) if m else None
 
 
@@ -397,41 +417,64 @@ def parse_age_band(text: str) -> tuple[int, int] | None:
     """"65세 이하" → (0, 65), "66세 이상" → (66, 999), "66세~70세" → (66, 70). 빈 글자는 None(기본 한도).
 
     물결표를 한쪽에만 쓴 "~70세" → (0, 70), "71세~" → (71, 999)도 읽는다.
+    "미만"과 "초과"는 그 나이를 빼고 읽는다: "61세 이상 70세 미만" → (61, 69), "50세 초과 65세 이하" → (51, 65).
+    아래쪽이나 위쪽 경계가 둘씩 적혀 있거나 경계로 읽지 못한 나이가 남으면 None(읽을 수 없음).
     """
     flat = str(text or "").replace(" ", "")
     if not flat:
         return None
-    both = parse_age_range(flat)
+    both = _AGE.search(flat) or _AGE_BARE.fullmatch(flat)
     if both:
-        return both
+        lo, hi = int(both.group(1)), int(both.group(2))
+        return (lo, hi - 1) if flat[both.end():].startswith("미만") else (lo, hi)
     upto, since = _BAND_UPTO.match(flat), _BAND_FROM.match(flat)
     if upto:
         return 0, int(upto.group(1))
     if since:
         return int(since.group(1)), MAX_AGE
-    lo, hi = _BAND_GE.search(flat), _BAND_LE.search(flat)
-    if lo and hi:
-        return int(lo.group(1)), int(hi.group(1))
-    if hi:
-        return 0, int(hi.group(1))
-    if lo:
-        return int(lo.group(1)), MAX_AGE
-    return None
+    words = _BAND_WORD.findall(flat)
+    lows = [int(n) + (word == "초과") for n, word in words if word in ("이상", "초과")]
+    highs = [int(n) - (word == "미만") for n, word in words if word in ("이하", "미만")]
+    if not words or len(lows) > 1 or len(highs) > 1 or len(words) != len(re.findall(r"\d+세", flat)):
+        return None
+    return (lows[0] if lows else 0), (highs[0] if highs else MAX_AGE)
 
 
 def expand(text: str) -> list[str]:
-    """"90,95,100세만기" → ["90세만기", "95세만기", "100세만기"]. 나열이 아니면 그대로 하나."""
+    """"90,95,100세만기" → ["90세만기", "95세만기", "100세만기"]. 나열이 아니면 그대로 하나.
+
+    쉼표로 나눈 조각마다 하나씩이다. 숫자만 적힌 조각은 뒤쪽에서 가장 가까운 "숫자+단위" 조각의 단위를 물려받는다:
+    "10,20,30년납,전기납" → ["10년납", "20년납", "30년납", "전기납"], "10년납, 20년납" → ["10년납", "20년납"].
+    괄호 안의 쉼표에서는 나누지 않는다. 기간으로 보이지 않는 조각이 섞여 있거나 물려받을 단위가 없으면 나누지 않고 그대로 하나.
+    """
     flat = str(text or "").replace(" ", "")
-    m = _LIST.match(flat)
-    if not m:
+    pieces = [p for p in re.split(r",(?![^()]*\))", flat) if p]
+    if len(pieces) < 2 or not all(_PERIOD_ITEM.fullmatch(p) for p in pieces):
         return [flat] if flat else []
-    return [f"{n}{m.group(2)}" for n in m.group(1).split(",")]
+    out: list[str] = []
+    unit = ""
+    for piece in reversed(pieces):
+        if piece.isdigit():
+            if not unit:
+                return [flat]
+            piece += unit
+        elif piece[0].isdigit():
+            unit = piece.lstrip("0123456789")
+        out.append(piece)
+    return out[::-1]
+
+
+# 상품 이름의 "보험". "보험료 납입면제대상", "… 선지급 보험금 제도성 특별약관"처럼 특약 이름에 든 "보험료"·"보험금" 등은 아니다
+_PRODUCT_WORD = re.compile(r"보험(?!료|금|기간|가입|계약)")
 
 
 def is_main(name: str) -> bool:
-    """주계약을 가리키는 이름인가. 사업방법서는 주계약을 상품 이름으로 적는다. 특약 이름에는 늘 "특약"이 들어 있다."""
+    """주계약을 가리키는 이름인가. 사업방법서는 주계약을 상품 이름으로 적는다. 특약 이름에는 "특약"이나 "특별약관"이 들어 있다.
+
+    "보험"이 "보험료", "보험금"처럼 다른 낱말의 앞부분으로만 들어 있는 이름("보험료 납입면제대상")은 상품 이름이 아니다.
+    """
     flat = ids.normalize(name)
-    return flat == "주계약" or ("특약" not in flat and "보험" in flat)
+    return flat == "주계약" or ("특약" not in flat and "특별약관" not in flat and _PRODUCT_WORD.search(flat) is not None)
 
 
 def _same(a: str, b: str) -> bool:
@@ -477,6 +520,7 @@ class AgeItem:
     term_text: str
     payment_text: str
     by_max: bool = False          # 가입최고나이 표의 칸에서 온 항목인가. 나이는 "만15세~79세"처럼 최저·최고를 이어 적은 글자다
+    full_key: bool = False        # 대상·종·나이가 같은 앞 항목과 기간만 다른 항목인가. 키에 기간까지 적어 구분한다(parse가 정한다)
 
     @property
     def ages(self) -> tuple[int, int] | None:
@@ -486,7 +530,7 @@ class AgeItem:
     def key(self) -> str:
         parts = [self.subjects[0] if self.subjects else "", self.scope, self.contract, self.sex, self.age_text]
         # 가입최고나이 표는 보험기간·납입기간이 달라도 같은 나이가 여러 칸에 나오므로 칸까지 적어야 항목이 구분된다
-        return "|".join(parts + [self.term_text, self.payment_text] if self.by_max else parts)
+        return "|".join(parts + [self.term_text, self.payment_text] if self.by_max or self.full_key else parts)
 
 
 @dataclass
@@ -535,16 +579,35 @@ class ConstraintItem:
 
     @property
     def value(self) -> tuple[float | None, str | None]:
-        """(제약수치, 제약단위). "주계약 보험가입금액 이내"는 주계약의 100%로 적는다."""
+        """(제약수치, 제약단위). "주계약 보험가입금액 이내"는 주계약의 100%로 적는다.
+
+        "200% 이내", "2배 이내" → 2.0, "1/2 이내", "2분의 1 이내" → 0.5.
+        """
         flat = squash(self.value_text)
         pct = re.search(r"(\d+(?:\.\d+)?)%", flat)
         if pct:
             return float(pct.group(1)) / 100, "비율"
+        times = re.search(r"(\d+(?:\.\d+)?)배", flat)
+        if times:
+            return float(times.group(1)), "비율"
+        part = re.search(r"(?<![\d/])(\d+)/(\d+)(?![\d/])", flat)
+        over = re.search(r"(\d+)분의(\d+)", flat)
+        top, bottom = ((int(part.group(1)), int(part.group(2))) if part else
+                       (int(over.group(2)), int(over.group(1))) if over else (0, 0))
+        if bottom:
+            return top / bottom, "비율"
         if money_token(flat):
             return parse_money(flat), "만원"
         if self.kind == "최대연동" and ("이내" in flat or "이하" in flat or "한도" in flat):
             return 1.0, "비율"
         return None, None
+
+    @property
+    def figure(self) -> str:
+        """value_text에 적힌 수치 글자("50%", "2배", "1/2", "1000만원"). 원문 대조에 쓴다. 수치가 없으면 빈 글자."""
+        flat = squash(self.value_text)
+        m = re.search(r"\d+(?:\.\d+)?(?:%|배)|(?<![\d/])\d+/\d+(?![\d/])|\d+분의\d+", flat)
+        return m.group(0) if m else money_token(flat)
 
 
 @dataclass
@@ -618,6 +681,16 @@ def parse(kind: str, section: Section, raw: dict[str, Any], model: str) -> Extra
             out.problems.append(f"형식 오류: {e}")
             continue
         if item.key in seen:
+            first = next(i for i in out.items if i.key == item.key)
+            if kind == "가입나이" and not _same(first.term_text + "|" + first.payment_text,
+                                             item.term_text + "|" + item.payment_text):
+                # 대상·종·나이가 같고 보험기간이나 납입기간만 다른 줄(만기별로 따로 적은 표)은 서로 다른 항목이다
+                item.full_key = True
+            elif kind == "가입한도" and (first.low, first.high, squash(first.unit_text)) == (item.low, item.high, squash(item.unit_text)):
+                # 같은 한도를 대상만 나눠 두 번 적은 것이면 대상을 한데 모은다. 금액이 다르면 어느 쪽이 맞는지 알 수 없으므로 문제로 남긴다
+                first.subjects += [n for n in item.subjects if not any(_same(n, m) for m in first.subjects)]
+                continue
+        if item.key in seen:
             out.problems.append(f"같은 항목이 두 번 나옴: {item.key}")
             continue
         seen.add(item.key)
@@ -625,7 +698,8 @@ def parse(kind: str, section: Section, raw: dict[str, Any], model: str) -> Extra
     if kind == "가입나이":
         firsts: dict[tuple[str, str, str], list[str]] = {}
         for item in out.items:
-            if item.contract == "최초계약" and not item.by_max:       # 가입최고나이 표에는 최초·갱신 줄 구분이 없다
+            # 가입최고나이 표에는 최초·갱신 줄 구분이 없다. 나이가 같고 기간만 다른 줄(full_key)은 갱신계약 줄을 잘못 옮긴 것이 아니다
+            if item.contract == "최초계약" and not item.by_max and not item.full_key:
                 for name in item.subjects:
                     firsts.setdefault((ids.normalize(name), item.scope.replace(" ", ""), item.sex), []).append(item.key)
         for keys in firsts.values():
@@ -672,11 +746,19 @@ def groups(text: str) -> list[str]:
     return ["\n".join(g) for g in out]
 
 
+def _headed_by_main(part: str) -> bool:
+    """"가.", "나." 항목의 제목 줄에 맨 먼저 적힌 이름이 상품 이름(주계약)인가. 예: "가. 무배당 ○○보험 2606, 무배당 △△특약 2606"."""
+    head = part.strip().split("\n")[0].strip()
+    return bool(_GROUP.match(head)) and is_main(_GROUP.sub("", head, count=1).split(",")[0])
+
+
 def literal_problems(ex: Extracted) -> dict[str, list[str]]:
     """항목별로 원문에서 글자 그대로 확인되지 않은 칸.
 
     가입나이·가입한도는 대상 이름과 값이 같은 "가.", "나." 항목 안에 함께 있는지도 본다("묶음").
     이름과 값이 각각 원문에 있어도 서로 다른 항목의 것이면 잘못 묶은 것이다.
+    주계약은 그 항목에 "주계약"이라고 적혀 있거나 항목 제목이 상품 이름으로 시작하면 그 항목의 것으로 본다.
+    결합제약은 값에 적힌 수치 글자("50%", "2배", "1,000만원")가 원문에 있는지도 본다("수치").
     """
     source = ex.section.text
     parts = groups(source)
@@ -700,7 +782,7 @@ def literal_problems(ex: Extracted) -> dict[str, list[str]]:
             tokens = [money_token(t) for t in (item.min_text, item.max_text)] if ex.kind == "가입한도" else []
 
             def holds(part: str) -> bool:
-                return (all(_in(n, part) or (is_main(n) and "주계약" in part) for n in item.subjects)
+                return (all(_in(n, part) or (is_main(n) and ("주계약" in part or _headed_by_main(part))) for n in item.subjects)
                         and all(_in(v, part) for v in values if v) and all(t in squash(part) for t in tokens if t))
 
             if not any(holds(part) for part in parts):
@@ -722,6 +804,8 @@ def literal_problems(ex: Extracted) -> dict[str, list[str]]:
                 if money_token(text) not in squash(source):
                     missing.append("금액")
                     break
+        elif item.figure and not _in(item.figure, source):
+            missing.append("수치")
         if missing:
             out[item.key] = missing
     return out
@@ -808,11 +892,11 @@ class Target:
     main_id: str | None                     # 주계약의 특약ID
 
     def rider(self, name: str) -> tuple[bool, str | None]:
-        """(찾았는가, 특약ID). 주계약은 (True, None)."""
-        if is_main(name):
-            return True, None
+        """(찾았는가, 특약ID). 주계약은 (True, None). 뽑아 둔 특약 목록에 있는 이름은 "보험"이 들어 있어도 특약이다."""
         key = ids.rider_lineage_key(name)
-        return (True, self.riders[key]) if key in self.riders else (False, None)
+        if key in self.riders:
+            return True, self.riders[key]
+        return (True, None) if is_main(name) else (False, None)
 
 
 def target_of(variant_id: str, variant_name: str, rider_rows: list[dict[str, Any]]) -> Target:
@@ -822,11 +906,22 @@ def target_of(variant_id: str, variant_name: str, rider_rows: list[dict[str, Any
 
 
 def _applies(scope: str, target: Target, everyone: list[Target]) -> bool | None:
-    """종 구분이 이 종형을 가리키는가. 구분이 있는데 어느 종형과도 맞지 않으면 None."""
+    """종 구분이 이 종형을 가리키는가. 구분이 있는데 어느 종형과도 맞지 않으면 None.
+
+    종형명이 구분 글자에 그대로 적혀 있어야 한다. "1종"이 "11종"에 걸리지 않게 앞 글자가 숫자인 자리는 빼고,
+    "간편가입형"이 "간편가입형(1년)"에 걸리지 않게 더 긴 종형명이 차지한 자리도 뺀다.
+    그렇게 맞는 종형이 하나도 없으면, 구분이 "8종"처럼 종 번호만 적은 글자일 때 번호가 같은 종형("8종(일반형)")을 가리키는 것으로 본다.
+    """
     flat = scope.replace(" ", "")
     if not flat:
         return True
-    hits = [t for t in everyone if t.variant_name.replace(" ", "") in flat]
+    spans = [[m.span() for m in re.finditer(r"(?<!\d)" + re.escape(t.variant_name.replace(" ", "")), flat)] for t in everyone]
+    taken = [(a, b) for found in spans for a, b in found]
+    hits = [t for t, found in zip(everyone, spans)
+            if any(not any(c <= a and b <= d and d - c > b - a for c, d in taken) for a, b in found)]
+    if not hits:
+        heads = [re.match(r"\d+종", t.variant_name.replace(" ", "")) for t in everyone]
+        hits = [t for t, head in zip(everyone, heads) if head and re.search(r"(?<!\d)" + head.group(0) + r"(?!\()", flat)]
     if not hits:
         return None
     return target in hits
@@ -936,6 +1031,8 @@ def build_rows(targets: list[Target], ages: list[AgeItem], limits: list[LimitIte
                 if not ok or rider_id is None:
                     if not ok:
                         unknown.add(name)
+                    else:
+                        out.notes.append(f"'{c.base}'에 대한 {c.kind} 제약의 대상 '{name}'이(가) 주계약이라 건너뜀")
                     continue
                 row_id = ids.constraint_id(target.variant_id, base_id, rider_id, c.kind)
                 if row_id in out.origin:

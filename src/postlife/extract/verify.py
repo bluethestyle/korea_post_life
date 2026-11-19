@@ -41,6 +41,7 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
       "○○보장개시일 이후"라는 조건이 들어 있는지 없는지를 고르게 한다. 원문에 보장개시일 문구가 없으면 묻지 않는다.
       (참·거짓으로 물으면 맞는 줄도 0.5~0.8에 머물렀고, 둘 중 고르게 하면 대부분 0.95를 넘었다.)
     - 지급한도: 적은 글자가 원문에 그대로 있으면 코드 확인으로 끝내고, 없을 때만 묻는다.
+      비율을 곱하는 급부의 한도 칸에 든 "× 해당 장해지급률"은 지급액 문항에서 보므로, 나머지 조건이 원문에 없을 때만 묻는다.
     """
     who = f"지급구분 '{b.name}'" + (f"에서 '{b.target}'을 보장하는 줄" if b.target else "")
 
@@ -51,20 +52,19 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
     out: dict[str, tuple[dict, Any]] = {}
     reduced = b.reduced_amount is not None and b.reduced_months is not None
     extra = squash(b.amount_text).replace(money_token(b.amount_text), "")
-    if "×" in b.quote or "×" in b.limit or "×" in b.amount_text or "지급률" in b.limit:
-        formula = True
+    # quote는 보지 않는다. 옆줄의 "×"가 섞여 든 quote 때문에 정액 급부를 비율식으로 묻는 일이 있었다
+    rate = "×" in b.limit or "×" in b.amount_text or "지급률" in b.limit
+    if rate:
         out["기준지급금액만원"] = (statement(f"원문 표에 {who}이 있고, 그 지급액은 {_money(b.amount)}에 해당 지급률을 곱한 금액이다"), True)
     elif extra and not reduced:
         # "2,000만 원 + 플러스적립금", "매월 60만 원 (최초 36개월 보증지급)"처럼 금액에 설명이 붙은 칸은 적힌 글자를 묻는다
-        formula = True
         out["기준지급금액만원"] = (statement(f"원문 표에 {who}이 있고, 지급액 칸에 '{b.amount_text}'(이)라고 적혀 있다 "
                                        "(줄이 갈려 있어도 같은 칸이면 이어 읽는다)"), True)
     else:
-        formula = False
         late = " (경과기간에 따라 금액이 나뉘어 있으면 가장 늦은 구간의 금액을 지급액으로 본다)"
         out["기준지급금액만원"] = (statement(f"원문 표에 {who}이 있고, 그 지급액은 {_money(b.amount)}이다{late}"), True)
     if reduced:
-        times = "에 해당 지급률을 곱한 금액" if formula else ""       # "500만원 × 해당 장해지급률"로 적힌 감액
+        times = "에 해당 지급률을 곱한 금액" if rate else ""       # "500만원 × 해당 장해지급률"로 적힌 감액
         cut = f"계약일부터 {_span(b.reduced_months, b.period_text)}에는 {_money(b.reduced_amount)}{times}"
         if b.reduced2_amount is not None and b.reduced2_months is not None:
             cut += f", {_span(b.reduced2_months, b.period2_text)}에는 {_money(b.reduced2_amount)}{times}"
@@ -75,7 +75,7 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
     if b.exception and not limit_in_source(b.exception, squash(source)):
         out["감액예외"] = (statement(f"{who}에는 '{b.exception}'(이)라는 감액 예외가 표나 주석에 적혀 있다 "
                                  "(줄이 갈려 있어도 같은 칸이나 같은 문장이면 이어 읽는다)"), True)
-    if "보장개시일" in source:
+    if "보장개시일" in squash(source):      # "암보장\n개시일"처럼 줄이 갈린 글도 본다
         case = f"'{b.target}'에 해당하는 경우" if b.target else "경우"
         out["면책기간일수"] = ({
             "type": "choice",
@@ -90,7 +90,9 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
                          {AFTER_START: "그 경우의 지급사유 문장에 '○○보장개시일 이후'라는 말이 들어 있다",
                           FROM_DAY_ONE: "그 경우의 지급사유 문장에 보장개시일이라는 말이 없다"}),
         }, AFTER_START if b.waiting_days else FROM_DAY_ONE)
-    if b.limit and not formula and not limit_in_source(b.limit, squash(source)):
+    # 곱하는 비율을 적은 조각("× 해당 장해지급률")은 한도 조건이 아니다. 지급액 문항에서 본다
+    asked = ", ".join(x.strip() for x in b.limit.split(",") if "×" not in x and "지급률" not in x) if rate else b.limit
+    if asked and not limit_in_source(asked, squash(source)):
         out["지급횟수제한"] = (statement(f"{who}의 지급 횟수·한도 조건은 '{b.limit}'이고, 원문에 적힌 조건에서 빠진 말이 없다"), True)
     return out
 

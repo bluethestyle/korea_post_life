@@ -17,6 +17,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .. import ids
+
 _PAGE = re.compile(r"\n?===== (\d+)쪽 =====\n")
 _STARTS = (
     re.compile(r"^[②2][\s.)]*보험금\s*지급사유\s*$"),
@@ -28,6 +30,8 @@ _ENDS = (
     re.compile(r"^(?:\d+\.\s*)?보험료\s*산출기초"),
     re.compile(r"^□\s*보험금\s*지급제한\s*사항"),
 )
+# 목차 줄: 제목 뒤에 점선이나 빈칸을 두고 쪽 번호가 붙는다. 예: "나. 보험금 지급사유 및 … 지급제한 사유 ····· 15". 절 제목으로 보지 않는다
+_TOC_LINE = re.compile(r"(?:[.·…‥]{2,}|\s)\s*\d{1,3}$")
 _NUMBER_ONLY = re.compile(r"^\d+\.$")        # 절 번호만 따로 한 줄에 적힌 경우. 예: "4." 다음 줄에 "보험료 산출기초"
 _HEAD = re.compile(r"^■\s*(.+?)\s*$")
 # "■"가 빠진 머리줄. 쪽의 첫 줄에 특약 이름만 적혀 있고 바로 아래에서 표가 시작될 때만 머리줄로 본다.
@@ -82,10 +86,14 @@ def _lines(pages: dict[int, str]) -> list[tuple[int, str]]:
 
 def _bounds(lines: list[tuple[int, str]]) -> tuple[int, int]:
     """보험금 지급사유 절의 (제목 줄, 끝 다음 줄) 위치."""
-    start = next((i for i, (_, l) in enumerate(lines) if any(p.match(l.strip()) for p in _STARTS)), None)
+    def heads(i: int, patterns: tuple[re.Pattern[str], ...]) -> bool:
+        line = lines[i][1].strip()
+        return not _TOC_LINE.search(line) and any(p.match(line) for p in patterns)
+
+    start = next((i for i in range(len(lines)) if heads(i, _STARTS)), None)
     if start is None:
         raise ValueError("'보험금 지급사유' 절을 찾지 못했습니다")
-    end = next((i for i in range(start + 1, len(lines)) if any(p.match(lines[i][1].strip()) for p in _ENDS)), len(lines))
+    end = next((i for i in range(start + 1, len(lines)) if heads(i, _ENDS)), len(lines))
     if end < len(lines) and end - 1 > start and _NUMBER_ONLY.match(lines[end - 1][1].strip()):
         end -= 1                # 다음 절의 번호가 제목 윗줄에 따로 적혀 있으면 그 줄도 뺀다
     return start, end
@@ -191,16 +199,27 @@ def scope_matches(scope: str, variant_name: str) -> bool:
     "[일반가입형 및 건강가입형]"은 "일반가입형"과 "건강가입형"에, "[간편가입형]"은 "간편가입형(1년)"처럼
     그 글자로 시작하는 종형 모두에 해당한다.
     """
+    return scope_fit(scope, variant_name) > 0
+
+
+def scope_fit(scope: str, variant_name: str) -> int:
+    """가입유형 표시가 이 종형에 얼마나 꼭 맞는가. 해당하지 않으면 0, 해당하면 맞은 글자 수(표시가 비어 있으면 1).
+
+    한 조각에 "[간편가입형]"과 "[간편가입형(1년)]"이 함께 있을 때 "간편가입형(1년)" 종형이 더 꼭 맞는 표만 읽게 하는 데 쓴다.
+    """
     if not scope.strip():
-        return True
+        return 1
     name = variant_name.replace(" ", "")
-    return any(name.startswith(part.replace(" ", "")) for part in _SCOPE_SPLIT.split(scope.strip()) if part.strip())
+    parts = [part.replace(" ", "") for part in _SCOPE_SPLIT.split(scope.strip()) if part.strip()]
+    return max((len(part) for part in parts if name.startswith(part)), default=0)
 
 
 _RENEWAL_LIST = re.compile(r"^[▪■□ㆍ·-]?\s*갱신형\s*특약\s*:?\s*$")
-_RENEWAL_GROUP = re.compile(r"^-\s*((?:\d+\s*년만기\s*,?\s*)+)자동갱신")
+# "- 10년만기, 20년만기 자동갱신"과, 앞 숫자에 "만기"를 줄여 쓴 "- 10년, 20년만기 자동갱신"을 함께 읽는다
+_RENEWAL_GROUP = re.compile(r"^-\s*((?:\d+\s*년\s*(?:만기)?\s*,?\s*)+)자동갱신")
 _RENEWAL_ITEM = re.compile(r"^[·∙ㆍ]\s*(.+)$")
 _RENEWAL_STOP = re.compile(r"^(?:[가-하]\.\s|▪|-\s)")
+_RENEWAL_NOTE = re.compile(r"^(?:※|\*|주\s*\d*\s*\))")       # 목록 사이나 끝에 붙은 주석. 앞 특약 이름에 이어 붙이지 않는다
 _PAGE_FOOT = re.compile(r"^\d+\s*/\s*\d+$")
 
 
@@ -208,9 +227,9 @@ def rider_key(name: str) -> str:
     """특약 이름을 목록과 머리줄에서 서로 맞춰 볼 수 있게 줄인다.
 
     목록에는 "…(갱신형)(무)", 급부 표의 머리줄에는 "…(갱신형)(TA1.1) 무배당"으로 적힌다. 끝의 표기와 빈칸,
-    가운뎃점 모양 차이를 없앤다.
+    가운뎃점 모양 차이를 없앤다. 이름 앞에 붙은 "(무)", "무배당"도 뗀다.
     """
-    key = re.sub(r"\s+", "", name)
+    key = re.sub(r"\s+", "", ids.strip_dividend(name))
     key = re.sub(r"(?:\((?:무|K?TA[\d.]+)\))?(?:무배당)?$", "", key)
     return re.sub(r"[·∙ㆍ•]", "·", key)
 
@@ -242,7 +261,10 @@ def renewal_periods(pages: dict[int, str]) -> dict[str, list[int]]:
         group = _RENEWAL_GROUP.match(line)
         if group:
             close()
-            years = [int(n) for n in re.findall(r"(\d+)\s*년만기", group.group(1))]
+            years = [int(n) for n in re.findall(r"(\d+)\s*년", group.group(1))]
+            continue
+        if _RENEWAL_NOTE.match(line):
+            close()
             continue
         item = _RENEWAL_ITEM.match(line)
         if item:

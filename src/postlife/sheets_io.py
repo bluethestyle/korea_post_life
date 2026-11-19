@@ -111,7 +111,7 @@ class RestBackend:
         except RuntimeError as e:
             # 새 값이 시트의 마지막 행까지 찼으면 그 아래는 격자 밖이라 지울 것이 없다
             if "exceeds grid limits" not in str(e):
-                raise
+                raise RuntimeError(f"{tab}: 새 값은 썼지만 그 아래에 남은 옛 행을 지우지 못했습니다. 다시 실행해 지워야 합니다 ({e})") from e
 
     def append(self, tab: str, values: list[list[Any]]) -> None:
         self._request(
@@ -169,6 +169,7 @@ def _from_cell(value: Any, kind: str = "str") -> Any:
 
 
 def rows_to_values(tab: Tab, rows: Iterable[Row]) -> list[list[Any]]:
+    rows = list(rows)       # 제너레이터로 받아도 아래에서 두 번 훑을 수 있게 한다
     unknown = {k for r in rows for k in r} - set(tab.header) if rows else set()
     if unknown:
         raise ValueError(f"{tab.name}: 정의되지 않은 열 {sorted(unknown)}")
@@ -183,7 +184,7 @@ def values_to_rows(tab: Tab, values: list[list[Any]]) -> list[Row]:
         raise ValueError(f"{tab.name}: 머리행이 정의와 다릅니다. 시트={header}")
     rows = []
     for raw in values[1:]:
-        if not any(v != "" for v in raw):
+        if not any(v != "" for v in raw[:len(header)]):     # 머리글 밖 칸에 적힌 메모는 행으로 치지 않는다
             continue
         padded = list(raw) + [""] * (len(header) - len(raw))
         rows.append({c.name: _from_cell(v, c.type) for c, v in zip(tab.columns, padded)})
@@ -197,6 +198,8 @@ def merge_replace(
     """지정한 종형의 기존 행만 걷어내고 새 행을 합친다.
 
     하위 탭에는 종형ID 열이 없으므로 종형ID → 특약ID → 급부ID 사슬로 찾는다.
+    사슬이 끊긴 행도 걷어낸다. 특약 탭까지 쓰고 급부 탭에서 실패한 뒤 다시 돌리면, 특약 탭에서 이미 사라진 옛 특약의
+    급부는 사슬로 찾을 수 없다. 특약ID와 급부ID는 "종형ID_T…"로 시작하므로 그 머리글자로도 찾는다.
     existing에는 replace 탭 전체가 들어 있어야 한다.
     only를 주면 그 탭만 바꾼 결과를 돌려준다. 가입조건만 다시 뽑을 때 급부 탭을 건드리지 않기 위함이다.
     """
@@ -208,11 +211,16 @@ def merge_replace(
     old_riders = {r["특약ID"] for r in existing["sys_특약"] if r["종형ID"] in variant_ids}
     old_benefits = {r["급부ID"] for r in existing["sys_급부"] if r["특약ID"] in old_riders}
     owned = {"종형ID": variant_ids, "특약ID": old_riders, "급부ID": old_benefits}
+    heads = tuple(f"{v}_T" for v in variant_ids)
+
+    def mine(tab: Tab, row: Row) -> bool:
+        parent = row[tab.parent]
+        return parent in owned[tab.parent] or (tab.parent != "종형ID" and str(parent).startswith(heads))
 
     merged: dict[str, list[Row]] = {}
     for name in (only or replace_tabs):
         tab = TABS[name]
-        kept = [r for r in existing[name] if r[tab.parent] not in owned[tab.parent]]
+        kept = _without_repeats(tab, [r for r in existing[name] if not mine(tab, r)])
         added = list(new.get(name, []))
         keys = [r[tab.key] for r in kept + added]
         dup = {k for k in keys if keys.count(k) > 1}
@@ -220,6 +228,22 @@ def merge_replace(
             raise ValueError(f"{name}: 기본키 중복 {sorted(dup)[:5]}")
         merged[name] = sorted(kept + added, key=lambda r: str(r[tab.key]))
     return merged
+
+
+def _without_repeats(tab: Tab, rows: list[Row]) -> list[Row]:
+    """내용까지 같은 행이 두 번 있으면 하나만 남긴다.
+
+    탭을 줄여 쓴 뒤 그 아래 옛 행을 지우지 못하면 다른 종형의 같은 행이 꼬리에 한 번 더 남는다. 그대로 두면
+    다음 실행이 기본키 중복으로 멈춘다. ID만 같고 내용이 다른 행은 남겨 두어 중복 검사에 걸리게 한다.
+    """
+    seen: dict[Any, Row] = {}
+    out = []
+    for row in rows:
+        if row[tab.key] in seen and seen[row[tab.key]] == row:
+            continue
+        seen.setdefault(row[tab.key], row)
+        out.append(row)
+    return out
 
 
 def merge_mapping(existing: list[Row], proposed: list[Row]) -> list[Row]:

@@ -63,3 +63,9 @@ def test_disease_code_order_understands_subcodes():
            "시작코드": "I63.0", "끝코드": "I63"}
     assert check_row("hum_표준질병군", row) == []
     assert any("앞섬" in p for p in check_row("hum_표준질병군", {**row, "시작코드": "I64"}))
+
+
+def test_amounts_that_could_not_be_read_do_not_pass():
+    assert any("기준가입금액만원" in p for p in check_row("sys_급부", benefit(기준가입금액만원=0.0)))
+    assert any("기준지급금액만원" in p for p in check_row("sys_급부", benefit(기준지급금액만원=0)))
+    assert check_row("sys_급부", benefit(기준가입금액만원=0.5, 기준지급금액만원=0.05)) == []

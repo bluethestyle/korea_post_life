@@ -179,3 +179,152 @@ def test_multiplier_is_kept_in_the_limit_column():
                                        "quote": "1,000만원 × 해당 장해지급률"}]}, "m")
     assert ex.benefits[0].amount == 1000 and ex.benefits[0].limit == "× 해당 장해지급률"
     assert B.benefit_rows("V", ex)[0]["지급횟수제한"] == "× 해당 장해지급률"
+
+
+# ---------- 검토 지적 1~8 ----------
+
+def _item(**over):
+    item = {"name": "진단보험금", "target": "", "amount": "1,000만원", "reduced_period": "", "reduced_amount": "",
+            "reduced2_period": "", "reduced2_amount": "", "reduction_exception": "", "start_condition": "", "limit": "",
+            "role": "주급부", "quote": ""}
+    item.update(over)
+    return item
+
+
+def test_money_with_decimal_units_hundreds_and_loose_won():
+    cases = {"1.5억원": 15000, "1.2억원": 12000, "2.5천만원": 2500, "5백만원": 500, "1천5백만원": 1500, "2만5,000원": 2.5,
+             "1억 2천5백만원": 12500}
+    for text, want in cases.items():
+        assert B.parse_money(text) == want, text
+    assert B.money_token("연간 1.5억원 한도") == "1.5억원" and B.money_token("1일당 2만5,000원") == "2만5000원"
+    assert B.money_token("진단시 5백만원") == "5백만원"
+    # 전부터 읽던 꼴은 그대로다. 단위가 붙은 금액이 숫자와 "원"만 있는 금액보다 먼저다
+    assert B.parse_money("5,000원") == 0.5 and B.parse_money("수수료 5,000원, 한도 1,000만원") == 1000
+    assert B.money_token("2.5만원") == "2.5만원" and B.parse_money("37.5만원") == 37.5
+
+
+def test_period_reads_the_end_of_a_range():
+    cases = {"1년이상 2년미만": (24, "2년미만"), "180일초과 1년미만": (12, "1년미만"), "1년6개월미만": (18, "1년6개월미만"),
+             "180일이내": (6, "180일이내"), "보험계약일부터 1년 미만": (12, "1년미만"), "1년 이상": (12, "1년")}
+    for text, (months, token) in cases.items():
+        assert (B.parse_months(text), B.period_token(text)) == (months, token), text
+    from postlife.extract import verify as V
+    assert V._span(12, "180일초과 1년미만") == "12개월 미만" and V._span(6, "180일이내") == "180일이내"
+
+
+def test_limit_with_another_amount_is_not_in_the_source():
+    flat = B.squash("수술을 받았을 때 (수술 1회당) 1년미만 50만원 ※ 단, 재해로 인한 수술시 100만원 1년이상 100만원 (연간 1,000만원 한도)")
+    assert B.limit_in_source("재해로 인한 수술시 100만원", flat) and B.limit_in_source("연간 1,000만원 한도", flat)
+    assert not B.limit_in_source("재해로 인한 수술시 500만원", flat)       # 금액만 다른 글자
+    assert not B.limit_in_source("연간 5,000만원 한도", flat)
+    assert not B.limit_in_source("700만원", flat) and not B.limit_in_source(",", flat)      # 금액뿐인 글자, 빈 글자
+    # 원문 쪽에 끼어든 다른 칸의 글자는 전처럼 건너뛴다
+    mixed = B.squash("입원하였을 때 (1일 이상 입원\n보험계약일부터\n2만원\n일수 1일당, 120일 한도)")
+    assert B.limit_in_source("1일 이상 입원일수 1일당, 120일 한도", mixed)
+    assert B.limit_in_source("3일 초과 입원일수 1일당, 60일 한도", B.squash("(3일 초과 입원일수 1\n2만원 1만원\n일당, 60일 한도)"))
+    assert not B.limit_in_source("120일 한도", B.squash("입원 1\n2만원\n20일 한도"))      # 숫자 가운데는 가르지 않는다
+    block = Block("t", "■ t\n수술 1회당 1년미만 50만원 ※ 단, 재해로 인한 수술시 100만원 1년이상 100만원", 1, 1)
+    ex = B.parse(block, {"benefits": [_item(name="수술자금", amount="100만원", reduced_period="1년미만", reduced_amount="50만원",
+                                            reduction_exception="재해로 인한 수술시 70만원", limit="수술 1회당")]}, "m")
+    assert B.literal_problems(ex) == {"수술자금": ["감액예외"]}
+    from postlife.extract import verify as V
+    assert "감액예외" in V.checks(ex.benefits[0], block.text)
+
+
+def test_tail_of_a_larger_number_is_not_in_the_source():
+    block = Block("t", "■ t\n진단 확정시 12년미만 150만원 12년이상 1,500만원\n입원 2.5만원", 1, 1)
+    ex = B.parse(block, {"benefits": [_item(amount="500만원", reduced_period="2년미만", reduced_amount="50만원"),
+                                      _item(name="입원보험금", amount="5만원")]}, "m")
+    assert B.literal_problems(ex) == {"진단보험금": ["기준지급금액만원", "감액지급률1", "감액개월1"], "입원보험금": ["기준지급금액만원"]}
+    # 옆 칸의 숫자가 줄바꿈으로만 붙어 있는 글자는 그대로 찾는다
+    near = Block("t", "■ t\n1년미만 500만원 ※ 단, 계약일부터 180\n1년미만\n일이내 수술시 250만원\n1년이상\n1,000만원", 1, 1)
+    ex = B.parse(near, {"benefits": [_item(reduced_period="1년미만", reduced_amount="500만원")]}, "m")
+    assert B.literal_problems(ex) == {}
+
+
+def test_waiting_days_follow_the_closest_definition():
+    two = {"암보장개시일": 90, "특정암보장개시일": 180}
+    assert B.waiting_days_of({"start_condition": "특정암보장개시일"}, two) == (180, "")
+    assert B.waiting_days_of({"start_condition": "암보장개시일"}, two) == (90, "")
+    worded = {"이특약의암보장개시일": 90, "이특약의특정암보장개시일": 180}      # 정의 문장의 앞말이 이름에 붙어 읽힌 경우
+    assert B.waiting_days_of({"start_condition": "특정암 보장개시일"}, worded) == (180, "")
+    assert B.waiting_days_of({"start_condition": "암보장개시일"}, worded) == (90, "")
+    one = {"암보장개시일": 90}
+    source = B.squash("치매보장개시일 이후에 진단 확정 시 / 암보장개시일은 계약일부터 90일이 지난날의 다음날")
+    days, trouble = B.waiting_days_of({"start_condition": "치매보장개시일"}, one, source)       # 원문에 따로 적힌 다른 보장개시일
+    assert days == 0 and "찾지 못함" in trouble
+    assert B.waiting_days_of({"start_condition": "악성종양보장개시일"}, one, source) == (90, "")   # 원문에 없는 이름은 달리 적은 것으로 본다
+    assert B.waiting_days_of({"start_condition": "보장개시일"}, one, source) == (0, "")           # 이름 없는 보장개시일은 계약일
+
+
+def test_waiting_definition_with_other_starting_days_and_wording():
+    assert B.waiting_definitions("암보장개시일은 제1회 보험료를 받은 날부터 그 날을 포함하여 90일이 지난 날의 다음날") == {"암보장개시일": 90}
+    assert B.waiting_definitions("암보장개시일(이하 같습니다)은 계약일부터 90일이 경과한 날의 다음날") == {"암보장개시일": 90}
+    assert B.waiting_definitions("치매보장개시일은 책임개시일부터 그 날을 포함하여 1년이 지난 날의 다음날") == {"치매보장개시일": 365}
+    assert B.waiting_definitions("암보장개시일은 갱신일로 하며, 지급사유가 1년이 경과되어 발생하더라도") == {}
+
+
+def test_partial_limit_behind_a_closed_bracket_and_unit_pieces():
+    flat = B.squash("진단 확정시 (단, 암(유사암 제외) 최초 1회에 한함) 1,000만원 / 수술시(수술 1회당) 30만원")
+    assert B.limit_is_partial("최초 1회에 한함", flat)
+    assert not B.limit_is_partial("암(유사암 제외) 최초 1회에 한함", flat) and not B.limit_is_partial("수술 1회당", flat)
+    # 금액 칸에서 옮겨 온 짧은 단위("1일당")도 조각으로 센다
+    block = Block("t", "■ t\n질병으로 입원하였을 때 (120일 한도) 1일당 2만원", 1, 1)
+    ex = B.parse(block, {"benefits": [_item(name="입원보험금", amount="2만원", limit="120일 한도")]}, "m")
+    assert ex.benefits[0].limit == "1일당, 120일 한도" and B.literal_problems(ex) == {}
+    assert not B.limit_in_source("1일당, 90일 한도", B.squash(block.text))
+
+
+def test_reduction_tiers_are_ordered_and_checked():
+    block = Block("t", "■ t\n(가입금액 1,000만원 기준)\n1년미만 500만원 ※ 단, 계약일부터 180일이내 250만원 1년이상 1,000만원", 1, 1)
+    swapped = _item(reduced_period="1년미만", reduced_amount="500만원", reduced2_period="180일이내", reduced2_amount="250만원")
+    ex = B.parse(block, {"benefits": [swapped]}, "m")
+    row = B.benefit_rows("V", ex)[0]
+    assert ex.problems == [] and B.literal_problems(ex) == {}
+    assert (row["감액개월1"], row["감액지급률1"], row["감액개월2"], row["감액지급률2"]) == (6, 0.25, 12, 0.5)
+    assert ex.benefits[0].period_text == "180일이내" and ex.benefits[0].reduced2_text == "500만원"
+    bad = [_item(name="가", reduced_period="180일이내", reduced_amount="250만원", reduced2_period="1년미만", reduced2_amount="1,000만원"),
+           _item(name="나", reduced2_period="1년미만", reduced2_amount="500만원"),
+           _item(name="다", reduced_period="1년미만", reduced_amount="250만원", reduced2_period="1년이내", reduced2_amount="500만원")]
+    text = " / ".join(B.parse(block, {"benefits": bad}, "m").problems)
+    assert "둘째 감액 금액이 지급액보다 작지 않음: 가" in text and "둘째 구간만 적힘: 나" in text and "기간이 같음: 다" in text
+
+
+def test_limit_is_judged_for_amounts_with_notes_and_rates():
+    from postlife.extract import verify as V
+
+    source = "■ t\n생활자금 진단 확정시 매월 60만원 (최초 36개월 보증지급)\n장해보험금 1,000만원 × 해당 장해지급률"
+
+    def benefit(**over):
+        base = dict(name="생활자금", target="", amount=60.0, waiting_days=0, limit="", role="주급부", quote="", amount_text="60만원")
+        base.update(over)
+        return B.Benefit(**base)
+
+    asked = V.checks(benefit(amount_text="매월 60만원", limit="최초 12개월 보증지급"), source)
+    assert "지급액 칸에 '매월 60만원'" in asked["기준지급금액만원"][0]["instructions"] and "지급횟수제한" in asked
+    assert "지급횟수제한" not in V.checks(benefit(amount_text="매월 60만원", limit="최초 36개월 보증지급"), source)
+    rate = dict(name="장해보험금", amount=1000.0, amount_text="1,000만원")
+    assert "지급횟수제한" not in V.checks(benefit(limit="× 해당 장해지급률", **rate), source)       # 곱하는 비율은 지급액 문항에서 본다
+    assert "지급횟수제한" not in V.checks(benefit(limit="해당 장해지급률", **rate), "장해보험금 1,000만원 ×\n다른 칸\n해당\n장해지급률")
+    asked = V.checks(benefit(limit="× 해당 장해지급률, 최초 2회한", **rate), source)
+    assert "곱한 금액" in asked["기준지급금액만원"][0]["instructions"] and "지급횟수제한" in asked
+
+
+def test_start_condition_is_judged_when_the_word_is_split_across_lines():
+    from postlife.extract import verify as V
+
+    b = B.Benefit(name="암진단보험금", target="", amount=100.0, waiting_days=90, limit="", role="주급부", quote="", amount_text="100만원")
+    assert "면책기간일수" in V.checks(b, "암보장\n개시일 이후에 암으로 진단 확정시 100만원")
+    assert "면책기간일수" not in V.checks(b, "보험기간 중 암으로 진단 확정시 100만원")
+
+
+def test_multiplier_in_a_neighbouring_row_does_not_make_a_fixed_amount_a_rate():
+    from postlife.extract import verify as V
+
+    block = Block("t", "■ t\n입원보험금 60만원\n장해보험금 1,000만원 ×\n해당 장해지급률", 1, 1)
+    ex = B.parse(block, {"benefits": [_item(name="입원보험금", amount="60만원", quote="60만원 1,000만원 × 해당"),
+                                      _item(name="장해보험금", quote="1,000만원 × 해당 장해지급률")]}, "m")
+    fixed, rate = ex.benefits
+    assert fixed.limit == "" and rate.limit == "× 해당 장해지급률"
+    assert "곱한 금액" not in V.checks(fixed, block.text)["기준지급금액만원"][0]["instructions"]
+    assert "곱한 금액" in V.checks(rate, block.text)["기준지급금액만원"][0]["instructions"]

@@ -14,6 +14,14 @@ from . import verify as V
 TAB_OF = {"가입나이": "sys_가입조건", "가입한도": "sys_가입조건", "결합제약": "sys_결합제약"}
 
 
+def _about(problem: str, key: str) -> bool:
+    """문제 문장이 그 항목의 것인가. conditions.parse가 적는 문제는 "…: 항목 키"로 끝난다.
+
+    키가 문장 어딘가에 들어 있는지만 보면, 이름이 더 긴 다른 항목의 문제("…: 가특약(1종)")가 "가특약" 항목의 것으로 잡힌다.
+    """
+    return problem.endswith(f": {key}")
+
+
 @dataclass
 class _Shot:
     ex: C.Extracted
@@ -21,7 +29,7 @@ class _Shot:
     literal: dict[str, list[str]]
 
     def flawed(self, key: str) -> bool:
-        return bool(self.literal.get(key)) or any(key in p for p in self.ex.problems)
+        return bool(self.literal.get(key)) or any(_about(p, key) for p in self.ex.problems)
 
     def band(self, key: str, thresholds: dict[str, float]) -> tuple[str, str, float]:
         return V.classify(self.probs.get(key, {}), thresholds)
@@ -31,12 +39,20 @@ class _Shot:
         keys = [i.key for i in self.ex.items]
         bands = {k: self.band(k, thresholds)[0] for k in keys}
         hard = sum(1 for k in keys if self.flawed(k) or bands[k] == "재추출")
-        hard += sum(1 for p in self.ex.problems if not any(k in p for k in keys))
+        hard += sum(1 for p in self.ex.problems if not any(_about(p, k) for k in keys))
         soft = sum(1 for k in keys if bands[k] == "검토" and not self.flawed(k))
         return (hard, soft, -V.worst(self.probs))
 
+    @property
+    def empty(self) -> bool:
+        """가입나이·가입한도 절에서 항목이 하나도 없는가. 이 절들에는 줄이 적어도 하나 있으므로 0건은 잘못 뽑은 것이다.
+
+        결합제약은 옮길 제약이 없는 절도 있어 0건이 맞는 답일 수 있다.
+        """
+        return not self.ex.items and self.ex.kind != "결합제약"
+
     def needs_retry(self, thresholds: dict[str, float]) -> bool:
-        return self.score(thresholds)[0] > 0
+        return self.empty or self.score(thresholds)[0] > 0
 
     def feedback(self, thresholds: dict[str, float]) -> list[str]:
         out = list(self.ex.problems)
@@ -73,7 +89,7 @@ def run_section(gemini: Any, kind: str, section: C.Section, thresholds: dict[str
                     (f", 형식 문제 {len(ex.problems)}건" if ex.problems else ""), model=model)
             continue
         was, now = best.score(thresholds), got.score(thresholds)
-        better = bool(got.ex.items) and now < was
+        better = bool(got.ex.items) and (best.empty or now < was)
         log.add("재추출", target, "통과" if better else "반려",
                 f"{kind} 절: 틀렸다고 볼 항목 {was[0]}건 → {now[0]}건, 사람이 볼 항목 {was[1]}건 → {now[1]}건. " +
                 ("다시 뽑은 값으로 바꿈" if better else "앞선 값을 유지"), model=model, prob=V.worst(got.probs),
@@ -131,7 +147,7 @@ def run(gemini: Any, method_pages: dict[int, str], summary_pages: dict[int, str]
         jobs.append(("결합제약", "결합제약(요약서)", C.Section("결합제약", eligible.text, eligible.first_page, eligible.last_page)))
 
     items: dict[str, list[Any]] = {"가입나이": [], "가입한도": [], "결합제약": []}
-    dropped: list[tuple[str, Any]] = []
+    dropped: list[tuple[str, Any, str, str, float]] = []      # (종류, 항목, 절 이름, 칸, 확률)
     status: dict[str, tuple[str, str, float, int]] = {}           # 항목 키 → (구간, 칸, 확률, 쪽)
     for kind, label, section in jobs:
         log = logs[TAB_OF[kind]]
@@ -140,16 +156,24 @@ def run(gemini: Any, method_pages: dict[int, str], summary_pages: dict[int, str]
             result.notes.append(f"{label} 절을 뽑지 못함")
             continue
         result.shots[label] = shot
+        if shot.empty:
+            result.notes.append(f"{label} 절에서 항목을 하나도 뽑지 못함")
         for item in shot.ex.items:
             band, name, low = shot.band(item.key, thresholds)
             if band == "확정" and shot.flawed(item.key):
                 band, name = "검토", ", ".join(shot.literal.get(item.key, [])) or name
-            if item.key not in status or band != "확정":
+            # 같은 항목이 두 절(사업방법서와 요약서)에서 나오기도 한다. 한쪽이라도 행으로 만들면 그쪽 판정을 남긴다:
+            # 행으로 만든 것들 가운데서는 검토가 확정을 덮고, 재추출은 행으로 만든 쪽의 판정을 덮지 않는다
+            old = status.get(item.key)
+            if old is None or old[0] == "재추출" or band == "검토":
                 status[item.key] = (band, name, low, section.first_page)
             if band != "재추출":          # 다시 뽑아도 재추출 구간인 항목은 행으로 만들지 않는다
                 items[kind].append(item)
             else:
-                dropped.append((kind, item))
+                dropped.append((kind, item, label, name, low))
+    # 한 절에서는 재추출 구간이었지만 다른 절에서 뽑은 같은 항목으로 행을 만든 것은 "시트에 쓰지 않음"이 아니다
+    shadowed = [d for d in dropped if status[d[1].key][0] != "재추출"]
+    dropped = [d for d in dropped if status[d[1].key][0] == "재추출"]
 
     built = C.build_rows(targets, items["가입나이"], items["가입한도"], items["결합제약"])
     result.conditions, result.constraints, result.amounts = built.conditions, built.constraints, built.amounts
@@ -173,7 +197,11 @@ def run(gemini: Any, method_pages: dict[int, str], summary_pages: dict[int, str]
                 log.add("사람검토이관", target, "보류", f"{kind} {item.key}: {name} 확인 필요 (근거 {page}쪽)"[:300],
                         model=config.MODEL_DECIDE, prob=low, column=name)
                 result.review.append(f"- {kind} · {item.key}: {name} {low:.2f} ({page}쪽)")
-    for kind, item in dropped:
+    for kind, item, label, name, low in shadowed:
+        logs[TAB_OF[kind]].add("판정", first_row.get(item.key, f"{anchor}:{item.key}"[:120]), "반려",
+                               f"{kind}: {item.key} — {label} 절에서는 원문과 맞지 않아 보임. 다른 절에서 뽑은 같은 항목으로 시트에 씀"[:300],
+                               model=config.MODEL_DECIDE, prob=low, column=name)
+    for kind, item, _, _, _ in dropped:
         band, name, low, page = status[item.key]
         target = f"{anchor}:{item.key}"[:120]
         logs[TAB_OF[kind]].add("판정", target, "반려", f"{kind}: {item.key} — 다시 뽑아도 원문과 맞지 않아 보여 시트에 쓰지 않음"[:300],

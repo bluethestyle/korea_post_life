@@ -13,7 +13,7 @@ from ..gemini import GeminiError
 from ..worklog import WorkLog
 from . import benefits as B
 from . import verify as V
-from .segment import Block, renewal_periods, rider_blocks, rider_key, scope_matches, scope_parts
+from .segment import Block, renewal_periods, rider_blocks, rider_key, scope_fit, scope_parts
 
 FIELD_NAMES = {"기준지급금액만원": "지급액", "감액지급률1": "감액 기간·금액(없으면 빈칸)", "면책기간일수": "보장개시일 조건(start_condition)", "지급횟수제한": "지급 한도(limit)", "감액예외": "감액 예외(reduction_exception)"}
 # 2026-11-18 우체국 요약서 2건으로 맞춘 값 (docs/progress.md). 시트의 hum_기준값이 있으면 그 값을 쓴다.
@@ -49,11 +49,33 @@ def thresholds_from(rows: list[dict[str, Any]]) -> dict[str, float]:
 _AMOUNT_FIELDS = {"기준지급금액만원", "감액지급률1", "감액지급률2", "감액개월1", "감액개월2", "지급한도일부"}
 
 
+def _about(problem: str, label: str, labels: list[str]) -> bool:
+    """형식 문제 한 줄이 이 급부를 가리키는가.
+
+    문제 문구에는 급부 이름이 들어 있다("…: 수술보험금(1종)"). 이름이 다른 이름의 일부일 수 있어("수술보험금"),
+    문구에 더 긴 이름이 함께 들어 있으면 그 긴 이름의 문제로 본다.
+    """
+    return label in problem and not any(other != label and label in other and other in problem for other in labels)
+
+
 @dataclass
 class _Try:
     ex: B.Extraction
     probs: dict[str, dict[str, float]]
     literal: dict[str, list[str]]
+
+    @property
+    def labels(self) -> list[str]:
+        return [b.label for b in self.ex.benefits]
+
+    @property
+    def judged(self) -> bool:
+        """판정 모델의 답을 받았는가. 판정 호출이 실패하면 확률 없이 넘어온다."""
+        return any(self.probs.get(label) for label in self.labels)
+
+    def broken(self, label: str) -> list[str]:
+        """이 급부에 걸린 형식 문제."""
+        return [p for p in self.ex.problems if _about(p, label, self.labels)]
 
     @property
     def invented(self) -> int:
@@ -62,7 +84,7 @@ class _Try:
 
     def flawed(self, label: str) -> bool:
         """코드가 문제를 잡은 줄인가 (형식 문제, 원문에 없는 금액·기간)."""
-        return bool(_AMOUNT_FIELDS & set(self.literal.get(label, []))) or any(label in p for p in self.ex.problems)
+        return bool(_AMOUNT_FIELDS & set(self.literal.get(label, []))) or bool(self.broken(label))
 
     def score(self, thresholds: dict[str, float]) -> tuple[int, int, float]:
         """작을수록 낫다: (틀렸다고 볼 줄 수, 사람이 볼 줄 수, -가장 낮은 판정 확률).
@@ -71,12 +93,26 @@ class _Try:
         사람이 볼 줄: 확률이 통과 기준에 조금 못 미친 줄. 맞는 줄도 여기에 드는 일이 있어 가볍게 센다.
         이렇게 나누지 않으면, 줄 하나를 빠뜨리고 값이 틀린 결과가 "확인할 줄이 적다"는 이유로 맞는 결과를 밀어낸다.
         """
-        labels = [b.label for b in self.ex.benefits]
+        labels = self.labels
         bands = {label: V.classify(self.probs.get(label, {}), thresholds)[0] for label in labels}
         hard = sum(1 for label in labels if self.flawed(label) or bands[label] == "재추출")
         hard += sum(1 for p in self.ex.problems if not any(label in p for label in labels))
         soft = sum(1 for label in labels if bands[label] == "검토" and not self.flawed(label))
         return (hard, soft, -V.worst(self.probs))
+
+    def beats(self, earlier: "_Try", thresholds: dict[str, float]) -> bool:
+        """다시 뽑은 이 결과가 앞선 결과보다 나은가.
+
+        점수만 견주면 두 가지가 어긋난다. 한 줄도 못 뽑은 결과는 틀린 줄이 0이라 가장 좋은 점수가 되고,
+        판정을 받지 못한 결과는 재추출 구간에 드는 줄이 없어 판정을 받은 결과보다 좋게 나온다.
+        """
+        if not self.ex.benefits:
+            return False
+        if not earlier.ex.benefits:
+            return True
+        if self.judged != earlier.judged:       # 판정을 받은 쪽이 이긴다
+            return self.judged
+        return self.score(thresholds) < earlier.score(thresholds)
 
     def needs_retry(self, thresholds: dict[str, float]) -> bool:
         return (not self.ex.benefits) or bool(self.ex.problems) or self.invented > 0 or any(
@@ -144,7 +180,7 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
             continue
         retried = True
         was, now = best.score(thresholds), got.score(thresholds)
-        better = bool(got.ex.benefits) and now < was
+        better = got.beats(best, thresholds)
         before, after = V.worst(best.probs), V.worst(got.probs)
         log.add("재추출", rider, "통과" if better else "반려",
                 f"{block.rider_name}: 틀렸다고 볼 줄 {was[0]}건 → {now[0]}건, 사람이 볼 줄 {was[1]}건 → {now[1]}건, "
@@ -166,7 +202,7 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
     for b in ex.benefits:
         target = ids.benefit_id(rider, b.label)
         band, name, low = V.classify(probs.get(b.label, {}), thresholds)
-        broken = [p for p in ex.problems if b.label in p]
+        broken = best.broken(b.label)
         if broken:
             # 값끼리 앞뒤가 안 맞는 줄(감액 금액이 지급액 이상 등)은 그대로 쓰면 틀린 값이 된다
             status[b.label] = "제외"
@@ -214,13 +250,17 @@ def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now:
     budget = budget if budget is not None else {"상위모델": config.EXTRACT_ESCALATIONS_PER_RUN}
     start = budget["상위모델"]
     units = 0
+    names = variant_names or {}
+    with_rider: set[str] = set()        # 특약 행을 이미 낸 특약ID. 한 특약이 여러 조각으로 나뉘어 와도 행은 하나다
     for block in blocks:
         parts = scope_parts(block) if variant_names else [("", block.text)]
         listed = periods.get(rider_key(block.rider_name))
         years = min(listed) if listed else plain_renewal_years
-        with_rider: set[str] = set()
+        # 종형마다 이 조각에서 가장 잘 맞는 가입유형 표시만 쓴다. "[간편가입형]"과 "[간편가입형(1년)]"이 함께 있으면
+        # "간편가입형(1년)" 종형은 뒤의 표만 읽는다. 둘 다 읽으면 같은 급부가 두 번 나온다
+        best_fit = {v: max(scope_fit(scope, names.get(v, "")) for scope, _ in parts) for v in variant_ids}
         for scope, text in parts:
-            matched = [v for v in variant_ids if not scope or scope_matches(scope, (variant_names or {}).get(v, ""))]
+            matched = [v for v in variant_ids if best_fit[v] and scope_fit(scope, names.get(v, "")) == best_fit[v]]
             if not matched:
                 continue
             units += 1
@@ -231,8 +271,9 @@ def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now:
             result.blocks.append(done)
             dropped = {label for label, state in done.status.items() if state == "제외"}
             for variant in matched:
-                if variant not in with_rider:
-                    with_rider.add(variant)
+                rider = ids.rider_id(variant, block.rider_name)
+                if rider not in with_rider:
+                    with_rider.add(rider)
                     result.riders.append(B.rider_row(variant, block, product_renewal_years, years))
                 result.benefits.extend(B.benefit_rows(variant, done.extraction, skip=dropped))
     result.logs = log.rows

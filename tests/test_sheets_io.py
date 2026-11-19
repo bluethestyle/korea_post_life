@@ -221,3 +221,84 @@ def test_overwrite_ignores_clear_beyond_the_grid():
         assert False
     except RuntimeError:
         pass
+
+
+def test_rows_given_as_a_generator_are_written():
+    tab = TABS["sys_특약"]
+    rows = [row("sys_특약", 특약ID="T1", 종형ID="V1"), row("sys_특약", 특약ID="T2", 종형ID="V1")]
+    values = rows_to_values(tab, (r for r in rows))
+    assert [v[0] for v in values] == ["T1", "T2"]
+    with pytest.raises(ValueError):
+        rows_to_values(tab, (r for r in [{"특약ID": "T", "없는열": 1}]))
+
+
+def test_note_outside_the_header_columns_does_not_make_a_row():
+    tab = TABS["sys_특약"]
+    blank = [""] * len(tab.header)
+    full = rows_to_values(tab, [row("sys_특약", 특약ID="T1", 종형ID="V1")])[0]
+    values = [tab.header, full, blank + ["", "담당자가 옆 칸에 적어 둔 메모"], full[:2] + blank[2:] + ["메모"]]
+    back = values_to_rows(tab, values)
+    assert [r["특약ID"] for r in back] == ["T1", "T1"]        # 머리글 안쪽이 빈 줄은 행이 아니다. 안쪽에 값이 있는 줄은 읽는다
+
+
+class FailsOnce(MemoryBackend):
+    """정한 탭을 처음 덮어쓸 때 한 번 실패한다."""
+
+    def __init__(self, tab):
+        super().__init__()
+        self.broken = tab
+
+    def overwrite(self, tab, values):
+        if tab == self.broken:
+            self.broken = None
+            raise RuntimeError("Sheets API 503")
+        super().overwrite(tab, values)
+
+
+def test_rerun_after_a_half_written_replace_leaves_no_orphan_rows():
+    backend = FailsOnce("sys_급부")
+    store = SheetStore(backend)
+    for name, rows in sample().items():
+        store.write_tab(name, rows) if name != "sys_급부" else MemoryBackend.overwrite(
+            backend, name, [TABS[name].header] + rows_to_values(TABS[name], rows))
+    # 다시 뽑았더니 V1의 특약이 다른 ID로 바뀌었다. 특약 탭까지 쓰고 급부 탭에서 실패한다
+    new = {"sys_상품종형": [row("sys_상품종형", 종형ID="V1", 공시상품명="상품V1")],
+           "sys_특약": [row("sys_특약", 특약ID="V1_T9", 종형ID="V1")],
+           "sys_급부": [row("sys_급부", 급부ID="V1_T9_B1", 특약ID="V1_T9")]}
+    tabs = ["sys_상품종형", "sys_특약", "sys_급부"]
+    with pytest.raises(RuntimeError):
+        store.replace_variants(new, {"V1"}, only=tabs)
+    half = store.read()
+    assert [r["특약ID"] for r in half["sys_특약"]] == ["V1_T9", "V2_T1"]
+    assert [r["급부ID"] for r in half["sys_급부"]] == ["V1_T1_B1", "V2_T1_B1"]        # 급부 탭은 옛 행 그대로다
+
+    # 다시 돌리면 특약 탭에서 이미 사라진 옛 특약(V1_T1)의 급부도 걷힌다
+    store.replace_variants(new, {"V1"}, only=tabs)
+    done = store.read()
+    assert [r["급부ID"] for r in done["sys_급부"]] == ["V1_T9_B1", "V2_T1_B1"]
+    # 넘기지 않은 탭은 그대로다. 다른 종형의 행은 이름이 비슷해도 건드리지 않는다
+    assert [r["보험료행ID"] for r in done["sys_보험료예시"]] == ["V1_T1_P1", "V2_T1_P1"]
+    other = sample()
+    other["sys_급부"].append(row("sys_급부", 급부ID="V10_T1_B1", 특약ID="V10_T1"))
+    merged = merge_replace(other, {}, {"V1"})
+    assert [r["급부ID"] for r in merged["sys_급부"]] == ["V10_T1_B1", "V2_T1_B1"]
+
+
+def test_identical_rows_left_below_a_shortened_tab_do_not_block_the_next_run():
+    # 새 값을 쓴 뒤 그 아래 옛 행을 지우지 못하면, 다른 종형의 같은 행이 꼬리에 한 번 더 남는다
+    existing = sample()
+    existing["sys_특약"].append(dict(existing["sys_특약"][1]))                # V2_T1이 두 번
+    merged = merge_replace(existing, {"sys_특약": [row("sys_특약", 특약ID="V1_T9", 종형ID="V1")]}, {"V1"})
+    assert [r["특약ID"] for r in merged["sys_특약"]] == ["V1_T9", "V2_T1"]
+    # 같은 ID인데 내용이 다르면 어느 쪽이 맞는지 알 수 없으므로 멈춘다
+    existing["sys_특약"].append(dict(existing["sys_특약"][1], 원시특약명="다른 이름"))
+    with pytest.raises(ValueError):
+        merge_replace(existing, {}, {"V1"})
+
+
+def test_failed_clear_says_old_rows_remain():
+    from postlife.sheets_io import RestBackend
+
+    session = FakeSession([FakeResp(200), FakeResp(403)])
+    with pytest.raises(RuntimeError, match="옛 행"):
+        RestBackend("SHEET", session, sleep=lambda s: None).overwrite("sys_특약", [["가"], [1]])

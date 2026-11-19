@@ -200,3 +200,20 @@ def test_eligibility_divided_by_type():
     one = C.eligibility_section(pages_from_text(SUMMARY_BY_TYPE), scope="8종")
     assert (one.first_page, one.last_page) == (36, 36)
     assert "나. 8종(일반형)" in one.text and "16세~60세" in one.text and "7종" not in one.text
+
+
+def test_table_of_contents_lines_are_not_taken_for_section_headings():
+    # 문서 앞에 목차가 있으면 절 제목과 같은 글이 점선·쪽 번호와 함께 먼저 나온다. 본문의 제목에서 절을 잡아야 한다
+    contents = """
+===== 1쪽 =====
+목 차
+1. 보험종목에 관한 사항 ·················· 3
+2. 보험기간, 보험료 납입기간, 보험료 납입주기 및 피보험자 가입나이 ·········· 3
+3. 의무가입에 관한 사항 .................. 4
+18. 기타사항 …………… 4
+"""
+    plain = C.method_sections(pages_from_text(METHOD_SINGLE))
+    assert C.method_sections(pages_from_text(contents + METHOD_SINGLE)) == plain
+    assert plain["가입나이"].first_page == 3 and "간편가입형(1년)" in plain["가입나이"].text
+    summary = "\n===== 2쪽 =====\n차 례\n□ 가입자격제한 ········ 22\n□ 상품의 특이사항 ········ 49\n" + SUMMARY_BY_TYPE
+    assert C.eligibility_section(pages_from_text(summary)) == C.eligibility_section(pages_from_text(SUMMARY_BY_TYPE))

@@ -15,19 +15,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from postlife.extract.benefits import _MONEY, squash  # noqa: E402
+from postlife.extract.benefits import _amounts, squash  # noqa: E402
 
 GOLD = Path(__file__).resolve().parents[1] / "data/goldset/epost_goldset.jsonl"
 
 
 def money_values(text: str) -> list[float]:
-    out = []
-    for m in _MONEY.finditer(squash(text)):
-        eok, cheonman, man, cheon = (float(g) if g else 0 for g in m.groups())
-        value = eok * 10000 + cheonman * 1000 + man + cheon / 10
-        if value:
-            out.append(value)
-    return out
+    return [value for _, value in _amounts(squash(text)) if value]
 
 
 def norm(text: str) -> str:

@@ -10,7 +10,10 @@ import re
 import unicodedata
 
 # 상품명·특약명에 붙는 개정 표기. 예: "2504", "(2404.10)", "2608.9"
-_REVISION = re.compile(r"\(?(?<!\d)(2\d)(0[1-9]|1[0-2])(?:\.\d+)?(?!\d)\)?")
+_REVISION = re.compile(r"(?<!\d)(2\d)(0[1-9]|1[0-2])(?:\.\d+)?(?!\d)")
+# 뗄 때는 괄호가 개정 표기만 감싼 "(2504)"는 괄호째, "(갱신형 2504)"처럼 다른 글자와 함께 든 것은 숫자만 뗀다.
+# 한쪽 괄호만 따라 떼면 "(갱신형"처럼 짝이 깨져 "(갱신형)"으로 적힌 같은 특약과 키가 갈린다
+_REVISION_MARK = re.compile(rf"\({_REVISION.pattern}\)|{_REVISION.pattern}")
 # 문서마다 다르게 적는 배당 표기. 요약서는 "(무)", 사업방법서는 "무배당"으로 적는 일이 흔하다.
 _DIVIDEND = re.compile(r"^\s*(?:\(\s*무배당\s*\)|\(\s*무\s*\)|무배당)\s*")
 _SPACES = re.compile(r"\s+")
@@ -24,7 +27,7 @@ def normalize(text: str) -> str:
 
 def strip_revision(name: str) -> str:
     """이름에서 개정 연월 표기를 뗀다. 개정 전후의 같은 특약을 잇는 데 쓴다."""
-    return _SPACES.sub(" ", _REVISION.sub(" ", str(name))).strip()
+    return _SPACES.sub(" ", _REVISION_MARK.sub(" ", str(name))).strip()
 
 
 def revision_of(name: str) -> str | None:
@@ -71,8 +74,11 @@ _SIMPLE_TYPE = re.compile(r"^간편\s*(?:[ⅠⅡⅢ]|I{1,3})(?=[가-힣])")
 
 
 # 한화생명은 특약 이름 끝에 "(KTA1.1)", "(TA2.1)" 같은 표기를 붙인다. 판이 바뀌면 숫자가 달라지므로 계보에서는 뗀다.
-# 같은 특약을 요약서의 목록은 "…(고지통합)(무)"로 적으므로 끝의 "(무)"도 뗀다
-_TAIL_CODE = re.compile(r"\s*(?:\(K?TA\d+(?:\.\d+)?\)\s*(?:무배당)?|\(무\))\s*$")
+# 같은 특약을 요약서의 목록은 "…(고지통합)(무)"로 적으므로 끝의 "(무)"도 뗀다. 배당 표기를 뒤에 적은 "…특약 무배당"도 같다
+_TAIL_CODE = re.compile(r"\s*(?:\(K?TA\d+(?:\.\d+)?\)\s*(?:무배당)?|\(무\)|무배당)\s*$")
+# 가운뎃점으로 쓰이는 글자 가운데 "·"(U+00B7)로 모으는 것들: ㆍ(U+318D, NFKC를 거치면 U+119E), •, ‧, ・, ･, ⋅.
+# "∙"(U+2219)은 모으지 않는다. "·"로 적힌 이름과 "∙"로 적힌 이름이 이미 시트에 따로 들어가 있어, 모으면 그 행들의 ID가 바뀐다
+_ODD_DOTS = re.compile("[\u318d\u119e\u2022\u2027\u30fb\uff65\u22c5]")
 
 
 def rider_lineage_key(raw_rider_name: str) -> str:
@@ -82,7 +88,7 @@ def rider_lineage_key(raw_rider_name: str) -> str:
     같은 키가 나와야 보험료와 결합 제약이 한 특약에 붙는다.
     """
     name = strip_revision(strip_dividend(raw_rider_name)).strip()
-    return short_hash(_TAIL_CODE.sub("", _SIMPLE_TYPE.sub("", name)), length=12)
+    return short_hash(_ODD_DOTS.sub("·", _TAIL_CODE.sub("", _SIMPLE_TYPE.sub("", name))), length=12)
 
 
 def rider_id(variant: str, raw_rider_name: str) -> str:
@@ -91,7 +97,8 @@ def rider_id(variant: str, raw_rider_name: str) -> str:
 
 # 급부 이름은 모델이 옮겨 적어 실행마다 구두점이 달라진다("갑상선암·기타피부암", "갑상선암, 기타피부암 또는 …").
 # ID가 흔들리면 담보 매핑이 끊기므로 구두점과 이음말을 떼고 만든다.
-_LOOSE = re.compile(r"[\s·ㆍ‧,、()\[\]~∼\-]|또는|및")
+# "ㆍ"(U+318D)는 normalize의 NFKC를 거치면 U+119E가 되므로 그 글자로 적는다. "∙"(U+2219)을 넣지 않는 까닭은 _ODD_DOTS와 같다
+_LOOSE = re.compile("[\\s·\u119e\u2022\u2027\u30fb\u22c5,、()\\[\\]~∼\\-]|또는|및")
 
 
 def benefit_id(rider: str, raw_benefit_name: str) -> str:

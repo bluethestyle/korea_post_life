@@ -62,3 +62,30 @@ def test_benefit_id_ignores_punctuation_the_model_varies():
     assert a == ids.benefit_id(r, "암진단보험금(갑상선암, 기타피부암, 대장점막내암, 제자리암 또는 경계성 종양)")
     assert a != ids.benefit_id(r, "암진단보험금(암)")
     assert ids.benefit_id(r, "수술보험금(1종)") != ids.benefit_id(r, "수술보험금(2종)")
+
+
+def test_unseen_middle_dot_shapes_are_read_as_the_plain_one():
+    plain = "뇌출혈·뇌경색진단특약"
+    for dot in "ㆍ•‧・･⋅":
+        assert ids.rider_lineage_key(plain.replace("·", dot)) == ids.rider_lineage_key(plain), dot
+        assert ids.benefit_id("R", f"가나{dot}다라보험금") == ids.benefit_id("R", "가나·다라보험금"), dot
+    assert ids.benefit_id("R", "가나ㆍ다라보험금") == ids.benefit_id("R", "가나, 다라보험금")
+    # "∙"(U+2219)은 모으지 않는다. "·"로 적힌 이름과 "∙"로 적힌 이름이 시트에 따로 들어가 있어 모으면 그 ID가 바뀐다
+    assert ids.rider_lineage_key(plain.replace("·", "∙")) != ids.rider_lineage_key(plain)
+    assert ids.benefit_id("R", "가나∙다라보험금") != ids.benefit_id("R", "가나·다라보험금")
+
+
+def test_ids_already_on_the_sheet_do_not_move():
+    # 고치기 전에 만들어져 시트에 있는 꼴들. 값이 바뀌면 담보 매핑이 끊긴다
+    assert ids.rider_lineage_key("무배당 암진단특약(20년갱신형) 2606") == "09e1800bf88a"
+    assert ids.rider_lineage_key("주계약") == "207746d1505c"
+    assert ids.rider_id("V", "급성심근경색증진단보장특약(고지통합)(KTA1.1) 무배당") == ids.rider_id(
+        "V", "급성심근경색증진단보장특약(고지통합)(무)")
+
+
+def test_trailing_dividend_mark_and_revision_inside_brackets_do_not_split_a_rider():
+    assert ids.rider_lineage_key("암진단특약 무배당") == ids.rider_lineage_key("무배당 암진단특약")
+    assert ids.rider_lineage_key("암진단특약(갱신형 2504)") == ids.rider_lineage_key("암진단특약(갱신형)")
+    assert ids.strip_revision("암진단특약(갱신형 2504)") == "암진단특약(갱신형 )"       # 닫는 괄호를 따라 떼지 않는다
+    assert ids.strip_revision("가나보험(2610.1) 8종") == "가나보험 8종" and ids.revision_of("가나보험(2610.1)") == "2610"
+    assert ids.rider_lineage_key("암진단특약(2504)") == ids.rider_lineage_key("암진단특약 2504")

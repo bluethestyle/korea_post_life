@@ -282,6 +282,38 @@ def test_scope_mark_on_a_name_is_taken_off():
     assert len(for_variant(riders, "7종(납입면제형)")) == 2
 
 
+def test_scope_mark_does_not_split_a_rider_repeated_on_the_next_page():
+    name = "가나 납입면제대상 \n*7종에 한함 "
+    # 쪽이 바뀐 뒤 같은 이름을 되풀이하고 다음 세부보장이 이어지는 표
+    riders = riders_from_tables([
+        table(10, [[name, "가나 진단", "가나로 진단 확정된 경우", "가입금액"]]),
+        table(11, [[name, "가나 수술", "가나로 수술한 경우", "가입금액"]]),
+    ])
+    assert [(r.title, r.only, [c.name for c in r.covers]) for r in riders] == [
+        ("가나 납입면제대상", "7종에 한함", ["가나 진단", "가나 수술"])]
+    # 행 하나가 쪽 끝에서 잘려 다음 쪽 첫 행에 이름이 다시 적힌 표. 이름이 두 번 붙지 않는다
+    riders = group_riders([
+        Line(10, name, None, "가나로 납입면제사유가", "가입금액", "선택계약", top=True, cut=True),
+        Line(11, name, None, "발생한 경우", "", "선택계약", top=True),
+    ])
+    assert [(r.title, r.only, len(r.covers)) for r in riders] == [("가나 납입면제대상", "7종에 한함", 1)]
+
+
+def test_scope_mark_listing_several_variants_applies_to_each():
+    from postlife.extract.tables import variant_numbers
+
+    assert variant_numbers("1, 2, 3종에 한함") == {1, 2, 3} and variant_numbers("1~3종에 한함") == {1, 2, 3}
+    assert variant_numbers("6종, 7종 및 8종에 한함") == {6, 7, 8} and variant_numbers("1,3종 및 5-7종") == {1, 3, 5, 6, 7}
+    assert variant_numbers("7종(가나형) 315·5") == {7} and variant_numbers("여성에 한함") == set()
+    for only in ("1, 2, 3종에 한함", "1~3종에 한함", "1,2,3종에 한함"):
+        assert applies_to(only, "1종(가나형)") and applies_to(only, "2종") and not applies_to(only, "7종(다라형)"), only
+    riders = [Rider("가나 진단비", (Cover("가나 진단비", "사유", "가입금액", 10),), 10, 10, only="1~3종에 한함"),
+              Rider("다라 진단비", (Cover("다라 진단비", "사유", "가입금액", 10, "2, 4종에 한함"),), 10, 10)]
+    assert [r.title for r in for_variant(riders, "2종(가나형)")] == ["가나 진단비", "다라 진단비"]
+    assert [r.title for r in for_variant(riders, "3종(가나형)")] == ["가나 진단비"]
+    assert for_variant(riders, "5종(가나형)") == []
+
+
 def test_for_variant_drops_only_the_covers_of_other_variants():
     rider = Rider("가나 수술비", (Cover("가나 입원 수술비", "입원", "가입금액", 10, "3종에 한함"),
                               Cover("가나 통원 수술비", "통원", "가입금액", 10)), 10, 10)

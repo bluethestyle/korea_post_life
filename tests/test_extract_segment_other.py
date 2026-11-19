@@ -150,3 +150,50 @@ def test_table_format_section_is_found_but_not_cut():
 def test_section_of_marked_format_spans_all_riders():
     section = benefit_section(pages_from_text(MARKED))
     assert (section.first_page, section.last_page) == (23, 26) and section.title.startswith("나. 보험금 지급사유")
+
+
+def test_table_of_contents_lines_are_not_taken_as_the_section():
+    toc = """
+===== 1쪽 =====
+목 차
+가. 상품의 구성 ······ 3
+나. 보험금 지급사유 및 보험급부별 보험금 지급제한 사유 ······ 5
+4. 보험료 산출기초 ······ 9
+===== 5쪽 =====
+나. 보험금 지급사유 및 보험급부별 보험금 지급제한 사유
+■ 가나보장특약(고지통합)(TA1.1) 무배당
+(기준 : 특약가입금액 1,000만원)
+급부명칭 지급사유 지급금액
+가나자금 가나로 진단되었을 경우 1,000만원
+4.
+보험료 산출기초
+"""
+    pages = pages_from_text(toc)
+    assert benefit_section(pages).first_page == 5
+    blocks = rider_blocks(pages)
+    assert [b.title for b in blocks] == ["가나보장특약(고지통합)(TA1.1) 무배당"] and "산출기초" not in blocks[0].text
+    # 쪽 번호만 빈칸 뒤에 붙은 목차 줄도 건너뛴다
+    assert benefit_section(pages_from_text(toc.replace(" ······ ", " "))).first_page == 5
+
+
+def test_renewal_list_reads_short_period_lines_notes_and_leading_dividend_marks():
+    from postlife.extract.segment import renewal_periods, rider_key
+
+    text = """
+===== 3쪽 =====
+▪ 갱신형 특약 :
+- 10년, 20년만기 자동갱신(최대 종신)
+· (무)가나진단특약(갱신형)
+· 다라수술특약(갱신형)(무)
+※ 갱신할 때 보험료가 오를 수 있습니다. 자세한 내용은
+약관을 참조하시기 바랍니다.
+- 5년만기 자동갱신
+· 마바입원특약(갱신형)(무)
+주) 최대 100세까지 갱신합니다.
+다. 보험료 납입기간
+"""
+    periods = renewal_periods(pages_from_text(text))
+    assert len(periods) == 3
+    assert periods[rider_key("다라수술특약(갱신형)(TA1.1) 무배당")] == [10, 20]      # 앞 숫자에 "만기"를 줄여 쓴 줄
+    assert periods[rider_key("마바입원특약(갱신형)(TA1.1) 무배당")] == [5]           # 주석 뒤의 묶음도 읽고, 주석은 이름에 붙지 않는다
+    assert periods[rider_key("무배당 가나진단특약(갱신형)")] == [10, 20]             # 목록은 "(무)…", 머리줄은 "무배당 …"

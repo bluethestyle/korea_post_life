@@ -95,6 +95,9 @@ def _logic(tab_name: str, row: dict[str, Any]) -> list[str]:
         if row.get("갱신여부") is True and row.get("갱신주기년") in (None, ""):
             out.append("갱신형 특약인데 갱신주기년이 비어 있음")
     if tab_name == "sys_급부":
+        for name in ("기준가입금액만원", "기준지급금액만원"):      # 읽지 못한 금액이 0으로 들어온 행
+            if isinstance(row.get(name), (int, float)) and not isinstance(row[name], bool) and row[name] <= 0:
+                out.append(f"{name}이 0 이하: {row[name]}")
         for n in ("1", "2"):
             rate = row.get(f"감액지급률{n}")
             if isinstance(rate, (int, float)) and not 0 < rate < 1:

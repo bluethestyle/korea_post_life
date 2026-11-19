@@ -303,3 +303,28 @@ def test_whole_flow_with_hand_made_model_answers():
     assert len(g.questions) == 18
     assert main_rows(r.conditions, "VG", 보험기간구분="종신", 납입기간구분="10년납", 성별="F") == [(15, 70, 1000), (71, 80, 300)]
     assert len({c["조건행ID"] for c in r.conditions}) == 28
+
+
+def test_rows_for_whole_term_payment_and_cells_not_on_sale():
+    # 납입기간이 "전기납", "일시납", "60세납"인 줄과, 팔지 않는 칸을 "-"로 적은 줄이 섞여도 가입유형별 줄 묶음으로 읽는다
+    table = ["90세만기 종신", "10년납 79세 80세", "가나형(1년)", "30년납 60세 -", "전기납 70세 75세",
+             "다라형 10년납 78세 79세", "60세납 50세 55세", "일시납 - 80세"]
+    first, last, groups = C.row_groups(table)
+    assert [(g.name, g.rows) for g in groups] == [
+        ("가나형(1년)", [("10년납", ["79세", "80세"]), ("30년납", ["60세", "-"]), ("전기납", ["70세", "75세"])]),
+        ("다라형", [("10년납", ["78세", "79세"]), ("60세납", ["50세", "55세"]), ("일시납", ["-", "80세"])])]
+    # "전기납"이 묶음의 첫 줄인 표: 같은 납입기간이 다시 나오는 줄에서 다음 묶음이 시작한다
+    _, _, groups = C.row_groups(["전기납 70세 75세", "가나형", "10년납 60세 65세", "전기납 71세 76세", "다라형", "10년납 61세 66세"])
+    assert [(g.name, [pay for pay, _ in g.rows]) for g in groups] == [("가나형", ["전기납", "10년납"]), ("다라형", ["전기납", "10년납"])]
+    # 나이가 한 칸도 없는 줄은 납입기간 줄로 보지 않는다(이름으로 남아 표로 읽지 않는다)
+    assert C.row_groups(["10년납 79세 80세", "가나형", "30년납 - -", "다라형 10년납 78세 79세"]) is None
+
+
+def test_code_check_reads_a_whole_term_payment_row():
+    text = METHOD.replace("20년납 69세 69세 79세 80세", "20년납 69세 69세 79세 80세\n전기납 60세 60세 - -")
+    section = C.method_sections(pages_from_text(text), types=[SIMPLE, GENERAL])["가입나이"]
+    assert "전기납 60세 60세 - -" in section.text and SIMPLE10 not in section.text
+    good = C.parse("가입나이", section, {"items": cells(SIMPLE, "전기납", (60, 60, 61, 61))[:2]}, "m")
+    assert good.problems == [] and C.literal_problems(good) == {}
+    wrong = C.parse("가입나이", section, {"items": cells(GENERAL, "전기납", (60, 60, 61, 61))[:1]}, "m")
+    assert list(C.literal_problems(wrong).values()) == [["묶음"]]           # 일반가입형 묶음에는 전기납 줄이 없다

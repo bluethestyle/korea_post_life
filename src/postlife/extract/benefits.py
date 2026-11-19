@@ -145,19 +145,33 @@ class Extraction:
     problems: list[str] = field(default_factory=list)
 
 
-_MONEY = re.compile(r"(?:(\d+)억)?(?:(\d+)천만|(\d+(?:\.\d+)?)만)?(?:(\d+)천)?원")      # "2.5만원"처럼 소수로 적힌 만 원도 읽는다
+_NUM = r"\d+(?:\.\d+)?"
+# 억·천만·백만·만·천·백과 그 뒤의 낱돈("2만5,000원")까지 한 덩어리로 읽는다. 숫자 가운데("1.5억원"의 "5억원")에서는 시작하지 않는다
+_AMOUNT = re.compile(
+    rf"(?<!\d)(?<!\d\.)(?:({_NUM})억)?(?:(?:({_NUM})천)?(?:(\d+)백)?({_NUM})?만)?(?:({_NUM})천)?(?:(\d+)백)?(\d+)?원")
 _WON = re.compile(r"(?<![\d억만천])(\d+)원")      # "5,000원"처럼 단위 없이 원으로만 적힌 금액
 
 
+def _amounts(flat: str):
+    """(찾은 자리, 만 원 단위 값). 단위 글자 없이 숫자와 "원"만 있는 자리는 건너뛴다(그런 금액은 _WON으로 맨 나중에 본다)."""
+    for m in _AMOUNT.finditer(flat):
+        if not any(m.groups()[:6]):
+            continue
+        eok, cheonman, baekman, man, cheon, baek, won = (float(g) if g else 0 for g in m.groups())
+        value = eok * 10000 + cheonman * 1000 + baekman * 100 + man + cheon / 10 + baek / 100 + won / 10000
+        yield m, round(value, 6) if "." in m.group(0) else value      # 1.1억 = 11000.000000000002 같은 꼬리를 뗀다
+
+
 def parse_money(text: Any) -> float | None:
-    """"1,000만원", "2만5천원", "5천원", "1억5천만원", "2.5만원", "5,000원" 같은 글자를 만 원 단위 숫자로. 읽을 수 없으면 None."""
+    """"1,000만원", "2만5천원", "5천원", "1억5천만원", "2.5만원", "1.2억원", "5백만원", "2만5,000원", "5,000원" 같은 글자를 만 원 단위 숫자로.
+
+    읽을 수 없으면 None.
+    """
     if text is None:
         return None
     if isinstance(text, (int, float)):
         return float(text)
-    for m in _MONEY.finditer(squash(str(text))):
-        eok, cheonman, man, cheon = (float(g) if g else 0 for g in m.groups())
-        value = eok * 10000 + cheonman * 1000 + man + cheon / 10
+    for _, value in _amounts(squash(str(text))):
         if value:
             return float(value)
     m = _WON.search(squash(str(text)))
@@ -168,33 +182,43 @@ def parse_money(text: Any) -> float | None:
 
 def money_token(text: str) -> str:
     """금액 글자에서 돈을 적은 부분만. "2,000만 원 + 플러스적립금" → "2000만원"."""
-    for m in _MONEY.finditer(squash(text or "")):
-        if any(m.groups()):
-            return m.group(0)
+    for m, _ in _amounts(squash(text or "")):
+        return m.group(0)
     m = _WON.search(squash(text or ""))
     return m.group(0) if m else ""
 
 
-_PERIOD = re.compile(r"(\d+)(년|개월|일)")
+_PERIOD = re.compile(r"(?:(\d+)년(?:(\d+)개월)?|(\d+)개월|(\d+)일)(미만|이내|이하)?")
+
+
+def _period(flat: str) -> re.Match | None:
+    """감액 구간의 끝을 적은 기간. "1년이상 2년미만"은 "2년미만", "180일초과 1년미만"은 "1년미만".
+
+    끝을 나타내는 말(미만·이내·이하)이 붙은 기간이 없으면 처음 나온 기간을 쓴다.
+    """
+    found = list(_PERIOD.finditer(flat))
+    return next((m for m in found if m.group(5)), found[0] if found else None)
 
 
 def parse_months(text: Any) -> int | None:
-    """"1년미만", "2년 미만", "6개월미만" 같은 글자를 개월 수로."""
+    """"1년미만", "2년 미만", "6개월미만", "1년6개월미만" 같은 글자를 개월 수로."""
     if text is None or text == "":
         return None
     if isinstance(text, (int, float)):
         return int(text) or None
-    m = _PERIOD.search(squash(str(text)))
+    m = _period(squash(str(text)))
     if not m:
         return None
-    n = int(m.group(1))
-    return n * 12 if m.group(2) == "년" else n if m.group(2) == "개월" else max(1, round(n / 30))
+    years, extra, months, days = m.group(1, 2, 3, 4)
+    if years is not None:
+        return int(years) * 12 + int(extra or 0)
+    return int(months) if months is not None else max(1, round(int(days) / 30))
 
 
 def period_token(text: str) -> str:
     """기간 글자에서 기간만. "보험계약일부터 1년 미만" → "1년미만". 표에서는 앞말과 기간 사이에 금액이 끼어 있기도 하다."""
     flat = squash(text or "")
-    m = re.search(r"\d+(?:년|개월|일)(?:미만|이내|이하)?", flat)
+    m = _period(flat)
     return m.group(0) if m else flat
 
 
@@ -228,6 +252,27 @@ def _with_cell_notes(limit: str, amount_text: str, flat_source: str) -> str:
     return limit
 
 
+def _spaced(token: str) -> str:
+    """빈칸·쉼표를 뗀 글자(token)를 원문에서 찾는 정규식. 글자 사이의 빈칸·쉼표는 무시한다.
+
+    숫자로 시작하면 더 큰 숫자의 뒷부분("1,500만원"·"2.5만원" 안의 "500만원"·"5만원")에서는 찾지 않는다.
+    """
+    head = r"(?<!\d)(?<!\d[.,])" if token[:1].isdigit() else ""
+    return head + r"[\s,]*".join(map(re.escape, token))
+
+
+def _multiplier(amount_text: str, quote: str) -> str:
+    """금액에 곱하는 말. "1,000만원 × 해당 장해지급률" → "해당 장해지급률". 없으면 빈 글자.
+
+    quote에는 옆줄의 글자가 섞여 들기도 하므로, 이 줄의 금액 바로 뒤에 "×"가 붙어 있을 때만 본다.
+    """
+    if "×" in amount_text:
+        return " ".join(amount_text.split("×", 1)[1].split())
+    token = money_token(amount_text)
+    m = re.search(_spaced(token) + r"\s*×", quote) if token else None
+    return " ".join(quote[m.end():].split()) if m else ""
+
+
 def _exception(value: Any) -> str:
     """감액 예외 문구. 앞의 "※", "단,"과 줄바꿈을 정리한다."""
     text = " ".join(str(value or "").split())
@@ -238,15 +283,29 @@ def _text(value: Any) -> str:
     return "" if value is None or isinstance(value, (int, float)) else str(value).strip()
 
 
-def waiting_days_of(item: dict[str, Any], definitions: dict[str, int]) -> tuple[int, str]:
-    """(면책 날수, 문제). 모델이 적은 보장개시일 이름을 주석의 정의 문장에서 찾아 날수로 바꾼다."""
+def _same_tail(a: str, b: str) -> int:
+    """두 글자의 끝에서부터 같은 글자 수."""
+    n = 0
+    while n < min(len(a), len(b)) and a[-1 - n] == b[-1 - n]:
+        n += 1
+    return n
+
+
+def waiting_days_of(item: dict[str, Any], definitions: dict[str, int], flat_source: str = "") -> tuple[int, str]:
+    """(면책 날수, 문제). 모델이 적은 보장개시일 이름을 주석의 정의 문장에서 찾아 날수로 바꾼다.
+
+    flat_source: 빈칸을 뗀 조각 글. 주면, 정의와 맞지 않는 이름이 원문에 따로 적혀 있는지 본다.
+    """
     name = re.sub(r"[’‘'\"“”]", "", squash(_text(item.get("start_condition"))))
     if not name or name == "보장개시일":      # 이름 없는 "보장개시일"은 계약일부터 보장한다. "암보장개시일"의 일부로 보지 않는다
         return 0, ""
-    for known, days in definitions.items():
-        if known and (known in name or name in known):
-            return days, ""
-    if len(set(definitions.values())) == 1:      # 정의가 하나뿐이면 이름이 조금 달라도 그 날수로 본다
+    related = [known for known in definitions if known and (known in name or name in known)]
+    if related:
+        # 정의가 여럿이면 이름이 가장 가깝게 맞는 것(끝에서부터 같은 글자가 많고, 길이가 비슷한 것).
+        # "특정암보장개시일"을 "암보장개시일"의 날수로 읽지 않는다
+        return definitions[min(related, key=lambda known: (-_same_tail(known, name), abs(len(known) - len(name))))], ""
+    # 정의가 하나뿐이면 이름이 조금 달라도 그 날수로 본다. 다만 그 이름이 원문에 따로 적혀 있으면 다른 보장개시일이므로 넘겨짚지 않는다
+    if len(set(definitions.values())) == 1 and not (name.endswith("보장개시일") and name in flat_source):
         return next(iter(definitions.values())), ""
     return 0, f"보장개시일 '{name}'의 날수를 주석에서 찾지 못함"
 
@@ -258,7 +317,7 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
     for item in raw.get("benefits") or []:
         try:
             amount = parse_money(item["amount"])
-            waiting, trouble = waiting_days_of(item, definitions)
+            waiting, trouble = waiting_days_of(item, definitions, flat_source)
             b = Benefit(
                 name=str(item["name"]).strip(), target=str(item.get("target") or "").strip(),
                 amount=amount or 0.0, waiting_days=waiting,
@@ -273,17 +332,21 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
                 period_text=_text(item.get("reduced_period")), period2_text=_text(item.get("reduced2_period")),
                 exception=_exception(item.get("reduction_exception")),
             )
+            if None not in (b.reduced_months, b.reduced_amount, b.reduced2_months, b.reduced2_amount) \
+                    and b.reduced_months > b.reduced2_months:
+                # 짧은 기간을 첫째 칸에 둔다. 모델이 두 구간을 바꿔 적어도 시트에는 같은 순서로 들어간다
+                b.reduced_months, b.reduced2_months = b.reduced2_months, b.reduced_months
+                b.reduced_amount, b.reduced2_amount = b.reduced2_amount, b.reduced_amount
+                b.reduced_text, b.reduced2_text = b.reduced2_text, b.reduced_text
+                b.period_text, b.period2_text = b.period2_text, b.period_text
             if b.reduced_amount is None:
                 b.exception = ""
             if trouble:
                 problems.append(f"{trouble}: {b.label}")
             # "1,000만원 × 해당 장해지급률"처럼 비율을 곱하는 금액은 그 사실이 시트에 남도록 한도 칸에 적는다
-            for text in (b.amount_text, b.quote):
-                if "×" in text:
-                    tail = " ".join(text.split("×", 1)[1].split())
-                    if tail and squash(tail) not in squash(b.limit):
-                        b.limit = f"× {tail}" + (f", {b.limit}" if b.limit else "")
-                    break
+            tail = _multiplier(b.amount_text, b.quote)
+            if tail and squash(tail) not in squash(b.limit):
+                b.limit = f"× {tail}" + (f", {b.limit}" if b.limit else "")
             b.limit = _with_cell_notes(b.limit, b.amount_text, flat_source)
         except (KeyError, TypeError, ValueError) as e:
             problems.append(f"형식 오류: {e}")
@@ -298,6 +361,12 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
             problems.append(f"둘째 감액 기간과 금액 중 하나만 적힘: {b.label}")
         if b.reduced_amount is not None and b.reduced_amount >= b.amount:
             problems.append(f"감액 금액이 지급액보다 작지 않음: {b.label}")
+        if b.reduced2_amount is not None and b.reduced2_amount >= b.amount:
+            problems.append(f"둘째 감액 금액이 지급액보다 작지 않음: {b.label}")
+        if b.reduced_months is None and b.reduced_amount is None and (b.reduced2_months, b.reduced2_amount) != (None, None):
+            problems.append(f"첫째 감액 구간 없이 둘째 구간만 적힘: {b.label}")
+        if b.reduced_months is not None and b.reduced_months == b.reduced2_months:
+            problems.append(f"두 감액 구간의 기간이 같음: {b.label}")
         benefits.append(b)
     labels = [b.label for b in benefits]
     for dup in sorted({l for l in labels if labels.count(l) > 1}):
@@ -341,11 +410,13 @@ def squash(text: str) -> str:
     return re.sub(r"[\s,]", "", text)
 
 
-_START_NAME = re.compile(r"([가-힣]{0,12}보장개시일)[’'”\"]?[은는]")      # '요로결석보장개시일'은 … 처럼 따옴표로 싼 이름도 읽는다
+# '요로결석보장개시일'은 … 처럼 따옴표로 싼 이름도, 암보장개시일(이하 같습니다)은 … 처럼 괄호 말이 붙은 이름도 읽는다
+_START_NAME = re.compile(r"([가-힣]{0,12}보장개시일)[’'”\"]?(?:\(이하[^()]{0,20}\))?[은는]")
 _PLAIN_START = re.compile(r"(?<![가-힣’‘'\"“”])보장개시일\s*(?:\(|이후)")     # 이름 없이 "보장개시일 이후", "보장개시일(암은 암보장개시일) 이후"
 
 
-_START_SPAN = re.compile(r"(\d+)(일|년|개월)이지난")
+_START_SPAN = re.compile(r"(\d+)(일|년|개월)이(?:지난|경과한)")
+_START_FROM = ("계약일", "제1회보험료를받은날", "책임개시일")      # 날수를 세기 시작하는 날
 _TABLE_START = re.compile(r"지급사유\s+지급금액")
 
 
@@ -367,13 +438,15 @@ def plain_start_in(text: str) -> bool:
 def waiting_definitions(text: str) -> dict[str, int]:
     """주석의 "○○보장개시일은 계약일부터 그 날을 포함하여 90일이 지난날의 다음날" 문장에서 이름과 날수를 읽는다.
 
+    "제1회 보험료를 받은 날부터", "책임개시일부터"로 세는 문장과 "90일이 경과한 날"이라고 적은 문장도 같은 뜻으로 읽는다.
+
     문장 사이에 쪽 번호나 "[부활(효력회복)일]" 같은 글자가 끼어 있어도 읽도록, 이름 뒤 60자 안에서 "N일이 지난"을 찾는다.
     """
     flat = squash(text)
     out: dict[str, int] = {}
     for m in _START_NAME.finditer(flat):
         span = _START_SPAN.search(flat[m.end():m.end() + 60])
-        if span and "계약일" in flat[m.end():m.end() + span.start()]:
+        if span and any(day in flat[m.end():m.end() + span.start()] for day in _START_FROM):
             n = int(span.group(1))
             name = m.group(1).split("경우")[-1]
             out.setdefault(name, n if span.group(2) == "일" else n * 365 if span.group(2) == "년" else n * 30)
@@ -383,15 +456,61 @@ def waiting_definitions(text: str) -> dict[str, int]:
 _NOISE = re.compile(r"보험계약일부터|\d+억\d*천?만?원|\d+천만원|\d+(?:\.\d+)?만\d*천?원|\d+천원|\d+원|\d+(?:년|개월)(?:미만|이상)")
 
 
+def _in_source(flat: str, squashed_source: str) -> bool:
+    """빈칸을 뗀 글자(flat)가 원문에 있는가. 원문 쪽에 끼어든 다른 칸의 글자(금액, 1년미만 등)만 건너뛴다.
+
+    flat에 든 금액·기간은 건너뛰지 않는다. 한도나 감액 예외에 적은 금액이 원문과 다르면 없는 것으로 본다.
+    """
+    if not flat:
+        return False
+    if flat in squashed_source:
+        return True
+    gap = f"(?:{_NOISE.pattern})*"
+    pattern = re.escape(flat[0])
+    for before, c in zip(flat, flat[1:]):
+        # 숫자 가운데는 가르지 않는다. "12만원 20일 한도"를 "120일 한도"로 읽지 않는다
+        pattern += ("" if before.isdigit() and c.isdigit() else gap) + re.escape(c)
+    return re.search(pattern, squashed_source) is not None
+
+
 def limit_in_source(limit: str, squashed_source: str) -> bool:
     """한도 글자가 원문에 그대로 있는가. 표가 풀리며 사이에 끼어든 다른 칸의 글자(금액, 1년미만 등)는 빼고 견준다."""
-    flat = squash(limit)
-    plain = _NOISE.sub("", squashed_source)
-    if flat in squashed_source or _NOISE.sub("", flat) in plain:
+    if _in_source(squash(limit), squashed_source):
         return True
-    # "1일 1회한, 연간 최대 30회 한도"처럼 지급사유의 조건과 주석의 한도를 쉼표로 이은 글자는 조각마다 본다
-    pieces = [squash(x) for x in limit.split(",") if len(squash(x)) >= 4]
-    return len(pieces) >= 2 and all(x in squashed_source or _NOISE.sub("", x) in plain for x in pieces)
+    # "1일 1회한, 연간 최대 30회 한도"처럼 지급사유의 조건과 주석의 한도를 쉼표로 이은 글자는 조각마다 본다.
+    # 짧은 조각은 어디에나 있어 보지 않지만, 금액 칸에서 옮겨 온 단위("1일당", "수술 1회당")는 조각으로 센다
+    pieces = [squash(x) for x in limit.split(",") if len(squash(x)) >= 4 or _UNIT.fullmatch(squash(x))]
+    return len(pieces) >= 2 and all(_in_source(x, squashed_source) for x in pieces)
+
+
+_REACH = 120      # 감싸는 괄호를 찾는 거리. 짝이 맞지 않는 괄호("1)", "주1)") 때문에 먼 괄호까지 가지 않게 한다
+
+
+def _enclosing(src: str, start: int, end: int) -> tuple[int, int]:
+    """src[start:end]를 감싸는 괄호의 (여는 자리, 닫는 자리). 감싸는 괄호가 없으면 (-1, -1).
+
+    앞에 "(유사암 제외)"처럼 닫힌 괄호가 끼어 있어도 그 바깥의 여는 괄호를 찾는다.
+    """
+    left, depth = -1, 0
+    for i in range(start - 1, max(-1, start - 1 - _REACH), -1):
+        if src[i] == ")":
+            depth += 1
+        elif src[i] == "(":
+            if depth == 0:
+                left = i
+                break
+            depth -= 1
+    if left < 0:
+        return -1, -1
+    depth = 0
+    for i in range(end, min(len(src), end + _REACH)):
+        if src[i] == "(":
+            depth += 1
+        elif src[i] == ")":
+            if depth == 0:
+                return left, i
+            depth -= 1
+    return -1, -1
 
 
 def limit_is_partial(limit: str, squashed_source: str) -> bool:
@@ -408,9 +527,8 @@ def limit_is_partial(limit: str, squashed_source: str) -> bool:
     seen = False
     at = src.find(flat)
     while at >= 0:
-        left = src.rfind("(", 0, at)
-        right = src.find(")", at + len(flat))
-        if left >= 0 and right >= 0 and src.rfind(")", 0, at) < left:      # 괄호 안에 있다
+        left, right = _enclosing(src, at, at + len(flat))
+        if left >= 0 and right >= 0:      # 괄호 안에 있다
             seen = True
             inner = src[left + 1:right]
             inner = inner[1:] if inner.startswith("단") else inner
@@ -427,6 +545,10 @@ def literal_problems(ex: Extraction) -> dict[str, list[str]]:
     글자 비교로는 가릴 수 없다. 이름이 실제로 있는지는 판정 모델이 본다.
     """
     source = squash(ex.block.text)
+
+    def written(token: str) -> bool:      # 빈칸을 떼지 않은 글에서 본다. 떼면 옆 칸의 숫자가 붙어("180" + "1년미만") 숫자 경계를 볼 수 없다
+        return bool(token) and re.search(_spaced(token), ex.block.text) is not None
+
     out: dict[str, list[str]] = {}
     for b in ex.benefits:
         missing = []
@@ -435,10 +557,10 @@ def literal_problems(ex: Extraction) -> dict[str, list[str]]:
             if value is None:
                 continue
             forms = [money_token(text)] if money_token(text) else amount_forms(value)   # 금액 뒤에 붙은 설명은 줄이 갈려 비교하지 않는다
-            if not any(f and f in source for f in forms):
+            if not any(written(f) for f in forms):
                 missing.append(label)
         for label, months, text in (("감액개월1", b.reduced_months, b.period_text), ("감액개월2", b.reduced2_months, b.period2_text)):
-            if months is not None and text and period_token(text) not in source:   # "2년미만"이라 적었는데 원문에 그 글자가 없다
+            if months is not None and text and not written(period_token(text)):   # "2년미만"이라 적었는데 원문에 그 글자가 없다
                 missing.append(label)
         if b.waiting_days and b.waiting_days not in waiting_definitions(ex.block.text).values():
             missing.append("면책기간일수")

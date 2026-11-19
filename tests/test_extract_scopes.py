@@ -180,3 +180,21 @@ def test_add_column_widens_rows_once():
         assert False
     except ValueError:
         pass
+
+
+def test_variant_reads_only_the_most_specific_scope_in_a_block():
+    from postlife.extract.segment import scope_fit
+
+    assert scope_fit("간편가입형", "간편가입형(1년)") == 5 and scope_fit("간편가입형(1년)", "간편가입형(1년)") == 9
+    assert scope_fit("일반가입형 및 건강가입형", "간편가입형(1년)") == 0 and scope_fit("", "무엇이든") == 1
+    text = TEXT.replace("[일반가입형 및 건강가입형]", "[간편가입형(5년)]")
+    g, r = run({"V1": "간편가입형(1년)", "V5": "간편가입형(5년)"})
+    assert r.stats["조각"] == 2                               # 원래 글에서는 두 종형이 [간편가입형] 표 하나를 함께 읽는다
+    g = FakeGemini()
+    r = P.run_summary(g, pages_from_text(text), ["V1", "V5"], datetime(2026, 11, 19, 10, 0, tzinfo=KST),
+                      variant_names={"V1": "간편가입형(1년)", "V5": "간편가입형(5년)"})
+    rider = {v: ids.rider_id(v, "급성심근경색증진단보장특약(고지통합)(KTA1.1) 무배당") for v in ("V1", "V5")}
+    cut = [(b["특약ID"], b["감액지급률1"]) for b in r.benefits if b["특약ID"] in rider.values()]
+    # "간편가입형(5년)" 종형은 [간편가입형]과 [간편가입형(5년)] 가운데 꼭 맞는 표만 읽는다. 둘 다 읽으면 급부ID가 겹친다
+    assert sorted(cut) == sorted([(rider["V1"], 0.5), (rider["V5"], None)])
+    assert check_rows("sys_급부", r.benefits) == {}

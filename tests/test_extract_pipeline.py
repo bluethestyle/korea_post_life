@@ -230,3 +230,107 @@ def test_limit_check_tolerates_text_from_other_columns():
     flat = B.squash("입원하였을 때(1일 이상 입원\n보험계약일부터\n2만원\n일수 1일당, 120일 한도)")
     assert B.limit_in_source("1일 이상 입원일수 1일당, 120일 한도", flat)
     assert not B.limit_in_source("4일 이상 입원일수 1일당, 120일 한도", flat)
+
+
+def test_problem_of_a_longer_name_does_not_exclude_the_shorter_name():
+    from postlife.extract import benefits as B
+    from postlife.extract.segment import Block
+
+    # 급부 이름이 다른 급부 이름의 일부인 경우. 문제는 "암진단보험금(1종)" 줄에만 있다
+    plain, typed = B.Benefit("암진단보험금", "", 1000, 0, "", "주급부", ""), B.Benefit("암진단보험금", "1종", 1000, 0, "", "주급부", "")
+    t = P._Try(B.Extraction(Block("t", "x", 1, 1), 0, [plain, typed], "m", [f"감액 금액이 지급액보다 작지 않음: {typed.label}"]),
+               {b.label: {"기준지급금액만원": 0.9} for b in (plain, typed)}, {})
+    assert t.flawed(typed.label) and not t.flawed(plain.label)
+    assert t.broken(plain.label) == [] and t.score(P.DEFAULT_THRESHOLDS)[0] == 1
+    # 이름이 같은 줄이 두 번 나온 문제는 그 이름의 줄에 그대로 걸린다
+    twice = P._Try(B.Extraction(Block("t", "x", 1, 1), 0, [plain, plain], "m", [f"같은 이름의 급부가 두 번 나옴: {plain.label}"]), {}, {})
+    assert twice.flawed(plain.label)
+
+    class Mixed(FakeGemini):
+        def generate(self, model, prompt, schema=None, temperature=0.0):
+            if "재해입원특약" in prompt.split("본문")[0]:
+                return GOOD["재해입원"]
+            good = GOOD["암진단"]["benefits"][0]
+            return {"base_amount": "1,000만원", "benefits": [good, dict(good, target="1종", reduced_amount="1,000만원")]}
+
+    r = run(Mixed())
+    cancer = next(b for b in r.blocks if "암진단" in b.extraction.block.title)
+    assert cancer.status == {"암진단보험금": "확정", "암진단보험금(1종)": "제외"}
+    assert sorted({row["원시급부명"] for row in r.benefits}) == ["암진단보험금", "재해입원보험금"]
+
+
+def test_retry_with_rows_replaces_an_empty_first_result():
+    from postlife.extract import benefits as B
+    from postlife.extract.segment import Block
+
+    block, t = Block("t", "x", 1, 1), P.DEFAULT_THRESHOLDS
+    rows = [B.Benefit(f"급부{i}", "", 100, 0, "", "주급부", "") for i in range(5)]
+    empty = P._Try(B.Extraction(block, 0, [], "m1", []), {}, {})
+    found = P._Try(B.Extraction(block, 0, rows, "m2", []),
+                   {r.label: {"기준지급금액만원": 0.9 if i else 0.7} for i, r in enumerate(rows)}, {})
+    assert not found.score(t) < empty.score(t)          # 점수만 보면 한 줄도 못 뽑은 쪽이 낫게 나온다
+    assert found.beats(empty, t) and not empty.beats(found, t) and not empty.beats(empty, t)
+
+    class EmptyFirst(FakeGemini):
+        def generate(self, model, prompt, schema=None, temperature=0.0):
+            if model == config.MODEL_EXTRACT and "암진단특약" in prompt.split("본문")[0]:
+                return {"base_amount": "1,000만원", "benefits": []}
+            return super().generate(model, prompt, schema, temperature)
+
+    r = run(EmptyFirst(first_wrong=False))
+    assert r.stats["확정"] == 2 and sorted({row["기준지급금액만원"] for row in r.benefits}) == [2, 1000]
+    retry = next(l for l in r.logs if l["작업단계"] == "재추출")
+    assert (retry["결과"], retry["변경전값"], retry["변경후값"]) == ("통과", "급부 0건", "급부 1건")
+
+
+def test_result_without_a_verdict_does_not_replace_a_judged_one():
+    from postlife.extract import benefits as B
+    from postlife.extract.segment import Block
+    from postlife.gemini import GeminiError
+
+    block, t = Block("t", "x", 1, 1), P.DEFAULT_THRESHOLDS
+    rows = [B.Benefit(f"급부{i}", "", 100, 0, "", "주급부", "") for i in range(3)]
+    judged = P._Try(B.Extraction(block, 0, rows, "m1", []), {r.label: {"기준지급금액만원": 0.9 if i else 0.1} for i, r in enumerate(rows)}, {})
+    unjudged = P._Try(B.Extraction(block, 0, rows, "m2", []), {}, {})
+    assert unjudged.score(t) < judged.score(t)          # 점수만 보면 판정을 못 받은 쪽이 낫게 나온다
+    assert not unjudged.beats(judged, t) and judged.beats(unjudged, t)
+    assert not unjudged.beats(unjudged, t)              # 둘 다 판정이 없으면 점수로 견준다
+
+    class JudgeFailsOnRetry(FakeGemini):
+        """보조 모델로 다시 뽑은 결과를 판정할 때만 판정 모델이 한도에 걸린다."""
+        last = None
+
+        def generate(self, model, prompt, schema=None, temperature=0.0):
+            if "암진단특약" in prompt.split("본문")[0]:
+                self.last = model
+            return super().generate(model, prompt, schema, temperature)
+
+        def decide(self, model, input_text, questions):
+            if "암진단특약" in input_text and self.last == config.MODEL_EXTRACT_ALT:
+                raise GeminiError(429, "한도")
+            return super().decide(model, input_text, questions)
+
+    # 판정을 받지 못한 결과가 채택되면 상위 모델을 부르지 않고 끝난다. 판정을 받은 앞선 결과를 두고 상위 모델까지 간다
+    g = JudgeFailsOnRetry(upper_fixes=True)
+    r = run(g)
+    assert g.calls[config.MODEL_SUMMARY] == 1 and r.stats["확정"] == 2 and r.stats["상위 모델 사용"] == 1
+    kept = [l for l in r.logs if l["작업단계"] == "재추출" and l["호출모델"] == config.MODEL_EXTRACT_ALT]
+    assert kept[0]["결과"] == "반려"
+
+    class JudgeAlwaysFails(FakeGemini):
+        def decide(self, model, input_text, questions):
+            raise GeminiError(429, "한도")
+
+    # 판정을 한 번도 받지 못했으면 뽑은 값은 버리지 않고 사람 검토로 넘긴다
+    r = run(JudgeAlwaysFails(first_wrong=False))
+    assert r.stats["검토"] == 2 and r.stats["제외"] == 0 and len(r.benefits) == 4
+
+
+def test_rider_split_over_several_blocks_gets_one_rider_row():
+    text = TEXT.replace("③ 일반적", "■ 무배당 암진단특약(20년갱신형) 2606\n(특약보험가입금액 1,000만원 기준)\n"
+                        "암진단 보험금 최초 1회에 한함 1년미만 500만원 1년이상 1,000만원\n③ 일반적")
+    r = P.run_summary(FakeGemini(first_wrong=False), pages_from_text(text), ["V1", "V2"],
+                      datetime(2026, 11, 18, 14, 0, tzinfo=KST), product_renewal_years=20)
+    assert r.stats["조각"] == 3 and len(r.blocks) == 3
+    assert len(r.riders) == 4 and len({row["특약ID"] for row in r.riders}) == 4      # 특약 2개 × 종형 2개
+    assert check_rows("sys_특약", r.riders) == {}
