@@ -189,3 +189,35 @@ def test_append_is_only_for_cumulative_tabs():
     store.upsert_mapping([row("hum_담보매핑", 급부ID="B1", 검토상태="대기")])
     store.upsert_mapping([row("hum_담보매핑", 급부ID="B1", 검토상태="자동확정")])
     assert [r["검토상태"] for r in store.read(["hum_담보매핑"])["hum_담보매핑"]] == ["자동확정"]
+
+
+def test_overwrite_ignores_clear_beyond_the_grid():
+    """새 값이 시트 마지막 행까지 차면 그 아래를 지우는 요청은 격자 밖이라 400이 온다. 쓰기는 이미 끝났으므로 넘어간다."""
+    from postlife.sheets_io import RestBackend
+
+    calls = []
+
+    class Fake(RestBackend):
+        def __init__(self):
+            pass
+
+        def _request(self, method, path, **kwargs):
+            calls.append(path)
+            if path == "values:batchClear":
+                raise RuntimeError("Sheets API 400: Range ('sys_특약'!A1020:J) exceeds grid limits. Max rows: 1019")
+            return {}
+
+    Fake().overwrite("sys_특약", [["가", "나"], [1, 2]])
+    assert calls == ["values:batchUpdate", "values:batchClear"]
+
+    class Broken(Fake):
+        def _request(self, method, path, **kwargs):
+            if path == "values:batchClear":
+                raise RuntimeError("Sheets API 403: 권한 없음")
+            return {}
+
+    try:
+        Broken().overwrite("sys_특약", [["가"], [1]])
+        assert False
+    except RuntimeError:
+        pass

@@ -104,9 +104,14 @@ class RestBackend:
             json={"valueInputOption": "RAW", "data": [{"range": f"'{tab}'!A1", "values": values}]},
         )
         last = _column_letter(max(len(r) for r in values))
-        self._request(
-            "post", "values:batchClear", json={"ranges": [f"'{tab}'!A{len(values) + 1}:{last}"]}
-        )
+        try:
+            self._request(
+                "post", "values:batchClear", json={"ranges": [f"'{tab}'!A{len(values) + 1}:{last}"]}
+            )
+        except RuntimeError as e:
+            # 새 값이 시트의 마지막 행까지 찼으면 그 아래는 격자 밖이라 지울 것이 없다
+            if "exceeds grid limits" not in str(e):
+                raise
 
     def append(self, tab: str, values: list[list[Any]]) -> None:
         self._request(
