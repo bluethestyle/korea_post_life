@@ -23,7 +23,7 @@ GOLD = Path(__file__).resolve().parents[1] / "data/goldset/epost_goldset.jsonl"
 def money_values(text: str) -> list[float]:
     out = []
     for m in _MONEY.finditer(squash(text)):
-        eok, cheonman, man, cheon = (int(g) if g else 0 for g in m.groups())
+        eok, cheonman, man, cheon = (float(g) if g else 0 for g in m.groups())
         value = eok * 10000 + cheonman * 1000 + man + cheon / 10
         if value:
             out.append(value)

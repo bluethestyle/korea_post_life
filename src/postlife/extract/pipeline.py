@@ -97,7 +97,15 @@ class _Try:
 
 def _attempt(gemini: Any, block: Block, model: str, feedback: list[str] | None = None) -> _Try:
     ex = B.extract(gemini, block, model, feedback)
-    return _Try(ex, V.judge(gemini, ex, config.MODEL_DECIDE), B.literal_problems(ex))
+    try:
+        probs = V.judge(gemini, ex, config.MODEL_DECIDE)
+    except GeminiError:
+        # 판정 모델이 분당 한도에 걸렸을 때 뽑은 값까지 버리지 않는다. 한 번 더 묻고, 그래도 안 되면 판정 없이(사람 검토) 넘긴다
+        try:
+            probs = V.judge(gemini, ex, config.MODEL_DECIDE)
+        except GeminiError:
+            probs = {}
+    return _Try(ex, probs, B.literal_problems(ex))
 
 
 def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: WorkLog, variant_id: str,
@@ -122,6 +130,8 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
             got = _attempt(gemini, block, model, best.feedback(thresholds) if best else None)
         except (GeminiError, ValueError, KeyError) as e:
             log.add(stage, rider, "보류", f"호출 실패: {str(e)[:200]}", model=model)
+            if model == config.MODEL_SUMMARY and "429" in str(e):
+                budget["상위모델"] = 0        # 상위 모델의 하루 한도가 찼다. 남은 조각에서 헛되이 부르지 않는다
             continue
         for b in got.ex.benefits:       # 코드 대조에서 걸린 줄은 시도마다 남긴다
             if got.literal.get(b.label):

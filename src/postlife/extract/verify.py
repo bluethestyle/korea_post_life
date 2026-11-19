@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .benefits import Benefit, Extraction, limit_in_source, money_token, period_token, squash, waiting_definitions
+from .benefits import Benefit, Extraction, limit_in_source, money_token, period_token, plain_start_in, squash, waiting_definitions
 
 RULES = (
     "원문은 표가 글자로 풀린 것이라 줄이 뒤섞여 있다. 낱말이 여러 줄에 갈려 있어도 같은 칸의 글자면 이어서 읽는다. "
@@ -64,9 +64,10 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
         late = " (경과기간에 따라 금액이 나뉘어 있으면 가장 늦은 구간의 금액을 지급액으로 본다)"
         out["기준지급금액만원"] = (statement(f"원문 표에 {who}이 있고, 그 지급액은 {_money(b.amount)}이다{late}"), True)
     if reduced:
-        cut = f"계약일부터 {_span(b.reduced_months, b.period_text)}에는 {_money(b.reduced_amount)}"
+        times = "에 해당 지급률을 곱한 금액" if formula else ""       # "500만원 × 해당 장해지급률"로 적힌 감액
+        cut = f"계약일부터 {_span(b.reduced_months, b.period_text)}에는 {_money(b.reduced_amount)}{times}"
         if b.reduced2_amount is not None and b.reduced2_months is not None:
-            cut += f", {_span(b.reduced2_months, b.period2_text)}에는 {_money(b.reduced2_amount)}"
+            cut += f", {_span(b.reduced2_months, b.period2_text)}에는 {_money(b.reduced2_amount)}{times}"
         out["감액지급률1"] = (statement(f"{who}은 {cut}을 지급한다"), True)
     else:
         out["감액지급률1"] = (statement(f"{who}의 지급액은 한 가지 금액만 적혀 있고, 계약일부터 1년 미만·2년 미만 같은 "
@@ -81,8 +82,13 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
             "instructions": f"'{b.name}'의 지급사유 가운데 {case}에 '○○보장개시일 이후'라는 조건이 들어 있는가? "
                             "한 칸에 두 경우가 '…하였거나, 보험기간 중 …'처럼 이어져 있으면 해당하는 쪽 문장만 본다. "
                             "'보험기간 중 암보장개시일 이후에'처럼 두 말이 함께 있으면 조건이 있는 것이다.",
-            "criteria": {AFTER_START: "그 경우의 지급사유 문장에 '○○보장개시일 이후'라는 말이 들어 있다",
-                         FROM_DAY_ONE: "그 경우의 지급사유 문장에 보장개시일이라는 말이 없다"},
+            "criteria": ({AFTER_START: "그 경우의 지급사유에 '암보장개시일', '요로결석보장개시일'처럼 앞에 이름이 붙은 "
+                                       "'○○보장개시일 이후'라는 조건이 적용된다",
+                          FROM_DAY_ONE: "그 경우의 지급사유 문장에 보장개시일이라는 말이 없거나, 앞에 이름이 붙지 않은 '보장개시일 이후'만 "
+                                        "적용된다 ('보장개시일(암은 암보장개시일) 이후'에서 암이 아닌 경우는 여기에 든다)"}
+                         if plain_start_in(source) else
+                         {AFTER_START: "그 경우의 지급사유 문장에 '○○보장개시일 이후'라는 말이 들어 있다",
+                          FROM_DAY_ONE: "그 경우의 지급사유 문장에 보장개시일이라는 말이 없다"}),
         }, AFTER_START if b.waiting_days else FROM_DAY_ONE)
     if b.limit and not formula and not limit_in_source(b.limit, squash(source)):
         out["지급횟수제한"] = (statement(f"{who}의 지급 횟수·한도 조건은 '{b.limit}'이고, 원문에 적힌 조건에서 빠진 말이 없다"), True)
