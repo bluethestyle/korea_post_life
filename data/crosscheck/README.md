@@ -7,6 +7,7 @@
 | `hanwha_mapping_opinion.jsonl` | 한화생명 급부 가운데 표준담보가 "대기"로 남은 388종류(급부 2,172줄)를 특약·급부 이름만 보고 분류한 의견: 기존 담보 / 새 담보 필요 / 비교 대상 아님. 판정 모델의 추천과 확률을 함께 적었습니다 (2026-11-19) |
 | `samsungfire_fit8_benefits_gemini.jsonl` | 삼성화재 THE FIT 파트너 8종(일반형) 급부 339줄을 요약서 표의 문구에서 구조화한 결과: 지급률(%), 감액 구간과 지급률, 면책, 지급 한도, 비고. 번호는 표 추출기(`extract/tables.py`)가 낸 조각 순번과 세부보장 순번입니다 (2026-11-19) |
 | `samsungfire_refresh_benefits_gemini.jsonl` | 삼성화재 간편보험 새로고침(자동갱신형) 급부 342줄을 같은 방식으로 구조화한 결과. 1·3·7종 공통 표입니다 (2026-11-19) |
+| `code_review_gemini.md` | 추출·검증 코드(커밋 f319ac9)를 읽고 낸 검토 지적 26건 원문. 지적은 재현되는 것만 고치며, 처리 결과는 `docs/progress.md`에 적습니다 (2026-11-19) |
 
 - 매핑 의견은 확정이 아닙니다. 확정은 담당자가 `hum_담보매핑`에서 합니다.
 - 삼성화재 구조화 결과는 코드 규칙(`extract/table_rules.py`)으로 뽑은 값과 줄마다 맞춰 보는 데 씁니다: `python scripts/compare_table_rules.py 조각.json --against <이 폴더의 파일>`
