@@ -44,6 +44,14 @@ def days_in(cell: str) -> set[int]:
     return {int(n) * (365 if unit == "년" else 1) for n, unit in re.findall(r"(?<![\d~])(\d+)\s*(년|일)?(?![\d%])", cell or "")}
 
 
+_LIMIT_COUNT = re.compile(r"(?:연간|최초|매년|통산)?\d+(?:\.\d+)?(?:회|일|년|억|천만|만)")
+
+
+def limit_counts(piece: str) -> list[str]:
+    """한도 문구에 적힌 횟수·기간. 바로 앞의 "연간", "최초" 같은 말을 붙여 돌려준다. "각 치료행위별 연간 1회한" → ["연간1회"]."""
+    return _LIMIT_COUNT.findall(loose(piece))
+
+
 _COLUMNS = ("번호", "지급률", "감액1기간", "감액1지급률", "감액2기간", "감액2지급률", "면책", "지급한도", "비고")
 
 
@@ -82,10 +90,13 @@ def differences(lines: list[Reading], other: list[str]) -> list[str]:
     split_mine, split_theirs = len(lines) > 1, "/" in wait or ("(" in p1 and not lines[0].exception)
     if split_mine != split_theirs and not (split_mine and len(percents) > 1):
         out.append(f"대상 나눔: 규칙 {[x.target for x in lines] if split_mine else '한 줄'} / 대조 \"{wait}\" \"{p1}\"")
-    # 한도: 대조 표의 한도가 규칙의 한도 안에 있어야 하고, 규칙에만 있는 문구는 대조 표의 비고에라도 있어야 한다
+    # 한도: 대조 표의 한도가 규칙의 한도 안에 있어야 하고, 규칙에만 있는 문구는 대조 표의 비고에라도 있어야 한다.
+    # 대조 표는 "연간 1회에 한하여"를 "연간 1회한"처럼 줄여 적기도 한다. 글자가 그대로 없으면 그 문구의 횟수가
+    # 앞에 붙은 말("연간", "최초")까지 모두 규칙의 한도에 있는지 본다("최초 1회한"은 "연간 1회에 한하여"와 다르다)
     mine_limit = loose(lines[0].limit + lines[0].note)
     for piece in (limit if limit.strip() != "-" else "").split(" / "):
-        if piece.strip() and loose(piece) not in mine_limit:
+        counts = limit_counts(piece)
+        if piece.strip() and loose(piece) not in mine_limit and not (counts and all(c in mine_limit for c in counts)):
             out.append(f"한도: 대조 표의 \"{piece.strip()}\"가 규칙 결과에 없음")
     # 대조 표는 "※" 문단을 줄여 적기도 한다. 글자가 그대로 없으면 그 문구의 횟수·기간("2회", "10년")이 모두 있는지 본다
     theirs_text = loose(limit + note)
