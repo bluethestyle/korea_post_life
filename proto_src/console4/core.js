@@ -361,14 +361,50 @@
   }
   /** 눌리는 표 행의 오른쪽 끝 ›(R6). 행의 마지막 칸 안에 둔다 */
   const RCHEV = `<span class="rchev" aria-hidden="true">${IC.chevR}</span>`;
+  const TERMS = {
+    'scope-band': {
+      title: '범위 띠',
+      body: '위쪽 줄은 지금 고른 기준 종형과 맞붙는 상대 상품, 공통 담보 쌍의 수를 보여 줍니다. 아래쪽 줄은 조건 줄의 나이, 성별, 이력이 고객군 지도에서 어느 관문 칸에 해당하는지 보여 줍니다.',
+    },
+    'ev-panel': {
+      title: '관계와 근거 패널',
+      body: '본문에서 칸이나 줄을 누르면 그 항목의 종형, 특약, 급부, 표준담보 연결 관계와 원문 문서 쪽 번호를 이 영역에 펼쳐 보여 줍니다. 아무것도 고르지 않았을 때는 지금 탭을 읽는 법과 판정 기호 풀이를 보여 줍니다.',
+    },
+    'base-sel': {
+      title: '기준 종형과 선택 종형',
+      body: '기준 종형은 조건 줄에서 고른 우체국 상품 종형이며, 비교 상대는 그 종형의 심사 유형과 갱신 구조에 맞춰 정해집니다. 선택 종형 배지가 붙은 숫자와 문장은 이 기준 종형을 바꿀 때 함께 다시 계산하는 값입니다.',
+    },
+    'journey-grid': {
+      title: '치료 여정 격자',
+      body: '암, 뇌혈관, 심장 같은 보장 대분류와 진단, 수술, 치료, 입원, 통원의 다섯 단계가 만나는 칸마다 회사별 표준담보 수를 막대로 견준 표입니다. 빈 단계나 담보 수 차이를 한눈에 살피는 용도이며, 조건의 우열은 아래 담보 비교표에서 따집니다.',
+    },
+    'caution-pending': {
+      title: '단정 주의와 검토 대기',
+      body: '단정 주의는 상대가 조건이 다른 특약을 함께 팔거나 지급 형태가 달라 우열 문장을 내지 않고 사실만 적은 담보입니다. 검토 대기는 매핑이나 한도 값을 아직 사람이 확인하지 않아 비교 계산에서 뺀 쌍입니다.',
+    },
+  };
+  const help = (key, label) => {
+    const t = TERMS[key];
+    if (!t) return '';
+    return `<button type="button" class="qhelp live no-print" data-help="${esc(key)}" aria-expanded="false" aria-controls="help-pop" aria-label="${esc((label || t.title) + ' 뜻 보기')}">?</button>`;
+  };
+  const NOTE_HEAD = { '지도전제': '지도가 보는 범위', '간편청약제한': '간편심사의 대상', '수술만행': "'수술만' 행의 뜻", '일반심사': '일반심사 규칙' };
+  function notes(tabName) {
+    const list = (S['주석'] || []).filter(n => Array.isArray(n['탭']) && n['탭'].includes(tabName));
+    if (!list.length) return '';
+    return `<div class="snotes" role="note" aria-label="${esc(tabName)} 주석"><div class="snotes-h">일러두기</div><ul class="snotes-l">${list.map(n => {
+      const hd = NOTE_HEAD[n['열쇠']] || '';
+      return `<li>${hd ? `<b>${esc(hd)}.</b>` : ''}${esc(n['글'])}${n['출처'] ? `<span class="snotes-src">(출처: ${esc(n['출처'])})</span>` : ''}</li>`;
+    }).join('')}</ul></div>`;
+  }
   /** 구역 머리: 옅은 기둥 위의 제목과, 안개 위에 바로 얹는 큰 숫자 칸(acs_05 의 18/18, acs_17 의 탭 줄).
       stats: [{n, d, u, l, bar:[v, max, cls], title}] 큰 숫자, 분모, 단위, 이름표, 6px 막대. eq 는 칸 아래 관계 식(R5) */
-  function band({ id = '', kicker = '', title: t = '', sc = '', stats = [], eq: eqHtml = '', note = '' } = {}) {
+  function band({ id = '', kicker = '', title: t = '', help: hKey = '', sc = '', stats = [], eq: eqHtml = '', note = '' } = {}) {
     const st = stats.map(s => `<div class="sb-st"${s.title ? ` title="${esc(s.title)}"` : ''}>
         <span class="big"><span class="n">${esc(fmt(s.n))}</span>${s.d != null ? `<span class="d">/${esc(fmt(s.d))}</span>` : ''}${s.u ? `<span class="u">${esc(s.u)}</span>` : ''}</span>
         <span class="sb-l">${esc(s.l)}</span>${s.bar ? hbar(s.bar[0], s.bar[1], s.bar[2] || '') : ''}</div>`).join('');
     return `<div class="sband"${id ? ` id="${esc(id)}"` : ''}>
-      <div class="sb-t pillar tl"><i class="sb-tk" aria-hidden="true"></i><span class="k">${(Array.isArray(sc) ? sc : [sc]).filter(Boolean).map(x => scope(x)).join('')}${kicker ? `<span>${esc(kicker)}</span>` : ''}</span><h2>${esc(t)}</h2></div>
+      <div class="sb-t pillar tl"><i class="sb-tk" aria-hidden="true"></i><span class="k">${(Array.isArray(sc) ? sc : [sc]).filter(Boolean).map(x => scope(x)).join('')}${kicker ? `<span>${esc(kicker)}</span>` : ''}</span><h2><span>${esc(t)}</span>${hKey ? help(hKey, t) : ''}</h2></div>
       <div class="sb-s">${st}</div>
       ${eqHtml || note ? `<div class="sb-f">${eqHtml}${note ? `<p class="note">${esc(note)}</p>` : ''}</div>` : ''}
     </div>`;
@@ -442,7 +478,7 @@
   const pageText = (doc, page) => (page != null && page !== '' ? `${doc || '문서'} ${page}쪽` : `${doc || '문서'}: 쪽 번호 자료 없음`);
   const PAGE_WHY = '쪽 번호 자료 없음: 고지 질문과 가입나이는 사업방법서에서 읽은 값이고, 사본에 그 쪽 번호가 들어 있지 않습니다. 원문의 해당 조항을 찾아 대조합니다';
 
-  const UI = { esc, fmt, IC, verdict, flag, flagText, FLAG_TEXT, scope, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper };
+  const UI = { esc, fmt, IC, verdict, flag, flagText, FLAG_TEXT, scope, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, notes };
   const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, ORG_SHORT };
 
   // ---------- 조건 줄 ----------
@@ -462,7 +498,7 @@
       </div>
       <div class="cg" data-g="base">
         <div class="cg-h">기준과 비교 상대</div>
-        <div class="cf"><span class="lb">기준 종형</span><span data-slot="base"></span></div>
+        <div class="cf"><span class="lb">기준 종형${help('base-sel', '기준 종형과 선택 종형')}</span><span data-slot="base"></span></div>
         <div class="cf cf-peers"><span class="lb">비교 상대</span><span class="ro" id="c-peers"></span></div>
         <div class="cf"><span class="lb">갱신 유형 <span class="hint">고객군 지도에만 씁니다</span></span><span data-slot="ren"></span></div>
       </div>`;
@@ -515,7 +551,7 @@
       const sd = (why.split(' / 구조 다름: ')[1] || '');
       return `<span class="it"><span title="${esc(v ? v['전체이름'] : '')}">${esc(vname(p['종형ID']))}</span> <span class="d">${esc(v ? v['적용시작일'] : '')}</span>${p['구조다름'] ? ' ' + tag('구조 다름', sd ? '구조 다름: ' + sd : '갱신이나 환급 구조가 다름') : ''}</span>`;
     }).join('');
-    const line1 = `<div class="scope-l"><span class="k">견준 상품</span>
+    const line1 = `<div class="scope-l"><span class="k">범위 띠${help('scope-band', '범위 띠')}</span>
       <span class="it"><b style="font-weight:600" title="${esc(bi ? bi['전체이름'] : '')}">${esc(vname(st.base))}</b> <span class="d">${esc(bi ? bi['적용시작일'] : '')}</span></span>
       <span class="it" aria-label="대">${IC.arrow}</span>${peers}
       <span class="it">공통 담보 <b class="num" style="font-weight:600">${fmt(r['비교쌍'])}</b>쌍 가운데 검토 대기로 뺀 쌍 <b class="num" style="font-weight:600">${fmt(r['뺀비교쌍'])}</b></span>
@@ -546,7 +582,7 @@
     // 좁은 창(1600px 아래)에서는 한 줄 요약과 "자세히"로 접는다. 넓은 창은 늘 펼친다
     const nSd = r['상대'].filter(p => p['구조다름']).length;
     const sumGate = g.cell ? `${swatch(g.cell['라벨'])}<b style="font-weight:600">${esc(g.cell['라벨'])}</b>` : `<span class="why">${esc(g.reason)}</span>`;
-    const sum = `<div class="scope-sum"><span class="k">견준 상품</span>
+    const sum = `<div class="scope-sum"><span class="k">범위 띠${help('scope-band', '범위 띠')}</span>
         <span class="it"><b style="font-weight:600">${esc(vkind(st.base))}</b> 대 ${esc(r['상대'].map(p => orgShort((vinfo(p['종형ID']) || {})['기관코드'] || '')).join(', '))}${nSd ? `(구조 다름 ${nSd})` : ''}, 검토 대기 <b class="num" style="font-weight:600">${fmt(r['뺀비교쌍'])}</b>/${fmt(r['비교쌍'])}쌍</span>
         <span class="k">지금 고객군</span><span class="it" style="display:inline-flex;align-items:center;gap:6px">${sumGate}</span>
         <button type="button" class="scope-more" aria-expanded="${scopeOpen}" aria-controls="scope-full">${scopeOpen ? '접기' : '자세히'} ${IC.chevD}</button></div>`;
@@ -910,8 +946,49 @@
   }
   const asofText = () => String(S['자료시각'] || '').replace('T', ' ').slice(0, 16);
 
+  // ---------- 용어 풀이 ----------
+  let helpBtn = null;
+  function closeHelp(restore) {
+    const pop = $('#help-pop');
+    if (!pop || pop.hidden) return false;
+    pop.hidden = true;
+    pop.innerHTML = '';
+    $$('[data-help][aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    const prev = helpBtn;
+    helpBtn = null;
+    if (restore && prev && document.contains(prev)) prev.focus();
+    return true;
+  }
+  function toggleHelp(btn) {
+    const pop = $('#help-pop');
+    const key = btn && btn.dataset.help;
+    const item = key && TERMS[key];
+    if (!pop || !item) return;
+    if (!pop.hidden && helpBtn === btn) { closeHelp(false); return; }
+    $$('[data-help][aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    helpBtn = btn;
+    btn.setAttribute('aria-expanded', 'true');
+    pop.innerHTML = `<div class="help-h"><span>${esc(item.title)}</span><button type="button" class="help-x" data-help-close="1" aria-label="용어 풀이 닫기"><svg width="11" height="11" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button></div><p class="help-p">${esc(item.body)}</p>`;
+    pop.hidden = false;
+    const r = btn.getBoundingClientRect();
+    const pw = pop.offsetWidth || 340, ph = pop.offsetHeight || 96;
+    const left = Math.max(12, Math.min(innerWidth - pw - 12, Math.round(r.left - 8)));
+    const below = r.bottom + 8 + ph <= innerHeight - 12;
+    const top = below ? Math.round(r.bottom + 8) : Math.max(12, Math.round(r.top - ph - 8));
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+  addEventListener('scroll', () => closeHelp(false), { passive: true });
+  on('tab', () => closeHelp(false));
+  on('change', () => closeHelp(false));
+
   // ---------- 위임한 눌림 ----------
   document.addEventListener('click', e => {
+    const hc = e.target.closest('[data-help-close]');
+    if (hc) { e.stopPropagation(); closeHelp(true); return; }
+    const hb = e.target.closest('[data-help]');
+    if (hb) { e.stopPropagation(); toggleHelp(hb); return; }
+    if (!e.target.closest('#help-pop')) closeHelp(false);
     // 복사와 인쇄는 단추에만 건다. 표 칸의 data-copy(복사할 원문 글자)는 행 고르기를 막지 않는다
     const a = e.target.closest('[data-act],[data-go],button[data-copy],button[data-print]');
     if (a) {
@@ -928,6 +1005,7 @@
     const p = e.target.closest && e.target.closest('.view tr[data-pick]');
     if (p && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(p.dataset.pick); return; }
     if (e.key === 'Escape') {
+      if (closeHelp(true)) return;
       if (EV.open) { unselect(); return; }
       if (st.sel[st.tab] != null) { unselect(); return; }
     }
@@ -963,6 +1041,8 @@
     $('#asof').textContent = asofText();
     $('#notice-t').textContent = S['고지'];
     $('#foot-notice').textContent = S['고지'];
+    const eh = $('#ev-help');
+    if (eh) eh.outerHTML = help('ev-panel', '관계와 근거 패널');
     renderCond(); renderScope(); renderTabs();
     $('#skin').addEventListener('click', () => set({ skin: st.skin === 'dark' ? 'light' : 'dark' }));
     $('#motion').addEventListener('click', () => set({ motion: st.motion === 'on' ? 'off' : 'on' }));
@@ -977,6 +1057,7 @@
       rz = setTimeout(() => {
         const m = mode();
         if (m !== lastMode) { if (m === 'wide') { EV.open = false; document.body.classList.remove('ev-open'); } lastMode = m; }
+        closeHelp(false);
         sheetPad(); placeEv(); placeGuides(); fitSel(); emit('resize', m);
       }, 80);
     });
