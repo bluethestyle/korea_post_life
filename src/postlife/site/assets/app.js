@@ -20,7 +20,7 @@
   const LIST_SIZE = 20;      // 접어 둔 목록과 작업 기록의 한 쪽
   const RIDER_SIZE = 25;     // 화면 4 특약 목록의 한 쪽
   const NEWS_SIZE = 6;       // 화면 1 시장 소식 카드의 한 쪽
-  const PREVIEW_ROWS = 8;    // 줄이 자료만큼 느는 표(화면 4의 결과 표)를 펼치기 전에 보여 주는 줄 수
+  const PREVIEW_ROWS = 8;    // 줄이 자료만큼 느는 표(화면 3의 비교표, 화면 4의 결과 표)를 펼치기 전에 보여 주는 줄 수
   const PREVIEW_BARS = 3;    // 화면 4 막대 그림에서 급부유형마다 펼치기 전에 보여 주는 막대 수
   const ALL = '*';
 
@@ -967,7 +967,9 @@
           + C.comma(rest.reduce(function (n, x) { return n + x[1]; }, 0)) + '가지'}) : null)) : null,
       fold('s3-wait', '목록 보기 · 회사, 추천 표준담보, 이름으로 찾기 (' + C.comma(sum.groups) + '가지)', list));
   }
-  /* 처음에는 기준 종형과 심사 유형이 같은 종형만 열로 보여 준다. 종형이 늘어도 표가 옆으로 길어지지 않는다. */
+  /* 처음에는 기준 종형과 맞붙는 종형을 다른 회사마다 하나씩(compare.py의 peers) 열로 보여 준다. 회사와 종형이 늘어도 표가 옆으로 길어지지 않는다.
+     체크를 손대지 않은 동안(st.cols가 null)에는 기준 종형을 바꾸면 새 기준 종형의 기본 열로 다시 정해진다.
+     체크로 더하거나 뺀 뒤에는 기준 종형을 바꿔도 그 선택을 그대로 두고, "회사마다 맞붙는 종형만" 단추로 기본 열로 돌아간다. */
   function s3Cols() {
     const S = D.s3, st = state.s3;
     const peers = S.peers[st.base] || S.variants;
@@ -1053,10 +1055,11 @@
     });
     const isDefault = !st.cols;
     const sumBlock = block('종형별 요약 · 표준담보 ' + pool.length + '개를 기준 종형과 견준 결과 (' + condText() + ')',
-      h('p', {class: 'note', text: '체크한 종형이 아래 비교표의 열로 나옵니다. 지금 ' + cols.length + '개' + (isDefault ? '(기준 종형과 심사 유형이 같은 종형)' : '') + '.'}),
+      h('p', {class: 'note', text: '체크한 종형이 아래 비교표의 열로 나옵니다. 지금 ' + cols.length + '개'
+        + (isDefault ? '(기준 종형과, 다른 회사마다 심사 등급이 같은 종형 하나. 같은 등급이 없으면 심사 유형이 같은 종형)' : '') + '.'}),
       sumList,
       h('div', {class: 'controls'},
-        !isDefault ? h('button', {type: 'button', class: 'btn small', 'data-key': 's3-cols-peers', text: '심사 유형이 같은 종형만',
+        !isDefault ? h('button', {type: 'button', class: 'btn small', 'data-key': 's3-cols-peers', text: '회사마다 맞붙는 종형만',
           onclick: function () { st.cols = null; renderMain(); }}) : null,
         cols.length < S.variants.length ? h('button', {type: 'button', class: 'btn small', 'data-key': 's3-cols-all', text: '모든 종형 보기',
           onclick: function () { setCols(function (next) { S.variants.forEach(function (v) { next[v] = true; }); }); }}) : null));
@@ -1086,6 +1089,10 @@
         add(tableBox, h('p', {class: 'empty', text: '조건에 맞는 표준담보가 없습니다.'}));
         return;
       }
+      /* 표준담보가 PREVIEW_ROWS개를 넘으면 펼치기 전에는 앞의 몇 줄만 그린다(화면 4 결과 표와 같은 방식).
+         좁은 화면에서는 한 줄이 종형 칸 높이만큼 길어, 분야 하나만 골라도 화면이 너무 길어지기 때문이다. 열 머리의 판정 분포는 접어도 모든 줄로 센다 */
+      const rowsOpen = rows.length <= PREVIEW_ROWS || !!state.open['s3-more-rows'];
+      const shownRows = rowsOpen ? rows : rows.slice(0, PREVIEW_ROWS);
       const head = [h('th', {scope: 'col', text: '표준담보'})].concat(cols.map(function (v) {
         const s = tally(rows, v, k, bi);
         return h('th', {scope: 'col'}, vHead(v), h('br'), h('span', {class: 'sub', text: vSub(v)}),
@@ -1096,7 +1103,7 @@
       }));
       const body = [];
       let major = null, mid = null;
-      rows.forEach(function (r) {
+      shownRows.forEach(function (r) {
         if (r.major !== major) {
           major = r.major; mid = null;
           body.push(h('tr', null, h('th', {class: 'grp', colspan: String(cols.length + 1), scope: 'colgroup', text: r.major})));
@@ -1112,13 +1119,17 @@
         h('colgroup', null, h('col', {class: 'c0'}), cols.map(function () { return h('col'); })),
         h('thead', null, h('tr', null, head)), h('tbody', null, body));
       tbl.style.setProperty('--cols', String(cols.length));      // 표의 최소 폭과 좁은 화면의 칸 나눔은 CSS가 이 값으로 정한다
-      add(tableBox, scrollBox(tbl, '표준담보별 비교표', 0));
+      tbl.id = 's3-cmp';
+      add(tableBox, [moreLine('s3-more-rows', 's3-cmp', '표', '줄', Math.min(PREVIEW_ROWS, rows.length), rows.length, null), scrollBox(tbl, '표준담보별 비교표', 0)]);
     };
     drawTable();
     const majorCount = function (m) { return pool.filter(function (r) { return m === ALL || r.major === m; }).length; };
     const cmpBlock = block('표준담보별 비교표',
       choice('s3-major', '보장 분야', majors.map(function (m) { return {value: m, label: m + ' ' + majorCount(m)}; })
-        .concat([{value: ALL, label: '전체 ' + majorCount(ALL)}]), st.major, function (m) { st.major = m; renderMain(); }),
+        .concat([{value: ALL, label: '전체 ' + majorCount(ALL)}]), st.major, function (m) {
+          if (m !== st.major) delete state.open['s3-more-rows'];      // "모두 보기"는 그 분야를 볼 때만 펼쳐 둔다
+          st.major = m; renderMain();
+        }),
       h('div', {class: 'controls'},
         searchField('s3-q', '표준담보 이름', st, drawTable),
         h('label', {class: 'field'}, h('span', {text: '보기'}),
@@ -1810,7 +1821,8 @@
     const S = D.s6, sum = S.summary, st = state.s6;
     const col = {};
     S.cols.forEach(function (c, i) { col[c] = i; });
-    const cell = function (row, name) { return row[col[name]]; };
+    /* 줄 끝의 빈 칸은 싣지 않으므로(worklog.py의 _trim) 없는 칸은 null로 읽는다 */
+    const cell = function (row, name) { const v = row[col[name]]; return v === undefined ? null : v; };
     const target = function (row) {
       const id = cell(row, '대상행ID');
       return [S.labels[id] || null, S.labels[id] ? h('br') : null, h('span', {class: 'mono', text: id})];

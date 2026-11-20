@@ -7,6 +7,7 @@
 - 글자가 잘린 요소, 세로로 찌그러진 칸, 서로 겹친 글자가 없는지
 - 처음 높이가 한도(380px 폭 12,000px, 1280px 폭 8,000px)를 넘지 않는지
 - 접어 둔 목록을 펼친 상태, 거르기·찾기·쪽 넘기기를 쓴 상태에서도 위 문제가 없는지
+- 화면 3: 처음 보이는 비교 종형 열이 회사마다 하나인지, 비교표를 "모두 보기"로 펼친 상태에서도 위 문제가 없고 표준담보가 한 줄도 빠지지 않는지
 - 화면 4: 종형마다 특약을 모두 담고 결과 막대와 표를 "모두 보기"로 펼친 상태에서도 위 문제가 없고 표준담보가 한 줄도 빠지지 않는지,
   단추를 키보드(Enter, Space)로 펼치고 접을 수 있는지
 - 탭마다 해설 결론이 있고, 해설을 펼쳐도 위 문제가 없으며, 끼우지 못한 {변수} 자리가 보이지 않는지
@@ -215,6 +216,15 @@ class Run:
         if shown != (total, total):
             self.problems.append((self.width, label, {"kind": "rows hidden after expand", "total": total, "bars": shown[0], "table": shown[1]}))
 
+    def s3_all_shown(self, label):
+        """화면 3 비교표를 펼친 상태에서 표준담보가 한 줄도 빠지지 않았는지 본다(표 위 줄의 표준담보 수와 견준다)."""
+        found = re.search(r"표준담보 (\d+)개", self.page.locator("#screen-s3 .list-body > p.pager").first.inner_text())
+        if not found:
+            return
+        shown = self.rows("table.cmp tbody th[scope=row]")
+        if shown != int(found.group(1)):
+            self.problems.append((self.width, label, {"kind": "rows hidden after expand", "total": int(found.group(1)), "table": shown}))
+
     def card(self, label, pages):
         """열려 있는 응대 카드를 본다: 미리 보기, 인쇄 매체의 한 장(높이 한도), A4 PDF 쪽 수."""
         page, width = self.page, self.width
@@ -301,7 +311,7 @@ def check_width(browser, width, problems, pages):
     # ---- 화면 3 ----
     page.click("#tab-s3")
     page.fill("#age", "50")
-    # 기준 종형 바꾸기(상품 → 종형). 처음에는 심사 유형이 같은 종형만 열로 나온다
+    # 기준 종형 바꾸기(상품 → 종형). 처음에는 기준 종형과, 다른 회사마다 맞붙는 종형 하나씩만 열로 나온다
     kinds = '[data-key^="s3-base-"]:not([data-key*="-rev-"]):not([data-key*="-org-"])'
     for r in range(max(1, page.locator('[data-key^="s3-base-rev-"]').count())):
         if page.locator('[data-key^="s3-base-rev-"]').count():
@@ -311,6 +321,11 @@ def check_width(browser, width, problems, pages):
                 page.locator(kinds).nth(i).click()
             shown = run.rows("table.cmp thead th") - 1
             assert 1 <= shown <= 4, f"처음 보이는 종형 열이 너무 많음: {shown}"
+            # 체크된 종형(=열)은 회사마다 하나다. 종형ID의 앞 조각이 기관코드다
+            picked = page.eval_on_selector_all('[data-key^="s3-col-"]:checked', "els => els.map(e => e.dataset.key.slice(7))")
+            orgs = [v.split("_")[0] for v in picked]
+            if len(picked) != shown or len(orgs) != len(set(orgs)):
+                problems.append((width, "s3 처음 열", {"kind": "default columns not one per company", "shown": shown, "picked": picked}))
             run.look(f"s3 기준 {page.locator('.picked strong').inner_text()} ({shown}열)", limit=LIMIT[width])
     if page.locator('[data-key^="s3-base-rev-"]').count():
         page.locator('[data-key^="s3-base-rev-"]').first.click()
@@ -321,15 +336,26 @@ def check_width(browser, width, problems, pages):
         majors.nth(i).click()
         last = i == majors.count() - 1
         run.look(f"s3 보장 분야 {majors.nth(i).inner_text()}", shot="s3_major_all" if last else None)
-    # 모든 종형을 열로
+    # 비교표는 표준담보가 많으면 앞의 몇 줄만 그린다. 전체 분야를 "모두 보기"로 펼친 상태에서도 문제가 없고 한 줄도 빠지지 않는지 본다
+    keys = run.show_all("s3-more-", "s3 전체 분야")
+    if keys:
+        run.look("s3 전체 분야·표 모두 펼침", shot="s3_major_all_open")
+        run.s3_all_shown("s3 전체 분야")
+        run.fold_back(keys, "s3 전체 분야")
+    # 모든 종형을 열로(표도 모두 펼쳐 모든 칸을 본다)
     page.click('[data-key="s3-cols-all"]')
     all_cols = run.rows("table.cmp thead th") - 1
     assert all_cols > cols_default, "모든 종형 보기가 열을 늘리지 않음"
     run.look(f"s3 모든 종형({all_cols}열)·전체 분야", shot="s3_allcols")
+    keys = run.show_all("s3-more-", "s3 모든 종형")
+    if keys:
+        run.look(f"s3 모든 종형({all_cols}열)·전체 분야·표 모두 펼침", shot="s3_allcols_open")
+        run.s3_all_shown("s3 모든 종형")
     page.evaluate("() => { const b = document.querySelector('.scroll:has(table.cmp)'); b.scrollLeft = 500; b.scrollIntoView(); }")
     page.screenshot(path=str(OUT / f"s3_allcols_scrolled_{width}.png"))
     run.look("s3 모든 종형·옆으로 민 상태")
     page.evaluate("() => { document.querySelector('.scroll:has(table.cmp)').scrollLeft = 0; }")
+    run.fold_back(keys, "s3 모든 종형")
     page.click('[data-key="s3-cols-peers"]')
     assert run.rows("table.cmp thead th") - 1 == cols_default
     majors.nth(0).click()

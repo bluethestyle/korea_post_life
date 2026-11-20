@@ -110,6 +110,9 @@ def with_capped_private(tables):
 def open_card(page, age, peer):
     page.click("#tab-s3")
     page.fill("#age", str(age))
+    box = page.locator(f'[data-key="s3-col-{peer}"]')
+    if not box.is_checked():        # 처음 열은 회사마다 기준과 맞붙는 종형 하나라, 심사 유형이 다른 비교 종형은 체크로 더한다
+        box.check()
     page.click('[data-key="s3-card"]')
     page.wait_for_selector("#card[open] .sheet")
     if page.locator(f'[data-key="card-peer-{peer}"]').count():
@@ -139,6 +142,20 @@ def test_응대_카드의_한쪽에만_있는_담보는_위쪽_집계와_같은_
 
 
 # ---------- 화면 3 ----------
+def test_화면3_처음_열은_기준_종형을_바꾸면_다시_정하고_체크로_고친_뒤에는_그대로_둔다(site):
+    page = site(fake_tables())
+    page.click("#tab-s3")
+    checked = lambda: page.eval_on_selector_all('[data-key^="s3-col-"]:checked', "els => els.map(e => e.dataset.key.slice(7))")
+    assert checked() == [NEW_A]                                # 기준(간편 3.2.5)과 심사 유형이 같은 한화 종형이 없다
+    page.click(f'[data-key="s3-base-{NEW_B}"]')
+    assert checked() == [NEW_B, PRIV]                          # 기준 종형을 바꾸면 같은 규칙으로 다시 정한다(일반심사끼리)
+    page.check(f'[data-key="s3-col-{NEW_A}"]')
+    page.click(f'[data-key="s3-base-{NEW_A}"]')
+    assert checked() == [NEW_A, NEW_B, PRIV]                   # 체크로 고친 뒤에는 기준 종형을 바꿔도 그 선택을 둔다
+    page.click('[data-key="s3-cols-peers"]')
+    assert checked() == [NEW_A]                                # "회사마다 맞붙는 종형만"으로 처음 열로 돌아간다
+
+
 def test_기준_종형의_가입_한도가_없어_판정하지_않은_담보는_가입_한도_자료_없음으로_적는다(site):
     page = site(without_caps(fake_tables(), NEW_B))
     page.click("#tab-s3")

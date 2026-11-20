@@ -7,6 +7,7 @@ build.py가 만든 자료를 pack()으로 줄여 HTML에 넣고, 화면은 calc.
 줄이는 방법
 - 여러 번 나오는 글자(ID, 특약명, 사유 문장, 키 이름)는 목록 "s"에 한 번만 적고 "~번호"(36진수)로 가리킨다.
 - " · "로 이어 붙인 이름은 조각으로 나눠 적는다. 작업 기록의 대상 이름이 종형명·특약명을 되풀이하기 때문이다.
+  이은 글자가 통째로 여러 번 나와도, 조각이 어차피 목록에 오르고 나눠 적는 편이 짧으면 나눈다(_split_pays).
 - 키가 같은 묶음이 줄지어 있으면 키를 한 번만 적은 표로 바꾼다.
 - 같은 값이 이어지는 배열은 값과 개수로 적는다.
 """
@@ -39,6 +40,19 @@ def _worth(text: str, count: int) -> bool:
     return count >= 2 and (size + 2) * count > (size + 3) + count * 6
 
 
+def _split_pays(text: str, n: int, pieces: Counter[str]) -> bool:
+    """" · "로 이은 글자를 목록에 통째로 올리는 대신 조각으로 나눠 적는 편이 짧은지.
+
+    조각이 모두 다른 데서도 나와 어차피 목록에 오를 때만 견준다. 나누면 나올 때마다 조각마다 가리키는 글자(6바이트쯤)와
+    묶음 표시({"~+":[…]}, 9바이트쯤)가 들고, 통째로 올리면 목록에 한 번 적고 나올 때마다 가리키는 글자 하나가 든다.
+    여러 종형이 같은 공시상품명을 쓰면(삼성화재 간편보험의 다섯 종형) 작업 기록의 대상 이름이 통째로 되풀이되는데, 그 조각은 급부·특약 이름으로 이미 목록에 있다.
+    """
+    parts = text.split(SEP)
+    if not all(_worth(p, pieces[p]) for p in parts):
+        return False
+    return n * (9 + 6 * len(parts)) < len(text.encode("utf-8")) + 3 + 6 * n
+
+
 def _scalar(value: Any) -> bool:
     return not isinstance(value, (list, dict))
 
@@ -63,9 +77,15 @@ def pack(data: Any) -> dict[str, Any]:
                 count(value)
 
     count(data)
+    # 이은 글자를 모두 조각으로 나눴을 때 조각마다 몇 번 나오는지. 이은 글자를 통째로 올릴지 나눌지 정하는 데만 쓴다
+    parted: Counter[str] = Counter()
+    for text, n in whole.items():
+        for part in text.split(SEP) if SEP in text else [text]:
+            parted[part] += n
     pieces: Counter[str] = Counter(whole)
     for text, n in whole.items():
-        if SEP in text and not _worth(text, n):
+        if SEP in text and (not _worth(text, n) or _split_pays(text, n, parted)):
+            del pieces[text]
             for part in text.split(SEP):
                 pieces[part] += n
     table = sorted((s for s, n in pieces.items() if _worth(s, n)), key=lambda s: (-pieces[s], s))

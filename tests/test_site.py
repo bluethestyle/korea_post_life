@@ -395,16 +395,21 @@ def test_매핑_검토_대기만_있는_칸은_빈자리로_세지_않는다():
     assert compare.verdict({**ok, "val": None}, ok) == "x"
 
 
-def test_처음_보여_줄_열은_기준과_심사_유형이_같은_종형이다(data):
+def test_처음_보여_줄_열은_회사마다_기준과_맞붙는_종형_하나다(data):
     s3 = compare.build(data, data.conds())
     assert s3["peers"][NEW_B] == [NEW_B, PRIV]                 # 일반심사끼리
-    assert s3["peers"][NEW_A] == [NEW_A, NEW_B, PRIV]           # 같은 심사 유형이 없으면 전부
+    assert s3["peers"][NEW_A] == [NEW_A]                       # 같은 심사 유형이 없는 회사는 고르지 않고, 기준 종형의 회사는 기준 종형뿐이다
     tables = fake_tables()
-    tables["sys_상품종형"].append(variant("HANWHALIFE_H2_eeeeee", "HANWHALIFE", "HANWHA_Y_2610", "HANWHA_Y|간편심사|3.2.5|갱신|표준형",
-                                      "민영 시험보험 무배당", "간편가입형(2년)", "정밀비교", "간편심사", "3.2.5", (3, 2, 5, True, 6),
-                                      "2026-10-01", None, "hp", "mp"))
+    h2, h3, s1, s2 = "HANWHALIFE_H2_eeeeee", "HANWHALIFE_H3_eeeeee", "SAMSUNGFIRE_S1_ffffff", "SAMSUNGFIRE_S2_ffffff"
+    for vid, org, kind, uw, simple in [(h2, "HANWHALIFE", "간편가입형(2년)", "간편심사", "3.2.5"), (h3, "HANWHALIFE", "간편가입형(3년)", "간편심사", "3.2.5"),
+                                       (s1, "SAMSUNGFIRE", "1종(간편315)", "간편심사", "3.1.5"), (s2, "SAMSUNGFIRE", "2종(일반)", "일반심사", "일반")]:
+        gate = (3, 2, 5, True, 6) if uw == "간편심사" else (None, None, None, None, None)
+        tables["sys_상품종형"].append(variant(vid, org, f"{org}_Y_2610", f"{org}_Y|{uw}|{simple}|갱신|표준형", "민영 시험보험 무배당",
+                                          kind, "정밀비교", uw, simple, gate, "2026-10-01", None, "hp", "mp"))
     more = compare.build(Data(tables), [Cond()])
-    assert more["peers"][NEW_A] == [NEW_A, "HANWHALIFE_H2_eeeeee"]
+    assert more["variants"] == [NEW_A, NEW_B, h2, h3, PRIV, s1, s2]
+    assert more["peers"][NEW_A] == [NEW_A, h2, s1]             # 같은 등급(3.2.5) 가운데 첫째, 그런 종형이 없는 회사는 같은 심사 유형 가운데 첫째
+    assert more["peers"][NEW_B] == [NEW_B, PRIV, s2]           # 같은 회사의 다른 종형(NEW_A)은 고르지 않는다
 
 
 def test_매핑_검토_대기_요약(data):
@@ -849,6 +854,12 @@ def test_작업_기록_요약(data):
     assert summary["review"]["byStatus"] == [("검토 대기", 3), ("나중 실행에서 다시 판정됨", 1), ("매핑 대기", 1), ("지금 사본에 없는 행", 1)]
     assert len(s6["rows"]) == 12 and s6["rows"][0][s6["cols"].index("실행일시")] >= s6["rows"][-1][s6["cols"].index("실행일시")]
     assert s6["labels"][f"{NEW_A}_Tnursing_Bnca"].endswith("요양병원암입원보험금(암)")
+    # 줄 끝의 빈 값은 싣지 않는다. 모자란 칸을 None으로 채우면 원래 기록과 같다
+    cols = s6["cols"]
+    logs = sorted(data.logs, key=lambda r: (str(r["실행일시"]), str(r["로그ID"])), reverse=True)
+    assert all(r and r[-1] is not None for r in s6["rows"]) and any(len(r) < len(cols) for r in s6["rows"])
+    for r, original in zip(s6["rows"], logs):
+        assert r + [None] * (len(cols) - len(r)) == [original.get(c) for c in cols]
 
 
 def test_화면1은_자료에_있는_것만_센다(data):
@@ -883,10 +894,24 @@ def test_줄여_적은_자료는_그대로_되살아난다():
     assert len(json.dumps(packed, ensure_ascii=False)) < len(json.dumps(sample, ensure_ascii=False))
 
 
+def test_이은_글자는_조각이_목록에_있으면_나눠_적는다():
+    name, rider, benefit = ("무배당 시험화재 간편보험 새로고침(2607.5) 7종(해약환급금미지급형)", "[갱신형][간편]암 진단비(1년50%)",
+                            "[갱신형][간편]암(기타피부암 및 갑상선암 제외) 진단비")
+    label = " · ".join([name, rider, benefit])
+    sample = {"labels": {f"V{i}_T1_B1": label for i in range(5)},       # 다섯 종형이 같은 공시상품명을 써서 대상 이름이 통째로 되풀이된다
+              "names": [name, rider, benefit] * 3, "once": "한 번 · 만 나오는 조각"}
+    packed = pack.pack(sample)
+    assert label not in packed["s"] and {name, rider, benefit} <= set(packed["s"])
+    assert pack.unpack(json.loads(json.dumps(packed, ensure_ascii=False))) == sample
+    many = {"rows": ["앞 조각 · 뒤 조각"] * 50}                         # 조각이 다른 데 나오지 않으면 통째로 올린다
+    assert "앞 조각 · 뒤 조각" in pack.pack(many)["s"] and pack.unpack(pack.pack(many)) == many
+
+
 def test_가짜_자료로도_빌드된다(data):
     html = build.render(data)
     payload = build.read_payload(html)
     assert payload == json.loads(json.dumps(build.payload(data), ensure_ascii=False))   # 줄여 적어도 내용은 그대로다
+    assert not any("id" in x for x in [*payload["benefits"].values(), *payload["riders"].values()])   # ID는 키로만 적는다
     assert payload["variantOrder"] == [NEW_A, NEW_B, OLD_A, PRIV]
     assert payload["variants"][NEW_A]["product"] == "시험건강보험 2606" and payload["variants"][NEW_A]["kind"] == "1종(간편가입325)"
     assert payload["defaults"] == {"age": 50, "sex": "M", "maxAge": 120}
@@ -921,7 +946,7 @@ def built(tmp_path_factory):
 def test_실제_자료로_빌드되고_외부_자원을_부르지_않는다(built):
     info, html, payload = built
     assert info["variants"] == len(payload["variants"]) > 0
-    assert info["bytes"] == len(html.encode("utf-8")) < 4_000_000   # 자료가 열 배로 늘어도 한 파일 4MB를 넘기지 않는다
+    assert info["bytes"] == len(html.encode("utf-8")) < 4_000_000   # 한 파일 4MB를 넘기지 않는다. 세 회사 사본에서 여유가 5만 바이트쯤이라, 넘으면 화면 자료를 압축해 싣는다
     for pattern in EXTERNAL:
         found = re.search(pattern, html, re.I)
         assert found is None, f"외부 자원 참조: {html[max(0, found.start() - 40):found.end() + 60]!r}"

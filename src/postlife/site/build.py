@@ -35,9 +35,10 @@ def variant_view(data: Data, vid: str) -> dict[str, Any]:
 
 
 def rider_view(data: Data, tid: str) -> dict[str, Any]:
+    """특약 한 줄. ID는 riders의 키로만 적는다(화면은 키로 찾는다)."""
     r = data.riders[tid]
     return {
-        "id": tid, "vid": r["종형ID"], "name": r["원시특약명"], "kind": r["담보구분"], "main": r["담보구분"] == MAIN_KIND,
+        "vid": r["종형ID"], "name": r["원시특약명"], "kind": r["담보구분"], "main": r["담보구분"] == MAIN_KIND,
         "renew": bool(r.get("갱신여부")), "renewYears": r.get("갱신주기년"),
         "min": r.get("최소가입금액만원"), "max": r.get("최대가입금액만원"),
     }
@@ -59,7 +60,8 @@ def payload(data: Data, previous: Data | None = None, texts: dict[str, Any] | No
         "variants": {vid: variant_view(data, vid) for vid in data.variant_order},
         "variantOrder": list(data.variant_order),
         "riders": {tid: rider_view(data, tid) for tid in data.riders},
-        "benefits": {bid: data.benefit_view(bid) for bid in data.benefits},
+        # 급부ID는 benefits의 키로만 적는다. 급부마다 "id"를 또 적으면 6천여 줄에 같은 ID가 두 번씩 실린다(화면은 키로 찾는다)
+        "benefits": {bid: {k: v for k, v in data.benefit_view(bid).items() if k != "id"} for bid in data.benefits},
         "std": {sid: {"id": sid, "name": s["표준담보명"], "major": s["보장대분류"], "mid": s["보장중분류"],
                       "type": s["급부유형"], "unit": s["비교기준단위만원"]} for sid, s in data.std.items()},
         "commentary": {"texts": texts, "s3Margin": data.setting_num("COMMENT_S3_MARGIN", 0)},

@@ -5,7 +5,9 @@ from typing import Any
 
 from .model import Data, MAIN_KIND, REVIEW_STEP, _blank
 
-COLUMNS = ["실행일시", "작업단계", "대상탭", "대상행ID", "대상열", "변경전값", "변경후값", "호출모델", "판정확률", "결과", "사유"]
+# 화면은 열 이름(cols)으로 칸을 찾는다. 비어 있을 때가 많은 열을 뒤에 두고, 줄 끝의 빈 값(None)은 싣지 않는다(_trim).
+# 작업 기록이 만여 줄이라 줄마다 null을 대여섯 개씩 적으면 그것만 200KB쯤 된다. 화면은 없는 칸을 null로 읽는다(app.js 화면 6의 cell)
+COLUMNS = ["실행일시", "작업단계", "대상탭", "대상행ID", "결과", "사유", "호출모델", "대상열", "판정확률", "변경전값", "변경후값"]
 RESULTS = ["통과", "반려", "보류"]
 RETRY_STEP = "재추출"
 STEP_ORDER = ["추출", "코드대조", "판정", RETRY_STEP, REVIEW_STEP]   # 검증 흐름의 순서 (기획 6.2)
@@ -37,6 +39,14 @@ def target_label(data: Data, target: str) -> str | None:
     return None
 
 
+def _trim(values: list[Any]) -> list[Any]:
+    """줄 끝의 None을 떼어 낸다. 가운데의 None은 칸 자리를 지키도록 그대로 둔다."""
+    end = len(values)
+    while end and values[end - 1] is None:
+        end -= 1
+    return values[:end]
+
+
 def _variant(data: Data, vid: str | None) -> str:
     v = data.variants.get(vid)
     return str(v["공시상품명"]) if v else str(vid)
@@ -63,7 +73,7 @@ def review_status(data: Data, row: dict) -> str:
 
 def build(data: Data) -> dict[str, Any]:
     logs = sorted(data.logs, key=lambda r: (str(r.get("실행일시")), str(r.get("로그ID"))), reverse=True)
-    rows = [[r.get(c) for c in COLUMNS] for r in logs]
+    rows = [_trim([r.get(c) for c in COLUMNS]) for r in logs]
     labels = {}
     for r in logs:
         target = r.get("대상행ID")
