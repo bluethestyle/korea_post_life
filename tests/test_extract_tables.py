@@ -225,6 +225,51 @@ def test_cut_row_is_recognised_without_open_end_flag():
     assert (riders[0].last_page, riders[1].first_page, riders[1].last_page) == (12, 12, 13)
 
 
+def test_rider_name_cell_carried_over_the_page_break_is_joined_and_the_row_is_a_new_cover():
+    # 병합된 특별약관 칸이 쪽을 넘으며 이름이 "(1년" / "50%)"로 갈렸다. 앞 쪽 세부보장 행은 거기서 끝났고,
+    # 다음 쪽 첫 행은 세부보장 이름과 지급금액이 따로 적힌 새 세부보장이다
+    riders = riders_from_tables([
+        table(10, [["[갱신형]가나병원 \n다라 입원일당(1\n년", "[갱신형]상해 \n가나병원 다라 \n입원일당 ", "상해로 입원한 경우", "가입금액 "]]),
+        table(11, [["50%) ", "[갱신형]질병 \n가나병원 다라 \n입원일당 (1년50%) ", "질병으로 입원한 경우", "가입금액 "],
+                   ["[갱신형]마바 \n입원일당 ", "[갱신형]상해 \n마바 입원일당 ", "상해로 마바에 입원한 경우", "가입금액 "]]),
+    ])
+    assert [r.title for r in riders] == ["[갱신형]가나병원 다라 입원일당(1년50%)", "[갱신형]마바 입원일당"]
+    first = riders[0]
+    assert [(c.name, c.reason, c.amount, c.page) for c in first.covers] == [
+        ("[갱신형]상해 가나병원 다라 입원일당", "상해로 입원한 경우", "가입금액", 10),
+        ("[갱신형]질병 가나병원 다라 입원일당 (1년50%)", "질병으로 입원한 경우", "가입금액", 11)]
+    assert (first.first_page, first.last_page) == (10, 11)
+
+
+def test_full_name_at_page_top_is_a_new_rider_even_after_an_unclosed_name():
+    # 앞 쪽 이름이 괄호가 열린 채 끝났어도, 다음 쪽 첫 행의 이름이 꼬리 토막이 아니면 새 특별약관이다
+    riders = riders_from_tables([
+        table(10, [["가나 치료비(1년감\n액", "가나(뇌) 치료비(1년감액)", "가나(뇌) 치료를 받은 경우", "가입금액"]]),
+        table(11, [["다라 치료비(1년50%)", "다라(뇌) 치료비(1년50%)", "다라(뇌) 치료를 받은 경우", "가입금액"]]),
+    ])
+    assert [(r.title, len(r.covers)) for r in riders] == [("가나 치료비(1년감액)", 1), ("다라 치료비(1년50%)", 1)]
+
+
+def test_bracket_missing_in_the_source_is_mended_only_where_its_place_is_clear():
+    from postlife.extract.tables import mend_brackets
+
+    # 끝 괄호 묶음이 닫히지 않은 채 끝남
+    assert mend_brackets("[갱신형]가나 치료비Ⅲ(1년감액") == "[갱신형]가나 치료비Ⅲ(1년감액)"
+    # 여는 괄호가 빠진 묶음. 앞 묶음 바로 뒤(빈칸은 그대로 두고)에서 연다
+    assert mend_brackets("가나 수술비 (다라, 마바 제외) 사아 제외) (1년50%)") == "가나 수술비 (다라, 마바 제외) (사아 제외) (1년50%)"
+    assert mend_brackets("가나 수술비(다라 제외)사아 제외)") == "가나 수술비(다라 제외)(사아 제외)"
+    # 자리를 정할 수 없으면 그대로 둔다: 가운데 묶음이 안 닫힘, 앞에 묶음 없이 닫힘, 겹쳐 열림
+    for name in ("가나 일당 (다라병원 (연간30회한)(1년50%)", "가나 다라 제외)", "가나 (다라 (마바", "갱신형]가나 진단비",
+                 "가나(다라) )"):
+        assert mend_brackets(name) == name, name
+    assert mend_brackets("가나 진단비(1년50%)") == "가나 진단비(1년50%)" and mend_brackets("") == ""
+    # 조각을 닫을 때 특별약관 이름과 세부보장 이름 모두에 쓴다
+    (rider,) = riders_from_tables([table(10, [
+        ["가나 수술비(다라 \n제외) 마바 제외)", "가나 입원 수술비(1년감\n액", "입원하여 수술을 받은 경우", "가입금액"],
+    ])])
+    assert (rider.title, rider.covers[0].name) == ("가나 수술비(다라 제외) (마바 제외)", "가나 입원 수술비(1년감액)")
+
+
 def test_nameless_row_at_page_top_continues_the_previous_cover():
     riders = riders_from_tables([
         table(10, [["가나 진단비", "가나로 진단 확정된 경우 \n※ 가나의 보장개시일은 계약일임 ", "가입금액"]]),
@@ -515,6 +560,26 @@ def test_hanging_space_and_comma_stay_in_the_cell_of_the_previous_character():
     cell = tables._within(chars, (0, 90, 46, 120))
     assert "".join(c["text"] for c in cell) == "가나다라, "
     assert [l.text for l in tables._text_lines(cell)] == ["가나다라, "]
+
+
+def test_character_straddling_the_outer_border_belongs_to_the_edge_cell():
+    # 가운데 맞춘 이름이 칸보다 넓어 줄 첫 글자 "["가 표 왼쪽 테두리(x=46)를 넘어 찍혔다. 가운데는 테두리 밖이다
+    frame = (46.0, 50.0, 300.0, 400.0)
+    line = [char("[", 43.3, width=4.5)] + typed("가나]다라", x0=47.8)
+    left = (46.0, 90.0, 159.0, 120.0)            # 맨 왼쪽 칸
+    plain = tables._within(tables._numbered(line), left)
+    assert "".join(c["text"] for c in plain) == "가나]다라"
+    pulled = tables._within(tables._numbered(line, frame), left)
+    assert "".join(c["text"] for c in pulled) == "[가나]다라"
+    # 테두리에 닿지 않은 표 밖 글자, 표 높이 밖에서 테두리에 걸친 글자는 그대로 둔다
+    outside = typed("마바", x0=20.0) + [char("[", 43.3, top=30.0, width=4.5)]
+    assert tables._within(tables._numbered(outside, frame), frame) == []
+    assert [c["at"] for c in tables._numbered(outside, frame)] == [c["at"] for c in tables._numbered(outside)]
+    # 오른쪽 테두리(x=300)를 넘은 끝 글자와 그 뒤에 매달린 빈칸도 맨 오른쪽 칸으로 온다
+    right = typed("가입금액 ", x0=270.0)
+    last = (250.0, 90.0, 300.0, 120.0)
+    assert "".join(c["text"] for c in tables._within(tables._numbered(right), last)) == "가입금"
+    assert "".join(c["text"] for c in tables._within(tables._numbered(right, frame), last)) == "가입금액 "
 
 
 def test_text_printed_over_another_line_is_kept_apart():

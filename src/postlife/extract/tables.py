@@ -198,6 +198,38 @@ def split_names(title: str) -> tuple[str, ...]:
     return tuple(n.strip() for n in names if n.strip())
 
 
+def mend_brackets(name: str) -> str:
+    """원문에서 소괄호 하나가 빠진 이름의 짝을 맞춘다. 빠진 자리가 분명한 두 경우만 고친다.
+
+    - 마지막 괄호 묶음이 닫히지 않은 채 이름이 끝나면 끝에서 닫는다. "가나 치료비(1년감액" → "가나 치료비(1년감액)"
+    - 여는 괄호 없이 닫는 괄호가 나오고 그 앞에 닫힌 괄호 묶음이 있으면, 그 묶음 바로 뒤에서 연다.
+      "가나 수술비(다라 제외) 마바 제외)(1년50%)" → "가나 수술비(다라 제외) (마바 제외)(1년50%)"
+    가운데 묶음이 닫히지 않았거나, 앞에 괄호 묶음이 없거나, 앞 묶음과 닫는 괄호 사이에 글자가 없는 것처럼
+    자리를 정할 수 없으면 그대로 둔다.
+    대괄호 표시("[갱신형]")는 건드리지 않는다. 쪽을 넘어 갈린 이름은 다 이은 다음에 쓴다(이을 토막이 남은 이름을 닫으면 안 된다).
+    """
+    out, opened, after = name, [], None        # 열린 "("의 자리들, 마지막으로 닫힌 묶음 바로 뒤 자리
+    i = 0
+    while i < len(out):
+        if out[i] == "(":
+            opened.append(i)
+        elif out[i] == ")":
+            if opened:
+                opened.pop()
+            elif after is not None and out[after:i].strip():
+                at = after + len(out[after:i]) - len(out[after:i].lstrip())
+                out = out[:at] + "(" + out[at:]
+                i += 1
+            else:
+                return name
+            if not opened:
+                after = i + 1
+        i += 1
+    if len(opened) == 1 and opened[0] == out.rfind("("):
+        out += ")"
+    return out
+
+
 def split_only(name: str) -> tuple[str, str]:
     """이름에 붙은 적용 범위 표시를 뗀다. "보험료 납입면제대상 *7종에 한함" → ("보험료 납입면제대상", "7종에 한함")."""
     m = _ONLY.search(name)
@@ -302,6 +334,18 @@ def _continues(prev: Line | None, line: Line) -> bool:
             or _unopened(line.rider) or _unopened(line.cover))
 
 
+def _name_tail(prev: Line | None, line: Line) -> bool:
+    """쪽 첫 행의 특별약관 칸이 앞 쪽 특별약관 이름의 꼬리이고, 행 자체는 새 세부보장인가.
+
+    특별약관 칸은 세부보장 여러 행에 걸쳐 병합되어 있어서, 이름이 길면 칸이 쪽을 넘으며 이름이 두 쪽에 갈린다.
+    그런데 앞 쪽 마지막 세부보장 행이 거기서 끝났으면 다음 쪽 첫 행은 이름과 금액이 따로 적힌 새 세부보장이다.
+    이름 꼬리는 여는 괄호 없이 닫는 괄호가 먼저 나오는 토막이다("50%)"). 새 특별약관의 이름은 그렇게 시작하지 않는다.
+    _continues가 이어지는 행으로 보지 않은 행에만 쓴다(세부보장 칸이 있는 행만).
+    """
+    return (prev is not None and line.top and prev.page != line.page and prev.label == line.label
+            and bool((line.cover or "").strip()) and _unopened(line.rider))
+
+
 def _append_reason(parts: list[str], more: str) -> None:
     """이어지는 행의 지급사유를 붙인다. 칸 안의 작은 표가 쪽 끝에서 잘렸으면 두 토막을 한 줄로 합친다."""
     before = _INNER.match(parts[-1].rstrip("\n").split("\n")[-1]) if parts else None
@@ -333,10 +377,13 @@ class _Open:
                           "amount": amount, "page": page})
 
     def close(self) -> Rider:
+        """다 모은 토막을 이어 조각을 만든다. 원문에서 괄호가 빠진 이름은 여기서 짝을 맞춘다(mend_brackets)."""
         title, only = split_only(join_name("\n".join(self.name)))
+        title = mend_brackets(title)
         covers = []
         for row in self.rows:
             name, cover_only = split_only(join_name("\n".join(row["name"])))
+            name = mend_brackets(name)
             covers.append(Cover(name or title, join_text("\n".join(row["reason"])),
                                 join_text("\n".join(row["amount"])), row["page"], cover_only))
         title = title or covers[0].name
@@ -350,6 +397,8 @@ def group_riders(lines: Iterable[Line]) -> list[Rider]:
       다시 적혀 있으면(쪽이 바뀐 뒤 이름을 되풀이한 표) 앞의 특별약관이 이어지는 것으로 본다.
     - 왼쪽 칸이 비고(병합 또는 쪽 넘김) 오른쪽 칸에 이름이 있으면 앞 특별약관의 다음 세부보장이다.
     - 쪽 끝에서 잘린 행의 뒷부분(_continues)은 앞 행에 칸별로 이어 붙인다. 이름 토막은 이름에, 지급사유는 지급사유에.
+    - 쪽 첫 행의 왼쪽 칸이 앞 특별약관 이름의 꼬리이면(_name_tail, 병합된 칸이 쪽을 넘으며 이름이 갈린 경우)
+      꼬리는 특별약관 이름에 잇고, 행은 그 특별약관의 다음 세부보장으로 본다.
     - 지급금액 칸이 병합되어 비었으면(None) 위 행의 값을 물려받는다. 특별약관이 이어지는 쪽 첫 행의
       지급금액 칸이 비었으면 병합된 칸이 쪽을 넘어온 것이므로 마찬가지로 물려받는다.
     """
@@ -386,7 +435,9 @@ def group_riders(lines: Iterable[Line]) -> list[Rider]:
                 last["amount"] += ["", line.amount]         # 두 쪽에 다 금액이 적힌 경우. 문단을 갈라 둘 다 남긴다
         else:
             same = current is not None and rider and _title_key(rider) == name_key(current.title)
-            if rider and not (same and cover):
+            if current is not None and _name_tail(prev, line):
+                current.name.append(line.rider)     # 이름 꼬리는 앞 특별약관 이름에 잇고, 행은 그 특별약관의 다음 세부보장이다
+            elif rider and not (same and cover):
                 close()
                 current = _Open(line.label, line.rider)
             elif current is None:
@@ -642,17 +693,26 @@ def _within(chars: list[dict], bbox: Sequence[float]) -> list[dict]:
     return [c for c in chars if bbox[0] <= c["at"][0] < bbox[2] and bbox[1] <= c["at"][1] < bbox[3]]
 
 
-def _numbered(chars: list[dict]) -> list[dict]:
+def _numbered(chars: list[dict], frame: Sequence[float] | None = None) -> list[dict]:
     """글자마다 PDF에 적힌 차례("n")와 칸을 가릴 때 쓸 자리("at")를 붙인다.
 
     자리는 글자의 가운데다. 다만 줄 끝에 매달린 빈칸과 쉼표·마침표는 바로 앞 글자의 자리를 물려받는다.
     꽉 찬 줄의 끝 빈칸과 문장부호는 칸 경계 밖에 놓이기도 해서, 제 자리로 칸을 고르면 옆 칸으로 가거나 빠진다.
     빈칸이 빠지면 낱말 사이에서 바뀐 줄까지 붙여 쓰게 된다.
+
+    frame(표의 테두리 상자)을 주면 표 왼쪽이나 오른쪽 테두리에 걸쳐 찍힌 글자의 자리를 테두리 안쪽으로 옮긴다.
+    가운데 맞춘 이름이 칸보다 넓으면 줄 첫 글자나 끝 글자가 표 바깥 테두리를 넘어 찍힌다(넘은 부분은 잘려 보이지 않는다).
+    글자의 가운데가 테두리 밖이라도 글자가 테두리에 걸쳐 있으면 맨 바깥 칸의 글자다. 테두리에 닿지 않은 표 밖 글자는 그대로 둔다.
     """
     out = []
     prev: dict | None = None
     for n, c in enumerate(chars):
         at = ((c["x0"] + c["x1"]) / 2, (c["top"] + c["bottom"]) / 2)
+        if frame is not None and frame[1] <= at[1] < frame[3]:
+            if at[0] < frame[0] < c["x1"]:
+                at = (frame[0], at[1])
+            elif c["x0"] < frame[2] <= at[0]:
+                at = (frame[2] - _SNAP, at[1])
         hanging = c["text"].isspace() or c["text"] in ",."
         if hanging and prev is not None and abs(c["top"] - prev["top"]) <= 3 and c["x0"] >= prev["x0"]:
             at = prev["at"]
@@ -841,7 +901,7 @@ def _page_tables(page: Any, number: int, label: str) -> tuple[list[PageTable], s
             continue
         label = _label_above(page, t.bbox[1], floor) or label
         floor = t.bbox[3]
-        mine = _within(chars, t.bbox)
+        mine = _within(_numbered(page.chars, t.bbox), t.bbox)       # 테두리에 걸친 글자까지 이 표의 글자로 본다
         open_end = _open_end(t, mine, columns, inner)
         rows = []
         for row in t.rows:
