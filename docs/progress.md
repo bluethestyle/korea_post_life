@@ -935,7 +935,7 @@ Gemini 분당 토큰 한도 조사 (질문 47번, 네온, 웹 검색 12번)
 이어 할 순서
 
 1. 시안 3이 다 됐는지 사진으로 확인하고, 카본의 글꼴 답과 시안 비평 답을 받아 검수합니다.
-2. 글꼴: 답에 나온 실제 글꼴과 가까운 무료 글꼴을 공식 배포처에서 받아 라이선스를 확인하고(지금 받아 둔 것은 `local/postlife_local_assets/fonts/`의 Orbit, IBM Plex Sans KR, Chakra Petch, Oxanium, Rajdhani, Share Tech Mono, Do Hyeon), 실제 화면 문구로 짝을 나란히 놓은 견본 쪽을 만들어 사용자가 고르게 합니다.
+2. 글꼴: 기준 게임 화면의 글자 인상에 가까운 무료 글꼴을 공식 배포처에서 받아 라이선스를 확인하고, 실제 화면 문구로 짝 일곱을 나란히 놓은 견본 쪽 `site/proto/fonts2.html`을 만들어 사용자가 고르게 합니다. 세션을 닫을 때 만드는 중이었습니다(받은 글꼴은 `local/postlife_local_assets/fonts/dl/`과 `sub2/`, 기록은 같은 폴더의 `sources.md`, 원본은 `local/postlife_local_assets/proto_src/fonts2/`). 짝은 프래그마타 둘(Pretendard와 Michroma, SUIT와 넓은 Saira), 데스 스트랜딩(Pretendard와 IBM Plex Mono), 네모꼴(NanumSquare Neo와 Chakra Petch), 사이버펑크 2077(IBM Plex Sans KR와 Rajdhani), 기하학(Wanted Sans와 Space Grotesk), 지금 것(IBM Plex Sans KR와 Chakra Petch)입니다. 프래그마타와 디트로이트의 실제 글꼴 이름은 확인하지 못했고, 카본의 글꼴 답이 오면 짝을 고칩니다.
 3. 사용자가 스킨과 글꼴을 고르면 브리핑, 담보 비교, 그래프 탐색 세 화면을 짜고 사진 비평을 두 번 더 돈 뒤 실제 화면 코드에 입힙니다.
 
 ### UI/UX 시안에 대한 사용자 평가와 디자인 작업 방식 (2026-11-20 16시 40분, 세션을 닫기 전에)
