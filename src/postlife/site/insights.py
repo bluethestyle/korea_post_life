@@ -338,10 +338,14 @@ class Holding:
 
         compare.pick_rep은 금액을 모를 때 조건이 엄격한 줄을 대표로 고르므로, 상대 종형에 조건이 더 나은 다른 줄이 있을 수 있다.
         """
+        return len(self.other_line_ids(sid, rep))
+
+    def other_line_ids(self, sid: str, rep: dict[str, Any] | None) -> list[str]:
+        """other_lines가 세는 급부의 급부ID. 영업 인사이트의 단정 주의 목록이 근거 쪽을 적을 때 쓴다."""
         if rep is None:
-            return 0
+            return []
         sig = condition_signature(rep)
-        return sum(1 for v in self.confirmed.get(sid, []) if v["id"] != rep["id"] and condition_signature(v) != sig)
+        return [v["id"] for v in self.confirmed.get(sid, []) if v["id"] != rep["id"] and condition_signature(v) != sig]
 
 
 def _cover_key(c: Cover) -> tuple:
@@ -373,6 +377,7 @@ class _Base:
         self.insights: list[dict] = []
         self.dropped: list[dict] = []
         self.pairs = 0
+        self.pair_list: list[dict] = []
         self.dropped_pairs: list[dict] = []
         self.held_pairs: list[dict] = []
         self.spread = {p: Counter() for p in peers}
@@ -511,6 +516,7 @@ class _Base:
             rows.append(row)
             pair = {"표준담보ID": sid, "표준담보명": self.std_name(sid), "비교종형ID": h.vid, "판정": res["판정"],
                     "보류밖판정": res["보류밖판정"], "지급형태": res["지급형태"]}
+            self.pair_list.append({**pair, "뺌": bool(blocked)})
             if blocked:
                 self.dropped_pairs.append({**pair, "사유": blocked})
             else:
@@ -568,7 +574,7 @@ class _Base:
             "추천없는대기급부": {vid: len(h.loose) for vid, h in [(self.base, self.B)] + [(h.vid, h) for h in self.P]},
             "유형별": {t: kept.get(t, 0) for t in TYPES},
             "뺀수": {t: dropped.get(t, 0) for t in TYPES},
-            "비교쌍": self.pairs, "뺀비교쌍": len(self.dropped_pairs),
+            "비교쌍": self.pairs, "뺀비교쌍": len(self.dropped_pairs), "비교쌍목록": self.pair_list,
             "조건우열분포": {p: {k: self.spread[p].get(k, 0) for k in VERDICTS} for p in self.peers},
             "시사점": self.insights, "뺀시사점": self.dropped, "뺀비교": self.dropped_pairs, "보류비교": self.held_pairs,
         }
