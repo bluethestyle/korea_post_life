@@ -20,6 +20,8 @@
   const LIST_SIZE = 20;      // 접어 둔 목록과 작업 기록의 한 쪽
   const RIDER_SIZE = 25;     // 화면 4 특약 목록의 한 쪽
   const NEWS_SIZE = 6;       // 화면 1 시장 소식 카드의 한 쪽
+  const PREVIEW_ROWS = 8;    // 줄이 자료만큼 느는 표(화면 4의 결과 표)를 펼치기 전에 보여 주는 줄 수
+  const PREVIEW_BARS = 3;    // 화면 4 막대 그림에서 급부유형마다 펼치기 전에 보여 주는 막대 수
   const ALL = '*';
 
   const state = {
@@ -136,6 +138,21 @@
     el.addEventListener('toggle', function () { state.open[key] = el.open; if (el.open) fill(); });
     if (state.open[key]) fill();
     return el;
+  }
+  /* 줄이 자료만큼 느는 구획의 "모두 보기" 줄. 펼치기 전에는 구획이 앞의 일부(folded개)만 그리고, 단추를 누르면 같은 자리에 모두 그린다.
+     다시 누르면 접는다. 펼친 상태는 접어 두는 구획처럼 state.open에 기억해, 화면을 다시 그려도 그대로 둔다.
+     접어도 모두 보이면(folded >= total) 단추를 내지 않는다. target은 단추가 펼치는 요소의 id, how는 앞의 몇 개를 남기는지(없으면 앞에서부터)다.
+     이 줄은 펼치는 요소 위에 둔다. 다시 그린 뒤 초점을 받은 단추는 화면의 같은 자리에 남으므로, 아래에 두면 새로 보이는 줄이 화면 위쪽 밖으로 밀린다. */
+  function moreLine(key, target, what, unit, folded, total, how) {
+    if (folded >= total) return null;
+    const open = !!state.open[key];
+    const front = '앞의 ' + C.comma(folded) + unit;
+    return h('div', {class: 'showall'},
+      h('button', {type: 'button', class: 'btn small', 'data-key': key, 'aria-expanded': String(open), 'aria-controls': target,
+        text: open ? what + ' 접기' : what + ' 모두 보기 (' + C.comma(total) + unit + ')',
+        onclick: function () { state.open[key] = !open; renderMain(); }}),
+      h('span', {class: 'sub', text: open ? '누르면 ' + (how || front) + '만 남깁니다.'
+        : C.comma(total) + unit + ' 가운데 ' + (how ? C.comma(folded) + unit + '만 보입니다(' + how + ').' : front + '만 보입니다.')}));
   }
   /* 쪽 나누기 줄. 한 쪽에 다 들어가면 건수만 적는다. */
   function pager(key, st, total, size, unit, turn) {
@@ -1388,7 +1405,12 @@
     vm.rules.forEach(function (r) { if (r.type === '최대연동') linked[r.target] = r.base; });
     const allNoCond = vm.riders.every(function (r) { return r.noCond; });
 
-    const picker = variantPicker('s4-variant', '', S.variants, vid, function (v) { st.vid = v; st.list.page = 0; st.others.page = 0; renderMain(); });
+    /* 결과의 "모두 보기"는 그 조합을 볼 때만 펼쳐 둔다. 종형을 바꾸거나 "모두 담기", "모두 빼기"로 조합을 통째로 바꾸면 다시 접는다 */
+    const refold = function () { delete state.open['s4-more-bars']; delete state.open['s4-more-pay']; };
+    const picker = variantPicker('s4-variant', '', S.variants, vid, function (v) {
+      if (v !== st.vid) refold();
+      st.vid = v; st.list.page = 0; st.others.page = 0; renderMain();
+    });
 
     const riderRow = function (row) {
       const r = D.riders[row.tid], vr = vrOf[row.tid];
@@ -1486,10 +1508,28 @@
         });
       openDetail(std.name + ' · ' + vLabel(vid), body);
     };
-    const bars = types.map(function (type) {
+    /* 특약을 모두 담으면 표준담보가 수십 개로 늘어난다. 접을지는 표와 막대가 같은 기준(표준담보가 PREVIEW_ROWS개를 넘는지)으로 정하고,
+       접으면 펼치기 전에는 막대는 급부유형마다 앞의 몇 개, 표는 앞의 몇 줄만 그린다. 표를 다 보여 줄 만큼 적으면 막대도 다 보여 준다.
+       급부유형별 요약(표준담보 수와 가장 큰 지급액)은 접든 펼치든 모두 보여 준다. 막대 길이의 기준은 접어도 유형 전체의 최댓값이다 */
+    const folding = groups.length > PREVIEW_ROWS;
+    const byType = types.map(function (type) {
       const list = groups.filter(function (g) { return D.std[g.std].type === type; });
       const top = Math.max.apply(null, list.map(function (g) { return lineOf(g).val || 0; }).concat([0]));
-      return h('div', {class: 'bargroup'}, h('h4', {text: type}), list.map(function (g) {
+      const best = list.filter(function (g) { return top > 0 && lineOf(g).val === top; });     // 같은 금액이 여럿일 수 있다
+      return {type: type, list: list, top: top, best: best};
+    });
+    const summary = h('div', {class: 'tiles'}, byType.map(function (t) {
+      return tile(t.type + ' · 표준담보 ' + t.list.length + '개', t.best.length ? money(t.top) : '자료 없음',
+        t.best.length ? '가장 큰 지급액: ' + D.std[t.best[0].std].name + (t.best.length > 1 ? ' 등 ' + t.best.length + '개' : '') : '지급액 자료가 없습니다.');
+    }));
+    const barsOpen = !folding || !!state.open['s4-more-bars'];
+    const barsFolded = folding ? byType.reduce(function (n, t) { return n + Math.min(PREVIEW_BARS, t.list.length); }, 0) : groups.length;
+    const bars = byType.map(function (t) {
+      const list = t.list, top = t.top;
+      const shown = barsOpen ? list : list.slice(0, PREVIEW_BARS);
+      const head = h('h4', null, t.type,
+        h('span', {class: 'sub', text: ' 표준담보 ' + list.length + '개' + (shown.length < list.length ? ' 가운데 앞의 ' + shown.length + '개' : '')}));
+      return h('div', {class: 'bargroup'}, head, shown.map(function (g) {
         const l = lineOf(g), red = l.reduced[0];
         const width = function (v) { return 'calc((100% - 132px) * ' + (top > 0 && v ? v / top : 0) + ')'; };
         return h('div', {class: 'barrow'},
@@ -1502,7 +1542,9 @@
               h('span', {class: 'barval soft num', text: months(red[0]) + ' 미만 ' + money(red[1])})) : null));
       }));
     });
-    const resultTable = table(null, ['표준담보', '대표 급부', rcol('지급액'), rcol('감액 기간 중 지급액'), '면책', '지급 한도', '근거'], groups.map(function (g) {
+    const tableOpen = !folding || !!state.open['s4-more-pay'];
+    const tableRows = tableOpen ? groups : groups.slice(0, PREVIEW_ROWS);
+    const resultTable = table('pay', ['표준담보', '대표 급부', rcol('지급액'), rcol('감액 기간 중 지급액'), '면책', '지급 한도', '근거'], tableRows.map(function (g) {
       const l = lineOf(g), b = D.benefits[l.bid];
       return h('tr', null,
         h('th', {scope: 'row'}, D.std[g.std].name),
@@ -1510,13 +1552,20 @@
           b.ratio ? [h('br'), h('span', {class: 'sub', text: '지급 기준 ' + rateText(b) + (atExample(rowOf[b.tid]) ? ', 예시 금액으로 계산' : '')})] : null,
           b.pend.length ? [' ', pendTag()] : null),
         h('td', {class: 'r num', text: money(l.val)}),
-        h('td', {class: 'r num'}, l.reduced.length ? l.reduced.map(function (s) { return months(s[0]) + ' 미만 ' + money(s[1]); }).join(', ') : '감액 없음',
+        h('td', {class: 'r num red'}, l.reduced.length ? l.reduced.map(function (s, i) {      // 구간 하나는 한 덩어리로 줄을 바꾼다
+          return [i ? ' ' : '', h('span', {class: 'redseg', text: months(s[0]) + ' 미만 ' + money(s[1]) + (i < l.reduced.length - 1 ? ',' : '')})];
+        }) : '감액 없음',
           b.exc && l.reduced.length ? [h('br'), h('span', {class: 'sub', text: '예외: ' + b.exc})] : null),
         h('td', {text: b.wait ? C.comma(b.wait) + '일' : '없음'}),
         h('td', {text: orNone(b.limit)}),
         h('td', null, h('button', {type: 'button', class: 'btn', 'data-key': 'ev-' + g.std,
           onclick: function () { openLines(g); }}, g.lines.length > 1 ? '급부 ' + g.lines.length + '줄' : '근거')));
     }));
+    /* 칸 폭을 정해 둔다. 감액 칸에 붙는 긴 예외 문구가 표 폭을 차지해 대표 급부 칸이 한두 글자 폭으로 좁아지지 않게 한다 */
+    resultTable.id = 's4-pay';
+    resultTable.insertBefore(h('colgroup', null, ['c-std', 'c-name', 'c-pay', 'c-red', 'c-wait', 'c-limit', 'c-ev'].map(function (c) {
+      return h('col', {class: c});
+    })), resultTable.firstChild);
     const others = pay.others.length ? fold('s4-others', '표준담보에 이어지지 않은 급부 ' + C.comma(pay.others.length) + '줄 (사전 범위 밖이거나 매핑 검토 대기)', function () {
       return listPanel({
         key: 's4-others', st: st.others, size: LIST_SIZE, unit: '줄', empty: '조건에 맞는 급부가 없습니다.',
@@ -1591,18 +1640,21 @@
       noticeText ? h('p', {class: 'notice', text: noticeText}) : null,
       h('div', {class: 'controls'},
         h('button', {type: 'button', class: 'btn primary', 'data-key': 's4-max', text: fillLabel,
-          onclick: function () { const all = {}; vm.riders.forEach(function (r) { all[r.tid] = startAmount(r); }); st.want[vid] = all; renderMain(); }}),
+          onclick: function () { const all = {}; vm.riders.forEach(function (r) { all[r.tid] = startAmount(r); }); st.want[vid] = all; refold(); renderMain(); }}),
         h('button', {type: 'button', class: 'btn', 'data-key': 's4-clear', text: '특약 모두 빼기',
-          onclick: function () { const keep = {}; if (want[vm.main] !== undefined) keep[vm.main] = want[vm.main]; st.want[vid] = keep; renderMain(); }})),
+          onclick: function () { const keep = {}; if (want[vm.main] !== undefined) keep[vm.main] = want[vm.main]; st.want[vid] = keep; refold(); renderMain(); }})),
       block('주계약과 특약 고르기 · 특약 ' + riderCount + '개 가운데 ' + onCount + '개 고름', riderList, rules,
         h('p', {class: 'note', text: fillNote + ' 가입 단위(예: 500만원 단위) 자료는 없어서 최소·최대 범위만 확인합니다.'})),
-      block('표준담보별 실제 지급액',
+      block('표준담보별 실제 지급액' + (groups.length ? ' · 표준담보 ' + groups.length + '개' : ''),
         groups.length ? [
           exampleShown ? h('p', {class: 'note', text: '"예시 금액" 표시가 붙은 특약의 지급액은 계산용 예시 금액으로 환산한 값입니다. 고객이 정한 가입금액을 넣으면 실제 지급액으로 바뀝니다.'}) : null,
+          summary,
           h('div', {class: 'keyline'}, h('span', null, h('i'), '지급액'), h('span', null, h('i', {class: 'soft'}), '감액 기간 중 지급액(계약일부터 1년 미만 등)'),
             h('span', {text: '막대 길이는 같은 급부유형 안에서만 견줄 수 있습니다.'})),
-          h('div', {class: 'bars'}, bars),
-          h('div', {class: 'block'}, scrollBox(resultTable, '표준담보별 실제 지급액', 900))
+          moreLine('s4-more-bars', 's4-bars', '막대', '개', barsFolded, groups.length, '급부유형마다 앞의 ' + PREVIEW_BARS + '개'),
+          h('div', {class: 'bars', id: 's4-bars'}, bars),
+          h('div', {class: 'block'}, moreLine('s4-more-pay', 's4-pay', '표', '줄', Math.min(PREVIEW_ROWS, groups.length), groups.length, null),
+            scrollBox(resultTable, '표준담보별 실제 지급액', 980))
         ] : h('p', {class: 'empty', text: '고른 특약에 표준담보로 이어진 급부가 없습니다. 특약을 고르거나 "' + fillLabel + '"를 눌러 보세요.'}),
         others,
         h('p', {class: 'note', text: '지급액은 급부의 기준지급금액을 가입금액에 비례해 환산한 값입니다. 한 표준담보에 급부가 여럿이면 원인이 다른 급부를 더하지 않도록 대표 줄 하나만 씁니다. 보험료는 자료가 없어 다루지 않습니다(2단계).'})));

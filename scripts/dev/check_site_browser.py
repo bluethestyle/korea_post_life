@@ -7,6 +7,8 @@
 - 글자가 잘린 요소, 세로로 찌그러진 칸, 서로 겹친 글자가 없는지
 - 처음 높이가 한도(380px 폭 12,000px, 1280px 폭 8,000px)를 넘지 않는지
 - 접어 둔 목록을 펼친 상태, 거르기·찾기·쪽 넘기기를 쓴 상태에서도 위 문제가 없는지
+- 화면 4: 종형마다 특약을 모두 담고 결과 막대와 표를 "모두 보기"로 펼친 상태에서도 위 문제가 없고 표준담보가 한 줄도 빠지지 않는지,
+  단추를 키보드(Enter, Space)로 펼치고 접을 수 있는지
 - 탭마다 해설 결론이 있고, 해설을 펼쳐도 위 문제가 없으며, 끼우지 못한 {변수} 자리가 보이지 않는지
 - 화면 1의 접힌 묶음을 펼친 상태
 - 응대 카드: 기본 상태와 줄이 가장 많이 차는 상태(우체국 통합건강보험 2504 대 한화 일반가입형, 전체 분야)에서
@@ -15,6 +17,7 @@
 """
 import json
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -185,6 +188,32 @@ class Run:
 
     def rows(self, selector):
         return self.page.locator(selector).count()
+
+    def show_all(self, prefix, label):
+        """접혀 있는 "모두 보기" 단추(data-key가 prefix로 시작)를 모두 눌러 펼치고, 누른 단추의 data-key를 돌려준다."""
+        keys = self.page.eval_on_selector_all(f'[data-key^="{prefix}"][aria-expanded="false"]', "els => els.map(e => e.dataset.key)")
+        for key in keys:
+            self.page.click(f'[data-key="{key}"]')
+            if self.page.get_attribute(f'[data-key="{key}"]', "aria-expanded") != "true":
+                self.problems.append((self.width, label, {"kind": "not expanded", "key": key}))
+        return keys
+
+    def fold_back(self, keys, label):
+        for key in keys:
+            self.page.click(f'[data-key="{key}"]')
+            if self.page.get_attribute(f'[data-key="{key}"]', "aria-expanded") != "false":
+                self.problems.append((self.width, label, {"kind": "not folded", "key": key}))
+
+    def s4_all_shown(self, label):
+        """화면 4 결과를 펼친 상태에서 표준담보가 막대와 표에 하나도 빠지지 않았는지 본다(구획 제목의 표준담보 수와 견준다)."""
+        head = self.page.locator("#screen-s4 section.block > h3", has_text="표준담보별 실제 지급액").inner_text()
+        found = re.search(r"표준담보 (\d+)개", head)
+        if not found:
+            return
+        total = int(found.group(1))
+        shown = (self.rows("#s4-bars .barrow"), self.rows("#s4-pay tbody tr"))
+        if shown != (total, total):
+            self.problems.append((self.width, label, {"kind": "rows hidden after expand", "total": total, "bars": shown[0], "table": shown[1]}))
 
     def card(self, label, pages):
         """열려 있는 응대 카드를 본다: 미리 보기, 인쇄 매체의 한 장(높이 한도), A4 PDF 쪽 수."""
@@ -454,10 +483,31 @@ def check_width(browser, width, problems, pages):
                 page.click('[data-key="s4-max"]')
                 filled = run.look(f"s4 {label} 모두 담음", limit=LIMIT[width])
                 tallest = max(tallest, first, filled)
-    print(f"[{width}px] s4 종형별 최대 높이 {tallest}px")
+                # 결과 막대와 표를 모두 펼친 상태(높이 한도는 펼치기 전에만 본다). 다음 종형으로 넘어가기 전에 다시 접는다
+                keys = run.show_all("s4-more-", f"s4 {label}")
+                if keys:
+                    run.look(f"s4 {label} 모두 담음·결과 모두 펼침")
+                    run.s4_all_shown(f"s4 {label}")
+                    run.fold_back(keys, f"s4 {label}")
+    print(f"[{width}px] s4 종형별 최대 높이 {tallest}px(결과를 펼치기 전)")
     # 마지막 종형(특약이 가장 많은 회사)에서 목록 다루기
     total = page.locator("#main .list .pager").first.inner_text()
     run.look("s4 특약 많은 종형 모두 담음", shot="s4_big")
+    keys = run.show_all("s4-more-", "s4 특약 많은 종형")
+    run.look("s4 특약 많은 종형 결과 모두 펼침", shot="s4_big_open")
+    run.s4_all_shown("s4 특약 많은 종형")
+    run.fold_back(keys, "s4 특약 많은 종형")
+    # 키보드로 펼치고 접는다(Enter로 펼치고 Space로 접는다). 다시 그려도 초점이 단추에 남아야 한다
+    more = '[data-key="s4-more-pay"]'
+    if page.locator(more).count():
+        page.focus(more)
+        page.keyboard.press("Enter")
+        opened = page.get_attribute(more, "aria-expanded")
+        focused = page.evaluate("() => document.activeElement && document.activeElement.dataset.key")
+        page.keyboard.press("Space")
+        closed = page.get_attribute(more, "aria-expanded")
+        if (opened, focused, closed) != ("true", "s4-more-pay", "false"):
+            problems.append((width, "s4 키보드", {"kind": "keyboard toggle", "opened": opened, "focused": focused, "closed": closed}))
     notice = page.locator("#main p.notice")
     if notice.count():
         assert "가입 한도" in notice.first.inner_text()

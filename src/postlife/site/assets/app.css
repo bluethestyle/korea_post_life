@@ -232,6 +232,19 @@ a { color: #184f95; }
 .keyline { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink2); margin-top: 8px; }
 .keyline i { display: inline-block; width: 18px; height: 10px; border-radius: 0 3px 3px 0; background: var(--bar); vertical-align: -1px; margin-right: 4px; }
 .keyline i.soft { height: 6px; background: var(--bar-soft); vertical-align: 1px; }
+/* 결과 표: 칸 폭을 정해 두고 대표 급부 칸이 나머지를 쓴다. 감액 칸의 긴 예외 문구는 줄을 바꾼다 */
+table.pay { table-layout: fixed; }
+table.pay thead th { white-space: normal; }
+table.pay col.c-std { width: 136px; }
+table.pay col.c-pay { width: 120px; }
+table.pay col.c-red { width: 168px; }
+table.pay col.c-wait { width: 76px; }
+table.pay col.c-limit { width: 150px; }
+table.pay col.c-ev { width: 112px; }
+table.pay td.red { white-space: normal; }
+table.pay .redseg { display: inline-block; max-width: 100%; }
+/* 줄이 자료만큼 느는 구획의 "모두 보기" 줄 */
+.showall { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 8px; }
 
 /* 화면 5 */
 .timeline { position: relative; }

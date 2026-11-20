@@ -3,21 +3,28 @@
 자료 가공은 test_site.py와 test_site_weekly.py가 보고, 여기서는 화면이 그 자료로 세고 적는 글을 본다.
 scripts/dev/check_site_browser.py처럼 만든 HTML을 file://로 열고 바깥 요청을 막는다. playwright나 chromium이 없으면 건너뛴다.
 """
+import ast
 import copy
 import re
 
 import pytest
 
 from postlife.site import build
-from postlife.site.model import BASIS_COLUMN, RATIO_BASIS, Data
-from test_site import (NEW_A, NEW_B, PRIV, SF, SF_OLD, benefit, fake_tables, mapped, no_limit_tables, ratio_revision_tables,
-                       ratio_tables, rider, variant)
+from postlife.site.model import BASIS_COLUMN, RATIO_BASIS, Data, load
+from test_site import (NEW_A, NEW_B, PRIV, ROOT, SF, SF_OLD, SNAPSHOT, benefit, fake_tables, mapped, no_limit_tables,
+                       ratio_revision_tables, ratio_tables, rider, variant)
 from test_site_weekly import PREV, pending_private, rep_tables
 
 sync_api = pytest.importorskip("playwright.sync_api")
 
 NOW = {"snapshot_at": "2026-11-18T17:00:00+09:00"}
 MERITZ = "MERITZ_M1_gggggg"
+# 펼치기 전 화면 높이 한도는 브라우저 점검 스크립트의 값을 그대로 읽는다(한 곳에서만 정한다)
+LIMIT = ast.literal_eval(re.search(r"^LIMIT = (\{.*?\})", (ROOT / "scripts/dev/check_site_browser.py").read_text(encoding="utf-8"),
+                                   re.M).group(1))
+# 화면 4 결과를 접을 때 남기는 양(표의 줄 수, 급부유형마다 막대 수)도 화면 코드의 값을 그대로 읽는다
+PREVIEW = {name: int(value) for name, value in re.findall(r"const (PREVIEW_\w+) = (\d+);",
+                                                         (ROOT / "src/postlife/site/assets/app.js").read_text(encoding="utf-8"))}
 
 
 @pytest.fixture(scope="module")
@@ -33,13 +40,14 @@ def browser():
 
 @pytest.fixture()
 def site(browser, tmp_path):
-    """site(tables, meta, previous)는 그 자료로 만든 화면을 연 page를 돌려준다. 콘솔 오류가 하나라도 나면 시험이 끝날 때 실패한다."""
+    """site(tables, meta, previous, width)는 그 자료로 만든 화면을 그 폭으로 연 page를 돌려준다.
+    콘솔 오류가 하나라도 나면 시험이 끝날 때 실패한다."""
     opened = []
 
-    def open_site(tables, meta=NOW, previous=None):
+    def open_site(tables, meta=NOW, previous=None, width=1280):
         path = tmp_path / f"site{len(opened)}.html"
         path.write_text(build.render(Data(tables, meta), previous), encoding="utf-8")
-        context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)
+        context = browser.new_context(viewport={"width": width, "height": 900}, device_scale_factor=1, offline=True)
         page = context.new_page()
         errors = []
         page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
@@ -218,6 +226,208 @@ def test_기준_가입금액이_없는_특약이_섞여도_비율_급부_종형�
     text = page.inner_text("#main")
     assert "급부표의 기준 가입금액으로 담습니다" not in text and "급부표의 기준 가입금액을 넣어 두며" not in text
     assert "기준 가입금액도 없는 특약 1개" in page.inner_text("#main p.notice")
+
+
+# ---------- 화면 4: 특약이 수백 개인 종형을 모두 담아도 펼치기 전 화면이 한도 안이다 ----------
+HANWHA = "HANWHALIFE"
+WIDE = "일반가입형"        # 한화 시그니처 H통합보험의 특약이 가장 많은 종형(실제 사본에서 2백 개가 넘는다)
+
+
+@pytest.fixture(scope="module")
+def real():
+    return load(SNAPSHOT)
+
+
+def wide_variant(tables):
+    return next(v["종형ID"] for v in tables["sys_상품종형"] if v["기관코드"] == HANWHA and v["종형명"] == WIDE)
+
+
+def doubled(tables):
+    """한화 일반가입형의 특약(주계약 빼고)과 급부, 가입조건, 매핑, 표준담보 사전을 한 벌 더 붙인 지어낸 사본. 특약과 표준담보 줄 수가 두 배가 된다."""
+    out = copy.deepcopy(tables)
+    vid = wide_variant(out)
+    copy_id = lambda value: None if value is None else f"{value}X2"
+    riders = [r for r in out["sys_특약"] if r["종형ID"] == vid and r["담보구분"] != "주계약"]
+    tids = {r["특약ID"] for r in riders}
+    bids = {b["급부ID"] for b in out["sys_급부"] if b["특약ID"] in tids}
+    out["hum_표준담보사전"] += [dict(s, 표준담보ID=copy_id(s["표준담보ID"]), 표준담보명=s["표준담보명"] + " 복제")
+                           for s in out["hum_표준담보사전"]]
+    out["sys_특약"] += [dict(r, 특약ID=copy_id(r["특약ID"]), 특약계보키=copy_id(r["특약계보키"]), 원시특약명=r["원시특약명"] + " 복제")
+                      for r in riders]
+    out["sys_급부"] += [dict(b, 급부ID=copy_id(b["급부ID"]), 특약ID=copy_id(b["특약ID"])) for b in out["sys_급부"] if b["특약ID"] in tids]
+    out["hum_담보매핑"] += [dict(m, 급부ID=copy_id(m["급부ID"]), 확정표준담보ID=copy_id(m.get("확정표준담보ID")),
+                             추천표준담보ID=copy_id(m.get("추천표준담보ID"))) for m in out["hum_담보매핑"] if m["급부ID"] in bids]
+    out["sys_가입조건"] += [dict(c, 조건행ID=copy_id(c["조건행ID"]), 특약ID=copy_id(c["특약ID"]))
+                         for c in out["sys_가입조건"] if c["특약ID"] in tids]
+    return out
+
+
+def fill_wide(page):
+    """화면 4에서 한화 일반가입형을 골라 특약을 모두 담는다."""
+    page.click("#tab-s4")
+    page.click(f'[data-key="s4-variant-org-{HANWHA}"]')
+    kinds = page.locator('[data-key^="s4-variant-"]:not([data-key*="-org-"]):not([data-key*="-rev-"])', has_text=WIDE)
+    if kinds.count():
+        kinds.first.click()
+    assert WIDE in page.inner_text(".picked strong")
+    page.click('[data-key="s4-max"]')
+
+
+def s4_totals(page):
+    """접든 펼치든 같아야 하는 합계와 핵심 결과: 해설 결론, 구획 제목(특약 수, 표준담보 수), 급부유형별 요약, 유의 문구."""
+    screen = "#screen-s4"
+    return {"head": heads(page), "blocks": page.locator(f"{screen} section.block > h3").all_inner_texts(),
+            "summary": page.locator(f"{screen} .tiles").all_inner_texts(), "notice": page.locator(f"{screen} p.notice").all_inner_texts(),
+            "notes": page.locator(f"{screen} p.note").all_inner_texts()}
+
+
+def std_total(page):
+    head = page.locator("#screen-s4 section.block > h3", has_text="표준담보별 실제 지급액").inner_text()
+    return int(re.search(r"표준담보 (\d+)개", head).group(1))
+
+
+def check_folding(page, width):
+    """펼치기 전 높이가 한도 안이고, 단추로 펼치면 표준담보가 막대와 표에 모두 보이며, 합계 표시는 접든 펼치든 같은지 본다.
+    표준담보 수를 돌려준다."""
+    height = page.evaluate("document.documentElement.scrollHeight")
+    assert height <= LIMIT[width], f"{width}px 폭에서 펼치기 전 높이 {height}px가 한도 {LIMIT[width]}px를 넘음"
+    total = std_total(page)
+    folded_rows = page.locator("#s4-pay tbody tr").all_inner_texts()
+    assert len(folded_rows) < total and page.locator("#s4-bars .barrow").count() < total, "접어 둘 만큼 줄이 많은데 모두 그림"
+    before = s4_totals(page)
+    for key in ("s4-more-bars", "s4-more-pay"):
+        button = page.locator(f'[data-key="{key}"]')
+        assert button.get_attribute("aria-expanded") == "false"
+        button.click()
+        assert page.get_attribute(f'[data-key="{key}"]', "aria-expanded") == "true"
+    rows = page.locator("#s4-pay tbody tr").all_inner_texts()
+    names = page.locator("#s4-pay tbody th[scope=row]").all_inner_texts()
+    bars = page.locator("#s4-bars .barlabel").all_inner_texts()
+    assert len(rows) == total and len(set(names)) == total and sorted(bars) == sorted(names), "펼쳤는데 빠진 표준담보가 있음"
+    assert rows[:len(folded_rows)] == folded_rows                           # 접힌 상태는 펼친 표의 앞부분이다
+    assert s4_totals(page) == before, "접힌 상태와 펼친 상태의 합계 표시가 다름"
+    # 키보드: 단추에 초점을 두고 Enter로 접고 Space로 다시 펼친다. 다시 그려도 초점은 그 단추에 남는다
+    more = '[data-key="s4-more-pay"]'
+    page.focus(more)
+    page.keyboard.press("Enter")
+    assert page.get_attribute(more, "aria-expanded") == "false" and page.locator("#s4-pay tbody tr").count() == len(folded_rows)
+    assert page.evaluate("() => document.activeElement.dataset.key") == "s4-more-pay"
+    page.keyboard.press("Space")
+    assert page.get_attribute(more, "aria-expanded") == "true" and page.locator("#s4-pay tbody tr").count() == total
+    return total
+
+
+@pytest.mark.parametrize("width", sorted(LIMIT))
+def test_화면4는_특약이_가장_많은_종형을_모두_담아도_펼치기_전_높이가_한도_안이다(site, real, width):
+    page = site(real.tables, real.meta, width=width)
+    fill_wide(page)
+    riders = int(re.search(r"특약 (\d+)개 가운데", page.locator("#screen-s4 section.block > h3").first.inner_text()).group(1))
+    assert riders > 200                                                   # 문제가 났던 크기의 종형을 그대로 본다
+    check_folding(page, width)
+
+
+@pytest.mark.parametrize("width", sorted(LIMIT))
+def test_화면4는_특약과_표준담보가_두_배인_사본에서도_펼치기_전_높이가_한도_안이다(site, real, width):
+    page = site(real.tables, real.meta, width=width)
+    fill_wide(page)
+    total = std_total(page)
+    riders = int(re.search(r"특약 (\d+)개 가운데", page.locator("#screen-s4 section.block > h3").first.inner_text()).group(1))
+    page = site(doubled(real.tables), real.meta, width=width)
+    fill_wide(page)
+    assert int(re.search(r"특약 (\d+)개 가운데", page.locator("#screen-s4 section.block > h3").first.inner_text()).group(1)) == 2 * riders
+    # 복제 특약에는 결합 제약을 붙이지 않았으므로 원래 특약보다 더 담길 수는 있어도 덜 담기지는 않는다
+    assert check_folding(page, width) >= 2 * total
+
+
+def more_buttons(page):
+    """화면 4 결과의 "모두 보기" 단추: {data-key: aria-expanded}."""
+    return dict(page.locator('[data-key^="s4-more-"]').evaluate_all("els => els.map(e => [e.dataset.key, e.getAttribute('aria-expanded')])"))
+
+
+@pytest.mark.parametrize("width", sorted(LIMIT))
+def test_화면4_모두_보기를_누르면_새로_보이는_줄이_단추_아래에_나온다(site, real, width):
+    """단추를 화면에 둔 채 누르면, 새로 보이는 막대와 표의 줄이 모두 단추 아래(화면 위쪽 끝보다 아래)에 놓여 위로 올리지 않고 읽어 내려갈 수 있다."""
+    page = site(real.tables, real.meta, width=width)
+    fill_wide(page)
+    for key, items in (("s4-more-bars", "#s4-bars .barlabel"), ("s4-more-pay", "#s4-pay tbody th[scope=row]")):
+        button = page.locator(f'[data-key="{key}"]')
+        button.scroll_into_view_if_needed()
+        before = set(page.locator(items).all_inner_texts())
+        button.click()
+        top = page.locator(f'[data-key="{key}"]').bounding_box()["y"]
+        assert 0 <= top < 900, f"{key}: 누른 단추가 화면 밖({top:.0f}px)으로 밀림"
+        tops = page.locator(items).evaluate_all("els => els.map(e => [e.innerText, e.getBoundingClientRect().top])")
+        new = [(text, y) for text, y in tops if text not in before]
+        assert new, f"{key}: 눌렀는데 새로 보이는 줄이 없음"
+        above = [(text, round(y)) for text, y in new if y < top]
+        assert not above, f"{width}px {key}: 새로 보이는 줄 {len(above)}개가 단추({top:.0f}px)보다 위에 놓임, 첫 줄 {above[0]}"
+
+
+def test_화면4는_종형을_바꾸거나_특약을_새로_담으면_결과를_접은_채로_보여_준다(site, real):
+    page = site(real.tables, real.meta)
+    kinds = '[data-key^="s4-variant-"]:not([data-key*="-org-"]):not([data-key*="-rev-"])'
+
+    def expand():
+        for key in list(more_buttons(page)):
+            if page.get_attribute(f'[data-key="{key}"]', "aria-expanded") == "false":
+                page.click(f'[data-key="{key}"]')
+        assert set(more_buttons(page).values()) == {"true"}
+
+    def folded(where):
+        buttons = more_buttons(page)
+        assert buttons and set(buttons.values()) == {"false"}, f"{where}: 펼친 채로 시작함 {buttons}"
+        assert page.locator("#s4-pay tbody tr").count() == PREVIEW["PREVIEW_ROWS"] < std_total(page)
+
+    fill_wide(page)
+    expand()
+    page.locator(kinds, has_text="간편가입형(1년)").first.click()          # 같은 상품의 다른 종형
+    page.click('[data-key="s4-max"]')
+    folded("다른 종형으로 바꾼 뒤")
+    expand()
+    page.click('[data-key="s4-variant-org-EPOST"]')                      # 다른 회사의 종형
+    page.click('[data-key="s4-max"]')
+    folded("다른 회사로 바꾼 뒤")
+    expand()
+    page.click('[data-key="s4-clear"]')
+    page.click('[data-key="s4-max"]')
+    folded("특약을 모두 뺐다가 다시 담은 뒤")
+    expand()
+    page.click('[data-key="s4-max"]')
+    folded("모두 담기를 다시 누른 뒤")
+    # 탭을 오가는 것은 조합을 바꾸지 않으므로 다른 접어 두는 구획처럼 펼친 상태를 그대로 둔다
+    expand()
+    page.click("#tab-s3")
+    page.click("#tab-s4")
+    assert set(more_buttons(page).values()) == {"true"}
+
+
+def sparse(tables):
+    """한화 일반가입형 급부의 매핑을 한 급부유형의 표준담보 몇 개만 남기고 지운 지어낸 사본.
+    표준담보 수는 표를 접는 줄 수보다 적지만, 그 급부유형 하나에는 막대를 접는 수보다 많다."""
+    out = copy.deepcopy(tables)
+    vid = wide_variant(out)
+    tids = {r["특약ID"] for r in out["sys_특약"] if r["종형ID"] == vid}
+    bids = {b["급부ID"] for b in out["sys_급부"] if b["특약ID"] in tids}
+    kind = {s["표준담보ID"]: s["급부유형"] for s in out["hum_표준담보사전"]}
+    rows = [m for m in out["hum_담보매핑"] if m["급부ID"] in bids and m.get("확정표준담보ID") in kind]
+    by_kind = {}
+    for m in rows:
+        by_kind.setdefault(kind[m["확정표준담보ID"]], set()).add(m["확정표준담보ID"])
+    keep = set(sorted(max(by_kind.values(), key=len))[:PREVIEW["PREVIEW_ROWS"] - 1])
+    for m in rows:
+        if m["확정표준담보ID"] not in keep:
+            m["확정표준담보ID"] = None
+    return out
+
+
+def test_화면4는_표준담보가_적어_표를_다_보여_주면_막대도_다_보여_주고_단추를_내지_않는다(site, real):
+    page = site(sparse(real.tables), real.meta)
+    fill_wide(page)
+    total = std_total(page)
+    per_kind = [int(re.search(r"표준담보 (\d+)개", t).group(1)) for t in page.locator("#s4-bars .bargroup h4").all_inner_texts()]
+    assert total <= PREVIEW["PREVIEW_ROWS"] and max(per_kind) > PREVIEW["PREVIEW_BARS"], (total, per_kind)   # 문제가 났던 조합인지 먼저 본다
+    assert more_buttons(page) == {}, "표는 모두 보이는데 접기 단추가 있음"
+    assert page.locator("#s4-bars .barrow").count() == page.locator("#s4-pay tbody tr").count() == total
 
 
 # ---------- 화면 5 ----------
