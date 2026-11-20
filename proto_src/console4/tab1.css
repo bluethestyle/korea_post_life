@@ -1,0 +1,133 @@
+/* 탭 1 브리핑 전용. 공통 부품은 style.css. 선택자는 #view-brief 아래로 가둔다 */
+
+/* 지표 셋: 진행 기록 화면(acs_17)의 탭 줄. 고른 지표의 슬레이트 면이 아래 풀이 패널과 틈 없이 이어진다 */
+#view-brief .vhead{align-items:stretch}
+#view-brief .vhead .ttl{align-self:flex-end}
+#view-brief .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));height:100%;min-height:124px;align-items:stretch}
+#view-brief .kpis.pillar::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--top-line);opacity:.85}
+#view-brief .kpi{position:relative;display:flex;align-items:center;gap:16px;padding:18px 20px 14px;border:0;background:transparent;text-align:left;color:var(--ink-0);min-width:0}
+#view-brief .kpi:hover{background:rgba(255,255,255,.22)}
+:root[data-theme="dark"] #view-brief .kpi:hover{background:rgba(255,255,255,.04)}
+#view-brief .kpi.is-on{background:var(--slate);color:var(--on-slate)}
+#view-brief .kpi.is-on:hover{background:var(--slate)}
+#view-brief .kpi-x{display:flex;flex-direction:column;gap:4px;min-width:0}
+#view-brief .kpi-n{display:flex;align-items:baseline;gap:4px}
+#view-brief .kpi-u{font:600 14px/1 var(--f-ko);color:var(--ink-1)}
+#view-brief .kpi.is-on .kpi-u{color:var(--on-slate-2)}
+#view-brief .kpi-l{font:600 15px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
+#view-brief .kpi.is-on .kpi-l{color:#fff}
+#view-brief .kpi-s{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:2px}
+#view-brief .kpi-s .sub{font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
+#view-brief .kpi.is-on .sub{color:var(--on-slate-2)}
+#view-brief .kpi.is-on .scb{border-color:rgba(255,255,255,.7);color:#fff}
+#view-brief .kpi.is-on .scb-base{box-shadow:inset 3px 0 0 #fff}
+#view-brief .kpi .ring{width:72px;height:72px}
+/* 맨 앞 고리의 바깥 사선 자리 */
+#view-brief .kpi .ring.lead{margin:0 2px}
+
+/* 지표 풀이: 슬레이트 강조 패널. 한 화면(1920x1080)에 다섯 줄까지 들도록 낮게(약 130px) 둔다 */
+#view-brief .kpi-detail{padding:14px 24px 14px}
+#view-brief .kpi-detail.kd-in .kd{animation:kdIn var(--t-ev) var(--ease)}
+@keyframes kdIn{from{opacity:.25;transform:translateY(6px)}to{opacity:1;transform:none}}
+#view-brief .kd{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) auto;gap:10px 32px;align-items:end}
+#view-brief .kd h3{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 6px;font:600 17px/1.3 var(--f-ko);color:#fff}
+#view-brief .kd .eq{color:#fff;font-size:15px}
+#view-brief .kd .eq .n{font-size:17px}
+#view-brief .kd .eq .op,#view-brief .kd .eq .nb{color:#fff}
+#view-brief .kd .note{margin:6px 0 0;color:rgba(255,255,255,.88)}
+#view-brief .kd .nadd{margin-top:6px;color:rgba(255,255,255,.88)}
+#view-brief .kd .cq{width:14px;height:14px}
+#view-brief .kd .cqs{gap:3px}
+#view-brief .slate .cq.m-all{outline:1px solid rgba(255,255,255,.6);outline-offset:-1px}
+#view-brief .slate .cq.m-ours{outline:1px solid rgba(255,255,255,.25);outline-offset:-1px}
+#view-brief .kd-b{display:flex;flex-direction:column;gap:8px;min-width:0}
+#view-brief .kd-lg{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;list-style:none;font:400 13px/1.4 var(--f-body);color:rgba(255,255,255,.88)}
+#view-brief .kd-lg li{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#view-brief .kd-lg li b{font-weight:600;color:#fff}
+#view-brief .kd-lg .cq{width:12px;height:12px}
+#view-brief .kd-go{display:flex;justify-content:flex-end;align-self:end}
+#view-brief .kd-go .btn{background:#fff;color:#151D24}
+#view-brief .kd-go .btn:hover{background:var(--red);color:#fff}
+#view-brief .kd-mj{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 20px;margin:0;padding:0;list-style:none}
+#view-brief .kd-mj li{display:grid;grid-template-columns:84px minmax(0,1fr) 44px;align-items:center;gap:10px;font:400 13px/1.3 var(--f-body);color:rgba(255,255,255,.88)}
+#view-brief .kd-mj .cq{width:12px;height:12px}
+#view-brief .kd-mj .num{text-align:right;color:#fff}
+/* 치료 여정 단계별 막대 묶음(유니티의 작은 막대) */
+#view-brief .jg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:end}
+#view-brief .jc{display:flex;flex-direction:column;align-items:center;gap:4px}
+#view-brief .jb{display:flex;align-items:flex-end;gap:4px;height:48px}
+#view-brief .jb .b{width:10px;display:block;transform-origin:bottom;transition:transform var(--t-bar) var(--ease)}
+#view-brief .b0{background:#fff}
+#view-brief .b1{background:rgba(255,255,255,.5)}
+#view-brief .b2{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
+#view-brief .kd-lg .b{display:inline-block;width:10px;height:12px}
+#view-brief .jn{display:flex;gap:4px;font:600 12px/1 var(--f-num);color:rgba(255,255,255,.88)}
+#view-brief .jn span{width:10px;text-align:center}
+#view-brief .js{font:600 13px/1.2 var(--f-ko);color:#fff}
+
+/* 분석 요약 다섯 줄 */
+#view-brief .brows{margin-top:16px}
+#view-brief .brows .panel-h{padding-top:14px;padding-bottom:8px}
+#view-brief .brief-off{margin:0 24px 8px;padding:10px 14px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);border-left:3px solid var(--ink-1)}
+#view-brief .brow{padding:0 24px}
+#view-brief .bstrip{display:flex;align-items:center;gap:10px;min-height:36px;padding-right:0}
+#view-brief .bstrip.selbar::before{right:-24px}
+#view-brief .brow .no{flex:none;width:30px;font:600 17px/1 var(--f-num);color:var(--ink-0)}
+/* 앞자리 0 은 흐리게. 가장 흐린 글자도 4.5:1 이 되도록 --ink-2 */
+#view-brief .brow .num-0{color:var(--ink-2)}
+#view-brief .brow .bn{font:600 16px/1.3 var(--f-ko);color:var(--ink-0);white-space:nowrap}
+#view-brief .brow .sp{flex:1 1 auto}
+#view-brief .brow .bchev{display:grid;place-items:center;width:20px;color:var(--ink-1)}
+#view-brief .brow .btext{margin:0;padding:2px 64px 10px 40px;font:400 15px/1.6 var(--f-body);color:var(--ink-0);word-break:keep-all}
+#view-brief .brow .bnow{margin:-4px 0 0;padding:0 64px 10px 40px;font:600 14px/1.6 var(--f-body);color:var(--ink-1);word-break:keep-all}
+#view-brief .brow .bnow::before{content:"";display:inline-block;width:8px;height:8px;margin-right:8px;border:1.5px solid var(--ink-1);vertical-align:1px}
+#view-brief .brow.just .btext{animation:justFlash 1100ms var(--ease)}
+@keyframes justFlash{0%{background:rgba(255,255,255,.75)}100%{background:transparent}}
+:root[data-theme="dark"] #view-brief .brow.just .btext{animation-name:justFlashD}
+@keyframes justFlashD{0%{background:rgba(255,255,255,.12)}100%{background:transparent}}
+#view-brief .brow .flag{left:0;top:0}
+#view-brief .brow.is-sel > .flag{filter:drop-shadow(1px 0 0 #fff) drop-shadow(0 1px 0 #fff)}
+#view-brief .brow .chg{margin-left:2px}
+#view-brief .brow .bgo{display:none}
+#view-brief .brows .lrows{padding-top:2px}
+
+/* 화면 폭에 따라 */
+@media (max-width:1599px){
+  #view-brief .kpi{padding:16px 14px 12px;gap:12px}
+  #view-brief .kpi .ring{width:60px;height:60px}
+  #view-brief .kpi .big{font-size:40px}
+  #view-brief .kd{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  #view-brief .kd-go{grid-column:1/-1}
+}
+@media (max-width:1279px){
+  #view-brief .kpi-s .sub{display:none}
+  #view-brief .kd{grid-template-columns:minmax(0,1fr)}
+  #view-brief .kd-mj{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:999px){
+  #view-brief .vhead .ttl{align-self:auto}
+  #view-brief .kpis{grid-template-columns:repeat(3,minmax(0,1fr));min-height:0}
+  #view-brief .kpi{flex-direction:column;align-items:flex-start;gap:6px;padding:12px 10px 12px}
+  #view-brief .kpi .ring{width:44px;height:44px}
+  #view-brief .kpi .ring.lead{margin:0}
+  #view-brief .kpi .big{font-size:28px}
+  #view-brief .kpi-u{font-size:13px}
+  #view-brief .kpi-l{font-size:13px}
+  #view-brief .kpi-s .sub{display:none}
+  #view-brief .kpi .scb{height:24px;padding:0 6px;font-size:13px;gap:4px}
+  #view-brief .kpi .scb svg{display:none}
+  #view-brief .kpi-detail{padding:14px 16px}
+  #view-brief .kd-mj li{grid-template-columns:72px minmax(0,1fr) 40px}
+  #view-brief .brow{padding:0 16px}
+  #view-brief .bstrip{gap:8px;padding:0 28px 0 0;min-height:40px}
+  #view-brief .bstrip.selbar::before{left:-16px;right:-16px}
+  #view-brief .brow .bstrip .live{display:none}
+  #view-brief .brow .sp{display:none}
+  #view-brief .brow .bchev{position:absolute;right:0;top:50%;margin-top:-8px}
+  #view-brief .brow .bn{white-space:normal;font-size:15px}
+  #view-brief .brow .btext{padding:6px 0 10px 0}
+  #view-brief .brow .bnow{padding:0 0 10px 0}
+  #view-brief .brow .bgo{display:block;padding:0 0 14px 0}
+  #view-brief .brief-off{margin:0 16px 8px}
+  #view-brief .jg{gap:6px}
+}

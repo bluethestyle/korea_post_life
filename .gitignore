@@ -7,3 +7,5 @@ __pycache__/
 service-account*.json
 credentials*.json
 local/
+# 시안 사진(proto_src의 shoot.py가 만든다)
+shots_console4/

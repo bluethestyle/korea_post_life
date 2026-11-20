@@ -5,3 +5,6 @@
 - Michroma: Copyright 2011 The Michroma Project Authors (https://github.com/googlefonts/Michroma-font). SIL Open Font License 1.1. https://raw.githubusercontent.com/google/fonts/main/ofl/michroma/OFL.txt
 - Saira (Semi Expanded, 폭 112.5): Copyright 2020 The Saira Project Authors (https://github.com/Omnibus-Type/Saira). SIL Open Font License 1.1. https://raw.githubusercontent.com/google/fonts/main/ofl/saira/OFL.txt
 - SUIT: Copyright (c) 2022, SUNN (http://sun.fo/suit), with Reserved Font Name SUIT. SIL Open Font License 1.1. https://raw.githubusercontent.com/sun-typeface/SUIT/main/LICENSE
+- Saira (Semi Condensed, 폭 87.5): Copyright 2020 The Saira Project Authors (https://github.com/Omnibus-Type/Saira). SIL Open Font License 1.1. https://raw.githubusercontent.com/google/fonts/main/ofl/saira/OFL.txt
+
+`fonts_v4.css`는 SUIT 400, 600과 Saira Semi Condensed 400, 600을 base64로 담은 @font-face 묶음이고 시안 4에 심는다.

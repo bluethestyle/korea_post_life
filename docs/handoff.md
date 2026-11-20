@@ -13,12 +13,15 @@
 - 종형 표에 열 둘(`고지중대질병목록`, `고지소견범위`)을 더해 시트와 사본에 값을 넣었고(간편심사 종형 열일곱), 일반심사 종형은 늘 "심사로 확인"으로 바꿨고, 영업 인사이트 문장을 고쳤습니다(59b1641. 전체 시험 1,006개 통과). 종형의 고지 열만 대상 설정 값으로 맞추는 경로는 `sync-variant-attrs.yml`입니다. 스키마에 열을 더한 뒤에는 열 넣기(`add-column.yml`)를 다른 배치보다 먼저 돌려야 합니다.
 - 설계안(`docs/proposals/영업_인사이트_흐름.md`)과 화면 흐름도(`site/proto/flow.html`)는 이용자를 본부의 영업 기획과 분석 담당자로 잡은 합의안입니다. 흐름도의 예시 숫자는 아직 옛 값입니다.
 
-진행 중이던 것 (Claude Code 세션의 워크플로. 세션이 끊겼으면 아래 산출물부터 확인)
+시안 4
 
-- 시안 4(`site/proto/console4.html`): 원본은 `local/postlife_local_assets/proto_src/console4/`, 규약은 그 폴더의 `API.md`. 탭 넷을 채우는 단계까지 갔습니다. `sales.json`은 적재 전의 값이라 `scripts/dev/export_sales.py`로 다시 떠야 합니다. 커밋된 적이 없습니다.
-- `docs/proposals/게임UI_기준표.md`는 작업 폴더에 커밋되지 않은 수정이 있습니다. 10절을 스타일 합의안으로 고친 뒤 커밋합니다.
+- `site/proto/console4.html`(2,251,386바이트)을 올렸습니다. 원본은 저장소의 `proto_src/console4/`(규약은 `API.md`), 글꼴 묶음은 `proto_src/fonts/fonts_v4.css`입니다. 옮긴 원본으로 합친 결과가 올라간 파일과 바이트까지 같습니다.
+- 자료를 다시 뜨는 순서(사본이 바뀌었을 때): `python scripts/dev/export_sales.py --snapshot data/snapshot --out proto_src/console4/sales.json`, `python proto_src/console4/build_combo.py`, `python proto_src/console4/gen_cover.py`, `python proto_src/console4/gen_cover.py --assemble`, `python proto_src/console4/build.py`.
+- 스타일 합의안은 `docs/proposals/게임UI_기준표.md` 10절에 있습니다.
+- 알려진 것은 `docs/gemini_requests/20_이어받기_개발_Antigravity.md`의 2번 일에 적었습니다(브리핑 다섯째 줄이 1920x1080 첫 화면을 넘어감, 관문만 수집한 종형의 표시와 주석 넷이 화면에 없음, 용어 풀이).
+- 아직 하지 않은 것: 카본의 사진 비평, 운영 화면(`src/postlife/site/`)에 이 스타일 입히기.
 
-Antigravity가 이어받을 수 있는 일은 `docs/gemini_requests/20_이어받기_개발_Antigravity.md`에 지시문으로 적었습니다(화면 흐름도 고치기, 시안 4 점검과 보완, 문서 숫자 맞추기, 그래프 탐색 다음 시안). Claude Code는 원격 서버에서, Antigravity는 사용자의 PC에서 돌기 때문에 둘 사이의 길은 GitHub 저장소뿐입니다. 그래서 시안의 원본을 git 제외 폴더에서 저장소의 `proto_src/`로 옮기고 있습니다. 화면 흐름도의 원본과 글꼴은 옮겼고(`proto_src/flow/`, `proto_src/fonts/`. 합친 결과가 올라간 파일과 바이트까지 같음), 시안 4와 그래프 탐색의 원본은 아직 `local/postlife_local_assets/proto_src/`에 있습니다. 시안 4는 만드는 작업이 끝난 뒤에 옮깁니다. Antigravity는 `antigravity/<주제>` 가지를 푸시해 PR을 열고, Claude가 검수해 합칩니다. 기록은 `docs/antigravity_log.md`에 따로 남깁니다.
+Antigravity가 이어받을 수 있는 일은 `docs/gemini_requests/20_이어받기_개발_Antigravity.md`에 지시문으로 적었습니다(화면 흐름도 고치기, 시안 4 점검과 보완, 문서 숫자 맞추기, 그래프 탐색 다음 시안). Claude Code는 원격 서버에서, Antigravity는 사용자의 PC에서 돌기 때문에 둘 사이의 길은 GitHub 저장소뿐입니다. 그래서 시안의 원본을 git 제외 폴더에서 저장소의 `proto_src/`로 옮기고 있습니다. 화면 흐름도와 시안 4의 원본과 글꼴은 옮겼고(`proto_src/flow/`, `proto_src/console4/`, `proto_src/fonts/`), 그래프 탐색의 원본은 아직 `local/postlife_local_assets/proto_src/graph/`에 있습니다. Antigravity는 `antigravity/<주제>` 가지를 푸시해 PR을 열고, Claude가 검수해 합칩니다. 기록은 `docs/antigravity_log.md`에 따로 남깁니다.
 
 조심할 것
 

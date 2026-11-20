@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko" data-theme="light" data-motion="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>영업 분석 콘솔 시안 4</title>
+<style id="fonts">/*__FONTS__*/</style>
+<style id="style">/*__STYLE__*/</style>
+</head>
+<body>
+<a class="sr" href="#main">본문으로 건너뛰기</a>
+
+<!-- 층 1~3: 안개(body 바탕), 원근 격자선 바닥, 세로 안내선과 수평 기준선 -->
+<div class="bg" aria-hidden="true">
+  <svg class="floor" viewBox="0 0 1920 216" preserveAspectRatio="xMidYMax slice" focusable="false">
+    <defs>
+      <linearGradient id="flg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+        <stop offset=".55" stop-color="#fff" stop-opacity=".55"/>
+        <stop offset="1" stop-color="#fff" stop-opacity="1"/>
+      </linearGradient>
+      <mask id="flm"><rect width="1920" height="216" fill="url(#flg)"/></mask>
+    </defs>
+    <g mask="url(#flm)" fill="none" stroke-width="1" opacity=".55" vector-effect="non-scaling-stroke">
+      <path d="M-1440 216L960 -600M-1040 216L960 -600M-640 216L960 -600M-240 216L960 -600M160 216L960 -600M560 216L960 -600M960 216L960 -600M1360 216L960 -600M1760 216L960 -600M2160 216L960 -600M2560 216L960 -600M2960 216L960 -600M3360 216L960 -600"/>
+      <path d="M0 8H1920M0 20H1920M0 36H1920M0 56H1920M0 82H1920M0 114H1920M0 154H1920M0 204H1920"/>
+    </g>
+  </svg>
+  <div class="guides" id="guides"></div>
+</div>
+
+<header class="head" id="head">
+  <div class="notice" role="note">
+    <span class="nt"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x=".75" y=".75" width="10.5" height="10.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 3v4M6 8.4v1" stroke="currentColor" stroke-width="1.5"/></svg><span id="notice-t">공모전 시연용 화면이며 영업 자료가 아닙니다</span></span>
+    <span class="asof">자료 기준 <span class="num" id="asof"></span></span>
+  </div>
+  <div class="bar">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 1.5L24.5 13 13 24.5 1.5 13Z" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="10" width="6" height="6" fill="currentColor"/></svg>
+      <div><b>영업 분석 콘솔</b><small>우체국보험 상품과 청약 판단 지원, 시안 4</small></div>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="분석 단계"></nav>
+    <div class="bar-r">
+      <button class="condmini" id="condmini" type="button" title="조건 줄로 올라가기"></button>
+      <button class="tgl" id="skin" type="button" aria-pressed="false">짙은 화면</button>
+      <button class="tgl" id="motion" type="button" aria-pressed="true">움직임 <b>켬</b></button>
+    </div>
+  </div>
+</header>
+
+<div class="shell" id="shell">
+  <section class="cond" id="cond" aria-label="조건 줄"></section>
+  <section class="scope" id="scope" aria-label="범위 띠" aria-live="polite"></section>
+  <div class="work" id="work">
+    <main class="main" id="main" tabindex="-1">
+      <div class="dots" aria-hidden="true"></div>
+    </main>
+    <div class="ev-slot" aria-hidden="true"></div>
+    <aside class="ev" id="ev" aria-label="근거 기둥">
+      <div class="ev-in">
+        <i class="ev-handle" aria-hidden="true"></i>
+        <div class="ev-top">
+          <span class="k" id="ev-k">근거</span>
+          <h2 id="ev-t">범위와 읽는 법</h2>
+          <div class="badges" id="ev-b"></div>
+          <button class="ev-x" id="ev-x" type="button" aria-label="근거 닫기"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button>
+        </div>
+        <div class="ev-body" id="ev-body"></div>
+      </div>
+    </aside>
+  </div>
+  <footer class="foot" id="foot">
+    <p><b>고지.</b> <span id="foot-notice">공모전 시연용 화면이며 영업 자료가 아닙니다</span>. 상품요약서와 사업방법서 같은 공시 문서에서 뽑은 값으로 계산했고, 판매 시책, 수수료, 손해율, 인수 판정은 다루지 않습니다.</p>
+    <p><b>글꼴.</b> /*__FONT_NOTICE__*/</p>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="print-root"></div>
+
+<script id="sales-data" type="application/json">/*__SALES__*/</script>
+<script>/*__D__*/</script>
+<script>/*__SCRIPTS__*/</script>
+</body>
+</html>
