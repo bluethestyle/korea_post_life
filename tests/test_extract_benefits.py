@@ -328,3 +328,155 @@ def test_multiplier_in_a_neighbouring_row_does_not_make_a_fixed_amount_a_rate():
     assert fixed.limit == "" and rate.limit == "× 해당 장해지급률"
     assert "곱한 금액" not in V.checks(fixed, block.text)["기준지급금액만원"][0]["instructions"]
     assert "곱한 금액" in V.checks(rate, block.text)["기준지급금액만원"][0]["instructions"]
+
+
+# ---------- 대상마다 보장개시일이 다른 급부 (지어낸 문구) ----------
+
+MIXED = Block("무배당 가상항암치료특약 2701", """■ 무배당 가상항암치료특약 2701
+(특약보험가입금액 1,000만원 기준)
+지급구분 지급사유 경과기간 지급금액
+보험기간 중 보장개시일(암은 암보장개시일) 이후에 1종: 10만원
+‘암’, ‘기타피부암’ 또는 ‘갑상선암’으로 진단 확정되고 2종: 20만원
+가상표적 1년미만
+그 직접적인 치료를 목적으로 가상표적치료를 받았을 때 1종: 20만원
+치료자금 (1회당) 2종: 40만원
+1년이상
+보험기간 중 암보장개시일 이후에 암으로 진단 확정되고 30만원
+가상수술 수술을 받았을 때 (수술 1회당)
+자금
+주) 1. 암보장개시일은 계약일부터 그 날을 포함하여 90일이 지난날의 다음날로 합니다.""", 30, 31)
+
+
+def _graded(target, start=""):
+    """등급마다 한 줄. 대상을 target에 묶어 적었다."""
+    return [_item(name="가상표적치료자금", target=target.format(grade), amount=f"{full}만원", reduced_period="1년미만",
+                  reduced_amount=f"{cut}만원", start_condition=start, limit="1회당", quote=f"{grade}: {full}만원")
+            for grade, full, cut in (("1종", 20, 10), ("2종", 40, 20))]
+
+
+SURGERY = _item(name="가상수술자금", target="암", amount="30만원", start_condition="암보장개시일", limit="수술 1회당")
+SPLIT = [("가상표적치료자금(암·1종)", 90), ("가상표적치료자금(기타피부암·갑상선암·1종)", 0),
+         ("가상표적치료자금(암·2종)", 90), ("가상표적치료자금(기타피부암·갑상선암·2종)", 0), ("가상수술자금(암)", 90)]
+
+
+def test_row_bundling_targets_with_different_start_days_is_split_by_target():
+    from postlife.extract import verify as V
+
+    # 모델이 "보장개시일(암은 암보장개시일) 이후"를 보지 못하고 대상을 묶어 한 줄로 적었다
+    ex = B.parse(MIXED, {"benefits": _graded("암·기타피부암·갑상선암·{}") + [SURGERY]}, "m")
+    assert ex.problems == [] and [(b.label, b.waiting_days) for b in ex.benefits] == SPLIT
+    assert ex.benefits[0].split_from == "가상표적치료자금(암·기타피부암·갑상선암·1종)" and ex.benefits[-1].split_from == ""
+    assert [(b.amount, b.reduced_amount, b.limit) for b in ex.benefits[:2]] == [(20, 10, "1회당")] * 2    # 나머지 값은 같다
+    assert B.literal_problems(ex) == {}
+    rows = B.benefit_rows("V", ex)
+    assert check_rows("sys_급부", rows) == {} and len({r["급부ID"] for r in rows}) == 5
+    # 면책은 코드가 문구에서 정했으므로 판정에 묻지 않는다. 나누지 않은 줄은 전처럼 묻는다
+    assert "면책기간일수" not in V.checks(ex.benefits[0], MIXED.text)
+    assert "면책기간일수" in V.checks(ex.benefits[-1], MIXED.text)
+    # 대상을 아예 적지 않은 줄("1종")도 문구의 대상 목록으로 나눈다. 모델이 보장개시일을 모두에 붙여 적었어도 같다
+    listed = Block(MIXED.title, MIXED.text + "\n2. 기타피부암과 갑상선암은 약관에서 정합니다.", 30, 31)
+    for raw in (_graded("{}"), _graded("{}", "암보장개시일"), _graded("암·기타피부암·갑상선암·{}", "암보장개시일")):
+        ex = B.parse(listed, {"benefits": raw + [SURGERY]}, "m")
+        assert [(b.label, b.waiting_days) for b in ex.benefits] == SPLIT
+
+
+def test_without_a_per_target_start_phrase_rows_stay_as_they_are():
+    raw = {"benefits": _graded("암·기타피부암·갑상선암·{}") + [SURGERY]}
+    for wording in ("보험기간 중 암보장개시일 이후에", "보험기간 중"):
+        block = Block(MIXED.title, MIXED.text.replace("보험기간 중 보장개시일(암은 암보장개시일) 이후에", wording), 30, 31)
+        ex = B.parse(block, raw, "m")
+        assert [b.label for b in ex.benefits] == ["가상표적치료자금(암·기타피부암·갑상선암·1종)", "가상표적치료자금(암·기타피부암·갑상선암·2종)",
+                                                  "가상수술자금(암)"]
+        assert [b.waiting_days for b in ex.benefits] == [0, 0, 90] and not any(b.split_from for b in ex.benefits)
+    # 문구가 있어도 그 문구가 든 표 줄에 이름이 없는 급부는 나누지 않는다
+    other = _item(name="가상수술자금", target="암·기타피부암", amount="30만원", limit="수술 1회당")
+    assert [b.label for b in B.parse(MIXED, {"benefits": [other]}, "m").benefits] == ["가상수술자금(암·기타피부암)"]
+    # 보장개시일의 날수를 주석에서 읽지 못하면 나누지 않는다
+    bare = Block(MIXED.title, MIXED.text.split("주)")[0], 30, 31)
+    assert [b.label for b in B.parse(bare, raw, "m").benefits][:2] == ["가상표적치료자금(암·기타피부암·갑상선암·1종)",
+                                                                       "가상표적치료자금(암·기타피부암·갑상선암·2종)"]
+
+
+def test_rows_already_split_by_target_are_not_split_again():
+    done = [_item(name="가상표적치료자금", target=t, amount="20만원", reduced_period="1년미만", reduced_amount="10만원",
+                  start_condition=s, limit="1회당") for t, s in (("암·1종", "암보장개시일"), ("기타피부암·갑상선암·1종", ""))]
+    ex = B.parse(MIXED, {"benefits": done + [SURGERY]}, "m")
+    assert [(b.label, b.waiting_days) for b in ex.benefits] == [SPLIT[0], SPLIT[1], SPLIT[4]]
+    assert not any(b.split_from for b in ex.benefits)
+    # 대상별로 나뉜 줄 옆에 대상을 적지 않은 줄이 있으면 그 줄도 그대로 둔다(같은 급부를 모델이 이미 대상별로 나눴다)
+    plain = _item(name="가상표적치료자금", target="2종", amount="40만원", reduced_period="1년미만", reduced_amount="20만원", limit="1회당")
+    listed = Block(MIXED.title, MIXED.text + "\n2. 기타피부암과 갑상선암은 약관에서 정합니다.", 30, 31)
+    assert [b.label for b in B.parse(listed, {"benefits": done + [plain]}, "m").benefits][-1] == "가상표적치료자금(2종)"
+    # 나눈 이름이 다른 줄과 겹치면 나누지 않는다
+    both = _graded("암·기타피부암·갑상선암·{}")[:1] + done[:1]
+    assert [b.label for b in B.parse(MIXED, {"benefits": both}, "m").benefits] == ["가상표적치료자금(암·기타피부암·갑상선암·1종)",
+                                                                                   "가상표적치료자금(암·1종)"]
+    # 형식 문제가 걸린 줄은 나누지 않는다(문제가 그 줄 이름에 묶여 있어야 다시 뽑기와 제외가 맞게 돈다)
+    broken = _graded("암·기타피부암·갑상선암·{}")[:1]
+    broken[0]["reduced_amount"] = "30만원"
+    ex = B.parse(MIXED, {"benefits": broken}, "m")
+    assert [b.label for b in ex.benefits] == ["가상표적치료자금(암·기타피부암·갑상선암·1종)"] and ex.problems
+
+
+def test_targets_and_listed_words_are_read_through_table_noise():
+    assert B._items("암(기타피부암, 갑상선암 제외)·기타피부암 및 갑상선암·1종") == ["암(기타피부암, 갑상선암 제외)", "기타피부암", "갑상선암", "1종"]
+    assert B._items("") == [] and B._items("1종") == ["1종"]
+    [phrase] = B.mixed_starts(MIXED.text)
+    assert (phrase.special, phrase.start) == ("암", "암보장개시일")
+    assert B._listed_words(phrase, B.squash(MIXED.text)) == []          # 기타피부암·갑상선암이 문구 밖에 따로 적혀 있지 않다
+    assert B._listed_words(phrase, B.squash(MIXED.text + "\n기타피부암 갑상선암")) == ["기타피부암", "갑상선암"]
+    # 표가 풀리며 낱말 사이에 다른 칸 글자가 끼어든 목록
+    noisy = B.MixedStart("암", "암보장개시일", "‘암(기타피부20만원암갑상선암제외)’‘기타10만원가상치료피부암’또는‘갑상선암’", ())
+    assert B._listed("기타피부암", noisy) and B._listed("갑상선암", noisy) and not B._listed("대장점막내암", noisy)
+    assert not B._listed("1종", noisy)                                  # 숫자가 든 낱말은 대상이 아니다
+    assert B._listed_words(noisy, B.squash(MIXED.text + " 기타피부암 갑상선암")) == []      # 깨진 낱말이 있으면 읽지 않는다
+    # 주석에 든 같은 꼴의 문구는 보지 않는다
+    assert B.mixed_starts("■ t\n주) 1. 보장개시일(암은 암보장개시일) 이후에 ‘암’ 또는 ‘갑상선암’으로 진단 확정되면") == []
+
+
+def test_row_without_targets_is_split_even_when_a_sibling_row_bundles_them():
+    # 같은 급부를 모델이 등급마다 다른 꼴로 적었다: 1종은 대상 없이, 2종은 대상을 묶어서. 묶은 줄은 대상별로 나뉜 줄이 아니다
+    listed = Block(MIXED.title, MIXED.text + "\n2. 기타피부암과 갑상선암은 약관에서 정합니다.", 30, 31)
+    for first, second in (("{}", "암·기타피부암·갑상선암·{}"), ("암·기타피부암·갑상선암·{}", "{}")):
+        raw = _graded(first)[:1] + _graded(second)[1:] + [SURGERY]
+        ex = B.parse(listed, {"benefits": raw}, "m")
+        assert ex.problems == [] and [(b.label, b.waiting_days) for b in ex.benefits] == SPLIT
+
+
+def test_split_row_whose_id_matches_another_row_is_left_alone():
+    # "기타피부암·갑상선암"과 "기타피부암 및 갑상선암"은 글자는 달라도 급부ID가 같다(ids.benefit_id가 구두점과 이음말을 뗀다)
+    raw = {"benefits": [_item(name="가상표적치료자금", target=t, amount="20만원", reduced_period="1년미만", reduced_amount="10만원",
+                              limit="1회당") for t in ("암·기타피부암·갑상선암", "기타피부암 및 갑상선암")]}
+    ex = B.parse(MIXED, raw, "m")
+    assert [b.label for b in ex.benefits] == ["가상표적치료자금(암·기타피부암·갑상선암)", "가상표적치료자금(기타피부암 및 갑상선암)"]
+    assert not any(b.split_from for b in ex.benefits)
+    rows = B.benefit_rows("V", ex)
+    assert check_rows("sys_급부", rows) == {} and len({r["급부ID"] for r in rows}) == 2
+
+
+NEIGHBOUR = Block("무배당 가상항암치료특약 2701", """■ 무배당 가상항암치료특약 2701
+(특약보험가입금액 1,000만원 기준)
+지급구분 지급사유 경과기간 지급금액
+보험기간 중 보장개시일(암은 암보장개시일) 이후에
+‘암’, ‘기타피부암’ 또는 ‘갑상선암’으로 진단 확정되고 1년미만 10만원
+가상표적 그 직접적인 치료를 목적으로 가상표적치료를 받았을 때
+치료자금 (1회당) 1년이상 20만원
+치료 목적으로 입원하였을 때 (입원 1일당)
+가상입원 1년미만 1만원
+일당 1년이상 2만원
+기타피부암 또는 갑상선암 제외 사유는 약관에 따릅니다
+주) 1. 암보장개시일은 계약일부터 그 날을 포함하여 90일이 지난날의 다음날로 합니다.""", 30, 31)
+
+
+def test_phrase_belongs_only_to_the_benefit_written_first_in_its_rows():
+    # 다음 급부(가상입원일당)의 지급사유가 "보험기간", "피보험자가"로 시작하지 않아 문구가 든 표 줄에 그 이름까지 들어온다.
+    # 문구는 먼저 적힌 가상표적치료자금의 것이므로 가상입원일당은 나누지 않는다
+    raw = {"benefits": [
+        _item(name="가상표적치료자금", target="암·기타피부암·갑상선암", amount="20만원", reduced_period="1년미만", reduced_amount="10만원",
+              limit="1회당"),
+        _item(name="가상입원일당", target="", amount="2만원", reduced_period="1년미만", reduced_amount="1만원", limit="입원 1일당")]}
+    ex = B.parse(NEIGHBOUR, raw, "m")
+    assert [(b.label, b.waiting_days, b.split_from) for b in ex.benefits] == [
+        ("가상표적치료자금(암)", 90, "가상표적치료자금(암·기타피부암·갑상선암)"),
+        ("가상표적치료자금(기타피부암·갑상선암)", 0, "가상표적치료자금(암·기타피부암·갑상선암)"),
+        ("가상입원일당", 0, "")]

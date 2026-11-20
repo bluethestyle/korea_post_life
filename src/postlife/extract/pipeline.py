@@ -196,6 +196,10 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
 
     for b in ex.benefits:
         target = ids.benefit_id(rider, b.label)
+        if b.split_from:
+            log.add("코드대조", target, "통과", f"'{b.split_from}' 줄을 대상별로 나눔. 원문이 '보장개시일(…은 …보장개시일) 이후'라 "
+                    f"대상마다 보장개시일이 다름. 이 줄의 면책 {b.waiting_days}일", column="면책기간일수",
+                    before=b.split_from, after=b.label)
         if not best.literal.get(b.label):
             log.add("코드대조", target, "통과", "금액과 기간이 원문에 글자 그대로 있음")
 

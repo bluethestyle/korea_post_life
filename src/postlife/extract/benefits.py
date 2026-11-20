@@ -5,8 +5,10 @@
 """
 from __future__ import annotations
 
+import bisect
 import re
-from dataclasses import dataclass, field
+from collections import Counter
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from .. import ids
@@ -124,6 +126,7 @@ class Benefit:
     period_text: str = ""            # 감액 기간을 적은 글자. 예: "1년미만"
     period2_text: str = ""
     exception: str = ""              # 감액하지 않는 예외 문구. 감액이 없는 줄에는 비운다
+    split_from: str = ""             # 코드가 대상별로 나눈 줄이면 나누기 전의 원시급부명. 이 줄의 면책은 코드가 원문 문구로 정했다
 
     @property
     def label(self) -> str:
@@ -368,6 +371,7 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
         if b.reduced_months is not None and b.reduced_months == b.reduced2_months:
             problems.append(f"두 감액 구간의 기간이 같음: {b.label}")
         benefits.append(b)
+    benefits = split_by_start(benefits, block.text, definitions, problems)
     labels = [b.label for b in benefits]
     for dup in sorted({l for l in labels if labels.count(l) > 1}):
         problems.append(f"같은 이름의 급부가 두 번 나옴: {dup}")
@@ -426,13 +430,18 @@ def plain_start_in(text: str) -> bool:
     주석("주)" 뒤)에 나오는 "최초계약의 보장개시일 이후"는 세지 않는다. 한 조각에 표가 여럿이면 표마다 주석 앞까지만 본다.
     빈칸을 떼지 않은 글에서 본다. 떼면 "중 보장개시일"의 앞말이 이름처럼 붙는다.
     """
+    return any(_PLAIN_START.search(body) for body in _table_bodies(text))
+
+
+def _table_bodies(text: str) -> list[str]:
+    """조각에서 표 부분만. 주석("주)" 뒤)은 빼고, 한 조각에 표가 여럿이면 다음 표의 머리줄 뒤부터 다시 넣는다."""
     parts = text.split("주)")
     bodies = [parts[0]]
     for part in parts[1:]:
         m = _TABLE_START.search(part)
         if m:
             bodies.append(part[m.end():])
-    return any(_PLAIN_START.search(body) for body in bodies)
+    return bodies
 
 
 def waiting_definitions(text: str) -> dict[str, int]:
@@ -450,6 +459,218 @@ def waiting_definitions(text: str) -> dict[str, int]:
             n = int(span.group(1))
             name = m.group(1).split("경우")[-1]
             out.setdefault(name, n if span.group(2) == "일" else n * 365 if span.group(2) == "년" else n * 30)
+    return out
+
+
+# ---------- 대상마다 보장개시일이 다른 급부 ----------
+
+# "보장개시일(암은 암보장개시일) 이후에 암, 기타피부암 또는 갑상선암으로 …": 괄호 안의 대상(암)만 이름 붙은 보장개시일을 쓰고
+# 나머지 대상은 계약일부터 보장한다. 빈칸과 쉼표를 뗀 글에서 찾는다. 셋째 묶음은 "이후에" 뒤에 적힌 대상 목록이다
+_MIXED_START = re.compile(r"보장개시일\((.{1,60}?)[은는]([가-힣]{0,15}보장개시일)\)이후에?(.{0,160}?)으?로")
+_NEXT_ROW = re.compile(r"보장개시일|피보험자가|^\s*보험기간")      # 다음 지급사유가 시작하는 줄
+_ROW_REACH = 20                                                  # 문구 뒤로 급부 이름을 찾는 줄 수의 상한
+_QUOTE = re.compile(r"[‘’'\"“”]")
+_TARGET_SEP = re.compile(r"\s*[·,/ㆍ∙•]\s*|\s+(?:및|또는)\s+")
+_DISEASE = re.compile(r"(?:암|종양)$")
+
+
+@dataclass(frozen=True)
+class MixedStart:
+    """'보장개시일(암은 암보장개시일) 이후' 꼴의 문구 하나."""
+    special: str               # 괄호 안의 대상. 예: "암"
+    start: str                 # 그 대상에 붙는 보장개시일. 예: "암보장개시일"
+    listed: str                # "이후에" 뒤에 적힌 대상 목록(빈칸과 쉼표를 뗀 글). 표가 풀리며 다른 칸 글자가 끼어 있기도 하다
+    lines: tuple[str, ...]     # 문구가 든 표 줄. 급부 이름이 여기 적혀 있어야 그 급부의 문구로 본다
+
+
+def mixed_starts(text: str) -> list[MixedStart]:
+    """표의 지급사유에서 대상마다 보장개시일이 다른 문구를 찾는다. 주석은 보지 않는다."""
+    out = []
+    for body in _table_bodies(text):
+        lines = body.split("\n")
+        flats = [squash(line) for line in lines]
+        starts, at = [], 0
+        for flat in flats:
+            starts.append(at)
+            at += len(flat)
+        for m in _MIXED_START.finditer("".join(flats)):
+            head = re.match(r"[가-힣]+", _QUOTE.sub("", m.group(1)))
+            if not head:
+                continue
+            first = bisect.bisect_right(starts, m.start()) - 1
+            last = bisect.bisect_right(starts, m.end() - 1) - 1
+            stop = last + 1
+            # 표가 풀리면 이름 칸의 글자가 지급사유 줄 사이에 끼어 있다. 다음 지급사유가 시작하는 줄 앞까지 본다
+            while stop < len(lines) and stop - last <= _ROW_REACH and not _NEXT_ROW.search(lines[stop]):
+                stop += 1
+            out.append(MixedStart(head.group(0), m.group(2), m.group(3), tuple(lines[first:stop])))
+    return out
+
+
+def _written_from(name: str, lines: tuple[str, ...]) -> int | None:
+    """급부 이름이 이 줄들에 적혀 있으면 첫 조각이 놓인 줄의 번호, 없으면 None.
+
+    표가 글자로 풀리면 이름 칸의 글자가 여러 줄의 앞머리에 조각으로 놓인다("표적항암" / … / "약물허가치료자금" / … / "(주사제)").
+    줄 앞머리의 낱말을 차례로 이어 붙여 이름이 되면 적혀 있다고 본다.
+    """
+    want, at, first = squash(name), 0, None
+    for n, line in enumerate(lines):
+        words = line.split()
+        for k in range(len(words), 0, -1):
+            piece = squash(" ".join(words[:k]))
+            if piece and want.startswith(piece, at):
+                first = n if first is None else first
+                at += len(piece)
+                break
+        if want and at == len(want):
+            return first
+    return None
+
+
+def _owners(phrase: MixedStart, names: set[str]) -> set[str]:
+    """문구의 주인인 급부 이름. 문구가 든 표 줄에 적힌 이름 가운데 가장 먼저 적힌 것.
+
+    다음 급부의 지급사유가 "보험기간", "피보험자가"로 시작하지 않으면 문구가 든 표 줄에 그 급부의 이름 칸까지 들어온다.
+    한 문구는 한 급부의 지급사유이므로 뒤에 적힌 이름은 그 문구의 급부로 보지 않는다.
+    """
+    at = {name: n for name in names if (n := _written_from(name, phrase.lines)) is not None}
+    if not at:
+        return set()
+    first = min(at.values())
+    return {name for name, n in at.items() if n == first}
+
+
+def _items(target: str) -> list[str]:
+    """대상 글을 낱낱의 대상으로 가른다. 괄호 안의 쉼표("암(기타피부암, 갑상선암 제외)")에서는 가르지 않는다."""
+    items, begin = [], 0
+    for m in _TARGET_SEP.finditer(target):
+        head = target[:m.start()]
+        if head.count("(") + head.count("[") == head.count(")") + head.count("]"):
+            items.append(target[begin:m.start()])
+            begin = m.end()
+    items.append(target[begin:])
+    return [item.strip() for item in items if item.strip()]
+
+
+def _base(item: str) -> str:
+    """대상 낱말에서 괄호 앞부분. "암(기타피부암, 갑상선암 제외)" → "암"."""
+    return squash(_QUOTE.sub("", item)).split("(")[0]
+
+
+def _listed(item: str, phrase: MixedStart) -> bool:
+    """대상 낱말이 문구의 대상 목록에 있는가. 숫자가 든 낱말("1종")은 대상이 아니다.
+
+    표가 풀리며 낱말 사이에 다른 칸 글자가 끼어든 경우("기타100만원치료자금Ⅱ피부암")도 찾는다. 끼어든 글자는 모두 합쳐 15자까지 본다.
+    """
+    word = _base(item)
+    if not word or re.search(r"\d", item):
+        return False
+    if word in phrase.listed:
+        return True
+    if len(word) < 2:
+        return False
+    gapped = re.compile(".{0,15}?".join(map(re.escape, word)))
+    return any((m := gapped.match(phrase.listed, at)) and len(m.group(0)) <= len(word) + 15
+               for at in range(len(phrase.listed)) if phrase.listed[at] == word[0])
+
+
+def _listed_words(phrase: MixedStart, flat_source: str) -> list[str]:
+    """문구의 대상 목록에서 괄호 안의 대상을 뺀 나머지. 예: ["기타피부암", "갑상선암"].
+
+    따옴표로 싼 낱말만 읽는다. 표가 풀리며 다른 칸 글자가 끼어 낱말이 깨졌으면(원문의 다른 자리에 그 낱말이 없으면) 빈 목록.
+    """
+    marks = _QUOTE.findall(phrase.listed)
+    if not marks or len(marks) % 2:
+        return []
+    rest = flat_source.replace(phrase.listed, "", 1)
+    words = []
+    for word in _QUOTE.split(phrase.listed)[1::2]:
+        if word.startswith(phrase.special):         # 괄호 안의 대상. 뒤에 다른 칸 글자가 붙어 있을 수 있다
+            continue
+        if not re.fullmatch(r"[가-힣]{2,}", word) or word not in rest:
+            return []
+        words.append(word)
+    return words
+
+
+def _sort_targets(items: list[str], phrase: MixedStart) -> tuple[list[str], list[str], list[str]]:
+    """대상 낱말을 (괄호 안의 대상, 문구에 적힌 나머지 대상, 문구에 없는 병명)으로 가른다. 등급("1종") 같은 낱말은 어디에도 들지 않는다."""
+    named = [i for i in items if _base(i) == phrase.special]
+    others = [i for i in items if i not in named and _listed(i, phrase)]
+    unknown = [i for i in items if i not in named and i not in others and _DISEASE.search(_base(i))]
+    return named, others, unknown
+
+
+def _by_target(target: str, phrase: MixedStart) -> bool:
+    """대상별로 나뉜 줄인가. 문구의 대상을 적었되, 괄호 안의 대상과 나머지 대상을 한 줄에 묶어 적은 줄(나눌 줄)은 아니다."""
+    named, others, unknown = _sort_targets(_items(target), phrase)
+    return bool(named or others) and not (len(named) == 1 and others and not unknown)
+
+
+def _split(b: Benefit, siblings: list[Benefit], phrases: list[tuple[MixedStart, set[str]]], definitions: dict[str, int],
+           flat_source: str) -> list[Benefit] | None:
+    """급부 한 줄을 (괄호 안 대상의 줄, 나머지 대상의 줄)로 나눈다. 나눌 까닭이 없으면 None. phrases는 (문구, 그 문구의 주인 이름)."""
+    items = _items(b.target)
+    for phrase, owners in phrases:
+        if b.name not in owners:
+            continue
+        days, trouble = waiting_days_of({"start_condition": phrase.start}, definitions, flat_source)
+        if trouble or not days:
+            continue
+        named, others, unknown = _sort_targets(items, phrase)
+        if unknown:             # 문구에 없는 대상이 섞여 있으면 어느 쪽인지 모른다
+            continue
+        if len(named) == 1 and others:
+            # 대상을 묶어 적은 줄. 예: "암·기타피부암·갑상선암·1종" → "암·1종", "기타피부암·갑상선암·1종"
+            first, rest = [i for i in items if i not in others], [i for i in items if i not in named]
+        elif not named and not others and not any(_by_target(s.target, phrase) for s in siblings):
+            # 대상을 적지 않은 줄. 예: "1종" → "암·1종", "기타피부암·갑상선암·1종". 같은 급부의 다른 줄이 대상별로 나뉘어 있으면 손대지 않는다.
+            # 다른 줄이 대상을 묶어 적었으면(그 줄도 나눌 줄이다) 이 줄도 나눈다
+            words = _listed_words(phrase, flat_source)
+            if not words:
+                continue
+            first, rest = [phrase.special] + items, words + items
+        else:
+            continue
+        return [replace(b, target="·".join(first), waiting_days=days, split_from=b.label),
+                replace(b, target="·".join(rest), waiting_days=0, split_from=b.label)]
+    return None
+
+
+def split_by_start(benefits: list[Benefit], text: str, definitions: dict[str, int], problems: list[str]) -> list[Benefit]:
+    """대상마다 보장개시일이 다른 급부가 한 줄로 묶여 오면 대상별 줄로 나누고 면책을 따로 매긴다.
+
+    원문이 "보장개시일(암은 암보장개시일) 이후에 암, 기타피부암 또는 갑상선암으로 …"이면 암은 암보장개시일의 날수,
+    기타피부암·갑상선암은 0일이다. 지시문에 나누라고 적어 두었지만, 등급(1종~5종)으로도 나뉘는 급부에서 모델이
+    "암·기타피부암·갑상선암·1종"이나 "1종"처럼 대상을 묶은 줄 하나로 적는 일이 있었다(한화 요약서 78쪽, 81쪽).
+
+    나누는 경우는 급부 이름이 그 문구가 든 표 줄에 맨 먼저 적혀 있고, 그 줄의 대상이 문구의 대상을 묶어 적었거나 대상을 적지 않았을 때뿐이다.
+    이미 대상별로 나뉘어 온 줄, 형식 문제가 걸린 줄, 나누면 다른 줄과 급부ID가 겹치는 줄은 그대로 둔다.
+    급부ID는 이름의 구두점과 이음말을 떼고 만들므로("기타피부암·갑상선암"과 "기타피부암 및 갑상선암"이 같다) 겹침도 ID로 본다.
+    """
+    phrases = mixed_starts(text)
+    if not phrases:
+        return benefits
+    flat_source = squash(text)
+    names = {b.name for b in benefits}
+    owned = [(phrase, _owners(phrase, names)) for phrase in phrases]
+
+    def key(label: str) -> str:
+        return ids.benefit_id("", label)        # 한 조각은 한 특약이므로 특약 부분은 비워도 된다
+
+    taken = Counter(key(b.label) for b in benefits)
+    out: list[Benefit] = []
+    for b in benefits:
+        parts = None
+        if not any(p.endswith(f": {b.label}") for p in problems):
+            parts = _split(b, [o for o in benefits if o is not b and o.name == b.name], owned, definitions, flat_source)
+        made = {key(x.label) for x in parts} if parts else set()
+        rest = taken - Counter([key(b.label)])
+        if parts and len(made) == 2 and not any(k in rest for k in made):
+            out += parts
+            taken = rest + Counter(made)
+        else:
+            out.append(b)
     return out
 
 

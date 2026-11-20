@@ -40,6 +40,7 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
     - 면책기간: 날수는 코드가 주석의 보장개시일 정의 문장에서 확인한다. 여기서는 그 줄의 지급사유가
       "○○보장개시일 이후"라는 조건이 들어 있는지 없는지를 고르게 한다. 원문에 보장개시일 문구가 없으면 묻지 않는다.
       (참·거짓으로 물으면 맞는 줄도 0.5~0.8에 머물렀고, 둘 중 고르게 하면 대부분 0.95를 넘었다.)
+      코드가 대상별로 나눈 줄(benefits.split_by_start)도 묻지 않는다. 어느 대상에 보장개시일이 붙는지를 코드가 원문 문구에서 읽었다.
     - 지급한도: 적은 글자가 원문에 그대로 있으면 코드 확인으로 끝내고, 없을 때만 묻는다.
       비율을 곱하는 급부의 한도 칸에 든 "× 해당 장해지급률"은 지급액 문항에서 보므로, 나머지 조건이 원문에 없을 때만 묻는다.
     """
@@ -75,7 +76,7 @@ def checks(b: Benefit, source: str) -> dict[str, tuple[dict, Any]]:
     if b.exception and not limit_in_source(b.exception, squash(source)):
         out["감액예외"] = (statement(f"{who}에는 '{b.exception}'(이)라는 감액 예외가 표나 주석에 적혀 있다 "
                                  "(줄이 갈려 있어도 같은 칸이나 같은 문장이면 이어 읽는다)"), True)
-    if "보장개시일" in squash(source):      # "암보장\n개시일"처럼 줄이 갈린 글도 본다
+    if "보장개시일" in squash(source) and not b.split_from:      # "암보장\n개시일"처럼 줄이 갈린 글도 본다
         case = f"'{b.target}'에 해당하는 경우" if b.target else "경우"
         out["면책기간일수"] = ({
             "type": "choice",

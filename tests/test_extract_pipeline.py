@@ -350,6 +350,56 @@ def test_result_without_a_verdict_does_not_replace_a_judged_one():
     assert r.stats["검토"] == 2 and r.stats["제외"] == 0 and len(r.benefits) == 4
 
 
+def test_row_split_by_target_is_logged_and_its_start_is_not_judged():
+    # 지어낸 문구. 표적 치료자금은 "보장개시일(암은 암보장개시일) 이후"로 암만 90일, 수술자금은 모든 대상이 암보장개시일 뒤
+    text = """
+===== 30쪽 =====
+② 보험금 지급사유
+■ 무배당 가상항암치료특약 2701
+(특약보험가입금액 1,000만원 기준)
+지급구분 지급사유 지급금액
+보험기간 중 보장개시일(암은 암보장개시일) 이후에
+‘암’ 또는 ‘갑상선암’으로 진단 확정되고 1년미만 10만원
+가상표적 그 치료를 목적으로 가상표적치료를 받았을 때
+치료자금 (1회당) 1년이상 20만원
+보험기간 중 암보장개시일 이후에 암으로 수술을 받았을 때 30만원
+가상수술자금 (수술 1회당)
+주) 1. 암보장개시일은 계약일부터 그 날을 포함하여 90일이 지난날의 다음날로 합니다.
+③ 일반적 보험금 지급제한 사유
+"""
+    rows = {"base_amount": "1,000만원", "benefits": [
+        {"name": "가상표적치료자금", "target": "암·갑상선암", "amount": "20만원", "reduced_period": "1년미만", "reduced_amount": "10만원",
+         "start_condition": "", "limit": "1회당", "role": "주급부", "quote": "20만원"},
+        {"name": "가상수술자금", "target": "암", "amount": "30만원", "start_condition": "암보장개시일", "limit": "수술 1회당",
+         "role": "주급부", "quote": "30만원"}]}
+
+    class Split(FakeGemini):
+        def __init__(self):
+            super().__init__()
+            self.asked = []
+
+        def generate(self, model, prompt, schema=None, temperature=0.0):
+            self.calls[model] = self.calls.get(model, 0) + 1
+            return rows
+
+        def decide(self, model, input_text, questions):
+            self.asked += [q["instructions"] for q in questions.values() if q["type"] == "choice"]
+            return {k: (Answer(V.AFTER_START, None, {V.AFTER_START: 0.95, V.FROM_DAY_ONE: 0.05}) if q["type"] == "choice"
+                        else Answer(True, None, {"true": 0.95, "false": 0.05})) for k, q in questions.items()}
+
+    g = Split()
+    r = P.run_summary(g, pages_from_text(text), ["V1"], datetime(2026, 11, 20, 9, 0, tzinfo=KST))
+    assert check_rows("sys_급부", r.benefits) == {} and check_rows("sys_작업로그", r.logs) == {}
+    assert sorted((row["원시급부명"], row["면책기간일수"]) for row in r.benefits) == [
+        ("가상수술자금(암)", 90), ("가상표적치료자금(갑상선암)", 0), ("가상표적치료자금(암)", 90)]
+    assert r.stats["확정"] == 3 and r.stats["재추출한 조각"] == 0 and g.calls == {config.MODEL_EXTRACT: 1}     # 다시 뽑지 않는다
+    # 나눈 줄의 면책은 판정에 묻지 않는다. 나누지 않은 수술자금 줄만 묻는다
+    assert len(g.asked) == 1 and "가상수술자금" in g.asked[0]
+    split = [l for l in r.logs if l["작업단계"] == "코드대조" and l["변경전값"] == "가상표적치료자금(암·갑상선암)"]
+    assert sorted(l["변경후값"] for l in split) == ["가상표적치료자금(갑상선암)", "가상표적치료자금(암)"]
+    assert all("대상별로 나눔" in l["사유"] and l["대상열"] == "면책기간일수" for l in split)
+
+
 def test_rider_split_over_several_blocks_gets_one_rider_row():
     text = TEXT.replace("③ 일반적", "■ 무배당 암진단특약(20년갱신형) 2606\n(특약보험가입금액 1,000만원 기준)\n"
                         "암진단 보험금 최초 1회에 한함 1년미만 500만원 1년이상 1,000만원\n③ 일반적")
