@@ -7,6 +7,7 @@
 다시 묻기(Remap)는 기본으로 대기 행만 다시 묻는다. 자동확정과 대상외는 고른 상태나 급부 이름으로만 다시 묻고,
 담당자가 정한 행(settled)과 검토상태가 배치 값 밖인 행(protected)은 어느 경우에도 묻지도, 덮어쓰지도, 걷어내지도 않는다.
 사전 seed를 시트 탭에 올리는 계획은 sync_dictionary가 세운다.
+기존 상품의 초기 적재는 판정 모델을 부르지 않고 두 판독(Claude 에이전트와 제미나이)의 의견으로 매핑 행을 만든다(cross_check).
 """
 from __future__ import annotations
 
@@ -439,6 +440,153 @@ def run(gemini: Any, variants: list[dict[str, Any]], riders: list[dict[str, Any]
                     "건너뜀(앞 실행에서 판정)": len(q.skipped),
                     "다시 물은 행": sum(q.reasked.values())}
     return result
+
+
+# ---------- 두 판독의 교차 확인으로 매핑하기 (초기 적재) ----------
+CROSS_CHECK = "교차 확인"          # 이 길로 넣은 줄의 작업 로그 호출모델. 판정 모델을 부르지 않는다
+# 의견 파일을 만든 정규식과 같다. 앞 표시는 이름 맨 앞에 이어 붙은 대괄호 묶음만, 감액 표시는 이름 안 어디에 있든 모두 뗀다
+_KIND_MARKS = re.compile(r"^(?:\[[^\[\]]*\])+\s*")
+_KIND_REDUCTION = re.compile(r"\s*\(\s*(?:1년\s*50%|1년\s*감액|180일\s*감액)\s*\)")
+
+
+def kind_name(name: Any) -> str:
+    """특약이나 급부의 묶음 이름. 원시특약명이나 원시급부명에서 앞의 대괄호 표시("[갱신형]", "[간편]" 등이 이어진 것)와
+    "(1년50%)", "(1년감액)", "(180일감액)" 꼴의 감액 표시를 떼고 공백을 하나로 줄인 뒤 양끝 공백을 없앤다. 다른 괄호는 남긴다.
+
+    교차 확인 의견 파일(data/crosscheck/<회사>_mapping_opinion_2reader.jsonl)의 특약과 급부가 이 이름이고, 급부는
+    (kind_name(원시특약명), kind_name(원시급부명))으로 의견을 찾는다. 급부ID를 만드는 ids와는 상관없다."""
+    text = _KIND_MARKS.sub("", str(name or ""))
+    text = _KIND_REDUCTION.sub("", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+@dataclass
+class CrossCheck:
+    rows: list[dict[str, Any]] = field(default_factory=list)       # hum_담보매핑에 쓸 행. 지금 행과 같은 줄은 뺀다
+    logs: list[dict[str, Any]] = field(default_factory=list)
+    stats: dict[str, int] = field(default_factory=dict)
+    by_standard: dict[str, int] = field(default_factory=dict)      # 표준담보명별 자동확정 줄 수
+    unknown: list[dict[str, str]] = field(default_factory=list)    # 사전(쓰는 담보)에 없는 의견: 번호, 판독, 이름
+    unused: list[str] = field(default_factory=list)                # 고른 급부에 하나도 맞지 않은 의견의 번호
+    waiting: list[str] = field(default_factory=list)               # 담당자가 볼 줄
+
+
+def _same_mapping_row(old: dict[str, Any], new: dict[str, Any]) -> bool:
+    """담당자메모 밖의 열이 모두 같은지. 담당자메모는 merge가 지금 값을 지키므로 견주지 않는다."""
+    return all(same_value(old.get(c), new.get(c)) for c in TABS[MAPPING_TAB].header if c != "담당자메모")
+
+
+def cross_check(variants: list[dict[str, Any]], riders: list[dict[str, Any]], benefits: list[dict[str, Any]],
+                dictionary: list[dict[str, Any]], existing: list[dict[str, Any]],
+                opinions: dict[tuple[str, str], dict[str, Any]], now: datetime) -> CrossCheck:
+    """두 판독의 의견으로 매핑 행을 만든다. 판정 모델을 부르지 않는다.
+
+    benefits: 이번에 다룰 상품의 급부만 넘긴다. existing: 지금 hum_담보매핑 전체.
+    opinions: (특약 묶음 이름, 급부 묶음 이름) → 의견 파일의 줄. 줄의 "claude"와 "gemini"가 표준담보명이나 해당없음이다.
+    - 두 의견이 같은 표준담보명이면 자동확정(추천과 확정표준담보ID가 그 담보), 둘 다 해당없음이면 대상외, 그 밖이면 대기다.
+      대기의 추천은 Claude의 의견이 표준담보명이면 그것, 아니면 제미나이의 것, 둘 다 아니면 비운다.
+    - 사전(쓰는 담보, in_use)에 없는 이름은 그 판독의 의견이 없는 것으로 보고 unknown에 적는다.
+    - 의견이 없는 급부(두 판독 모두 쓸 의견이 없는 급부도)는 매핑 행이 없을 때만 추천 없는 대기 행을 낸다. 이미 행이 있으면
+      그대로 둔다. 판정 모델이 정한 다른 급부의 줄을 의견 파일이 다루지 않았다고 대기로 되돌리지 않으려는 것이다.
+    - 담당자가 정한 행과 검토상태가 배치 값 밖인 행(protected)은 건드리지 않는다. 쓰기는 merge와 upsert로 한다.
+    - 지금 행과 담당자메모 밖의 열이 모두 같은 줄은 내지 않는다. 두 번 돌려도 시트가 바뀌지 않고 작업 로그도 늘지 않는다.
+    매핑확률은 비운다. 작업 로그는 run과 같은 꼴(판정, 사람검토이관)로 남기고 호출모델에 CROSS_CHECK를 적는다.
+    stats의 자동확정, 대상외, 대기는 지금 행과 같아 쓰지 않는 줄까지 센 판정 결과다.
+    """
+    by_name = {d["표준담보명"]: d for d in dictionary if in_use(d)}     # criteria가 선택지를 고르는 조건과 같다
+    product = {v["종형ID"]: v["공시상품명"] for v in variants}
+    rider_of = {r["특약ID"]: r for r in riders}
+    current = {r["급부ID"]: r for r in without_repeats(existing)[0]}
+    log = WorkLog(now, MAPPING_TAB)
+    out = CrossCheck()
+
+    views: dict[tuple[str, str], tuple[str | None, str | None]] = {}
+    for key, line in opinions.items():
+        pair = []
+        for side in ("claude", "gemini"):
+            name = str(line.get(side) or "").strip()
+            if name == NONE or name in by_name:
+                pair.append(name)
+            else:
+                pair.append(None)
+                out.unknown.append({"번호": str(line.get("번호") or ""), "판독": side, "이름": name})
+        views[key] = (pair[0], pair[1])
+
+    groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for b in benefits:
+        rider = rider_of.get(b["특약ID"])
+        if rider is not None:
+            groups.setdefault((kind_name(rider["원시특약명"]), kind_name(b["원시급부명"])), []).append(b)
+
+    count = Counter()
+    by_standard = Counter()
+    for key, members in groups.items():
+        claude, gemini = views.get(key, (None, None))
+        if claude is None and gemini is None:
+            state = None                                   # 쓸 의견이 없다
+        elif claude == gemini:
+            state = "대상외" if claude == NONE else "자동확정"
+        else:
+            state = "대기"
+        recommend = next((n for n in (claude, gemini) if n and n != NONE), None) if state != "대상외" else None
+        chosen = by_name.get(recommend) if recommend else None
+        written = []
+        for b in members:
+            old = current.get(b["급부ID"])
+            if old is not None and protected(old):
+                count["보호되어 건너뜀"] += 1
+                continue
+            row_state = state or "대기"
+            if state is None:
+                count["의견 없음"] += 1
+                if old is not None:
+                    count["의견 없음(기존 줄 둠)"] += 1
+                    continue
+            rider = rider_of[b["특약ID"]]
+            row = {
+                "급부ID": b["급부ID"], "공시상품명": product.get(rider["종형ID"], ""), "원시특약명": rider["원시특약명"],
+                "원시급부명": b["원시급부명"],
+                "추천표준담보ID": chosen["표준담보ID"] if chosen else None,
+                "추천표준담보명": chosen["표준담보명"] if chosen else None,
+                "매핑확률": None,
+                "확정표준담보ID": chosen["표준담보ID"] if chosen and row_state == "자동확정" else None,
+                "검토상태": row_state, "담당자메모": None,
+            }
+            count[row_state] += 1
+            if row_state == "자동확정":
+                by_standard[chosen["표준담보명"]] += 1
+            if old is not None and _same_mapping_row(old, row):
+                count["지금과 같은 줄"] += 1
+                continue
+            out.rows.append(row)
+            written.append(b)
+        if not written:
+            continue
+        first = written[0]
+        label = f"{rider_of[first['특약ID']]['원시특약명']} · {first['원시급부명']}"
+        many = f"(같은 급부 {len(written)}행)"
+        if state in ("자동확정", "대상외"):
+            log.add("판정", first["급부ID"], "통과", f"{state}: {label} → {claude} {many}"[:300],
+                    model=CROSS_CHECK, column="확정표준담보ID")
+            continue
+        if state is None:
+            why = f"교차 확인 의견이 없어 담당자 검토 대기: {label}"
+        else:
+            why = f"두 판독의 의견이 달라 담당자 검토 대기: {label} (Claude {claude or '없음'}, 제미나이 {gemini or '없음'})"
+        log.add("판정", first["급부ID"], "보류", why[:300], model=CROSS_CHECK, column="추천표준담보ID")
+        log.add("사람검토이관", first["급부ID"], "보류", f"{why} {many}"[:300], model=CROSS_CHECK, column="추천표준담보ID")
+        out.waiting.append(f"- {why}")
+
+    used = {key for key in groups if key in opinions}
+    out.unused = sorted(str(line.get("번호") or "") for key, line in opinions.items() if key not in used)
+    out.logs = log.rows
+    out.by_standard = dict(sorted(by_standard.items(), key=lambda kv: (-kv[1], kv[0])))
+    out.stats = {"대상 급부": sum(len(m) for m in groups.values()), "묶음": len(groups), "의견 있는 묶음": len(used),
+                 "자동확정": count["자동확정"], "대상외": count["대상외"], "대기": count["대기"],
+                 "의견 없음": count["의견 없음"], "의견 없음(기존 줄 둠)": count["의견 없음(기존 줄 둠)"],
+                 "보호되어 건너뜀": count["보호되어 건너뜀"], "쓸 줄": len(out.rows), "지금과 같은 줄": count["지금과 같은 줄"],
+                 "의견 줄": len(opinions), "사전에 없는 의견": len(out.unknown), "쓰이지 않은 의견 줄": len(out.unused)}
+    return out
 
 
 # ---------- 사전 seed를 시트 탭에 올리기 ----------

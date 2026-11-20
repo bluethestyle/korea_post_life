@@ -586,7 +586,7 @@ def ratio_tables(caps=False, epost_caps=True):
         (benefit(SF, "ca", "th", "유사암 진단비", "부수급부", 20, base=100), "자동확정", "STD_CA_DX_PSEUDO"),
     ]
     for b, state, sid in rows:
-        b[BASIS_COLUMN] = RATIO_BASIS                 # 스키마에 아직 없는 선택 열이라 row()를 거치지 않고 붙인다
+        b[BASIS_COLUMN] = RATIO_BASIS
         tables["sys_급부"].append(b)
         tables["hum_담보매핑"].append(mapped(b["급부ID"], state, sid))
     if not epost_caps:
@@ -603,6 +603,7 @@ def test_비율_급부는_지급률을_싣고_열이_없거나_비면_금액_급
     empty[BASIS_COLUMN] = ""
     no_pay = next(b for b in tables["sys_급부"] if b["급부ID"] == f"{SF}_Tmain_Bdeath")
     no_pay["기준지급금액만원"] = None
+    del next(b for b in tables["sys_급부"] if b["급부ID"] == f"{NEW_A}_Tcancer_Bca")[BASIS_COLUMN]   # 열을 넣기 전의 사본 행
     data = Data(tables)
 
     cancer = data.benefit_view(f"{SF}_Tca_Bca")

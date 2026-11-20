@@ -10,7 +10,7 @@ tables.py가 PDF의 급부 표를 특별약관(조각)·세부보장 단위로 �
     … 진단 확정된 경우 (최초 1회한 지급)                                        → 한도 "최초 1회한 지급"
 
 금액이 아니라 비율로 적힌 표이므로 행에는 가입금액 100만원당 지급액을 적는다
-(기준가입금액만원 100, 기준지급금액만원 = 지급률). 20%면 20이다.
+(기준가입금액만원 100, 기준지급금액만원 = 지급률). 20%면 20이다. 지급기준구분 칸에는 "가입금액비율"을 적는다.
 
 규칙은 아는 꼴만 읽는다. 감액 문장이 있는데 꼴이 낯설거나, 보장개시일 문장에서 날수를 읽지 못했거나,
 대상마다 값이 다른데 줄로 나누지 못했거나, 지급금액이 비율이 아니면 그 줄에 "확신 없음" 사유를 붙인다.
@@ -22,6 +22,7 @@ tables.py가 PDF의 급부 표를 특별약관(조각)·세부보장 단위로 �
     out = build_rows(variant_id, tables.read_riders("조각.json"), renewal_years=20)
     out.riders, out.benefits        # sys_특약, sys_급부 행
     out.doubts                      # 급부ID → 확신 없음 사유
+    out.numbers                     # 급부ID → 대조 자료의 번호들(("R001-1",))
 """
 from __future__ import annotations
 
@@ -33,6 +34,7 @@ from .. import ids
 from .tables import Rider
 
 BASE_AMOUNT = 100.0          # 기준가입금액만원. 지급률(%)이 그대로 기준지급금액만원이 된다
+BASIS = "가입금액비율"        # 지급기준구분. 화면은 이 값이 있는 급부를 가입금액 대비 지급률로 보인다
 DOC_KIND = "요약서"
 
 # 확신 없음 사유. 뒤에 ": 자세한 내용"이 붙기도 한다. 분포를 셀 때는 doubt_kind로 앞부분만 본다
@@ -689,6 +691,10 @@ class Outcome:
     benefits: list[dict[str, Any]]              # sys_급부 행
     readings: dict[str, Reading]                # 급부ID → 읽은 값과 근거
     doubts: dict[str, tuple[str, ...]]          # 급부ID → 확신 없음 사유. 확신하는 줄은 들어가지 않는다
+    # 급부ID → 대조 자료의 번호 "R{조각 순번:03d}-{세부보장 순번}"들. 순번은 1부터 센다(scripts/compare_table_rules.py와 같다).
+    # 이름이 여럿인 조각은 이름마다 급부 행이 생기지만 같은 번호를 가리킨다. 같은 급부ID가 두 세부보장에서 나오면
+    # 번호가 나온 차례대로 둘 다 들어간다. 대조는 번호마다 해야 한다
+    numbers: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 def read_rider(rider: Rider) -> list[list[Reading]]:
@@ -745,6 +751,7 @@ def benefit_row(rider_id: str, reading: Reading, role: str, page: int) -> dict[s
         "급부역할": role,
         "기준가입금액만원": BASE_AMOUNT,
         "기준지급금액만원": float(reading.percent) if reading.percent is not None else BASE_AMOUNT,
+        "지급기준구분": BASIS,
         "지급횟수제한": limit_cell(reading),
         "면책기간일수": reading.waiting_days,
         "감액개월1": steps[0].months if steps[0] else None,
@@ -770,8 +777,9 @@ def build_rows(variant_id: str, riders: Iterable[Rider], renewal_years: int | No
     benefit_rows: list[dict[str, Any]] = []
     readings: dict[str, Reading] = {}
     doubts: dict[str, tuple[str, ...]] = {}
+    numbers: dict[str, str] = {}
     taken: set[str] = set()
-    for rider in riders:
+    for i, rider in enumerate(riders, 1):
         covers = read_rider(rider)
         role = "주급부" if len(rider.covers) == 1 else "대등복합"
         names = rider.names or (rider.title,)
@@ -779,7 +787,7 @@ def build_rows(variant_id: str, riders: Iterable[Rider], renewal_years: int | No
             key_name = id_name(name, rider.label, taken)
             row = rider_row(variant_id, name, rider.label, renewal_years, key_name)
             rider_rows.append(row)
-            for cover, lines in zip(rider.covers, covers):
+            for j, (cover, lines) in enumerate(zip(rider.covers, covers), 1):
                 for reading in lines:
                     # 이름이 여럿인 조각의 세부보장 이름은 그 이름들을 이어 적은 것이다. 특약 이름으로 바꿔 적는다
                     if len(names) > 1 and len(rider.covers) == 1:
@@ -787,6 +795,9 @@ def build_rows(variant_id: str, riders: Iterable[Rider], renewal_years: int | No
                     out = benefit_row(row["특약ID"], reading, role, cover.page)
                     benefit_rows.append(out)
                     readings[out["급부ID"]] = reading
+                    here, number = numbers.get(out["급부ID"], ()), f"R{i:03d}-{j}"
+                    if number not in here:
+                        numbers[out["급부ID"]] = here + (number,)
                     if reading.doubts:
                         doubts[out["급부ID"]] = reading.doubts
-    return Outcome(rider_rows, benefit_rows, readings, doubts)
+    return Outcome(rider_rows, benefit_rows, readings, doubts, numbers)

@@ -1,0 +1,57 @@
+name: 표준담보 매핑 교차 확인 반영
+
+# 두 판독(Claude 에이전트와 제미나이)의 매핑 의견 파일을 hum_담보매핑에 넣는다. 판정 모델을 부르지 않는다.
+# 두 의견이 같으면 자동확정, 둘 다 해당없음이면 대상외, 다르면 대기다. 담당자가 정한 행은 건드리지 않는다.
+on:
+  workflow_dispatch:
+    inputs:
+      opinion:
+        description: "의견 파일 경로 (예: data/crosscheck/samsungfire_mapping_opinion_2reader.jsonl)"
+        type: string
+        required: true
+      products:
+        description: "고를 상품의 모상품ID, 공시상품코드, 기관코드 (여럿이면 공백이나 쉼표로. 예: SAMSUNGFIRE)"
+        type: string
+        required: true
+      dry_run:
+        description: "시트에 쓰지 않고 결과만 본다"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extract
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      INPUT_OPINION: ${{ inputs.opinion }}
+      INPUT_PRODUCTS: ${{ inputs.products }}
+      INPUT_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 의견 반영
+        run: |
+          args=()
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          # 값이 '-'로 시작해도 값으로 읽히게 '='로 붙여 넘긴다. 공백과 쉼표는 스크립트가 나눈다
+          python scripts/apply_mapping_opinion.py --opinion="$INPUT_OPINION" --products="$INPUT_PRODUCTS" \
+            --result result/mapping_opinion.json "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mapping-opinion-result
+          path: result
+          retention-days: 3

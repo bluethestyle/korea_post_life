@@ -1,0 +1,42 @@
+name: 열 넣기
+
+# 스키마(src/postlife/schema.py)에 열을 더한 뒤 한 번 돌린다. 시트의 머리행과 기존 행에 그 열을 빈칸으로 끼워 넣고
+# (scripts/add_column.py), 머리글이 모든 탭에서 스키마와 같은지 점검한다(scripts/check_sheet.py). 이미 들어가 있으면 바꾸지 않는다.
+# 시트를 쓰는 추출, 매핑과 겹치지 않게 같은 동시 실행 그룹에 둔다.
+on:
+  workflow_dispatch:
+    inputs:
+      tab:
+        description: "탭 이름. 예: sys_급부"
+        required: true
+      column:
+        description: "넣을 열 이름. 스키마에 적힌 이름 그대로. 예: 지급기준구분"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extract
+  cancel-in-progress: false
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      TAB: ${{ inputs.tab }}
+      COLUMN: ${{ inputs.column }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 열 넣기
+        run: python scripts/add_column.py --tab "$TAB" --column "$COLUMN"
+      - name: 머리글 점검
+        run: python scripts/check_sheet.py
