@@ -327,9 +327,11 @@ def test_script_call_interval_follows_chars_per_minute():
         line = next(l for l in out.stdout.splitlines() if l.startswith("물을 양:"))
         return json.loads(line.split(":", 1)[1])
 
-    base, slow = planned(), planned("--chars-per-minute", "24000")
-    assert base["호출 간격(초)"] >= 7.0
-    assert slow["호출 간격(초)"] == round(60.0 * slow["호출당 입력 글자 최대"] / 24000, 1)
+    # 사본에 매핑 없는 급부가 없을 때도 물을 줄이 있게, 이미 행이 있는 급부를 모두 다시 묻는 것으로 센다
+    states = ("--remap-states", "대기,자동확정,대상외")
+    base, slow = planned(*states), planned(*states, "--chars-per-minute", "24000")
+    assert base["호출"] > 0 and base["호출 간격(초)"] >= 7.0
+    assert slow["호출 간격(초)"] == max(7.0, round(60.0 * slow["호출당 입력 글자 최대"] / 24000, 1))
     assert slow["호출 간격(초)"] > base["호출 간격(초)"]
     bad = subprocess.run([sys.executable, str(script), "--plan", "--snapshot", str(ROOT / "data/snapshot"), "--chars-per-minute", "0"],
                          capture_output=True, text=True, timeout=120)
