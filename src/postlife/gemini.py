@@ -160,25 +160,29 @@ class Gemini:
         self._clock = clock
         self._last: dict[str, float] = {}
 
-    def _pace(self, model: str, body: dict | None = None) -> None:
+    def _pace(self, model: str, body: dict | None = None) -> bool:
+        """호출 간격과 분당 토큰 한도를 지키게 기다린다. 분당 토큰 창에 이번 요청을 적었으면 참을 돌려준다."""
         gap = self.min_interval.get(model)
         if gap and model in self._last:
             wait = gap - (self._clock() - self._last[model])
             if wait > 0:
                 self._sleep(wait)
-        self._hold_for_tokens(model, body)
+        recorded = self._hold_for_tokens(model, body)
         self._last[model] = self._clock()
+        return recorded
 
-    def _hold_for_tokens(self, model: str, body: dict | None) -> None:
+    def _hold_for_tokens(self, model: str, body: dict | None) -> bool:
         """분당 토큰 한도가 정해진 모델이면, 최근 60초 동안 보낸 토큰에 이번 요청을 더해 한도를 넘을 때 넘지 않게 될 때까지 기다린다.
 
         토큰 수는 미리 알 수 없어 요청 본문의 글자 수로 어림한다(config.TOKENS_PER_CHAR). 호출 간격만 맞추면 호출 수는 한도에
         한참 못 미쳐도 긴 요청이 이어질 때 분당 토큰이 먼저 찬다(2026-11-19 판정 모델: 분당 14회에 79.98K 토큰, 한도 5만).
         기다린 뒤에는 그만큼 시간이 지난 것으로 보고 다시 재지 않는다(기다리기를 흉내만 내는 시험에서도 끝나게).
+        여기서 적는 시각은 보내기 직전 시각이고, 요청이 끝나면 _finish_tokens가 끝난 시각으로 늦춘다.
+        창에 이번 요청을 적었으면 참을 돌려준다.
         """
         limit = self.tokens_per_minute.get(model)
         if not limit or body is None:
-            return
+            return False
         need = min(limit, int(len(json.dumps(body, ensure_ascii=False)) * config.TOKENS_PER_CHAR))
         sent = self._sent.setdefault(model, deque())
         now = self._clock()
@@ -194,6 +198,18 @@ class Gemini:
             self._sleep(wait)
             self.token_waits[model] = self.token_waits.get(model, 0.0) + wait
         sent.append((now + wait, need))
+        return True
+
+    def _finish_tokens(self, model: str) -> None:
+        """방금 끝난 요청의 분당 토큰 창 시각을 끝난 시각으로 늦춘다(성공이든 실패든 HTTP 시도가 끝난 뒤).
+
+        보낸 시각부터 60초를 재면, 연결과 응답 대기로 서버가 늦게 센 요청이 우리 창에서 먼저 빠져 서버의 60초 창에는 한도보다
+        많이 들어갈 수 있다. 시계가 멈춘 시험에서는 적어 둔 시각(재던 시각에 기다린 시간을 더한 값)이 그대로 남는다.
+        """
+        sent = self._sent.get(model)
+        if sent:
+            at, n = sent[-1]
+            sent[-1] = (max(at, self._clock()), n)
 
     def _waits(self, model: str) -> list[float]:
         """다시 시도하기 전에 기다릴 시간(초) 목록. 목록 길이가 다시 시도하는 횟수다."""
@@ -210,7 +226,7 @@ class Gemini:
         timeout = self.timeout.get(model, 90)
         attempt = 0
         while True:
-            self._pace(model, body)
+            recorded = self._pace(model, body)
             self.calls[model] = self.calls.get(model, 0) + 1
             try:
                 resp = self._post(
@@ -228,6 +244,9 @@ class Gemini:
                     raise err from None
                 attempt += 1
                 continue
+            finally:
+                if recorded:            # 분당 토큰 창은 요청이 끝난 시각부터 잰다
+                    self._finish_tokens(model)
             if resp.status_code < 400:
                 return resp.json()
             try:

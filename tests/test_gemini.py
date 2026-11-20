@@ -440,3 +440,30 @@ def test_decide_model_has_a_token_limit_in_config():
     assert config.TOKENS_PER_MINUTE[config.MODEL_DECIDE] < 50_000
     g = Gemini(api_key="k", post=lambda *a, **k: Resp(200, {"answers": {}}), sleep=lambda s: None)
     assert g.tokens_per_minute[config.MODEL_DECIDE] == config.TOKENS_PER_MINUTE[config.MODEL_DECIDE]
+
+
+def test_token_window_counts_a_request_from_when_it_finished():
+    """요청이 오래 걸리면 서버는 그 토큰을 보낸 시각보다 늦게 센다. 60초 창은 보낸 시각이 아니라 요청이 끝난 시각부터 잰다.
+    실패한 시도(연결 끊김, 4xx)도 같다."""
+    sleeps, clock = [], [0.0]
+    replies = [requests.ConnectionError("끊김"), Resp(400, {"error": {"message": "잘못"}}), Resp(200, {"answers": {}})]
+
+    def post(url, headers=None, json=None, timeout=None):
+        clock[0] += 10.0                     # 요청 하나에 10초 걸린다
+        reply = replies.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        clock[0] += seconds
+
+    g = Gemini(api_key="k", post=post, sleep=sleep, clock=lambda: clock[0], tokens_per_minute={"m": 2_500}, max_retries=0)
+    text = "가" * 1_000
+    with pytest.raises(GeminiError):
+        g.decide("m", text, {})              # t=0에 보내 t=10에 끝남
+    with pytest.raises(GeminiError):
+        g.decide("m", text, {})              # t=10에 보내 t=20에 끝남
+    g.decide("m", text, {})                  # t=20: 첫 요청이 끝난 t=10에서 60초 뒤(t=70)까지 기다린다
+    assert sleeps == [50.0]

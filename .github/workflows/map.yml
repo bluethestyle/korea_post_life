@@ -13,7 +13,11 @@ on:
         type: string
         default: ""
       remap_match:
-        description: "원시급부명이 이 정규식에 맞는 자동확정·대상외 행도 다시 묻는다"
+        description: "원시급부명이 이 정규식에 맞는 자동확정·대상외 행도 다시 묻는다 (공백뿐이면 주지 않은 것으로 본다)"
+        type: string
+        default: ""
+      skip_run:
+        description: "앞 실행의 ID(gh run list에 나오는 번호). 그 실행의 결과물(mapping-result, 3일 보관)에 있는 급부는 이번에 묻지 않는다"
         type: string
         default: ""
       sync_dictionary:
@@ -25,7 +29,7 @@ on:
         type: boolean
         default: false
       chars_per_minute:
-        description: "판정 모델에 분당 보낼 입력 글자 수 상한. 비우면 스크립트 기본값"
+        description: "판정 모델에 분당 보낼 입력 글자 수 상한(호출 간격과 분당 토큰 창을 함께 정한다). 비우면 스크립트 기본값"
         type: string
         default: ""
       plan:
@@ -39,6 +43,7 @@ on:
 
 permissions:
   contents: read
+  actions: read           # 앞 실행의 결과물을 받는다 (skip_run)
 
 concurrency:
   group: extract
@@ -60,6 +65,7 @@ jobs:
       INPUT_PLAN: ${{ inputs.plan }}
       INPUT_DRY_RUN: ${{ inputs.dry_run }}
       INPUT_PRUNE: ${{ inputs.prune }}
+      INPUT_SKIP_RUN: ${{ inputs.skip_run }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -67,12 +73,23 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+      - name: 앞 실행 결과 받기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          skip_run="${INPUT_SKIP_RUN//[[:space:]]/}"
+          if [ -n "$skip_run" ]; then
+            gh run download "$skip_run" -R "$GITHUB_REPOSITORY" -n mapping-result -D previous
+            test -f previous/mapping.json
+          fi
       - name: 매핑
         run: |
           args=()
           if [ "$INPUT_REMAP" = "true" ]; then args+=(--remap); fi
           if [ -n "$INPUT_REMAP_STATES" ]; then args+=(--remap-states "$INPUT_REMAP_STATES"); fi
-          if [ -n "$INPUT_REMAP_MATCH" ]; then args+=(--remap-match "$INPUT_REMAP_MATCH"); fi
+          # 정규식이 '-'로 시작해도 값으로 읽히게 '='로 붙여 넘긴다. 공백뿐인 입력은 넘기지 않는다
+          if [ -n "${INPUT_REMAP_MATCH//[[:space:]]/}" ]; then args+=(--remap-match="$INPUT_REMAP_MATCH"); fi
+          if [ -n "${INPUT_SKIP_RUN//[[:space:]]/}" ]; then args+=(--skip-result previous/mapping.json); fi
           if [ "$INPUT_SYNC_DICTIONARY" = "true" ]; then args+=(--sync-dictionary); fi
           if [ -n "$INPUT_CHARS_PER_MINUTE" ]; then args+=(--chars-per-minute "$INPUT_CHARS_PER_MINUTE"); fi
           if [ "$INPUT_PLAN" = "true" ]; then args+=(--plan); fi
