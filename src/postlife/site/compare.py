@@ -11,7 +11,9 @@ from typing import Any
 
 from .model import Cond, Data, HOME_ORG, Limit, WAITING_STATE, _blank
 
-GROUP_ORDER = ["암보장", "뇌혈관보장", "심장보장", "공통보장"]   # 사전에 없는 대분류는 뒤에 나온 순서대로 붙는다
+# 사전에 없는 대분류는 뒤에 나온 순서대로 붙는다. 뇌심장보장은 뇌혈관과 심장을 한 급부로 함께 보장하는 담보
+# (docs/proposals/표준담보사전_확장안.md 9절 2번)
+GROUP_ORDER = ["암보장", "뇌혈관보장", "심장보장", "뇌심장보장", "공통보장"]
 COMPARE_ROLE = "정밀비교"
 MAIN_ROLE = "주급부"
 
