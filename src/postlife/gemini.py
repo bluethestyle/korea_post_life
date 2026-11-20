@@ -2,7 +2,9 @@
 
 - generate: 추출·분류·해설 (JSON 응답 지정 가능)
 - search: 검색 그라운딩. 본문에 출처 번호를 끼워 넣어 돌려준다.
-- decide: 판정 전용 모델. 선택지별 확률만 돌려준다.
+- decide: 판정 전용 모델. 선택지별 확률만 돌려준다. 응답이 알려 준 실제 입력 토큰은 분당 토큰 창과 input_tokens에 쓴다.
+
+400 이상 응답은 GeminiError가 되고, 오류 본문의 상세(한도 종류, 다시 보낼 시각)는 info에 기록만 한다.
 
 모델별 생성 설정(출력 상한, 사고 수준), 대기 시간, 재시도 규칙은 config.py에 두고 여기서 읽는다.
 config에 없는 모델은 예전과 같은 요청을 보내고 같은 규칙으로 다시 시도한다.
@@ -33,10 +35,160 @@ _USAGE_NAMES = (
 )
 
 
+# 오류 응답에서 고를 값. 한도 종류와 다시 보낼 시각을 알려 주는 값만 고른다(설명, 링크, 프로젝트 번호가 든 값은 고르지 않는다)
+_DETAIL_KEYS = ("reason", "retryDelay")
+_VIOLATION_KEYS = ("quotaId", "quotaMetric", "quotaValue")
+_MAX_ITEMS = 10            # details, violations, quotaDimensions, metadata에서 담을 항목 수의 상한
+_MAX_VALUE = 200           # 값 하나의 글자 수 상한
+_INFO_TEXT_MAX = 160       # GeminiError의 글에 붙이는 요약의 글자 수 상한
+
+
 class GeminiError(RuntimeError):
-    def __init__(self, status: int, message: str):
-        super().__init__(f"Gemini API {status}: {message}")
+    """Gemini 호출 오류. status는 HTTP 상태이고, 응답을 받지 못했거나 HTTP 밖의 오류면 0이다.
+
+    info에는 오류 응답 본문의 error.code, error.status, error.details 요약과 Retry-After 머리글을 담는다(_error_info).
+    기록하려는 값이다. 다시 시도할지, 얼마나 기다릴지, 하루 한도로 볼지는 info를 보지 않고 정한다.
+    글(str)에는 그 요약을 상태 번호 바로 뒤에 짧게 붙이고, 요약이 비면 붙이지 않는다. 글 끝이 아니라 앞에 붙이는 것은
+    기록하는 쪽이 글 앞 200자나 300자만 남기기 때문이다(mapping.run, pipeline.run_block, conditions_run, collect,
+    Recording). 429 문구는 200자를 넘는 일이 많아 끝에 붙이면 기록에서 잘린다. 요약 안에서는 다시 보낼 시각을 quotaId보다
+    앞에 둔다(_info_text).
+    """
+
+    def __init__(self, status: int, message: str, info: dict[str, Any] | None = None):
         self.status = status
+        self.info: dict[str, Any] = dict(info or {})
+        tail = _info_text(self.info, status)
+        super().__init__(f"Gemini API {status}" + (f" [{tail}]" if tail else "") + f": {message}")
+
+
+def _scalar(value: Any) -> Any:
+    """글자나 숫자만 받는다(글자는 앞뒤 공백을 떼고 _MAX_VALUE자까지). 참·거짓, 목록, 사전, 빈 글자는 None."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, str):
+        value = value.strip()[:_MAX_VALUE]
+        return value or None
+    if isinstance(value, (int, float)):
+        return value
+    return None
+
+
+def _picked(source: Any, keys: tuple[str, ...]) -> dict[str, Any]:
+    if not isinstance(source, dict):
+        return {}
+    return {k: v for k in keys if (v := _scalar(source.get(k))) is not None}
+
+
+def _scalars(source: Any, keep: Callable[[str], bool] = lambda k: True) -> dict[str, Any]:
+    """사전에서 이름이 글자이고 값이 글자나 숫자인 항목을 _MAX_ITEMS개까지 고른다."""
+    if not isinstance(source, dict):
+        return {}
+    out = {k: v for k, raw in source.items() if isinstance(k, str) and keep(k) and (v := _scalar(raw)) is not None}
+    return dict(list(out.items())[:_MAX_ITEMS])
+
+
+def _detail(item: Any) -> dict[str, Any]:
+    """error.details의 항목 하나. "@type"의 끝 이름(type)과 reason, retryDelay, violations의 quotaId, quotaMetric,
+    quotaValue, quotaDimensions, metadata 가운데 이름이 quota로 시작하는 값만 담는다."""
+    if not isinstance(item, dict):
+        return {}
+    out: dict[str, Any] = {}
+    kind = _scalar(item.get("@type"))
+    if isinstance(kind, str):
+        out["type"] = kind.replace("/", ".").rsplit(".", 1)[-1]   # "type.googleapis.com/google.rpc.QuotaFailure" → QuotaFailure
+    out.update(_picked(item, _DETAIL_KEYS))
+    metadata = _scalars(item.get("metadata"), lambda k: k.startswith("quota"))   # consumer(프로젝트 번호) 등은 뺀다
+    if metadata:
+        out["metadata"] = metadata
+    violations = []
+    raw = item.get("violations")
+    for v in raw if isinstance(raw, list) else []:
+        picked = _picked(v, _VIOLATION_KEYS)
+        dimensions = _scalars(v.get("quotaDimensions")) if isinstance(v, dict) else {}
+        if dimensions:
+            picked["quotaDimensions"] = dimensions
+        if picked:
+            violations.append(picked)
+    if violations:
+        out["violations"] = violations[:_MAX_ITEMS]
+    return out
+
+
+def _header(resp: Any, name: str) -> Any:
+    """응답 머리글 하나. requests의 머리글은 대소문자를 가리지 않고, 보통 사전이면 이름 그대로와 소문자로 찾는다."""
+    headers = getattr(resp, "headers", None)
+    if headers is None:
+        return None
+    try:
+        value = headers.get(name)
+        return headers.get(name.lower()) if value is None else value
+    except Exception:            # 머리글이 사전 꼴이 아닌 가짜 응답
+        return None
+
+
+def _error_info(payload: Any, resp: Any) -> dict[str, Any]:
+    """오류 응답(payload는 본문을 JSON으로 읽은 값, 읽지 못했으면 None)에서 한도 종류와 다시 보낼 시각을 알려 주는 값만 고른다.
+
+    code, status: error.code, error.status. details: 항목마다 _detail. retry_after: Retry-After 머리글.
+    본문이 JSON이 아니거나 꼴이 달라도 예외를 내지 않고, 고를 값이 없으면 빈 사전이다. 고른 값만 담으므로 API 키와 요청 본문은
+    들어가지 않는다.
+    근거: 판정 API와 generateContent의 429 본문 꼴(다시 보낼 시각 필드, 한도 종류 표시)은 공식 문서에 없다. Interactions API
+    오류 문서에 error.code가 "rate_limit_exceeded"(분당), "quota_exceeded"(하루)로 갈린다는 것만 있고, details의
+    QuotaFailure(quotaId)와 RetryInfo(retryDelay)는 게시판 글의 사례다. 그래서 동작에는 쓰지 않고 기록만 한다.
+    """
+    info: dict[str, Any] = {}
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if isinstance(error, dict):
+        info.update(_picked(error, ("code", "status")))
+        details = error.get("details")
+        picked = [d for d in (_detail(x) for x in details[:_MAX_ITEMS]) if d] if isinstance(details, list) else []
+        if picked:
+            info["details"] = picked
+    retry_after = _scalar(_header(resp, "Retry-After"))
+    if retry_after is not None:
+        info["retry_after"] = retry_after
+    return info
+
+
+def _info_text(info: dict[str, Any], status: int) -> str:
+    """info를 "status=RESOURCE_EXHAUSTED, retryDelay=23s, Retry-After=23, reason=…, quotaId=…" 꼴로 줄인다.
+    code는 HTTP 상태와 다를 때만 적는다.
+
+    같은 값은 한 번만 적고, _INFO_TEXT_MAX자를 넘으면 뒤를 자른다. 다시 보낼 시각(retryDelay, Retry-After)은 짧은 값이라
+    앞에 두고, 이름이 50자 안팎이고 위반 항목 수만큼 늘어나는 quotaId는 맨 뒤에 둔다. 그래야 한도 항목이 여럿인 429에서도
+    잘리는 것은 뒤쪽 quotaId뿐이고 다시 보낼 시각은 글에 남는다.
+    """
+    parts: list[str] = []
+
+    def add(name: str, value: Any) -> None:
+        if value is not None and value != "" and f"{name}={value}" not in parts:
+            parts.append(f"{name}={value}")
+
+    if "code" in info and str(info["code"]) != str(status):
+        add("code", info["code"])
+    add("status", info.get("status"))
+    details = [d for d in info.get("details") or [] if isinstance(d, dict)]
+    for d in details:
+        add("retryDelay", d.get("retryDelay"))
+    add("Retry-After", info.get("retry_after"))
+    for d in details:
+        add("reason", d.get("reason"))
+    for d in details:
+        for v in d.get("violations") or []:
+            if isinstance(v, dict):
+                add("quotaId", v.get("quotaId"))
+    text = ", ".join(parts)
+    return text if len(text) <= _INFO_TEXT_MAX else text[:_INFO_TEXT_MAX - 1] + "…"
+
+
+def input_tokens_report(seen: dict[str, dict[str, int]] | None) -> dict[str, dict[str, Any]]:
+    """Gemini.input_tokens를 결과에 남길 꼴로 바꾼다. 모델마다 글자당 토큰 비율(입력 토큰 합 / 본문 글자 수 합,
+    tokens_per_char)을 더한다. 글자 수 합이 0이면 비율은 None이다."""
+    out: dict[str, dict[str, Any]] = {}
+    for model, s in (seen or {}).items():
+        chars = s.get("chars") or 0
+        out[model] = {**s, "tokens_per_char": round((s.get("tokens") or 0) / chars, 4) if chars else None}
+    return out
 
 
 def usage_text(usage: dict, max_output_tokens: int | None = None) -> str:
@@ -153,10 +305,14 @@ class Gemini:
         self.timeout_retries = {**config.TIMEOUT_RETRIES, **(timeout_retries or {})}  # 응답 없을 때 되풀이. 없으면 1
         self.retry_status = {**config.RETRY_STATUS, **(retry_status or {})}  # 다시 시도할 상태. 없으면 RETRY_STATUS
         self.last_meta: dict[str, Any] = {}  # 마지막 generate 응답의 finishReason과 토큰 사용량
-        # 분당 토큰 한도가 빠듯한 모델: 최근 60초 동안 보낸 입력 토큰(글자 수로 어림)이 이 값을 넘지 않게 기다린다
+        # 분당 토큰 한도가 빠듯한 모델: 최근 60초 동안 보낸 입력 토큰이 이 값을 넘지 않게 기다린다.
+        # 보내기 전에는 글자 수로 어림하고, 판정 응답이 실제 입력 토큰을 알려 주면 그 값으로 바꾼다
         self.tokens_per_minute = {**config.TOKENS_PER_MINUTE, **(tokens_per_minute or {})}
-        self._sent: dict[str, deque] = {}           # 모델별 (보낸 시각, 어림한 토큰 수)
+        self._sent: dict[str, deque] = {}           # 모델별 (보낸 시각, 토큰 수: 어림한 값이나 응답이 알려 준 값)
         self.token_waits: dict[str, float] = {}     # 모델별로 분당 토큰 한도 때문에 기다린 시간(초)의 합
+        # 모델별로 판정 응답이 알려 준 실제 입력 토큰. {"calls": 입력 토큰 수를 읽은 응답 수, "chars": 그 요청 본문의
+        # 글자 수 합, "tokens": 입력 토큰 합}. 다시 시도한 실패 시도는 세지 않는다(calls와 다르다)
+        self.input_tokens: dict[str, dict[str, int]] = {}
         self._clock = clock
         self._last: dict[str, float] = {}
 
@@ -171,11 +327,31 @@ class Gemini:
         self._last[model] = self._clock()
         return recorded
 
+    @staticmethod
+    def _body_chars(body: dict) -> int:
+        """요청 본문의 글자 수. 분당 토큰 창의 어림과 글자당 토큰 비율은 모두 이 글자 수로 센다."""
+        return len(json.dumps(body, ensure_ascii=False))
+
+    def _tokens_per_char(self, model: str) -> float:
+        """다음 요청의 토큰 수를 어림할 글자당 토큰 비율.
+
+        판정 응답의 실제 입력 토큰을 본 모델은 지금까지 모은 비율(입력 토큰 합 / 본문 글자 수 합)을 쓴다. 1보다 크든 작든
+        그대로 따른다(서버가 세는 값이다). 아직 본 응답이 없으면 config.TOKENS_PER_CHAR. 공식 문서에는 영어 기준 토큰 하나가
+        약 4글자라는 것만 있고 한국어 비율은 없어, 실제 응답으로만 알 수 있다.
+        """
+        seen = self.input_tokens.get(model)
+        if seen and seen["chars"] > 0 and seen["tokens"] > 0:
+            return seen["tokens"] / seen["chars"]
+        return config.TOKENS_PER_CHAR
+
     def _hold_for_tokens(self, model: str, body: dict | None) -> bool:
         """분당 토큰 한도가 정해진 모델이면, 최근 60초 동안 보낸 토큰에 이번 요청을 더해 한도를 넘을 때 넘지 않게 될 때까지 기다린다.
 
-        토큰 수는 미리 알 수 없어 요청 본문의 글자 수로 어림한다(config.TOKENS_PER_CHAR). 호출 간격만 맞추면 호출 수는 한도에
-        한참 못 미쳐도 긴 요청이 이어질 때 분당 토큰이 먼저 찬다(2026-11-19 판정 모델: 분당 14회에 79.98K 토큰, 한도 5만).
+        토큰 수는 미리 알 수 없어 요청 본문의 글자 수에 글자당 토큰 비율(_tokens_per_char)을 곱해 어림하고, 한도보다 크면 한도로
+        자른다. 판정 응답이 실제 입력 토큰을 알려 주면 decide가 창에 적은 이 어림값을 실제 값으로 바꾼다(_note_input_tokens).
+        호출 간격만 맞추면 호출 수는 한도에 한참 못 미쳐도 긴 요청이 이어질 때 분당 토큰이 먼저 찬다(2026-11-19 판정 모델:
+        분당 14회에 79.98K 토큰, 한도 5만). 공식 문서는 분당 토큰 한도가 입력 토큰을 센다고만 하고, 60초 창이 움직이는 창인지
+        고정 구간인지는 적지 않았다. 여기서는 움직이는 창으로 본다.
         기다린 뒤에는 그만큼 시간이 지난 것으로 보고 다시 재지 않는다(기다리기를 흉내만 내는 시험에서도 끝나게).
         여기서 적는 시각은 보내기 직전 시각이고, 요청이 끝나면 _finish_tokens가 끝난 시각으로 늦춘다.
         창에 이번 요청을 적었으면 참을 돌려준다.
@@ -183,7 +359,7 @@ class Gemini:
         limit = self.tokens_per_minute.get(model)
         if not limit or body is None:
             return False
-        need = min(limit, int(len(json.dumps(body, ensure_ascii=False)) * config.TOKENS_PER_CHAR))
+        need = min(limit, int(self._body_chars(body) * self._tokens_per_char(model)))
         sent = self._sent.setdefault(model, deque())
         now = self._clock()
         while sent and now - sent[0][0] >= 60:
@@ -210,6 +386,28 @@ class Gemini:
         if sent:
             at, n = sent[-1]
             sent[-1] = (max(at, self._clock()), n)
+
+    def _note_input_tokens(self, model: str, body: dict, out: Any) -> None:
+        """판정 응답의 usage.total_input_tokens를 읽어 모으고, 분당 토큰 창에 적은 방금 그 요청의 어림값을 실제 값으로 바꾼다.
+
+        근거: 공식 문서(decisions-api)의 판정 응답에는 최상위 usage 객체가 있고 total_input_tokens가 입력 토큰 수다(출력 토큰은
+        늘 0이다). 분당 토큰 한도는 입력 토큰을 센다(rate-limits). 값이 양의 정수가 아니거나 usage 꼴이 다르면 아무것도 하지 않는다.
+        창의 값은 한도보다 크면 한도로 자른다(어림값과 같다). 호출은 차례로 하나씩 일어난다고 보고(_finish_tokens와 같은 가정)
+        창의 마지막 항목을 방금 답을 준 시도로 본다. 다시 시도한 실패 시도의 어림값은 그대로 둔다.
+        """
+        usage = out.get("usage") if isinstance(out, dict) else None
+        tokens = usage.get("total_input_tokens") if isinstance(usage, dict) else None
+        if not isinstance(tokens, int) or isinstance(tokens, bool) or tokens <= 0:
+            return
+        seen = self.input_tokens.setdefault(model, {"calls": 0, "chars": 0, "tokens": 0})
+        seen["calls"] += 1
+        seen["chars"] += self._body_chars(body)
+        seen["tokens"] += tokens
+        limit = self.tokens_per_minute.get(model)
+        sent = self._sent.get(model)
+        if limit and sent:
+            at, _ = sent[-1]
+            sent[-1] = (at, min(limit, tokens))
 
     def _waits(self, model: str) -> list[float]:
         """다시 시도하기 전에 기다릴 시간(초) 목록. 목록 길이가 다시 시도하는 횟수다."""
@@ -249,15 +447,27 @@ class Gemini:
                     self._finish_tokens(model)
             if resp.status_code < 400:
                 return resp.json()
-            try:
-                message = resp.json().get("error", {}).get("message", "")
-            except Exception:
-                message = resp.text
-            err = GeminiError(resp.status_code, message[:400])
+            err = self._http_error(resp)
             if resp.status_code not in retry_status or attempt >= len(waits):
                 raise err
             self._sleep(waits[attempt])
             attempt += 1
+
+    @staticmethod
+    def _http_error(resp: Any) -> GeminiError:
+        """400 이상 응답을 GeminiError로 바꾼다. 글에는 error.message 앞 400자를 넣고, 본문이 JSON이 아니거나 꼴이 다르면
+        본문 글(resp.text)로 떨어진다. message가 글이 아니어도(None 등) 본문 글로 떨어진다. 오류 상세는 info에 담는다(_error_info)."""
+        try:
+            payload = resp.json()
+        except Exception:
+            payload = None
+        try:
+            message = payload.get("error", {}).get("message", "")
+        except Exception:
+            message = resp.text
+        if not isinstance(message, str):
+            message = resp.text
+        return GeminiError(resp.status_code, message[:400], _error_info(payload, resp))
 
     @staticmethod
     def _meta(body: dict) -> dict[str, Any]:
@@ -331,9 +541,14 @@ class Gemini:
         return SearchResult(text=text, sources=sources, queries=meta.get("webSearchQueries") or [])
 
     def decide(self, model: str, input_text: str, questions: dict[str, dict]) -> dict[str, Answer]:
-        """questions: {문항키: {"type": "noul"|"choice"|"score", "instructions": ..., "criteria": {...}}}"""
+        """questions: {문항키: {"type": "noul"|"choice"|"score", "instructions": ..., "criteria": {...}}}
+
+        응답의 usage.total_input_tokens가 양의 정수면 input_tokens에 모으고, 분당 토큰 창의 어림값을 그 값으로 바꾼다
+        (_note_input_tokens). 없거나 꼴이 다르면 예전처럼 어림값을 그대로 둔다.
+        """
         body = {"model": model, "input": input_text, "questions": questions}
         out = self._call(f"{BASE}/decisions", body, model)
+        self._note_input_tokens(model, body, out)
         answers: dict[str, Answer] = {}
         for key, a in (out.get("answers") or {}).items():
             kind = a.get("type") or questions.get(key, {}).get("type")

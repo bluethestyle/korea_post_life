@@ -237,7 +237,10 @@ def main(argv: list[str] | None = None) -> int:
                     tokens_per_minute={**config.TOKENS_PER_MINUTE, config.MODEL_DECIDE: per_minute_tokens})
     result = mapping.run(gemini, data["sys_상품종형"], data["sys_특약"], data["sys_급부"], data["hum_표준담보사전"],
                          existing, datetime.now(KST), mapping.thresholds_from(data["hum_기준값"]), remap=rule, skip=skip)
-    outcome = f"매핑 결과: {result.stats}\n모델별 호출 수: {gemini.calls}\n"
+    # 판정 응답이 알려 준 실제 입력 토큰 합과 글자당 토큰 비율. 이 비율로 --chars-per-minute(글자 수 기준)를 다시 정한다
+    seen = gemini_api.input_tokens_report(getattr(gemini, "input_tokens", None)).get(config.MODEL_DECIDE)
+    outcome = (f"매핑 결과: {result.stats}\n모델별 호출 수: {gemini.calls}\n"
+               f"판정 모델 입력 토큰: {json.dumps(seen, ensure_ascii=False) if seen else '응답에서 읽지 못함'}\n")
     if result.waiting:
         outcome += "\n담당자 검토 대기\n" + "\n".join(result.waiting) + "\n"
     print(outcome)

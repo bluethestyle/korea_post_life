@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from postlife import config  # noqa: E402
 from postlife.extract import job  # noqa: E402
-from postlife.gemini import Gemini  # noqa: E402
+from postlife.gemini import Gemini, input_tokens_report  # noqa: E402
 from postlife.recording import Recording  # noqa: E402
 from postlife.sheets_io import MemoryBackend, RestBackend, SheetStore  # noqa: E402
 from postlife.snapshot import KST  # noqa: E402
@@ -62,7 +62,9 @@ def main() -> int:
         args.result.parent.mkdir(parents=True, exist_ok=True)
         args.result.write_text(json.dumps({"rows": report.rows, "logs": report.logs, "errors": report.errors,
                                            "rerun": getattr(report, "rerun", None), "notes": report.notes,
-                                           "calls": gemini.calls, "token_waits": getattr(gemini, "token_waits", {})},
+                                           "calls": gemini.calls, "token_waits": getattr(gemini, "token_waits", {}),
+                                           # 판정 응답이 알려 준 실제 입력 토큰 합과 글자당 토큰 비율(모델별)
+                                           "input_tokens": input_tokens_report(getattr(gemini, "input_tokens", None))},
                                           ensure_ascii=False, indent=1), encoding="utf-8")
         gemini.dump(args.result.with_name("model_outputs.jsonl"))
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
