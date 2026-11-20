@@ -31,12 +31,13 @@
 html[data-skin="day"]{
   color-scheme:light;
   --bg:#E9EEF5; --surf:#FFFFFF; --surf-2:#F3F6FA; --line:#C9D3E1; --line-2:#8A9BB4; --track:#E1E7F0;
-  --text:#0B1324; --text-2:#33445E; --text-3:#5A6B85; --num:#0B1324;
-  --bar:#0B1528; --bar-line:#24344F; --bar-line-2:#3A4D6E; --bar-text:#F1F5FB; --bar-dim:#A9B6CA; --bar-off:#7D8BA3; --bar-acc:#6EA0FF;
+  --text:#0B1324; --text-2:#33445E; --text-3:#52627C; --num:#0B1324;
+  --bar:#0B1528; --bar-line:#24344F; --bar-line-2:#3A4D6E; --bar-text:#F1F5FB; --bar-dim:#A9B6CA; --bar-off:#98A7BF; --bar-acc:#6EA0FF;
   --frame:#0B1528; --frame-line:#3A4D6E; --frame-text:#F1F5FB; --frame-dim:#A9B6CA; --frame-acc:#6EA0FF;
-  --acc:#1D4ED8; --acc-on:#FFFFFF; --acc-soft:rgba(29,78,216,.08); --acc-tint:#EDF1FC; --acc-glow:rgba(29,78,216,.30);
-  --good:#0F766E; --bad:#BE123C; --gap:#B45309; --hold:#5A6B85;
+  --acc:#1D4ED8; --acc-ink:#1D4ED8; --acc-on:#FFFFFF; --acc-soft:rgba(29,78,216,.08); --acc-tint:#EDF1FC; --acc-glow:rgba(29,78,216,.30);
+  --good:#0F766E; --bad:#BE123C; --gap:#B45309; --hold:#52627C;
   --bar-o0:#0B1324; --bar-ox:#8A9BB4;
+  --g-line:#7B8DA9; --g-node:#33445E;
   --glass:rgba(244,247,251,.80); --glass-line:rgba(138,155,180,.55);
   --grid:rgba(11,21,40,.035); --shadow:rgba(11,21,40,.10);
 }
@@ -44,12 +45,13 @@ html[data-skin="day"]{
 html[data-skin="night"]{
   color-scheme:dark;
   --bg:#0B0F14; --surf:#0A1228; --surf-2:#0F1A33; --line:#22335A; --line-2:#3D5488; --track:#16244A;
-  --text:#E6ECF5; --text-2:#B9C5D8; --text-3:#8D9BB4; --num:#02C9FF;
-  --bar:#060C22; --bar-line:#1A2650; --bar-line-2:#2C3C70; --bar-text:#E6ECF5; --bar-dim:#9DAACB; --bar-off:#76839F; --bar-acc:#02C9FF;
-  --frame:#032DBF; --frame-line:#3D63E6; --frame-text:#FFFFFF; --frame-dim:#C5D3FF; --frame-acc:#02C9FF;
-  --acc:#0E67FF; --acc-on:#FFFFFF; --acc-soft:rgba(14,103,255,.16); --acc-tint:#0B204A; --acc-glow:rgba(14,103,255,.45);
+  --text:#E6ECF5; --text-2:#B9C5D8; --text-3:#8D9BB4; --num:#E6ECF5;
+  --bar:#060C22; --bar-line:#1A2650; --bar-line-2:#2C3C70; --bar-text:#E6ECF5; --bar-dim:#9DAACB; --bar-off:#98A6C6; --bar-acc:#6EA0FF;
+  --frame:#032DBF; --frame-line:#3D63E6; --frame-text:#FFFFFF; --frame-dim:#C5D3FF; --frame-acc:#6EA0FF;
+  --acc:#0B5FEA; --acc-ink:#8DB4FF; --acc-on:#FFFFFF; --acc-soft:rgba(11,95,234,.16); --acc-tint:#0B204A; --acc-glow:rgba(11,95,234,.45);
   --good:#2CC2A6; --bad:#FF6B88; --gap:#DD9409; --hold:#8D9BB4;
-  --bar-o0:#02C9FF; --bar-ox:#4F6797;
+  --bar-o0:#E6ECF5; --bar-ox:#4F6797;
+  --g-line:#5775B8; --g-node:#B9C5D8;
   --glass:rgba(9,15,34,.84); --glass-line:rgba(61,84,136,.7);
   --grid:rgba(110,140,220,.05); --shadow:rgba(0,0,0,.4);
 }
@@ -66,6 +68,9 @@ h1,h2,h3,h4,p,dl,dd{margin:0}
 .idx{font-size:12px;letter-spacing:.08em;color:var(--text-3)}
 code{font-size:13px;color:var(--text-2)}
 kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 4px;font-size:12px;line-height:1;border:1px solid currentColor;opacity:.8}
+.btn.pri kbd{opacity:1}
+/* 글꼴에 없는 기호 대신 그린 꺾쇠 */
+.ar{display:inline-block;flex:none;width:7px;height:7px;margin:0 2px 0 1px;border-top:2px solid currentColor;border-right:2px solid currentColor;transform:rotate(45deg)}
 .nm{font-family:var(--f-num);font-weight:600;font-variant-numeric:tabular-nums}
 
 /* 화면 네 모서리의 작은 괄호만 */
@@ -92,7 +97,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .tab[aria-current="page"]::before{border-color:var(--bar-line-2);background:rgba(110,160,255,.12)}
 .tab.off{color:var(--bar-off);cursor:not-allowed}
 .tab.off:hover::before{border-color:transparent;background:none}
-.tab small{font-size:12px;font-weight:400;color:var(--bar-off)}
+.tab small{padding:0 4px;font-size:13px;font-weight:400;line-height:1.35;color:var(--bar-off);border:1px dashed var(--bar-line-2)}
 .tab:focus-visible{outline-offset:-6px}
 .tab-mk{position:absolute;left:0;bottom:-1px;height:3px;width:0;background:var(--bar-acc);transform:translateX(var(--x,0px)) skewX(-22deg);transition:transform .22s var(--ease),width .22s var(--ease)}
 .top-r{display:flex;align-items:center;gap:14px;margin-left:auto;padding-left:16px;min-width:0}
@@ -118,8 +123,8 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .ck2{display:flex;flex-direction:column;font-size:13px;line-height:1.3;color:var(--text-2);white-space:nowrap}
 .ck2 b{font-weight:600}
 .step{display:flex;align-items:stretch;height:36px;border:1px solid var(--line-2);background:var(--surf)}
-.step button{width:32px;border:0;background:none;font-size:18px;line-height:1;color:var(--text-2);cursor:pointer}
-.step button:hover{color:var(--acc);background:var(--acc-soft)}
+.step button{display:flex;align-items:center;justify-content:center;width:32px;border:0;background:none;line-height:1;color:var(--text-2);cursor:pointer}
+.step button:hover{color:var(--acc-ink);background:var(--acc-soft)}
 .step input{width:42px;border:0;border-left:1px solid var(--line);background:none;text-align:right;font:600 20px/1 var(--f-num);color:var(--text);padding:0 2px;outline-offset:-2px}
 .step .u{display:flex;align-items:center;padding:0 8px 0 4px;font-size:13px;color:var(--text-2);border-right:1px solid var(--line)}
 .scrub{position:relative;width:140px;height:36px;cursor:ew-resize;touch-action:none;flex:none}
@@ -133,8 +138,9 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .segc{position:relative;display:flex;height:36px;border:1px solid var(--line-2);background:var(--surf);flex:none}
 .segc .sc{position:relative;z-index:1;min-width:44px;padding:0 12px;border:0;border-right:1px solid var(--line);background:none;font-size:14px;font-weight:600;color:var(--text-2);cursor:pointer;white-space:nowrap;transition:color .15s}
 .segc .sc:last-of-type{border-right:0}
-.segc .sc:hover{color:var(--acc)}
+.segc .sc:hover{color:var(--acc-ink)}
 .segc .sc[aria-checked="true"],.segc .sc.on{color:var(--acc-on)}
+.segc .sc[aria-checked="true"] .ix,.segc .sc.on .ix{opacity:1}
 .segc .sc:focus-visible{outline-offset:-4px;outline-color:var(--acc-on)}
 .seg-mk{position:absolute;z-index:0;top:-1px;bottom:-1px;left:0;width:0;background:var(--acc);transition:transform .22s var(--ease),width .22s var(--ease)}
 .sc.two{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;padding:0 12px;min-width:58px}
@@ -176,7 +182,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .btn{position:relative;isolation:isolate;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:0;background:var(--b-line,var(--line-2));color:var(--b-text,var(--text));font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;
   clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%)}
 .btn::before{content:"";position:absolute;inset:1px;z-index:-1;background:var(--b-fill,var(--surf));clip-path:polygon(0 0,calc(100% - 9.4px) 0,100% 9.4px,100% 100%,0 100%);transition:background .15s}
-.btn:hover{--b-line:var(--acc);--b-text:var(--acc)}
+.btn:hover{--b-line:var(--acc);--b-text:var(--acc-ink)}
 .btn:hover::before{background:var(--acc-tint)}
 .btn.pri{--b-line:var(--acc);--b-fill:var(--acc);--b-text:var(--acc-on)}
 .btn.pri:hover{--b-text:var(--acc-on)}
@@ -187,7 +193,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .btn.pri:focus-visible::after{border-color:var(--acc-on)}
 .btn.sm{height:32px;padding:0 12px;font-size:14px}
 .btn.xs{height:28px;padding:0 10px;font-size:13px}
-.btn .ar{font-size:16px;line-height:1}
+.btn .ar{width:7px;height:7px}
 
 /* 판정 표지: 기호와 글자를 함께 */
 .vc{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap;color:var(--c,var(--text-2))}
@@ -204,7 +210,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .brief{display:grid;gap:16px}
 .hero-b{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px 30px;align-items:center;padding:16px 18px 18px}
 .hero-l h1{font-size:28px;font-weight:600;line-height:1.3}
-.lead{margin-top:6px;font-size:15px;color:var(--text)}
+.lead{margin-top:6px;font-size:17px;line-height:1.5;color:var(--text)}
 .lead b{font-weight:600}
 .gx{margin-top:4px;font-size:13px;color:var(--text-3)}
 .gx .idx{margin-right:8px;color:var(--text-2)}
@@ -235,8 +241,8 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .it-t{min-width:0}
 .it-n{display:block;font-size:15px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .it-s{display:block;margin-top:2px;font-size:13px;line-height:1.4;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.it-ar{font-size:18px;line-height:1;color:var(--acc);opacity:0;transition:opacity .15s}
-.it:hover .it-ar,.it:focus-visible .it-ar{opacity:1}
+.it-ar{justify-self:center;width:8px;height:8px;border-top:2px solid var(--text-2);border-right:2px solid var(--text-2);transform:rotate(45deg);transition:transform .15s var(--ease),border-color .15s}
+.it:hover .it-ar,.it:focus-visible .it-ar{border-color:var(--acc-ink);transform:translateX(3px) rotate(45deg)}
 .v-gap{--vcol:var(--gap)} .v-good{--vcol:var(--good)} .v-bad{--vcol:var(--bad)} .v-mixed{--vcol:var(--text)} .v-hold,.v-same,.v-gapc{--vcol:var(--line-2)}
 .items .none{padding:14px 4px;font-size:14px;color:var(--text-3)}
 .more{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:12px 14px 14px}
@@ -245,14 +251,14 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 /* 브리핑 3줄: 경쟁 지형도 */
 .lgd-r{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-bottom:10px;font-size:13px;color:var(--text-2)}
 .lgd-r span{display:inline-flex;align-items:center;gap:6px}
-.lgd-r .base{font-size:12px;padding:0 5px;border:1px solid var(--line-2);color:var(--text-2)}
+.lgd-r .base{font-size:13px;padding:0 5px;border:1px solid var(--line-2);color:var(--text-2)}
 .land{display:grid;grid-template-columns:64px repeat(5,minmax(0,1fr));gap:6px}
 .land .lh{padding:0 2px 2px;font-size:13px;font-weight:600;color:var(--text-2)}
 .land .lr{align-self:center;font-size:14px;font-weight:600}
 .lc{display:grid;gap:4px;min-width:0;padding:8px 10px 9px;border:1px solid var(--line);background:var(--surf-2);text-align:left;cursor:pointer;color:var(--text);transition:border-color .15s}
 .lc:hover{border-color:var(--acc)}
 .lc:focus-visible{outline-offset:1px}
-.lc-n{font-size:12px;color:var(--text-3);white-space:nowrap}
+.lc-n{font-size:13px;color:var(--text-3);white-space:nowrap}
 .lc-n b{font:600 14px/1 var(--f-num);color:var(--text)}
 .lc-r{display:grid;grid-template-columns:12px minmax(0,1fr) 16px;align-items:center;gap:6px}
 .lc-r .gl{color:var(--text-2)}
@@ -269,7 +275,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .lu:hover{background:var(--surf-2)}
 .lu:focus-visible{outline-offset:-3px}
 .lu-h{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
-.lu-h .base{font-size:12px;font-weight:400;padding:0 5px;border:1px solid var(--line-2);color:var(--text-2)}
+.lu-h .base{font-size:13px;font-weight:400;padding:0 5px;border:1px solid var(--line-2);color:var(--text-2)}
 .lu-p{font-size:13px;color:var(--text-2)}
 .lu-m{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--text-3)}
 .lu-m .st{font-weight:600;color:var(--c)}
@@ -283,7 +289,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .tgl{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px;border:1px solid var(--line-2);background:var(--surf);font-size:14px;font-weight:600;color:var(--text-2);cursor:pointer}
 .tgl i{width:26px;height:14px;border:1px solid var(--line-2);position:relative;background:var(--track)}
 .tgl i::after{content:"";position:absolute;left:1px;top:1px;width:10px;height:10px;background:var(--line-2);transition:transform .18s var(--ease)}
-.tgl[aria-pressed="true"]{color:var(--acc);border-color:var(--acc)}
+.tgl[aria-pressed="true"]{color:var(--acc-ink);border-color:var(--acc)}
 .tgl[aria-pressed="true"] i{border-color:var(--acc)}
 .tgl[aria-pressed="true"] i::after{transform:translateX(12px);background:var(--acc)}
 .inv-l{position:relative;max-height:calc(100vh - var(--topH) - var(--condH) - 190px);min-height:240px;overflow:auto;padding:0 8px 6px 10px}
@@ -298,7 +304,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .gls{display:inline-flex;gap:4px;color:var(--text-2)}
 .rn{font-size:14px;font-weight:600;line-height:1.35}
 .pin{flex:none;width:34px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center}
-.pin:hover{color:var(--acc)} .pin.on{color:var(--acc)}
+.pin:hover{color:var(--acc-ink)} .pin.on{color:var(--acc-ink)}
 .inv-lg{display:flex;flex-wrap:wrap;gap:4px 14px;padding:10px 14px 12px;border-top:1px solid var(--line);font-size:13px;color:var(--text-2)}
 .inv-lg span{display:inline-flex;align-items:center;gap:5px}
 .sheet-b{padding:16px 20px 18px}
@@ -307,7 +313,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .sh-l{margin-top:4px;font-size:15px;color:var(--text)}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .tag{display:inline-flex;align-items:center;height:24px;padding:0 8px;font-size:13px;color:var(--text-2);background:var(--surf-2);border:1px solid var(--line)}
-.tag.pinx{color:var(--acc);border-color:var(--acc)}
+.tag.pinx{color:var(--acc-ink);border-color:var(--acc)}
 .sh-o{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:14px;border:1px solid var(--line);background:var(--surf-2)}
 .sh-o>div{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-right:1px solid var(--line);min-width:0}
 .sh-o>div:last-child{border-right:0}
@@ -324,7 +330,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .srow .sv .nm{font-size:16px}
 .srow.none .sv{color:var(--gap);font-weight:600}
 .srow .sb,.srow .sp{grid-column:2/-1;margin-top:-4px;padding-bottom:4px;font-size:13px;color:var(--text-3);text-align:right}
-.srow .sp{color:var(--acc)}
+.srow .sp{color:var(--acc-ink)}
 .mb{position:relative;display:block;height:8px;background:var(--track)}
 .mb i{position:absolute;inset:0;background:var(--bar-ox);transform-origin:left;transform:scaleX(var(--v))}
 .mb.o0 i{background:var(--bar-o0)}
@@ -334,7 +340,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .mo i{height:calc(var(--v) * 100%);min-height:1px;background:var(--bar-ox)}
 .mo.o0 i{background:var(--bar-o0)}
 .mo i.z{background:none;border-bottom:1px dashed var(--line-2)}
-.mo-t{display:grid;grid-template-columns:104px minmax(48px,1fr) minmax(96px,auto) 62px;column-gap:14px;font-size:12px;color:var(--text-3)}
+.mo-t{display:grid;grid-template-columns:104px minmax(48px,1fr) minmax(96px,auto) 62px;column-gap:14px;font-size:13px;color:var(--text-3)}
 .mo-t span{grid-column:2;display:flex;justify-content:space-between}
 
 /* 오른쪽 패널: 닫혀 있다가 밀려 들어온다 */
@@ -351,18 +357,23 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .xbtn{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--frame-line);background:transparent;color:var(--frame-text);font-size:13px;cursor:pointer}
 .xbtn:hover{border-color:var(--frame-acc)}
 .handle{display:none}
-.side-b{flex:1;min-height:0;overflow:auto;padding:16px 18px 28px;background:var(--surf);
+.side-b{flex:1;min-height:0;overflow:auto;padding:14px 18px 28px;background:var(--surf);
   clip-path:polygon(0 0,100% 0,100% calc(100% - 15.4px),calc(100% - 15.4px) 100%,0 100%)}
+.sd-hd{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
 .sd-n{font-size:22px;font-weight:600;line-height:1.3}
-.sd-v{margin-top:6px;font-size:15px;line-height:1.5}
+.sd-m{font-size:13px;color:var(--text-3)}
+.sd-v{margin-top:4px;font-size:15px;line-height:1.5}
 .sd-v .vc{margin-right:6px;font-size:14px}
 .sd-sec{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.sd-sec.first{margin-top:10px;padding-top:0;border-top:0}
 .sd-sh{display:flex;align-items:center;gap:10px;margin-bottom:8px;min-height:32px}
 .sd-sh h4{font-size:15px;font-weight:600}
 .sd-sh .hint{font-size:13px;color:var(--text-3)}
 .sd-sh .r{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600}
 .sd-sh .segc{margin-left:auto;height:30px}
 .sd-sh .segc .sc{font-size:13px;padding:0 10px}
+.sd-tools{margin-left:auto;display:flex;align-items:center;gap:8px}
+.sd-tools .segc{margin-left:0}
 .cm-g{display:grid;grid-template-columns:36px 86px minmax(36px,1fr) auto 24px;align-items:center;column-gap:10px;row-gap:2px;padding:6px 0;border-bottom:1px solid var(--line)}
 .cm-g:last-child{border-bottom:0}
 .cm-k{grid-row:span 3;align-self:start;padding-top:5px;font-size:13px;font-weight:600;color:var(--text-2)}
@@ -374,11 +385,15 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .cm-g .mo{height:16px}
 .gwrap{position:relative;min-height:120px}
 .gsvg{display:block;overflow:visible;max-width:100%}
-.lgd-t{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:6px}
-.lgd-t .hint{font-size:13px;color:var(--text-3)}
-.lgd-b{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;padding:10px 12px;border:1px solid var(--line);background:var(--surf-2);font-size:13px;color:var(--text-2)}
-.lgd-b span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.g-hint{margin-top:6px;font-size:13px;color:var(--text-3)}
+.lgd-b{display:grid;gap:4px;margin:0 0 10px;padding:7px 12px;border:1px solid var(--line);background:var(--surf-2);font-size:13px;line-height:1.4;color:var(--text-2)}
+.lg-r{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
+.lg-r .lg-k{min-width:30px}
+.lgd-b .lg-b{width:18px;height:18px}
+.lg-r>span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.lg-r .lg-k{font-weight:600;color:var(--text)}
 .lgd-b svg{overflow:visible}
+.lg-b{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid var(--g-node);background:var(--surf);font-size:13px;font-weight:600;line-height:1;color:var(--text)}
 .lock{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--surf-2)}
 .lk-doc{font-size:15px;font-weight:600}
 .lk-p{font:600 30px/1 var(--f-num);color:var(--num)}
@@ -405,43 +420,50 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .bchip:hover,.bchip.sel{border-color:var(--acc)}
 .bchip .b1{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
 .bchip .b2{grid-column:1;display:flex;flex-wrap:wrap;gap:2px 12px;font-size:13px;color:var(--text-2)}
-.bchip .pg{grid-column:2;grid-row:1/3;align-self:center;font-size:12px;color:var(--text-3);text-align:right}
+.bchip .pg{grid-column:2;grid-row:1/3;align-self:center;font-size:13px;color:var(--text-3);text-align:right}
 .empty{padding:24px 6px;color:var(--text-3)}
 
-/* 관계 그림 */
-.gsvg .ring-g{fill:none;stroke:var(--line);stroke-dasharray:2 5}
-.gsvg .ring-o{fill:none;stroke:var(--line)}
+/* 관계 그림: 회사마다 가로 한 줄, 이름은 상자 안 */
+.gsvg .lane-sep{stroke:var(--line);stroke-dasharray:2 4}
+.gsvg .nb{transform-box:fill-box;transform-origin:center}
 .n{cursor:pointer;outline:none}
-.n .sh{fill:var(--surf);stroke:var(--text-2);stroke-width:1.5;transition:stroke .15s}
-.n.k-std .sh{fill:var(--frame);stroke:var(--frame)}
-.n.k-std .gy{fill:var(--frame-text)}
-.n.k-var .sh{fill:var(--surf-2);stroke:var(--text)}
-.n.k-doc .sh{fill:var(--surf-2);stroke:var(--line-2)}
-.n.k-more .sh{stroke-dasharray:3 2}
-.n .ring{fill:none;stroke:var(--text-2);stroke-width:1;stroke-dasharray:3 3}
-.n.absent .sh{fill:url(#hp);stroke:var(--gap)}
-.n.pend .sh{stroke-dasharray:3 2}
+.n .sh{fill:var(--surf);stroke:var(--g-line);stroke-width:1.2;transition:stroke .15s}
+.n.k-ben .sh{stroke:var(--g-node)}
+.n.rep .sh{stroke:var(--text);stroke-width:2}
+.n.pend .sh,.n.k-more .sh{stroke-dasharray:4 3}
+.n.k-std .sh{fill:var(--frame);stroke:var(--frame-acc);stroke-width:1.5}
+.n.k-var .sh{fill:transparent;stroke:transparent}
+.n .bd{fill:var(--surf-2);stroke:var(--g-node);stroke-width:1.2}
+.n.k-std .bd{fill:none;stroke:var(--frame-text)}
+.gy{font:600 13px/1 var(--f-body);text-anchor:middle;dominant-baseline:central;fill:var(--text);pointer-events:none}
+.nl{font:600 13px var(--f-body);fill:var(--text);pointer-events:none}
+.nl.hd{font-size:14px}
+.nm2{font:400 13px var(--f-body);fill:var(--text-2);pointer-events:none}
+.n.k-std .gy,.n.k-std .nl{fill:var(--frame-text)}
+.n.k-std .nm2{fill:var(--frame-dim)}
+.n .vs{font:400 13px var(--f-body);fill:var(--text-3);pointer-events:none}
+.n .nst{font:600 13px var(--f-body);fill:var(--gap);pointer-events:none}
+.n .bt{fill:none;stroke:var(--line-2)}
+.n .absb{fill:var(--surf-2);stroke:var(--gap);stroke-dasharray:3 2}
+.n .absh{fill:url(#hp)}
+.n .dcb{fill:var(--surf-2);stroke:var(--g-line)}
 .n:hover .sh,.n:focus-visible .sh{stroke:var(--acc);stroke-width:2}
-.n.sel .sh{stroke:var(--acc);stroke-width:2.5;filter:drop-shadow(0 0 5px var(--acc-glow))}
-.gy{font:600 12px/1 var(--f-body);text-anchor:middle;dominant-baseline:central;fill:var(--text);pointer-events:none}
-.nl{font:600 13px var(--f-body);fill:var(--text);paint-order:stroke;stroke:var(--surf);stroke-width:4px;stroke-linejoin:round;pointer-events:none;transition:opacity .15s}
-.nl.k-var{font-size:14px}
+.n.sel .sh{stroke:var(--acc);stroke-width:2.5;filter:drop-shadow(0 0 4px var(--acc-glow))}
 .e{cursor:pointer;outline:none}
 .e .hit{fill:none;stroke:transparent;stroke-width:14}
-.e .ln{fill:none;stroke:var(--line-2);stroke-width:1.4;transition:stroke .15s}
-.e.k-map .ln{stroke:var(--text-2)}
-.e.k-src .ln{stroke-dasharray:2 3}
+.e .ln{fill:none;stroke:var(--g-line);stroke-width:1.4;transition:stroke .15s}
+.e.k-map .ln{stroke:var(--g-node);stroke-width:1.2}
 .e.k-cmp .ln{stroke-width:2}
-.e.good .ln{stroke:var(--good)} .e.bad .ln{stroke:var(--bad)} .e.mixed .ln,.e.same .ln{stroke:var(--text)}
-.e.hold .ln{stroke:var(--hold);stroke-dasharray:2 3} .e.gap .ln,.e.gapc .ln{stroke:var(--gap)}
+.e.good{--c:var(--good)} .e.bad{--c:var(--bad)} .e.mixed,.e.same{--c:var(--text)} .e.hold{--c:var(--hold)} .e.gap,.e.gapc{--c:var(--gap)}
+.e.k-cmp .ln{stroke:var(--c,var(--text))}
+.e.hold .ln{stroke-dasharray:2 3}
 .e.dash .ln{stroke-dasharray:5 4}
-.el{font:13px var(--f-body);fill:var(--text-2);paint-order:stroke;stroke:var(--surf);stroke-width:4px;stroke-linejoin:round;pointer-events:none;transition:opacity .15s}
-.e.k-cmp .el{font-weight:600;fill:var(--text)}
-.e:not(.show) .el{opacity:0}
-.cull{opacity:0}
-.e:hover .el,.e:focus-visible .el,.e.on .el,.e.hot .el{opacity:1}
-.n:hover .nl,.n:focus-visible .nl,.n.sel .nl{opacity:1}
-.e.hot .ln,.e.on .ln,.e:hover .ln{stroke:var(--acc);stroke-width:2.2}
+.e .tg{fill:var(--surf-2);stroke:var(--line);transition:stroke .15s}
+.e .tgs{fill:var(--c,var(--text))}
+.e .el{font:400 13px var(--f-body);fill:var(--text);pointer-events:none}
+.e .el .vw{font-weight:600;fill:var(--c,var(--text))}
+.e.hot .ln,.e.on .ln,.e:hover .ln,.e:focus-visible .ln{stroke:var(--acc);stroke-width:2.2}
+.e.on .tg,.e:hover .tg,.e:focus-visible .tg{stroke:var(--acc)}
 .gsvg.iso .n:not(.keep),.gsvg.iso .e:not(.keep){opacity:.22}
 .sigd{fill:var(--acc)}
 
@@ -511,7 +533,7 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
   .big{font-size:44px}
   .hero-l h1{font-size:26px}
   .land{grid-template-columns:40px repeat(5,minmax(0,1fr));gap:4px}
-  .land .lh{font-size:12px;padding:0}
+  .land .lh{font-size:13px;padding:0}
   .land .lr{font-size:13px}
   .lc{padding:5px 4px 6px;gap:3px}
   .lc-n{font-size:0}
@@ -546,7 +568,7 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
   .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;height:60px;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--bar-line)}
   .tab{flex-direction:column;justify-content:center;gap:0;padding:0 2px;font-size:14px;line-height:1.25}
   .tab::before{inset:8px 6px}
-  .tab small{font-size:11px}
+  .tab small{font-size:13px;padding:0 3px}
   .tab-mk{bottom:auto;top:0}
   .top-r{gap:8px;padding-left:8px}
   .rd{display:none}
@@ -555,7 +577,7 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
   .cond{position:sticky;top:var(--topH);height:auto;z-index:11}
   .cond-sum{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;padding:0 16px;border:0;background:none;text-align:left;cursor:pointer;color:var(--text)}
   .cond-sum b{font-size:15px;font-weight:600}
-  .cond-sum .chev{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--acc);white-space:nowrap}
+  .cond-sum .chev{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--acc-ink);white-space:nowrap}
   .cond-sum .chev::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .2s}
   .cond[data-open="true"] .chev::after{transform:translateY(2px) rotate(-135deg)}
   .cond-in{display:none;height:auto;padding:4px 16px 14px;flex-direction:column;align-items:stretch;gap:12px}
@@ -567,9 +589,14 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
   .avail{margin-left:0;flex-wrap:wrap}
   .avail>.ck{width:100%}
   .work{overflow:visible;padding:14px 16px 24px}
+  /* 위에 붙은 조건 요약 줄이 같은 글을 보이므로 제목은 읽기 프로그램에만 */
+  .hero-l h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .lead{margin-top:0;font-size:16px}
   .side{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:40;width:auto!important;height:86vh;margin:0;overflow:visible;transform:translateY(105%);transition:transform .3s var(--ease)}
   .side[data-sheet="closed"]{visibility:hidden;transition:transform .3s var(--ease),visibility 0s .3s}
-  .side[data-sheet="peek"]{transform:translateY(calc(86vh - 46vh))}
+  .side[data-sheet="peek"]{transform:translateY(calc(86vh - 54vh))}
+  .sd-n{font-size:19px}
+  .sd-v{font-size:14px}
   .side[data-sheet="full"]{transform:none}
   .side-g{top:0;bottom:0;width:auto;right:0}
   .side-g::before{display:none}
@@ -613,10 +640,10 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
         <div class="cg">
           <span class="ck">나이</span>
           <div class="step">
-            <button type="button" data-act="age" data-d="-1" aria-label="한 살 줄이기">−</button>
+            <button type="button" data-act="age" data-d="-1" aria-label="한 살 줄이기"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 6h10" stroke="currentColor" stroke-width="1.8"/></svg></button>
             <input id="age" type="text" inputmode="numeric" maxlength="3" value="50" aria-label="나이(세)" autocomplete="off">
             <span class="u">세</span>
-            <button type="button" data-act="age" data-d="1" aria-label="한 살 늘리기">+</button>
+            <button type="button" data-act="age" data-d="1" aria-label="한 살 늘리기"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 6h10M6 1v10" stroke="currentColor" stroke-width="1.8"/></svg></button>
           </div>
           <div class="scrub" id="scrub" role="slider" tabindex="0" aria-label="나이 눈금 손잡이" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"><i class="rl"></i><i class="th"></i></div>
         </div>
@@ -645,7 +672,7 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
           <div class="side-h">
             <button class="handle" type="button" data-act="sheet" aria-label="패널 크게 보기"><i></i></button>
             <h2 id="side-t">관계와 근거</h2><span class="pn-ix" aria-hidden="true">S-01</span>
-            <button class="xbtn" type="button" data-act="sclose" aria-label="오른쪽 패널 닫기">✕ 닫기</button>
+            <button class="xbtn" type="button" data-act="sclose" aria-label="오른쪽 패널 닫기"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.6"/></svg>닫기</button>
           </div>
           <div class="side-b" id="side-b"></div>
         </div>
@@ -673,7 +700,10 @@ const EASE = 'cubic-bezier(.2,.7,.2,1)', OVER = 'cubic-bezier(.3,1.4,.5,1)';
 const narrow = () => innerWidth < 1000;
 let running = [], timers = [], ro = null, booting = false;
 
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* 내장 글꼴에 없는 자료 속 기호(로마 숫자, 가운데 점의 변형)를 글꼴에 있는 글자로 바꾼다 */
+const ROMAN = { 'Ⅰ': 'I', 'Ⅱ': 'II', 'Ⅲ': 'III', 'Ⅳ': 'IV', 'Ⅴ': 'V' };
+const fixG = s => String(s ?? '').replace(/[ⅠⅡⅢⅣⅤ]/g, m => ROMAN[m]).replace(/∙/g, '·');
+const esc = s => fixG(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nf = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 });
 const num = n => nf.format(n);
 function won(m) {
@@ -694,7 +724,8 @@ function baseText(b) {
   if (b.ratio) return '지급기준구분: 가입금액비율';
   return b.base != null ? `기준 가입금액 ${won(b.base)}일 때` : '기준 가입금액 자료 없음';
 }
-const waitText = w => (w ? `${num(w)}일` : '없음');
+/* 면책 0일은 '없음' 대신 '0일'로 쓴다. '없음'은 담보 자체가 없다는 뜻으로만 쓴다 */
+const waitText = w => `${num(w || 0)}일`;
 const monthsText = m => (m % 12 === 0 ? `${m / 12}년` : `${m}개월`);
 const redText = red => (red && red.length ? red.map(([m, r]) => `${monthsText(m)} 안 ${num(Math.round(r * 1000) / 10)}%`).join(', ') : '없음');
 const sexName = s => (s === 'M' ? '남성' : '여성');
@@ -724,7 +755,7 @@ function ageRange(oi) {
 const eAvail = (p = P()) => p.pres[vids()[0]].includes('o');
 function availOf(oi, p = P()) {
   const ok = p.pres[vids()[oi]].includes('o');
-  if (!ok) return ['bad', '⊘', '가입 불가', '불가'];
+  if (!ok) return ['bad', '×', '가입 불가', '불가'];
   return ageRange(oi) ? ['good', '●', '가입 가능', '가능'] : ['hold', '○', '나이 자료 없음', '나이 자료 없음'];
 }
 const gq = g => D.variants[D.lineup[g][0]].q;
@@ -745,8 +776,8 @@ const PRES_LONG = {
 };
 const V = {
   w: ['good', '▲', '우체국 나음', '나음'], b: ['bad', '▼', '우체국 못함', '못함'], s: ['same', '=', '같음', '같음'], m: ['mixed', '◆', '엇갈림', '엇갈림'],
-  p: ['hold', '‖', '판정 보류(검토 대기 값)', '보류'], q: ['hold', '…', '검토 대기', '검토 대기'], u: ['hold', '⊘', '이 나이 가입 불가', '가입 불가'],
-  n: ['gapc', '○', '이 회사에 없음', '없음'], o: ['gap', '◌', '우체국에 없음', '없음'], v: ['hold', '⊘', '우체국 가입 불가', '가입 불가'], '': ['same', '–', '둘 다 없음', '둘 다 없음'],
+  p: ['hold', '…', '판정 보류(검토 대기 값)', '보류'], q: ['hold', '…', '검토 대기', '검토 대기'], u: ['hold', '×', '이 나이 가입 불가', '가입 불가'],
+  n: ['gapc', '○', '이 회사에 없음', '없음'], o: ['gap', '○', '우체국에 없음', '없음'], v: ['hold', '×', '우체국 가입 불가', '가입 불가'], '': ['same', '–', '둘 다 없음', '둘 다 없음'],
 };
 const vmeta = code => V[(code || '')[0] || ''] || V[''];
 const symH = (c, s) => (c === 'gap' || c === 'gapc' ? '<i class="hatch" aria-hidden="true"></i>' : c === 'hold' ? '<i class="dbox" aria-hidden="true"></i>' : `<b aria-hidden="true">${s}</b>`);
@@ -770,12 +801,12 @@ function pn({ ix, ko, cnt = '', hint = '', body, cls = '', pi = 0, on = false, i
 }
 /* 줄 하나의 종합 판정 (우체국 기준) */
 function rowSummary(sid, p) {
-  if (presOf(0, sid, p) !== 'o') return ['gap', '◌', '우체국에 없음', '없음'];
+  if (presOf(0, sid, p) !== 'o') return ['gap', '○', '우체국에 없음', '없음'];
   const codes = [verdOf(1, sid, p), verdOf(2, sid, p)].map(c => (c || '')[0] || '');
   if (codes.includes('b')) return ['bad', '▼', '우체국이 못한 회사 있음', '못함'];
   if (codes.includes('m')) return ['mixed', '◆', '엇갈림', '엇갈림'];
   if (codes.includes('w')) return ['good', '▲', '우체국이 나은 회사 있음', '나음'];
-  if (codes.includes('p')) return ['hold', '‖', '판정 보류', '보류'];
+  if (codes.includes('p')) return ['hold', '…', '판정 보류', '보류'];
   if (codes.every(c => 'nuq'.includes(c))) return ['good', '▲', '두 회사에 없음', '우리만'];
   return ['same', '=', '같음', '같음'];
 }
@@ -847,7 +878,7 @@ function kpi({ label, sym = '', n, ofH = '', frac, cls = '', k, tip }) {
 function itemBtn(sid, sub, key, vcls, chip, tip) {
   const st = D.std[sid];
   return `<li><button class="it v-${vcls}" type="button" data-act="pick" data-sid="${sid}" data-pk="it|${key}|${sid}"${tip ? tipA([st.name, ...tip]) : ''}>
-    <span class="it-t"><span class="it-n">${esc(st.name)}</span><span class="it-s">${sub}</span></span>${chip}<span class="it-ar" aria-hidden="true">›</span></button></li>`;
+    <span class="it-t"><span class="it-n">${esc(st.name)}</span><span class="it-s">${sub}</span></span>${chip}<span class="it-ar" aria-hidden="true"></span></button></li>`;
 }
 function diffLines(it, p) {
   const e = repOf(0, it.sid, p), out = [];
@@ -855,8 +886,8 @@ function diffLines(it, p) {
     const code = it.t[oi - 1];
     if (!code || code[0] === 's') return;
     const r = repOf(oi, it.sid, p); if (!r || !e) return;
-    if (code[1] !== '=') out.push(`${ORGS[oi].short} 면책 ${waitText(r.b.wait)}, 우체국 ${waitText(e.b.wait)}`);
-    if (code[2] !== '=') out.push(`${ORGS[oi].short} 감액 ${redText(r.b.red)}, 우체국 ${redText(e.b.red)}`);
+    if (code[1] !== '=') out.push(`우체국 면책 ${waitText(e.b.wait)}, ${ORGS[oi].short} ${waitText(r.b.wait)}`);
+    if (code[2] !== '=') out.push(`우체국 감액 ${redText(e.b.red)}, ${ORGS[oi].short} ${redText(r.b.red)}`);
   });
   return out;
 }
@@ -888,7 +919,7 @@ function renderBrief() {
     </div>${kpis}</div>`;
 
   const LIM = 4;
-  const moreH = (k, n, skip, skipWord) => `<div class="more">${n > LIM ? `<button class="btn sm" type="button" data-act="list" data-list="${k}" data-pk="more|${k}">전체 보기 <span class="nm">${n}</span>개<span class="ar" aria-hidden="true">›</span></button>` : ''}${skip ? `<span class="skipn">${skipWord} ${skip}개는 뺐습니다</span>` : ''}</div>`;
+  const moreH = (k, n, skip, skipWord) => `<div class="more">${n > LIM ? `<button class="btn sm" type="button" data-act="list" data-list="${k}" data-pk="more|${k}">전체 보기 <span class="nm">${n}</span>개<span class="ar" aria-hidden="true"></span></button>` : ''}${skip ? `<span class="skipn">${skipWord} ${skip}개는 뺐습니다</span>` : ''}</div>`;
   const noneH = '<li class="none">해당하는 담보가 없습니다.</li>';
   const gapItems = ins.gap.slice(0, LIM).map(sid => { const st = D.std[sid]; const hs = [1, 2].filter(oi => presOf(oi, sid, p) === 'o').map(oi => ORGS[oi].short);
     return itemBtn(sid, `${esc(GL[st.group])} ${esc(st.type)}, ${esc(hs.join(', '))} 보유`, 'gap', 'gap', chipOf('gap', '', '없음'), [`${GL[st.group]} ${st.type}`, `${hs.join(', ')} 보유, 우체국 없음`]); }).join('') || noneH;
@@ -1004,11 +1035,11 @@ function sheet(sid, p) {
     return row(oi, 'max', r.val != null ? numU(won(r.val)) : '<span style="color:var(--text-3)">한도 자료 없음</span>', '', '', r.val != null ? `이 나이의 가입 한도로 계산${r.capPend ? ', 한도 검토 대기' : ''}` : '', ''); }).join('');
   const s5 = [0, 1, 2].map(oi => { const r = R[oi]; if (!r) return none(oi, 'lim'); const t = r.b.limit || '자료 없음';
     return row(oi, 'lim', `<span style="white-space:normal;display:block;text-align:right">${esc(trunc(t, 48))}</span>`, '', '', '', '', t.length > 48 ? ['지급 한도', t] : null); }).join('');
-  const s6 = `<div class="tags">${[0, 1, 2].map(oi => { const r = R[oi]; if (!r) return ''; return `<button class="btn sm" type="button" data-act="ev" data-oi="${oi}" data-sid="${sid}" data-bid="${r.bid}">${MARK[oi]} ${esc(ORGS[oi].short)} ${esc(r.b.doc)} <span class="nm">${r.b.page}</span>쪽<span class="ar" aria-hidden="true">›</span></button>`; }).join('')}</div>`;
+  const s6 = `<div class="tags">${[0, 1, 2].map(oi => { const r = R[oi]; if (!r) return ''; return `<button class="btn sm" type="button" data-act="ev" data-oi="${oi}" data-sid="${sid}" data-bid="${r.bid}">${MARK[oi]} ${esc(ORGS[oi].short)} ${esc(r.b.doc)} <span class="nm">${r.b.page}</span>쪽<span class="ar" aria-hidden="true"></span></button>`; }).join('')}</div>`;
   const [sc, ssym, , sshort] = rowSummary(sid, p);
   return `<div class="sh-h"><div><h3 class="sh-n">${esc(st.name)}</h3><p class="sh-l">${chipOf(sc, ssym, sshort)} ${esc(verdictLine(sid, p))}</p>
         <div class="tags"><span class="tag">${esc(GL[st.group])} ${esc(st.type)}</span>${pin ? `<span class="tag pinx">고정한 ${esc(D.std[pin].name)}와 함께 보는 중</span>` : ''}</div></div>
-      <button class="btn sm" type="button" data-act="rel" data-sid="${sid}">관계와 근거<span class="ar" aria-hidden="true">›</span></button></div>
+      <button class="btn sm" type="button" data-act="rel" data-sid="${sid}">관계와 근거<span class="ar" aria-hidden="true"></span></button></div>
     <div class="sh-o">${[0, 1, 2].map(oi => `<div><span class="o">${glyph(oi, presOf(oi, sid, p), 12)}${esc(ORGS[oi].short)}</span>${oi ? vchip(codeOf(oi)) : '<span class="vc base">기준</span>'}</div>`).join('')}</div>
     ${stat('기준 지급액', s1, false)}
     ${stat('면책', s2, allSame(r => r.b.wait))}
@@ -1050,6 +1081,7 @@ function select(sid) {
 /* ---------- 오른쪽 패널 ---------- */
 function setSide(sd) {
   finishAll();
+  hideTip();
   const was = !!S.side;
   S.side = sd;
   const app = $('#app'), side = $('#side');
@@ -1098,21 +1130,16 @@ function cmpMini(sid, p) {
     + grp('wait', '면책', (r, oi) => [`<span class="mb${oi ? '' : ' o0'}"><i data-m="cm|wait|${oi}" style="--v:${Math.min(1, (r.b.wait || 0) / maxWait).toFixed(3)}"></i></span>`, numU(waitText(r.b.wait)), sym(oi, 1)])
     + grp('red', '감액', (r, oi) => [curve(r.b, oi), numU(redText(r.b.red)), sym(oi, 2)]);
 }
+/* 범례: 두 줄. 상자 안 글자(종, 특, 급, 표, 문)가 이미 종류를 말하므로 도형 견본은 두지 않는다 */
 function legendH() {
-  const nd = (svg, t) => `<span><svg width="14" height="14" viewBox="-7 -7 14 14" aria-hidden="true">${svg}</svg>${t}</span>`;
-  const ln = (st, t) => `<span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" style="stroke-width:1.8;${st}"/></svg>${t}</span>`;
-  return nd('<polygon points="6,0 3,5.2 -3,5.2 -6,0 -3,-5.2 3,-5.2" style="fill:var(--frame)"/>', '표준담보')
-    + nd('<circle r="5.5" style="fill:var(--surf);stroke:var(--text-2);stroke-width:1.5"/>', '급부')
-    + nd('<rect x="-5.5" y="-5.5" width="11" height="11" rx="3" style="fill:var(--surf);stroke:var(--text-2);stroke-width:1.5"/>', '특약')
-    + nd('<polygon points="0,-6.5 6.5,0 0,6.5 -6.5,0" style="fill:var(--surf-2);stroke:var(--text);stroke-width:1.5"/>', '종형')
-    + nd('<rect x="-4" y="-4" width="8" height="8" style="fill:var(--surf-2);stroke:var(--line-2);stroke-width:1.2"/>', '문서')
-    + nd('<circle r="6" style="fill:none;stroke:var(--text-2);stroke-dasharray:3 3"/>', '대표 급부')
-    + ln('stroke:var(--text-2)', '확정') + ln('stroke:var(--text-2);stroke-dasharray:5 4', '검토나 추정')
-    + ln('stroke:var(--good)', '견줌 ▲ 우체국 나음') + ln('stroke:var(--bad)', '견줌 ▼ 못함') + ln('stroke:var(--text)', '견줌 = 같음, ◆ 엇갈림')
-    + '<span>해당: 급부 → 표준담보</span><span>포함: 종형 → 특약 → 급부</span><span>근거: 급부 → 문서</span>';
+  const ln = (st, t) => `<span><svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" style="stroke-width:2;${st}"/></svg>${t}</span>`;
+  const bx = (ch, t) => `<span><b class="lg-b" aria-hidden="true">${ch}</b>${t}</span>`;
+  return `<div class="lg-r"><span class="lg-k">선</span>${ln('stroke:var(--g-node)', '확정')}${ln('stroke:var(--g-node);stroke-dasharray:5 4', '검토나 추정')}</div>
+    <div class="lg-r"><span class="lg-k">견줌</span>${ln('stroke:var(--good)', '▲ 우체국 나음')}${ln('stroke:var(--bad)', '▼ 못함')}${ln('stroke:var(--text)', '◆ 엇갈림, = 같음')}</div>
+    <div class="lg-r"><span class="lg-k">상자</span>${bx('종', '종형')}${bx('특', '특약')}${bx('급', '급부')}${bx('표', '표준담보')}${bx('문', '근거 쪽')}</div>`;
 }
 function emptySide() {
-  return `<div class="empty"><p>항목을 고르면 조건 비교, 관계 그림, 근거가 여기에 뜹니다.</p></div>`;
+  return `<div class="empty"><p>항목을 고르면 관계 그림, 조건 비교, 근거가 여기에 뜹니다.</p></div>`;
 }
 function renderSide(animate, graphAnim = false) {
   const b = $('#side-b'), sd = S.side, p = P();
@@ -1124,17 +1151,18 @@ function renderSide(animate, graphAnim = false) {
     $('#side-t').textContent = '관계와 근거';
     const [c, sym, , short] = rowSummary(sd.sid, p);
     const holders = [0, 1, 2].filter(oi => presOf(oi, sd.sid, p) === 'o').length;
-    b.innerHTML = `<div class="sd-top"><h3 class="sd-n">${esc(st.name)}</h3>
-        <p class="sd-v" data-k="s|verd">${chipOf(c, sym, short)}${esc(verdictLine(sd.sid, p))}</p>
-        <div class="tags"><span class="tag" data-k="s|hold">${esc(GL[st.group])} ${esc(st.type)}, ${holders}곳 보유</span></div></div>
-      ${S.view === 'cmp' ? '' : `<section class="sd-sec"><div class="sd-sh"><h4>조건 비교</h4><span class="hint">대표 급부끼리, 우체국 기준</span></div>${cmpMini(sd.sid, p)}</section>`}
-      <section class="sd-sec"><div class="sd-sh"><h4>관계 그림</h4>
+    /* 차례: 이름과 한 줄 판정, 관계 그림, 조건 비교, 근거. 그림 위에는 아무것도 겹치지 않는다 */
+    b.innerHTML = `<div class="sd-top"><div class="sd-hd"><h3 class="sd-n">${esc(st.name)}</h3><span class="sd-m" data-k="s|hold">${esc(GL[st.group])} ${esc(st.type)}, ${holders}곳 보유</span></div>
+        <p class="sd-v" data-k="s|verd">${chipOf(c, sym, short)}${esc(verdictLine(sd.sid, p))}</p></div>
+      <section class="sd-sec first"><div class="sd-sh"><h4>관계 그림</h4>
+          <div class="sd-tools"><button class="btn xs" type="button" id="lgdbtn" data-act="lgd" aria-expanded="${S.lgd}" aria-controls="lgdb"${S.gmode === 'graph' ? '' : ' hidden'}>범례 ${S.lgd ? '접기' : '보기'}</button>
           <div class="segc" id="gmode" role="radiogroup" aria-label="보기"><i class="seg-mk"></i>
           <button class="sc" type="button" role="radio" aria-checked="${S.gmode === 'graph'}" data-act="gmode" data-v="graph">그림</button>
-          <button class="sc" type="button" role="radio" aria-checked="${S.gmode === 'list'}" data-act="gmode" data-v="list">목록</button></div></div>
+          <button class="sc" type="button" role="radio" aria-checked="${S.gmode === 'list'}" data-act="gmode" data-v="list">목록</button></div></div></div>
+        <div class="lgd-b" id="lgdb"${S.lgd && S.gmode === 'graph' ? '' : ' hidden'}>${legendH()}</div>
         <div class="gwrap" id="gwrap"></div>
-        <div class="lgd-t"${S.gmode === 'graph' ? '' : ' hidden'} id="lgdt"><button class="btn xs" type="button" data-act="lgd" aria-expanded="${S.lgd}" aria-controls="lgdb">범례 ${S.lgd ? '접기' : '보기'}</button><span class="hint">이름이 숨은 점은 가리키거나 누르면 보입니다.</span></div>
-        <div class="lgd-b" id="lgdb"${S.lgd && S.gmode === 'graph' ? '' : ' hidden'}>${legendH()}</div></section>
+        <p class="g-hint" id="ghint"${S.gmode === 'graph' ? '' : ' hidden'}>상자나 선을 누르면 아래 근거 칸에 자세한 값이 나옵니다.</p></section>
+      ${S.view === 'cmp' ? '' : `<section class="sd-sec"><div class="sd-sh"><h4>조건 비교</h4><span class="hint">대표 급부끼리, 우체국 기준</span></div>${cmpMini(sd.sid, p)}</section>`}
       <section class="sd-sec" id="gdet"></section>`;
     segMark($('#gmode'), true);
     drawRel(graphAnim);
@@ -1148,7 +1176,7 @@ function renderSide(animate, graphAnim = false) {
       <ul class="slist">${sd.sids.map(sid => {
         const [c, sym, , short] = rowSummary(sid, p);
         const inner = `<span class="it-t"><span class="it-n">${esc(D.std[sid].name)}</span><span class="it-s"><span class="gls">${[0, 1, 2].map(oi => glyph(oi, presOf(oi, sid, p), 11)).join('')}</span>${esc(presSr(sid, p))}</span></span>${chipOf(c, sym, short)}`;
-        return `<li>${pool.has(sid) ? `<button class="it v-${c}" type="button" data-act="pick" data-sid="${sid}" data-from="side">${inner}<span class="it-ar" aria-hidden="true">›</span></button>` : `<div class="it v-${c}" style="cursor:default">${inner}<span></span></div>`}</li>`;
+        return `<li>${pool.has(sid) ? `<button class="it v-${c}" type="button" data-act="pick" data-sid="${sid}" data-from="side">${inner}<span class="it-ar" aria-hidden="true"></span></button>` : `<div class="it v-${c}" style="cursor:default">${inner}<span></span></div>`}</li>`;
       }).join('')}</ul><p class="fine" style="margin-top:12px">관계 그림 자료는 비교 화면의 담보와 시사점 앞쪽 담보에만 실었습니다.</p>`;
   } else if (sd.mode === 'var') {
     $('#side-t').textContent = '견주는 상품';
@@ -1162,162 +1190,206 @@ function varKv(oi) {
   return kv([
     ['공시상품명', esc(v.product)], ['심사', `${esc(v.uw)}, 간편고지 ${esc(v.grade)}`], ['고지 질문', esc(gradeLong(S.grade))],
     ['갱신', v.renew === '갱신' ? `${v.cycle}년 갱신형` : '비갱신형'], ['적용 시작일', esc(v.start || '자료 없음')],
-    ['가입 나이', r ? `${r[0]}~${r[1]}세` : '자료 없음'], ['이 조건', chipOf(c, c === 'good' ? '●' : c === 'bad' ? '⊘' : '○', label)],
+    ['가입 나이', r ? `${r[0]}~${r[1]}세` : '자료 없음'], ['이 조건', chipOf(c, c === 'good' ? '●' : c === 'bad' ? '×' : '○', label)],
     ['가입 한도 자료', v.gap ? `특약 ${v.gap.riders}개 가운데 ${v.gap.noMax}개 없음` : '있음'], ['종형ID', `<code>${esc(vids()[oi])}</code>`],
   ]);
 }
 const kv = rows => `<dl class="kv">${rows.filter(Boolean).map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
 
-/* 지식그래프 */
+/* 지식그래프: 회사마다 가로 한 줄(종형 → 특약 → 급부 → 표준담보). 이름은 상자 안에 쓰고, 자리를 미리 나눠 겹치지 않게 한다 */
 function mapLabel(b) {
   const pend = (b.pend || []).length;
-  if (b.prob == null) return { short: '해당, 교차 확인', basis: '두 판독(표 규칙과 모델)이 일치해 넣은 줄', prob: '없음(교차 확인)' };
-  return { short: `해당, ${pend ? '검토' : '확정'} ${b.prob.toFixed(2)}`, basis: `판정 모델 ${esc(b.state)}${pend ? ', 일부 열 검토 대기' : ''}`, prob: b.prob.toFixed(4) };
+  if (b.prob == null) return { short: '해당, 교차 확인', tag: '교차 확인', basis: '두 판독(표 규칙과 모델)이 일치해 넣은 줄', prob: '없음(교차 확인)' };
+  return { short: `해당, ${pend ? '검토' : '확정'} ${b.prob.toFixed(2)}`, tag: `${pend ? '검토' : '확정'} ${b.prob.toFixed(2)}`, basis: `판정 모델 ${esc(b.state)}${pend ? ', 일부 열 검토 대기' : ''}`, prob: b.prob.toFixed(4) };
 }
 function cmpLabel(oi, e, o, code) {
   const c0 = (code || '')[0] || '';
-  if ('pq'.includes(c0) && c0) return { cls: 'hold', t: '견줌: 판정 보류', lines: ['판정 보류(검토 대기 값)'] };
-  if (!'bwsm'.includes(c0) || !c0) { const m = vmeta(code); return { cls: m[0], t: `견줌: ${m[3]}`, lines: [m[2]] }; }
-  const w = signM(code[1]), r = signM(code[2]);
-  const wl = code[1] === '=' ? '면책 같음' : `면책 ${num(e.wait || 0)}일 대 ${num(o.wait || 0)}일 ${w[1]}`;
-  const rl = code[2] === '=' ? '감액 같음' : `감액 ${redText(e.red)} 대 ${redText(o.red)} ${r[1]}`;
-  const vm = vmeta(code);
-  return { cls: vm[0], t: `견줌: ${code[1] !== '=' ? wl : code[2] !== '=' ? '감액 다름 ' + r[1] : '조건 같음 ='}`, lines: [wl, rl, `종합: ${vm[2]}`] };
+  if (c0 && 'pq'.includes(c0)) return { cls: 'hold', sym: '…', word: '판정 보류', detail: '검토 대기 값이 있어 미뤘습니다', t: '견줌: 판정 보류', lines: ['판정 보류(검토 대기 값)'] };
+  if (!c0 || !'bwsm'.includes(c0)) { const m = vmeta(code); return { cls: m[0], sym: m[1], word: m[3], detail: '', t: `견줌: ${m[3]}`, lines: [m[2]] }; }
+  const w = signM(code[1]), r = signM(code[2]), vm = vmeta(code);
+  const wl = code[1] === '=' ? '면책 같음' : `면책 ${num(e.wait || 0)}일 대 ${num(o.wait || 0)}일`;
+  const rl = code[2] === '=' ? '감액 같음' : `감액 ${redText(e.red)} 대 ${redText(o.red)}`;
+  const detail = [code[1] !== '=' ? wl : '', code[2] !== '=' ? rl : ''].filter(Boolean).join(', ') || '면책과 감액이 같습니다';
+  return { cls: vm[0], sym: vm[1], word: vm[2], detail, t: `견줌: ${vm[2]}, ${detail}`,
+    lines: [code[1] === '=' ? wl : `${wl} ${w[1]}`, code[2] === '=' ? rl : `${rl} ${r[1]}`, `종합: ${vm[2]} (앞이 우체국)`] };
+}
+const GFONT = '"PLBody","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif';
+const F6 = `600 13px ${GFONT}`, F4 = `400 13px ${GFONT}`, FH = `600 14px ${GFONT}`;
+let mctx = null;
+function tw(s, font) { if (!mctx) mctx = document.createElement('canvas').getContext('2d'); mctx.font = font; return mctx.measureText(s).width; }
+/* 폭에 맞춰 줄을 나눈다. 띄어쓰기에서 먼저 끊고, 줄 수를 넘으면 마지막 줄 끝을 '…'로 */
+function wrapT(s, font, max, n) {
+  const out = []; let line = '';
+  for (const ch of fixG(s)) {
+    if (!line || tw(line + ch, font) <= max) { line += ch; continue; }
+    const sp = line.lastIndexOf(' ');
+    if (ch !== ' ' && sp > 0 && line.length - sp <= 6) { out.push(line.slice(0, sp)); line = line.slice(sp + 1) + ch; }
+    else { out.push(line.trimEnd()); line = ch === ' ' ? '' : ch; }
+  }
+  if (line.trim()) out.push(line.trim());
+  if (out.length <= n) return { lines: out, cut: false };
+  const keep = out.slice(0, n); let last = keep[n - 1];
+  while (last.length > 1 && tw(last + '…', font) > max) last = last.slice(0, -1);
+  keep[n - 1] = last.trimEnd() + '…';
+  return { lines: keep, cut: true };
 }
 function graphModel(sid, p, W) {
-  const H = Math.round(Math.max(320, Math.min(W * 1.02, 520))), cx = W / 2, cy = H / 2;
-  const R = Math.min(W, H) / 2 - (W < 400 ? 34 : 46);
-  const r1 = R * .5, rdc = R * .7, r2 = R * .82, r3 = R;
-  const A0 = [-135, -15, 105];
-  const pol = (a, r) => [cx + r * Math.cos(a * Math.PI / 180), cy + r * Math.sin(a * Math.PI / 180)];
-  const N = [], E = [], idx = {};
+  const nw = W < 400, N = [], E = [], idx = {};
   const node = n => { idx[n.id] = n; N.push(n); return n; };
   const st = D.std[sid];
-  node({ id: 'std', kind: 'std', x: cx, y: cy, r: 26, label: st.name, tip: [st.name, `표준담보 ${sid}`, `${GL[st.group]} ${st.type}`] });
-  const reps = [];
+  const L = { PX: nw ? 6 : 8, BG: nw ? 18 : 20, LH: 17, PY: 6, MH: 20 };
+  L.TX = L.PX + L.BG + (nw ? 5 : 7);
+  /* 표준담보는 맨 위 한 줄, 급부에서 오는 선은 오른쪽 세로 간선으로 모아 올린다 */
+  const busX = W - 14, rail = nw ? 22 : 26, benR = busX - rail - 6;
+  const rX = nw ? 24 : 28, rW = Math.round(nw ? Math.max(84, W * .29) : Math.max(76, Math.min(112, W * .25)));
+  const bX = rX + rW + (nw ? 14 : 18), bW = benR - bX;
+  const nl = 2;
+  const reps = [], lanes = [];
+  const sx0 = L.TX + tw('표준담보', F4) + 12, sl = wrapT(st.name, FH, W - 2 - sx0 - 10, 2);
+  const stdN = node({ id: 'std', kind: 'std', x: 0, y: 2, w: W - 2, h: Math.max(34, L.PY * 2 + 4 + L.LH * sl.lines.length), lines: sl.lines, cut: sl.cut, nx: sx0,
+    tip: [st.name, `표준담보 ${sid}`, `${GL[st.group]} ${st.type}`] });
+  let y = stdN.y + stdN.h + 16;
   [0, 1, 2].forEach(oi => {
-    const a0 = A0[oi], pr = presOf(oi, sid, p), v = variant(oi);
-    const [vx, vy] = pol(a0, r3);
-    const vn = node({ id: 'v' + oi, kind: 'var', oi, x: vx, y: vy, r: 16, label: `${MARK[oi]} ${ORGS[oi].short}`, tip: [`${ORGS[oi].name} 종형`, v.name, v.product] });
-    if (pr !== 'o') { vn.absent = true; vn.label += ` ${PRES_LONG[pr][0]}`; vn.tip.push(PRES_LONG[pr][1]); return; }
-    const r = repOf(oi, sid, p), cell = cellOf(oi, sid);
-    const others = cell.ids.filter(x => x !== r.bid);
-    const diff = others.filter(x => { const b = D.benefits[x]; return b.wait !== r.b.wait || redText(b.red) !== redText(r.b.red); });
-    const shown = [r.bid, ...diff].slice(0, 2);
-    const more = Math.max(0, cell.n - shown.length);
-    const tids = [...new Set(shown.map(b => D.benefits[b].tid))];
-    const k = shown.length + (more ? 1 : 0);
-    const offs = n => (n === 1 ? [0] : n === 2 ? [-18, 18] : [-30, 0, 30]);
-    const bo = offs(k), rof = offs(tids.length).map(x => x * .85);
-    tids.forEach((tid, i) => {
-      const [x, y] = pol(a0 + rof[i], r2), rd = D.riders[tid];
-      node({ id: 'r' + tid, kind: 'rider', oi, tid, x, y, r: 11, label: trunc(core(rd.name), 6), tip: ['특약', rd.name, `${rd.kind}${rd.max != null ? `, 최대 가입금액 ${won(rd.max)}` : ''}`] });
-      E.push({ kind: 'inc', from: 'v' + oi, to: 'r' + tid, oi, t: `포함, ${rd.kind}`, sure: true, rows: [['관계', '포함 (종형 → 특약)'], ['시작', `${ORGS[oi].short} ${v.name}`], ['끝', rd.name], ['담보구분', rd.kind], ['특약ID', `<code>${esc(tid)}</code>`]] });
-    });
-    shown.forEach((bid, i) => {
-      const b = D.benefits[bid], [x, y] = pol(a0 + bo[i], r1), rep = bid === r.bid, pend = (b.pend || []).length > 0;
-      node({ id: 'b' + bid, kind: 'ben', oi, bid, rep, pend, x, y, r: 12, label: trunc(core(b.name), 7), tip: [b.name, `지급 ${payText(b)}`, `면책 ${waitText(b.wait)}, 감액 ${redText(b.red)}`, `근거 ${b.doc} ${b.page}쪽`] });
-      E.push({ kind: 'inc', from: 'r' + b.tid, to: 'b' + bid, oi, t: `포함, ${b.role}`, sure: true, rows: [['관계', '포함 (특약 → 급부)'], ['시작', D.riders[b.tid].name], ['끝', b.name], ['급부역할', b.role]] });
-      const ml = mapLabel(b);
-      E.push({ kind: 'map', from: 'b' + bid, to: 'std', oi, bid, t: ml.short, sure: !pend && b.state === '자동확정', show: rep, rows: [['관계', '해당 (급부 → 표준담보)'], ['시작', `${ORGS[oi].short} ${b.name}`], ['끝', st.name], ['확정 근거', ml.basis], ['확률', ml.prob], ['검토상태', esc(b.state)], ['문서 쪽', `${esc(b.doc)} ${b.page}쪽`]] });
-      if (!rep) return;
-      const [dx, dy] = pol(a0 + bo[i] + (bo[i] >= 0 ? 14 : -14), rdc);
-      node({ id: 'd' + bid, kind: 'doc', oi, bid, x: dx, y: dy, r: 9, label: '', tip: ['문서 근거', `${b.doc} ${b.page}쪽`, v.product] });
-      E.push({ kind: 'src', from: 'b' + bid, to: 'd' + bid, oi, bid, t: `근거 ${b.page}쪽`, sure: true, show: false, rows: [['관계', '근거 (급부 → 문서)'], ['시작', b.name], ['끝', `${b.doc} ${b.page}쪽`], ['문서', esc(v.product)]] });
-    });
-    if (more) {
-      const [x, y] = pol(a0 + bo[bo.length - 1], r1);
-      node({ id: 'm' + oi, kind: 'more', oi, x, y, r: 11, label: `외 ${more}개`, tip: [`${ORGS[oi].short} 같은 담보의 다른 급부`, `${more}개를 묶었습니다`] });
-      E.push({ kind: 'map', from: 'm' + oi, to: 'std', oi, t: `해당, 외 ${more}개`, sure: false, rows: [['관계', '해당 (급부 묶음 → 표준담보)'], ['묶은 급부', `${more}개`]] });
-    }
-    reps[oi] = { id: 'b' + r.bid, b: r.b };
-  });
-  [1, 2].forEach(oi => {
-    if (!reps[0] || !reps[oi]) return;
-    const code = verdOf(oi, sid, p), L = cmpLabel(oi, reps[0].b, reps[oi].b, code);
-    E.push({ kind: 'cmp', from: reps[0].id, to: reps[oi].id, oi, t: L.t, vcls: L.cls, sure: !'pq'.includes((code || '')[0] || 'x'), show: true,
-      rows: [['관계', '견줌 (우체국 대표 급부 ↔ 타사 대표 급부)'], ['시작', `우체국 ${reps[0].b.name}`], ['끝', `${ORGS[oi].short} ${reps[oi].b.name}`], ['조건 차이', L.lines.map(esc).join('<br>')], ['문서 쪽', `우체국 ${reps[0].b.page}쪽, ${ORGS[oi].short} ${reps[oi].b.page}쪽`]] });
-  });
-  return { N, E, idx, W, H, cx, cy, R };
-}
-function edgeGeo(G, e) {
-  const a = G.idx[e.from], b = G.idx[e.to];
-  if (e.kind === 'cmp') {
-    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    let dx = mx - G.cx, dy = my - G.cy; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
-    const C = [G.cx + dx * G.R * .92, G.cy + dy * G.R * .92];
-    const tr = (P0, rr) => { const vx = C[0] - P0.x, vy = C[1] - P0.y, ll = Math.hypot(vx, vy) || 1; return [P0.x + vx / ll * rr, P0.y + vy / ll * rr]; };
-    const s = tr(a, a.r + 4), t = tr(b, b.r + 6);
-    const lx = .25 * s[0] + .5 * C[0] + .25 * t[0], ly = .25 * s[1] + .5 * C[1] + .25 * t[1];
-    return { d: `M${s[0].toFixed(1)} ${s[1].toFixed(1)}Q${C[0].toFixed(1)} ${C[1].toFixed(1)} ${t[0].toFixed(1)} ${t[1].toFixed(1)}`, lx, ly };
-  }
-  const vx = b.x - a.x, vy = b.y - a.y, l = Math.hypot(vx, vy) || 1, ux = vx / l, uy = vy / l;
-  const s = [a.x + ux * (a.r + 3), a.y + uy * (a.r + 3)], t = [b.x - ux * (b.r + 6), b.y - uy * (b.r + 6)];
-  const k = e.kind === 'map' ? .45 : .5, mx = s[0] + (t[0] - s[0]) * k, my = s[1] + (t[1] - s[1]) * k;
-  const side = Math.abs(mx - G.cx) < 8 ? 'middle' : mx < G.cx ? 'end' : 'start';
-  return { d: `M${s[0].toFixed(1)} ${s[1].toFixed(1)}L${t[0].toFixed(1)} ${t[1].toFixed(1)}`, lx: mx + (side === 'end' ? -6 : side === 'start' ? 6 : 0), ly: my + 4, anchor: side };
-}
-function shapeOf(n) {
-  const { x, y, r } = n;
-  if (n.kind === 'std') { const pts = Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 3 * i + Math.PI / 6; return `${(x + r * Math.cos(a)).toFixed(1)},${(y + r * Math.sin(a)).toFixed(1)}`; }).join(' '); return `<polygon class="sh" points="${pts}"/><text class="gy" x="${x}" y="${y}">표</text>`; }
-  if (n.kind === 'ben') return `${n.rep ? `<circle class="ring" cx="${x}" cy="${y}" r="${r + 5}"/>` : ''}<circle class="sh" cx="${x}" cy="${y}" r="${r}"/><text class="gy" x="${x}" y="${y}">급</text>`;
-  if (n.kind === 'rider') return `<rect class="sh" x="${x - r}" y="${y - r}" width="${r * 2}" height="${r * 2}" rx="5"/><text class="gy" x="${x}" y="${y}">특</text>`;
-  if (n.kind === 'var') return `<polygon class="sh" points="${x},${y - r - 3} ${x + r + 3},${y} ${x},${y + r + 3} ${x - r - 3},${y}"/><text class="gy" x="${x}" y="${y}">종</text>`;
-  if (n.kind === 'doc') return `<rect class="sh" x="${x - r}" y="${y - r}" width="${r * 2}" height="${r * 2}"/><text class="gy" x="${x}" y="${y}" style="font-size:11px">문</text>`;
-  return `<circle class="sh" cx="${x}" cy="${y}" r="${r}"/><text class="gy" x="${x}" y="${y}">+</text>`;
-}
-function labelOf(n, G) {
-  if (!n.label || n.kind === 'std' || n.kind === 'rider') return '';
-  const dx = n.x - G.cx;
-  if (n.kind === 'var') { const below = n.y >= G.cy - 10; return `<text class="nl k-var" x="${n.x.toFixed(1)}" y="${(below ? n.y + n.r + 22 : n.y - n.r - 11).toFixed(1)}" text-anchor="middle">${esc(n.label)}</text>`; }
-  if (Math.abs(dx) < 14) return `<text class="nl" x="${n.x}" y="${n.y + n.r + 17}" text-anchor="middle">${esc(n.label)}</text>`;
-  const left = dx < 0, off = n.r + (n.rep ? 9 : 6);
-  return `<text class="nl" x="${(n.x + (left ? -off : off)).toFixed(1)}" y="${(n.y + 4.5).toFixed(1)}" text-anchor="${left ? 'end' : 'start'}">${esc(n.label)}</text>`;
-}
-const ECLS = e => (e.kind === 'cmp' ? e.vcls : '');
-/* 글자가 겹치면 자리를 옮겨 보고, 그래도 겹치면 우선순위가 낮은 이름을 숨긴다 (가리키거나 누르면 보임) */
-function labelOpts(n, G) {
-  const sd = n.x < G.cx - 14 ? -1 : n.x > G.cx + 14 ? 1 : 0;
-  if (n.kind === 'var') {
-    const a = [n.x, n.y + n.r + 22, 'middle'], b = [n.x, n.y - n.r - 11, 'middle'], s = sd || 1;
-    return [n.y >= G.cy - 10 ? a : b, n.y >= G.cy - 10 ? b : a, [n.x + s * (n.r + 8), n.y + 5, s < 0 ? 'end' : 'start'], [n.x - s * (n.r + 8), n.y + 5, s < 0 ? 'start' : 'end']];
-  }
-  const off = n.r + (n.rep ? 9 : 6), dn = [n.x, n.y + n.r + (n.rep ? 22 : 17), 'middle'], up = [n.x, n.y - n.r - (n.rep ? 11 : 8), 'middle'];
-  const side = s => [n.x + s * off, n.y + 4.5, s < 0 ? 'end' : 'start'];
-  return sd ? [side(sd), dn, up, side(-sd)] : [dn, side(1), side(-1), up];
-}
-function declutter() {
-  const svg = $('#gsvg'), G = drawRel.G; if (!svg || !G) return;
-  const items = [];
-  $$('.n', svg).forEach(g => { const t = $('.nl', g); if (!t) return; const n = G.idx[g.dataset.n]; items.push({ t, n, pr: n.kind === 'var' ? 0 : n.rep ? 2 : n.kind === 'ben' ? 4 : 5 }); });
-  $$('.e.show', svg).forEach(g => { const t = $('.el', g); if (!t) return; const e = G.E[+g.dataset.e]; items.push({ t, pr: e.kind === 'cmp' ? 1 : 3 }); });
-  items.sort((a, b) => a.pr - b.pr);
-  const ov = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-  const obst = $$('.n', svg).map(g => { const b = $('.nb', g).getBBox(); return { id: g.dataset.n, x: b.x - 1, y: b.y - 1, w: b.width + 2, h: b.height + 2 }; });
-  const keep = [];
-  const put = (t, x, y, an) => {
-    t.setAttribute('x', x.toFixed(1)); t.setAttribute('y', y.toFixed(1)); t.setAttribute('text-anchor', an);
-    let b = t.getBBox(), dx = 0;
-    if (b.x < 2) dx = 2 - b.x; else if (b.x + b.width > G.W - 2) dx = G.W - 2 - b.x - b.width;
-    if (b.y < 2) t.setAttribute('y', (y + 2 - b.y).toFixed(1));
-    if (dx) t.setAttribute('x', (x + dx).toFixed(1));
-    b = t.getBBox();
-    return { x: b.x - 2, y: b.y - 1, w: b.width + 4, h: b.height + 2 };
-  };
-  items.forEach(({ t, n, pr }) => {
-    t.classList.toggle('cull', false);
-    if (n) {
-      const opts = labelOpts(n, G);
-      const free = r => !keep.some(k => ov(k, r)) && !obst.some(o => o.id !== n.id && ov(o, r));
-      for (const [x, y, an] of opts) { const r = put(t, x, y, an); if (free(r)) { keep.push(r); return; } }
-      const r = put(t, ...opts[0]);
-      if (pr === 0) keep.push(r); else t.classList.toggle('cull', true);
+    const pr = presOf(oi, sid, p), v = variant(oi);
+    const head = `${MARK[oi]} ${ORGS[oi].short}`;
+    const vn = node({ id: 'v' + oi, kind: 'var', oi, x: 0, y, w: benR, h: 26, head, tip: [`${ORGS[oi].name} 종형`, v.name, v.product] });
+    vn.hx = L.BG + 10;
+    let sx = vn.hx + tw(head, FH) + 8;
+    if (!oi) { vn.baseX = sx; sx += tw('기준', F4) + 18; }
+    if (pr !== 'o') { vn.absent = true; vn.status = PRES_LONG[pr][0]; vn.tip.push(PRES_LONG[pr][1]); vn.stX = sx; sx += tw(vn.status, F6) + 10; }
+    vn.subX = sx; vn.sub = benR - sx > 40 ? wrapT(v.name, F4, benR - sx - 4, 1).lines[0] || '' : '';
+    y += 30;
+    if (pr !== 'o') {
+      const m = wrapT(PRES_LONG[pr][1], F4, benR - rX - 26, 2);
+      vn.abs = { x: rX, y, w: benR - rX, h: L.PY * 2 + L.LH * m.lines.length, lines: m.lines };
+      y += vn.abs.h + 18;
+      lanes.push({ oi, y0: vn.y, y1: y });
       return;
     }
-    const b = t.getBBox(), r = { x: b.x - 2, y: b.y - 1, w: b.width + 4, h: b.height + 2 };
-    const hit = keep.some(k => ov(k, r)) || (pr >= 3 && obst.some(o => ov(o, r)));
-    if (hit) t.classList.toggle('cull', true); else keep.push(r);
+    const r = repOf(oi, sid, p), cell = cellOf(oi, sid);
+    /* 견줌(우체국 대표 급부와 이 회사 대표 급부)은 회사 이름 바로 아래 한 줄로 */
+    if (oi && reps[0]) {
+      const code = verdOf(oi, sid, p), Lb = cmpLabel(oi, reps[0].b, r.b, code);
+      const avail = benR - rX, head1 = `${Lb.sym} ${Lb.word}`;
+      const one = Lb.detail && tw(`${head1}  ${Lb.detail}`, F4) + tw(head1, F6) - tw(head1, F4) <= avail - 20;
+      const rest = Lb.detail && !one ? wrapT(Lb.detail, F4, avail - 20, 2).lines : [];
+      const tag = { x: rX, y, w: avail, one, head1, detail: Lb.detail, rest };
+      tag.h = 8 + L.LH * (1 + rest.length) + 2;
+      E.push({ kind: 'cmp', from: reps[0].id, to: 'b' + r.bid, oi, t: Lb.t, vcls: Lb.cls, show: true, sure: !'pq'.includes((code || '')[0] || 'x'), tag,
+        rows: [['관계', '견줌 (우체국 대표 급부와 타사 대표 급부)'], ['시작', `우체국 ${reps[0].b.name}`], ['끝', `${ORGS[oi].short} ${r.b.name}`], ['조건 차이', Lb.lines.map(esc).join('<br>')], ['문서 쪽', `우체국 ${reps[0].b.page}쪽, ${ORGS[oi].short} ${r.b.page}쪽`]] });
+      y += tag.h + 8;
+    }
+    const others = cell.ids.filter(x => x !== r.bid);
+    const diff = others.filter(x => { const b = D.benefits[x]; return b.wait !== r.b.wait || redText(b.red) !== redText(r.b.red); });
+    const shown = [r.bid, ...diff].slice(0, 2), more = Math.max(0, cell.n - shown.length);
+    const riders = {};
+    shown.forEach(bid => {
+      const b = D.benefits[bid], rep = bid === r.bid, pend = (b.pend || []).length > 0, ml = mapLabel(b);
+      const textW = bW - L.TX - L.PX;
+      const nm = wrapT(core(b.name), F6, textW, nl);
+      let meta = (rep ? '대표, ' : '') + ml.tag;
+      if (tw(meta, F4) > textW) meta = ml.tag;
+      const pg = rep && b.page != null ? `${b.page}쪽` : '';
+      const chipW = pg ? 26 + tw(pg, F4) : 0;
+      const metaW = tw(meta, F4);
+      const chipBelow = pg && metaW + 10 + chipW > textW;
+      const h = L.PY * 2 + L.LH * nm.lines.length + L.MH * (chipBelow ? 2 : 1);
+      let rn = riders[b.tid], rh = 0;
+      if (!rn) {
+        const rd = D.riders[b.tid], rl = wrapT(core(rd.name), F6, rW - L.TX - L.PX, nl);
+        rh = L.PY * 2 + L.LH * rl.lines.length;
+        rn = riders[b.tid] = node({ id: 'r' + b.tid, kind: 'rider', oi, tid: b.tid, x: rX, y: 0, w: rW, h: rh, lines: rl.lines, cut: rl.cut,
+          tip: ['특약', rd.name, `${rd.kind}${rd.max != null ? `, 최대 가입금액 ${won(rd.max)}` : ''}`] });
+        E.push({ kind: 'inc', from: 'v' + oi, to: rn.id, oi, t: `포함, ${rd.kind}`, sure: true, rows: [['관계', '포함 (종형 → 특약)'], ['시작', `${ORGS[oi].short} ${v.name}`], ['끝', rd.name], ['담보구분', rd.kind], ['특약ID', `<code>${esc(b.tid)}</code>`]] });
+      }
+      const rowH = Math.max(h, rh);
+      if (rh) rn.y = y + (rowH - rh) / 2;
+      const bn = node({ id: 'b' + bid, kind: 'ben', oi, bid, rep, pend, x: bX, y: y + (rowH - h) / 2, w: bW, h, lines: nm.lines, cut: nm.cut, meta, metaW, pg, chipW, chipBelow,
+        tip: [b.name, `지급 ${payText(b)}`, `면책 ${waitText(b.wait)}, 감액 ${redText(b.red)}`, `근거 ${b.doc} ${b.page}쪽`] });
+      E.push({ kind: 'inc', from: rn.id, to: bn.id, oi, t: `포함, ${b.role}`, sure: true, rows: [['관계', '포함 (특약 → 급부)'], ['시작', D.riders[b.tid].name], ['끝', b.name], ['급부역할', b.role]] });
+      E.push({ kind: 'map', from: bn.id, to: 'std', oi, bid, t: ml.short, sure: !pend && b.state === '자동확정',
+        rows: [['관계', '해당 (급부 → 표준담보)'], ['시작', `${ORGS[oi].short} ${b.name}`], ['끝', st.name], ['확정 근거', ml.basis], ['확률', ml.prob], ['검토상태', esc(b.state)], ['문서 쪽', `${esc(b.doc)} ${b.page}쪽`]] });
+      y += rowH + 8;
+    });
+    if (more) {
+      const t = `외 ${more}개`;
+      node({ id: 'm' + oi, kind: 'more', oi, x: bX, y, w: Math.round(L.TX + tw(t, F6) + L.PX + 4), h: 30, lines: [t], tip: [`${ORGS[oi].short} 같은 담보의 다른 급부`, `${more}개를 묶었습니다`] });
+      E.push({ kind: 'map', from: 'm' + oi, to: 'std', oi, t: `해당, 외 ${more}개`, sure: false, rows: [['관계', '해당 (급부 묶음 → 표준담보)'], ['묶은 급부', `${more}개`]] });
+      y += 30 + 8;
+    }
+    reps[oi] = { id: 'b' + r.bid, b: r.b };
+    y += 10;
+    lanes.push({ oi, y0: vn.y, y1: y });
   });
+  const H = Math.round(y - 8);
+  return { N, E, idx, W, H, L, benR, rail, rX, bX, busX, lanes };
+}
+function edgeGeo(G, e) {
+  const a = G.idx[e.from], b = G.idx[e.to], f = v => (+v).toFixed(1);
+  /* 견줌: 대표 급부 오른쪽에서 꺾여 내려가는 괄호선 */
+  if (e.kind === 'cmp') {
+    const x0 = a.x + a.w + 6, y0 = a.y + a.h - 10, x1 = b.x + b.w + 6, y1 = b.y + 10;
+    const xb = G.benR + (e.oi === 1 ? 11 : 19);
+    return { d: `M${f(x0)} ${f(y0)}H${f(xb - 4)}Q${f(xb)} ${f(y0)} ${f(xb)} ${f(y0 + 4)}V${f(y1 - 4)}Q${f(xb)} ${f(y1)} ${f(xb - 4)} ${f(y1)}H${f(x1)}` };
+  }
+  /* 해당: 급부 오른쪽에서 세로 간선으로 가서 맨 위 표준담보로 올라간다 */
+  if (e.kind === 'map') {
+    const x0 = a.x + a.w + 2, y0 = a.y + a.h / 2, xb = G.busX, y1 = b.y + b.h + 6;
+    return { d: `M${f(x0)} ${f(y0)}H${f(xb - 4)}Q${f(xb)} ${f(y0)} ${f(xb)} ${f(y0 - 4)}V${f(y1)}` };
+  }
+  if (a.kind === 'var') {
+    const x0 = G.L.BG / 2 + 1, y0 = a.y + 24, y1 = b.y + b.h / 2;
+    return { d: `M${f(x0)} ${f(y0)}V${f(y1)}H${f(b.x - 6)}` };
+  }
+  const x0 = a.x + a.w + 2, y0 = a.y + a.h / 2, x1 = b.x - 6, y1 = b.y + b.h / 2;
+  if (Math.abs(y1 - y0) < 1) return { d: `M${f(x0)} ${f(y0)}H${f(x1)}` };
+  const xm = (x0 + x1) / 2;
+  return { d: `M${f(x0)} ${f(y0)}H${f(xm)}V${f(y1)}H${f(x1)}` };
+}
+/* 상자 하나: 종류 표지(글자), 이름 줄, 보조 줄 */
+function nodeSvg(n, G) {
+  const L = G.L, f = v => (+v).toFixed(1);
+  const lines = (arr, x, y0, cls) => `<text class="${cls}">${arr.map((s, i) => `<tspan x="${f(x)}" y="${f(y0 + i * L.LH)}">${esc(s)}</tspan>`).join('')}</text>`;
+  const bx = n.x + L.PX, by = n.y + L.PY, cx = bx + L.BG / 2, cy = by + L.BG / 2 - 1, hr = L.BG / 2;
+  const tx = n.x + L.TX, ty = n.y + L.PY + 13;
+  const box = (extra = '') => `<rect class="sh" x="${f(n.x)}" y="${f(n.y)}" width="${f(n.w)}" height="${f(n.h)}" rx="2"${extra}/>`;
+  if (n.kind === 'var') {
+    const c = n.y + 12;
+    let s = `<rect class="sh" x="${f(n.x - 3)}" y="${f(n.y - 3)}" width="${f(n.w + 6)}" height="30" rx="2"/>`;
+    s += `<polygon class="bd" points="${f(L.BG / 2 + 1)},${f(c - 12)} ${f(L.BG + 2)},${f(c)} ${f(L.BG / 2 + 1)},${f(c + 12)} 0,${f(c)}"/><text class="gy" x="${f(L.BG / 2 + 1)}" y="${f(c)}">종</text>`;
+    s += `<text class="nl hd" x="${f(n.hx)}" y="${f(c + 5)}">${esc(n.head)}</text>`;
+    if (n.baseX != null) { const w = tw('기준', F4) + 10; s += `<rect class="bt" x="${f(n.baseX)}" y="${f(c - 9)}" width="${f(w)}" height="19"/><text class="nm2" x="${f(n.baseX + 5)}" y="${f(c + 5)}">기준</text>`; }
+    if (n.absent) s += `<text class="nst" x="${f(n.stX)}" y="${f(c + 5)}">${esc(n.status)}</text>`;
+    if (n.sub) s += `<text class="vs" x="${f(n.subX)}" y="${f(c + 5)}">${esc(n.sub)}</text>`;
+    if (n.abs) { const a = n.abs; s += `<rect class="absb" x="${f(a.x)}" y="${f(a.y)}" width="${f(a.w)}" height="${f(a.h)}"/><rect class="absh" x="${f(a.x + 1)}" y="${f(a.y + 1)}" width="8" height="${f(a.h - 2)}"/>` + lines(a.lines, a.x + 18, a.y + L.PY + 13, 'nm2'); }
+    return s;
+  }
+  if (n.kind === 'std') {
+    const c = n.y + n.h / 2, ty0 = n.lines.length > 1 ? n.y + L.PY + 15 : c + 5;
+    const hex = Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 3 * i + Math.PI / 6; return `${f(cx + (hr + 1) * Math.cos(a))},${f(c + (hr + 1) * Math.sin(a))}`; }).join(' ');
+    return box() + `<polygon class="bd" points="${hex}"/><text class="gy" x="${f(cx)}" y="${f(c)}">표</text>`
+      + `<text class="nm2" x="${f(tx)}" y="${f(c + 5)}">표준담보</text>`
+      + `<text class="nl hd">${n.lines.map((s, i) => `<tspan x="${f(n.nx)}" y="${f(ty0 + i * L.LH)}">${esc(s)}</tspan>`).join('')}</text>`;
+  }
+  if (n.kind === 'rider') return box() + `<rect class="bd" x="${f(bx)}" y="${f(by - 1)}" width="${L.BG}" height="${L.BG}" rx="5"/><text class="gy" x="${f(cx)}" y="${f(cy)}">특</text>` + lines(n.lines, tx, ty, 'nl');
+  if (n.kind === 'more') return box() + `<circle class="bd" cx="${f(cx)}" cy="${f(n.y + n.h / 2)}" r="${hr - 1}"/><text class="gy" x="${f(cx)}" y="${f(n.y + n.h / 2)}">+</text><text class="nl" x="${f(tx)}" y="${f(n.y + n.h / 2 + 5)}">${esc(n.lines[0])}</text>`;
+  /* 급부 */
+  let s = box() + `<circle class="bd" cx="${f(cx)}" cy="${f(cy)}" r="${hr}"/><text class="gy" x="${f(cx)}" y="${f(cy)}">급</text>` + lines(n.lines, tx, ty, 'nl');
+  const my = n.y + L.PY + L.LH * n.lines.length;
+  s += `<text class="nm2" x="${f(tx)}" y="${f(my + 14)}">${esc(n.meta)}</text>`;
+  if (n.pg) {
+    const qx = n.chipBelow ? tx : tx + n.metaW + 10, qy = n.chipBelow ? my + L.MH : my;
+    s += `<rect class="dcb" x="${f(qx)}" y="${f(qy + 1)}" width="${f(n.chipW)}" height="18"/><text class="gy" x="${f(qx + 10)}" y="${f(qy + 10)}">문</text><text class="nm2" x="${f(qx + 21)}" y="${f(qy + 15)}">${esc(n.pg)}</text>`;
+  }
+  return s;
+}
+const ECLS = e => (e.kind === 'cmp' ? e.vcls : '');
+function tagSvg(T, G) {
+  const f = v => (+v).toFixed(1), L = G.L, x = T.x + 12, y0 = T.y + 4 + 13;
+  let s = `<rect class="tg" x="${f(T.x)}" y="${f(T.y)}" width="${f(T.w)}" height="${f(T.h)}"/><rect class="tgs" x="${f(T.x)}" y="${f(T.y)}" width="3" height="${f(T.h)}"/>`;
+  if (T.one) s += `<text class="el" x="${f(x)}" y="${f(y0)}"><tspan class="vw">${esc(T.head1)}</tspan><tspan dx="9">${esc(T.detail)}</tspan></text>`;
+  else s += `<text class="el"><tspan class="vw" x="${f(x)}" y="${f(y0)}">${esc(T.head1)}</tspan>${T.rest.map((l, i) => `<tspan x="${f(x)}" y="${f(y0 + (i + 1) * L.LH)}">${esc(l)}</tspan>`).join('')}</text>`;
+  return s;
 }
 function drawRel(animate) {
   const w = $('#gwrap'), sd = S.side;
@@ -1331,22 +1403,16 @@ function drawRel(animate) {
   const mkr = e => (e.kind === 'cmp' ? `ar-${e.vcls}` : e.kind === 'map' ? 'ar-m' : 'ar-r');
   const edges = G.E.map((e, i) => {
     const g = edgeGeo(G, e); e.g = g;
-    const lw = e.t.length * 7.4 + 8, an = g.anchor || 'middle';
-    const lx = an === 'middle' ? Math.max(lw / 2 + 2, Math.min(W - lw / 2 - 2, g.lx)) : an === 'end' ? Math.max(lw + 2, g.lx) : Math.min(W - lw - 2, g.lx);
-    return `<g class="e k-${e.kind} o${e.oi} ${ECLS(e)}${e.show ? ' show' : ''}${e.sure ? '' : ' dash'}" data-act="ge" data-e="${i}" tabindex="0" role="button" aria-label="${esc(e.t)}"${tipA([e.t, ...e.rows.slice(1, 3).map(r => `${r[0]}: ${String(r[1]).replace(/<[^>]+>/g, '')}`)])}>
-      <path class="hit" d="${g.d}"/><path class="ln" d="${g.d}" marker-end="url(#${mkr(e)})"${e.kind === 'cmp' ? ` marker-start="url(#${mkr(e)})"` : ''}/>
-      <text class="el" x="${lx.toFixed(1)}" y="${g.ly.toFixed(1)}" text-anchor="${an}">${esc(e.t)}</text></g>`;
+    return `<g class="e k-${e.kind} o${e.oi} ${ECLS(e)}${e.sure ? '' : ' dash'}" data-act="ge" data-e="${i}" tabindex="0" role="button" aria-label="${esc(e.t)}"${tipA([e.t, ...e.rows.slice(1, 3).map(r => `${r[0]}: ${String(r[1]).replace(/<[^>]+>/g, '')}`)])}>
+      <path class="hit" d="${g.d}"/><path class="ln" d="${g.d}" marker-end="url(#${mkr(e)})"${e.kind === 'cmp' ? ` marker-start="url(#${mkr(e)})"` : ''}/>${e.tag ? `<g class="el">${tagSvg(e.tag, G)}</g>` : ''}</g>`;
   }).join('');
-  const nodes = G.N.map(n => `<g class="n k-${n.kind}${n.oi != null ? ' o' + n.oi : ''}${n.rep ? ' rep' : ''}${n.absent ? ' absent' : ''}${n.pend ? ' pend' : ''}" data-act="gn" data-n="${n.id}" tabindex="0" role="button" aria-label="${esc(n.tip.join(', '))}"${tipA(n.tip)}><g class="nb">${shapeOf(n)}</g>${labelOf(n, G)}</g>`).join('');
+  const nodes = G.N.map(n => `<g class="n k-${n.kind}${n.oi != null ? ' o' + n.oi : ''}${n.rep ? ' rep' : ''}${n.absent ? ' absent' : ''}${n.pend ? ' pend' : ''}" data-act="gn" data-n="${n.id}" tabindex="0" role="button" aria-label="${esc(n.tip.join(', '))}"${tipA(n.tip)}><g class="nb">${nodeSvg(n, G)}</g></g>`).join('');
+  const seps = G.lanes.slice(0, -1).map(l => `<line class="lane-sep" x1="0" x2="${G.W}" y1="${(l.y1 - 9).toFixed(1)}" y2="${(l.y1 - 9).toFixed(1)}"/>`).join('');
   w.innerHTML = `<svg class="gsvg" id="gsvg" width="${W}" height="${G.H}" viewBox="0 0 ${W} ${G.H}" role="group" aria-label="${esc(D.std[sd.sid].name)} 관계 그림">
-    <defs>${mk('ar-m', 'var(--text-2)')}${mk('ar-r', 'var(--line-2)')}
+    <defs>${mk('ar-m', 'var(--g-node)')}${mk('ar-r', 'var(--g-line)')}
       ${['good', 'bad', 'mixed', 'hold', 'same', 'gap', 'gapc'].map(c => mk('ar-' + c, `var(--${c === 'same' || c === 'mixed' ? 'text' : c === 'gapc' ? 'gap' : c})`)).join('')}
       <pattern id="hp" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" style="fill:var(--surf)"/><rect width="1.4" height="5" style="fill:var(--gap)"/></pattern></defs>
-    <circle class="ring-g" cx="${G.cx}" cy="${G.cy}" r="${(G.R * .45).toFixed(1)}"/>
-    <circle class="ring-g" cx="${G.cx}" cy="${G.cy}" r="${(G.R * .8).toFixed(1)}"/>
-    <circle class="ring-o" cx="${G.cx}" cy="${G.cy}" r="${G.R.toFixed(1)}"/>
-    <g class="es">${edges}</g><g class="ns">${nodes}</g></svg>`;
-  declutter();
+    ${seps}<g class="es">${edges}</g><g class="ns">${nodes}</g></svg>`;
   markSel();
   if (animate && !reduce()) assemble(G);
 }
@@ -1672,7 +1738,7 @@ document.addEventListener('click', e => {
   else if (a === 'gmode') {
     S.gmode = el.dataset.v;
     $$('#gmode .sc').forEach(c => c.setAttribute('aria-checked', c.dataset.v === S.gmode)); segMark($('#gmode'));
-    $('#lgdt').hidden = S.gmode !== 'graph'; $('#lgdb').hidden = !(S.lgd && S.gmode === 'graph');
+    $('#lgdbtn').hidden = S.gmode !== 'graph'; $('#ghint').hidden = S.gmode !== 'graph'; $('#lgdb').hidden = !(S.lgd && S.gmode === 'graph');
     drawRel(true); markSel();
   }
   else if (a === 'lgd') {
@@ -1699,7 +1765,8 @@ document.addEventListener('pointerdown', e => {
     svg.classList.add('iso'); n.classList.add('keep');
     es.forEach(i => { const g = svg.querySelector(`[data-e="${i}"]`); g.classList.add('keep'); const E = drawRel.G.E[i]; [E.from, E.to].forEach(x => { const m = svg.querySelector(`[data-n="${x}"]`); if (m) m.classList.add('keep'); }); });
   }
-  if (e.pointerType === 'touch') { const t = e.target.closest('[data-tip]'); if (t) showTip(t, true); else hideTip(); }
+  /* 터치: 누르면 동작하는 것(패널을 여는 항목 등)에는 정보창을 띄우지 않는다. 같은 정보가 패널에 나온다 */
+  if (e.pointerType === 'touch') { const t = e.target.closest('[data-tip]'); if (t && !t.closest('[data-act]')) showTip(t, true); else hideTip(); }
 }, true);
 const unIso = () => { const svg = $('#gsvg'); if (svg) { svg.classList.remove('iso'); $$('.keep', svg).forEach(x => x.classList.remove('keep')); } };
 addEventListener('pointerup', unIso, true); addEventListener('pointercancel', unIso, true);
@@ -1720,7 +1787,7 @@ function showTip(t, sticky) {
   tipEl = t;
   clearTimeout(tipT); if (sticky) tipT = setTimeout(hideTip, 3200);
 }
-function hideTip() { $('#tip').classList.remove('on'); tipEl = null; }
+function hideTip() { clearTimeout(tipT); $('#tip').classList.remove('on'); tipEl = null; }
 document.addEventListener('pointerover', e => {
   if (e.pointerType === 'touch') return;
   const t = e.target.closest('[data-tip]');
@@ -1810,7 +1877,8 @@ $('#side').inert = true;
 renderSide(false);
 if (!S.rm) { booting = true; document.documentElement.classList.add('boot'); setTimeout(skipBoot, 900); }
 requestAnimationFrame(() => { reaim(); });
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { reaim(); if (drawRel.G) declutter(); });
+/* 글꼴이 다 실리면 글자 폭을 다시 재야 하므로 그림을 새로 그린다 */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { reaim(); if (drawRel.G) { drawRel(false); markSel(); } });
 window.__proto = { S, go, setCond, select, setSide, closeSide, setSkin, setMotion, finishAll, skipBoot };
 })();
 </script>
