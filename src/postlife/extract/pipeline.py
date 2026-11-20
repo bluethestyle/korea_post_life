@@ -167,7 +167,7 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
             got = _attempt(gemini, block, model, best.feedback(thresholds) if best else None)
         except (GeminiError, ValueError, KeyError) as e:
             log.add(stage, rider, "보류", f"호출 실패: {str(e)[:200]}", model=model)
-            if model == config.MODEL_SUMMARY and "429" in str(e):
+            if model == config.MODEL_SUMMARY and getattr(e, "status", None) == 429:    # 사유 글자가 아니라 HTTP 상태로 가린다
                 budget["상위모델"] = 0        # 상위 모델의 하루 한도가 찼다. 남은 조각에서 헛되이 부르지 않는다
             continue
         for b in got.ex.benefits:       # 코드 대조에서 걸린 줄은 시도마다 남긴다

@@ -126,8 +126,61 @@ DEFAULT_THRESHOLDS = {
     "중복판정_동일": 0.70,
 }
 
-# 응답 대기 시간(초). 상위 모델은 긴 특약에서 90초를 넘기는 일이 있었다.
-TIMEOUT = {MODEL_SUMMARY: 240.0}
+# ---------- 모델별 호출 설정 ----------
+# 여기에 없는 모델은 예전과 같은 요청과 재시도를 쓴다(gemini.py의 기본값).
+# 상위 모델 값은 2026-11-19에 Gemini API 공식 문서(ai.google.dev가 넘겨 주는 aistudio.google.com/docs)를 보고 정했다.
+# 근거 문서: models/gemini-3.8-flash, whats-new-gemini-3.8, thinking(generateContent판), api-reference/generate-content,
+# api-errors(generateContent판), troubleshooting.
 
-# 재시도 대기(초). 상위 모델은 "이용량 과다"(503)가 잦아 더 오래 기다렸다 다시 부른다 (30초, 60초).
-RETRY_WAIT = {MODEL_SUMMARY: 30.0}
+# generationConfig에 덮어쓸 값. None이면 그 항목을 요청에서 뺀다.
+GENERATION = {
+    MODEL_SUMMARY: {
+        # 문서의 출력 상한은 65,536이고, 사고 토큰도 이 상한 안에 든다("including thought tokens").
+        # 예전 8,192는 기본 사고(medium)와 답 JSON이 나눠 써서 JSON이 중간에 끊긴 적이 있다.
+        # 65,536이 아니라 절반으로 둔 것은, 답이 끝없이 이어질 때 아래 대기 시간보다 먼저 MAX_TOKENS로 끝나기를 바란 판단이다
+        # (이 모델의 출력 속도는 문서로 확인하지 못했다).
+        "maxOutputTokens": 32768,
+        # 3.8은 low, medium(기본), high만 받는다. minimal은 오류이고 사고를 끌 수 없다.
+        # low는 문서에서 "Fewest tokens, lowest latency". 11-19 실행의 상위 모델 실패 8건 중 5건이 시간 초과였다.
+        # low와 medium의 추출 품질 차이는 확인하지 못했다. scripts/dev/try_upper_model.py --level 로 견줘 볼 수 있다.
+        "thinkingConfig": {"thinkingLevel": "low"},
+        # 3.6 Flash 이후 모델은 temperature를 "silently ignored"하고, 문서는 요청에서 지우라고 한다.
+        "temperature": None,
+    },
+}
+
+# 응답이 토큰 상한에 걸려 잘렸다고 보는 finishReason. MAX_TOKENS는 API 참조에 있는 값이다.
+# CONTINUATION("per-request token limit"에 닿아 이어 받아야 함)은 문서가 Gemini 4를 두고 설명한 값인데,
+# 3.8에서 오는지 확인하지 못해 같이 잘림으로 본다.
+TRUNCATED_FINISH = ("MAX_TOKENS", "CONTINUATION")
+
+# 응답 대기 시간(초). 없으면 90초.
+# 상위 모델은 240초에서 끊은 일이 11-19 실행에서 5건 있었고, 그때마다 한 번 더 불러 240초를 두 번 기다렸다.
+# 이제 시간 초과 뒤 되풀이하지 않으므로(아래 TIMEOUT_RETRIES), 예전 최악의 경우(240초 두 번)와 같은 480초를 한 번에 기다린다.
+# 실행 전체의 최악 시간은 예전과 같다(EXTRACT_ESCALATIONS_PER_RUN 12회 × 480초). 504 오류에 대한 문서 권고도
+# "Set a larger 'timeout'"이다.
+TIMEOUT = {MODEL_SUMMARY: 480.0}
+
+# 시간 초과나 연결 끊김으로 응답을 받지 못했을 때 같은 호출을 다시 하는 횟수. 없으면 1(첫 시도에서만 한 번 더).
+# 상위 모델은 서버가 끝까지 처리해 하루 한도(20회)를 쓰는 것으로 보여(사용량 화면에 호출과 토큰이 잡힘) 되풀이하지 않는다.
+TIMEOUT_RETRIES = {MODEL_SUMMARY: 0}
+
+# 재시도 대기(초). 숫자 하나면 그 값의 1배, 2배, ... 를 max_retries번 기다린다(없으면 8초씩 늘림).
+# 목록이면 그 간격대로 목록 길이만큼만 다시 부른다.
+# 상위 모델: 문서는 503(UNAVAILABLE)에 지수적으로 늘리는 대기를 권하고, 공식 SDK의 최대 대기가 60초다.
+# 지금 쓰던 30초, 60초가 그 안에 있어 그대로 둔다. 11-19의 503 세 건은 이 간격으로도 모두 실패했는데,
+# 더 오래 기다릴 근거는 문서에 없고, 남은 상위 모델 횟수는 다음 특약에서 다시 쓰인다.
+RETRY_WAIT = {MODEL_SUMMARY: (30.0, 60.0)}
+
+# 분당 토큰 한도가 빠듯한 모델. 최근 60초 동안 보낸 입력 토큰(글자 수로 어림)이 이 값을 넘지 않게 호출 전에 기다린다.
+# 판정 모델의 한도는 분당 5만 토큰이다. 호출 간격(MIN_INTERVAL)만으로는 못 지킨다: 2026-11-19 사용량 화면에서
+# 분당 호출은 14회(한도 200회)인데 분당 토큰 최고값이 79.98K였다. 실패 기록은 없었지만 한도를 넘긴 채 다시 시도로
+# 넘어간 것일 수 있어 한도에 여유 10%를 두고 지킨다.
+TOKENS_PER_MINUTE = {MODEL_DECIDE: 45_000}
+# 요청 본문의 글자 하나를 토큰 몇 개로 어림할지. 한글이 섞인 JSON 본문의 실제 비율은 재 보지 못해 넉넉하게 1로 둔다.
+TOKENS_PER_CHAR = 1.0
+
+# 다시 시도할 HTTP 상태. 없으면 gemini.RETRY_STATUS(429, 500, 502, 503, 504).
+# 상위 모델은 504를 빼었다. 문서상 504는 서버가 정한 시간 안에 처리를 못 끝낸 것("unable to finish processing
+# within the deadline")이라 같은 요청을 되풀이하면 시간과 한도만 더 쓴다.
+RETRY_STATUS = {MODEL_SUMMARY: (429, 500, 502, 503)}
