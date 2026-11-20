@@ -1,0 +1,93 @@
+name: 한도 초기화 뒤 확인 실행
+run-name: 한도 초기화 뒤 확인 실행 (${{ github.event_name }})
+
+# 무료 한도가 풀린 뒤(한국 시간 17시) 사람이 없어도 도는 확인 실행이다. 시트에는 쓰지 않는다.
+#  1. 상위 모델 확인 호출: 2026-11-20에 고친 호출 설정(출력 상한, 사고 수준)이 통하는지 본다. 하루 20회 가운데 2회를 쓴다.
+#  2. 한화 재추출 시험: extract.yml 을 dry_run 으로 돌린다. 재추출 보호(이전 줄 지키기, 급부ID 잇기), 대상별 면책 분리,
+#     상위 모델 구제 단계가 실제 모델 응답에서 어떻게 도는지 결과물(extract-result)로 남긴다. 추출 모델 하루 한도의 대부분을 쓴다.
+# 예약은 한 번만 걸려 있다. 끝나면 예약 줄을 지운다(그대로 두면 다음 해 같은 날에 또 돈다).
+on:
+  schedule:
+    - cron: "10 8 20 11 *"      # 2026-11-20 17:10 (한국 시간)
+    - cron: "45 8 20 11 *"      # 예약이 밀리거나 빠졌을 때를 위한 두 번째. 앞 실행이 있으면 아무것도 하지 않는다
+  workflow_dispatch:
+    inputs:
+      skip_extract:
+        description: "재추출 시험을 건너뛴다 (상위 모델 확인 호출만)"
+        type: boolean
+        default: false
+      org:
+        description: "재추출 시험을 돌릴 회사: hanwha 또는 epost"
+        type: string
+        default: hanwha
+      rehearsal:
+        description: "예행연습: 모델을 부르지 않는다. 상위 모델 호출을 건너뛰고, extract.yml 대신 읽기만 하는 시트 점검을 시작해 지켜본다"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: write        # extract.yml 을 시작하고 지켜본다
+
+concurrency:
+  group: after-reset
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      SKIP_EXTRACT: ${{ inputs.skip_extract }}
+      ORG: ${{ inputs.org || 'hanwha' }}
+      REHEARSAL: ${{ inputs.rehearsal }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 앞서 돈 실행이 있는지 확인
+        id: guard
+        run: |
+          # 예약으로 시작한 경우에만 본다. 오늘 이 워크플로의 다른 실행이 이미 돌았거나 돌고 있으면 건너뛴다
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            today=$(date -u +%Y-%m-%d)
+            others=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow after-reset.yml --created "$today" --limit 20 \
+                       --json databaseId --jq "[.[] | select(.databaseId != $GITHUB_RUN_ID)] | length")
+            echo "오늘 돈 다른 실행: $others"
+            if [ "$others" -gt 0 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+      - if: steps.guard.outputs.skip != 'true'
+        run: pip install -r requirements.txt
+      - name: 상위 모델 확인 호출 (지금 설정, 사고 수준 low)
+        if: steps.guard.outputs.skip != 'true' && env.REHEARSAL != 'true'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          { echo "## 상위 모델 확인 호출 (지금 설정)"; echo '```'; python scripts/dev/try_upper_model.py 2>&1; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: 상위 모델 확인 호출 (사고 수준 medium, 견주기)
+        if: steps.guard.outputs.skip != 'true' && env.REHEARSAL != 'true'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          { echo "## 상위 모델 확인 호출 (medium)"; echo '```'; python scripts/dev/try_upper_model.py --level medium 2>&1; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: 재추출 시험 (시트에 쓰지 않음)
+        if: steps.guard.outputs.skip != 'true' && env.SKIP_EXTRACT != 'true'
+        run: |
+          if [ "$REHEARSAL" = "true" ]; then target=sheet-check.yml; args=(); label="예행연습(시트 점검)"; else target=extract.yml; args=(-f org="$ORG" -f dry_run=true); label="재추출 시험($ORG, dry_run)"; fi
+          before=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$target" --limit 1 --json databaseId --jq '.[0].databaseId')
+          gh workflow run "$target" --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" "${args[@]}"
+          id="$before"
+          for i in $(seq 1 30); do
+            sleep 10
+            id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$target" --limit 1 --json databaseId --jq '.[0].databaseId')
+            [ "$id" != "$before" ] && break
+          done
+          if [ "$id" = "$before" ]; then echo "$target 실행이 시작되지 않았습니다."; exit 1; fi
+          echo "$label 실행 번호: $id" | tee -a "$GITHUB_STEP_SUMMARY"
+          gh run watch "$id" --repo "$GITHUB_REPOSITORY" --interval 60 --exit-status > /dev/null || echo "실패로 끝났습니다. 실행 $id 의 기록을 본다." | tee -a "$GITHUB_STEP_SUMMARY"
+          gh run view "$id" --repo "$GITHUB_REPOSITORY" --json conclusion,status --jq '"결과: \(.status) \(.conclusion)"' | tee -a "$GITHUB_STEP_SUMMARY"

@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from postlife import config  # noqa: E402
 from postlife.extract import job  # noqa: E402
 from postlife.gemini import Gemini  # noqa: E402
+from postlife.recording import Recording  # noqa: E402
 from postlife.sheets_io import MemoryBackend, RestBackend, SheetStore  # noqa: E402
 from postlife.snapshot import KST  # noqa: E402
 
@@ -50,7 +51,8 @@ def main() -> int:
         path = args.docs / f"{stem}.txt"
         return path.read_text(encoding="utf-8") if path.exists() else None
 
-    gemini = Gemini(min_interval=config.MIN_INTERVAL, timeout=config.TIMEOUT, retry_wait=config.RETRY_WAIT)
+    # 모델 응답을 결과물에 함께 남긴다. 고친 코드를 모델을 다시 부르지 않고 같은 응답으로 돌려 볼 수 있다
+    gemini = Recording(Gemini(min_interval=config.MIN_INTERVAL, timeout=config.TIMEOUT, retry_wait=config.RETRY_WAIT))
     report = job.run(gemini, store, targets, index, read_text, datetime.now(KST), only=args.only,
                      dry_run=args.dry_run, read_thresholds=has_sheet,
                      parts=tuple(x.strip() for x in args.parts.split(",") if x.strip()))
@@ -58,8 +60,11 @@ def main() -> int:
     print(text)
     if args.result:
         args.result.parent.mkdir(parents=True, exist_ok=True)
-        args.result.write_text(json.dumps({"rows": report.rows, "logs": report.logs, "errors": report.errors},
+        args.result.write_text(json.dumps({"rows": report.rows, "logs": report.logs, "errors": report.errors,
+                                           "rerun": getattr(report, "rerun", None), "notes": report.notes,
+                                           "calls": gemini.calls, "token_waits": getattr(gemini, "token_waits", {})},
                                           ensure_ascii=False, indent=1), encoding="utf-8")
+        gemini.dump(args.result.with_name("model_outputs.jsonl"))
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as f:
