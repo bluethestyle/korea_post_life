@@ -48,12 +48,13 @@ jobs:
       - name: 앞서 돈 실행이 있는지 확인
         id: guard
         run: |
-          # 예약으로 시작한 경우에만 본다. 오늘 이 워크플로의 다른 실행이 이미 돌았거나 돌고 있으면 건너뛴다
+          # 예약으로 시작한 경우에만 본다. 오늘 예약으로 시작한 다른 실행이 이미 돌았거나 돌고 있으면 건너뛴다
+          # (손으로 시작한 실행과 예행연습은 세지 않는다)
           if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
             today=$(date -u +%Y-%m-%d)
-            others=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow after-reset.yml --created "$today" --limit 20 \
+            others=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow after-reset.yml --event schedule --created "$today" --limit 20 \
                        --json databaseId --jq "[.[] | select(.databaseId != $GITHUB_RUN_ID)] | length")
-            echo "오늘 돈 다른 실행: $others"
+            echo "오늘 예약으로 돈 다른 실행: $others"
             if [ "$others" -gt 0 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
           fi
       - uses: actions/setup-python@v5
