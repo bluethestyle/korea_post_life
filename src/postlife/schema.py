@@ -50,6 +50,8 @@ TABS: dict[str, Tab] = {
             Column("고지중대질병년수", "int", False),
             Column("고지수술포함여부", "bool", False),
             Column("고지중대질병수", "int", False),
+            Column("고지중대질병목록", "str", False),   # 중대질병 질문의 질병 이름(원문 순서, 괄호 설명 뺌)을 ", "로 이음
+            Column("고지소견범위", "str", False),       # 최근 소견 질문의 "필요 소견" 범위. 서면 / 서면과 진료기록부
             Column("갱신유형", "str", True),
             Column("갱신주기년", "int", False),
             Column("환급유형", "str", False),

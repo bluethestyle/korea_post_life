@@ -14,6 +14,8 @@ ALLOWED: dict[tuple[str, str], set[str]] = {
     ("sys_상품종형", "비교역할구분"): {"정밀비교", "관문전용", "직전개정시연"},
     ("sys_상품종형", "심사유형"): {"일반심사", "간편심사"},
     ("sys_상품종형", "갱신유형"): {"비갱신", "갱신"},
+    # 서면: 진단서나 소견서 같은 서면에 적힌 소견만. 서면과 진료기록부: 진료기록부에 적고 환자에게 설명하거나 권유한 소견까지
+    ("sys_상품종형", "고지소견범위"): {"서면", "서면과 진료기록부"},
     ("sys_특약", "담보구분"): {"주계약", "의무특약", "선택특약"},
     ("sys_급부", "급부역할"): {"주급부", "부수급부", "대등복합"},
     ("sys_급부", "지급기준구분"): {"금액", "가입금액비율"},     # 비어 있으면 금액으로 본다
@@ -84,6 +86,13 @@ def _logic(tab_name: str, row: dict[str, Any]) -> list[str]:
             out.append("간편심사인데 고지 요건이 비어 있음")
         if row.get("갱신유형") == "갱신" and row.get("갱신주기년") in (None, ""):
             out.append("갱신형인데 갱신주기년이 비어 있음")
+        names, count = row.get("고지중대질병목록"), row.get("고지중대질병수")
+        if isinstance(names, str) and names.strip():
+            items = [n.strip() for n in names.split(",")]
+            if not all(items):
+                out.append(f"고지중대질병목록에 빈 항목이 있음: {names!r}")
+            elif isinstance(count, int) and not isinstance(count, bool) and len(items) != count:
+                out.append(f"고지중대질병목록의 질병 수({len(items)})가 고지중대질병수({count})와 다름")
         start, end = row.get("적용시작일"), row.get("판매종료일")
         if start and end and str(end) < str(start):
             out.append("판매종료일이 적용시작일보다 앞섬")

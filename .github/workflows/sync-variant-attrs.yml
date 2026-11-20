@@ -1,0 +1,55 @@
+name: 종형 속성 갱신
+
+# 대상 설정(data/targets)에 적힌 종형의 고지 열(src/postlife/extract/variants.py의 OPTIONAL)을 시트의 기존 sys_상품종형 행에
+# 맞춘다(scripts/sync_variant_attrs.py). 모델을 부르지 않고 공시 사이트에 접속하지 않는다. 다른 열, 다른 탭, 설정에 없는 종형의
+# 행은 그대로 두고, 시트에 없는 종형은 만들지 않고 보고만 한다. 새 열이면 열 넣기(add-column.yml)를 먼저 돌린다.
+# 시트를 쓰는 추출, 매핑과 겹치지 않게 같은 동시 실행 그룹에 둔다.
+on:
+  workflow_dispatch:
+    inputs:
+      org:
+        description: "회사 설정: all(세 회사 모두), epost(우체국), hanwha(한화생명), samsungfire(삼성화재)"
+        type: choice
+        options: [all, epost, hanwha, samsungfire]
+        default: all
+      dry_run:
+        description: "시트에 쓰지 않고 바꿀 칸만 본다"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extract
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      INPUT_ORG: ${{ inputs.org || 'all' }}
+      INPUT_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 종형 속성 갱신
+        run: |
+          args=()
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python scripts/sync_variant_attrs.py --org "$INPUT_ORG" --result result/sync_variant_attrs.json "${args[@]}"
+      - name: 머리글 점검
+        run: python scripts/check_sheet.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sync-variant-attrs-result
+          path: result
+          retention-days: 3

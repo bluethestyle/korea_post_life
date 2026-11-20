@@ -182,8 +182,9 @@ def test_analyze_pair_is_the_same_as_analyze_for_the_same_peers(data, analysis):
     (H1, P(since=0.25, surgery_only=True), S.Q_HIT),
     (E5, P(since=4), S.Q_HIT),
     (EG, P(since=4), S.Q_REVIEW),
-    (EG, P(since=5), S.Q_NONE),
-    (EG, P(), S.Q_NONE),
+    (EG, P(since=5), S.Q_REVIEW),                              # 일반심사는 이력과 무관하게 심사로 확인(5년 규칙을 버렸다)
+    (EG, P(since=10), S.Q_REVIEW),
+    (EG, P(), S.Q_REVIEW),
 ])
 def test_question_hit(data, vid, profile, hit):
     assert S.question_hit(data.variants[vid], profile) == hit
@@ -213,7 +214,7 @@ def test_gate_states_and_company_order(data):
     (P(age=30, since=0.25), S.ALL_CLOSED, []),
     (P(age=30, since=1), S.BOTH_OPEN, ["SAMSUNGFIRE"]),
     (P(age=17, since=1), S.ONLY_CLOSED, ["SAMSUNGFIRE"]),
-    (P(age=19), S.BOTH_OPEN, ["SAMSUNGFIRE"]),
+    (P(age=19), S.ONLY_CLOSED, ["SAMSUNGFIRE"]),                     # 일반심사 4종은 이력이 없어도 심사로 확인이라 열림이 아니다
     (P(age=30, since=1, renewal="갱신"), S.NO_DATA, ["SAMSUNGFIRE"]),   # 갱신형 상대는 삼성화재뿐이고 나이 자료가 없다
     (P(age=30, since=1, renewal="비갱신"), S.NO_DATA, []),           # 우리 비갱신 종형이 없다(자료가 없는 것과는 다르다)
 ])
@@ -229,37 +230,43 @@ def test_cell_representatives_and_counts(data, analysis):
     assert out["수"] == {"고유": 2, "빈자리": 3, "못함": 1, "나음": 1, "대기": 1}
     # 간편이 모두 열리면 질문 기간이 가장 긴 종형이 대표다
     assert S.cell(data, P(age=30), analysis, REL)["대표"] == E5
-    # 간편이 나이로 닫히면 열린 일반심사 종형이 대표이고, 상대는 바로잡은 짝이다
+    # 간편이 나이로 닫히면 심사로 확인이고 가입나이가 맞는 일반심사 종형이 대표이고, 상대는 바로잡은 짝(일반심사)이다
     young = S.cell(data, P(age=19), analysis, REL)
     assert young["대표"] == EG and young["상대대표"] == {"HANWHALIFE": HG, "SAMSUNGFIRE": SB}
-    # 열린 상대가 없으면 숫자를 비운다
+    # 이력이 있어도 같다(일반심사 종형은 이력과 무관하게 심사로 확인). 칸의 담보 비교 숫자가 남는다
+    hist = S.cell(data, P(age=17, since=1), analysis, REL)
+    assert (hist["대표"], hist["상대대표"]) == (EG, {"HANWHALIFE": HG, "SAMSUNGFIRE": SB})
+    assert hist["수"] == young["수"] and hist["수"] is not None
+    # 열린 상대가 없으면 숫자를 비운다(우리 대표가 간편이면 상대의 일반심사 종형은 대표로 고르지 않는다)
     lone = S.cell(data, P(age=30, since=0.25, surgery_only=True), analysis, REL)
     assert lone["대표"] == E5 and lone["상대대표"] == {} and lone["수"] is None
-    assert S.cell(data, P(age=17, since=1), analysis, REL)["수"] is None
+    # 일반심사 종형도 나이로 닫히면 대표가 없다(4종은 15~65세)
+    assert S.cell(data, P(age=70, since=0.25), analysis, REL)["대표"] is None
 
 
 def test_segment_map_rows_columns_and_merging(data, analysis):
     m = S.segment_map(data, "M", None, analysis, REL)
     assert [r["이름"] for r in m["행"]] == ["입원 3개월~1년 전", "입원 1~5년 전", "입원 5년 넘음이나 없음",
                                           "수술만 3개월~1년 전", "수술만 1~5년 전", "수술만 5년 넘음이나 없음"]
-    # 20~60과 61~65는 한도만 달라 합치고, 66~80은 우리 일반심사 종형이 닫혀 열린 종형이 달라 따로 둔다
+    # 20~60과 61~65는 한도만 달라 합치고, 66~80은 우리 일반심사 종형(15~65세)이 나이로 닫혀 대표와 보조 줄이 달라 따로 둔다
     assert m["열"] == [{"lo": 15, "hi": 19}, {"lo": 20, "hi": 65}, {"lo": 66, "hi": 80}]
     grid = [[x["분류"] for x in line] for line in m["칸"]]
+    # 15~19세 5년 넘음이나 없음은 우리 간편이 나이로 닫히고 4종(일반심사)은 심사로 확인이라 우리만 닫힘이다(전에는 4종이 열려 함께 열림)
     assert grid == [
         [S.ALL_CLOSED] * 3,
         [S.ONLY_CLOSED, S.BOTH_OPEN, S.BOTH_OPEN],
-        [S.BOTH_OPEN] * 3,
+        [S.ONLY_CLOSED, S.BOTH_OPEN, S.BOTH_OPEN],
         [S.ALL_CLOSED, S.ONLY_OPEN, S.ONLY_OPEN],
         [S.ONLY_CLOSED, S.BOTH_OPEN, S.BOTH_OPEN],
-        [S.BOTH_OPEN] * 3,
+        [S.ONLY_CLOSED, S.BOTH_OPEN, S.BOTH_OPEN],
     ]
-    assert m["집계"] == {S.ONLY_OPEN: 2, S.BOTH_OPEN: 10, S.ONLY_CLOSED: 2, S.ALL_CLOSED: 4, S.NO_DATA: 0}
+    assert m["집계"] == {S.ONLY_OPEN: 2, S.BOTH_OPEN: 8, S.ONLY_CLOSED: 4, S.ALL_CLOSED: 4, S.NO_DATA: 0}
     assert m["칸"][1][1]["자료없음"] == ["SAMSUNGFIRE"]
 
 
 # ---------- 문장 틀 ----------
 def test_render_fills_values_and_particles():
-    assert S.render("Q2", {"우리종형": "1종", "담보": "암 진단비"}) == "우체국 1종에는 암 진단비에 해당하는 담보가 없습니다."
+    assert S.render("Q2", {"우리종형": "1종", "담보": "암 진단비"}) == "우체국 1종에는 암 진단비를 따로 주는 담보는 없습니다."
     assert S.render("조건_상대", {"상대": "한화생명 간편가입형(1년)", "상대조건": "감액 없음"}) == "한화생명 간편가입형(1년)은 감액 없음"
     assert S.render("조건_상대", {"상대": "삼성화재 7종 315·5", "상대조건": "감액 없음"}) == "삼성화재 7종 315·5는 감액 없음"
     assert S.render("Q_질문", {"상대회사": S.or_join(["한화생명", "삼성화재"]), "담보": "부정맥 진단비"}) == \
@@ -267,10 +274,23 @@ def test_render_fills_values_and_particles():
     assert S.and_join(["가", "나", "다"]) == "가, 나와 다"
 
 
-@pytest.mark.parametrize("word, final", [("간편가입형(1년)", True), ("1종(간편가입315)", False), ("단일", True),
-                                         ("삼성화재", False), ("10", True), ("50%", False), ("THE FIT", False)])
+@pytest.mark.parametrize("word, final", [
+    ("간편가입형(1년)", True), ("단일", True), ("삼성화재", False), ("10", True), ("50%", False), ("THE FIT", False),
+    # 괄호로 끝나는 말은 괄호 앞 말의 받침을 따른다(괄호 묶음이 이어 붙어도 모두 걷는다)
+    ("1종(간편가입315)", True), ("2종(간편가입325)", True), ("유사암 진단비(통합)", False),
+    ("8종(해약환급금 미지급형,일반고지)", True), ("새로고침(2607.5)(자동갱신형)", True), ("1일당(4일째부터, 60일 한도)", True),
+    # 괄호 뒤에 글자가 더 있으면 지금처럼 마지막 글자를 본다. 괄호 앞에 말이 없으면 괄호 안을 본다
+    ("7종(해약환급금 미지급형) 315·5", False), ("통합암(전이 포함) 진단비", False), ("(통합)", True)])
 def test_has_final(word, final):
     assert S.has_final(word) == final
+
+
+def test_particles_after_a_closing_parenthesis():
+    assert S.josa("2종(간편가입325)", "가") == "2종(간편가입325)이"
+    assert S.josa("1종(간편가입315)", "는") == "1종(간편가입315)은"
+    assert S.josa("유사암 진단비(통합)", "이") == "유사암 진단비(통합)가"
+    assert S.josa("7종(해약환급금 미지급형) 315·5", "가") == "7종(해약환급금 미지급형) 315·5가"
+    assert S.and_join(["2종(간편가입325)", "3종(간편가입355)", "4종(일반가입)"]) == "2종(간편가입325), 3종(간편가입355)과 4종(일반가입)"
 
 
 def test_render_refuses_missing_values():
@@ -291,7 +311,7 @@ def test_render_refuses_forbidden_words(monkeypatch):
     with pytest.raises(S.ForbiddenWordError):
         S.render("시험", {"담보": "암"})
     # 자료에서 온 이름은 사실을 옮긴 것이라 검사하지 않는다
-    assert S.render("Q2", {"우리종형": "1종", "담보": "종별 수술비(최고 종 기준)"}).endswith("해당하는 담보가 없습니다.")
+    assert S.render("Q2", {"우리종형": "1종", "담보": "종별 수술비(최고 종 기준)"}).endswith("따로 주는 담보는 없습니다.")
 
 
 # ---------- 응대 포인트 ----------
@@ -315,18 +335,20 @@ def test_gate_points_only_open(pts):
     assert len(g1) == 1 and g1[0]["원문대조"] and g1[0]["근거"][0] == {"종형ID": E1, "문서": "사업방법서", "쪽": None, "급부ID": None}
     assert g1[0]["원문대조글"] == "사업방법서 원문 확인 필요"
     # 본문은 분석 문장, 카드의 답은 고객에게 하는 말이다
+    # 우리 종형과 상대 종형의 질문을 햇수로 적는다("같은 기간에"라고 쓰지 않는다)
     assert g1[0]["문장"] == (
         "입원 없이 받은 마지막 수술이 3개월~1년 전이고 최근 3개월 소견과 5년 안 중대질병에 해당하지 않는 고객은 "
-        "우체국 1종(간편가입315)의 고지 질문에 해당하지 않습니다. 한화생명 간편가입형(1년)과 삼성화재 7종(간편315)는 "
-        "같은 기간에 입원과 수술을 묻습니다. 가입 여부는 청약 뒤 심사로 정해집니다.")
+        "우체국 1종(간편가입315)의 고지 질문(1년 안 입원)에 해당하지 않습니다. 한화생명 간편가입형(1년)과 삼성화재 7종(간편315)은 "
+        "1년 안의 입원과 수술을 묻습니다. 가입 여부는 청약 뒤 심사로 정해집니다.")
     assert g1[0]["카드질문"] is None and g1[0]["카드답"] == (
         "입원 없이 받은 마지막 수술이 3개월~1년 전이고 최근 3개월 소견과 5년 안 중대질병에 해당하지 않으시면, "
-        "우체국 1종(간편가입315)의 고지 질문에는 해당하지 않습니다. 한화생명 간편가입형(1년)과 삼성화재 7종(간편315)는 "
-        "같은 기간에 입원과 수술을 묻습니다. 가입 여부는 청약 뒤 심사로 정해집니다.")
+        "우체국 1종(간편가입315)의 고지 질문(1년 안 입원)에는 해당하지 않습니다. 한화생명 간편가입형(1년)과 삼성화재 7종(간편315)은 "
+        "1년 안의 입원과 수술을 묻습니다. 가입 여부는 청약 뒤 심사로 정해집니다.")
+    assert "같은 기간" not in g1[0]["문장"] + g1[0]["카드답"]
     g3 = by_code(pts, "G3")
     assert [x["비교종형ID"] for x in g3] == [[H1], [S1]]
-    assert g3[0]["문장"] == ("1년 안 질문에서 우체국 1종(간편가입315)는 입원을, 한화생명 간편가입형(1년)은 입원과 수술을 묻습니다. "
-                            "5년 안 중대질병 질문의 질병 수는 우체국 6개, 한화생명 7개입니다.")
+    assert g3[0]["문장"] == ("최근 1년 안의 입원과 수술 질문에서 우체국 1종(간편가입315)은 입원을, 한화생명 간편가입형(1년)은 "
+                            "입원과 수술을 묻습니다. 5년 안 중대질병 질문의 질병 수는 우체국 6개, 한화생명 7개입니다.")
     assert g3[0]["카드답"] == g3[0]["문장"] and g3[0]["원문대조글"] == "사업방법서 원문 확인 필요"
 
 
@@ -334,7 +356,9 @@ def test_gate_point_only_closed_leaves_out_companies_without_age_data(data, anal
     r = S.points(data, E1, P(age=17, since=1), analysis, REL)
     g2 = by_code(r, "G2")
     assert len(g2) == 1 and not by_code(r, "G1")
-    assert g2[0]["문장"] == "17세는 우체국 1종(간편가입315)의 가입나이(20~80세) 밖입니다. 한화생명 간편가입형(1년)은 15~80세를 받습니다."
+    # 17세가 우체국 일반심사 종형(4종, 15~65세)의 가입나이 안이라 그 종형으로 심사를 받을 수 있다고 덧붙인다
+    assert g2[0]["문장"] == ("17세는 우체국 1종(간편가입315)의 가입나이(20~80세) 밖입니다. 한화생명 간편가입형(1년)의 가입나이는 "
+                            "15~80세입니다. 우체국에서는 일반심사 종형(4종(일반가입), 15~65세)으로 심사를 받을 수 있습니다.")
     assert {"세부": "G2", "사유": "나이 자료 없음: 삼성화재"}.items() <= next(x for x in r["뺀포인트"] if x["세부"] == "G2").items()
     # 일반심사 기준 종형에는 고지 질문 포인트가 없다
     assert not any(x["종류"] == S.GATE for x in S.points(data, EG, P(age=30, since=0.25, surgery_only=True), analysis, REL)["포인트"])
@@ -343,32 +367,40 @@ def test_gate_point_only_closed_leaves_out_companies_without_age_data(data, anal
 def test_lead_points(pts):
     a1 = by_sid(pts, "STD_HT_ONLY")
     assert a1["세부"] == "A1" and a1["주의"] == S.TEMPLATES["A1_주의"]
-    assert a1["문장"] == ("심장 입원은 우체국 1종(간편가입315)에 따로 있는 담보입니다. 견준 한화생명, 삼성화재 상품에는 같은 담보가 "
-                         "없습니다(넓은 담보와 부분 담보까지 확인).")
+    # 입원 담보의 주의는 "주의"에 싣고 문장(카드 답도 같다) 끝에도 붙인다
+    assert a1["문장"] == ("심장 입원은 우체국 1종(간편가입315)에 따로 있는 담보입니다. 견준 한화생명, 삼성화재 상품에는 이 담보를 "
+                         "따로 주는 급부가 없습니다. 상대의 일반 입원 담보로 같은 입원이 지급될 수 있습니다.")
+    assert a1["카드답"] == a1["문장"]
     assert a1["목적"] == ["3대 질병", "입원과 수술"] and a1["회사수"] == "견준 2개 회사 가운데 2곳"
     top = by_sid(pts, "STD_CM_TOP")                                 # 담보명에 "최고"가 들어도 자료 값이라 낸다
-    assert top["세부"] == "A1" and top["주의"] is None
+    assert top["세부"] == "A1" and top["주의"] is None and S.TEMPLATES["A1_주의"] not in top["문장"]
     a2 = by_sid(pts, "STD_CA_B")
     assert a2["세부"] == "A2" and a2["비교종형ID"] == [H1] and a2["구조다름"] and a2["브리핑"] is False
-    assert a2["문장"] == ("암 나음은 우체국 1종(간편가입315)가 면책 0일, 감액 없음이고, 한화생명 간편가입형(1년)은 면책 0일, "
-                         "1년까지 보험금의 50% 지급입니다.")
+    # 동사 문장으로 적고, 양쪽이 같은 면책(0일)은 적지 않는다
+    assert a2["문장"] == ("암 나음은 우체국 1종(간편가입315)이 감액 기간이 없고, 한화생명 간편가입형(1년)은 가입 뒤 1년까지 "
+                         "보험금의 50%를 지급합니다.")
+    assert a2["값"]["우리조건"] == "면책 0일, 감액 없음"                # 명사 꼴 값은 그대로 남긴다
 
 
 def test_ask_points(pts, book):
     q1 = by_sid(pts, "STD_CA_P1")
     assert q1["세부"] == "Q1" and q1["분류"] == S.RELATED and q1["카드질문"] == "한화생명이나 삼성화재에는 부분1 암이 있던데요."
-    assert q1["카드답"].startswith("우체국 1종(간편가입315)에는 부분1 암을 따로 주는 담보는 없고, 통합 암에서 관련 보장을 합니다.")
-    assert q1["문장"] == ("한화생명과 삼성화재에 있는 부분1 암은 우체국 1종(간편가입315)에 따로 없고, 우체국의 통합 암이 관련 보장을 "
-                         "합니다. 지급 조건이 같은지는 약관 확인이 필요합니다.")
+    assert q1["카드답"] == ("우체국 1종(간편가입315)에는 부분1 암을 따로 주는 담보가 없습니다. 통합 암의 지급 사유에 해당하면 "
+                          "그 담보로 지급됩니다. 금액과 지급 횟수는 다를 수 있어 약관으로 확인해 드리겠습니다.")
+    assert q1["문장"] == ("한화생명과 삼성화재에 있는 부분1 암을 따로 주는 담보는 우체국 1종(간편가입315)에 없습니다. 통합 암의 "
+                         "지급 사유에 해당하면 그 담보로 지급됩니다. 금액과 지급 횟수는 다를 수 있어 약관 확인이 필요합니다.")
     wide = by_sid(pts, "STD_CM_WIDE")
     assert wide["세부"] == "Q2" and wide["좁은담보"] == ["좁은 입원"] and wide["꼬리표"] == [S.REVISION_TAG]
     assert wide["문장"] == ("한화생명과 삼성화재에 있는 넓은 입원은 우체국 1종(간편가입315)에 없습니다. "
-                           "우체국 1종(간편가입315)에는 이보다 좁은 좁은 입원만 있습니다.")
-    assert wide["카드답"] == "우체국 1종(간편가입315)에는 넓은 입원에 해당하는 담보가 없습니다."
+                           "우체국에는 이보다 좁은 좁은 입원만 있습니다.")
+    assert wide["카드답"] == ("우체국 1종(간편가입315)에는 넓은 입원을 따로 주는 담보는 없습니다. "
+                            "우체국에는 이보다 좁은 좁은 입원만 있습니다.")
     q3 = by_sid(pts, "STD_BR_C")
     assert q3["분류"] == S.DEFEND and q3["카드질문"] == "뇌 조건은 한화생명이나 삼성화재가 조건이 다르던데요."
-    assert q3["카드답"] == ("맞습니다. 뇌 조건은 우체국 1종(간편가입315)가 1년까지 보험금의 50% 지급이고, 한화생명 간편가입형(1년)은 "
-                          "감액 없음, 삼성화재 7종(간편315)는 감액 없음입니다. 1년이 지나면 모두 보험금 전액을 지급합니다.")
+    # 동사 문장으로 적고, 절이 같은 상대는 묶는다
+    assert q3["카드답"] == ("맞습니다. 뇌 조건은 우체국 1종(간편가입315)이 가입 뒤 1년까지 보험금의 50%를 지급하고, "
+                          "한화생명 간편가입형(1년)과 삼성화재 7종(간편315)은 감액 기간이 없습니다. "
+                          "1년이 지나면 모두 보험금 전액을 지급합니다.")
     assert q3["문장"] == q3["카드답"].removeprefix("맞습니다. ")
     # 대표가 작업 로그 대기인 근거는 같은 담보의 확정 급부로 바꾼다
     swap = by_sid(pts, "STD_CM_SWAP")
@@ -442,9 +474,9 @@ def test_reduction_sentence_with_low_paid_rates():
     r = S.points(d, E1, P(age=30, since=1), None, REL)
     q3 = by_sid(r, "STD_CM_LOW")
     assert q3["세부"] == "Q3"
-    assert q3["카드답"] == ("맞습니다. 낮은 지급률은 우체국 1종(간편가입315)가 1년까지 보험금의 10% 지급이고, "
-                          "한화생명 간편가입형(1년)은 6개월까지 보험금의 25%, 1년까지 50% 지급, 삼성화재 7종(간편315)는 감액 없음입니다. "
-                          "1년이 지나면 모두 보험금 전액을 지급합니다.")
+    assert q3["카드답"] == ("맞습니다. 낮은 지급률은 우체국 1종(간편가입315)이 가입 뒤 1년까지 보험금의 10%를 지급하고, "
+                          "한화생명 간편가입형(1년)은 가입 뒤 6개월까지 보험금의 25%, 1년까지 50%를 지급하고, "
+                          "삼성화재 7종(간편315)은 감액 기간이 없습니다. 1년이 지나면 모두 보험금 전액을 지급합니다.")
     assert q3["문장"] == q3["카드답"].removeprefix("맞습니다. ")
     assert "감액 1년 10%" not in q3["문장"] and "감액 6개월 25%" not in q3["문장"]
 
@@ -522,17 +554,18 @@ def test_caution_lists_two_kinds():
     # (가) 상대가 대표 급부 밖에 조건이 다른 줄을 가져 A2, Q3에서 뺀 담보. 상대 하나마다 한 건
     assert [(x["표준담보ID"], x["상대종형ID"]) for x in other] == [("STD_CA_B", [S1]), ("STD_CM_D", [S1])]
     ca_b = other[0]
-    assert ca_b["문장"] == ("암 나음은 삼성화재 7종(간편315)가 조건이 다른 특약을 함께 팔아 우열을 단정하지 않았습니다"
-                           "(대표 급부 밖에 조건이 다른 급부 1개).")
+    assert ca_b["문장"] == ("암 나음은 삼성화재 7종(간편315)이 조건이 다른 특약을 함께 팔아 우열을 단정하지 않았습니다"
+                           "(견준 급부 말고 조건이 다른 급부가 1개 더 있음).")
+    assert "대표 급부 밖" not in " ".join(x["문장"] for x in items)
     assert [e["구분"] for e in ca_b["근거"]] == ["대표", "대표", "대표 밖"]
     assert [e["종형ID"] for e in ca_b["근거"]] == [E1, S1, S1] and all(isinstance(e["쪽"], int) for e in ca_b["근거"])
     assert ca_b["대표밖줄"] == {S1: {"기준": 0, "상대": 1}}
     # 같은 담보를 한화생명과 견준 조건 나음은 본문에 남고, 패널이 함께 보일 수 있게 포인트ID를 단다
     assert ca_b["같은담보포인트"] == [by_sid(r, "STD_CA_B")["포인트ID"]]
     assert "판정" not in ca_b and "세부" not in ca_b                       # 대표끼리의 판정은 싣지 않는다
-    # (나) 지급 형태가 달라 우열을 매기지 않은 담보. 양쪽 지급 형태를 그대로 적는다
+    # (나) 지급 형태가 달라 우열을 매기지 않은 담보. 무엇이 다른지(여기서는 한도 일수만)와 양쪽 지급 형태를 그대로 적는다
     assert [x["표준담보ID"] for x in pay] == ["STD_CM_DAY"]
-    assert pay[0]["문장"] == ("시험 입원일당은 지급 형태가 달라 우열을 매기지 않았습니다. 우체국 1종(간편가입315)는 "
+    assert pay[0]["문장"] == ("시험 입원일당은 지급 한도 일수가 달라 우열을 매기지 않았습니다. 우체국 1종(간편가입315)은 "
                              "1일당(120일 한도), 한화생명 간편가입형(1년)은 1일당(180일 한도)입니다.")
     assert pay[0]["우리지급형태"] == "1일당(120일 한도)" and pay[0]["상대지급형태"] == {H1: "1일당(180일 한도)"}
     assert [e["종형ID"] for e in pay[0]["근거"]] == [E1, H1]
@@ -557,12 +590,12 @@ def test_condition_gap_and_pay_form_on_the_same_pair_do_not_contradict():
     r = S.points(data, E1, P(age=30), None, REL)
     q3 = by_sid(r, "STD_CM_DAY")
     assert (q3["세부"], q3["분류"], q3["비교종형ID"]) == ("Q3", S.DEFEND, [H1])
-    assert q3["문장"] == ("시험 입원일당은 우체국 1종(간편가입315)가 1년까지 보험금의 50% 지급이고, 한화생명 간편가입형(1년)은 "
-                         "감액 없음입니다. 1년이 지나면 둘 다 보험금 전액을 지급합니다.")
+    assert q3["문장"] == ("시험 입원일당은 우체국 1종(간편가입315)이 가입 뒤 1년까지 보험금의 50%를 지급하고, "
+                         "한화생명 간편가입형(1년)은 감액 기간이 없습니다. 1년이 지나면 둘 다 보험금 전액을 지급합니다.")
     assert "지급 형태" not in q3["카드답"] and q3["견준항목"] == ["감액"]
     pay = [x for x in S.caution(data, E1, None, REL, pts=r) if x["종류"] == S.CAUTION_PAY]
     assert [x["표준담보ID"] for x in pay] == ["STD_CM_DAY"]
-    assert pay[0]["문장"] == ("시험 입원일당의 지급 형태는 서로 달라 우열을 매기지 않았습니다. 우체국 1종(간편가입315)는 "
+    assert pay[0]["문장"] == ("시험 입원일당의 지급 한도 일수는 서로 달라 우열을 매기지 않았습니다. 우체국 1종(간편가입315)은 "
                              "1일당(120일 한도), 한화생명 간편가입형(1년)은 1일당(180일 한도)입니다. "
                              "한화생명 간편가입형(1년)과 견준 감액 조건은 조건 열위 방어에 따로 적었습니다.")
     assert pay[0]["같은상대조건포인트"] == [q3["포인트ID"]]
@@ -633,8 +666,9 @@ def test_pending_summary_by_major_class():
     assert sum(r["공통담보쌍"] for r in s["대분류"]) == s["공통담보쌍"]
     # 브리핑 (라)는 견준 쌍(공통 담보에서 검토 대기를 뺀 것)과 기준 종형 전체의 보유 수를 두 문장으로 가른다(점검 결함 2)
     line = S.briefing(data, E1, P(age=30), None, REL)[3]
-    assert line["문장"].startswith("공통 담보 7쌍 가운데 검토 대기 3쌍을 빼고 4쌍을 견줬습니다. "
-                                 "우체국 1종(간편가입315)가 가진 담보는 모두 8개(진단 4, 수술 1, 치료 1, 입원 2, 통원 0)이고, ")
+    assert line["문장"].startswith("공통 담보 7쌍 가운데 검토 대기 3쌍을 빼고 4쌍을 견줬고, ")
+    assert ". 확정 급부 기준으로 우체국 1종(간편가입315)이 가진 담보는 모두 8개(진단 4, 수술 1, 치료 1, 입원 2, 통원 0)이고, " \
+        in line["문장"]
     assert (line["값"]["공통담보쌍"], line["값"]["뺀비교쌍"], line["값"]["견준쌍"]) == (7, 3, 4)
 
 
@@ -673,9 +707,11 @@ def test_map_cell_labels_notes_and_closed_reasons(data, analysis):
     label = [[x["라벨"] for x in line] for line in cells]
     assert label[0] == ["간편 모두 닫힘"] * 3 and label[3] == ["간편 모두 닫힘", "우리 간편만 열림", "우리 간편만 열림"]
     assert label[1] == ["우리 간편 닫힘", "함께 열림", "함께 열림"]
-    # 라벨은 간편심사 종형만 본다. 15~19세 이력 없음 칸만 안쪽 분류(함께 열림. 일반심사 4종이 열림)와 라벨이 갈린다
+    # 라벨은 간편심사 종형만 본다. 일반심사 종형은 이력과 무관하게 심사로 확인이라 열리지 않아, 안쪽 분류와 라벨이 갈리는 칸이 없다
+    # (전에는 15~19세 이력 없음 두 칸에서 일반심사 4종이 열려 안쪽 분류가 함께 열림이었다)
     split = [(i, j) for i, line in enumerate(cells) for j, x in enumerate(line) if x["라벨"] != S.LABELS[x["분류"]]]
-    assert split == [(2, 0), (5, 0)] and label[2][0] == label[5][0] == "우리 간편 닫힘"
+    assert split == [] and label[2][0] == label[5][0] == "우리 간편 닫힘"
+    assert cells[2][0]["대표"] == cells[0][0]["대표"] == EG       # 두 칸 모두 4종(심사로 확인)이 대표다
     # 15~19세 입원 3개월~1년 전: 우리 간편은 나이와 고지 질문으로 닫히고 4종(일반)이 심사로 확인
     assert (cells[0][0]["보조"], cells[0][0]["닫힌사유"]) == ("일반심사 확인", ["나이", "고지 질문"])
     assert (cells[0][1]["보조"], cells[0][1]["닫힌사유"]) == ("일반심사 확인", ["고지 질문"])
@@ -709,10 +745,11 @@ def test_nonrenewal_filter_closes_for_lack_of_a_simple_variant(data, analysis):
 def test_map_label_reads_only_simple_variants(data, analysis):
     """우리 간편이 닫히고 일반심사 종형만 열린 칸은 함께 열림이 아니라 우리 간편 닫힘이다(점검 결함 1).
 
-    15~19세 이력 없음: 우리 간편(20세부터)은 나이로 닫히고 일반심사 4종(15~65세)만 열린다. 안쪽 분류는 회사 상태로 보아 함께 열림이다.
+    15~19세 이력 없음: 우리 간편(20세부터)은 나이로 닫히고 일반심사 4종(15~65세)은 심사로 확인이다. 일반심사 종형은 열리지 않으므로
+    안쪽 분류도 우리만 닫힘이다(전에는 4종이 열려 함께 열림이었다).
     """
     out = S.cell(data, P(age=17), analysis, REL)
-    assert out["분류"] == S.BOTH_OPEN
+    assert out["분류"] == S.ONLY_CLOSED and out["회사"]["EPOST"] == S.REVIEW
     assert (out["라벨"], out["보조"], out["닫힌사유"]) == ("우리 간편 닫힘", "일반심사 확인", ["나이"])
     # 우리 비갱신 일반심사 종형(단일)만 열린 칸: 닫힌 까닭은 비갱신 간편 종형이 없어서다
     d = Data(Book(extra=[NONRENEW_GENERAL]).t)
@@ -781,19 +818,31 @@ def test_briefing_five_lines(data, analysis):
     assert [x["범위"] for x in lines] == [S.SCOPE_ALL, S.SCOPE_ALL, S.SCOPE_BASE, S.SCOPE_BASE, S.SCOPE_BASE]
     assert [x["갈곳"] for x in lines] == [S.TAB_MARKET, S.TAB_MARKET, S.TAB_GATE, S.TAB_COMPARE, S.TAB_INSIGHT]
     text = {x["줄"]: x["문장"] for x in lines}
-    # 15~19세 이력 없음 두 칸은 일반심사 4종만 열려 함께 열림이 아니라 우리 간편 닫힘으로 센다(점검 결함 1)
+    # 라벨 다섯 가운데 0칸이 아닌 라벨은 모두 적고(칸 수의 합이 전체칸수), 나이 자료가 없는 상대 회사를 덧붙인다
     assert text["가"] == ("고객군 18칸 가운데 우리 간편만 열리는 곳은 2칸(수술만 3개월~1년 전 20~80세), 함께 열리는 곳은 8칸, "
-                         "우리 간편이 닫혀 일반심사로 확인할 곳은 4칸입니다.")
+                         "우리 간편이 닫혀 일반심사로 확인할 곳은 4칸, 간편이 모두 닫힌 곳은 4칸입니다. "
+                         "삼성화재는 가입나이 자료가 없어 지도에서 상태를 모르는 상대로 셉니다.")
+    assert sum(lines[0]["값"]["라벨별"].values()) == lines[0]["값"]["전체칸수"] == 18
+    assert lines[0]["값"]["나이자료없음회사"] == ["삼성화재"] and lines[0]["값"]["관문만칸수"] == 0
     assert text["나"] == "견줄 우체국 직전 개정 자료는 없고, 최근 모은 시장 소식은 없습니다."
-    assert text["다"] == ("기준 종형 우체국 1종(간편가입315)의 가입나이는 20~80세(지금 조건의 주계약 한도 4,000만원)이고, "
-                         "맞붙는 상대와 고지 질문이 다른 곳은 2건, 갱신이나 환급 구조가 다른 상대는 2곳입니다.")
+    # 고지 질문 범위가 다른 곳은 상대 수로 세고, 한도는 나이를 밝힌다
+    assert text["다"] == ("기준 종형 우체국 1종(간편가입315)의 가입나이는 20~80세(30세 기준 주계약 한도 4,000만원)이고, "
+                         "고지 질문 범위가 다른 상대는 2곳, 갱신이나 환급 구조가 다른 상대는 2곳입니다.")
+    assert lines[2]["값"]["관문차이상대"] == ["한화생명", "삼성화재"]
     assert lines[2]["원문대조글"] == S.SOURCE_CHECK_TEXT
-    # 견준 쌍과 보유 수를 두 문장으로 가른다. 보유 수는 공통 담보 쌍 안이 아니라 기준 종형 전체다(점검 결함 2)
-    assert text["라"] == ("공통 담보 7쌍을 모두 견줬습니다. 우체국 1종(간편가입315)가 가진 담보는 모두 8개(진단 4, 수술 1, 치료 1, "
-                         "입원 2, 통원 0)이고, 상대가 조건이 다른 특약을 함께 팔아 우열을 단정하지 않은 비교는 2건입니다.")
+    # 견준 쌍과 보유 수를 가른다. 보유 수는 공통 담보 쌍 안이 아니라 종형 전체이고(점검 결함 2), 상대 종형의 보유 수도 적는다.
+    # 줄마다 두 문장 이하다(견준 쌍과 우열 보류를 한 문장으로 잇는다)
+    assert text["라"] == ("공통 담보 7쌍을 모두 견줬고, 우열을 단정하지 않은 비교는 조건이 다른 특약을 함께 판매한 것 2건, "
+                         "지급 형태가 다른 것 0건입니다. 확정 급부 기준으로 우체국 1종(간편가입315)이 가진 담보는 모두 8개(진단 4, "
+                         "수술 1, 치료 1, 입원 2, 통원 0)이고, 맞붙는 상대 종형은 한화생명 간편가입형(1년) 8개, "
+                         "삼성화재 7종(간편315) 9개입니다.")
     assert lines[3]["값"]["보유수"] == 8 and lines[3]["값"]["진단수"] == 4
-    assert text["마"] == ("지금 기준에서 앞세울 강점 3건(심장 입원, 종별 수술비(최고 종 기준) 등), 관련 담보 안내 1건, "
-                         "조건 열위 방어 1건, 개정 검토 후보 3건이 나왔습니다.")
+    assert [r["보유수"] for r in lines[3]["값"]["상대보유"]] == [8, 9]
+    # 다섯 분류를 모두 적고 합을 앞에 적는다. 매핑 대기로 뺀 시사점이 있어 "검토를 마친 범위에서"라는 전제를 붙인다
+    assert text["마"] == ("검토를 마친 범위에서 나온 영업 인사이트는 모두 10건으로, 관문 차이 2건, 앞세울 강점 3건(심장 입원, "
+                         "종별 수술비(최고 종 기준) 등), 관련 담보 안내 1건, 조건 열위 방어 1건, 개정 검토 후보 3건입니다.")
+    assert lines[4]["값"]["검토전제"] is True and lines[4]["값"]["전체수"] == 10
+    assert all(x["문장"].count(". ") <= 1 for x in lines)                  # 줄마다 한두 문장
     assert lines[0]["값"]["라벨별"]["간편 모두 닫힘"] == 4
 
 
@@ -801,18 +850,23 @@ def test_briefing_zero_cases_do_not_raise():
     # 상대가 없고 급부도 없는 자료: 0건 틀로 가른다
     d = Data(Book(skip=(H1, HG, S1, SA, SB)).t)
     text = {x["줄"]: x["문장"] for x in S.briefing(d, E1, P(age=30), None, REL)}
+    # 상대가 없어 모든 칸이 자료 없음이다. 그 라벨을 적는다(전에는 "닫혀 일반심사로 확인할 곳은 없습니다"로 끝나 18칸이 빠졌다)
     assert text["가"] == ("고객군 18칸 가운데 우리 간편만 열리는 곳은 없고, 함께 열리는 곳은 없고, "
-                         "우리 간편이 닫혀 일반심사로 확인할 곳은 없습니다.")
-    assert text["다"] == ("기준 종형 우체국 1종(간편가입315)의 가입나이는 20~80세(지금 조건의 주계약 한도 4,000만원)이고, "
+                         "우리 간편이 닫힌 곳은 없고, 상대 상태를 몰라 가르지 못한 곳은 18칸입니다.")
+    assert text["다"] == ("기준 종형 우체국 1종(간편가입315)의 가입나이는 20~80세(30세 기준 주계약 한도 4,000만원)이고, "
                          "맞붙는 상대 종형은 없습니다.")
-    assert text["라"] == ("견준 공통 담보는 없습니다. 우체국 1종(간편가입315)가 가진 담보는 없고, "
-                         "상대가 조건이 다른 특약을 함께 팔아 우열을 단정하지 않은 비교는 없습니다.")
-    assert text["마"] == "지금 기준에서 나온 영업 인사이트는 없습니다."
-    # 나이 밖, 일반심사 기준 종형, 가입조건 자료 없음
+    assert text["라"] == ("견준 공통 담보는 없고, 우열을 단정하지 않은 비교는 없습니다. "
+                         "확정 급부 기준으로 우체국 1종(간편가입315)이 가진 담보는 없습니다.")
+    assert text["마"] == "지금 자료에서 나온 영업 인사이트는 없습니다."
+    # 나이 밖, 나이 없는 조건, 일반심사 기준 종형, 가입조건 자료 없음
     full = Data(Book().t)
     assert S.briefing(full, E1, P(age=17), None, REL)[2]["문장"].startswith(
-        "기준 종형 우체국 1종(간편가입315)의 가입나이는 20~80세(지금 조건의 17세는 가입나이 밖)이고")
-    assert "일반심사 종형이라 간편 고지 질문은 견주지 않았고" in S.briefing(full, EG, P(age=30), None, REL)[2]["문장"]
+        "기준 종형 우체국 1종(간편가입315)의 가입나이는 20~80세(17세는 가입나이 밖)이고")
+    assert S.briefing(full, E1, P(), None, REL)[2]["문장"].startswith(
+        "기준 종형 우체국 1종(간편가입315)의 가입나이는 20~80세이고, ")
+    general = S.briefing(full, EG, P(age=30), None, REL)[2]
+    assert "일반심사 종형이라 간편 고지 질문은 견주지 않았으며" in general["문장"]
+    assert (general["값"]["관문상태"], general["값"]["질문"]) == (S.REVIEW, S.Q_REVIEW)   # 이력이 없어도 심사로 확인
     b = Book(skip=(H1, HG, S1, SA, SB))
     b.t["sys_가입조건"] = []
     bare = {x["줄"]: x["문장"] for x in S.briefing(Data(b.t), E1, P(age=30), None, REL)}
@@ -821,11 +875,19 @@ def test_briefing_zero_cases_do_not_raise():
     # 공통 담보가 모두 검토 대기일 때
     held = S._line_position({"범위": {"비교쌍": 3, "뺀비교쌍": 3}},
                             {"종형": [{"합계": dict.fromkeys(S.JOURNEY_TYPES, 1), "전체": 6, "기타": 1}]}, [], "1종")
-    assert held["문장"] == ("공통 담보 3쌍이 모두 검토 대기라 견준 쌍은 없습니다. 우체국 1종이 가진 담보는 모두 6개(진단 1, 수술 1, "
-                           "치료 1, 입원 1, 통원 1, 기타 1)이고, 상대가 조건이 다른 특약을 함께 팔아 우열을 단정하지 않은 비교는 없습니다.")
-    # 앞세울 강점만 없을 때
+    assert held["문장"] == ("공통 담보 3쌍이 모두 검토 대기라 견준 쌍은 없고, 우열을 단정하지 않은 비교는 없습니다. "
+                           "확정 급부 기준으로 우체국 1종이 가진 담보는 모두 6개(진단 1, 수술 1, 치료 1, 입원 1, 통원 1, 기타 1)입니다.")
+    # 앞세울 강점만 없을 때(관문 차이도 0건으로 적는다)
     only = S._line_insight({"분류집계": {S.GATE_DIFF: 0, S.STRENGTH: 0, S.RELATED: 2, S.DEFEND: 0, S.REVISE: 1}, "포인트": []})
-    assert only["문장"] == "지금 기준에서 앞세울 강점은 없고, 관련 담보 안내 2건, 조건 열위 방어 0건, 개정 검토 후보 1건이 나왔습니다."
+    assert only["문장"] == ("지금 자료에서 나온 영업 인사이트는 모두 3건으로, 관문 차이 0건, 앞세울 강점 0건, 관련 담보 안내 2건, "
+                          "조건 열위 방어 0건, 개정 검토 후보 1건입니다.")
+    # 관문 차이만 있을 때도 마_없음으로 가지 않는다. 검토 대기로 뺀 비교쌍이 있으면 전제를 붙인다
+    gate = S._line_insight({"분류집계": {S.GATE_DIFF: 1, S.STRENGTH: 0, S.RELATED: 0, S.DEFEND: 0, S.REVISE: 0}, "포인트": [],
+                            "범위": {"뺀비교쌍": 2, "뺀시사점": 0}})
+    assert gate["문장"] == ("검토를 마친 범위에서 나온 영업 인사이트는 모두 1건으로, 관문 차이 1건, 앞세울 강점 0건, "
+                          "관련 담보 안내 0건, 조건 열위 방어 0건, 개정 검토 후보 0건입니다.")
+    none = S._line_insight({"분류집계": dict.fromkeys(S.CATEGORIES, 0), "포인트": [], "범위": {"뺀비교쌍": 2}})
+    assert none["문장"] == "검토를 마친 범위에서 나온 영업 인사이트는 없습니다."
 
 
 def revision_book(summaries=("시험 소식", "시험 소식"), media=(None, None)):
@@ -863,8 +925,10 @@ def test_revision_summary_and_market_line():
     news = S.news_summary(data)
     assert (news["건수"], news["연결"], news["주차"]) == (2, 1, "2026-W47")
     line = S.briefing(data, E1, P(age=30), None, REL)[1]
-    assert line["문장"] == ("우체국 직전 개정과 견주어 달라진 담보는 3건(신설 1, 변경 1, 종료 1)이고, "
+    # 개정 변동을 센 상품의 이름(공시상품명)을 적는다
+    assert line["문장"] == ("시험건강보험을 직전 개정과 견주어 달라진 담보는 3개(신설 1, 변경 1, 종료 1)이고, "
                            "최근 모은 시장 소식은 2건(표준담보에 이어진 것 1건)입니다.")
+    assert (line["값"]["개정상품목록"], line["값"]["개정전상품목록"]) == (["시험건강보험"], ["시험건강보험"])
     assert (line["범위"], line["구역"]) == (S.SCOPE_ALL, "개정과 시장")
 
 
@@ -913,6 +977,7 @@ def generated_texts(out):
             yield b["범위"]["문장"]
     yield from out["글"]
     yield out["시장소식"]["인용안내"]
+    yield from (x["글"] for x in out.get("주석", []))
 
 
 def forbidden_hits(data, out):
@@ -1046,7 +1111,9 @@ def test_cell_open_only_through_a_gate_only_variant(gated, data):
     assert before["라벨"] == S.LABELS[S.ALL_CLOSED] and out["라벨"] == S.LABELS[S.ONLY_CLOSED]
     assert out["관문만수집"] == [{"기관코드": "HANWHALIFE", "종형ID": HZ, "이름": "한화생명 간편가입형(0년)",
                                 "안내": "관문만 수집(담보 미수집)"}]
-    assert out["열린종형"]["HANWHALIFE"] == [HZ] and out["대표"] is None and out["수"] is None
+    # 우리 간편이 닫혀 우리 대표는 심사로 확인인 4종이고, 상대도 일반심사 종형과 견준다(관문전용 0년과는 견주지 않는다)
+    assert out["열린종형"]["HANWHALIFE"] == [HZ] and out["대표"] == EG
+    assert out["상대대표"] == {"HANWHALIFE": HG, "SAMSUNGFIRE": SB} and out["수"] is not None
     # 수술만 3개월~1년 전: 우리만 열렸던 칸이 함께 열림이 되지만, 한화생명과는 담보를 견주지 않는다(대표가 없다)
     lone = S.cell(gated, P(age=30, since=0.25, surgery_only=True), None, REL)
     assert lone["라벨"] == S.LABELS[S.BOTH_OPEN] and lone["대표"] == E5 and lone["상대대표"] == {} and lone["수"] is None
@@ -1067,7 +1134,8 @@ def test_gate_points_name_the_gate_only_variant(gated):
     found, base = S.cell_gate_points(ctx, P(age=17, sex="M", since=0.5, surgery_only=True))
     g2 = next(x for x in found if x["세부"] == "G2")
     assert base == E5 and g2["문장"] == ("17세는 우체국 3종(간편가입355)의 가입나이(20~80세) 밖입니다. "
-                                        "한화생명 간편가입형(0년)은 15~80세를 받습니다.")
+                                        "한화생명 간편가입형(0년)의 가입나이는 15~80세입니다. "
+                                        "우체국에서는 일반심사 종형(4종(일반가입), 15~65세)으로 심사를 받을 수 있습니다.")
     # 간편이 모두 닫힌 칸은 지금처럼 관문 기준이 없다
     plain = S._Ctx(Data(Book().t), None, REL)
     assert S.cell_gate_points(plain, P(age=30, sex="M", since=0.25)) == ([], None)
@@ -1083,9 +1151,9 @@ def test_shorter_question_of_a_peer_company_is_a_g3_point(gated, data):
     assert short[0]["머리말"].startswith("관문만 수집한 ")
     assert [x["비교종형ID"] for x in g3 if x not in short] == [x["비교종형ID"] for x in by_code(
         S.points(data, E1, P(age=30), None, REL), "G3")]                   # 짝과 견준 G3은 그대로다
-    # 브리핑 (다)의 관문차이수는 맞붙는 상대와 견준 G3만 센다
+    # 브리핑 (다)의 관문차이수는 맞붙는 상대와 견준 G3이 있는 상대 수다(짝이 아닌 0년은 세지 않는다)
     line = S.briefing(gated, E1, P(age=30), None, REL)[2]
-    assert line["값"]["관문차이수"] == 2 and "고지 질문이 다른 곳은 2건" in line["문장"]
+    assert line["값"]["관문차이수"] == 2 and "고지 질문 범위가 다른 상대는 2곳" in line["문장"]
     # 짝의 기간이 더 짧지 않으면(우리 1년, 3.0.5만 짧다) 다른 종형은 적지 않는다
     assert not [x for x in by_code(S.points(data, E1, P(age=30), None, REL), "G3") if x.get("관문만수집")]
 
@@ -1138,8 +1206,303 @@ def test_briefing_first_line_without_our_only_open_cells(gated):
     line = S.briefing(gated, E1, P(age=30), None, REL, seg=seg)[0]
     assert line["값"]["우리간편만열림칸수"] == 0 and line["틀"][0] == "가_우리만_없음"
     labels = line["값"]["라벨별"]
+    assert sum(labels.values()) == line["값"]["전체칸수"] == 18
+    # 우리 간편 닫힘 8칸 가운데 66~80세 입원 3개월~1년 전은 4종(15~65세)도 나이로 닫혀 일반심사 확인이 붙지 않는다
+    assert (labels["우리 간편 닫힘"], line["값"]["우리간편닫힘칸수"]) == (8, 7)
+    # 열린 상대 종형이 관문전용(0년)뿐인 칸은 입원과 수술만의 3개월~1년 전 여섯 칸이다
+    assert (line["값"]["관문만칸수"], line["값"]["관문만종형"]) == (6, ["한화생명 간편가입형(0년)"])
+    # 관문만 열린 칸과 나이 자료가 없는 상대는 둘째 문장 하나로 잇는다(줄마다 두 문장 이하)
     assert line["문장"] == (f"고객군 18칸 가운데 우리 간편만 열리는 곳은 없고, 함께 열리는 곳은 {labels['함께 열림']}칸, "
-                           f"우리 간편이 닫혀 일반심사로 확인할 곳은 {line['값']['우리간편닫힘칸수']}칸입니다.")
+                           "우리 간편이 닫힌 곳은 8칸(그 가운데 일반심사로 확인할 곳 7칸)입니다. "
+                           "6칸은 상대 회사에서 열리는 종형이 우체국에 없는 고지 유형(한화생명 간편가입형(0년))뿐이고, "
+                           "삼성화재는 가입나이 자료가 없어 지도에서 상태를 모르는 상대로 셉니다.")
+    assert line["틀"] == ["가_우리만_없음", "가_함께", "가_닫힘_일부", "가_관문만", "가_나이자료없음"]
+
+
+# ---------- 고지 질문 범위 열(질병 목록, 소견 범위)과 일반심사 규칙 ----------
+# 질병 이름은 지어낸 것이다(공시 원문을 옮기지 않는다)
+OURS = "가병, 나병, 다병, 라병, 마병, 바병"
+HANWHA_LIST = "가병, 나병, 다병, 라병, 마병, 바병, 사병"         # 한화생명만 사병을 묻는다
+SAMSUNG_LIST = "가병, 나병, 다병, 라병, 바병"                    # 우체국만 마병을 묻는다
+
+
+def scoped(lists=None, opinions=None, **variants):
+    """fill한 자료의 종형 행에 고지중대질병목록(lists), 고지소견범위(opinions)와 그 밖의 열(variants: 종형ID → 고칠 열)을 적는다."""
+    b = Book()
+    fill(b)
+    for v in b.t["sys_상품종형"]:
+        vid = v["종형ID"]
+        if lists and vid in lists:
+            v["고지중대질병목록"] = lists[vid]
+        if opinions and vid in opinions:
+            v["고지소견범위"] = opinions[vid]
+        v.update(variants.get(vid, {}))
+    return Data(b.t)
+
+
+def g3_of(data, base=E1, profile=None):
+    r = S.points(data, base, profile or P(age=30), None, REL)
+    return {x["비교종형ID"][0]: x for x in r["포인트"] if x["세부"] == "G3"}
+
+
+ALL_LISTS = {E1: OURS, E5: OURS, H1: HANWHA_LIST, S1: SAMSUNG_LIST}
+ALL_OPINIONS = {E1: "서면", E5: "서면", H1: "서면과 진료기록부", S1: "서면과 진료기록부"}
+
+
+def test_g3_names_the_diseases_only_one_side_asks(data):
+    before = g3_of(data)
+    after = g3_of(scoped(lists=ALL_LISTS))
+    # 포인트ID는 짝의 종형ID로 가르는 기존 규칙 그대로다
+    assert {k: x["포인트ID"] for k, x in after.items()} == {k: x["포인트ID"] for k, x in before.items()}
+    assert after[H1]["문장"] == ("최근 1년 안의 입원과 수술 질문에서 우체국 1종(간편가입315)은 입원을, 한화생명 간편가입형(1년)은 "
+                                "입원과 수술을 묻습니다. 5년 안 중대질병 질문의 질병 수는 우체국 6개, 한화생명 7개입니다"
+                                "(한화생명만 묻는 질병: 사병).")
+    assert after[S1]["문장"].endswith("질병 수는 우체국 6개, 삼성화재 5개입니다(우체국만 묻는 질병: 마병).")
+    assert after[H1]["값"]["상대만질병"] == "사병" and "우리만질병" not in after[H1]["값"]
+    assert after[H1]["차이항목"] == ["기간 질문 범위", "중대질병 질문"]
+    # 목록이 한쪽이라도 비면 지금 문장 그대로다
+    half = g3_of(scoped(lists={E1: OURS, S1: SAMSUNG_LIST}))
+    assert half[H1]["문장"] == before[H1]["문장"] and half[S1]["문장"] != before[S1]["문장"]
+    # 양쪽 모두 한쪽만 묻는 질병이 있으면 둘 다 적는다(질병 수가 같아도 이름이 다르면 중대질병 질문이 다르다)
+    both = g3_of(scoped(lists={E1: OURS, S1: "가병, 나병, 다병, 라병, 바병, 아병"},
+                        **{S1: {"고지중대질병수": 6, "고지수술포함여부": False}}))
+    assert both[S1]["문장"] == ("5년 안 중대질병 질문의 질병 수는 우체국 1종(간편가입315) 6개, 삼성화재 7종(간편315) 6개입니다"
+                               "(우체국만 묻는 질병: 마병; 삼성화재만 묻는 질병: 아병).")
+    assert both[S1]["틀"] == "G3_질병수_목록" and half[S1]["틀"] == "G3_목록"
+
+
+def test_g3_adds_the_recent_opinion_scope(data):
+    out = g3_of(scoped(lists=ALL_LISTS, opinions=ALL_OPINIONS))
+    assert out[H1]["문장"].endswith(
+        "(한화생명만 묻는 질병: 사병). 최근 3개월 소견 질문에서 우체국은 진단서나 소견서 같은 서면에 적힌 소견을, "
+        "한화생명은 진료기록부에 적고 설명하거나 권유한 소견까지 묻습니다.")
+    assert out[H1]["차이항목"] == ["기간 질문 범위", "중대질병 질문", "최근 소견 질문"]
+    assert out[H1]["카드답"] == out[H1]["문장"]
+    # 범위가 같으면 적지 않는다
+    same = g3_of(scoped(opinions={E1: "서면", H1: "서면", S1: "서면"}))
+    assert "소견 질문" not in same[H1]["문장"] and "소견 질문" not in same[S1]["문장"]
+
+
+def test_g3_appears_when_only_the_opinion_scope_differs(data):
+    # 삼성화재 7종을 우체국과 같은 질문(입원만, 질병 6개, 같은 목록)으로 고치고 소견 범위만 다르게 둔다
+    like_us = {"고지수술포함여부": False, "고지중대질병수": 6}
+    d = scoped(lists={E1: OURS, S1: OURS}, opinions={E1: "서면", S1: "서면과 진료기록부"}, **{S1: like_us})
+    out = g3_of(d)
+    assert out[S1]["문장"] == ("최근 3개월 소견 질문에서 우체국은 진단서나 소견서 같은 서면에 적힌 소견을, "
+                              "삼성화재는 진료기록부에 적고 설명하거나 권유한 소견까지 묻습니다.")
+    assert out[S1]["포인트ID"] == S.point_id("G3", E1, None, S1) and out[S1]["차이항목"] == ["최근 소견 질문"]
+    assert out[S1]["분류"] == S.GATE_DIFF and out[S1]["원문대조"]
+    # 소견 범위도 같으면 그 짝의 G3은 없다
+    assert S1 not in g3_of(scoped(lists={E1: OURS, S1: OURS}, opinions={E1: "서면", S1: "서면"}, **{S1: like_us}))
+    # 브리핑 (다)는 이 짝도 고지 질문 범위가 다른 상대로 센다
+    line = S.briefing(d, E1, P(age=30), None, REL)[2]
+    assert line["값"]["관문차이수"] == 2 and line["값"]["관문차이상대"] == ["한화생명", "삼성화재"]
+
+
+def test_scope_sentences_pass_the_forbidden_word_check():
+    for tid in ("G3_목록", "G3_질병수_목록", "G3_한쪽질병", "G3_소견", "가_관문만", "가_관문만_같은유형", "가_나이자료없음",
+                "가_닫힘_일부", "가_모두닫힘", "가_모름", "라_보유_상대", "라_보유_없음_상대", "마_검토후", "마_없음_검토후"):
+        assert S.forbidden_in(S._SLOT.sub(" ", S.TEMPLATES[tid])) == [], tid
+    assert all(S.forbidden_in(t) == [] for t in S.OPINION_TEXT.values())
+    d = scoped(lists=ALL_LISTS, opinions=ALL_OPINIONS)
+    out = S.export(d, None, REL)
+    assert forbidden_hits(d, out) == []
+
+
+def test_general_variant_is_always_review_and_adds_no_map_boundary():
+    # 일반심사 종형은 이력과 무관하게 심사로 확인이다. 지도 행의 경계에 5년을 더하지 않는다
+    d = Data(Book(skip=(E5,)).t)                     # 간편 기간 질문이 모두 1년
+    assert S.since_cuts(d) == [0.25, 1]
+    assert [r["이름"] for r in S.map_rows(d)] == ["입원 3개월~1년 전", "입원 1년 넘음이나 없음",
+                                                   "수술만 3개월~1년 전", "수술만 1년 넘음이나 없음"]
+    for since in (None, 0.25, 1, 5, 20):
+        assert S.variant_gate(d, EG, P(age=30, since=since))["상태"] == S.REVIEW
+        assert S.variant_gate(d, EG, P(age=70, since=since))["상태"] == S.CLOSED          # 나이로 닫힘은 그대로
+    assert not hasattr(S, "GENERAL_CLEAR_YEARS")
+
+
+def test_general_note_and_rep_need_a_matching_age(data, analysis):
+    # 66~80세: 우리 간편은 고지 질문에 걸리고 4종(15~65세)은 나이로 닫혀 일반심사로 확인할 수 없다(보조 줄, 대표 없음)
+    out = S.cell(data, P(age=70, since=0.25), analysis, REL)
+    assert (out["라벨"], out["보조"], out["대표"]) == ("간편 모두 닫힘", "", None)
+    # 우리 대표가 간편이면 상대의 일반심사 종형은 대표 후보가 아니다. 우리 대표가 일반심사이면 상대도 일반심사로 견준다
+    ctx = S._Ctx(data, analysis, REL)
+    g = S.gate(data, P(age=30, since=0.25, surgery_only=True))
+    assert S.peer_reps(ctx, g, E5) == {}
+    g = S.gate(data, P(age=30, since=0.25))
+    assert S.our_rep(data, g["회사"]["EPOST"]) == EG
+    assert S.peer_reps(ctx, g, EG) == {"HANWHALIFE": HG, "SAMSUNGFIRE": SB}     # 삼성화재 9종은 나이 자료가 없어도 견준다
+
+
+def test_briefing_first_line_names_a_gate_only_type_we_also_sell():
+    # 한화생명 관문전용 종형이 우리 3종과 같은 기간(5년)이면 "우체국에 없는 고지 유형"이라고 적지 않는다
+    five = ("HANWHALIFE_H5_bbbbbb", "HANWHALIFE", "간편가입형(5년입원)", "간편심사", "3.5.5", (3, 5, 5, False, 7), "비갱신", UNPAID,
+            "2026-10-01", [(15, 80)])
+    b = Book(extra=[five])
+    next(v for v in b.t["sys_상품종형"] if v["종형ID"] == five[0])["비교역할구분"] = S.GATE_ROLE
+    b.t["sys_특약"] = [r for r in b.t["sys_특약"] if r["특약ID"] != f"{five[0]}_T"]
+    fill(b)
+    d = Data(b.t)
+    line = S.briefing(d, E1, P(age=30), None, REL)[0]
+    assert line["값"]["관문만종형"] == ["한화생명 간편가입형(5년입원)"] and "가_관문만_같은유형" in line["틀"]
+    assert "상대 회사에서 열리는 종형이 담보를 수집하지 않은 종형(한화생명 간편가입형(5년입원))뿐이고" in line["문장"]
+    assert "우체국에 없는 고지 유형" not in line["문장"]
+
+
+def test_no_age_companies_and_product_names():
+    d = Data(Book().t)
+    assert S.no_age_companies(d) == ["삼성화재"] and S.no_age_companies(d, "비갱신") == ["삼성화재"]
+    b = Book()
+    b.t["sys_가입조건"].append(row("sys_가입조건", 조건행ID="S_C", 종형ID=S1, 보험기간구분="20년", 납입기간구분="20년",
+                                최저가입나이=20, 최고가입나이=80, 구간최대가입금액만원=3000))
+    assert S.no_age_companies(Data(b.t)) == []                      # 한 종형이라도 가입나이 자료가 있으면 빼지 않는다
+    b = Book()
+    for v in b.t["sys_상품종형"]:
+        if v["기관코드"] == "EPOST":
+            v["공시상품명"] = f"시험간편건강보험 2606 {v['종형명']}"
+    e = Data(b.t)
+    assert S.product_names(e, [E1, E5, EG]) == (
+        f"시험간편건강보험 2606 1종(간편가입315), {S.josa('3종(간편가입355)', '과')} 4종(일반가입)")
+    assert S.product_names(e, [H1]) == "시험건강보험"                 # 공시상품명이 종형명으로 끝나지 않으면 그대로
+
+
+def test_export_carries_fixed_notes(data, analysis):
+    out = S.export(data, analysis, REL)
+    notes = out["주석"]
+    assert [x["열쇠"] for x in notes] == ["지도전제", "간편청약제한", "수술만행", "일반심사"]
+    assert all(x["글"] and x["출처"] and set(x["탭"]) <= set(S.TABS) for x in notes)
+    assert all(S.forbidden_in(x["글"]) == [] for x in notes)
+    by = {x["열쇠"]: x for x in notes}
+    assert "사업방법서" in by["간편청약제한"]["출처"] and "직전 3개월" in by["간편청약제한"]["글"]
+    assert by["일반심사"]["글"] == "일반심사 종형은 이력과 무관하게 심사로 확인합니다."
+    json.dumps(notes, ensure_ascii=False)
+
+
+# ---------- 문장 틀 다듬기(문장 검토 반영) ----------
+def test_q2_card_answer_keeps_the_narrower_cover(pts):
+    # 좁은 담보만 가진 Q2는 카드 답에도 "이보다 좁은 … 만 있습니다"를 붙인다(전에는 card_tail을 넘기지 않아 카드 답에서 빠졌다)
+    wide = by_sid(pts, "STD_CM_WIDE")
+    narrow = S.render("Q2_좁은", {"우리종형": "1종(간편가입315)", "좁은담보": ["좁은 입원"]})
+    assert wide["문장"].endswith(narrow) and wide["카드답"].endswith(narrow)
+    assert "좁은 입원" in wide["카드답"]
+    # 좁은 담보가 없으면 붙이지 않는다
+    gap = by_sid(pts, "STD_CA_GAP")
+    assert "좁은" not in gap["카드답"] and "좁은" not in gap["문장"]
+
+
+def test_connective_joins_clauses():
+    assert S._connective("면책 기간이 90일입니다") == "면책 기간이 90일이고"
+    assert S._connective("감액 기간이 없습니다.") == "감액 기간이 없고"
+    assert S._connective("가입 뒤 1년까지 보험금의 50%를 지급합니다") == "가입 뒤 1년까지 보험금의 50%를 지급하고"
+    assert S._connective("상태를 모르는 상대로 셉니다.") == "상태를 모르는 상대로 세고"
+    assert S._connective("13쌍을 견줬습니다.") == "13쌍을 견줬고"
+    assert S._connect(["가는 1입니다.", "나는 없습니다.", "다는 2입니다."]) == "가는 1이고, 나는 없고, 다는 2입니다."
+    with pytest.raises(ValueError):
+        S._connective("끝이 다른 절")
+
+
+def test_scope_sentence_is_split_into_short_sentences(pts):
+    s = pts["범위"]
+    assert s["문장"] == ("견준 상품은 한화생명 시험건강보험 간편가입형(1년)(2026-10-01 기준)과 삼성화재 시험건강보험 "
+                        "7종(간편315)(2026-07-01 기준)입니다. 갱신과 환급 구조는 우체국이 갱신, 표준형이고 한화생명은 비갱신, "
+                        f"{UNPAID}, 삼성화재는 갱신, {UNPAID}입니다. 공통 담보 7쌍을 모두 견줬습니다.")
+    assert "/" not in s["문장"] and "구조 다름:" not in s["문장"]
+    # 범위 머리말(화면의 표식)은 그대로다
+    assert s["머리말"].startswith("수집한 한화생명 시험건강보험 간편가입형(1년) 기준(2026-10-01), ")
+    # 구조가 같은 상대만 있으면 구조 문장을 뺀다
+    b = Book()
+    fill(b)
+    for v in b.t["sys_상품종형"]:
+        if v["종형ID"] in (H1, S1):
+            v.update(갱신유형="갱신", 환급유형="표준형")
+    same = S.points(Data(b.t), E1, P(age=30), None, REL)["범위"]["문장"]
+    assert "구조" not in same and same.endswith("공통 담보 7쌍을 모두 견줬습니다.")
+
+
+def test_pay_difference_names_what_differs():
+    def caution_of(base_limit, peer_limit, s1_limit=None):
+        b = Book()
+        fill(b)
+        b.t["hum_표준담보사전"].append(std("STD_CM_DAY", "공통보장", "시험 입원일당", "입원"))
+        b.ben(E1, "STD_CM_DAY", limit=base_limit)
+        b.ben(H1, "STD_CM_DAY", limit=peer_limit)
+        if s1_limit:
+            b.ben(S1, "STD_CM_DAY", limit=s1_limit)
+        d = Data(b.t)
+        r = S.points(d, E1, P(age=30), None, REL)
+        return next(x for x in S.caution(d, E1, None, REL, pts=r) if x["종류"] == S.CAUTION_PAY)
+
+    assert "지급 한도 일수가 달라" in caution_of("1일당 120일 한도", "1일당 180일 한도")["문장"]
+    start = caution_of("4일 이상 입원시 1일당 120일 한도", "1일당 120일 한도")["문장"]
+    assert start.startswith("시험 입원일당은 지급 시작일이 달라 우열을 매기지 않았습니다.")
+    # 시작일이 없는 쪽은 꼬리표 글 그대로 적고 첫날부터라고 적지 않는다
+    assert "1일당(120일 한도)입니다." in start and "첫날" not in start
+    both = caution_of("4일 이상 입원시 1일당 60일 한도", "1일당 90일 한도")["문장"]
+    assert "지급 시작일과 한도 일수가 달라" in both
+    # 상대가 여럿이면 다른 것을 모두 모은다(한화생명은 한도 일수만, 삼성화재는 시작일까지)
+    many = caution_of("1일당 120일 한도", "1일당 180일 한도", "181일째부터 1일당 185일 한도")
+    assert "지급 시작일과 한도 일수가 달라" in many["문장"] and many["상대종형ID"] == [H1, S1]
+    # 1일당 밖의 꼬리표가 다르면 지급 형태로 적는다
+    other = caution_of("수술 1회당", "연간 1회한")["문장"]
+    assert "지급 형태가 달라 우열을 매기지 않았습니다." in other
+
+
+def test_condition_sentence_names_a_shared_waiting_period_first():
+    # 면책 기간이 양쪽 모두 90일로 같고 감액만 다르면 면책을 앞에 적고, 감액은 동사 문장으로 적는다
+    b = Book()
+    fill(b)
+    b.t["hum_표준담보사전"].append(std("STD_CA_W", "암보장", "면책 같은 암"))
+    b.ben(E1, "STD_CA_W", wait=90, red=(12, 0.5))
+    b.ben(H1, "STD_CA_W", wait=90)
+    r = S.points(Data(b.t), E1, P(age=30), None, REL)
+    q3 = by_sid(r, "STD_CA_W")
+    assert q3["세부"] == "Q3" and q3["틀"] == "Q3_분석_면책같음"
+    assert q3["문장"] == ("면책 같은 암의 면책 기간은 두 상품 모두 90일입니다. 우체국 1종(간편가입315)은 가입 뒤 1년까지 보험금의 "
+                         "50%를 지급하고, 한화생명 간편가입형(1년)은 감액 기간이 없습니다. 1년이 지나면 둘 다 보험금 전액을 지급합니다.")
+    assert q3["카드답"] == "맞습니다. " + q3["문장"]
+    assert not any(w in q3["문장"] for w in ("지급이고", "감액 없음입니다"))          # 명사 조각 문장을 쓰지 않는다
+    # 면책이 다르면 앞에 적지 않고 차이로 적는다
+    b = Book()
+    fill(b)
+    b.t["hum_표준담보사전"].append(std("STD_CA_W", "암보장", "면책 다른 암"))
+    b.ben(E1, "STD_CA_W", wait=90)
+    b.ben(H1, "STD_CA_W")
+    r = S.points(Data(b.t), E1, P(age=30), None, REL)
+    q3 = by_sid(r, "STD_CA_W")
+    assert q3["틀"] == "Q3_분석" and q3["문장"] == ("면책 다른 암은 우체국 1종(간편가입315)이 면책 기간이 90일이고, "
+                                                  "한화생명 간편가입형(1년)은 면책 기간이 없습니다.")
+
+
+def test_g2_adds_our_general_variant_only_when_the_age_fits(data, analysis):
+    with_general = by_code(S.points(data, E1, P(age=17, since=1), analysis, REL), "G2")[0]
+    assert with_general["문장"].endswith("우체국에서는 일반심사 종형(4종(일반가입), 15~65세)으로 심사를 받을 수 있습니다.")
+    # 우체국 일반심사 종형이 없으면 덧붙이지 않는다
+    d = Data(Book(skip=(EG,)).t)
+    plain = by_code(S.points(d, E1, P(age=17, since=1), None, REL), "G2")[0]
+    assert plain["문장"] == ("17세는 우체국 1종(간편가입315)의 가입나이(20~80세) 밖입니다. "
+                            "한화생명 간편가입형(1년)의 가입나이는 15~80세입니다.")
+
+
+def test_question_text_for_the_g1_parenthesis(data):
+    assert S.question_text(data.variants[E1]) == "1년 안 입원"
+    assert S.question_text(data.variants[H1]) == "1년 안 입원과 수술"
+    assert S.question_text({**data.variants[E1], "고지수술포함여부": None}) == "기간 1년"
+    assert S.question_text({**data.variants[E1], "고지입원수술년수": 0}) == "입원과 수술의 기간 질문 없음"
+    assert S.question_text(data.variants[EG]) is None
+
+
+def test_reworded_sentences_pass_the_forbidden_word_check(data, analysis):
+    for tid in ("G2_일반", "질문_기간", "질문_기간만", "A2_면책같음", "Q3_면책같음", "Q3_분석_면책같음", "절_면책", "절_면책없음",
+                "절_감액", "절_감액없음", "절_지급", "조건절_상대", "범위_상품", "범위_상품_관문", "범위_구조", "구조_상대",
+                "범위_대기", "범위_쌍없음"):
+        assert S.forbidden_in(S._SLOT.sub(" ", S.TEMPLATES[tid])) == [], tid
+    assert all(S.forbidden_in(x) == [] for x in (S.PAY_DIFF_DAYS, S.PAY_DIFF_START, S.PAY_DIFF_BOTH, S.PAY_DIFF_FORM))
+    # 지급 형태 꼬리표("최초 1회")는 자료 값이라 조건문에 들어도 포인트를 빼지 않는다
+    assert S.render("절_지급", {"지급형태": "최초 1회"}) == "지급 형태가 최초 1회입니다"
+    out = S.export(data, analysis, REL)
+    assert forbidden_hits(data, out) == []
+    # 브리핑은 줄마다 두 문장 이하다
+    assert all(x["문장"].count(". ") <= 1 for b in out["기준별"].values() for x in b["브리핑"])
 
 
 # ---------- 실제 사본 ----------
@@ -1151,6 +1514,9 @@ def test_real_snapshot_export_runs():
     assert size < 600 * 1024, size
     assert forbidden_hits(data, out) == []
     assert quote_misses(out) == []
+    # 일반심사 규칙을 바꿔도 지도 행의 경계는 그대로다(12행)
+    assert S.since_cuts(data) == [0.25, 1, 2, 3, 4, 5] and all(len(m["행"]) == 12 for m in out["지도"].values())
+    assert [x["열쇠"] for x in out["주석"]] == [x["열쇠"] for x in S.NOTES]
     for b in out["기준별"].values():
         assert [x["줄"] for x in b["브리핑"]] == ["가", "나", "다", "라", "마"] and all(x["문장"] for x in b["브리핑"])
         assert all(out["포인트"][p]["분류"] in S.CATEGORIES for p in b["포인트"])

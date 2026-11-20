@@ -58,6 +58,18 @@ def test_precise_comparison_variant_needs_refund_type_and_hash():
     assert check_row("sys_상품종형", variant(비교역할구분="관문전용", 환급유형=None, 요약서해시=None)) == []
 
 
+def test_disclosure_scope_columns():
+    six = "암, 협심증, 심근경색, 심장판막증, 간경화증, 뇌졸중증"
+    assert check_row("sys_상품종형", variant(고지중대질병목록=six, 고지소견범위="서면")) == []
+    assert check_row("sys_상품종형", variant(고지중대질병목록=six, 고지소견범위="서면과 진료기록부")) == []
+    assert any("허용값" in p for p in check_row("sys_상품종형", variant(고지소견범위="진료기록부")))
+    # 목록과 수가 둘 다 있으면 개수가 같아야 한다. 하나만 있으면 견주지 않는다
+    assert any("고지중대질병수(6)" in p for p in check_row("sys_상품종형", variant(고지중대질병목록="암, 협심증")))
+    assert check_row("sys_상품종형", variant(고지중대질병목록="암, 협심증", 고지중대질병수=None)) == []
+    assert check_row("sys_상품종형", variant(고지중대질병목록=None)) == []
+    assert any("빈 항목" in p for p in check_row("sys_상품종형", variant(고지중대질병목록="암, , 협심증, 심근경색, 심장판막증, 간경화증")))
+
+
 def test_disease_code_order_understands_subcodes():
     row = {"질병군코드행ID": "R", "질병군ID": "G", "질병군명": "뇌경색", "KCD버전": "KCD-9",
            "시작코드": "I63.0", "끝코드": "I63"}

@@ -11,7 +11,9 @@ from typing import Any
 from .. import ids
 
 DOC_HASH = {"상품요약서": "요약서해시", "사업방법서": "사업방법서해시", "약관": "약관별표해시"}
-OPTIONAL = ("고지최근소견개월", "고지입원수술년수", "고지중대질병년수", "고지수술포함여부", "고지중대질병수")
+# 종형마다 사업방법서의 고지 질문에서 읽어 설정에 적는 열. 시트의 기존 행은 scripts/sync_variant_attrs.py가 이 열만 맞춘다
+OPTIONAL = ("고지최근소견개월", "고지입원수술년수", "고지중대질병년수", "고지수술포함여부", "고지중대질병수",
+            "고지중대질병목록", "고지소견범위")
 GATE_ROLE = "관문전용"      # 관문 표시에만 쓰는 종형. 급부를 뽑지 않고 종형 행과 주계약 가입나이, 가입한도만 쓴다
 
 
@@ -61,7 +63,7 @@ def build(targets: dict[str, Any], index: list[dict[str, Any]]) -> tuple[list[Va
                 "비교역할구분": v.get("비교역할구분") or product["비교역할구분"],
                 "심사유형": v["심사유형"],
                 "간편고지약칭": v["간편고지약칭"],
-                **{k: v.get(k) for k in OPTIONAL},
+                **asked(v),
                 "갱신유형": product["갱신유형"],
                 "갱신주기년": product.get("갱신주기년"),
                 "환급유형": product.get("환급유형"),
@@ -73,6 +75,18 @@ def build(targets: dict[str, Any], index: list[dict[str, Any]]) -> tuple[list[Va
             }
             out.append(Variant(row, found.get("상품요약서"), product.get("갱신형특약주기년"), found.get("사업방법서")))
     return out, problems
+
+
+def asked(v: dict[str, Any]) -> dict[str, Any]:
+    """설정의 종형 하나에 적힌 고지 열(OPTIONAL). 적지 않은 열은 None."""
+    return {k: v.get(k) for k in OPTIONAL}
+
+
+def attributes(targets: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """종형ID → 설정에 적힌 고지 열. 공시 수집 결과 없이 설정만으로 만들고, 종형ID와 값은 build가 만드는 행과 같다."""
+    org = targets["기관코드"]
+    return {ids.variant_id(org, v["공시상품코드"], v["종형명"]): asked(v)
+            for product in targets["상품"] for v in product["종형"]}
 
 
 MAIN_NAME = "주계약"

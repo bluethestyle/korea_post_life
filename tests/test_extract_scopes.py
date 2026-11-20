@@ -182,6 +182,55 @@ def test_add_column_widens_rows_once():
         pass
 
 
+def _add_column_module():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("add_column", Path(__file__).resolve().parents[1] / "scripts/add_column.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_add_column_widens_several_columns_at_once():
+    import pytest
+    mod = _add_column_module()
+    header = ["가", "새1", "나", "새2", "다"]
+    old = [["가", "나", "다"], [1, 2, 3], [4], [5, 6, 7, "메모"]]
+    assert mod.widen(old, header, ["새1", "새2"]) == [header, [1, "", 2, "", 3], [4, "", "", "", ""],
+                                                      [5, "", 6, "", 7, "메모"]]           # 머리행 밖 메모는 끝에 그대로
+    # 한 열만 먼저 들어가 있으면 빠진 열만 넣는다. 모두 들어가 있으면 None
+    assert mod.widen([["가", "새1", "나", "다"], [1, "x", 2, 3]], header, ["새1", "새2"]) == [header, [1, "x", 2, "", 3]]
+    assert mod.widen([header, [1, "", 2, "", 3]], header, ["새1", "새2"]) is None
+    for values, columns in (([["가", "나"]], ["새1", "새2"]),          # 머리행이 예상과 다름
+                            ([["가", "나", "다"]], ["새1"]),            # 새2도 빠져 있는데 새1만 넣으라 함
+                            ([["가", "나", "다"]], ["새1", "없는열"])):   # 스키마에 없는 열
+        with pytest.raises(ValueError):
+            mod.widen(values, header, columns)
+    assert mod.split_columns(["고지중대질병목록,고지소견범위", "고지소견범위", " 감액예외 "]) == ["고지중대질병목록", "고지소견범위",
+                                                                                         "감액예외"]
+
+
+def test_add_column_main_puts_the_two_disclosure_columns_into_the_variant_tab():
+    from postlife.schema import TABS
+    from postlife.sheets_io import MemoryBackend
+
+    mod = _add_column_module()
+    tab = "sys_상품종형"
+    new_cols = ("고지중대질병목록", "고지소견범위")
+    old_header = [c for c in TABS[tab].header if c not in new_cols]
+    row = [f"v{i}" for i in range(len(old_header))]
+    backend = MemoryBackend({tab: [old_header, row]})
+    assert mod.main(["--tab", tab, "--column", "고지중대질병목록", "--column", "고지소견범위"], backend) == 0
+    values = backend.data[tab]
+    assert values[0] == TABS[tab].header
+    at = [values[0].index(c) for c in new_cols]
+    assert [values[1][i] for i in at] == ["", ""]
+    assert [v for i, v in enumerate(values[1]) if i not in at] == row                # 다른 칸은 그대로다
+    assert mod.main(["--tab", tab, "--column=고지중대질병목록,고지소견범위"], backend) == 0  # 두 번째는 아무것도 하지 않는다
+    assert [c for c in backend.calls if c[0] == "overwrite"] == [("overwrite", tab)]
+    assert mod.main(["--tab", "sys_급부", "--column", "고지소견범위"], MemoryBackend()) == 1   # 다른 탭의 열이면 멈춘다
+
+
 def test_variant_reads_only_the_most_specific_scope_in_a_block():
     from postlife.extract.segment import scope_fit
 

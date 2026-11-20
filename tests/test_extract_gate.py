@@ -22,6 +22,7 @@ from postlife.validate import check_rows
 
 ROOT = Path(__file__).resolve().parents[1]
 NOW = datetime(2026, 11, 20, 16, 0, tzinfo=KST)
+NEW_COLUMNS = {"고지중대질병목록", "고지소견범위"}   # 2026-11-20 스키마에 더한 sys_상품종형 열. 그 전에 뜬 사본 행에는 없다
 ZERO, ONE = "간편가입형(0년)", "간편가입형(1년)"
 
 TARGETS = {"기관코드": "HANWHALIFE", "공시목록URL": "https://example.invalid/list", "상품": [
@@ -157,7 +158,8 @@ def test_variant_role_overrides_the_product_role_and_leaves_other_rows_alone():
 def test_real_targets_keep_the_rows_of_the_variants_already_on_the_sheet():
     """저장소의 한화생명 설정으로 만든 종형 행 가운데 사본에 있는 종형은 사본의 행과 글자 하나 다르지 않다.
 
-    관문전용 네 종형이 시트에 올라간 뒤의 사본에서도 같은 검사가 그대로 돈다(그때는 네 종형의 행도 사본과 견준다)."""
+    관문전용 네 종형이 시트에 올라간 뒤의 사본에서도 같은 검사가 그대로 돈다(그때는 네 종형의 행도 사본과 견준다).
+    사본을 뜬 뒤 스키마에 더한 열(사본 행에 그 열이 아예 없음)은 견주지 않는다. 열을 넣고 값을 채운 뒤의 사본에서는 그 열도 견준다."""
     targets = json.loads((ROOT / "data/targets/hanwha.json").read_text(encoding="utf-8"))
     snap = [json.loads(line) for line in (ROOT / "data/snapshot/sys_상품종형.jsonl").read_text(encoding="utf-8").splitlines()
             if line.strip()]
@@ -171,7 +173,8 @@ def test_real_targets_keep_the_rows_of_the_variants_already_on_the_sheet():
     made = {v.id: v.row for v in found}
     assert set(sheet) <= set(made)
     for key, row in sheet.items():
-        assert made[key] == row, key
+        assert {c: made[key][c] for c in row} == row, key
+        assert set(made[key]) - set(row) <= NEW_COLUMNS, key       # 사본에 없는 열은 사본을 뜬 뒤 더한 열뿐이다
     gates = [v for v in found if v.gate_only]
     assert [v.row["종형명"] for v in gates] == ["간편가입형(0년)", "간편가입형(3년)", "간편가입형(4년)", "간편가입형(10년)"]
     assert [(v.row["간편고지약칭"], v.row["고지입원수술년수"]) for v in gates] == [("3.0.5", 0), ("3.3.5", 3), ("3.4.5", 4),
