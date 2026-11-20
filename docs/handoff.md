@@ -18,7 +18,7 @@
 - 종형 표의 열 둘(`고지중대질병목록`, `고지소견범위`) 추가, 일반심사 종형을 늘 "심사로 확인"으로 두는 규칙 변경, 영업 인사이트 문장 수정: 사용자가 2026-11-20에 승인했습니다. 단계별 누적 패치가 세션의 스크래치 폴더 `gate2/`에 `p1.patch`, `p2.patch`, `p3.patch`, `final.patch`로 남습니다(임시 폴더라 재부팅하면 사라집니다). 병합한 뒤에는 열 넣기(`add-column.yml`), 종형 속성 갱신, 사본 갱신(`weekly-close.yml`), 운영 화면 다시 만들기 순서입니다. 패치가 없으면 `docs/progress.md`의 "사용자 승인"과 "카본 68번, 69번 답의 검수 결과" 항목대로 다시 합니다.
 - `docs/proposals/게임UI_기준표.md`는 작업 폴더에 커밋되지 않은 수정이 있습니다. 10절을 스타일 합의안으로 고친 뒤 커밋합니다.
 
-Antigravity가 이어받을 수 있는 일은 `docs/gemini_requests/20_이어받기_개발_Antigravity.md`에 지시문으로 적었습니다(화면 흐름도 고치기, 시안 4 점검과 보완, 문서 숫자 맞추기, 그래프 탐색 다음 시안). 그 지시문의 "고치면 안 되는 파일"은 위의 진행 중인 작업과 겹치는 범위입니다. Antigravity의 커밋은 `antigravity/<주제>` 가지에 두고 Claude가 검수해 합칩니다.
+Antigravity가 이어받을 수 있는 일은 `docs/gemini_requests/20_이어받기_개발_Antigravity.md`에 지시문으로 적었습니다(화면 흐름도 고치기, 시안 4 점검과 보완, 문서 숫자 맞추기, 그래프 탐색 다음 시안). Claude Code는 원격 서버에서, Antigravity는 사용자의 PC에서 돌기 때문에 둘 사이의 길은 GitHub 저장소뿐입니다. 그래서 시안의 원본을 git 제외 폴더에서 저장소의 `proto_src/`로 옮기고 있습니다. 화면 흐름도의 원본과 글꼴은 옮겼고(`proto_src/flow/`, `proto_src/fonts/`. 합친 결과가 올라간 파일과 바이트까지 같음), 시안 4와 그래프 탐색의 원본은 아직 `local/postlife_local_assets/proto_src/`에 있습니다. 시안 4는 만드는 작업이 끝난 뒤에 옮깁니다. Antigravity는 `antigravity/<주제>` 가지를 푸시해 PR을 열고, Claude가 검수해 합칩니다. 기록은 `docs/antigravity_log.md`에 따로 남깁니다.
 
 조심할 것
 
