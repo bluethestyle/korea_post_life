@@ -9,18 +9,26 @@
 - 최근 3개월 소견과 5년 안 중대질병 문항은 세 회사가 같은 기간이라 입력으로 받지 않고, 문장에 전제로 붙인다.
 
 가입 관문(question_hit, gate)
-- 간편심사 종형: 이력이 없으면 해당 없음. 수술만이고 기간 질문이 수술을 묻지 않으면(고지수술포함여부 거짓) 해당 없음.
+- 관문을 따지는 종형은 판매 중인 정밀비교 종형과 관문전용 종형이다(gate_targets). 관문전용 종형은 고지 질문과 주계약 가입나이,
+  가입한도만 모았고 급부는 모으지 않았다. 대표 종형, 담보 비교와 시사점, 기준 종형, 지도 행의 경계(since_cuts)는 정밀비교 종형만
+  쓴다(targets).
+- 간편심사 종형: 이력이 없으면 해당 없음. 고지입원수술년수가 0이면 입원이나 수술의 기간 질문이 없는 종형이라 해당 없음(수술 여부보다
+  먼저 본다. 빈칸은 자료 없음이다). 수술만이고 기간 질문이 수술을 묻지 않으면(고지수술포함여부 거짓) 해당 없음.
   그 밖에는 since가 고지입원수술년수 이상이면 해당 없음, 아니면 해당. 열이 비었으면 자료 없음.
 - 일반심사 종형: 이력이 없거나 since가 GENERAL_CLEAR_YEARS(5년) 이상이면 해당 없음, 아니면 심사로 확인.
 - 종형 상태: 질문 해당이나 나이 불가는 닫힘, 질문 자료 없음, 심사로 확인, 나이 자료 없음(질문 해당 없음이고 가입나이 자료가
   없음), 열림. 회사 상태는 종형 상태 가운데 STATE_ORDER로 앞선 것이다.
 
 고객군 지도(classify, simple_classify, cell, segment_map)
-- 칸 분류는 우리 상태(U)와 "자료 있는 상대"(열림이나 닫힘. 심사로 확인은 닫힘으로 센다)로 가른다. 관문 상태이지 우열이 아니다.
+- 칸 분류는 우리 상태(U)와 상대 상태(열림, 닫힘, 모름. 심사로 확인은 닫힘으로 센다)로 가른다. 관문 상태이지 우열이 아니다.
+  열린 상대가 있으면 함께 열림이나 우리만 닫힘이다. 열린 상대가 없을 때 상태를 모르는 상대(나이 자료 없음, 질문 자료 없음)가
+  하나라도 있으면 그 상대가 열려 있을 수 있어 자료 없음이고, 모두 닫혔으면 우리만 열림이나 모두 닫힘이다.
   안쪽 분류(classify)는 회사 상태(일반심사 종형 포함)로 가르고 대표 종형과 칸의 숫자가 따른다. 화면의 라벨과 관문 포인트 G1, G2는
   간편심사 종형만 본 분류(simple_classify)를 따른다. 일반심사 종형만 열린 칸은 "우리 간편 닫힘"과 보조 줄 "일반심사 확인"이다.
+  두 분류 모두 관문전용 종형까지 본 상태다.
 - 칸의 숫자는 우리 대표 종형과 상대 대표 종형을 견준 시사점에서 센다(분류수: 다섯 분류 이름과 검토 대기. 관문 차이는 그 칸의
-  관문 포인트 수). 상대 대표가 compare.peers의 짝과 다르면 insights.analyze_pair로 그 쌍을 다시 돌린다.
+  관문 포인트 수). 상대 대표가 compare.peers의 짝과 다르면 insights.analyze_pair로 그 쌍을 다시 돌린다. 대표는 정밀비교 종형에서만
+  고르므로, 상대 회사에서 열린 종형이 관문전용뿐이면 그 회사와는 견주지 않고 칸의 관문만수집에 그 종형을 적는다(GATE_NOTE).
 - 갱신유형 거르개가 있으면 칸의 회사, 대표, 관문 포인트의 짝 모두 거르개 안의 종형만 쓴다.
 
 응대 포인트(points, render, scope)
@@ -30,6 +38,10 @@
 - 근거 급부가 작업 로그 검토 대기이면 같은 종형, 같은 표준담보의 확정 급부로 바꾸고, 바꿀 급부가 없으면 포인트를 뺀다.
 - 기준 종형은 판매 중인 정밀비교 우체국 종형만 받는다(points, scope가 다른 종형에 ValueError). 틀이 기준 앞에 "우체국"을 붙인다.
 - 감액은 받는 비율로 적는다("1년까지 보험금의 50% 지급"). 감액지급률은 그 기간에 지급하는 비율이다.
+- 관문 포인트(gate_points)의 G1, G2는 관문전용 종형까지 본 라벨 분류를 따른다. G2는 기준 종형이 나이로 닫힌 칸(열린 상대 종형의
+  가입나이를 적는다)과 고지 질문에 걸린 칸(열린 상대 종형의 기간 질문을 적는다)에 낸다. G3은 같은 기간 질문의 범위나 질병 수가 다른
+  짝과 함께, 상대 회사가 우리 간편 종형 어느 것보다 입원과 수술 기간 질문이 짧거나 없는 종형을 팔면 그 사실을 적는다.
+  관문전용 종형을 적은 포인트는 머리말(머리말_관문)과 문장(G3_미수집)에 담보를 수집하지 않았다고 적는다.
 
 다섯 분류와 문장 둘(합의안 4번. 이용자는 본부의 영업 기획과 분석 담당자다)
 - 분류는 세부에서 정해지고 서로 겹치지 않는다(CATEGORY): 관문 차이(G1, G2, G3), 앞세울 강점(A1, A2), 관련 담보 안내(Q1),
@@ -126,6 +138,8 @@ LABELS = {ONLY_OPEN: "우리 간편만 열림", BOTH_OPEN: "함께 열림", ONLY
           ALL_CLOSED: "간편 모두 닫힘", NO_DATA: "자료 없음"}
 GENERAL_NOTE = "일반심사 확인"
 CLOSED_AGE, CLOSED_QUESTION = "나이", "고지 질문"
+GATE_ROLE = "관문전용"            # 관문 표시에만 쓰는 종형(고지 질문과 주계약 가입조건만 모았다)
+GATE_NOTE = "관문만 수집(담보 미수집)"
 
 # 단정 주의 목록의 종류
 CAUTION_OTHER, CAUTION_PAY = "조건이 다른 특약 함께 판매", "지급 형태 다름"
@@ -142,10 +156,17 @@ TEMPLATES = {
     "G1_상대_기간": "{상대:은} {상대기간}년 안의 {상대범위:을} 묻습니다.",
     "G2": "{나이}세는 우체국 {우리종형}의 가입나이({우리최저}~{우리최고}세) 밖입니다. {상대문장}",
     "G2_상대": "{상대:은} {상대최저}~{상대최고}세를 받습니다.",
+    # 기준 종형이 고지 질문에 걸린 칸의 G2. 열린 상대 종형마다 기간 질문을 적는다(기간이 있으면 G1_상대_기간 틀)
+    "G2_질문": "{이력}인 고객은 우체국 {우리종형}의 고지 질문에 해당합니다. {상대문장} 가입 여부는 청약 뒤 심사로 정해집니다.",
+    "G2_상대_질문없음": "{상대:은} 입원과 수술의 기간 질문이 없습니다.",
     "G3": "{기간}년 안 질문에서 우체국 {우리종형:은} {우리범위:을}, {상대:은} {상대범위:을} 묻습니다. "
           "{중대년수}년 안 중대질병 질문의 질병 수는 우체국 {우리수}개, {상대회사} {상대수}개입니다.",
     "G3_범위": "{기간}년 안 질문에서 우체국 {우리종형:은} {우리범위:을}, {상대:은} {상대범위:을} 묻습니다.",
     "G3_질병수": "{중대년수}년 안 중대질병 질문의 질병 수는 우체국 {우리종형} {우리수}개, {상대} {상대수}개입니다.",
+    # 상대 회사가 우리 간편 종형 어느 것보다 입원과 수술 기간 질문이 짧거나 없는 종형을 판다
+    "G3_질문없음": "{상대회사:은} 입원과 수술의 기간 질문이 없는 {상대종형:을} 함께 팝니다.",
+    "G3_짧은": "{상대회사:은} {상대기간}년 안의 {상대범위:을} 묻는 {상대종형:을} 함께 팝니다.",
+    "G3_미수집": "이 종형은 고지 질문과 주계약 가입조건만 모았고 담보는 수집하지 않았습니다.",
     "A1": "{담보:은} 우체국 {우리종형}에 따로 있는 담보입니다. 견준 {상대회사목록} 상품에는 같은 담보가 없습니다"
           "(넓은 담보와 부분 담보까지 확인).",
     "A1_주의": "상대의 일반 입원 담보로 같은 입원이 지급될 수 있습니다.",
@@ -159,6 +180,7 @@ TEMPLATES = {
     "Q3": "맞습니다. {담보:은} 우체국 {우리종형:이} {우리조건}이고, {상대문장}입니다.",
     "Q3_경과": "{경과:이} 지나면 {모두} 보험금 전액을 지급합니다.",
     "머리말": "수집한 {상품} 기준({기준일})",
+    "머리말_관문": "관문만 수집한 {상품} 기준({기준일}, 담보 미수집)",
     "구조": "구조 다름: 우체국 {우리구조} 대 {상대구조}",
     "회사수": "견준 {전체}개 회사 가운데 {해당}곳",
     "범위": "견준 상품은 {머리말}입니다. 공통 담보 {비교쌍}쌍 가운데 {뺀비교쌍}쌍은 검토 대기라 견주지 않았습니다.",
@@ -229,7 +251,7 @@ TEMPLATES = {
     "마_없음": "지금 기준에서 나온 영업 인사이트는 없습니다.",
 }
 # 공시 자료에서 온 이름과 조건 값, 이미 render를 거친 문장. 금지어 검사에서 뺀다.
-DATA_KEYS = {"담보", "우리종형", "상대", "상대회사", "상대회사목록", "덮는담보", "우리조건", "상대조건", "상대문장",
+DATA_KEYS = {"담보", "우리종형", "상대", "상대회사", "상대종형", "상대회사목록", "덮는담보", "우리조건", "상대조건", "상대문장",
              "상품", "우리구조", "상대구조", "머리말", "좁은담보", "우리지급형태", "상대지급형태", "대표강점요약",
              "절1", "절2", "절3"}
 
@@ -392,10 +414,24 @@ def structure_differs(data: Data, base: str, peer: str) -> bool:
 
 
 def targets(data: Data, renewal: str | None = None) -> list[str]:
-    """관문을 따질 종형: 정밀비교이고 판매 중인 종형. renewal이 있으면 갱신유형이 같은 종형만."""
+    """견줄 종형: 정밀비교이고 판매 중인 종형. renewal이 있으면 갱신유형이 같은 종형만. 지도 행의 경계(since_cuts)가 쓴다."""
+    return _selling(data, (C.COMPARE_ROLE,), renewal)
+
+
+def gate_targets(data: Data, renewal: str | None = None) -> list[str]:
+    """관문을 따질 종형: targets에 판매 중인 관문전용 종형을 더한 것. gate가 쓴다."""
+    return _selling(data, (C.COMPARE_ROLE, GATE_ROLE), renewal)
+
+
+def _selling(data: Data, roles: tuple[str, ...], renewal: str | None) -> list[str]:
     return [v for v in data.variant_order
-            if data.variants[v].get("비교역할구분") == C.COMPARE_ROLE and _blank(data.variants[v].get("판매종료일"))
+            if data.variants[v].get("비교역할구분") in roles and _blank(data.variants[v].get("판매종료일"))
             and (renewal is None or data.variants[v].get("갱신유형") == renewal)]
+
+
+def gate_only(data: Data, vid: str) -> bool:
+    """관문전용 종형인지. 급부를 모으지 않아 대표 종형이나 담보 비교에 쓰지 않는다."""
+    return data.variants[vid].get("비교역할구분") == GATE_ROLE
 
 
 # ---------- 가입 관문 ----------
@@ -405,13 +441,15 @@ def question_hit(variant: dict, p: Profile) -> str:
     if uw == SIMPLE:
         if p.since is None:
             return Q_NONE
+        years = variant.get("고지입원수술년수")
+        if years == 0:                    # 입원이나 수술의 기간 질문이 없는 종형(빈칸 None은 자료 없음이다)
+            return Q_NONE
         if p.surgery_only:
             surgery = variant.get("고지수술포함여부")
             if surgery is None:
                 return Q_NODATA
             if surgery is False:
                 return Q_NONE
-        years = variant.get("고지입원수술년수")
         if years is None:
             return Q_NODATA
         return Q_NONE if p.since >= years else Q_HIT
@@ -444,9 +482,9 @@ def variant_gate(data: Data, vid: str, p: Profile) -> dict[str, Any]:
 
 
 def gate(data: Data, p: Profile) -> dict[str, Any]:
-    """회사별, 종형별 관문 상태. 회사 상태는 종형 상태 가운데 STATE_ORDER로 앞선 것이다."""
+    """회사별, 종형별 관문 상태. 회사 상태는 종형 상태 가운데 STATE_ORDER로 앞선 것이다. 관문전용 종형도 본다(gate_targets)."""
     out: dict[str, dict[str, Any]] = {}
-    for vid in targets(data, p.renewal):
+    for vid in gate_targets(data, p.renewal):
         out.setdefault(_org(data, vid), {"상태": None, "종형": []})["종형"].append(variant_gate(data, vid, p))
     for g in out.values():
         g["상태"] = min((x["상태"] for x in g["종형"]), key=STATE_ORDER.index)
@@ -463,12 +501,17 @@ def _side(state: str | None) -> str | None:
 
 
 def _by_sides(us: str | None, others: Iterable[str | None]) -> str:
+    """우리 쪽과 상대 쪽들(열림, 닫힘, 모름 None)로 칸을 가른다. 열린 상대가 없는데 모르는 상대가 있으면 자료 없음이다
+    (모르는 상대가 열려 있을 수 있어 "우리만 열림"이나 "모두 닫힘"이라고 할 수 없다)."""
+    others = list(others)
     known = [s for s in others if s is not None]
     if us is None or not known:
         return NO_DATA
-    if us == OPEN:
-        return BOTH_OPEN if OPEN in known else ONLY_OPEN
-    return ONLY_CLOSED if OPEN in known else ALL_CLOSED
+    if OPEN in known:
+        return BOTH_OPEN if us == OPEN else ONLY_CLOSED
+    if len(known) < len(others):
+        return NO_DATA
+    return ONLY_OPEN if us == OPEN else ALL_CLOSED
 
 
 def classify(gate_result: dict[str, Any]) -> tuple[str, list[str]]:
@@ -568,23 +611,24 @@ def _rank(data: Data, vid: str) -> tuple:
 
 
 def our_rep(data: Data, home: dict[str, Any] | None) -> str | None:
-    """우리 대표 종형. 열린 간편심사 가운데 질문 기간이 가장 긴 것, 없으면 열린 일반심사의 첫째."""
+    """우리 대표 종형. 열린 간편심사 가운데 질문 기간이 가장 긴 것, 없으면 열린 일반심사의 첫째. 관문전용 종형은 고르지 않는다."""
     if not home:
         return None
-    opened = [x["종형ID"] for x in home["종형"] if x["상태"] == OPEN]
+    opened = [x["종형ID"] for x in home["종형"] if x["상태"] == OPEN and not gate_only(data, x["종형ID"])]
     return min(opened, key=lambda v: _rank(data, v)) if opened else None
 
 
 def peer_reps(ctx: _Ctx, gate_result: dict[str, Any], rep: str) -> dict[str, str]:
     """상대 회사마다 대표 종형. 열림이나 나이 자료 없음인 종형 가운데 compare.peers가 우리 대표에 고르는 종형,
-    그 종형이 닫혔으면 남은 것 가운데 질문 기간이 가장 긴 것이다."""
+    그 종형이 닫혔으면 남은 것 가운데 질문 기간이 가장 긴 것이다. 관문전용 종형은 급부가 없어 고르지 않는다(그 회사만 열린
+    종형이 관문전용뿐이면 대표가 없다)."""
     data = ctx.data
     preferred = ctx.default_peers(rep)
     out = {}
     for org, g in gate_result["회사"].items():
         if org == HOME_ORG:
             continue
-        cands = [x["종형ID"] for x in g["종형"] if x["상태"] in (OPEN, NO_AGE)]
+        cands = [x["종형ID"] for x in g["종형"] if x["상태"] in (OPEN, NO_AGE) and not gate_only(data, x["종형ID"])]
         if not cands:
             continue
         pick = next((v for v in preferred if v in cands), None)
@@ -625,10 +669,10 @@ def cell(data: Data, p: Profile, analysis: dict | None, relations: Relations | N
     """지도 칸 하나. 우리 대표나 상대 대표가 없으면 숫자를 비운다(None).
 
     분류는 회사 상태로 가른 안쪽 값(classify)이고, 라벨은 간편심사 종형만 본 분류(simple_classify)의 화면 이름이다.
-    열린종형은 회사별 열린 종형ID다. 칸을 눌렀을 때 패널이 보이는 값이고, 지도의 이웃 구간을 합칠지 가를 때도 쓴다.
+    열린종형은 회사별 열린 종형ID다(관문전용 종형 포함). 칸을 눌렀을 때 패널이 보이는 값이고, 지도의 이웃 구간을 합칠지 가를 때도 쓴다.
     분류수는 칸의 인사이트 수를 다섯 분류 이름으로 센 것이다. 관문 차이는 그 칸의 관문 포인트 수(cell_gate_points)이고,
     나머지 넷과 검토 대기는 우리 대표와 상대 대표를 견준 수(category_counts)다. 견줄 대표가 없으면 그 다섯은 None이다.
-    수는 안쪽 값(counts)으로 남겨 둔다.
+    수는 안쪽 값(counts)으로 남겨 둔다. 관문만수집은 열린 종형이 관문전용뿐인 상대 회사의 그 종형이다(gate_only_open).
     """
     ctx = _ctx(data, analysis, relations, ctx)
     g = gate(data, p)
@@ -647,9 +691,23 @@ def cell(data: Data, p: Profile, analysis: dict | None, relations: Relations | N
            "분류수": {GATE_DIFF: len(found), **{c: insight.get(c) for c in CATEGORIES if c != GATE_DIFF},
                     PENDING_COUNT: insight.get(PENDING_COUNT)},
            "자료없음": nodata,
-           "열린종형": {o: [y["종형ID"] for y in x["종형"] if y["상태"] == OPEN] for o, x in g["회사"].items()}}
+           "열린종형": {o: [y["종형ID"] for y in x["종형"] if y["상태"] == OPEN] for o, x in g["회사"].items()},
+           "관문만수집": gate_only_open(data, g)}
     if cls == ALL_CLOSED:
         out["안내"] = ALL_CLOSED_NOTE
+    return out
+
+
+def gate_only_open(data: Data, g: dict[str, Any]) -> list[dict[str, Any]]:
+    """열린 종형이 관문전용 종형뿐인 상대 회사의 그 종형들. 칸의 라벨은 이 종형까지 본 상태이지만 담보는 견주지 않았다(대표가 없다).
+    [{"기관코드", "종형ID", "이름", "안내"}]. 안내는 GATE_NOTE다."""
+    out = []
+    for org, x in g["회사"].items():
+        if org == HOME_ORG:
+            continue
+        opened = [y["종형ID"] for y in x["종형"] if y["상태"] == OPEN]
+        if opened and all(gate_only(data, v) for v in opened):
+            out += [{"기관코드": org, "종형ID": v, "이름": _peer_name(data, v), "안내": GATE_NOTE} for v in opened]
     return out
 
 
@@ -768,7 +826,9 @@ def segment_map(data: Data, sex: str, renewal: str | None, analysis: dict | None
 
 # ---------- 범위 ----------
 def source_text(data: Data, vid: str) -> str:
-    return render("머리말", {"상품": full_name(data, vid), "기준일": data.variants[vid].get("적용시작일")})
+    """회사마다 수집한 상품과 기준일. 관문전용 종형은 담보를 수집하지 않았다고 적는다(머리말_관문)."""
+    return render("머리말_관문" if gate_only(data, vid) else "머리말",
+                  {"상품": full_name(data, vid), "기준일": data.variants[vid].get("적용시작일")})
 
 
 def header(data: Data, base: str, peers: list[str]) -> tuple[str, bool]:
@@ -894,7 +954,12 @@ def age_span(data: Data, vid: str, sex: str | None) -> tuple[int, int] | None:
 
 def gate_points(ctx: _Ctx, base: str, peers: list[str], p: Profile, out: _Points, g: dict | None = None) -> None:
     """관문 G1(우리만 열림), G2(우리만 닫힘), G3(질문 범위 다름). G1과 G2는 지도 라벨과 같은 분류(simple_classify.
-    간편심사 종형만 본다)를 따른다. g는 gate(data, p)의 결과(없으면 계산한다)."""
+    간편심사 종형만 보고 관문전용 종형도 본다)를 따른다. g는 gate(data, p)의 결과(없으면 계산한다).
+
+    G2는 기준 종형이 고지 질문에 걸렸으면 열린 상대 종형의 기간 질문을(G2_질문), 질문은 넘고 나이로 닫혔으면 열린 상대 종형의
+    가입나이를(G2) 적는다. 열린 상대 종형은 회사마다 짝이 열렸으면 짝, 아니면 정밀비교 종형 가운데 질문 기간이 긴 것이고,
+    열린 정밀비교 종형이 없을 때만 관문전용 종형이다.
+    G3은 같은 기간 질문의 짝과 견준 것과, 짝의 회사가 파는 더 짧은 기간 질문 종형(shorter_questions)이다."""
     data = ctx.data
     bv = data.variants[base]
     g = g if g is not None else gate(data, p)
@@ -921,18 +986,34 @@ def gate_points(ctx: _Ctx, base: str, peers: list[str], p: Profile, out: _Points
             out.add("G1", None, "G1_분석", values, closed, _gate_evidence(base, closed), extra_key=p.key(),
                     source_check=True, card=("G1", values))
 
-    # G2: 칸이 우리 간편 닫힘이고 기준 종형이 나이로 닫힘. 열린 상대 간편심사 종형의 가입나이를 적는다(나이 자료 없는 회사는 뺀다).
-    if p.age is not None and cls == ONLY_CLOSED and mine["나이"] == AGE_NO:
+    # 열린 상대 간편심사 종형: 회사마다 짝이 열렸으면 짝, 아니면 정밀비교 종형 가운데 질문 기간이 긴 것,
+    # 열린 정밀비교 종형이 없으면 관문전용 종형 가운데 질문 기간이 긴 것
+    chosen = []
+    for org, x in by_org.items():
+        if org == HOME_ORG:
+            continue
+        opened = [y["종형ID"] for y in x["종형"] if y["상태"] == OPEN and _is_simple(data, y["종형ID"])]
+        if opened:
+            chosen.append(next((v for v in peers if v in opened), None)
+                          or min(opened, key=lambda v: (gate_only(data, v), *_rank(data, v))))
+
+    # G2(질문): 칸이 우리 간편 닫힘이고 기준 종형이 고지 질문에 걸림. 열린 상대 간편심사 종형의 기간 질문을 적는다.
+    if p.since is not None and cls == ONLY_CLOSED and mine["질문"] == Q_HIT and bv.get("심사유형") == SIMPLE:
+        said = [(pv, _period_part(data, pv)) for pv in chosen]
+        named = [pv for pv, part in said if part]
+        if not named:
+            out.drop("G2", None, "기간 질문을 적을 수 있는 열린 상대 종형이 없음", chosen)
+        else:
+            out.add("G2", None, "G2_질문", {"이력": history_text(p, since_cuts(data)), "우리종형": _kind_name(data, base),
+                                          "상대문장": " ".join(part for _, part in said if part)},
+                    named, _gate_evidence(base, named), extra_key=p.key(), source_check=True,
+                    관문만수집=any(gate_only(data, v) for v in named))
+
+    # G2(나이): 칸이 우리 간편 닫힘이고 기준 종형이 나이로만 닫힘. 열린 상대 간편심사 종형의 가입나이를 적는다(나이 자료 없는 회사는 뺀다).
+    elif p.age is not None and cls == ONLY_CLOSED and mine["나이"] == AGE_NO:
         for org in nodata:
             if org != HOME_ORG:
                 out.drop("G2", None, f"나이 자료 없음: {data.org_name(org)}")
-        chosen = []
-        for org, x in by_org.items():
-            if org == HOME_ORG:
-                continue
-            opened = [y["종형ID"] for y in x["종형"] if y["상태"] == OPEN and _is_simple(data, y["종형ID"])]
-            if opened:
-                chosen.append(next((v for v in peers if v in opened), None) or min(opened, key=lambda v: _rank(data, v)))
         ours = age_span(data, base, p.sex)
         parts = []
         for pv in chosen:
@@ -942,9 +1023,11 @@ def gate_points(ctx: _Ctx, base: str, peers: list[str], p: Profile, out: _Points
         if not parts or not ours:
             out.drop("G2", None, "가입나이를 적을 수 있는 열린 상대 종형이 없음" if ours else "기준 종형 가입나이 자료 없음", chosen)
         else:
+            named = [pv for pv in chosen if age_span(data, pv, p.sex)]
             out.add("G2", None, "G2", {"나이": p.age, "우리종형": _kind_name(data, base), "우리최저": ours[0], "우리최고": ours[1],
                                        "상대문장": " ".join(parts)},
-                    chosen, _gate_evidence(base, chosen), extra_key=p.key(), source_check=True)
+                    chosen, _gate_evidence(base, chosen), extra_key=p.key(), source_check=True,
+                    관문만수집=any(gate_only(data, v) for v in named))
 
     # G3: 짝의 같은 기간 질문에서 수술 포함 여부나 중대질병 수가 다름. 고객 조건과 무관하다.
     if bv.get("심사유형") == SIMPLE:
@@ -964,6 +1047,42 @@ def gate_points(ctx: _Ctx, base: str, peers: list[str], p: Profile, out: _Points
                                       "상대": _peer_name(data, pv), "상대범위": rp, "중대년수": bv.get("고지중대질병년수"),
                                       "우리수": nb, "상대회사": _org_name(data, pv), "상대수": np_},
                     [pv], _gate_evidence(base, [pv]), extra_key=pv, source_check=True)
+        shorter_questions(data, base, peers, p.renewal, out)
+
+
+def _period_part(data: Data, vid: str) -> str | None:
+    """G2(질문)에서 열린 상대 종형의 기간 질문을 적는 문장. 기간 질문이 없으면(0년) 그렇다고 적는다. 값이 없으면 None."""
+    v = data.variants[vid]
+    period = _period(v)
+    try:
+        if period == 0:
+            return render("G2_상대_질문없음", {"상대": _peer_name(data, vid)})
+        return render("G1_상대_기간", {"상대": _peer_name(data, vid), "상대기간": period, "상대범위": _range_text(v)})
+    except TemplateValueMissing:
+        return None
+
+
+def shorter_questions(data: Data, base: str, peers: list[str], renewal: str | None, out: _Points) -> None:
+    """G3(질문 범위 다름)의 하나: 짝의 회사가 우리 간편심사 종형 어느 것보다 입원과 수술 기간 질문이 짧거나 없는 간편심사 종형을
+    팔면 그 사실을 적는다. 짝 말고 그 회사의 판매 중인 종형(관문전용 포함. 거르개 안)을 본다. 우리 쪽 기간은 거르개 안의 판매 중인
+    우체국 간편심사 종형의 기간 가운데 가장 짧은 것이다. 관문전용 종형이면 담보를 수집하지 않았다는 문장(G3_미수집)을 붙인다."""
+    pool = gate_targets(data, renewal)
+    ours = [_period(data.variants[v]) for v in pool if _org(data, v) == HOME_ORG and _is_simple(data, v)]
+    ours = [y for y in ours if y is not None]
+    if not ours:
+        return
+    shortest = min(ours)
+    orgs = list(dict.fromkeys(_org(data, pv) for pv in peers if _org(data, pv) != HOME_ORG))
+    for vid in pool:
+        v = data.variants[vid]
+        period = _period(v)
+        if _org(data, vid) not in orgs or vid in peers or not _is_simple(data, vid) or period is None or period >= shortest:
+            continue
+        values = {"상대회사": _org_name(data, vid), "상대종형": _kind_name(data, vid), "상대기간": period,
+                  "상대범위": _range_text(v)}
+        tail = [("G3_미수집", {})] if gate_only(data, vid) else None
+        out.add("G3", None, "G3_질문없음" if period == 0 else "G3_짧은", values, [vid], _gate_evidence(base, [vid]),
+                extra_key=vid, source_check=True, tail=tail, 관문만수집=gate_only(data, vid))
 
 
 def _evidence(ctx: _Ctx, ins: dict[str, Any]) -> list[dict[str, Any]] | None:
@@ -1579,7 +1698,8 @@ def _line_gate(data: Data, base: str, p: Profile, pts: dict[str, Any]) -> dict[s
     peers = pts["맞붙는종형"]
     span = age_span(data, base, p.sex)
     g = variant_gate(data, base, p)
-    gate_diff = pts["집계"]["G3"]
+    # 맞붙는 상대와 견준 G3만 센다. 짝이 아닌 종형의 더 짧은 기간 질문(shorter_questions)은 관문 탭의 포인트에만 둔다
+    gate_diff = sum(1 for x in pts["포인트"] if x["세부"] == "G3" and set(x["비교종형ID"]) <= set(peers))
     struct = len({_org(data, x) for x in peers if structure_differs(data, base, x)})
     general = data.variants[base].get("심사유형") != SIMPLE
     values = {"우리종형": _kind_name(data, base), "우리최저": span[0] if span else None, "우리최고": span[1] if span else None,
@@ -1655,7 +1775,8 @@ def briefing(data: Data, base: str, p: Profile, analysis: dict | None, relations
     (가) 고객군 지형: 전체 고객군 기준. seg는 segment_map(성별 남, 갱신 거르개 전체)이다. 우리간편닫힘칸수는 라벨이 우리 간편 닫힘이고
          보조가 일반심사 확인인 칸이다(간편 모두 닫힘 칸은 값의 라벨별에만 센다).
     (나) 개정과 시장: 전체 기준. revision_summary와 news_summary로 센다.
-    (다) 가입 관문과 한도: 선택 종형 기준. 관문차이수는 고지 질문이 다른 짝 수(G3), 한도는 조건 p에서 주계약의 한도다.
+    (다) 가입 관문과 한도: 선택 종형 기준. 관문차이수는 고지 질문이 다른 짝 수(맞붙는 상대와 견준 G3. 짝이 아닌 종형의 더 짧은
+         기간 질문은 세지 않는다), 한도는 조건 p에서 주계약의 한도다.
     (라) 담보 포지션: 선택 종형 기준. 견준쌍은 공통 담보 쌍에서 검토 대기로 뺀 쌍을 뺀 수, 보유 수는 치료 여정 격자의 기준 종형
          열 합계(공통 담보 쌍 안의 수가 아니라 기준 종형 전체라 문장을 둘로 가른다), 단정보류수는 단정 주의 목록의 조건이 다른
          특약 함께 판매 건수다.
@@ -1674,25 +1795,32 @@ def briefing(data: Data, base: str, p: Profile, analysis: dict | None, relations
 
 
 # ---------- 지도 칸의 관문 포인트 ----------
-def gate_base(data: Data, home: dict[str, Any] | None) -> str | None:
+def gate_base(data: Data, home: dict[str, Any] | None, question_closed: bool = False) -> str | None:
     """칸의 관문 포인트를 계산할 우리 종형. 열린 간편심사 종형 가운데 질문 기간이 긴 것, 없으면 고지 질문에는 해당하지 않고
-    나이로만 닫힌 간편심사 종형 가운데 질문 기간이 긴 것(G2), 그것도 없으면 None이다. 일반심사 종형은 관문 포인트가 없다."""
+    나이로만 닫힌 간편심사 종형 가운데 질문 기간이 긴 것(G2), 그것도 없으면 None이다. 일반심사 종형은 관문 포인트가 없다.
+    question_closed가 참이면 마지막에 고지 질문에 걸린 간편심사 종형 가운데 질문 기간이 가장 짧은 것(G2_질문. 이력에 가장 가까이
+    닿는 종형)까지 본다. 관문전용 종형은 고르지 않는다."""
     if not home:
         return None
-    simple = [x for x in home["종형"] if data.variants[x["종형ID"]].get("심사유형") == SIMPLE]
+    simple = [x for x in home["종형"] if data.variants[x["종형ID"]].get("심사유형") == SIMPLE and not gate_only(data, x["종형ID"])]
     opened = [x["종형ID"] for x in simple if x["상태"] == OPEN]
     aged = [x["종형ID"] for x in simple if x["질문"] == Q_NONE and x["나이"] == AGE_NO]
     cands = opened or aged
-    return min(cands, key=lambda v: _rank(data, v)) if cands else None
+    if cands:
+        return min(cands, key=lambda v: _rank(data, v))
+    hit = [x["종형ID"] for x in simple if x["질문"] == Q_HIT] if question_closed else []
+    return min(hit, key=lambda v: (_period(data.variants[v]), data.variant_order.index(v))) if hit else None
 
 
 def cell_gate_points(ctx: _Ctx, p: Profile, g: dict | None = None) -> tuple[list[dict], str | None]:
     """(칸의 관문 포인트, 그 기준 종형). 맞붙는 종형은 거르개(p.renewal) 안의 종형에서 compare.peers 규칙으로 고른다
     (거르개가 없으면 응대 포인트의 짝과 같다). 칸의 숫자와 라벨이 거르개 안의 회사만 보므로 패널의 관문 포인트도 거르개 밖
-    상대와 견주지 않는다. g는 gate(data, p)의 결과(없으면 계산한다)."""
+    상대와 견주지 않는다. g는 gate(data, p)의 결과(없으면 계산한다).
+    라벨이 우리 간편 닫힘인 칸은 고지 질문에 걸린 우리 종형까지 기준으로 본다(gate_base의 question_closed. 열린 상대가 있어 G2가 나온다)."""
     data = ctx.data
     g = g if g is not None else gate(data, p)
-    base = gate_base(data, g["회사"].get(HOME_ORG))
+    home = g["회사"].get(HOME_ORG)
+    base = gate_base(data, home, question_closed=simple_classify(data, g)[0] == ONLY_CLOSED)
     if base is None or base not in ctx.bases:
         return [], None
     peers = ctx.peers_within(base, p.renewal)
@@ -1736,7 +1864,7 @@ def _export_point(data: Data, x: dict[str, Any], texts: _Texts) -> dict[str, Any
            "머리말": texts.add(x["머리말"]), "회사수": texts.add(x["회사수"]), "비교종형ID": x["비교종형ID"],
            "근거": _export_evidence(data, x["근거"]), "점수": x["점수"], "목적": x["목적"], "구조다름": x["구조다름"],
            "원문대조": x["원문대조"], "원문대조글": x["원문대조글"], "브리핑": x["브리핑"]}
-    for key in ("주의", "좁은담보", "견준항목"):
+    for key in ("주의", "좁은담보", "견준항목", "관문만수집"):
         if x.get(key):
             out[key] = x[key]
     return out
@@ -1762,7 +1890,8 @@ def _export_map(ctx: _Ctx, seg: dict[str, Any], pool: dict[str, dict], texts: _T
                 pool.setdefault(y["포인트ID"], _export_point(ctx.data, y, texts))
             row.append({"라벨": x["라벨"], "보조": x["보조"], "닫힌사유": x["닫힌사유"], "회사": x["회사"],
                         "대표": x["대표"], "상대대표": x["상대대표"], "분류수": x["분류수"], "자료없음": x["자료없음"],
-                        "열린종형": x["열린종형"], "관문기준": base, "관문포인트": [y["포인트ID"] for y in found]})
+                        "열린종형": x["열린종형"], "관문기준": base, "관문포인트": [y["포인트ID"] for y in found],
+                        "관문만수집": x["관문만수집"]})
         cells.append(row)
     labels = {lab: sum(1 for line in cells for x in line if x["라벨"] == lab) for lab in LABELS.values()}
     return {"성별": seg["성별"], "갱신유형": seg["갱신유형"], "행": seg["행"], "열": seg["열"], "칸": cells, "라벨별": labels}
@@ -1777,6 +1906,9 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
     - 종형별 값은 대표 조건(representative_profile. 이력 없음)으로 계산한다. 시사점에서 오는 포인트는 고객 조건과 무관하다.
     - 지도는 성별 남, 갱신 거르개 전체와 갱신과 비갱신 세 장이다. 칸의 관문 포인트는 그 칸의 맨 앞 나이로 계산한다(cell_gate_points).
       칸의 인사이트 수는 다섯 분류 이름의 분류수(관문 차이는 그 칸의 관문 포인트 수)이고, 안쪽 값인 분류와 수는 싣지 않는다.
+      칸의 관문만수집은 열린 종형이 관문전용뿐인 상대 회사의 그 종형이다(cell). 칸의 열린종형과 관문만수집이 가리키는 종형은
+      모두 "종형"에도 싣는다(관문전용 종형은 비교역할 관문전용).
+    - 포인트의 관문만수집은 관문전용 종형을 적은 관문 포인트(G2, G3)에만 참으로 싣는다.
     - 시장 소식의 요약은 보도를 옮긴 인용이다(news_summary의 인용, 출처표시, 주의표현, 인용안내).
     """
     relations = load_relations() if relations is None else relations
@@ -1823,6 +1955,10 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
         for line in m["칸"]:
             for x in line:
                 used.update(v for v in [x["대표"], x["관문기준"], *x["상대대표"].values()] if v)
+                # 칸이 가리키는 종형ID는 모두 "종형"에 싣는다. 정밀비교 종형 옆에서 함께 열린 관문전용 종형은
+                # 대표나 관문만수집에 들지 않아도 열린종형에 있다
+                used.update(v for ids in x["열린종형"].values() for v in ids)
+                used.update(y["종형ID"] for y in x["관문만수집"])
     used.update(v for x in pool.values() for v in x["비교종형ID"])
     return {
         "형식": 1, "자료시각": data.meta.get("snapshot_at"), "고지": NOTICE,

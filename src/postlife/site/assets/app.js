@@ -626,7 +626,9 @@
     if (v.uw !== '간편심사') {
       return [h('td', {colspan: '3', text: D.texts.gateGeneral || '일반심사'})];
     }
+    /* 고지입원수술년수 0은 입원이나 수술의 기간 질문이 없는 종형이다(빈칸은 자료 없음) */
     const hosp = g.hospYears === null || g.hospYears === undefined ? '자료 없음'
+      : g.hospYears === 0 ? '입원과 수술의 기간 질문 없음'
       : g.hospYears + '년 이내 입원' + (g.surgery === true ? '·수술' : g.surgery === false ? ' (수술은 묻지 않음)' : ' (수술 포함 여부 자료 없음)');
     const major = g.majorYears === null || g.majorYears === undefined ? '자료 없음'
       : g.majorYears + '년 이내 중대질병' + (g.majorCount === null || g.majorCount === undefined ? ' (질병 수 자료 없음)' : ' ' + g.majorCount + '개');
@@ -1251,7 +1253,7 @@
     const none = function (x) { return x === null || x === undefined; };
     if (v.uw !== '간편심사') return D.texts.gateGeneral || '일반심사';
     return [none(g.months) ? '최근 소견 자료 없음' : '최근 ' + g.months + '개월 이내 소견',
-      none(g.hospYears) ? '입원 질문 자료 없음' : g.hospYears + '년 이내 입원' + (g.surgery === true ? '과 수술' : g.surgery === false ? '(수술은 묻지 않음)' : '(수술 포함 여부 자료 없음)'),
+      none(g.hospYears) ? '입원 질문 자료 없음' : g.hospYears === 0 ? '입원과 수술의 기간 질문 없음' : g.hospYears + '년 이내 입원' + (g.surgery === true ? '과 수술' : g.surgery === false ? '(수술은 묻지 않음)' : '(수술 포함 여부 자료 없음)'),
       none(g.majorYears) ? '중대질병 자료 없음' : g.majorYears + '년 이내 중대질병' + (none(g.majorCount) ? '' : ' ' + g.majorCount + '개')].join(', ');
   }
   function mainAgeText(vid, k) {

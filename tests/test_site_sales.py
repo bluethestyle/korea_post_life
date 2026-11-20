@@ -977,6 +977,171 @@ def test_export_shape_and_no_forbidden_words(data, analysis):
     assert forbidden_hits(data, out) == []
 
 
+# ---------- 관문전용 종형과 모르는 상대 ----------
+HZ = "HANWHALIFE_HZ_bbbbbb"
+ZERO_YEAR = (HZ, "HANWHALIFE", "간편가입형(0년)", "간편심사", "3.0.5", (3, 0, 5, None, 7), "비갱신", UNPAID, "2026-10-01",
+             [(15, 60), (61, 80)])
+
+
+def gate_book():
+    """한화생명에 입원과 수술의 기간 질문이 없는 관문전용 종형(간편가입형(0년))을 더한 자료. 급부는 모으지 않았다."""
+    b = Book(extra=[ZERO_YEAR])
+    next(v for v in b.t["sys_상품종형"] if v["종형ID"] == HZ)["비교역할구분"] = S.GATE_ROLE
+    b.t["sys_특약"] = [r for r in b.t["sys_특약"] if r["특약ID"] != f"{HZ}_T"]      # 주계약 행만 있다
+    fill(b)
+    return b
+
+
+@pytest.fixture()
+def gated():
+    return Data(gate_book().t)
+
+
+@pytest.mark.parametrize("profile", [P(since=0.25), P(since=4), P(since=0.25, surgery_only=True)])
+def test_question_hit_without_a_period_question(gated, profile):
+    # 고지입원수술년수 0은 기간 질문이 없다는 뜻이라 이력이 있어도 해당 없음이다(수술 여부를 따지기 전에 본다)
+    assert S.question_hit(gated.variants[HZ], profile) == S.Q_NONE
+    blank = {**gated.variants[HZ], "고지입원수술년수": None}
+    assert S.question_hit(blank, profile) == S.Q_NODATA                    # 빈칸은 지금처럼 자료 없음이다
+
+
+@pytest.mark.parametrize("us, others, cls", [
+    (S.OPEN, [S.CLOSED, None], S.NO_DATA),          # 모르는 상대가 열려 있을 수 있다
+    (S.CLOSED, [S.CLOSED, None], S.NO_DATA),
+    (S.OPEN, [None], S.NO_DATA),
+    (S.OPEN, [S.OPEN, None], S.BOTH_OPEN),          # 열린 상대가 있으면 모르는 상대와 무관하다
+    (S.CLOSED, [S.OPEN, None], S.ONLY_CLOSED),
+    (S.OPEN, [S.CLOSED, S.CLOSED], S.ONLY_OPEN),
+    (S.CLOSED, [S.CLOSED], S.ALL_CLOSED),
+    (None, [S.OPEN], S.NO_DATA),
+])
+def test_unknown_peer_keeps_only_open_and_all_closed_out(us, others, cls):
+    assert S._by_sides(us, others) == cls
+
+
+def test_cell_with_an_unknown_peer_and_no_open_peer_is_no_data():
+    # 한화생명 간편 종형이 없으면(일반심사만 있어 간편은 닫힘), 삼성화재 간편(나이 자료 없음)만 모르는 상대로 남는다
+    d = Data(Book(skip=(H1,)).t)
+    out = S.cell(d, P(age=30, since=1), None, REL)
+    assert out["라벨"] == S.LABELS[S.NO_DATA] and out["자료없음"] == ["SAMSUNGFIRE"]
+    assert "SAMSUNGFIRE" in S.simple_classify(d, S.gate(d, P(age=30, since=1)))[1]
+
+
+def test_gate_only_variant_is_in_the_gate_but_not_in_reps_or_map_rows(gated, data):
+    assert HZ in S.gate_targets(gated) and HZ not in S.targets(gated)
+    assert S.since_cuts(gated) == S.since_cuts(data)                       # 0년이 지도 행의 경계에 끼지 않는다
+    m = S.segment_map(gated, "M", None, None, REL)
+    plain = S.segment_map(data, "M", None, None, REL)
+    assert m["행"] == plain["행"] and len(m["행"]) == 6 and m["열"] == plain["열"]
+    for line in m["칸"]:
+        for x in line:
+            assert x["대표"] != HZ and HZ not in x["상대대표"].values()
+    assert HZ not in I.base_variants(gated)[0] and HZ not in C.peers(gated, E1, I.base_variants(gated)[0])
+
+
+def test_cell_open_only_through_a_gate_only_variant(gated, data):
+    # 입원 3개월~1년 전: 우리 간편과 한화생명 1년, 삼성화재 315는 질문에 걸리고 한화생명 0년만 열린다
+    before = S.cell(data, P(age=30, since=0.25), None, REL)
+    out = S.cell(gated, P(age=30, since=0.25), None, REL)
+    assert before["라벨"] == S.LABELS[S.ALL_CLOSED] and out["라벨"] == S.LABELS[S.ONLY_CLOSED]
+    assert out["관문만수집"] == [{"기관코드": "HANWHALIFE", "종형ID": HZ, "이름": "한화생명 간편가입형(0년)",
+                                "안내": "관문만 수집(담보 미수집)"}]
+    assert out["열린종형"]["HANWHALIFE"] == [HZ] and out["대표"] is None and out["수"] is None
+    # 수술만 3개월~1년 전: 우리만 열렸던 칸이 함께 열림이 되지만, 한화생명과는 담보를 견주지 않는다(대표가 없다)
+    lone = S.cell(gated, P(age=30, since=0.25, surgery_only=True), None, REL)
+    assert lone["라벨"] == S.LABELS[S.BOTH_OPEN] and lone["대표"] == E5 and lone["상대대표"] == {} and lone["수"] is None
+    assert [y["종형ID"] for y in lone["관문만수집"]] == [HZ]
+    # 정밀비교 종형도 열린 회사에는 적지 않는다
+    assert S.cell(gated, P(age=30, since=1), None, REL)["관문만수집"] == []
+
+
+def test_gate_points_name_the_gate_only_variant(gated):
+    ctx = S._Ctx(gated, None, REL)
+    found, base = S.cell_gate_points(ctx, P(age=30, sex="M", since=0.25))
+    g2 = [x for x in found if x["세부"] == "G2"]
+    assert base == E1 and len(g2) == 1 and g2[0]["비교종형ID"] == [HZ] and g2[0]["관문만수집"] is True
+    assert g2[0]["문장"] == ("마지막 입원이 3개월~1년 전인 고객은 우체국 1종(간편가입315)의 고지 질문에 해당합니다. "
+                            "한화생명 간편가입형(0년)은 입원과 수술의 기간 질문이 없습니다. 가입 여부는 청약 뒤 심사로 정해집니다.")
+    assert g2[0]["머리말"].startswith("관문만 수집한 한화생명 시험건강보험 간편가입형(0년) 기준(2026-10-01, 담보 미수집)")
+    # 나이로 닫힌 칸: 한화생명에서 열린 종형이 0년뿐이면 그 가입나이를 적는다
+    found, base = S.cell_gate_points(ctx, P(age=17, sex="M", since=0.5, surgery_only=True))
+    g2 = next(x for x in found if x["세부"] == "G2")
+    assert base == E5 and g2["문장"] == ("17세는 우체국 3종(간편가입355)의 가입나이(20~80세) 밖입니다. "
+                                        "한화생명 간편가입형(0년)은 15~80세를 받습니다.")
+    # 간편이 모두 닫힌 칸은 지금처럼 관문 기준이 없다
+    plain = S._Ctx(Data(Book().t), None, REL)
+    assert S.cell_gate_points(plain, P(age=30, sex="M", since=0.25)) == ([], None)
+
+
+def test_shorter_question_of_a_peer_company_is_a_g3_point(gated, data):
+    r = S.points(gated, E1, P(age=30), None, REL)
+    g3 = [x for x in r["포인트"] if x["세부"] == "G3"]
+    short = [x for x in g3 if x["비교종형ID"] == [HZ]]
+    assert len(short) == 1 and short[0]["관문만수집"] is True and short[0]["분류"] == S.GATE_DIFF
+    assert short[0]["문장"] == ("한화생명은 입원과 수술의 기간 질문이 없는 간편가입형(0년)을 함께 팝니다. "
+                               "이 종형은 고지 질문과 주계약 가입조건만 모았고 담보는 수집하지 않았습니다.")
+    assert short[0]["머리말"].startswith("관문만 수집한 ")
+    assert [x["비교종형ID"] for x in g3 if x not in short] == [x["비교종형ID"] for x in by_code(
+        S.points(data, E1, P(age=30), None, REL), "G3")]                   # 짝과 견준 G3은 그대로다
+    # 브리핑 (다)의 관문차이수는 맞붙는 상대와 견준 G3만 센다
+    line = S.briefing(gated, E1, P(age=30), None, REL)[2]
+    assert line["값"]["관문차이수"] == 2 and "고지 질문이 다른 곳은 2건" in line["문장"]
+    # 짝의 기간이 더 짧지 않으면(우리 1년, 3.0.5만 짧다) 다른 종형은 적지 않는다
+    assert not [x for x in by_code(S.points(data, E1, P(age=30), None, REL), "G3") if x.get("관문만수집")]
+
+
+def test_new_gate_sentences_pass_the_forbidden_word_check(gated):
+    for tid in ("G2_질문", "G2_상대_질문없음", "G3_질문없음", "G3_짧은", "G3_미수집", "머리말_관문"):
+        assert S.forbidden_in(S._SLOT.sub(" ", S.TEMPLATES[tid])) == [], tid
+    assert S.render("G3_짧은", {"상대회사": "한화생명", "상대기간": 1, "상대범위": "입원과 수술", "상대종형": "간편가입형(1년)"}) == \
+        "한화생명은 1년 안의 입원과 수술을 묻는 간편가입형(1년)을 함께 팝니다."
+    with pytest.raises(S.ForbiddenWordError):
+        S.render("G2_질문", {"이력": "업계 최초로 마지막 입원이 3개월~1년 전", "우리종형": "1종", "상대문장": "가."})
+    out = S.export(gated, None, REL)
+    assert forbidden_hits(gated, out) == []
+    texts = [x["문장"] for x in out["포인트"].values() if x.get("관문만수집")]
+    assert texts and all(S.forbidden_in(t) == [] for t in texts)
+
+
+def test_export_keeps_gate_only_variants_out_of_the_bases(gated):
+    out = S.export(gated, None, REL)
+    assert [b["종형ID"] for b in out["기준종형"]] == [E1, E5, EG]
+    assert all(HZ not in b["맞붙는종형"] for b in out["기준별"].values())
+    assert out["종형"][HZ]["비교역할"] == "관문전용"
+    cells = [x for m in out["지도"].values() for line in m["칸"] for x in line]
+    assert all("관문만수집" in x for x in cells) and any(x["관문만수집"] for x in cells)
+    assert all(y["종형ID"] in out["종형"] for x in cells for y in x["관문만수집"])
+    assert all(out["글"][x["머리말"]].startswith(("수집한 ", "관문만 수집한 ")) for x in out["포인트"].values())
+
+
+def test_export_lists_every_open_variant_of_a_cell():
+    # 정밀비교 종형 옆에서만 열리는 관문전용 종형(질문 기간 3년)도 칸의 열린종형에 있으므로 "종형"에 실려야 한다(점검 결함)
+    three = ("HANWHALIFE_H3_bbbbbb", "HANWHALIFE", "간편가입형(3년)", "간편심사", "3.3.5", (3, 3, 5, True, 7), "비갱신", UNPAID,
+             "2026-10-01", [(15, 60), (61, 80)])
+    b = Book(extra=[ZERO_YEAR, three])
+    for v in b.t["sys_상품종형"]:
+        if v["종형ID"] in (HZ, three[0]):
+            v["비교역할구분"] = S.GATE_ROLE
+    b.t["sys_특약"] = [r for r in b.t["sys_특약"] if r["특약ID"] not in (f"{HZ}_T", f"{three[0]}_T")]
+    fill(b)
+    d = Data(b.t)
+    out = S.export(d, None, REL)
+    cells = [x for m in out["지도"].values() for line in m["칸"] for x in line]
+    opened = {v for x in cells for ids in x["열린종형"].values() for v in ids}
+    assert three[0] in opened and three[0] not in {y["종형ID"] for x in cells for y in x["관문만수집"]}
+    assert opened <= set(out["종형"]), opened - set(out["종형"])
+    assert out["종형"][three[0]]["비교역할"] == S.GATE_ROLE
+
+
+def test_briefing_first_line_without_our_only_open_cells(gated):
+    seg = S.segment_map(gated, "M", None, None, REL)
+    line = S.briefing(gated, E1, P(age=30), None, REL, seg=seg)[0]
+    assert line["값"]["우리간편만열림칸수"] == 0 and line["틀"][0] == "가_우리만_없음"
+    labels = line["값"]["라벨별"]
+    assert line["문장"] == (f"고객군 18칸 가운데 우리 간편만 열리는 곳은 없고, 함께 열리는 곳은 {labels['함께 열림']}칸, "
+                           f"우리 간편이 닫혀 일반심사로 확인할 곳은 {line['값']['우리간편닫힘칸수']}칸입니다.")
+
+
 # ---------- 실제 사본 ----------
 @pytest.mark.skipif(not (SNAPSHOT / "sys_급부.jsonl").exists(), reason="사본 없음")
 def test_real_snapshot_export_runs():
@@ -1026,5 +1191,7 @@ def test_real_snapshot_runs():
                 assert peer.get("갱신유형") == base.get("갱신유형"), (b["종형ID"], p["종형ID"])
         r = S.points(data, b["종형ID"], S.Profile(age=50, sex="M", since=2), analysis)
         for x in r["포인트"]:
-            assert x["머리말"].startswith("수집한 ") and x["근거"] and x["문장"]
+            # 관문전용 종형을 적은 관문 포인트는 머리말이 "관문만 수집한"으로 시작할 수 있다(담보 미수집)
+            assert x["머리말"].startswith(("수집한 ", "관문만 수집한 ")) and x["근거"] and x["문장"]
+            assert not x.get("관문만수집") or "관문만 수집한 " in x["머리말"]
             assert all(e["급부ID"] is None or e["급부ID"] not in data.pending_benefit for e in x["근거"])

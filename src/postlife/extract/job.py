@@ -4,6 +4,11 @@
 급부(상품요약서)와 가입조건(사업방법서)은 따로 돌릴 수 있다.
 급부를 다시 뽑을 때는 같은 급부의 이전 급부ID를 잇고, 이번에 제외되거나 처리하지 못한 급부의 이전 확정 줄을 지킨다(rerun.py).
 급부를 다시 뽑은 종형마다 그 사실을 작업 기록에 남긴다(rerun.coverage_logs). 검토 대기 표시를 종형마다 가리는 데 쓴다.
+
+관문전용 종형(비교역할구분이 관문전용)은 급부와 가입조건 부분에서 빠지고 "관문" 부분만 처리한다: 종형 행과 주계약 행
+(variants.main_row. 모델을 부르지 않는다)을 쓰고, 사업방법서의 가입나이와 가입한도 절(요약서 자격요건 절의 가입한도 포함)에서
+주계약 가입조건만 뽑는다(결합제약 절은 뽑지 않는다). 다른 종형의 행은 건드리지 않으므로 parts를 "관문"만 주면 이미 뽑은
+급부를 다시 뽑지 않고 관문전용 종형만 시트에 올린다.
 """
 from __future__ import annotations
 
@@ -22,10 +27,13 @@ from . import rerun as R
 from . import verify as V
 from .segment import pages_from_text
 
-PARTS = ("급부", "가입조건")
+PARTS = ("급부", "가입조건", "관문")
 CONDITION_TABS = ["sys_가입조건", "sys_결합제약"]
 BENEFIT_TABS = ["sys_상품종형", "sys_특약", "sys_급부"]      # 급부 추출이 채우는 탭. 보험료예시·급부질병코드는 다른 단계가 채운다
 LIMIT_COLUMNS = ("최소가입금액만원", "최대가입금액만원", "합산한도기준키")   # 급부 추출이 채우지 않는 sys_특약의 칸
+GATE_TABS = ["sys_상품종형", "sys_특약"]                    # 관문전용 종형의 종형 행과 주계약 행
+GATE_KINDS = ("가입나이", "가입한도")                       # 관문전용 종형에서 뽑는 절
+_NOT_LISTED = "뽑아 둔 특약 목록에 없어 건너뜀"              # conditions.build_rows가 목록에 없는 특약 이름마다 남기는 주의의 끝
 
 
 @dataclass
@@ -35,8 +43,11 @@ class Report:
     logs: list[dict[str, Any]] = field(default_factory=list)
     done: set[str] = field(default_factory=set)             # 급부까지 처리한 종형ID
     conditions_done: set[str] = field(default_factory=set)  # 가입조건을 처리한 종형ID
+    gate_done: set[str] = field(default_factory=set)        # 종형 행과 주계약 행을 쓴 관문전용 종형ID
+    gate_conditions_done: set[str] = field(default_factory=set)   # 주계약 가입조건까지 뽑은 관문전용 종형ID
     table: list[str] = field(default_factory=list)          # 요약서별 결과 한 줄
     conditions_table: list[str] = field(default_factory=list)
+    gate_table: list[str] = field(default_factory=list)
     review: list[str] = field(default_factory=list)         # 사람이 확인할 줄
     notes: list[str] = field(default_factory=list)
     errors: dict[str, dict[str, list[str]]] = field(default_factory=dict)
@@ -54,6 +65,9 @@ class Report:
         if self.conditions_table:
             head = ["| 사업방법서 | 종형 수 | 항목 | 확정 | 검토 | 제외 | 가입조건 행 | 결합제약 행 |", "| --- | --- | --- | --- | --- | --- | --- | --- |"]
             out += "\n".join(head + self.conditions_table) + "\n\n"
+        if self.gate_table:
+            head = ["| 사업방법서(관문전용) | 종형 수 | 항목 | 확정 | 검토 | 제외 | 가입조건 행 |", "| --- | --- | --- | --- | --- | --- | --- |"]
+            out += "\n".join(head + self.gate_table) + "\n\n"
         if self.rerun:
             r = self.rerun
             out += (f"재추출 전후(급부): 시트에 있던 줄 {r['이전 줄']}, 이번 결과 {r['새 줄']}. "
@@ -74,12 +88,15 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
 
     parts에 "급부"가 없으면 시트에 있는 특약을 기준으로 가입조건만 다시 뽑는다.
     급부만 다시 뽑거나 가입조건을 뽑지 못했으면, 시트에 있던 같은 특약의 가입 한도를 새 특약 행이 이어받는다.
+    관문전용 종형은 "관문" 부분에서만 처리한다(_run_gate). "급부"와 "가입조건" 부분은 관문전용 종형을 보지 않는다.
     """
     report = Report()
     found, problems = variants.build(targets, index)
     report.notes += problems
     if only:
         found = [v for v in found if v.row["공시상품코드"] in only]
+    gate = [v for v in found if v.gate_only] if "관문" in parts else []
+    found = [v for v in found if not v.gate_only] if ("급부" in parts or "가입조건" in parts) else []
     thresholds = dict(pipeline.DEFAULT_THRESHOLDS)
     if read_thresholds:
         thresholds = pipeline.thresholds_from(store.read(["hum_기준값"])["hum_기준값"])
@@ -192,6 +209,9 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
         if "급부" in parts or group_ids & report.conditions_done:
             report.rows["sys_특약"] += riders
 
+    if gate:
+        _run_gate(gemini, report, gate, read_text, on_sheet, now, thresholds, budget)
+
     # 같은 ID로 내용까지 같은 행이 두 번 나왔으면 하나만 남긴다. 내용이 다르면 어느 쪽이 맞는지 알 수 없어 아래 검사에서 걸린다.
     for tab in report.rows:
         _drop_repeats(tab, report)
@@ -212,7 +232,7 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
         tally.finish(report, [r for r in old_benefits if str(r["특약ID"]).startswith(heads)],
                      [r for r in report.rows["sys_급부"] if str(r["특약ID"]).startswith(heads)])
     report.errors = {tab: e for tab, rows in report.rows.items() if (e := check_rows(tab, rows))}
-    if report.errors or not (report.done or report.conditions_done) or dry_run:
+    if report.errors or not (report.done or report.conditions_done or report.gate_done) or dry_run:
         return report
     try:
         if report.done:
@@ -224,6 +244,15 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
             tabs = CONDITION_TABS + ([] if "급부" in parts else ["sys_특약"])
             store.replace_variants({t: [r for r in report.rows[t] if r["종형ID"] in report.conditions_done] for t in tabs},
                                    report.conditions_done, only=tabs)
+        if report.gate_done:
+            # 관문전용 종형의 종형 행과 주계약 행. 급부, 결합제약, 보험료예시 탭은 건드리지 않는다
+            store.replace_variants({t: [r for r in report.rows[t] if r["종형ID"] in report.gate_done] for t in GATE_TABS},
+                                   report.gate_done, only=GATE_TABS)
+        if report.gate_conditions_done:
+            # 가입조건을 뽑지 못한 관문전용 종형은 시트에 있던 가입조건을 그대로 둔다
+            store.replace_variants({"sys_가입조건": [r for r in report.rows["sys_가입조건"]
+                                                  if r["종형ID"] in report.gate_conditions_done]},
+                                   report.gate_conditions_done, only=["sys_가입조건"])
         store.append("sys_작업로그", report.logs)
     except Exception as e:  # noqa: BLE001  뽑은 결과는 호출한 쪽이 파일로 남길 수 있게 돌려준다
         report.write_error = f"{type(e).__name__}: {str(e)[:300]}"
@@ -231,6 +260,60 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
         return report
     report.written = True
     return report
+
+
+def _run_gate(gemini: Any, report: Report, gate: list[variants.Variant], read_text: Callable[[str], str | None],
+              on_sheet: dict[str, dict[str, Any]], now: datetime, thresholds: dict[str, float], budget: dict[str, int]) -> None:
+    """관문전용 종형을 처리한다. 급부를 뽑지 않는다.
+
+    종형 행과 주계약 행(variants.main_row)은 모델 없이 만든다. 주계약 행의 가입 한도는 시트에 있던 값을 잇고, 가입한도를 뽑으면 그 값으로
+    바꾼다. 같은 사업방법서를 쓰는 종형끼리 묶어 가입나이와 가입한도 절만 뽑는다(conditions_run.run의 kinds). 대상 종형은 주계약만
+    두므로 특약 줄은 행으로 만들지 않고, 특약 이름마다 남는 주의는 한 줄로 줄인다.
+    """
+    groups: dict[str | None, list[variants.Variant]] = {}
+    for v in gate:
+        groups.setdefault((v.method or {}).get("해시"), []).append(v)
+    for group in groups.values():
+        first = group[0]
+        name = f"{first.row['공시상품명']}(관문전용)"
+        group_ids = {v.id for v in group}
+        mains = []
+        for v in group:
+            main = variants.main_row(v)
+            old = on_sheet.get(main["특약ID"], {})
+            main.update({c: old.get(c) for c in LIMIT_COLUMNS})
+            mains.append(main)
+        report.rows["sys_상품종형"] += [v.row for v in group]
+        report.rows["sys_특약"] += mains
+        report.gate_done |= group_ids
+        method_text = read_text(first.method["저장이름"]) if first.method else None
+        if not method_text:
+            report.notes.append(f"{name}: 사업방법서 글자 파일이 없어 가입조건을 뽑지 않음. 종형 행과 주계약 행만 씀")
+            continue
+        summary_text = read_text(first.summary["저장이름"]) if first.summary else None
+        goals = [C.target_of(v.id, v.row["종형명"], mains) for v in group]
+        got = conditions_run.run(gemini, pages_from_text(method_text), pages_from_text(summary_text) if summary_text else None,
+                                 goals, now, thresholds, budget, kinds=GATE_KINDS)
+        report.logs += got.logs
+        skipped = [n for n in got.notes if n.endswith(_NOT_LISTED)]
+        report.notes += [f"{name}: {n}" for n in got.notes if not n.endswith(_NOT_LISTED)]
+        if skipped:
+            report.notes.append(f"{name}: 주계약만 두는 종형이라 특약 {len(skipped)}개의 항목은 행으로 만들지 않음")
+        report.review += [f"- {name} · {line[2:]}" for line in got.review]
+        if not got.conditions:
+            report.notes.append(f"{name}: 가입조건을 뽑지 못해 기존 행을 그대로 둠. 종형 행과 주계약 행만 씀")
+            continue
+        for main in mains:
+            if main["특약ID"] in got.amounts:
+                main["최소가입금액만원"], main["최대가입금액만원"] = got.amounts[main["특약ID"]]
+        report.rows["sys_가입조건"] += got.conditions
+        report.gate_conditions_done |= {r["종형ID"] for r in got.conditions} & group_ids
+        missing = [v.row["종형명"] for v in group if v.id not in report.gate_conditions_done]
+        if missing:
+            report.notes.append(f"{name}: {', '.join(missing)}은(는) 가입조건 행이 나오지 않아 시트에 있던 가입조건을 그대로 둠")
+        s = got.stats
+        report.gate_table.append(f"| {name} | {len(group)} | {s['항목']} | {s['확정']} | {s['검토']} | {s['제외']} "
+                                 f"| {s['가입조건 행']} |")
 
 
 def _held(result: pipeline.Result) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:

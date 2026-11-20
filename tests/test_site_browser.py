@@ -11,8 +11,8 @@ import pytest
 
 from postlife.site import build
 from postlife.site.model import BASIS_COLUMN, RATIO_BASIS, Data, load
-from test_site import (NEW_A, NEW_B, PRIV, ROOT, SF, SF_OLD, SNAPSHOT, benefit, fake_tables, mapped, no_limit_tables,
-                       ratio_revision_tables, ratio_tables, rider, variant)
+from test_site import (NEW_A, NEW_B, PRIV, ROOT, SF, SF_OLD, SNAPSHOT, benefit, condition, fake_tables, mapped,
+                       no_limit_tables, ratio_revision_tables, ratio_tables, rider, variant)
 from test_site_weekly import PREV, pending_private, rep_tables
 
 sync_api = pytest.importorskip("playwright.sync_api")
@@ -206,6 +206,25 @@ def test_검토가_끝나_판정이_생긴_것은_정정과_따로_적는다(sit
     assert "자료 정정이라" not in text and "검토가 끝나 판정이 생긴 1건" in text
     page.click("#tab-s6")
     assert "검토가 끝나 판정이 생김" in page.inner_text("#main .tiles")
+
+
+# ---------- 화면 2 ----------
+def test_화면2는_입원과_수술의_기간_질문이_없는_간편_종형을_0년이나_자료_없음으로_적지_않는다(site):
+    # 고지입원수술년수 0은 기간 질문이 없다는 뜻이고(고지수술포함여부도 비어 있다), 빈칸만 자료 없음이다(점검 결함)
+    tables = copy.deepcopy(fake_tables())
+    zero, blank = "HANWHALIFE_HZ_zzzzzz", "HANWHALIFE_HB_zzzzzz"
+    for vid, kind, hosp in ((zero, "간편가입형(0년)", 0), (blank, "간편가입형(빈칸)", None)):
+        tables["sys_상품종형"].append(variant(vid, "HANWHALIFE", "HANWHA_Z_2610", f"HANWHA_Z|간편심사|{kind}", "민영 관문 시험보험",
+                                         kind, "관문전용", "간편심사", "3.0.5", (3, hosp, 5, None, 7), "2026-10-01", None, "hz", "mz"))
+        tables["sys_특약"].append(rider(vid, "main", "주계약", 300, 1000, "주계약"))
+        tables["sys_가입조건"].append(condition(vid, None, 15, 80, 1000))
+    page = site(tables)
+    page.click("#tab-s2")
+    page.wait_for_selector("#screen-s2")
+    rows = {kind: page.locator("#screen-s2 tr", has_text=kind).first.inner_text() for kind in ("간편가입형(0년)", "간편가입형(빈칸)")}
+    assert "입원과 수술의 기간 질문 없음" in rows["간편가입형(0년)"], rows
+    assert "0년 이내" not in rows["간편가입형(0년)"] and "자료 없음" not in rows["간편가입형(0년)"], rows
+    assert "자료 없음" in rows["간편가입형(빈칸)"] and "기간 질문 없음" not in rows["간편가입형(빈칸)"], rows
 
 
 # ---------- 화면 4 ----------

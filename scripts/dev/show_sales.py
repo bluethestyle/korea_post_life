@@ -79,7 +79,9 @@ def print_map(data, m: dict) -> None:
             tail = f" | 자료 없음: {', '.join(data.org_name(o) for o in x['자료없음'])}" if x["자료없음"] else ""
             label = x["라벨"] + (f"({x['보조']})" if x["보조"] else "")
             reasons = f" | 닫힌 사유: {', '.join(x['닫힌사유'])}" if x["닫힌사유"] else ""
-            print(f"    {col_name(c)}: {label}{reasons} | {states} | {rep} | {counts_text(x['분류수'])}{tail}")
+            gated = x.get("관문만수집") or []
+            gated = (" | 열린 상대가 관문전용뿐: " + ", ".join(f"{y['이름']}({y['안내']})" for y in gated)) if gated else ""
+            print(f"    {col_name(c)}: {label}{reasons} | {states} | {rep} | {counts_text(x['분류수'])}{tail}{gated}")
 
 
 def evidence_text(data, ev: list[dict], check: bool) -> str:
