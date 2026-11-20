@@ -146,6 +146,9 @@ class Extraction:
     benefits: list[Benefit]
     model: str
     problems: list[str] = field(default_factory=list)
+    # 모델이 이름을 냈지만 금액을 읽지 못해(형식 오류 포함) 줄을 만들지 못한 항목. 금액은 0이다. 시트에 쓰지 않지만
+    # 이번 모델 출력에 있는 급부이므로, 다시 뽑을 때 없어진 급부로 보지 않고 제외된 항목처럼 이전 확정 줄을 지킨다(job._held)
+    unread: list[Benefit] = field(default_factory=list)
 
 
 _NUM = r"\d+(?:\.\d+)?"
@@ -313,8 +316,16 @@ def waiting_days_of(item: dict[str, Any], definitions: dict[str, int], flat_sour
     return 0, f"보장개시일 '{name}'의 날수를 주석에서 찾지 못함"
 
 
+def _unread(item: Any) -> Benefit | None:
+    """줄을 만들지 못한 항목 가운데 이름이 있는 것. 금액은 0으로 둔다."""
+    if not isinstance(item, dict) or not str(item.get("name") or "").strip():
+        return None
+    return Benefit(name=str(item["name"]).strip(), target=str(item.get("target") or "").strip(), amount=0.0, waiting_days=0,
+                   limit="", role=str(item.get("role") or "주급부"), quote="", amount_text=_text(item.get("amount")))
+
+
 def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
-    benefits, problems = [], []
+    benefits, problems, unread = [], [], []
     definitions = waiting_definitions(block.text)
     flat_source = squash(block.text)
     for item in raw.get("benefits") or []:
@@ -353,9 +364,11 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
             b.limit = _with_cell_notes(b.limit, b.amount_text, flat_source)
         except (KeyError, TypeError, ValueError) as e:
             problems.append(f"형식 오류: {e}")
+            unread.append(_unread(item))
             continue
         if not b.name or b.amount <= 0:
             problems.append(f"이름이나 금액이 비어 있음: {item}")
+            unread.append(_unread(item))
             continue
         # 값끼리 앞뒤가 안 맞으면 다른 모델로 다시 뽑게 한다
         if (b.reduced_months is None) != (b.reduced_amount is None):
@@ -375,8 +388,13 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
     labels = [b.label for b in benefits]
     for dup in sorted({l for l in labels if labels.count(l) > 1}):
         problems.append(f"같은 이름의 급부가 두 번 나옴: {dup}")
+    # 같은 이름의 줄이 읽혔으면 그 줄이 이 급부다. 읽지 못한 항목으로 따로 두면 그 이름의 줄까지 제외된다
+    left: dict[str, Benefit] = {}
+    for b in unread:
+        if b is not None and b.label not in labels:
+            left.setdefault(b.label, b)
     base = block.base_amount or parse_money(raw.get("base_amount")) or 0.0
-    return Extraction(block, base, benefits, model, problems)
+    return Extraction(block, base, benefits, model, problems, list(left.values()))
 
 
 def extract(gemini: Any, block: Block, model: str, feedback: list[str] | None = None) -> Extraction:
@@ -468,10 +486,15 @@ def waiting_definitions(text: str) -> dict[str, int]:
 # 나머지 대상은 계약일부터 보장한다. 빈칸과 쉼표를 뗀 글에서 찾는다. 셋째 묶음은 "이후에" 뒤에 적힌 대상 목록이다
 _MIXED_START = re.compile(r"보장개시일\((.{1,60}?)[은는]([가-힣]{0,15}보장개시일)\)이후에?(.{0,160}?)으?로")
 _NEXT_ROW = re.compile(r"보장개시일|피보험자가|^\s*보험기간")      # 다음 지급사유가 시작하는 줄
+_ROW_LEAD = re.compile(r"(?:피보험자가)?보험기간중에?$")          # 문구 바로 앞에 붙은 지급사유의 첫머리(빈칸을 뗀 글)
+_ROW_END = re.compile(r"때|경우")                                 # 지급사유 문장이 끝나는 말("…받았을 때", "…받았을 경우")
 _ROW_REACH = 20                                                  # 문구 뒤로 급부 이름을 찾는 줄 수의 상한
+_NAME_LAG = 1                                                    # 지급사유 문장이 끝난 줄 뒤로 급부 이름이 시작할 수 있는 줄 수
 _QUOTE = re.compile(r"[‘’'\"“”]")
 _TARGET_SEP = re.compile(r"\s*[·,/ㆍ∙•]\s*|\s+(?:및|또는)\s+")
 _DISEASE = re.compile(r"(?:암|종양)$")
+# 대상 낱말과 함께 적히지만 대상이 아닌 구분 말(빈칸을 뗀 글). 등급("1종")처럼 나눈 두 줄에 함께 붙인다. 이 밖의 낱말은 모르는 대상으로 본다
+_QUALIFIERS = {"관혈수술", "비관혈수술", "주사제", "주사제외", "보장형계약", "연장형계약"}
 
 
 @dataclass(frozen=True)
@@ -480,11 +503,39 @@ class MixedStart:
     special: str               # 괄호 안의 대상. 예: "암"
     start: str                 # 그 대상에 붙는 보장개시일. 예: "암보장개시일"
     listed: str                # "이후에" 뒤에 적힌 대상 목록(빈칸과 쉼표를 뗀 글). 표가 풀리며 다른 칸 글자가 끼어 있기도 하다
-    lines: tuple[str, ...]     # 문구가 든 표 줄. 급부 이름이 여기 적혀 있어야 그 급부의 문구로 본다
+    lines: tuple[str, ...]     # 문구가 든 표 줄. 앞 지급사유가 끝난 줄(또는 표 머리줄) 다음 줄부터다. 급부 이름이 여기 적혀 있어야 그 급부의 문구로 본다
+    within: int = 0            # 급부가 둘 이상이면 이름이 이 줄 수 안에서 시작해야 그 급부의 문구로 본다. 0이면 따지지 않는다
+    lead: int = 0              # lines에서 이 문구의 지급사유가 시작하는 줄. 그 위의 줄은 지급사유 첫 줄 위에 따로 놓인 줄이다
+
+
+def _special(inner: str, listed: str) -> str:
+    """괄호 안 문구에서 이름 붙은 보장개시일을 쓰는 대상. 대상 목록에서 확인되지 않으면 빈 글자.
+
+    "단, 암은", "최초계약의 암은"처럼 앞말이 붙은 문구는 앞말을 떼고 읽는다. "여성생식기의 암은"처럼 앞말까지가 대상인
+    문구도 있어, 긴 것부터 대상 목록에서 확인되는 것을 쓴다.
+    """
+    head = re.match(r"[가-힣]+", _QUOTE.sub("", inner))
+    if not head:
+        return ""
+    word = head.group(0)
+    candidates = {word} | {word[i + 1:] for i, ch in enumerate(word) if ch == "의" and word[i + 1:]}
+    for lead in ("다만", "단"):
+        if word.startswith(lead) and word[len(lead):]:
+            candidates.add(word[len(lead):])
+    marks = _QUOTE.findall(listed)
+    quoted = _QUOTE.split(listed)[1::2] if marks and len(marks) % 2 == 0 else None
+    for candidate in sorted(candidates, key=len, reverse=True):
+        # 따옴표로 싼 목록에서는 낱말이 그 대상으로 시작해야 한다(뒤에 다른 칸 글자가 붙어 있을 수 있다)
+        if any(w.startswith(candidate) for w in quoted) if quoted is not None else candidate in listed:
+            return candidate
+    return ""
 
 
 def mixed_starts(text: str) -> list[MixedStart]:
-    """표의 지급사유에서 대상마다 보장개시일이 다른 문구를 찾는다. 주석은 보지 않는다."""
+    """표의 지급사유에서 대상마다 보장개시일이 다른 문구를 찾는다. 주석은 보지 않는다.
+
+    괄호 안의 대상을 "이후에" 뒤의 대상 목록에서 확인하지 못한 문구는 내지 않는다(어느 대상에 보장개시일이 붙는지 모른다).
+    """
     out = []
     for body in _table_bodies(text):
         lines = body.split("\n")
@@ -493,17 +544,28 @@ def mixed_starts(text: str) -> list[MixedStart]:
         for flat in flats:
             starts.append(at)
             at += len(flat)
-        for m in _MIXED_START.finditer("".join(flats)):
-            head = re.match(r"[가-힣]+", _QUOTE.sub("", m.group(1)))
-            if not head:
+        joined = "".join(flats)
+        for m in _MIXED_START.finditer(joined):
+            special = _special(m.group(1), m.group(3))
+            if not special:
                 continue
-            first = bisect.bisect_right(starts, m.start()) - 1
+            # 지급사유의 첫머리("보험기간 중")가 앞 줄에 있으면 그 줄부터 본다. 이름 칸의 글자가 그 줄 앞머리에 있기도 하다
+            lead = _ROW_LEAD.search(joined, max(0, m.start() - 12), m.start())
+            first = bisect.bisect_right(starts, lead.start() if lead else m.start()) - 1
+            # 이름 칸이 지급사유 첫 줄 위에 따로 놓이기도 한다. 앞 지급사유가 끝난 줄이나 표 머리줄 다음 줄까지 올라가 본다
+            top = first
+            while top > 0 and first - top < _ROW_REACH and not (_ROW_END.search(flats[top - 1]) or "지급사유" in flats[top - 1]):
+                top -= 1
             last = bisect.bisect_right(starts, m.end() - 1) - 1
             stop = last + 1
             # 표가 풀리면 이름 칸의 글자가 지급사유 줄 사이에 끼어 있다. 다음 지급사유가 시작하는 줄 앞까지 본다
             while stop < len(lines) and stop - last <= _ROW_REACH and not _NEXT_ROW.search(lines[stop]):
                 stop += 1
-            out.append(MixedStart(head.group(0), m.group(2), m.group(3), tuple(lines[first:stop])))
+            # 다음 지급사유가 "보험기간"으로 시작하지 않으면 그 급부의 이름 칸도 위 범위에 든다. 이 문구의 급부 이름은
+            # 지급사유 문장이 끝난 줄 다음 줄까지는 시작해야 한다(급부가 둘 이상일 때, _owners). 끝나는 말을 찾지 못하면 따지지 않는다
+            end = next((n for n in range(last, stop) if _ROW_END.search(flats[n])), None)
+            within = end - top + 1 + _NAME_LAG if end is not None else 0
+            out.append(MixedStart(special, m.group(2), m.group(3), tuple(lines[top:stop]), within, first - top))
     return out
 
 
@@ -511,32 +573,45 @@ def _written_from(name: str, lines: tuple[str, ...]) -> int | None:
     """급부 이름이 이 줄들에 적혀 있으면 첫 조각이 놓인 줄의 번호, 없으면 None.
 
     표가 글자로 풀리면 이름 칸의 글자가 여러 줄의 앞머리에 조각으로 놓인다("표적항암" / … / "약물허가치료자금" / … / "(주사제)").
-    줄 앞머리의 낱말을 차례로 이어 붙여 이름이 되면 적혀 있다고 본다.
+    줄 앞머리의 낱말을 차례로 이어 붙여 이름이 되면 적혀 있다고 본다. 지급사유 줄이 이름의 첫 글자와 같은 낱말("암, …")로
+    시작해도 그 줄에서 이름이 시작한 것으로 못 박지 않고, 다음 줄들에서 새로 시작하는 경우도 함께 따라간다.
     """
-    want, at, first = squash(name), 0, None
+    want = squash(name)
+    if not want:
+        return None
+    reached: dict[int, int] = {}            # 이름에서 이어 맞춘 글자 수 → 그렇게 이어 온 조각이 시작한 가장 이른 줄
+    done: list[int] = []
     for n, line in enumerate(lines):
         words = line.split()
-        for k in range(len(words), 0, -1):
-            piece = squash(" ".join(words[:k]))
-            if piece and want.startswith(piece, at):
-                first = n if first is None else first
-                at += len(piece)
-                break
-        if want and at == len(want):
-            return first
-    return None
+        pieces = {squash(" ".join(words[:k])) for k in range(1, len(words) + 1)} - {""}
+        for at, began in list(reached.items()) + [(0, n)]:
+            for piece in pieces:
+                if want.startswith(piece, at):
+                    end = at + len(piece)
+                    if end == len(want):
+                        done.append(began)
+                    elif began < reached.get(end, began + 1):
+                        reached[end] = began
+    return min(done) if done else None
 
 
 def _owners(phrase: MixedStart, names: set[str]) -> set[str]:
     """문구의 주인인 급부 이름. 문구가 든 표 줄에 적힌 이름 가운데 가장 먼저 적힌 것.
 
     다음 급부의 지급사유가 "보험기간", "피보험자가"로 시작하지 않으면 문구가 든 표 줄에 그 급부의 이름 칸까지 들어온다.
-    한 문구는 한 급부의 지급사유이므로 뒤에 적힌 이름은 그 문구의 급부로 보지 않는다.
+    한 문구는 한 급부의 지급사유이므로 뒤에 적힌 이름은 그 문구의 급부로 보지 않는다. 주인을 가릴 수 없으면 빈 집합이다(나누지 않는다).
+
+    - 가장 먼저 적힌 이름이 지급사유 첫 줄 위(앞 지급사유가 끝난 줄 뒤)에서 시작하면 가리지 않는다. 이 문구 급부의 이름 칸인지,
+      앞 지급사유의 끝을 놓쳐 앞 급부의 이름 칸이 든 것인지 글자로는 모른다. 그 아래 이름을 주인으로 삼으면 다음 급부를 나누게 된다.
+    - 급부가 둘 이상이면 이름이 지급사유 문장이 끝난 줄 다음 줄까지는 시작해야 한다. 그보다 뒤에서 시작한 이름은 다음 급부의 것일 수 있다.
+    - 급부가 하나뿐이면 헷갈릴 다른 급부가 없으므로, 문장이 끝난 줄과 이름 사이에 금액, 기간 칸 줄이 끼어 있어도 그 급부의 문구로 본다.
     """
     at = {name: n for name in names if (n := _written_from(name, phrase.lines)) is not None}
     if not at:
         return set()
     first = min(at.values())
+    if first < phrase.lead or (len(names) > 1 and phrase.within and first >= phrase.within):
+        return set()
     return {name for name, n in at.items() if n == first}
 
 
@@ -593,11 +668,23 @@ def _listed_words(phrase: MixedStart, flat_source: str) -> list[str]:
     return words
 
 
+def _unknown(item: str) -> bool:
+    """문구에 없는 대상인가. 병명("…암", "…종양")은 늘 대상이고, 숫자가 든 등급 표기("1종")와 정해진 구분 말(_QUALIFIERS)은 대상이 아니다.
+
+    그 밖의 낱말("재해", "질병", "상피내신생물", "백혈병")도 대상으로 본다. 등급으로 잘못 보면 그 줄을 문구의 대상으로 나눈다.
+    """
+    word = _base(item)
+    return bool(_DISEASE.search(word)) or not (re.search(r"\d", item) or word in _QUALIFIERS)
+
+
 def _sort_targets(items: list[str], phrase: MixedStart) -> tuple[list[str], list[str], list[str]]:
-    """대상 낱말을 (괄호 안의 대상, 문구에 적힌 나머지 대상, 문구에 없는 병명)으로 가른다. 등급("1종") 같은 낱말은 어디에도 들지 않는다."""
+    """대상 낱말을 (괄호 안의 대상, 문구에 적힌 나머지 대상, 문구에 없는 대상)으로 가른다.
+
+    등급("1종")과 정해진 구분 말("관혈수술", "주사제")은 어디에도 들지 않는다. 나눈 두 줄에 함께 붙는다.
+    """
     named = [i for i in items if _base(i) == phrase.special]
     others = [i for i in items if i not in named and _listed(i, phrase)]
-    unknown = [i for i in items if i not in named and i not in others and _DISEASE.search(_base(i))]
+    unknown = [i for i in items if i not in named and i not in others and _unknown(i)]
     return named, others, unknown
 
 
@@ -850,3 +937,8 @@ def benefit_rows(variant_id: str, ex: Extraction, doc_kind: str = "요약서",
             "근거문서쪽수": ex.block.first_page,
         })
     return rows
+
+
+def unread_rows(variant_id: str, ex: Extraction) -> list[dict[str, Any]]:
+    """금액을 읽지 못한 항목(ex.unread)이 시트에 썼다면 냈을 행. 시트에 쓰지 않고, 다시 뽑을 때 이전 줄을 가리는 데만 쓴다."""
+    return benefit_rows(variant_id, replace(ex, benefits=ex.unread))

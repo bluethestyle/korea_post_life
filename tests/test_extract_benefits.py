@@ -468,6 +468,169 @@ NEIGHBOUR = Block("무배당 가상항암치료특약 2701", """■ 무배당 �
 주) 1. 암보장개시일은 계약일부터 그 날을 포함하여 90일이 지난날의 다음날로 합니다.""", 30, 31)
 
 
+# ---------- 재추출 쪽 검토 지적 6~8 (지어낸 문구) ----------
+
+NOTE = "\n주) 1. 암보장개시일은 계약일부터 그 날을 포함하여 90일이 지난날의 다음날로 합니다."
+HEAD = "■ 무배당 가상항암치료특약 2701\n(특약보험가입금액 1,000만원 기준)\n지급구분 지급사유 지급금액\n"
+
+
+def _pair(first, second):
+    """나누면 안 되는 급부(second)와 문구의 주인(first). 둘 다 대상을 적지 않았다."""
+    return {"benefits": [_item(name=first, amount="20만원", reduced_period="1년미만", reduced_amount="10만원", limit="1회당"),
+                         _item(name=second, amount="2만원", reduced_period="1년미만", reduced_amount="1만원", limit="입원 1일당")]}
+
+
+def test_owner_written_on_the_line_above_the_phrase_is_found():
+    # 지급구분 이름이 지급사유 첫 줄("보험기간 중")과 같은 줄에 있고 문구는 다음 줄에서 시작한다.
+    # 다음 급부의 지급사유가 "보험기간", "피보험자가"로 시작하지 않아 그 이름이 문구가 든 표 줄에 들어온다
+    block = Block("무배당 가상항암치료특약 2701", HEAD + """가상표적치료자금 보험기간 중
+보장개시일(암은 암보장개시일) 이후에 ‘암’, ‘기타피부암’ 또는 ‘갑상선암’으로 진단 확정되고 1년미만 10만원
+그 직접적인 치료를 목적으로 가상표적치료를 받았을 때 (1회당) 1년이상 20만원
+치료 목적으로 입원하였을 때 (입원 1일당)
+가상입원 1년미만 1만원
+일당 1년이상 2만원
+기타피부암 또는 갑상선암은 약관에서 정합니다""" + NOTE, 30, 31)
+    ex = B.parse(block, _pair("가상표적치료자금", "가상입원일당"), "m")
+    assert [(b.label, b.waiting_days) for b in ex.benefits] == [
+        ("가상표적치료자금(암)", 90), ("가상표적치료자금(기타피부암·갑상선암)", 0), ("가상입원일당", 0)]
+
+
+def test_owner_is_found_when_a_reason_line_starts_with_the_first_letter_of_its_name():
+    # 지급사유 줄이 따옴표 없이 "암, …"으로 시작한다. 그 "암"이 "암표적항암치료자금"의 첫 글자와 같아도 이름을 찾아야 한다
+    block = Block("무배당 가상항암치료특약 2701", HEAD + """보험기간 중 보장개시일(암은 암보장개시일) 이후에
+암, 기타피부암 또는 갑상선암으로 진단 확정되고 1년미만 10만원
+암표적 그 직접적인 치료를 목적으로 표적치료를 받았을 때
+항암치료자금 (1회당) 1년이상 20만원
+치료 목적으로 입원하였을 때 (입원 1일당)
+가상입원 1년미만 1만원
+일당 1년이상 2만원""" + NOTE, 30, 31)
+    raw = _pair("암표적항암치료자금", "가상입원일당")
+    for b in raw["benefits"]:
+        b["target"] = "암·기타피부암·갑상선암"
+    ex = B.parse(block, raw, "m")
+    assert [(b.label, b.waiting_days) for b in ex.benefits] == [
+        ("암표적항암치료자금(암)", 90), ("암표적항암치료자금(기타피부암·갑상선암)", 0), ("가상입원일당(암·기타피부암·갑상선암)", 0)]
+
+
+def test_owner_that_cannot_be_told_apart_is_not_split():
+    # 주인 이름이 문구보다 두 줄 위에 있어 찾지 못한다. 문구 뒤에 적힌 다른 급부 이름을 주인으로 삼지 않는다
+    block = Block("무배당 가상항암치료특약 2701", HEAD + """가상표적치료자금
+피보험자가 사고 없이
+보장개시일(암은 암보장개시일) 이후에 ‘암’, ‘기타피부암’ 또는 ‘갑상선암’으로 진단 확정되고 1년미만 10만원
+그 직접적인 치료를 목적으로 가상표적치료를 받았을 때 (1회당) 1년이상 20만원
+치료 목적으로 입원하였을 때 (입원 1일당)
+가상입원 1년미만 1만원
+일당 1년이상 2만원
+기타피부암 또는 갑상선암은 약관에서 정합니다""" + NOTE, 30, 31)
+    ex = B.parse(block, _pair("가상표적치료자금", "가상입원일당"), "m")
+    assert [(b.label, b.split_from) for b in ex.benefits] == [("가상표적치료자금", ""), ("가상입원일당", "")]
+
+
+_PHRASE = "보장개시일(암은 암보장개시일) 이후에 ‘암’, ‘기타피부암’ 또는 ‘갑상선암’으로 진단 확정되고 1년미만 10만원"
+_REASON_END = "그 직접적인 치료를 목적으로 가상표적치료를 받았을 때 (1회당) 1년이상 20만원"
+_LISTED = "기타피부암 또는 갑상선암은 약관에서 정합니다"
+
+
+def test_owner_name_written_above_the_reason_is_not_handed_to_the_next_benefit():
+    # 주인(가상표적치료자금)의 이름이 지급사유 첫 줄 위에 따로 있다(통째로, 또는 앞 조각만). 지급사유 문장이 끝난 바로 다음 줄에서
+    # 다음 급부(가상입원일당)의 이름이 시작한다. 위의 이름이 이 문구의 것인지 가릴 수 없으므로 아래 급부를 주인으로 삼지 않고 둘 다 나누지 않는다
+    nxt = f"가상입원 치료 목적으로 입원하였을 때 (입원 1일당) 1년미만 1만원\n일당 1년이상 2만원\n{_LISTED}"
+    nxt_apart = f"가상입원 1년미만 1만원\n치료 목적으로 입원하였을 때 (입원 1일당)\n일당 1년이상 2만원\n{_LISTED}"
+    layouts = (f"가상표적치료자금\n보험기간 중 {_PHRASE}\n{_REASON_END}\n{nxt}",
+               f"가상표적치료자금\n보험기간 중\n{_PHRASE}\n{_REASON_END}\n{nxt_apart}",
+               f"가상표적\n보험기간 중 {_PHRASE}\n치료자금 {_REASON_END}\n{nxt}")
+    for body in layouts:
+        block = Block("무배당 가상항암치료특약 2701", HEAD + body + NOTE, 30, 31)
+        ex = B.parse(block, _pair("가상표적치료자금", "가상입원일당"), "m")
+        assert [(b.label, b.waiting_days, b.split_from) for b in ex.benefits] == [
+            ("가상표적치료자금", 0, ""), ("가상입원일당", 0, "")], body
+    # 급부가 하나뿐이어도 지급사유 첫 줄 위의 이름으로는 나누지 않는다. 앞 지급사유의 끝을 놓치면 앞 급부의 이름 칸도 그 자리에 온다
+    one = {"benefits": _pair("가상표적치료자금", "가상입원일당")["benefits"][:1]}
+    block = Block("무배당 가상항암치료특약 2701", HEAD + f"가상표적치료자금\n보험기간 중 {_PHRASE}\n{_REASON_END}\n{_LISTED}" + NOTE, 30, 31)
+    assert [(b.label, b.split_from) for b in B.parse(block, one, "m").benefits] == [("가상표적치료자금", "")]
+
+
+def test_name_of_the_row_before_does_not_block_the_owner_below():
+    # 앞 급부의 이름은 앞 지급사유가 끝난 줄("…때") 위에서 시작한다. 그 이름은 문구 위의 이름으로 보지 않는다
+    body = f"""가상진단 보험기간 중 암으로 진단 확정되었을 때 1,000만원
+자금
+보험기간 중 {_PHRASE}
+가상표적 {_REASON_END}
+치료자금
+{_LISTED}"""
+    raw = _pair("가상표적치료자금", "가상입원일당")
+    raw["benefits"][1] = _item(name="가상진단자금", amount="1,000만원")
+    ex = B.parse(Block("무배당 가상항암치료특약 2701", HEAD + body + NOTE, 30, 31), raw, "m")
+    assert [(b.label, b.waiting_days) for b in ex.benefits] == [
+        ("가상표적치료자금(암)", 90), ("가상표적치료자금(기타피부암·갑상선암)", 0), ("가상진단자금", 0)]
+
+
+def test_single_benefit_whose_name_comes_after_amount_lines_is_split():
+    # 급부가 하나뿐인 특약. 지급사유 문장이 끝난 줄과 이름 사이에 금액, 기간 칸 줄이 먼저 풀려 있다. 이름이 문장 끝 줄 바로 다음 줄을
+    # 넘어 시작해도 헷갈릴 다른 급부가 없으므로 그 급부의 문구로 본다
+    body = f"""보험기간 중 {_PHRASE}
+그 직접적인 치료를 목적으로 가상표적치료를 받았을 때
+1년
+이상 20만원
+가상표적
+치료자금 (1회당)
+{_LISTED}"""
+    one = _item(name="가상표적치료자금", target="1종", amount="20만원", reduced_period="1년미만", reduced_amount="10만원", limit="1회당")
+    block = Block("무배당 가상항암치료특약 2701", HEAD + body + NOTE, 30, 31)
+    assert [(b.label, b.waiting_days) for b in B.parse(block, {"benefits": [one]}, "m").benefits] == [
+        ("가상표적치료자금(암·1종)", 90), ("가상표적치료자금(기타피부암·갑상선암·1종)", 0)]
+    # 급부가 둘 이상이면 문장 끝 줄 다음 줄을 넘어 시작한 이름은 다음 급부의 것일 수 있어 나누지 않는다
+    surgery = "보험기간 중 암보장개시일 이후에 암으로 진단 확정되고 수술을 받았을 때 (수술 1회당) 30만원\n가상수술자금"
+    block = Block("무배당 가상항암치료특약 2701", HEAD + body + "\n" + surgery + NOTE, 30, 31)
+    ex = B.parse(block, {"benefits": [one, SURGERY]}, "m")
+    assert [(b.label, b.split_from) for b in ex.benefits] == [("가상표적치료자금(1종)", ""), ("가상수술자금(암)", "")]
+
+
+def _graded_text(phrase):
+    return Block("무배당 가상항암치료특약 2701", HEAD + f"""보험기간 중 {phrase} 1종: 10만원
+그 직접적인 치료를 목적으로 가상표적치료를 받았을 때 2종: 20만원
+가상표적 1년미만
+치료자금 (1회당) 1종: 20만원 2종: 40만원 1년이상
+기타피부암과 갑상선암은 약관에서 정합니다. 특정암도 약관에서 정합니다""" + NOTE
+                 + "\n2. 특정암보장개시일은 계약일부터 그 날을 포함하여 90일이 지난날의 다음날로 합니다.", 30, 31)
+
+
+def test_modifier_before_the_target_in_brackets_is_dropped():
+    # 괄호 안 문구에 "단,", "최초계약의" 같은 앞말이 붙어도 대상만 읽는다. 대상을 적지 않은 줄("1종")을 나눌 때 그 대상의 면책이 0일이 되면 안 된다
+    for phrase, special in (("보장개시일(단, 특정암은 특정암보장개시일) 이후에 ‘특정암’, ‘기타피부암’ 또는 ‘갑상선암’으로 진단 확정되고", "특정암"),
+                            ("보장개시일(최초계약의 암은 암보장개시일) 이후에 ‘암’, ‘기타피부암’ 또는 ‘갑상선암’으로 진단 확정되고", "암")):
+        ex = B.parse(_graded_text(phrase), {"benefits": _graded("{}")}, "m")
+        assert [(b.label, b.waiting_days) for b in ex.benefits] == [
+            (f"가상표적치료자금({special}·1종)", 90), ("가상표적치료자금(기타피부암·갑상선암·1종)", 0),
+            (f"가상표적치료자금({special}·2종)", 90), ("가상표적치료자금(기타피부암·갑상선암·2종)", 0)], phrase
+        [found] = B.mixed_starts(_graded_text(phrase).text)
+        assert found.special == special
+
+
+def test_target_in_brackets_that_is_not_in_the_list_is_not_split():
+    # 괄호 안의 대상(소액암)이 "이후에" 뒤의 대상 목록에 없으면 어느 대상에 보장개시일이 붙는지 알 수 없다
+    phrase = "보장개시일(단, 소액암은 특정암보장개시일) 이후에 ‘특정암’, ‘기타피부암’ 또는 ‘갑상선암’으로 진단 확정되고"
+    ex = B.parse(_graded_text(phrase), {"benefits": _graded("{}")}, "m")
+    assert [b.label for b in ex.benefits] == ["가상표적치료자금(1종)", "가상표적치료자금(2종)"]
+    assert not any(b.split_from for b in ex.benefits)
+
+
+def test_row_with_an_unknown_target_word_is_not_taken_for_a_grade():
+    # 같은 급부에서 대상을 묶어 적은 줄(나눌 줄) 옆에, 문구와 별개인 대상("재해", "상피내신생물")의 줄이 있다
+    listed = Block(MIXED.title, MIXED.text + "\n2. 기타피부암과 갑상선암은 약관에서 정합니다.", 30, 31)
+    bundled = _graded("암·기타피부암·갑상선암·{}")[:1]
+    for word in ("재해", "상피내신생물", "백혈병"):
+        other = _item(name="가상표적치료자금", target=word, amount="30만원", limit="1회당")
+        ex = B.parse(listed, {"benefits": bundled + [other]}, "m")
+        assert [(b.label, b.waiting_days) for b in ex.benefits] == [
+            ("가상표적치료자금(암·1종)", 90), ("가상표적치료자금(기타피부암·갑상선암·1종)", 0), (f"가상표적치료자금({word})", 0)], word
+    # 지금 코드가 아는 구분 말(관혈수술, 주사제 등)은 등급처럼 대상과 함께 붙여 나눈다
+    known = [_item(name="가상표적치료자금", target=f"{word}·1종", amount="20만원", reduced_period="1년미만", reduced_amount="10만원",
+                   limit="1회당") for word in ("관혈수술",)]
+    ex = B.parse(listed, {"benefits": known}, "m")
+    assert [b.label for b in ex.benefits] == ["가상표적치료자금(암·관혈수술·1종)", "가상표적치료자금(기타피부암·갑상선암·관혈수술·1종)"]
+
+
 def test_phrase_belongs_only_to_the_benefit_written_first_in_its_rows():
     # 다음 급부(가상입원일당)의 지급사유가 "보험기간", "피보험자가"로 시작하지 않아 문구가 든 표 줄에 그 이름까지 들어온다.
     # 문구는 먼저 적힌 가상표적치료자금의 것이므로 가상입원일당은 나누지 않는다

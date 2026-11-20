@@ -24,8 +24,19 @@ DEFAULT_THRESHOLDS = {"추출검증_통과": 0.75, "추출검증_재추출": 0.4
 class BlockResult:
     extraction: B.Extraction
     probs: dict[str, dict[str, float]]
-    status: dict[str, str]                 # 급부 이름 → 확정 / 검토 / 제외(시트에 쓰지 않음)
+    status: dict[str, str]                 # 급부 이름 → 확정 / 검토 / 제외(시트에 쓰지 않음). 금액을 읽지 못한 항목(extraction.unread)도 제외다
     retried: bool = False
+    variants: list[str] = field(default_factory=list)    # 이 조각의 급부를 실은 종형ID. 판정 기록도 이 종형들의 급부ID마다 남긴다
+    # 급부 0건으로 끝났는데 형식 문제가 남았거나 호출이 실패한 시도가 있었다. 모델이 정말 급부가 없다고 본 것인지 알 수 없다
+    unsure: bool = False
+
+
+@dataclass
+class Unprocessed:
+    """처리하지 못한 조각. 호출이 끝내 실패했거나, 급부 0건으로 끝났지만 그것을 믿을 수 없다(BlockResult.unsure)."""
+    block: Block
+    variants: list[str]                    # 이 조각을 실을 종형ID
+    reason: str                            # "호출 실패" 또는 "급부 0건"
 
 
 @dataclass
@@ -35,6 +46,7 @@ class Result:
     logs: list[dict[str, Any]] = field(default_factory=list)
     blocks: list[BlockResult] = field(default_factory=list)
     stats: dict[str, int] = field(default_factory=dict)
+    unprocessed: list[Unprocessed] = field(default_factory=list)
 
 
 def thresholds_from(rows: list[dict[str, Any]]) -> dict[str, float]:
@@ -146,15 +158,19 @@ def _attempt(gemini: Any, block: Block, model: str, feedback: list[str] | None =
 
 
 def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: WorkLog, variant_id: str,
-              budget: dict[str, int] | None = None) -> BlockResult | None:
-    """한 특약을 처리한다. 값이 의심스러우면 다른 모델로, 그래도 안 되면 상위 모델로 다시 뽑는다.
+              budget: dict[str, int] | None = None, variants: list[str] | None = None) -> BlockResult | None:
+    """한 특약을 처리한다. 값이 의심스러우면 다른 모델로, 그래도 안 되면 상위 모델로 다시 뽑는다. 호출이 모두 실패하면 None.
 
     budget: {"상위모델": 남은 횟수}. 상위 모델은 하루 한도가 작아 한 번 실행에 쓸 횟수를 정해 둔다.
+    variants: 이 조각의 급부를 실은 종형ID(기본은 variant_id 하나). 판정과 사람검토이관 기록은 종형마다 그 종형의 급부ID로 남긴다.
+      가입유형별로 표가 갈리거나 일부 종형만 다시 뽑으면 종형마다 판정이 다를 수 있어, 첫 종형의 기록을 다른 종형에 옮겨 보지 않게 한다.
+      추출, 재추출, 코드대조 기록은 첫 종형(variant_id)의 특약ID와 급부ID에만 남긴다.
     """
     rider = ids.rider_id(variant_id, block.rider_name)
+    carriers = [ids.rider_id(v, block.rider_name) for v in (variants or [variant_id])]
     budget = budget if budget is not None else {"상위모델": 0}
     best: _Try | None = None
-    retried = False
+    retried = failed = False
     for step, model in enumerate((config.MODEL_EXTRACT, config.MODEL_EXTRACT_ALT, config.MODEL_SUMMARY)):
         if best is not None and not best.needs_retry(thresholds):
             break
@@ -166,6 +182,7 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
         try:
             got = _attempt(gemini, block, model, best.feedback(thresholds) if best else None)
         except (GeminiError, ValueError, KeyError) as e:
+            failed = True
             log.add(stage, rider, "보류", f"호출 실패: {str(e)[:200]}", model=model)
             if model == config.MODEL_SUMMARY and getattr(e, "status", None) == 429:    # 사유 글자가 아니라 HTTP 상태로 가린다
                 budget["상위모델"] = 0        # 상위 모델의 하루 한도가 찼다. 남은 조각에서 헛되이 부르지 않는다
@@ -193,6 +210,17 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
     if best is None:
         return None
     ex, probs = best.ex, best.probs
+    if not ex.benefits and (ex.problems or failed):
+        # 빈 목록이 "이 특약에는 급부가 없다"는 뜻인지, 뽑다가 실패한 것인지 알 수 없다. 처리하지 못한 조각으로 넘긴다
+        why = f"형식 문제 {len(ex.problems)}건이 남음" if ex.problems else "다시 뽑는 호출이 실패함"
+        log.add("추출", rider, "보류", f"{block.rider_name}: 급부 0건으로 끝났고 {why}. 처리하지 못한 조각으로 보고 시트의 이전 줄을 지킴",
+                model=ex.model)
+        for b in ex.unread:
+            for carrier in carriers:
+                log.add("사람검토이관", ids.benefit_id(carrier, b.label), "보류",
+                        f"{b.label}: 시트에 쓰지 않음. 금액 칸 '{b.amount_text}'을(를) 금액으로 읽지 못함 (근거 {block.first_page}쪽)"[:300],
+                        column="기준지급금액만원")
+        return BlockResult(ex, probs, {}, retried, list(variants or [variant_id]), unsure=True)
 
     for b in ex.benefits:
         target = ids.benefit_id(rider, b.label)
@@ -203,37 +231,43 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
         if not best.literal.get(b.label):
             log.add("코드대조", target, "통과", "금액과 기간이 원문에 글자 그대로 있음")
 
+    def judged(label: str, step: str, result: str, reason: str = "", prob: float | None = None, column: str = "") -> None:
+        for carrier in carriers:
+            log.add(step, ids.benefit_id(carrier, label), result, reason, model=config.MODEL_DECIDE if prob is not None else "",
+                    prob=prob, column=column)
+
     status: dict[str, str] = {}
     for b in ex.benefits:
-        target = ids.benefit_id(rider, b.label)
         band, name, low = V.classify(probs.get(b.label, {}), thresholds)
         broken = best.broken(b.label)
         if broken:
             # 값끼리 앞뒤가 안 맞는 줄(감액 금액이 지급액 이상 등)은 그대로 쓰면 틀린 값이 된다
             status[b.label] = "제외"
-            log.add("판정", target, "반려", f"값이 앞뒤가 맞지 않아 시트에 쓰지 않음: {broken[0]}"[:300],
-                    model=config.MODEL_DECIDE, prob=low, column=name or "기준지급금액만원")
-            log.add("사람검토이관", target, "보류", f"{b.label}: 시트에 쓰지 않음. {broken[0]} (근거 {block.first_page}쪽)"[:300],
-                    model=config.MODEL_DECIDE, prob=low, column=name or "기준지급금액만원")
+            judged(b.label, "판정", "반려", f"값이 앞뒤가 맞지 않아 시트에 쓰지 않음: {broken[0]}"[:300], low, name or "기준지급금액만원")
+            judged(b.label, "사람검토이관", "보류", f"{b.label}: 시트에 쓰지 않음. {broken[0]} (근거 {block.first_page}쪽)"[:300],
+                   low, name or "기준지급금액만원")
             continue
         if band == "확정" and best.flawed(b.label):      # 판정 확률이 높아도 코드가 잡은 문제가 있으면 사람이 본다
             band, name = "검토", name or "기준지급금액만원"
         if band == "확정":
             status[b.label] = "확정"
-            log.add("판정", target, "통과", model=config.MODEL_DECIDE, prob=low, column=name)
+            judged(b.label, "판정", "통과", prob=low, column=name)
         elif band == "재추출":
             # 다시 뽑아도 재추출 구간이면 틀린 값일 가능성이 높다. 시트에 쓰지 않고 사람에게 넘긴다.
             status[b.label] = "제외"
-            log.add("판정", target, "반려", f"다시 뽑아도 원문과 맞지 않아 보여 시트에 쓰지 않음: {name}",
-                    model=config.MODEL_DECIDE, prob=low, column=name)
-            log.add("사람검토이관", target, "보류", f"{b.label}: 시트에 쓰지 않음. {name} 확인 필요 (근거 {block.first_page}쪽)",
-                    model=config.MODEL_DECIDE, prob=low, column=name)
+            judged(b.label, "판정", "반려", f"다시 뽑아도 원문과 맞지 않아 보여 시트에 쓰지 않음: {name}", low, name)
+            judged(b.label, "사람검토이관", "보류", f"{b.label}: 시트에 쓰지 않음. {name} 확인 필요 (근거 {block.first_page}쪽)", low, name)
         else:
             status[b.label] = "검토"
-            log.add("판정", target, "보류", f"원문과 일치할 확률이 낮은 항목: {name}", model=config.MODEL_DECIDE, prob=low, column=name)
-            log.add("사람검토이관", target, "보류", f"{b.label}: {name} 확인 필요 (근거 {block.first_page}쪽)",
-                    model=config.MODEL_DECIDE, prob=low, column=name)
-    return BlockResult(ex, probs, status, retried)
+            judged(b.label, "판정", "보류", f"원문과 일치할 확률이 낮은 항목: {name}", low, name)
+            judged(b.label, "사람검토이관", "보류", f"{b.label}: {name} 확인 필요 (근거 {block.first_page}쪽)", low, name)
+    # 금액을 읽지 못한 항목: 시트에 쓰지 않는다. 이번 모델 출력에 있는 급부이므로 제외된 항목으로 남긴다(job이 이전 확정 줄을 지킨다)
+    for b in ex.unread:
+        status[b.label] = "제외"
+        judged(b.label, "사람검토이관", "보류",
+               f"{b.label}: 시트에 쓰지 않음. 금액 칸 '{b.amount_text}'을(를) 금액으로 읽지 못함 (근거 {block.first_page}쪽)"[:300],
+               column="기준지급금액만원")
+    return BlockResult(ex, probs, status, retried, list(variants or [variant_id]))
 
 
 def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now: datetime,
@@ -244,6 +278,7 @@ def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now:
 
     variant_names: {종형ID: 종형명}. 조각 안의 표가 "[간편가입형]"처럼 가입유형별로 갈린 요약서에서는 이 이름으로
     부분마다 해당하는 종형을 가린다. 해당하는 종형이 없는 부분은 모델을 부르지 않고 건너뛴다.
+    부분마다 가린 종형은 BlockResult.variants(처리하지 못한 부분은 Result.unprocessed)에 남는다. 다시 뽑을 때 job이 그대로 쓴다.
     이름에 "(갱신형)"만 있는 특약의 주기는 요약서의 갱신형 특약 목록에서 읽고, 주기가 여럿이면 가장 짧은 것을 적는다.
     """
     thresholds = thresholds or dict(DEFAULT_THRESHOLDS)
@@ -270,8 +305,10 @@ def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now:
                 continue
             units += 1
             part = block if len(parts) == 1 else Block(block.title, text, block.first_page, block.last_page)
-            done = run_block(gemini, part, thresholds, log, matched[0], budget)
-            if done is None:
+            done = run_block(gemini, part, thresholds, log, matched[0], budget, matched)
+            if done is None or done.unsure:
+                # 특약 행도 내지 않는다. 시트의 이전 특약 행과 급부 줄을 지킬 수 있게 어느 종형의 조각인지 남긴다
+                result.unprocessed.append(Unprocessed(part, matched, "급부 0건" if done else "호출 실패"))
                 continue
             result.blocks.append(done)
             dropped = {label for label, state in done.status.items() if state == "제외"}

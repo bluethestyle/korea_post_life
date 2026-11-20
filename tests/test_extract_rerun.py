@@ -78,9 +78,10 @@ def test_excluded_item_holds_its_old_row_before_any_sibling():
     # 이름이 바뀐 채 제외된 항목이 같은 급부의 기준으로 이전 줄과 맞으면 그 줄도 제외된 항목의 것이다
     got = R.carry_over(old, rider, [], {RIDER}, [row("가나자금(질병 입원)")], set(), set(), NOW)
     assert got.kept == old and got.inherited.claimed == [(old[0], row("가나자금(질병 입원)"))]
-    # 제외된 항목과 다른 항목이 함께 같은 급부의 기준에 맞으면 어느 쪽인지 모른다. 잇지 않고, 괄호 앞부분으로 제외된 항목에 붙인다
+    # 제외된 항목과 다른 항목이 함께 같은 급부의 기준에 맞으면 어느 쪽인지 모른다. 잇지 않는다. 괄호 앞부분이 같은 새 줄(재해)이
+    # 이번 결과에 있어 그 줄이 이전 줄의 급부일 수 있으므로 되살리지도 않는다(되살리면 같은 급부가 두 줄이 될 수 있다)
     got = R.carry_over(old, rider, [row("가나자금(재해)")], {RIDER}, [row("가나자금(질병 입원)")], set(), set(), NOW)
-    assert not got.inherited.pairs and got.kept == old
+    assert not got.inherited.pairs and not got.kept and got.unmatched == [(RIDER, "가나자금(질병 입원)")]
     # 제외된 항목이 가리키는 이전 줄이 없으면(처음 나온 급부) 형제 항목은 그대로 잇는다
     got = R.carry_over(old, rider, [row("가나자금(질병 입원)")], {RIDER}, [row("다라자금", pay=7)], set(), set(), NOW)
     assert [r["급부ID"] for r in got.benefits] == [old[0]["급부ID"]] and not got.kept
@@ -101,6 +102,38 @@ def test_rows_of_one_unit_share_the_id_tail():
     assert [r["급부ID"] for r in got.rows] == [r["급부ID"] for r in new] and got.split == 1 and not got.pairs
     # 묶음이 없으면 종형마다 따로 잇는다(scripts/dev/compare_rerun.py)
     assert len(R.inherit_ids(old2, new).pairs) == 2
+
+
+def test_aligned_tail_never_takes_another_rows_id():
+    # 묶음 A는 1종이 이전 ID를 이어 2종이 그 꼬리를 따른다. 그 꼬리의 2종 ID는 묶음 B(2종, 3종)의 2종 줄이 원래 계산된 ID다.
+    # 묶음 B는 이을 꼬리가 갈려 원래 ID로 돌아가므로, 2종 줄 둘이 같은 ID를 쓰면 안 된다
+    u, v, w = (f"X_V{n}_T0001" for n in (1, 2, 3))
+    old = [row("가나자금(질병)", rider=u), row("가나자금(질병 통원)", pay=200, rider=v), row("가나자금(질병 외래)", pay=200, rider=w)]
+    a = [row("가나자금(질병 입원)", rider=u), row("가나자금(질병 입원)", rider=v)]
+    b = [row("가나자금(질병)", pay=200, rider=v), row("가나자금(질병)", pay=200, rider=w)]
+    units = [{"X_V1": a[0]["급부ID"], "X_V2": a[1]["급부ID"]}, {"X_V2": b[0]["급부ID"], "X_V3": b[1]["급부ID"]}]
+    got = R.inherit_ids(old, a + b, units=units)
+    got_ids = [r["급부ID"] for r in got.rows]
+    assert len(got_ids) == len(set(got_ids))
+    # 같은 급부의 기준으로 잇지 못한 이전 줄(금액이 다르다)의 ID를 꼬리 맞추기로 가져가지 않는다
+    old = [row("가나자금(질병)", rider=u), row("가나자금(질병)", pay=200, rider=v)]
+    got = R.inherit_ids(old, a, units=units[:1])
+    assert old[1]["급부ID"] not in {r["급부ID"] for r in got.rows} and got.split == 1
+
+
+def test_excluded_name_does_not_revive_an_old_row_beside_an_unlinked_new_row():
+    rider = [{"특약ID": RIDER, "종형ID": "X_V1", "원시특약명": "가나특약"}]
+    # 이전 줄(감액 없음)이 이번에 감액이 붙고 괄호 표기가 바뀌어 같은 급부로 잇지 못했고, 잘못 뽑힌 형제 항목은 제외됐다
+    old = [row("가나자금(질병)")]
+    new = [row("가나자금(질병입원)", months=12, rate=0.5)]
+    got = R.carry_over(old, rider, new, {RIDER}, [row("가나자금(상해입원)", pay=50)], set(), set(), NOW)
+    assert [r["원시급부명"] for r in got.benefits] == ["가나자금(질병입원)"] and not got.kept
+    assert got.unmatched == [(RIDER, "가나자금(상해입원)")]
+    # 대상별로 나눈 두 줄 가운데 한쪽만 제외돼도 나누기 전의 이전 줄을 되살리지 않는다
+    old = [row("가나자금(암·기타피부암·갑상선암·1종)", wait=90)]
+    got = R.carry_over(old, rider, [row("가나자금(암·1종)", wait=90)], {RIDER}, [row("가나자금(기타피부암·갑상선암·1종)")],
+                       set(), set(), NOW)
+    assert [r["원시급부명"] for r in got.benefits] == ["가나자금(암·1종)"] and not got.kept
 
 
 def test_kept_row_whose_rider_is_gone_brings_the_rider_back():

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .. import config
+from ..extract import rerun as R
 from ..snapshot import read_snapshot
 
 HOME_ORG = "EPOST"                       # 이 앱의 관점이 되는 기관
@@ -165,8 +166,10 @@ class Data:
         """사람 검토를 기다리는 급부와 조건행, 그리고 어느 열이 대기인지.
 
         - 같은 행을 여러 번 실행했으면 가장 나중 실행의 판정만 본다.
-        - 여러 종이 요약서 한 건을 함께 쓰면 뽑은 값은 종마다 똑같이 실리는데 기록은 첫 종의 행에만 남는다.
-          그래서 같은 요약서(요약서해시)를 쓰는 다른 종의 같은 급부에도 표시를 옮긴다.
+        - 급부: extract/rerun.py의 waiting_rows와 같은 규칙이다(재추출이 검토 대기 줄을 가릴 때도 쓴다). 자기 급부ID에 판정 기록이
+          있는 줄은 자기 기록만 본다. 예전 실행은 요약서를 함께 쓰는 종 가운데 첫 종의 행에만 기록을 남겼으므로, 자기 기록이 없는 줄은
+          같은 요약서(요약서해시)를 쓰는 다른 종의 같은 급부 기록을 옮겨 본다. 종마다 기록을 남긴 실행의 기록은 옮기지 않는다
+          (그 실행이 쓴 줄에는 자기 기록이 있다. 자기 기록이 없는 줄은 그 실행이 손대지 않았거나 이전 줄을 그대로 지킨 줄이다).
         - 조건행도 한 항목이 여러 행을 만들고 기록은 첫 행에만 남는다. 같은 사업방법서를 쓰는 종형에서
           특약·나이 구간·한도가 같은 행에 표시를 옮긴다.
         """
@@ -175,7 +178,7 @@ class Data:
             if r.get("작업단계") in JUDGE_STEPS:
                 key = (r.get("대상탭"), r.get("대상행ID"))
                 latest[key] = max(latest.get(key, ""), str(r.get("실행일시") or ""))
-        found: dict[str, dict[str, set[str]]] = {"sys_급부": {}, "sys_가입조건": {}}
+        found: dict[str, dict[str, set[str]]] = {"sys_가입조건": {}}
         for r in self.logs:
             tab, target = r.get("대상탭"), r.get("대상행ID")
             if r.get("작업단계") != REVIEW_STEP or tab not in found:
@@ -184,19 +187,12 @@ class Data:
                 continue
             found[tab].setdefault(target, set()).update(_columns(r.get("대상열")) or ["값"])
 
+        judged = [r for r in self.logs if r.get("대상탭") == "sys_급부" and r.get("작업단계") in JUDGE_STEPS]
+        rows = {bid: self.riders[b["특약ID"]]["종형ID"] if b["특약ID"] in self.riders else None for bid, b in self.benefits.items()}
         benefit: dict[str, set[str]] = {}
-        same_summary: dict[str, list[str]] = {}
-        for vid, v in self.variants.items():
-            if not _blank(v.get("요약서해시")):
-                same_summary.setdefault(v["요약서해시"], []).append(vid)
-        for bid, cols in found["sys_급부"].items():
-            if bid not in self.benefits:
-                continue                       # 다시 뽑으면서 없어진 행
-            vid = self.variant_of_rider(self.benefits[bid]["특약ID"])
-            suffix = bid[len(vid):]
-            for other in same_summary.get(self.variants[vid].get("요약서해시"), [vid]):
-                if other + suffix in self.benefits:
-                    benefit.setdefault(other + suffix, set()).update(cols)
+        for bid, review in R.waiting_rows(rows, judged, R.sharing_of(self.variants.values()), R.per_variant_runs(self.logs)).items():
+            for r in review:
+                benefit.setdefault(bid, set()).update(_columns(r.get("대상열")) or ["값"])
 
         condition: dict[str, set[str]] = {}
         same_method: dict[str, list[str]] = {}

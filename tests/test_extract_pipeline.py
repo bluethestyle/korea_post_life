@@ -4,7 +4,7 @@ from postlife import config
 from postlife.extract import pipeline as P
 from postlife.extract import verify as V
 from postlife.extract.segment import pages_from_text
-from postlife.gemini import Answer
+from postlife.gemini import Answer, GeminiError
 from postlife.snapshot import KST
 from postlife.validate import check_rows
 
@@ -95,7 +95,9 @@ def test_value_still_wrong_after_retry_is_left_out_and_handed_to_a_person():
     assert sorted({row["기준지급금액만원"] for row in r.benefits}) == [2]      # 틀린 3,000만원은 시트에 가지 않는다
     assert len(r.riders) == 4                                              # 특약 행은 남는다
     review = [l for l in r.logs if l["작업단계"] == "사람검토이관"]
-    assert len(review) == 1 and "시트에 쓰지 않음" in review[0]["사유"] and "10쪽" in review[0]["사유"]
+    # 요약서를 함께 쓰는 종형마다 그 종형의 급부ID로 남긴다
+    assert sorted(l["대상행ID"].split("_T")[0] for l in review) == ["V1", "V2"]
+    assert all("시트에 쓰지 않음" in l["사유"] and "10쪽" in l["사유"] for l in review)
     assert ("재추출", "반려") in [(l["작업단계"], l["결과"]) for l in r.logs]
 
 
@@ -279,8 +281,10 @@ def test_problem_of_an_item_that_made_no_row_does_not_exclude_a_good_row():
 
     r = run(Extra())
     cancer = next(b for b in r.blocks if "암진단" in b.extraction.block.title)
-    assert cancer.status == {"암진단보험금": "확정"}
-    assert "암진단보험금" in {row["원시급부명"] for row in r.benefits}
+    # 금액을 읽지 못한 항목은 시트에 쓰지 않는 제외 항목으로 남는다(다시 뽑을 때 그 급부의 이전 줄을 지킨다)
+    assert cancer.status == {"암진단보험금": "확정", "덤암진단보험금": "제외"}
+    assert [b.label for b in cancer.extraction.unread] == ["덤암진단보험금"]
+    assert {row["원시급부명"] for row in r.benefits} == {"암진단보험금", "재해입원보험금"}
 
 
 def test_retry_with_rows_replaces_an_empty_first_result():
@@ -398,6 +402,61 @@ def test_row_split_by_target_is_logged_and_its_start_is_not_judged():
     split = [l for l in r.logs if l["작업단계"] == "코드대조" and l["변경전값"] == "가상표적치료자금(암·갑상선암)"]
     assert sorted(l["변경후값"] for l in split) == ["가상표적치료자금(갑상선암)", "가상표적치료자금(암)"]
     assert all("대상별로 나눔" in l["사유"] and l["대상열"] == "면책기간일수" for l in split)
+
+
+SCOPED = """
+===== 12쪽 =====
+② 보험금 지급사유
+■ 무배당 암진단특약(20년갱신형) 2606
+[간편가입형]
+(특약보험가입금액 1,000만원 기준) 간편 표
+암진단 보험금 최초 1회에 한함 1년미만 500만원 1년이상 1,000만원
+[일반가입형]
+(특약보험가입금액 1,000만원 기준) 일반 표
+암진단 보험금 최초 1회에 한함 1년미만 500만원 1년이상 1,000만원
+주) 암보장개시일은 계약일부터 그 날을 포함하여 90일이 지난날의 다음날
+③ 일반적 보험금 지급제한 사유
+"""
+SCOPED_NAMES = {"V1": "간편가입형(1년)", "V2": "간편가입형(5년)", "V3": "일반가입형"}
+
+
+def test_variants_of_each_part_and_unprocessed_parts_are_kept_in_the_result():
+    class FailsOnPlain(FakeGemini):
+        def generate(self, model, prompt, schema=None, temperature=0.0):
+            if "일반 표" in prompt:
+                raise GeminiError(503, "high demand")
+            return GOOD["암진단"]
+
+    r = P.run_summary(FailsOnPlain(), pages_from_text(SCOPED), list(SCOPED_NAMES), datetime(2026, 11, 20, 9, 0, tzinfo=KST),
+                      variant_names=SCOPED_NAMES)
+    assert [b.variants for b in r.blocks] == [["V1", "V2"]]
+    assert [(u.variants, u.reason, u.block.first_page) for u in r.unprocessed] == [(["V3"], "호출 실패", 12)]
+    assert r.stats["조각"] == 2 and r.stats["처리한 조각"] == 1
+    # 판정 기록은 그 부분을 실은 종형마다 남는다
+    judged = sorted(l["대상행ID"].split("_T")[0] for l in r.logs if l["작업단계"] == "판정")
+    assert judged == ["V1", "V2"]
+
+
+def test_empty_result_is_unprocessed_unless_every_attempt_agrees_without_problems():
+    def empty_then(error=None, problem=False):
+        class G(FakeGemini):
+            def generate(self, model, prompt, schema=None, temperature=0.0):
+                if "재해입원특약" in prompt.split("본문")[0]:
+                    return GOOD["재해입원"]
+                if model != config.MODEL_EXTRACT and error:
+                    raise error
+                return {"base_amount": "1,000만원", "benefits": [{"name": "암진단보험금", "amount": "금액 미상"}] if problem else []}
+        return G()
+
+    for g, reason in ((empty_then(GeminiError(503, "high demand")), "급부 0건"), (empty_then(problem=True), "급부 0건"),
+                      (empty_then(), None)):
+        r = run(g)
+        cancer = [u for u in r.unprocessed if "암진단" in u.block.title]
+        if reason:
+            assert [u.reason for u in cancer] == [reason] and len(r.riders) == 2       # 그 특약 행도 내지 않는다
+            assert any(l["작업단계"] == "추출" and "급부 0건으로 끝났고" in str(l["사유"]) for l in r.logs)
+        else:
+            assert not cancer and len(r.riders) == 4                                    # 모든 시도가 문제 없이 빈 목록이면 급부가 없는 특약이다
 
 
 def test_rider_split_over_several_blocks_gets_one_rider_row():

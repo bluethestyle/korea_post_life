@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from postlife import ids
+from postlife import config, ids
 from postlife.extract import job
 from postlife.extract import rerun as R
 from postlife.gemini import Answer, GeminiError
@@ -470,24 +470,13 @@ def test_exclusion_in_one_table_does_not_revive_another_variants_row():
     assert not any("어느 종형에 실렸는지" in n for n in report.notes)            # 조각마다 실린 종형을 가렸다
 
 
-def test_scope_guess_that_disagrees_with_the_rows_is_not_trusted(monkeypatch):
-    store = rerun_store()
-    scopes = job._scopes
-    # 조각마다 실린 종형을 가리는 규칙이 파이프라인과 갈렸다고 치고, 한 조각을 첫 종형에만 실린 것으로 잘못 가린다
-    monkeypatch.setattr(job, "_scopes", lambda pages, group, result: [
-        [group[0].id] if i == 1 else m for i, m in enumerate(scopes(pages, group, result))])
-    report = again(store, Scripted(low={"가나수술보험금": 0.1}))
-    assert report.rerun["지킨 이전 줄"] == 2                                   # 모든 종형의 것으로 보고 지킨다
-    assert any("조각 3개는 어느 종형에 실렸는지 가리지 못해" in n for n in report.notes)
-
-
 def test_variants_sharing_a_summary_keep_the_same_id_tail():
     store = SheetStore(MemoryBackend())
     job.run(Scripted(), store, TARGETS, INDEX, {"yoyak": RERUN_SUMMARY}.get, NOW, read_thresholds=False, parts=("급부",),
             only=["P500129"])                                                  # 1종만 먼저 시트에 있다
     old = benefits_named(store, "가나입원")
     assert len(old) == 1
-    # 두 종형을 함께 다시 뽑는다. 대상 표기가 바뀌고 가나입원보험금은 검토 구간이다. 판정 기록은 1종의 행에만 남는다
+    # 두 종형을 함께 다시 뽑는다. 대상 표기가 바뀌고 가나입원보험금은 검토 구간이다. 판정 기록은 종형마다 남는다
     report = again(store, Scripted({"가나입원": [item("가나입원보험금", "3만원", "질병 입원"), item("가나수술보험금", "100만원")]},
                                    low={"가나입원보험금": 0.6}))
     assert report.written and report.errors == {}
@@ -499,6 +488,176 @@ def test_variants_sharing_a_summary_keep_the_same_id_tail():
     assert {r["급부ID"] for r in after} <= set(Data(store.read()).pending_benefit)   # 화면이 두 종형 모두 검토 대기로 보인다
     assert report.rerun["이은 급부ID"] == 1
     assert any("같은 꼬리" in n for n in report.notes)
+
+
+# ---- 재추출 쪽 검토 지적 1, 4, 5 ----
+
+def test_benefit_whose_amount_cannot_be_read_keeps_its_old_row():
+    store = rerun_store()
+    before = benefits_named(store, "가나수술")
+    # 어느 모델로 뽑아도 금액 칸을 원 단위로 읽을 수 없게 적었다. 모델이 낸 항목이므로 없어진 급부로 보지 않는다
+    unread = Scripted({"가나입원": [item("가나입원보험금", "3만원", "질병"), item("가나수술보험금", "가입금액의 10%")]})
+    report = again(store, unread)
+    assert report.written and report.errors == {}
+    assert benefits_named(store, "가나수술") == before
+    assert report.rerun["지킨 이전 줄"] == 2
+    review = [l for l in report.logs if l["작업단계"] == "사람검토이관" and "가나수술보험금" in str(l["사유"])]
+    assert review and all("시트에 쓰지 않음" in l["사유"] for l in review)
+
+
+class EmptyThenFails(Scripted):
+    """다라진단 특약은 첫 모델이 빈 목록을 내고, 다시 뽑는 호출은 모두 실패한다."""
+
+    def generate(self, model, prompt, schema=None, temperature=0.0):
+        title = prompt.split("특약 이름: ", 1)[1].split("\n", 1)[0]
+        if "다라진단" in title:
+            if model == config.MODEL_EXTRACT:
+                return {"base_amount": "1,000만원", "benefits": []}
+            raise GeminiError(503, "high demand")
+        return super().generate(model, prompt, schema, temperature)
+
+
+def test_block_that_ends_with_no_benefits_after_failed_retries_keeps_its_rows():
+    store = rerun_store()
+    before = benefits_named(store, "다라진단")
+    report = again(store, EmptyThenFails())
+    assert report.written and report.errors == {}
+    assert benefits_named(store, "다라진단") == before and report.rerun["지킨 이전 줄"] == 2
+    assert any("급부 0건" in n and "이전 줄을 지킴" in n for n in report.notes)
+    # 형식 문제 없이 빈 목록만 낸 경우는 모델이 급부가 없다고 본 것이다. 이전 줄을 지키지 않는다
+    store = rerun_store()
+    report = again(store, Scripted({"다라진단": []}))
+    assert report.written and benefits_named(store, "다라진단") == [] and report.rerun["지킨 이전 줄"] == 0
+
+
+TWIN_SUMMARY = SCOPED_SUMMARY.replace(" 간편 표", "").replace(" 일반 표", "")      # 두 가입유형 표의 본문이 글자까지 같다
+
+
+class TwinTables(Scoped):
+    """가나입원특약의 첫 표(간편가입형)는 호출이 모두 실패하고, 둘째 표(일반가입형)의 급부는 모두 재추출 구간이다."""
+
+    def __init__(self):
+        super().__init__(low={"가나입원보험금": 0.1, "가나수술보험금": 0.1})
+        self.calls = 0
+
+    def generate(self, model, prompt, schema=None, temperature=0.0):
+        if "가나입원" in prompt.split("특약 이름: ", 1)[1].split("\n", 1)[0]:
+            self.calls += 1
+            if self.calls <= 3:              # 첫 표의 세 시도(추출, 보조, 상위)
+                raise GeminiError(503, "high demand")
+        return super().generate(model, prompt, schema, temperature)
+
+
+def test_excluded_items_of_the_second_of_two_identical_tables_keep_their_variants_rows():
+    store = SheetStore(MemoryBackend())
+    first = job.run(Scoped(), store, SCOPED_TARGETS, SCOPED_INDEX, {"yoyak": TWIN_SUMMARY}.get, NOW, read_thresholds=False,
+                    parts=("급부",))
+    assert first.written and len(benefits_named(store, "가나")) == 4
+    before = benefits_named(store, "가나")
+    report = job.run(TwinTables(), store, SCOPED_TARGETS, SCOPED_INDEX, {"yoyak": TWIN_SUMMARY}.get, LATER,
+                     read_thresholds=False, parts=("급부",))
+    assert report.written and report.errors == {}
+    assert benefits_named(store, "가나") == before            # 두 종형 모두 이전 확정 줄이 그대로 남는다
+    assert report.rerun["지킨 이전 줄"] == 4
+
+
+class ByTable(Scoped):
+    """일반가입형 표에서만 가나수술보험금의 판정 확률이 검토 구간이다."""
+
+    def decide(self, model, input_text, questions):
+        out = {}
+        for key, q in questions.items():
+            p = 0.6 if "일반 표" in input_text and "'가나수술보험금'" in q["instructions"] else 0.97
+            out[key] = Answer(True, None, {"true": p, "false": 1 - p})
+        return out
+
+
+def pending_of(store):
+    sheet = store.read()
+    mine = R.pending_benefits(sheet["sys_급부"], sheet["sys_특약"], sheet["sys_상품종형"], sheet["sys_작업로그"])
+    assert mine == set(Data(sheet).pending_benefit)
+    return mine
+
+
+def test_review_flag_of_one_table_does_not_spread_to_a_variant_judged_on_its_own():
+    store = SheetStore(MemoryBackend())
+    report = job.run(ByTable(), store, SCOPED_TARGETS, SCOPED_INDEX, {"yoyak": SCOPED_SUMMARY}.get, NOW, read_thresholds=False,
+                     parts=("급부",))
+    assert report.written
+    surgery = {r["특약ID"].split("_T")[0]: r["급부ID"] for r in benefits_named(store, "가나수술")}
+    simple, general = (next(v for v in surgery if v.startswith(f"EPOST_{c}_")) for c in ("X1", "X2"))
+    assert surgery[general] in pending_of(store) and surgery[simple] not in pending_of(store)
+
+
+def test_judgement_is_logged_for_every_variant_that_carries_the_block():
+    store = rerun_store(Scripted(low={"가나수술보험금": 0.6}))
+    surgery = benefits_named(store, "가나수술")
+    logs = store.read(["sys_작업로그"])["sys_작업로그"]
+    for r in surgery:
+        steps = {l["작업단계"] for l in logs if l["대상행ID"] == r["급부ID"]}
+        assert {"판정", "사람검토이관"} <= steps, r["급부ID"]
+    assert {r["급부ID"] for r in surgery} <= pending_of(store)
+
+
+def drop_logs_of_later_variants(store):
+    """예전 실행처럼 판정 기록이 요약서를 함께 쓰는 종형 가운데 첫 종형(1종)의 행에만 남은 시트로 만든다."""
+    sheet = store.read(["sys_작업로그", "sys_특약"])
+    second = {r["특약ID"] for r in sheet["sys_특약"] if "P500130" in r["종형ID"]}
+    keep = [l for l in sheet["sys_작업로그"] if not (l["작업단계"] in R.JUDGE_STEPS and str(l["대상행ID"]).rsplit("_B", 1)[0] in second)
+            and R.COVERED not in str(l["사유"])]
+    store.write_tab("sys_작업로그", keep)
+
+
+def test_rerunning_one_variant_leaves_the_review_flags_of_the_others():
+    store = rerun_store(Scripted(low={"가나수술보험금": 0.6}))
+    drop_logs_of_later_variants(store)
+    flagged = pending_of(store)
+    second = {r["급부ID"] for r in benefits_named(store, "가나수술") if "P500130" in r["급부ID"]}
+    assert len(second) == 1 and second <= flagged
+    # 1종만 다시 뽑아 확정됐다. 손대지 않은 2종의 검토 대기 표시는 그대로다
+    again(store, Scripted(), only=["P500129"])
+    assert second <= pending_of(store)
+    # 1종만 다시 뽑으며 그 급부의 이름과 금액이 바뀌어 이전 ID가 시트에서 사라져도 2종의 표시는 그대로다
+    store = rerun_store(Scripted(low={"가나수술보험금": 0.6}))
+    drop_logs_of_later_variants(store)
+    again(store, Scripted({"가나입원": [item("가나입원보험금", "3만원", "질병"), item("가나수술보험금", "120만원", "질병")]}),
+          only=["P500129"])
+    assert second <= pending_of(store)
+
+
+SPLIT_SUMMARY = RERUN_SUMMARY.replace("③ 일반적", """===== 6쪽 =====
+■ 무배당 가나입원특약(20년갱신형) 2606
+(특약보험가입금액 1,000만원 기준)
+가나통원보험금 1만원
+③ 일반적""")
+
+
+class SecondBlock(Scripted):
+    """가나입원특약의 둘째 조각(6쪽, 가나통원보험금)을 따로 답하고, fail이면 그 조각의 호출은 늘 실패한다."""
+
+    def __init__(self, fail=False, **kw):
+        super().__init__(**kw)
+        self.fail_second = fail
+
+    def generate(self, model, prompt, schema=None, temperature=0.0):
+        if "가나통원보험금" in prompt.split("본문", 1)[1]:
+            if self.fail_second:
+                raise GeminiError(503, "high demand")
+            return {"base_amount": "1,000만원", "benefits": [item("가나통원보험금", "1만원")]}
+        return super().generate(model, prompt, schema, temperature)
+
+
+def test_failed_block_of_a_rider_whose_other_block_was_processed_keeps_its_page_rows():
+    store = SheetStore(MemoryBackend())
+    job.run(SecondBlock(), store, TARGETS, INDEX, {"yoyak": SPLIT_SUMMARY}.get, NOW, read_thresholds=False, parts=("급부",))
+    before = benefits_named(store, "가나통원")
+    assert len(before) == 2 and {r["근거문서쪽수"] for r in before} == {6}
+    report = job.run(SecondBlock(fail=True), store, TARGETS, INDEX, {"yoyak": SPLIT_SUMMARY}.get, LATER, read_thresholds=False,
+                     parts=("급부",))
+    assert report.written and report.errors == {}
+    assert benefits_named(store, "가나통원") == before and report.rerun["지킨 이전 줄"] == 2
+    assert len(benefits_named(store, "가나입원보험금")) == 2                      # 처리한 5쪽 조각의 줄은 이번 값이다
+    assert any("근거 쪽이 그 조각의 첫 쪽인 줄만 지킴" in n for n in report.notes)
 
 
 def test_run_without_benefits_is_untouched():

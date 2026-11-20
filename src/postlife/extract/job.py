@@ -3,6 +3,7 @@
 다시 뽑은 종형의 기존 행만 걷어내고 새 행으로 바꾼다. 뽑지 못한 부분은 기존 행을 그대로 둔다.
 급부(상품요약서)와 가입조건(사업방법서)은 따로 돌릴 수 있다.
 급부를 다시 뽑을 때는 같은 급부의 이전 급부ID를 잇고, 이번에 제외되거나 처리하지 못한 급부의 이전 확정 줄을 지킨다(rerun.py).
+급부를 다시 뽑은 종형마다 그 사실을 작업 기록에 남긴다(rerun.coverage_logs). 검토 대기 표시를 종형마다 가리는 데 쓴다.
 """
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ from . import conditions as C
 from . import conditions_run, pipeline, variants
 from . import rerun as R
 from . import verify as V
-from .segment import pages_from_text, rider_blocks, scope_fit, scope_parts
+from .segment import pages_from_text
 
 PARTS = ("급부", "가입조건")
 CONDITION_TABS = ["sys_가입조건", "sys_결합제약"]
@@ -125,19 +126,21 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
             # 같은 급부의 이전 ID를 잇고, 이번에 제외되거나 처리하지 못한 급부의 이전 확정 줄을 지킨다
             heads = tuple(f"{v}_T" for v in group_ids)
             new_riders = {r["특약ID"] for r in riders}
-            failed, unknown = _failed(result, group_ids, new_riders)
-            held, units, unscoped = _held(pages, group, result)
+            failed, failed_pages = _failed(result, new_riders)
+            held, units = _held(result)
             carried = R.carry_over([r for r in old_benefits if str(r["특약ID"]).startswith(heads)], existing_riders,
-                                   result.benefits, new_riders, held, failed, pending, now, units)
+                                   result.benefits, new_riders, held, failed, pending, now, units, failed_pages)
             R.rename_targets(result.logs, carried.inherited.renamed)
             riders += carried.riders
             tally.add(name, carried)
-            if unknown:
-                report.notes.append(f"{name}: 처리하지 못한 조각 {unknown}개는 어느 특약의 것인지 가리지 못해 이전 줄을 지키지 않음")
-            if unscoped:
-                report.notes.append(f"{name}: 조각 {unscoped}개는 어느 종형에 실렸는지 가리지 못해, 제외된 항목을 요약서를 "
-                                    "함께 쓰는 모든 종형의 것으로 보고 이전 줄을 지킴. 종형끼리 급부ID 꼬리도 맞추지 않음")
-            report.logs += result.logs + carried.logs
+            empty = sum(1 for part in result.unprocessed if part.reason == "급부 0건")
+            if empty:
+                report.notes.append(f"{name}: 조각 {empty}개는 급부 0건으로 끝났는데 형식 문제가 남았거나 다시 뽑는 호출이 실패해, "
+                                    "모델이 정말 급부가 없다고 본 것인지 알 수 없음. 처리하지 못한 조각으로 보고 이전 줄을 지킴")
+            if failed_pages:
+                report.notes.append(f"{name}: 처리하지 못한 조각 {sum(map(len, failed_pages.values()))}개는 같은 특약의 다른 조각이 처리돼, "
+                                    "그 특약의 이전 줄 가운데 근거 쪽이 그 조각의 첫 쪽인 줄만 지킴")
+            report.logs += result.logs + carried.logs + R.coverage_logs(now, [v.id for v in group], name)
             report.rows["sys_상품종형"] += [v.row for v in group]
             report.rows["sys_급부"] += carried.benefits
             report.done |= group_ids
@@ -145,12 +148,14 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
             report.table.append(f"| {name} | {len(group)} | {s['처리한 조각']}/{s['조각']} | {s['급부']} | {s['확정']} | {s['검토']} "
                                 f"| {s['제외']} | {s['재추출한 조각']} | {s['상위 모델 사용']} |")
             for block in result.blocks:
+                unread = {b.label for b in block.extraction.unread}
                 for label, status in block.status.items():
                     if status != "확정":
                         _, column, low = V.classify(block.probs.get(label, {}), thresholds)
                         left_out = "시트에 쓰지 않음, " if status == "제외" else ""
-                        report.review.append(f"- {name} · {block.extraction.block.rider_name} · {label}: {left_out}{column} "
-                                             f"{low:.2f} ({block.extraction.block.first_page}쪽)")
+                        what = "금액을 읽지 못함" if label in unread else f"{column} {low:.2f}"
+                        report.review.append(f"- {name} · {block.extraction.block.rider_name} · {label}: {left_out}{what} "
+                                             f"({block.extraction.block.first_page}쪽)")
         else:
             riders = [dict(r) for r in existing_riders if r["종형ID"] in group_ids]
             if not riders:
@@ -228,89 +233,40 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
     return report
 
 
-def _scopes(pages: dict[int, str], group: list[variants.Variant], result: pipeline.Result) -> list[list[str] | None]:
-    """result.blocks마다 그 조각의 급부가 실린 종형ID. 맞추지 못한 조각은 None.
+def _held(result: pipeline.Result) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    """(이번에 "제외"로 끝난 항목이 그 조각을 실은 종형마다 냈을 행, 시트에 쓰는 항목마다 {종형ID: 이번에 계산된 급부ID}).
 
-    조각의 결과에는 어느 종형에 실렸는지가 없다. 가입유형별로 표가 갈린 요약서("[간편가입형]", "[일반가입형]")에서는
-    부분마다 실린 종형이 달라서, pipeline.run_summary가 부분마다 종형을 고르는 규칙을 그대로 따라 다시 가린다.
-    결과는 처리한 부분만 순서대로 남으므로(호출이 끝내 실패한 부분은 빠진다) 같은 순서로 걸으며 제목, 본문, 첫 쪽으로 맞춘다.
+    조각마다 실은 종형은 pipeline.run_summary가 가린 것(BlockResult.variants)을 그대로 쓴다. 금액을 읽지 못한 항목도 제외된 항목이다.
     """
-    order = [v.id for v in group]
-    names = {v.id: v.row["종형명"] for v in group}
-    parts: list[tuple[tuple[str, str, int], list[str]]] = []
-    for block in rider_blocks(pages):
-        split = scope_parts(block)
-        best = {v: max(scope_fit(scope, names[v]) for scope, _ in split) for v in order}
-        for scope, text in split:
-            matched = [v for v in order if best[v] and scope_fit(scope, names[v]) == best[v]]
-            if matched:
-                parts.append(((block.title, text if len(split) > 1 else block.text, block.first_page), matched))
-    out: list[list[str] | None] = []
-    at = 0
+    held: list[dict[str, Any]] = []
+    units: list[dict[str, str]] = []
     for done in result.blocks:
-        b = done.extraction.block
-        key = (b.title, b.text, b.first_page)
-        found = next((i for i in range(at, len(parts)) if parts[i][0] == key), None)
-        if found is None:
-            out.append(None)
-            continue
-        out.append(parts[found][1])
-        at = found + 1
-    return out
+        dropped = {label for label, status in done.status.items() if status == "제외"}
+        for v in done.variants:
+            held += [r for r in B.benefit_rows(v, done.extraction) + B.unread_rows(v, done.extraction) if r["원시급부명"] in dropped]
+        if len(done.variants) > 1:
+            name = done.extraction.block.rider_name
+            units += [{v: ids.benefit_id(ids.rider_id(v, name), b.label) for v in done.variants}
+                      for b in done.extraction.benefits if b.label not in dropped]
+    return held, units
 
 
-def _held(pages: dict[int, str], group: list[variants.Variant],
-          result: pipeline.Result) -> tuple[list[dict[str, Any]], list[dict[str, str]], int]:
-    """(이번에 "제외"로 끝난 항목이 그 조각을 실은 종형마다 냈을 행, 시트에 쓰는 항목마다 {종형ID: 이번에 계산된 급부ID},
-    어느 종형에 실렸는지 가리지 못한 조각 수).
+def _failed(result: pipeline.Result, new_riders: set[str]) -> tuple[set[str], dict[str, set[int]]]:
+    """(처리하지 못한 조각의 특약ID, {같은 특약의 다른 조각은 처리된 특약ID: 처리하지 못한 조각의 첫 쪽}).
 
-    가리지 못한 조각은 제외된 항목을 요약서를 함께 쓰는 모든 종형의 것으로 보고, 묶음은 만들지 않는다.
-    가린 결과로 셈한 급부 행이 이번 결과의 급부 행과 다르면(있어야 할 행이 없거나 어느 조각에서도 나올 수 없는 행이 있으면)
-    가린 것을 믿지 않고 모든 조각을 가리지 못한 것으로 본다.
+    처리하지 못한 조각과 그 조각을 실을 종형은 pipeline.run_summary가 남긴다(Result.unprocessed). 이번에 특약 행이 나오지 않은
+    특약은 통째로 지키고, 다른 조각에서 특약 행이 나온 특약은 근거 쪽이 그 조각의 첫 쪽인 이전 줄만 지킨다(rerun.carry_over).
     """
-    order = [v.id for v in group]
-
-    def build(scopes: list[list[str] | None]) -> tuple[list[dict[str, Any]], list[dict[str, str]], set[str]]:
-        held: list[dict[str, Any]] = []
-        units: list[dict[str, str]] = []
-        possible: set[str] = set()          # 가린 결과로 셈한, 이번 결과에 나올 수 있는 급부ID
-        for done, matched in zip(result.blocks, scopes):
-            dropped = {label for label, status in done.status.items() if status == "제외"}
-            rows = {v: B.benefit_rows(v, done.extraction) for v in (matched or order)}
-            held += [r for v in rows for r in rows[v] if r["원시급부명"] in dropped]
-            possible |= {r["급부ID"] for v in rows for r in rows[v] if r["원시급부명"] not in dropped}
-            if matched:
-                for i, b in enumerate(done.extraction.benefits):
-                    if b.label not in dropped:
-                        units.append({v: rows[v][i]["급부ID"] for v in matched})
-        return held, units, possible
-
-    scopes = _scopes(pages, group, result)
-    held, units, possible = build(scopes)
-    written = {r["급부ID"] for r in result.benefits}
-    if {fresh for unit in units for fresh in unit.values()} - written or written - possible:
-        scopes = [None] * len(result.blocks)
-        held, units, _ = build(scopes)
-    return held, units, scopes.count(None)
-
-
-def _failed(result: pipeline.Result, group_ids: set[str], new_riders: set[str]) -> tuple[set[str], int]:
-    """(호출이 끝내 실패해 처리하지 못한 조각의 특약ID, 그 가운데 어느 특약인지 가리지 못한 조각 수).
-
-    조각 결과에는 실패한 조각이 남지 않아 작업 기록으로 찾는다. 시도마다 "호출 실패" 기록이 남고, 한 번이라도 성공하면
-    "추출 통과" 기록이 남는다. 기록은 그 조각이 실린 첫 종형의 특약ID에 붙으므로, 같은 요약서의 다른 종형 가운데
-    이번에 그 특약 행이 나오지 않은 종형에도 넓힌다. 같은 특약의 다른 조각이 처리된 경우는 가리지 못해 수로만 센다.
-    """
-    tried = {r["대상행ID"] for r in result.logs if str(r.get("사유") or "").startswith("호출 실패")}
-    passed = {r["대상행ID"] for r in result.logs if r.get("작업단계") == "추출" and r.get("결과") == "통과"}
-    out: set[str] = set()
-    for rider in tried - passed:
-        for v in group_ids:
-            if rider.startswith(f"{v}_T"):
-                suffix = rider[len(v):]
-                out |= {u + suffix for u in group_ids if u + suffix not in new_riders}
-    unknown = result.stats.get("조각", 0) - result.stats.get("처리한 조각", 0) - len(tried - passed)
-    return out, max(unknown, 0)
+    whole: set[str] = set()
+    pages: dict[str, set[int]] = {}
+    for part in result.unprocessed:
+        for v in part.variants:
+            rider = ids.rider_id(v, part.block.rider_name)
+            if rider in new_riders:
+                pages.setdefault(rider, set()).add(part.block.first_page)
+            else:
+                whole.add(rider)
+    return whole, pages
 
 
 class _Tally:
@@ -349,11 +305,11 @@ class _Tally:
         if self.aligned:
             row, fresh = self.aligned[0]
             report.notes.append(f"급부 {len(self.aligned)}줄은 그 종형의 이전 줄과 이어지지 않았지만, 같은 조각을 실은 다른 종형이 이전 "
-                                f"급부ID를 이어 같은 꼬리와 원시급부명을 씀. 판정 기록이 첫 종형에만 남아도 검토 대기 표시가 옮겨진다 "
-                                f"(예: '{fresh['원시급부명']}' → '{row['원시급부명']}', {row['급부ID']})")
+                                f"급부ID를 이어 같은 꼬리와 원시급부명을 씀. 예전 실행의 판정 기록(첫 종형에만 있음)으로 보는 검토 대기 "
+                                f"표시도 옮겨진다 (예: '{fresh['원시급부명']}' → '{row['원시급부명']}', {row['급부ID']})")
         if self.split:
-            report.notes.append(f"급부 {self.split}항목은 같은 조각을 실은 종형끼리 이을 이전 급부ID의 꼬리가 갈리거나 맞출 ID가 이미 쓰여, "
-                                "검토 대기 표시가 옮겨지도록 이전 ID를 잇지 않고 이번에 계산된 ID를 씀. 담보 매핑을 확인 필요")
+            report.notes.append(f"급부 {self.split}항목은 같은 조각을 실은 종형끼리 이을 이전 급부ID의 꼬리가 갈리거나 맞출 ID가 다른 줄의 것이어서, "
+                                "종형끼리 꼬리가 같도록 이전 ID를 잇지 않고 이번에 계산된 ID를 씀. 담보 매핑을 확인 필요")
         if self.kept:
             report.notes.append(f"이번에 제외되거나 처리하지 못한 급부의 이전 확정 줄 {len(self.kept)}줄을 그대로 둠. "
                                 f"sys_작업로그에 '재추출 반려'로 남김 (예: {self.kept[0]['원시급부명']}, {self.kept[0]['급부ID']})")
