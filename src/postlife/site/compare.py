@@ -240,19 +240,25 @@ def peers(data: Data, base: str, vids: list[str]) -> list[str]:
     """기준 종형과 나란히 놓고 볼 종형. 비교표가 처음에 보여 주는 열이다(나머지 종형은 화면에서 체크해 더한다).
 
     기준 종형과 맞붙는 종형을 다른 회사마다 하나씩 고른다. 심사 등급이 같은 종형(간편심사는 간편고지 약칭이 같은 것,
-    일반심사는 일반심사끼리) 가운데 첫째, 그런 종형이 그 회사에 없으면 심사 유형(일반, 간편)이 같은 종형 가운데 첫째다.
+    일반심사는 일반심사끼리) 가운데 고르고, 그런 종형이 그 회사에 없으면 심사 유형(일반, 간편)이 같은 종형 가운데 고른다.
+    후보가 여럿이면 갱신유형이 기준 종형과 같은 것, 그다음 환급유형이 같은 것을 먼저 고르고, 그래도 같으면 첫째다
+    (갱신 구조가 다른 종형끼리 견주지 않게 하려는 것. docs/proposals/영업_인사이트_흐름.md 4.0).
     그것도 없으면 그 회사는 고르지 않는다. 기준 종형의 회사는 기준 종형이 그 몫이다. 순서는 vids(화면의 종형 순서)를 따른다.
     회사와 종형이 늘어도 표가 옆으로 길어지지 않게 하려는 것이고, 우열 판정에는 쓰지 않는다.
     """
     home = data.variants[base].get("기관코드")
+    me = data.variants[base]
     picked = {base}
     for org in dict.fromkeys(data.variants[v].get("기관코드") for v in vids):
         if org == home:
             continue
         mine = [v for v in vids if data.variants[v].get("기관코드") == org]
         for exact in (True, False):
-            same = [v for v in mine if _uw_key(data.variants[v], exact) == _uw_key(data.variants[base], exact)]
+            same = [v for v in mine if _uw_key(data.variants[v], exact) == _uw_key(me, exact)]
             if same:
+                # sorted는 안정 정렬이라 열쇠가 같으면 화면 순서(첫째)가 남는다
+                same.sort(key=lambda v: (data.variants[v].get("갱신유형") != me.get("갱신유형"),
+                                         data.variants[v].get("환급유형") != me.get("환급유형")))
                 picked.add(same[0])
                 break
     return [v for v in vids if v in picked]

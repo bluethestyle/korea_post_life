@@ -616,6 +616,22 @@ def pay_tag_stats(data: Data) -> dict[str, dict[str, Any]]:
     return dict(sorted(out.items(), key=lambda kv: (kv[0] != HOME_ORG, kv[0])))
 
 
+def analyze_pair(data: Data, base: str, peers: Iterable[str], relations: Relations | None = None,
+                 hold: dict[str, Holding] | None = None) -> dict[str, Any]:
+    """기준 종형 하나를 고른 맞붙는 종형(peers)과 견준 결과. analyze()의 "기준" 한 줄과 같은 꼴이다.
+
+    compare.peers가 고른 짝이 아닌 종형과 견줄 때 쓴다(영업 인사이트의 고객군 지도에서 칸마다 열린 종형끼리 견줄 때).
+    hold는 종형별 보유(Holding)를 여러 번 부를 때 다시 만들지 않게 넘기는 저장소다.
+    """
+    relations = load_relations() if relations is None else relations
+    hold = {} if hold is None else hold
+    peers = [p for p in peers if p != base]
+    for vid in [base] + peers:
+        if vid not in hold:
+            hold[vid] = Holding(data, vid)
+    return _Base(data, relations, base, peers, hold, std_order(data)).run()
+
+
 def analyze(data: Data, relations: Relations | None = None, base_ids: Iterable[str] | None = None) -> dict[str, Any]:
     """기준 종형별 시사점 목록과 요약 수치.
 
