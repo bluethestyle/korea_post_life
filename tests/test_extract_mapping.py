@@ -500,6 +500,11 @@ def test_script_skip_result_reads_the_rows_of_the_previous_result(capsys, tmp_pa
     skipped = planned(capsys, "--remap", "--skip-result", str(previous))
     assert full["문항"] > 0 and skipped["문항"] == skipped["호출"] == 0
     assert skipped["건너뜀(앞 실행에서 판정)"] == full["처음 묻는 급부"] + sum(full["다시 묻는 급부"].values())
+    # 앞 실행에서 대기로 남은 급부는 건너뛰지 않는다. 다시 묻기가 물으려는 것이 대기 줄이다
+    waiting = [{"급부ID": r["급부ID"], "검토상태": "대기"} for r in every]
+    previous.write_text(json.dumps({"stats": {}, "rows": waiting, "logs": []}), encoding="utf-8")
+    again = planned(capsys, "--remap", "--skip-result", str(previous))
+    assert again["문항"] == full["문항"] and again["건너뜀(앞 실행에서 판정)"] == 0
     wrong = tmp_path / "plan.json"
     wrong.write_text(json.dumps({"plan": {}}), encoding="utf-8")              # --plan 결과에는 rows가 없다
     assert S.main(["--plan", "--snapshot", str(SNAPSHOT), "--skip-result", str(wrong)]) == 2

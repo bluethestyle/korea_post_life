@@ -8,7 +8,7 @@
   python scripts/map_benefits.py --plan ...          # 시트에 쓰지 않고 판정 모델도 부르지 않는다. 바뀔 것과 호출 수만 보인다
   python scripts/map_benefits.py --plan --snapshot data/snapshot ...   # 접속 정보 없이 사본으로 어림한다
   python scripts/map_benefits.py --dry-run --result out.json
-  python scripts/map_benefits.py --remap --skip-result 앞실행/mapping.json   # 앞 실행이 막 판정한 급부는 다시 묻지 않는다
+  python scripts/map_benefits.py --remap --skip-result 앞실행/mapping.json   # 앞 실행이 자동확정이나 대상외로 끝낸 급부는 다시 묻지 않는다 (대기로 남은 급부는 다시 묻는다)
 
 담당자가 정한 행(검토상태가 승인·수정·오류인 행, 담당자메모가 "대상외 확정"으로 시작하는 대상외 행)과 검토상태가 배치 값
 (대기, 자동확정, 대상외) 밖인 행은 어느 경우에도 다시 묻지 않고, --prune에서도 지우지 않는다(src/postlife/extract/mapping.py의
@@ -132,14 +132,18 @@ def remap_rule(args: argparse.Namespace) -> mapping.Remap | None:
 
 
 def skipped_ids(path: Path) -> set[str]:
-    """앞 실행의 결과 파일(mapping.json)에서 rows의 급부ID를 읽는다. 파일이 없거나 rows가 없으면 ValueError."""
+    """앞 실행의 결과 파일(mapping.json)의 rows에서, 앞 실행이 자동확정이나 대상외로 끝낸 급부ID를 읽는다.
+
+    앞 실행에서 대기로 남은 급부는 건너뛰지 않는다. 다시 묻기(--remap)가 물으려는 것이 바로 대기 줄이고, 두 실행 사이에
+    판정 규칙을 고쳤다면 앞 실행의 대기 줄도 새 규칙으로 다시 물어야 한다. 파일이 없거나 rows가 없으면 ValueError."""
     try:
         body = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as e:
         raise ValueError(f"앞 실행의 결과 파일을 읽지 못했습니다: {path} ({e})") from e
     if not isinstance(body, dict) or not isinstance(body.get("rows"), list):
         raise ValueError(f"앞 실행의 결과 파일에 rows가 없습니다(--plan 결과이거나 매핑 전에 멈춘 실행): {path}")
-    return {r["급부ID"] for r in body["rows"] if isinstance(r, dict) and r.get("급부ID")}
+    return {r["급부ID"] for r in body["rows"]
+            if isinstance(r, dict) and r.get("급부ID") and str(r.get("검토상태") or "").strip() != "대기"}
 
 
 def load_jsonl(path: Path) -> list[dict]:
