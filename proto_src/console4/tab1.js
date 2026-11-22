@@ -103,7 +103,7 @@ App.registerTab((function () {
     const parts = steps.map(s => ({ t: s, n: ours['합계'][s] || 0 })).concat(ours['기타'] ? [{ t: '기타', n: ours['기타'] }] : []);
     const bars = steps.map(s => `<div class="jc"><div class="jb">${cols.map((x, i) => {
       const n = x['합계'][s] || 0;
-      return `<span class="b b${i}" style="height:${Math.max(n ? 3 : 0, Math.round(n / max * 64))}px" title="${esc(txt.orgShort(x['종형ID'].split('_')[0]))} ${n}"></span>`;
+      return `<span class="b b${i}" style="height:${Math.max(n ? 3 : 0, Math.round(n / max * 40))}px" title="${esc(txt.orgShort(x['종형ID'].split('_')[0]))} ${n}"></span>`;
     }).join('')}</div><div class="jn num">${cols.map(x => `<span>${x['합계'][s] || 0}</span>`).join('')}</div><div class="js">${esc(s)}</div></div>`).join('');
     return `<div class="kd">
       <div class="kd-a">

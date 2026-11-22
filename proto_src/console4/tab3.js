@@ -17,11 +17,17 @@ App.registerTab((function () {
   let purpose = CB ? CB['P'][0] : '암';
 
   // ---------- 작은 도구 ----------
-  const vk = vid => (vid ? txt.vkind(vid) : '');
+  const info = vid => (G && G['I'][vid]) || null;
+  const vk = vid => {
+    if (!vid) return '';
+    const sv = txt.vinfo(vid);
+    if (sv && sv['종형명']) return sv['종형명'];
+    const gi = info(vid);
+    return (gi && gi['이름']) || vid;
+  };
   const jo = (word, p) => txt.josa(word, p).slice(String(word).length);
   const man = v => (v == null ? '' : `${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}만원`);
   const condText = () => App.condSummary().split(', 기준')[0];
-  const info = vid => (G && G['I'][vid]) || null;
 
 
   // ---------- 관문 자료 찾기 ----------
@@ -147,16 +153,16 @@ App.registerTab((function () {
     const f = info(vid), v = g.vs[vid], k = kindOf(vid, g);
     const span = f['가입나이'][c.st.sex];
     const code = f['심사'] === '간편심사' ? f['간편고지약칭'] : '일반';
-    const isBase = vid === c.baseId, isPeer = c.peerIds.includes(vid);
+    const isBase = vid === c.baseId, isPeer = c.peerIds.includes(vid), gateOnly = !!f['관문전용'];
     const why = reasons(vid, g, c.st.sex).filter(w => !(k === 'nodata' && w === txt.stateWhy(f['회사'], v.state)));
     const stT = k === 'nodata' ? v.state : KIND_T[k];
     const nm = `<span class="nm">${esc(vk(vid))}</span>`;
     return `<li class="gt-item k-${k}">
-      <button type="button" class="gt-node" data-pick="g:${esc(vid)}" aria-pressed="false" aria-label="${esc(`${txt.orgShort(f['회사'])} ${vk(vid)}: ${stT}. 근거 보기`)}">
+      <button type="button" class="gt-node" data-pick="g:${esc(vid)}" aria-pressed="false" aria-label="${esc(`${txt.orgShort(f['회사'])} ${vk(vid)}: ${stT}${gateOnly ? ', 관문만 수집(담보 미수집)' : ''}. 근거 보기`)}">
         <span class="sq gt-sq k-${k}"><i class="cur t"></i><i class="cur r"></i><i class="cur b"></i><i class="cur l"></i>
           <span class="gt-code num">${esc(code)}</span><span class="gt-ic">${KIND_IC[k]}</span></span>
         <span class="gt-tx">
-          <span class="gt-nm">${nm}${isBase ? ui.tag('기준') : ''}${isPeer ? ui.tag('비교 상대') : ''}</span>
+          <span class="gt-nm">${nm}${isBase ? ui.tag('기준') : ''}${isPeer ? ui.tag('비교 상대') : ''}${gateOnly ? ui.tag('관문만 수집(담보 미수집)', '가입 관문만 수집했고 특약과 급부 담보는 수집하지 않았습니다', 'gt-go') : ''}</span>
           <span class="gt-st"><span class="gt-k k-${k}">${esc(stT)}</span>${span ? `<span class="num">${span[0]}~${span[1]}세</span>` : (v.state === '나이 자료 없음' ? '' : '<span>나이 자료 없음</span>')}${v.lim != null ? `<span class="num">주계약 ${esc(man(v.lim))}</span>` : ''}</span>
           ${why.length ? `<span class="gt-why">${esc(why.join('. '))}</span>` : ''}
         </span>
@@ -166,7 +172,7 @@ App.registerTab((function () {
   function treePanel(c, g) {
     if (!g) {
       return `<section class="panel gt-tree" id="gt-tree"><div class="panel-h"><div><span class="k">${ui.scope('now')}</span><h2>관문 나무</h2></div></div>
-        <p class="gt-why-b">관문 자료 없음: ${esc(c.st.age)}세는 가입조건 자료가 다루는 나이 밖입니다.</p></section>`;
+        <p class="gt-why-b">관문 자료 없음: ${esc(c.st.age)}세는 가입조건 자료가 다루는 나이 밖입니다.</p>${ui.notes('가입 관문')}</section>`;
     }
     const n = counts(g);
     const parts = Object.entries(n).filter(([, x]) => x).map(([t, x]) => ({ t, n: x }));
@@ -194,8 +200,9 @@ App.registerTab((function () {
       <div class="panel-f gt-legend">
         <span><i class="gt-sw k-only"></i>우리만 열림</span><span><i class="gt-sw k-open"></i>열림</span><span><i class="gt-sw k-review"></i>심사로 확인</span>
         <span><i class="gt-sw k-nodata"></i>나이나 질문 자료 없음</span><span><i class="gt-sw k-closed"></i>닫힘</span>
-        <span class="gt-lgn">칸 안의 글자는 간편 고지 약칭(최근 소견 개월, 입원과 수술 햇수, 중대질병 햇수)입니다. 같은 회사의 종형을 질문 기간 순으로 이었습니다.</span>
+        <span class="gt-lgn">칸 안의 글자는 간편 고지 약칭(최근 소견 개월, 입원과 수술 햇수, 중대질병 햇수)입니다. 같은 회사의 종형을 질문 기간 순으로 이었고, 관문만 수집한 종형에는 "관문만 수집(담보 미수집)" 표지를 붙였습니다.</span>
       </div>
+      ${ui.notes('가입 관문')}
     </section>`;
   }
 
@@ -463,17 +470,19 @@ App.registerTab((function () {
     const v = g.vs[vid], k = kindOf(vid, g), q = f['질문'];
     const stT = k === 'nodata' ? v.state : KIND_T[k];
     const why = reasons(vid, g, c.st.sex);
-    const full = (txt.vinfo(vid) || {})['전체이름'] || vk(vid);
+    const vinf = txt.vinfo(vid) || {};
+    const full = vinf['전체이름'] || `${txt.orgShort(f['회사'])} ${vk(vid)}`;
+    const startT = vinf['적용시작일'] ? `, 적용 ${esc(vinf['적용시작일'])}` : '';
     const simple = f['심사'] === '간편심사';
     const bi = info(c.baseId);
     const structDiff = bi && vid !== c.baseId && (bi['갱신'] !== f['갱신'] || bi['환급'] !== f['환급']);
     const lim = (S['한도표'] || []).find(t => t['종형ID'] === vid);
     const segs = lim ? (lim['구간'][c.st.sex] || []) : [];
-    let body = sec('', `<p>${esc(condText())}에서 <b>${esc(stT)}</b>입니다.${k === 'only' ? ' 지금 조건의 지도 칸이 "우리 간편만 열림"이고 이 간편 종형이 열려 우리만 열림으로 칠했습니다.' : ''}</p>${why.length ? `<ul class="evl">${why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}`);
+    let body = sec('', `<p>${esc(condText())}에서 <b>${esc(stT)}</b>입니다.${k === 'only' ? ' 지금 조건의 지도 칸이 "우리 간편만 열림"이고 이 간편 종형이 열려 우리만 열림으로 칠했습니다.' : ''}</p>${why.length ? `<ul class="evl">${why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}${f['관문전용'] ? '<p class="note">관문만 수집(담보 미수집): 사업방법서의 가입 관문(고지 질문과 가입나이)만 수집했고 특약과 급부 담보는 수집하지 않아 담보 비교 대상에는 들지 않습니다.</p>' : ''}`);
     body += sec('고지 질문', simple ? `<p>${ui.flagText()}</p><dl class="kv">
         <dt>최근 소견</dt><dd class="num">${esc(q.months)}개월</dd>
-        <dt>입원과 수술 질문 기간</dt><dd class="num">${esc(q.hospYears)}년 안</dd>
-        <dt>질문 범위</dt><dd>${esc(q.surgery == null ? '자료 없음' : (q.surgery ? '입원과 수술' : '입원만(수술만 받은 이력은 묻지 않음)'))}</dd>
+        <dt>입원과 수술 질문 기간</dt><dd class="num">${q.hospYears === 0 ? '묻지 않음(0년)' : `${esc(q.hospYears)}년 안`}</dd>
+        <dt>질문 범위</dt><dd>${esc(q.hospYears === 0 ? '입원과 수술 기간 질문 없음' : q.surgery == null ? '자료 없음' : (q.surgery ? '입원과 수술' : '입원만(수술만 받은 이력은 묻지 않음)'))}</dd>
         <dt>중대질병 질문</dt><dd class="num">${esc(q.majorYears)}년 안 ${esc(q.majorCount)}개</dd></dl>`
       : `<p>일반심사 종형이라 간편 고지 질문 값이 없습니다. 일반심사 종형은 이력과 무관하게 심사로 확인합니다.</p>`);
     const span = f['가입나이'][c.st.sex];
@@ -484,8 +493,8 @@ App.registerTab((function () {
     body += sec('구조', `<dl class="kv"><dt>갱신</dt><dd>${esc(f['갱신'] || '')}${f['갱신주기'] ? ` ${esc(f['갱신주기'])}년` : ''}</dd><dt>환급</dt><dd>${esc(f['환급'] || '')}</dd></dl>${structDiff ? `<p class="note">${esc(txt.josa(`기준 종형 ${vk(c.baseId)}의 구조(${bi['갱신']}, ${bi['환급']})`, '와'))} 다릅니다.</p>` : ''}`);
     let act = '';
     if (f['회사'] === 'EPOST' && vid !== c.baseId && BASE_IDS.includes(vid)) act = ui.btn(`기준 종형을 ${txt.josa(vk(vid), '으로')} 바꾸기`, { main: true, chev: true, attrs: `data-act="base-to" data-v="${esc(vid)}"` });
-    body += sec('근거 문서와 쪽', `<p class="note">${esc(full)}, 적용 ${esc((txt.vinfo(vid) || {})['적용시작일'] || '')}. 사업방법서: 쪽 번호 자료 없음.</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}`, true);
-    return { kicker: `${txt.orgShort(f['회사'])} 종형`, title: vk(vid), badges: [ui.scope('now'), `<span class="tag gt-k k-${k}">${esc(stT)}</span>`].concat(vid === c.baseId ? [ui.tag('기준')] : []), body };
+    body += sec('근거 문서와 쪽', `<p class="note">${esc(full)}${startT}. 사업방법서: 쪽 번호 자료 없음.</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}`, true);
+    return { kicker: `${txt.orgShort(f['회사'])} 종형`, title: vk(vid), badges: [ui.scope('now'), `<span class="tag gt-k k-${k}">${esc(stT)}</span>`].concat(vid === c.baseId ? [ui.tag('기준')] : []).concat(f['관문전용'] ? [ui.tag('관문만 수집(담보 미수집)')] : []), body };
   }
   function pointSpec(id, c) {
     const p = S['포인트'][id]; if (!p) return null;
@@ -524,7 +533,7 @@ App.registerTab((function () {
     let body = sec('', `<p>최대로 담았을 때 <b>${esc(s[0])}</b>의 대표 지급액은 <b>${esc(man(g[4]))}</b>입니다.${g[2] > 1 ? ` 이 담보에 이어진 급부 줄 ${fmt(g[2])}개는 더하지 않고 대표 줄 하나만 보입니다.` : ''}</p>`);
     body += sec('대표 급부', b ? `<dl class="kv"><dt>급부</dt><dd>${esc(b[1])}</dd><dt>특약</dt><dd>${esc(riderName(v, b[2]))}</dd>
         <dt>감액</dt><dd>${esc(red || '없음')}</dd><dt>면책</dt><dd>${b[3] ? `${esc(b[3])}일` : '없음'}</dd>${b[4] ? '<dt>지급 기준</dt><dd>가입금액 대비 비율</dd>' : ''}</dl>` : '<p class="note">대표 급부가 없습니다.</p>');
-    body += sec('근거 문서와 쪽', `<p class="note">${b ? `${esc(txt.pageText(b[5], b[6]))}. ` : ''}${esc(s[1])}, ${esc(s[2])}, ${esc(s[3])}. 표준담보 ${esc(sid)}.</p>`, true);
+    body += sec('근거 문서와 쪽', `<p class="note">${b ? `${esc(txt.pageText(b[5], b[6]))}. ` : ''}표준담보 ${esc(s[0])}(${esc([s[1], s[2], s[3]].filter(Boolean).join(', '))}).</p>`, true);
     return { kicker: `구성 예시 담보, 목적 ${purpose}`, title: s[0], badges: [ui.scope('base')].concat(g[1] ? [] : [ui.tag('목적 밖')]), body };
   }
   function pick(key, c) {

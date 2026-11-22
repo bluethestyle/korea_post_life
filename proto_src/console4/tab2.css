@@ -71,6 +71,8 @@
 #view-market .mk-now{display:inline-flex;align-items:center;gap:4px;height:20px;margin-right:8px;padding:0 6px;vertical-align:1px;
   font:600 13px/1 var(--f-ko);color:#fff;background:var(--slate-solid);white-space:nowrap;opacity:1}
 #view-market .mk-now svg{width:9px;height:9px}
+#view-market .mk-go{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;margin-top:1px;font:400 13px/1.3 var(--f-body)}
+#view-market .mk-gob{display:inline-flex;align-items:center;padding:1px 5px;border:1px dashed currentColor;font:600 13px/1.2 var(--f-ko);white-space:nowrap}
 #view-market .mk-cell:has(.mk-now){box-shadow:inset 4px 0 0 var(--ink-0)}
 #view-market .mk-cell.is-sel:has(.mk-now){box-shadow:inset 0 0 0 2px #fff,inset 6px 0 0 var(--ink-0)}
 #view-market .mk-cell.is-sel .mk-bg{filter:none}

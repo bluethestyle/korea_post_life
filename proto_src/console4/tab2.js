@@ -65,7 +65,12 @@ App.registerTab((function () {
     const n = cell['분류수'] || {};
     const counts = CATS.map(k => `<b>${n[k] == null ? '' : fmt(n[k])}</b>`).join('');
     const flag = cell['라벨'] === '우리 간편만 열림' ? ui.flag() : '';
-    const label = `${row['이름']}, ${colText(col)}: ${cell['라벨']}${sub.length ? ' (' + sub.join(', ') + ')' : ''}${now ? ', 지금 조건' : ''}. 근거 보기`;
+    const gateOnly = cell['관문만수집'] || [];
+    const goHTML = gateOnly.length
+      ? `<span class="mk-go">${gateOnly.map(x => `<span class="mk-gob">관문만 수집</span><span>${esc(x['이름'])}</span>`).join(', ')}</span>`
+      : '';
+    const goAria = gateOnly.length ? `, ${gateOnly.map(x => `${x['이름']} ${x['안내'] || '관문만 수집(담보 미수집)'}`).join(', ')}` : '';
+    const label = `${row['이름']}, ${colText(col)}: ${cell['라벨']}${sub.length ? ' (' + sub.join(', ') + ')' : ''}${goAria}${now ? ', 지금 조건' : ''}. 근거 보기`;
     return `<button type="button" class="sq mk-cell" data-l="${cls}" data-pick="${keyOf(ri, ci)}" aria-pressed="false" aria-label="${esc(label)}" style="--d:${(ri + ci * 2) * 22}ms">
       <i class="mk-bg ${cls}" aria-hidden="true"></i>
       <i class="cur t"></i><i class="cur r"></i><i class="cur b"></i><i class="cur l"></i>
@@ -74,6 +79,7 @@ App.registerTab((function () {
       <span class="mk-o" aria-hidden="true">${orgs}</span>
       <span class="mk-s">${now ? `<span class="mk-now">${ui.IC.pin}지금 조건</span>` : ''}${esc(sub.join(', '))}</span>
       <span class="mk-n" aria-hidden="true">${counts}</span>
+      ${goHTML}
     </button>`;
   }
   function mapHTML(c) {
@@ -116,7 +122,7 @@ App.registerTab((function () {
   function legendHTML(map) {
     return `<div class="mk-legend" aria-label="지도 읽는 법">
       <span class="lg">${LABELS.map(l => `<span>${ui.swatch(l)}${esc(l)}</span>`).join('')}</span>
-      <span class="lg">${ORGS.map(o => `<span><b>${ORG_INI[o]}</b> ${esc(txt.orgShort(o))}</span>`).join('')}<span>${ui.IC.open}열림</span><span>${ui.IC.lock}닫힘</span><span>${ui.IC.check}심사로 확인</span><span>${ui.IC.hatch}자료 없음</span></span>
+      <span class="lg">${ORGS.map(o => `<span><b>${ORG_INI[o]}</b> ${esc(txt.orgShort(o))}</span>`).join('')}<span>${ui.IC.open}열림</span><span>${ui.IC.lock}닫힘</span><span>${ui.IC.check}심사로 확인</span><span>${ui.IC.hatch}자료 없음</span><span><span class="mk-gob">관문만 수집</span>담보 미수집 종형만 열림</span></span>
       <span class="lg mk-lgn">칸 안 숫자 여섯은 차례대로 ${CATS.map(k => esc(k)).join(', ')}의 수입니다. 비어 있으면 견줄 대표 종형이 없는 칸입니다. 칸에 우열을 매기지 않습니다.</span>
     </div>`;
   }
@@ -134,6 +140,7 @@ App.registerTab((function () {
       <div class="mk-body">${mapHTML(c)}</div>
       <div class="panel-f">${legendHTML(map)}</div>
       ${footHTML(c)}
+      ${ui.notes('고객군과 시장')}
     </section>`;
   }
 
@@ -268,11 +275,12 @@ App.registerTab((function () {
     map['행'].forEach((row, ri) => map['열'].forEach((col, ci) => {
       const cell = cellAt(map, ri, ci);
       const n = cell['분류수'] || {};
+      const goT = (cell['관문만수집'] || []).map(x => `${x['이름']}: ${x['안내'] || '관문만 수집(담보 미수집)'}`).join(', ');
       rows.push([rowGroup(row), rowShort(row), colText(col), cell['라벨'], cell['보조'] || '', (cell['닫힌사유'] || []).join(', '),
         ...ORGS.map(o => cell['회사'][o] || ''), vk(cell['대표']), ORGS.filter(o => o !== 'EPOST').map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean).join(', '),
-        ...CATS.map(k => (n[k] == null ? '' : String(n[k])))]);
+        goT, ...CATS.map(k => (n[k] == null ? '' : String(n[k])))]);
     }));
-    App.copyRows(['이력 종류', '이력 시점', '나이', '주 라벨', '보조 줄', '닫힌 사유', ...ORGS.map(o => txt.orgShort(o) + ' 상태'), '우리 대표 종형', '상대 대표 종형', ...CATS],
+    App.copyRows(['이력 종류', '이력 시점', '나이', '주 라벨', '보조 줄', '닫힌 사유', ...ORGS.map(o => txt.orgShort(o) + ' 상태'), '우리 대표 종형', '상대 대표 종형', '관문만 수집', ...CATS],
       rows, { title: `고객군 지도 칸 목록(${txt.sexText(map['성별'])}, ${renText(c.st.renewal)})` });
   }
 
@@ -303,12 +311,15 @@ App.registerTab((function () {
     const row = map['행'][ri], col = map['열'][ci];
     const sub = notes(cell, true);
     const now = c.seg && c.seg.cell && c.seg.ri === ri && c.seg.ci === ci;
+    const gateOnly = cell['관문만수집'] || [];
     const orgRows = ORGS.filter(o => o in cell['회사']).map(o => {
       const s = cell['회사'][o];
       const open = (cell['열린종형'] && cell['열린종형'][o]) || [];
       const why = txt.stateWhy(o, s);
+      const go = gateOnly.filter(x => x['기관코드'] === o);
       return `<li><span class="mk-est">${ST_IC[s] || ''}<b>${esc(txt.orgShort(o))}</b> ${esc(s)}</span>
-        <p class="note">${open.length ? `열린 종형 ${fmt(open.length)}개: ${esc(open.map(vk).join(', '))}` : '열린 종형 없음'}${why ? `. ${esc(why)}` : ''}</p></li>`;
+        <p class="note">${open.length ? `열린 종형 ${fmt(open.length)}개: ${esc(open.map(vk).join(', '))}` : '열린 종형 없음'}${why ? `. ${esc(why)}` : ''}</p>
+        ${go.map(x => `<p class="note">${ui.tag(x['안내'] || '관문만 수집(담보 미수집)')} ${esc(x['이름'])}: 가입 관문만 수집했고 특약과 급부 담보는 수집하지 않아 담보 비교에는 쓰지 않습니다.</p>`).join('')}</li>`;
     }).join('');
     const n = cell['분류수'] || {};
     const counted = CATS.filter(k => n[k] != null);
@@ -318,7 +329,7 @@ App.registerTab((function () {
     const same = samePatch(patch, c.st);
     const patchT = `${patch.age}세, ${patch.since == null ? '이력 없음' : `${patch.surg ? '수술만' : '입원이나 수술'} ${txt.sinceText(patch.since)}`}${patch.base ? `, 기준 종형 ${vk(patch.base)}` : ''}`;
     const reps = ORGS.filter(o => o !== 'EPOST').map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean);
-    let body = sec('', `<p><b>${esc(cell['라벨'])}</b>${sub.length ? ` (${esc(sub.join(', '))})` : ''}. ${esc(row['이름'])}, ${esc(colText(col))}의 고객군입니다.${now ? ' 지금 조건이 가리키는 칸입니다.' : ''}</p>${anyFlag ? `<p>${ui.flagText()}</p>` : ''}`);
+    let body = sec('', `<p><b>${esc(cell['라벨'])}</b>${sub.length ? ` (${esc(sub.join(', '))})` : ''}. ${esc(row['이름'])}, ${esc(colText(col))}의 고객군입니다.${now ? ' 지금 조건이 가리키는 칸입니다.' : ''}</p>${gateOnly.length ? `<p class="note">${gateOnly.map(x => `${esc(x['이름'])}: <b>${esc(x['안내'] || '관문만 수집(담보 미수집)')}</b>`).join(', ')}</p>` : ''}${anyFlag ? `<p>${ui.flagText()}</p>` : ''}`);
     body += sec('회사별 관문과 열린 종형', `<ul class="evl">${orgRows}</ul>`);
     body += sec(`관문 포인트 ${fmt((cell['관문포인트'] || []).length)}건`, pts ? `<ul class="evl">${pts}</ul>` : '<p class="note">이 칸에서 나온 관문 차이가 없습니다.</p>');
     body += sec('대표 종형과 칸의 수', `<dl class="kv"><dt>우리 대표 종형</dt><dd>${esc(vk(cell['대표']) || '없음')}</dd><dt>상대 대표 종형</dt><dd>${esc(reps.join(', ') || '없음')}</dd></dl>
@@ -332,19 +343,21 @@ App.registerTab((function () {
   function revSpec(i) {
     const d = REV['담보'][i]; if (!d) return null;
     const isStd = !/^급부:/.test(d['열쇠']);
-    const std = isStd && App.D && App.D.std ? App.D.std[d['열쇠']] : null;
+    const st = isStd ? S['표준담보'][d['열쇠']] : null;
+    const stName = st ? `${st['이름']}(${[st['대분류'], st['급부유형']].filter(Boolean).join(', ')})` : d['담보'];
     let body = sec('', `<p><b>${esc(d['담보'])}</b>${jo(d['담보'], '는')} 직전 개정과 견주어 <b>${esc(d['종류'])}</b>입니다. 달라진 항목은 ${esc(d['항목'].join(', '))}입니다.</p>`);
     body += sec('해당 종형', `<ul class="evl">${d['종형ID'].map(v => `<li><b>${esc(vk(v))}</b><br><span class="note">${esc((txt.vinfo(v) || {})['전체이름'] || '')}</span></li>`).join('')}</ul>`);
-    body += sec('', `<p class="note">${isStd ? `${esc(txt.josa(`표준담보 ${d['열쇠']}${std ? `(${std.group}, ${std.type})` : ''}`, '으로'))} 이어 견줬습니다.` : '표준담보에 이어지지 않은 급부라 급부 이름으로 견줬습니다.'} 공시 문서(상품요약서와 사업방법서)의 개정 전후를 견준 값입니다.</p>`, true);
+    body += sec('', `<p class="note">${isStd ? `${esc(txt.josa(`표준담보 ${stName}`, '으로'))} 이어 견줬습니다.` : '표준담보에 이어지지 않은 급부라 급부 이름으로 견줬습니다.'} 공시 문서(상품요약서와 사업방법서)의 개정 전후를 견준 값입니다.</p>`, true);
     return { kicker: '개정 변동', title: d['담보'], badges: [ui.scope('all'), ui.tag(d['종류'])], body };
   }
   function newsSpec(i) {
     const x = (NEWS['소식'] || [])[i]; if (!x) return null;
     const warn = x['주의표현'] || [];
+    const sids = (x['표준담보ID'] || []).map(sid => (S['표준담보'][sid] && S['표준담보'][sid]['이름']) || sid);
     let body = sec('', `<p class="mk-quote">${esc(NEWS['인용안내'])}</p><p>${esc(x['요약'])}</p>`);
     body += sec('출처', `<dl class="kv"><dt>회사</dt><dd>${esc(x['회사'])}</dd><dt>분류</dt><dd>${esc(x['분류'])}</dd><dt>발표일</dt><dd class="num">${esc(x['발표일자'])}</dd><dt>매체</dt><dd>${esc(x['출처표시'] || x['매체'] || '')}</dd></dl>
       ${x['출처URL'] ? `<p class="note mk-url">${esc(x['출처URL'])}</p><p class="note">주소는 글자로만 둡니다. 이 화면은 바깥으로 요청하지 않습니다.</p>` : ''}`);
-    body += sec('표준담보와 주의 표현', `<p class="note">${(x['표준담보ID'] || []).length ? `표준담보 ${esc(x['표준담보ID'].join(', '))}에 이어졌습니다.` : '표준담보에 이어지지 않아 대응 문장을 달지 않습니다.'}</p>${warn.length ? `<p class="note">보도 요약에 "${esc(warn.join('", "'))}" 같은 말이 들어 있습니다. 화면 문장에는 쓰지 않는 말이라 인용한 그대로 두고 표지만 붙였습니다.</p>` : ''}`, true);
+    body += sec('표준담보와 주의 표현', `<p class="note">${sids.length ? `표준담보 ${esc(sids.join(', '))}에 이어졌습니다.` : '표준담보에 이어지지 않아 대응 문장을 달지 않습니다.'}</p>${warn.length ? `<p class="note">보도 요약에 "${esc(warn.join('", "'))}" 같은 말이 들어 있습니다. 화면 문장에는 쓰지 않는 말이라 인용한 그대로 두고 표지만 붙였습니다.</p>` : ''}`, true);
     return { kicker: `시장 소식 ${NEWS['주차']}`, title: `${x['회사']} ${x['분류']}`, badges: [ui.scope('all'), ui.tag('인용')], body };
   }
   function pick(key, c) {

@@ -347,7 +347,7 @@ function journeyHTML(c) {
   const parts = STEPS.map(s => ({ t: s, n: ours['합계'][s] || 0 })).concat(ours['기타'] ? [{ t: '기타', n: ours['기타'] }] : []);
   const etc = cols.map(x => `${orgN(x['종형ID'])} ${x['기타'] || 0}`).join(', ');
   return `<section class="panel cv-jr" id="cover-journey" aria-labelledby="cover-journey-h">
-    <div class="panel-h"><div><span class="k">${ui.scope('base')} 보장 대분류와 치료 단계마다 표준담보를 셉니다</span><h2 id="cover-journey-h">치료 여정 격자</h2></div>
+    <div class="panel-h"><div><span class="k">${ui.scope('base')} 보장 대분류와 치료 단계마다 표준담보를 셉니다</span><h2 id="cover-journey-h"><span>치료 여정 격자</span>${ui.help('journey-grid', '치료 여정 격자')}</h2></div>
       <div class="r"><span class="cvj-lg"><span><i class="lg0"></i>${esc(orgN(cols[0]['종형ID']))}</span>${cols.slice(1).map((x, i) => `<span><i class="lg${i + 1}"></i>${esc(orgN(x['종형ID']))}</span>`).join('')}<span><i class="lgz"></i>우체국 0인 칸</span></span>
       <span class="live">${ui.btn('격자 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-journey"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-journey" data-title="치료 여정 격자"' })}</span></div></div>
     <div class="cvj-w"><div class="cvj" role="group" aria-label="치료 여정 격자">${h}</div></div>
@@ -423,7 +423,7 @@ function midBand(c) {
   const stats = [{ n: p['견준쌍'], d: p['공통담보쌍'], l: '견준 공통 담보 쌍', bar: [p['견준쌍'], p['공통담보쌍']] },
     { n: p['뺀쌍'], d: p['공통담보쌍'], l: '검토 대기로 뺀 쌍', bar: [p['뺀쌍'], p['공통담보쌍'], 'other'] }]
     .concat(Object.entries(kinds).map(([k, n]) => ({ n, u: '건', l: `단정 주의: ${k}` })));
-  return ui.band({ kicker: '우열을 단정하지 않은 것과 견주지 못한 것', title: '단정 주의와 검토 대기', sc: 'base', stats,
+  return ui.band({ kicker: '우열을 단정하지 않은 것과 견주지 못한 것', title: '단정 주의와 검토 대기', help: 'caution-pending', sc: 'base', stats,
     note: `단정 주의 ${cau.length}건은 견준 쌍 안에서 우열 문장을 내지 않은 담보이고, 검토 대기로 뺀 쌍과는 다른 수라 더하지 않습니다.` });
 }
 function tableBand(c, m, cnt) {
