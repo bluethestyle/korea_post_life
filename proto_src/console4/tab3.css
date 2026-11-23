@@ -46,6 +46,10 @@
 .gtf-fill-g{transform-box:fill-box;transform-origin:center bottom}
 .gtf-cnt{font:600 13.5px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);white-space:nowrap;min-width:30px;text-align:left}
 .gtf-cell.is-zero .gtf-cnt{color:var(--ink-2);font-weight:400}
+/* 고지 유형이 9줄 이상으로 늘어났을 때는 변동이 없는 중간 관문 숫자를 숨기고 가리키거나 고른 줄에서만 드러내어 글 조각 상한(80)을 지킨다 */
+.gtf-stage.is-dense .gtf-cnt.is-quiet{visibility:hidden}
+.gtf-stage.is-dense .gtf-row:is(.is-hot,.has-row-sel) .gtf-cnt.is-quiet,
+.gtf-stage.is-dense .gtf-cell:is(:hover,:focus-visible,.is-aim,.is-sel) .gtf-cnt.is-quiet{visibility:visible}
 
 .gtf-cell.is-sel .gtf-pil{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff}
 .gtf-cell.is-sel .gtf-cnt{color:var(--red-ink);font-weight:600}

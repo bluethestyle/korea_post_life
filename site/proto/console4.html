@@ -1182,6 +1182,10 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .gtf-fill-g{transform-box:fill-box;transform-origin:center bottom}
 .gtf-cnt{font:600 13.5px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);white-space:nowrap;min-width:30px;text-align:left}
 .gtf-cell.is-zero .gtf-cnt{color:var(--ink-2);font-weight:400}
+/* 고지 유형이 9줄 이상으로 늘어났을 때는 변동이 없는 중간 관문 숫자를 숨기고 가리키거나 고른 줄에서만 드러내어 글 조각 상한(80)을 지킨다 */
+.gtf-stage.is-dense .gtf-cnt.is-quiet{visibility:hidden}
+.gtf-stage.is-dense .gtf-row:is(.is-hot,.has-row-sel) .gtf-cnt.is-quiet,
+.gtf-stage.is-dense .gtf-cell:is(:hover,:focus-visible,.is-aim,.is-sel) .gtf-cnt.is-quiet{visibility:visible}
 
 .gtf-cell.is-sel .gtf-pil{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff}
 .gtf-cell.is-sel .gtf-cnt{color:var(--red-ink);font-weight:600}
@@ -1634,7 +1638,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
    주인공 도형: 위 2.5px 금색 선의 짙은 결과 카드(acs_22)와 분류별 묶음(번호 01~05, 메뉴 목록) */
 #view-insight .vbody{container-type:inline-size}
 #view-insight .ins-ref{margin:-4px 0 18px;padding:6px 0 6px 14px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:transparent;box-shadow:inset 2px 0 0 var(--ink-1);word-break:keep-all}
-#view-insight .ins-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,0.62fr);gap:var(--gap);align-items:start}
+#view-insight .ins-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(308px,0.62fr);gap:var(--gap);align-items:start}
 #view-insight .ins-l{display:flex;flex-direction:column;gap:20px;min-width:0}
 
 /* 목적 거르개와 복사(사각 면 제거) */
@@ -1757,6 +1761,8 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .ins-card .icd-w{margin:0 0 4px;font:400 13px/1.55 var(--f-body);color:#C3C8CD}
 .ins-card .icd-f{margin:2px 0 0}
 .ins-card .flag-t{color:#FF8A85}
+.ins-card .tag{color:#E8EAEB;border-color:rgba(255,255,255,.45)}
+.ins-card .icd-mk{white-space:normal;word-break:keep-all}
 .ins-card .icd-nb{margin:0;padding:0 0 0 16px;font:400 13px/1.6 var(--f-body);color:#C3C8CD}
 .ins-card .icd-nb li{margin:0 0 2px;word-break:keep-all}
 .ins-card .icd-new{animation:icdNew 700ms var(--ease)}
@@ -1791,8 +1797,13 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   #print-root .ins-card .flag-t .tri i{background:#000}
 }
 
-/* 본문이 좁으면(중간 폭에서 근거 기둥이 열렸을 때 포함) 카드를 목록 아래로 */
-@container (max-width:1060px){
+/* 중간 폭(1280px 전후)에서도 목록과 카드 두 열을 유지하면서 내부 바로가기를 정돈하고, 700px 미만에서만 아래로 접는다 */
+@container (max-width:940px){
+  #view-insight .ins-jump{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  #view-insight .ins-jump a{min-height:42px;padding:0 4px}
+  #view-insight .ins-jump b{font-size:21px}
+}
+@container (max-width:700px){
   #view-insight .ins-grid{grid-template-columns:minmax(0,1fr)}
   #view-insight .ins-r{position:static;max-height:none;overflow:visible}
 }
@@ -3271,7 +3282,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const list = (S['주석'] || []).filter(n => !tabName || (n['탭'] || []).includes(tabName));
     if (!list.length) return '';
     return `<aside class="snotes" aria-label="${esc((tabName || '') + cp('notesAriaSuffix'))}">
-      <h3 class="snotes-h">${esc(cp('notesTitle'))}</h3>
+      <h3 class="snotes-h">${esc(cp('notesTitle'))}${st.peerScope !== 'all' ? ' ' + fullScopeTag() : ''}</h3>
       <ul class="snotes-l">${list.map(n => {
         const hk = NOTE_HEAD[n['열쇠']];
         const hd = hk ? cp(hk) : n['열쇠'];
@@ -4492,6 +4503,22 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       let selIdx = gridItems.findIndex(b => b.classList.contains('is-sel'));
       if (selIdx < 0) selIdx = 0;
       gridItems.forEach((b, k) => { b.tabIndex = k === selIdx ? 0 : -1; });
+    }
+    const insRows = $$('#view-insight .lrow[data-pick]');
+    if (insRows.length) {
+      let selIdx = insRows.findIndex(li => li.classList.contains('is-sel'));
+      if (selIdx < 0) selIdx = 0;
+      insRows.forEach((li, k) => {
+        const hit = $('.lrow-hit', li);
+        if (hit) hit.tabIndex = k === selIdx ? 0 : -1;
+        $$('input[data-act="ins-pick"]', li).forEach(ck => { ck.tabIndex = -1; });
+      });
+    }
+    const insJumps = $$('#view-insight .ins-jump a');
+    if (insJumps.length) {
+      let onIdx = insJumps.findIndex(a => a === document.activeElement);
+      if (onIdx < 0) onIdx = 0;
+      insJumps.forEach((a, k) => { a.tabIndex = k === onIdx ? 0 : -1; });
     }
   }
 
@@ -6684,12 +6711,12 @@ App.registerTab((function () {
   const CB = T3 ? T3['구성'] : null;
   const ORGS = txt.ORG_ORDER;
   const BASE_IDS = S['기준종형'].map(b => b['종형ID']);
-  const TYPE_ORDER = ['진단', '수술', '치료', '입원', '통원'];
+  const TYPE_ORDER = (Object.values(S['기준별'] || {})[0] && Object.values(S['기준별'] || {})[0]['치료여정'] && Object.values(S['기준별'] || {})[0]['치료여정']['열']) || [];
   const KIND_T = { only: '우리만 열림', open: '열림', review: '심사로 확인', nodata: '자료 없음', closed: '닫힘' };
   const KIND_IC = { only: ui.IC.open, open: ui.IC.open, review: ui.IC.check, nodata: ui.IC.hatch, closed: ui.IC.lock };
   let purpose = CB ? CB['P'][0] : '암';
 
-  ui.registerLegend('gate', 'legendVerdictTitle', () => `<dl class="legend">
+  ui.registerLegend('gate', 'legendVerdictTitle', () => `<p class="note" style="margin:0 0 8px">간편심사 종형은 마지막 입원이나 수술이 질문 기간보다 오래되면 질문에 걸리지 않습니다.</p><dl class="legend">
       <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>채운 기둥: 그 관문까지 통과한 상대 회사의 비율(바깥 실선 윤곽은 그 유형의 전체 상대 수)</dd>
       <dt>${ui.IC.hatch}</dt><dd>빗금 기둥: 고객 조건으로 받지 않는 전제 관문(최근 소견, 중대질병)</dd>
       <dt>${ui.IC.check}</dt><dd>점선 빈 윤곽과 끊긴 선: 통과한 상대가 0곳이 된 관문과 그 뒤 구간</dd>
@@ -6884,9 +6911,10 @@ App.registerTab((function () {
               : passN === 0 ? 'none' : 'same';
         const tip = `${row.key}, ${stNm}: 통과 ${ratioTxt}곳${isPrem ? ' (전제 관문)' : ''}`;
         const delayMs = Math.min(340, rIdx * 24 + k * 42);
+        const quietCnt = flowRows.length > 8 && k < steps.length - 1 && passN === prevPass;
         return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-aim="rect"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}">
           <span class="gtf-pil" data-link-pt="1" data-aim-box="1">${pillarCellSVG(passN, row.total, isPrem, delayMs)}</span>
-          <span class="gtf-cnt num">${esc(ratioTxt)}</span>
+          <span class="gtf-cnt num${quietCnt ? ' is-quiet' : ''}">${esc(ratioTxt)}</span>
         </button>`;
       }).join('');
 
@@ -6900,7 +6928,7 @@ App.registerTab((function () {
       </div>`;
     }).join('');
 
-    center.innerHTML = `<div class="gtf-stage" id="gt-flow-stage">
+    center.innerHTML = `<div class="gtf-stage${flowRows.length > 8 ? ' is-dense' : ''}" id="gt-flow-stage">
       <div class="gtf-axis-head" data-main-axis="1">
         <span class="gtf-corner"></span>
         <div class="gtf-acols">${axisCols}</div>
@@ -7081,13 +7109,14 @@ App.registerTab((function () {
     return { ids, extra, other };
   }
 
-  function pointRow(id, now) {
+  function pointRow(id, now, c) {
     const p = S['포인트'][id];
+    const badge = c && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
     return `<li class="lrow gt-pt" data-pick="p:${esc(id)}">
       <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${p['세부이름'] || p['분류']} 근거 보기`)}"></button>
       ${p['원문대조'] ? ui.flag(p['원문대조글'] || ui.FLAG_TEXT) : ''}
       <div class="selbar gt-pth">${ui.tag(p['세부이름'] || p['분류'])}${now ? ui.scope('now') : ui.scope('base')}</div>
-      <p class="gt-ptx">${esc(p['문장'])}</p>
+      <p class="gt-ptx">${esc(p['문장'])}${badge}</p>
       <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span>
     </li>`;
   }
@@ -7096,7 +7125,7 @@ App.registerTab((function () {
     const rows = [c.baseId].concat(c.peerIds).map(v => qRow(v, c)).join('');
     const gp = gatePoints(c, g);
     const simple = c.baseInfo && c.baseInfo['심사'] === '간편심사';
-    const list = gp.ids.map(id => pointRow(id, false)).concat(gp.extra.map(id => pointRow(id, true))).join('');
+    const list = gp.ids.map(id => pointRow(id, false, c)).concat(gp.extra.map(id => pointRow(id, true, c))).join('');
     return `<section class="panel tbl-wrap gt-q" id="gt-q" aria-labelledby="gt-q-h">
       <div class="panel-h">
         <div><span class="k">${ui.scope('base')}</span><h2 id="gt-q-h">고지 질문 비교</h2></div>
@@ -7108,7 +7137,7 @@ App.registerTab((function () {
       <p class="gt-flagn">${ui.flagText()} 값은 사업방법서에서 옮겼습니다. 사업방법서: 쪽 번호 자료 없음, 원문의 해당 조항과 견줘 봐야 합니다.</p>
       <div class="gt-pts">
         <h3>관문 차이 ${fmt(gp.ids.length + gp.extra.length)}건</h3>
-        <p class="note">질문 범위 차이는 고객 조건과 무관해 조건을 바꿔도 그대로입니다. 지금 조건에서만 생기는 관문 차이에는 "지금 조건" 표지를 붙입니다.</p>
+        <p class="note">간편심사 종형은 마지막 입원이나 수술이 질문 기간보다 오래되면 질문에 걸리지 않습니다. 질문 범위 차이는 고객 조건과 무관해 조건을 바꿔도 그대로입니다. 지금 조건에서만 생기는 관문 차이에는 "지금 조건" 표지를 붙입니다.</p>
         ${list ? `<ul class="lrows">${list}</ul>` : `<p class="note">${simple ? '맞붙는 종형과 같은 기간의 질문에서 범위나 질병 수가 다른 곳이 없습니다.' : '일반심사 종형이라 간편 고지 질문을 견주지 않았습니다.'}</p>`}
         ${gp.other ? `<p class="note">지금 조건의 지도 칸은 대표 종형 ${esc(txt.josa(vk(gp.other), '으로'))} 관문 포인트를 셌습니다. ${esc(vk(gp.other))}의 포인트는 기준 종형을 바꾸면 보입니다.</p><div class="live">${ui.btn(`기준 종형을 ${txt.josa(vk(gp.other), '으로')} 바꾸기`, { sm: true, chev: true, attrs: `data-act="base-to" data-v="${esc(gp.other)}"` })}</div>` : ''}
       </div>
@@ -7414,7 +7443,7 @@ App.registerTab((function () {
       allPtIds.length
         ? `<ul class="evl">${allPtIds.map(id => {
           const p = S['포인트'][id];
-          return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p></li>`;
+          return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p></li>`;
         }).join('')}</ul>`
         : '<p class="note">선택한 비교 범위에서 나온 관문 차이 문장이 없습니다.</p>'
     );
@@ -7467,11 +7496,12 @@ App.registerTab((function () {
     return { kicker: `${txt.orgShort(f['회사'])} 종형`, title: vk(vid), badges: [ui.scope('now'), `<span class="tag gt-k k-${k}">${esc(stT)}</span>`].concat(vid === c.baseId ? [ui.tag('기준')] : []).concat(f['관문전용'] ? [ui.tag('관문만 수집(담보 미수집)')] : []), body };
   }
 
-  function pointSpec(id) {
+  function pointSpec(id, c) {
     const p = S['포인트'][id]; if (!p) return null;
     const head = p['머리말'] != null ? S['글'][p['머리말']] : '';
-    let body = sec('', `<p>${esc(p['문장'])}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}`);
-    body += sec('견준 범위', `${head ? `<p class="note">${esc(head)}</p>` : ''}${p['구조다름'] ? `<p class="note">${ui.tag('구조 다름')} 갱신이나 환급 구조가 다른 상대와 견줬습니다.</p>` : ''}`);
+    const scBadge = c && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
+    let body = sec('', `<p>${esc(p['문장'])}${scBadge}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}`);
+    body += sec('견준 범위', `${head ? `<p class="note">${esc(head)}${scBadge}</p>` : ''}${p['구조다름'] ? `<p class="note">${ui.tag('구조 다름')} 갱신이나 환급 구조가 다른 상대와 견줬습니다.</p>` : ''}`);
     const noPage = (p['근거'] || []).some(e => e['쪽'] == null);
     body += sec('근거 문서와 쪽', `<ul class="evl">${(p['근거'] || []).map(e => `<li><b>${esc(txt.orgShort((txt.vinfo(e['종형ID']) || {})['기관코드'] || ''))} ${esc(vk(e['종형ID']))}</b> ${ui.tag(txt.pageText(e['문서'], e['쪽']))}</li>`).join('')}</ul>${noPage ? `<p class="note">${esc(txt.PAGE_WHY)}.</p>` : ''}<p class="note">창구 말투의 문답은 영업 인사이트 탭의 응대 카드 미리 보기에서만 씁니다.</p>`, true);
     return { kicker: `${p['분류']}, ${p['세부이름'] || p['세부']}`, title: p['세부이름'] || p['분류'], badges: [ui.scope('base')], body };
@@ -9391,19 +9421,22 @@ App.registerTab((function () {
     const h = head(p);
     const cau = cautionOf(c, p);
     const flag = p['원문대조'] ? ui.flag(p['원문대조글'] || ui.FLAG_TEXT) : '';
-    const peerNames = txt.peerNamesEtc((p['비교종형ID'] || []).map(fullN), 3);
+    const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
+    const pSet = new Set(c.activePeerOrgs || []);
+    const peerVids = c.peerScope === 'all' ? (p['비교종형ID'] || []) : (p['비교종형ID'] || []).filter(v => pSet.has(orgOf(v)));
+    const peerNames = txt.peerNamesEtc((peerVids.length ? peerVids : (p['비교종형ID'] || [])).map(fullN), 3);
     return `<li class="lrow ins-it" data-pick="p:${esc(p['포인트ID'])}" data-aim="rect">
       <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${p['분류']}, ${titleLong(p)}. 근거 보기`)}"></button>${flag}
       <div class="ins-ih selbar">
-        <span class="live ins-ckw"><label class="ins-ck"><input type="checkbox" data-act="ins-pick" data-id="${esc(p['포인트ID'])}"${sel.has(p['포인트ID']) ? ' checked' : ''} aria-label="${esc(titleLong(p))} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span><span class="lb">카드에 싣기</span><span class="lb2" aria-hidden="true">싣기</span></label></span>
+        <span class="live ins-ckw"><label class="ins-ck"><input type="checkbox" tabindex="-1" data-act="ins-pick" data-id="${esc(p['포인트ID'])}"${sel.has(p['포인트ID']) ? ' checked' : ''} aria-label="${esc(titleLong(p))} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span><span class="lb">카드에 싣기</span><span class="lb2" aria-hidden="true">싣기</span></label></span>
         <span class="ins-t">${esc(titleOf(p))}</span><span class="ins-tgd">${pointChip(p, c)}${p['구조다름'] ? ui.tag('구조 다름', '갱신이나 환급 구조가 다른 상대와 견준 문장') : ''}</span>
       </div>
-      <div class="ins-tgm">${pointChip(p, c)}${p['구조다름'] ? ui.tag('구조 다름') : ''}${p['표준담보ID'] ? '' : `<span class="ins-pe">상대 ${esc(peerNames)}</span>`}</div>
-      <p class="ins-s">${esc(p['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>
+      <div class="ins-tgm">${pointChip(p, c)}${p['구조다름'] ? ui.tag('구조 다름') : ''}${p['표준담보ID'] ? '' : `<span class="ins-pe">상대 ${esc(peerNames)}${!peerVids.length && c.peerScope !== 'all' ? scBadge : ''}</span>`}</div>
+      <p class="ins-s">${esc(p['문장'])}${scBadge}</p>
       ${cau ? `<p class="ins-w ins-cau">${ui.verdict('diff')} ${esc(cautionNote(cau))}</p>` : ''}
-      ${p['주의'] ? `<p class="ins-w">주의: ${esc(p['주의'])}</p>` : ''}
+      ${p['주의'] ? `<p class="ins-w">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
       <div class="ins-m">${(p['근거'] || []).map(evChip).join('')}${p['원문대조'] ? ui.flagText(p['원문대조글'] || ui.FLAG_TEXT) : ''}</div>
-      ${h && h !== groupHead ? `<p class="ins-hd">${esc(h)}</p>` : ''}
+      ${h && h !== groupHead ? `<p class="ins-hd">${esc(h)}${scBadge}</p>` : ''}
       <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`;
   }
   function revRowOrgs(d, c) {
@@ -9444,7 +9477,7 @@ App.registerTab((function () {
           const holderTxt = c.peerScope === 'all'
             ? `가진 상대 <b class="num">${d['가진상대수']}</b>곳(${esc(txt.peerNamesEtc(d['가진상대'], 3))})`
             : `선택 범위 <b class="num">${scOrgs.length}</b>곳(${esc(txt.peerNamesEtc(scOrgs, 3))}), 전체 <b class="num">${d['가진상대수']}</b>곳 ${ui.fullScopeTag()}`;
-          return `<li><span class="live ins-ckw"><label class="ins-ck sm"><input type="checkbox" data-act="ins-pick" data-id="${esc(d['포인트ID'])}"${sel.has(d['포인트ID']) ? ' checked' : ''} aria-label="${esc(d['담보'])} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span></label></span>
+          return `<li><span class="live ins-ckw"><label class="ins-ck sm"><input type="checkbox" tabindex="-1" data-act="ins-pick" data-id="${esc(d['포인트ID'])}"${sel.has(d['포인트ID']) ? ' checked' : ''} aria-label="${esc(d['담보'])} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span></label></span>
             <span class="rn">${esc(d['담보'])}</span><span class="rt">${esc(d['급부유형'])}</span>
             <span class="rh">${holderTxt}</span>
             <span class="ro">우리 쪽 ${esc(d['우리상태'])}</span>
@@ -9457,8 +9490,9 @@ App.registerTab((function () {
     const list = (c.base['뺀포인트'] || []).filter(o => o['분류'] === cat && (c.peerScope === 'all' || (o['비교종형ID'] || []).some(v => pSet.has(orgOf(v)))));
     if (!list.length) return '';
     const open = openOmit.has(cat);
+    const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
     return `<details class="ins-omit"${open ? ' open' : ''} data-cat="${esc(cat)}"><summary><span>뺀 포인트 ${list.length}건</span><span class="note">검토 대기이거나 조건이 다른 줄이 있어 세지 않은 것</span>${ui.IC.chevD}</summary>
-      <ul>${list.map(o => `<li><b>${esc(stdN(o['표준담보ID']))}</b> <span class="tag">${esc(o['세부'])}</span><br><span class="note">상대 ${esc(txt.peerNamesEtc((o['비교종형ID'] || []).map(fullN), 3))}. ${esc(reasonText(o['사유']))}</span></li>`).join('')}</ul></details>`;
+      <ul>${list.map(o => `<li><b>${esc(stdN(o['표준담보ID']))}</b> <span class="tag">${esc(o['세부'])}</span>${scBadge}<br><span class="note">상대 ${esc(txt.peerNamesEtc((o['비교종형ID'] || []).map(fullN), 3))}. ${esc(reasonText(o['사유']))}</span></li>`).join('')}</ul></details>`;
   }
   function catHTML(c, cat, i, sel) {
     const all = pts(c).filter(p => p['분류'] === cat);
@@ -9478,7 +9512,7 @@ App.registerTab((function () {
       <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(subT)}${cat === '개정 검토 후보' && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</span>
         <h2 id="ins-cat-${i}-h"><span class="ins-no num">0${i + 1}</span>${esc(cat)} <b class="num">${n}</b>건${purpose && shown.length !== all.length && cat !== '개정 검토 후보' ? ` <span class="note">(목적에 맞는 ${shown.length}건)</span>` : ''}</h2></div>
         <div class="r"><span>카드에 실은 것 <b class="num">${inCard}</b>건</span>${cat === '개정 검토 후보' ? `<span class="live">${ui.btn('개정 검토 목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-rev"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="ins-cat-${i}" data-title="개정 검토 목록"` })}</span>` : ''}</div></div>
-      ${groupHead ? `<p class="ins-gh">${esc(groupHead)}</p>` : ''}
+      ${groupHead ? `<p class="ins-gh">${esc(groupHead)}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>` : ''}
       ${list}
       ${omitHTML(c, cat)}
     </section>`;
@@ -9534,16 +9568,17 @@ App.registerTab((function () {
     const peerList = c.peerIds.map(v => `${fullN(v)}(${vinfo(v)['적용시작일'] || '기준일 자료 없음'})`);
     const peers = peerList.length ? txt.peerNamesEtc(peerList, 3) : App.t('condPeerNone');
     const comp = composeLine(c);
+    const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
     const body = groups.map(g => {
       const heads = [...new Set(g.xs.map(head))];
       return `<div class="sec">${esc(g.cat)} <span class="num">${g.xs.length}</span>건</div>
-        ${heads.length === 1 && heads[0] ? `<p class="icd-hd">${esc(heads[0])}</p>` : ''}
+        ${heads.length === 1 && heads[0] ? `<p class="icd-hd">${esc(heads[0])}${scBadge}</p>` : ''}
         ${g.xs.map(p => `<div class="icd-qa${lastAdded === p['포인트ID'] ? ' icd-new' : ''}">
-          ${heads.length > 1 && head(p) ? `<p class="icd-hd">${esc(head(p))}</p>` : ''}
-          ${p['카드질문'] ? `<p class="icd-q"><span class="icd-l">예상 질문</span>${esc(p['카드질문'])}</p>` : ''}
-          <p class="icd-a"><span class="icd-l">${p['카드질문'] ? '답' : '설명'}</span>${esc(p['카드답'] || p['문장'])}</p>
-          ${cautionOf(c, p) ? `<p class="icd-w">주의: ${esc(cautionNote(cautionOf(c, p)))}</p>` : ''}
-          ${p['주의'] ? `<p class="icd-w">주의: ${esc(p['주의'])}</p>` : ''}
+          ${heads.length > 1 && head(p) ? `<p class="icd-hd">${esc(head(p))}${scBadge}</p>` : ''}
+          ${p['카드질문'] ? `<p class="icd-q"><span class="icd-l">예상 질문</span>${esc(p['카드질문'])}${scBadge}</p>` : ''}
+          <p class="icd-a"><span class="icd-l">${p['카드질문'] ? '답' : '설명'}</span>${esc(p['카드답'] || p['문장'])}${scBadge}</p>
+          ${cautionOf(c, p) ? `<p class="icd-w">주의: ${esc(cautionNote(cautionOf(c, p)))}${scBadge}</p>` : ''}
+          ${p['주의'] ? `<p class="icd-w">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
           ${p['원문대조'] ? `<p class="icd-f">${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}</div>`).join('')}`;
     }).join('');
     return `<div class="rcard ins-card" id="insight-card" aria-label="응대 카드 미리 보기">
@@ -9670,15 +9705,101 @@ App.registerTab((function () {
   }
   function remarkSel(body) {
     const key = App.state.sel.insight;
-    body.querySelectorAll('[data-pick]').forEach(el => {
+    const rows = Array.from(body.querySelectorAll('.lrow[data-pick]'));
+    let selIdx = rows.findIndex(el => el.dataset.pick === key);
+    if (selIdx < 0) selIdx = 0;
+    rows.forEach((el, idx) => {
       const on = el.dataset.pick === key;
       el.classList.toggle('is-sel', on);
-      const hit = el.querySelector('.lrow-hit'); if (hit) hit.setAttribute('aria-pressed', String(on));
+      const hit = el.querySelector('.lrow-hit');
+      if (hit) {
+        hit.setAttribute('aria-pressed', String(on));
+        hit.tabIndex = idx === selIdx ? 0 : -1;
+      }
+      el.querySelectorAll('input[data-act="ins-pick"]').forEach(ck => { ck.tabIndex = -1; });
     });
+    const jumps = Array.from(body.querySelectorAll('.ins-jump a'));
+    jumps.forEach((a, k) => { a.tabIndex = k === 0 ? 0 : -1; });
   }
   function bind(body) {
+    remarkSel(body);
     if (body._b) return;
     body._b = true;
+    body.addEventListener('keydown', e => {
+      const jump = e.target.closest && e.target.closest('.ins-jump a');
+      if (jump && ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
+        const jumps = Array.from(body.querySelectorAll('.ins-jump a'));
+        const i = jumps.indexOf(jump);
+        if (i < 0) return;
+        let j = i;
+        if (e.key === 'ArrowRight') j = (i + 1) % jumps.length;
+        if (e.key === 'ArrowLeft') j = (i + jumps.length - 1) % jumps.length;
+        if (e.key === 'Home') j = 0;
+        if (e.key === 'End') j = jumps.length - 1;
+        e.preventDefault();
+        jumps.forEach((a, k) => { a.tabIndex = k === j ? 0 : -1; });
+        jumps[j].focus();
+        return;
+      }
+      const inHit = e.target.closest && e.target.closest('.lrow-hit');
+      if (inHit) {
+        const rowEl = inHit.closest('.lrow[data-pick]');
+        if (rowEl && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+          const rows = Array.from(body.querySelectorAll('.lrow[data-pick]'));
+          const i = rows.indexOf(rowEl);
+          if (i < 0) return;
+          let j = i;
+          if (e.key === 'ArrowDown') j = Math.min(rows.length - 1, i + 1);
+          if (e.key === 'ArrowUp') j = Math.max(0, i - 1);
+          if (e.key === 'Home') j = 0;
+          if (e.key === 'End') j = rows.length - 1;
+          e.preventDefault();
+          rows.forEach((r, k) => {
+            const h = r.querySelector('.lrow-hit');
+            if (h) h.tabIndex = k === j ? 0 : -1;
+          });
+          const nextHit = rows[j].querySelector('.lrow-hit');
+          if (nextHit) {
+            nextHit.focus();
+            App.reveal(rows[j]);
+          }
+          return;
+        }
+        if (rowEl && e.key === 'ArrowRight') {
+          const ck = rowEl.querySelector('input[data-act="ins-pick"]');
+          if (ck) { e.preventDefault(); ck.focus(); }
+          return;
+        }
+      }
+      const inCk = e.target.closest && e.target.closest('input[data-act="ins-pick"]');
+      if (inCk && ['ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+        const rowEl = inCk.closest('.lrow[data-pick]');
+        if (!rowEl) return;
+        const cks = Array.from(rowEl.querySelectorAll('input[data-act="ins-pick"]'));
+        const ci = cks.indexOf(inCk);
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          if (ci > 0) cks[ci - 1].focus();
+          else { const h = rowEl.querySelector('.lrow-hit'); if (h) h.focus(); }
+          return;
+        }
+        const nextCi = e.key === 'ArrowDown' ? ci + 1 : ci - 1;
+        if (nextCi >= 0 && nextCi < cks.length) {
+          e.preventDefault();
+          cks[nextCi].focus();
+        } else {
+          const rows = Array.from(body.querySelectorAll('.lrow[data-pick]'));
+          const ri = rows.indexOf(rowEl);
+          const nextRi = e.key === 'ArrowDown' ? Math.min(rows.length - 1, ri + 1) : Math.max(0, ri - 1);
+          if (nextRi !== ri) {
+            e.preventDefault();
+            rows.forEach((r, k) => { const h = r.querySelector('.lrow-hit'); if (h) h.tabIndex = k === nextRi ? 0 : -1; });
+            const nh = rows[nextRi].querySelector('.lrow-hit');
+            if (nh) { nh.focus(); App.reveal(rows[nextRi]); }
+          }
+        }
+      }
+    });
     body.addEventListener('change', e => {
       const ck = e.target.closest('input[data-act="ins-pick"]');
       if (!ck) return;
@@ -9754,11 +9875,12 @@ App.registerTab((function () {
     const omit = sid ? (c.base['뺀포인트'] || []).filter(o => o['표준담보ID'] === sid) : [];
     const cau = cautionOf(c, p);
     const grJump = sid ? `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>` : '';
-    let body = sec('', `<p>${esc(p['문장'])}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}${cau ? `<p>${ui.verdict('diff')}</p><p class="note">${esc(cautionNote(cau))} ${esc(cau['문장'])}</p>` : ''}${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}</p>` : ''}
+    const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
+    let body = sec('', `<p>${esc(p['문장'])}${scBadge}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}${cau ? `<p>${ui.verdict('diff')}</p><p class="note">${esc(cautionNote(cau))} ${esc(cau['문장'])}${scBadge}</p>` : ''}${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
       ${tableV ? `<p class="note" style="margin-top:8px">담보 비교표의 판정: </p><div class="cv-bds">${tableV}</div>` : ''}${grJump}`);
     if (relOk) body += sec('관계도', `<div class="ins-rel"></div>${App.cover.relLegend()}`);
     body += sec('근거 문서와 쪽', `<ul class="cv-evl">${(p['근거'] || []).map(g => `<li><b>${esc(fullN(g['종형ID']))}</b> ${evChip(g)}${g['급부명'] ? `<br><span class="note">${esc(g['급부명'])}</span>` : ''}</li>`).join('')}</ul>${(p['근거'] || []).some(g => g['쪽'] == null) ? `<p class="note">${esc(txt.PAGE_WHY)}.</p>` : ''}`, true);
-    body += sec('범위 머리말', `<p class="note">${esc(head(p))}</p><p class="note">견준 ${c.base['범위']['회사수']}개 회사 가운데 ${p['회사수']}곳에 대한 문장입니다.</p>`, true);
+    body += sec('범위 머리말', `<p class="note">${esc(head(p))}${scBadge}</p><p class="note">견준 ${c.base['범위']['회사수']}개 회사 가운데 ${p['회사수']}곳에 대한 문장입니다.</p>`, true);
     if (omit.length) body += sec('뺀 것', `<ul class="cv-evl">${omit.map(o => `<li>${esc(o['분류'])}(${esc(o['세부'])}): ${esc(reasonText(o['사유']))}</li>`).join('')}</ul>`, true);
     return {
       kicker: `${p['분류']}, ${p['세부']} ${p['세부이름']}`, title: titleLong(p),
@@ -9840,7 +9962,7 @@ App.registerTab((function () {
     return true;
   }
 
-  return { id: 'insight', kicker: '인사이트와 산출물', render, update, pick, evidence, focus, enter };
+  return { id: 'insight', layout: 'side', kicker: '인사이트와 산출물', render, update, pick, evidence, focus, enter };
 })());
 
 })();

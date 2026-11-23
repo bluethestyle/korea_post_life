@@ -1033,7 +1033,7 @@
     const list = (S['주석'] || []).filter(n => !tabName || (n['탭'] || []).includes(tabName));
     if (!list.length) return '';
     return `<aside class="snotes" aria-label="${esc((tabName || '') + cp('notesAriaSuffix'))}">
-      <h3 class="snotes-h">${esc(cp('notesTitle'))}</h3>
+      <h3 class="snotes-h">${esc(cp('notesTitle'))}${st.peerScope !== 'all' ? ' ' + fullScopeTag() : ''}</h3>
       <ul class="snotes-l">${list.map(n => {
         const hk = NOTE_HEAD[n['열쇠']];
         const hd = hk ? cp(hk) : n['열쇠'];
@@ -2254,6 +2254,22 @@
       let selIdx = gridItems.findIndex(b => b.classList.contains('is-sel'));
       if (selIdx < 0) selIdx = 0;
       gridItems.forEach((b, k) => { b.tabIndex = k === selIdx ? 0 : -1; });
+    }
+    const insRows = $$('#view-insight .lrow[data-pick]');
+    if (insRows.length) {
+      let selIdx = insRows.findIndex(li => li.classList.contains('is-sel'));
+      if (selIdx < 0) selIdx = 0;
+      insRows.forEach((li, k) => {
+        const hit = $('.lrow-hit', li);
+        if (hit) hit.tabIndex = k === selIdx ? 0 : -1;
+        $$('input[data-act="ins-pick"]', li).forEach(ck => { ck.tabIndex = -1; });
+      });
+    }
+    const insJumps = $$('#view-insight .ins-jump a');
+    if (insJumps.length) {
+      let onIdx = insJumps.findIndex(a => a === document.activeElement);
+      if (onIdx < 0) onIdx = 0;
+      insJumps.forEach((a, k) => { a.tabIndex = k === onIdx ? 0 : -1; });
     }
   }
 
