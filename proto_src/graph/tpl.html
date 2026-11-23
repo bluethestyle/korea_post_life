@@ -735,7 +735,7 @@ function drawMini(){if(!VN.size||narrow()){$('#miniw').style.display=VN.size?'':
 mini.addEventListener('pointerdown',e=>{const m=mini._m;if(!m)return;const r=mini.getBoundingClientRect();const x=(e.clientX-r.left)/m.s+m.x0,y=(e.clientY-r.top-m.oy)/m.s+m.y0;view.tx=cw()/2-x*view.s;view.ty=ch()/2-y*view.s;kick();e.stopPropagation()});
 const STARTS=['일반암 진단비','유사암 진단비(통합)','뇌졸중 진단비','급성심근경색증 진단비','암 수술비'];
 function startCard(){let c=$('.st');if(VN.size){if(c)c.remove();return}if(c)return;c=h('div',{class:'st frm'});
-  const hd=h('div',{class:'hd'});hd.appendChild(h('span',{class:'tag'},'INITIALIZE // ENTRY POINT'));hd.appendChild(h('span',{class:'tag'},'3,744 NODES'));c.appendChild(hd);
+  const hd=h('div',{class:'hd'});hd.appendChild(h('span',{class:'tag'},'INITIALIZE // ENTRY POINT'));hd.appendChild(h('span',{class:'tag'},N.length.toLocaleString('en-US')+' NODES'));c.appendChild(hd);
   c.appendChild(h('h2',null,'어디서부터 넘어가 볼까요'));c.appendChild(h('p',null,'시작점을 고르면 그 노드 하나가 가운데 놓입니다. 노드를 고른 뒤 아래 행동 띠의 관계 단추로 이웃을 펼치며 홉을 넘어갑니다.'));
   let i=0;const tile=(k,col,org,txt,fn)=>{const b=h('button');b.style.setProperty('--i',i++);const s=document.createElementNS(svgNS,'svg');iconSvg(s,k,col,org);b.appendChild(s);b.appendChild(h('span',null,txt));b.addEventListener('click',fn);return b};
   const l1=h('div',{class:'lab'});l1.innerHTML='<b>01</b>회사에서 시작';c.appendChild(l1);let r=h('div',{class:'row'});MAIN.forEach(o=>{const ix=N.findIndex(n=>n.k===0&&n.o===o);r.appendChild(tile(0,orgVar(o),o,ORGNAME[o],()=>startAt(ix)))});c.appendChild(r);

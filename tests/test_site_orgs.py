@@ -6,7 +6,6 @@
 """
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 import sys
@@ -186,24 +185,7 @@ def test_real_snapshot_carries_only_site_orgs_by_default():
     assert all(data.riders[b["특약ID"]]["종형ID"] in data.variants for b in data.benefits.values())
 
 
-def graph_module():
-    path = ROOT / "proto_src" / "graph" / "build_data.py"
-    spec = importlib.util.spec_from_file_location("graph_build_data", path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
-def test_graph_picks_two_types_for_orgs_outside_want():
-    g = graph_module()
-    v = lambda vid, uw, simple, role="정밀비교", end=None: {  # noqa: E731
-        "종형ID": vid, "기관코드": "MERITZ", "심사유형": uw, "간편고지약칭": simple, "비교역할구분": role, "판매종료일": end}
-    pool = [v("M_1", "간편심사", "3.1.5"), v("M_2", "간편심사", "3.2.5"), v("M_0", "간편심사", "3.2.5", role="관문전용"),
-            v("M_3", "일반심사", "일반"), v("M_4", "일반심사", "일반", end="2026-01-01")]
-    assert [x["종형ID"] for x in g.pick_types(pool, "MERITZ")] == ["M_2", "M_3"]
-    assert g.pick_types(pool, "EPOST") == []
-
-
+# 관계망 자료(proto_src/graph/build_data.py)가 회사를 거르는 일은 tests/test_graph_data.py 에서 본다
 @pytest.mark.parametrize("cmd", [
     ["scripts/build_site.py", "--orgs", "all"],
     ["scripts/export_app_data.py", "--orgs", "EPOST,HANWHALIFE,SAMSUNGFIRE,MERITZ"],
