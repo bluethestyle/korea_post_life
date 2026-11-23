@@ -946,7 +946,10 @@ def built(tmp_path_factory):
 def test_실제_자료로_빌드되고_외부_자원을_부르지_않는다(built):
     info, html, payload = built
     assert info["variants"] == len(payload["variants"]) > 0
-    assert info["bytes"] == len(html.encode("utf-8")) < 4_000_000   # 한 파일 4MB를 넘기지 않는다. 세 회사 사본에서 여유가 5만 바이트쯤이라, 넘으면 화면 자료를 압축해 싣는다
+    # 크기 기준은 50MB다. GitHub가 50MB를 넘는 파일에 경고하고 100MB를 넘으면 받지 않는다는 것 말고는 바깥의 제한이 없다.
+    # 2026-11-19에 4MB로 잡았던 기준은 근거가 없어 없앴다(2026-11-23 사용자 판단). 4.19MB 파일이 열리는 데 0.1초,
+    # CPU를 4배 느리게 해도 0.4초였다. 열리는 시간이 문제가 되면 크기가 아니라 시간을 재서 본다.
+    assert info["bytes"] == len(html.encode("utf-8")) < 50_000_000
     for pattern in EXTERNAL:
         found = re.search(pattern, html, re.I)
         assert found is None, f"외부 자원 참조: {html[max(0, found.start() - 40):found.end() + 60]!r}"
