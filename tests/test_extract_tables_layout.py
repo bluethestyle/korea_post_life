@@ -220,7 +220,7 @@ def test_layout_values_survive_a_json_round_trip_and_are_left_out_when_unset(tmp
 
 
 def test_layouts_are_listed_by_name():
-    assert tables.LAYOUTS == {"samsungfire": SAMSUNGFIRE, "meritz": MERITZ}
+    assert tables.LAYOUTS == {"samsungfire": SAMSUNGFIRE, "meritz": MERITZ, "kblife": tables.KBLIFE}
     # 보장명 칸이 하나인 표: 삼성화재 꼴은 세부보장 칸이 없고, 메리츠화재 꼴도 이름의 단이 없다
     assert table_lines(table(1, [["가나", "사유", "가입금액"]]))[0].cover is None
     assert table_lines(table(1, [["가나", "사유", "가입금액"]]), MERITZ)[0].levels == ()

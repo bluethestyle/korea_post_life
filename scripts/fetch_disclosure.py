@@ -8,6 +8,7 @@
 
 초기 적재 회사(--org meritz 등, postlife.disclosure.sources에 이은 회사)는 대상 설정(data/targets/<회사>.json)의
 공시상품코드마다 사업방법서와 상품요약서만 받고, 항목마다 파일 전체의 sha256을 더 적는다. 급부 표 조각은 만들지 않는다.
+회사마다 공시상품코드 자리의 값(상품코드, 게시 번호, 상품명)과 공시상품명이 필요한지는 sources.SOURCES에 적었다.
 """
 from __future__ import annotations
 
@@ -187,9 +188,14 @@ def fetch_source(src: sources.Source, s, out: Path, targets: Path, list_only: bo
     대상 설정 파일의 공시상품코드마다 on(기준일)에 판매 중인 판매기간을 고른다. 같은 세션으로 목록과 서류를 받고,
     요청 사이에 src.pause초 쉰다. 항목은 다른 회사와 같은 열쇠에 파일 전체의 sha256을 더한다.
     세 번째 값은 공시상품코드마다 받지 못한 서류다. 다 받은 코드는 빠진다.
+    종형에 "공시상품명"이 있으면 상품을 찾는 데 쓰도록 find에 넘긴다(상품명으로만 찾을 수 있는 회사가 있다).
+    같은 공시상품코드의 종형끼리 공시상품명이 다르면 그 코드는 받지 않는다.
     """
-    codes = sorted({v["공시상품코드"] for product in json.loads(targets.read_text(encoding="utf-8"))["상품"]
-                    for v in product["종형"]})
+    names: dict[str, set[str]] = {}
+    for product in json.loads(targets.read_text(encoding="utf-8"))["상품"]:
+        for v in product["종형"]:
+            names.setdefault(v["공시상품코드"], set()).update([v["공시상품명"]] if v.get("공시상품명") else [])
+    codes = sorted(names)
     index, rows, asked = [], [], False
 
     def wait():
@@ -199,9 +205,12 @@ def fetch_source(src: sources.Source, s, out: Path, targets: Path, list_only: bo
         asked = True
 
     for code in codes:
+        if len(names[code]) > 1:
+            rows.append(f"| {code} | | 공시상품명이 종형마다 다름 | {', '.join(sorted(names[code]))} | | | |")
+            continue
         wait()
         try:
-            found = src.find(s, code, on)
+            found = src.find(s, code, on, next(iter(names[code]), None))
         except Exception as e:  # noqa: BLE001
             print(f"  실패 {code} 서류 목록: {e}"[:400])
             rows.append(f"| {code} | | 서류 목록 실패 | {type(e).__name__} | | | |")
