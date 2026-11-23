@@ -5,13 +5,13 @@ const CV = {"t":"2026-11-23T16:40:16+09:00","ben":[["암수술보험금(암\u00b
 const { ui, txt } = App;
 const { esc, fmt } = ui;
 const S = App.S;
-const STEPS = ['진단', '수술', '치료', '입원', '통원'];
+const STEPS = (Object.values(S['기준별'] || {})[0] && Object.values(S['기준별'] || {})[0]['치료여정'] && Object.values(S['기준별'] || {})[0]['치료여정']['열']) || [];
 const ROMAN = { 'Ⅰ': 'I', 'Ⅱ': 'II', 'Ⅲ': 'III', 'Ⅳ': 'IV', 'Ⅴ': 'V' };
 const fixG = s => String(s == null ? '' : s).replace(/[ⅠⅡⅢⅣⅤ]/g, m => ROMAN[m]);
 const nf = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 });
 const N = n => nf.format(n);
 
-ui.registerLegend('cover', 'legendVerdictTitle', () => `<dl class="legend">
+ui.registerLegend('cover', 'legendVerdictTitle', () => `<p class="note" style="margin:0 0 8px">같은 담보를 둘 다 가지면 대표 급부끼리 면책, 감액, 지급 형태로 판정하고, 한쪽에만 있으면 누구에게 없는지 적습니다. 담보 비교는 나이 조건 없이 대표 급부끼리 견준 값이고, 기준 종형을 바꿀 때만 다시 셉니다.</p><dl class="legend">
     <dt>${ui.verdict('better')}</dt><dd>금색 층(이중 상단선): 같은 담보를 견줘 우체국 조건이 나은 상대</dd>
     <dt>${ui.verdict('only')}</dt><dd>축 위 금색 마름모: 상대는 아무도 안 가졌고 우체국만 가진 담보</dd>
     <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>중립 층: 조건이 같거나 엇갈림, 단정 주의로 우열을 매기지 않은 상대</dd>
@@ -1074,16 +1074,24 @@ function condTable(m, row, c) {
   const cols = allColIdxs.map(k => m.cols[k]);
   const reps = allColIdxs.map(k => repOf(row.cells[k]));
   const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
+  const nonMonRedLbl = nonMonCopy('감액') || '원문 확인';
+  const nonMonBaseLbl = nonMonCopy('기준') || '금액 하나로 적을 수 없는 급부';
   const body = items.map(([lab, f]) => {
     const vals = {};
     allColIdxs.forEach(k => {
       const rp = repOf(row.cells[k]);
       vals[orgOf(m.cols[k])] = rp ? f(rp) : null;
     });
-    return `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(txt.sameSummary(vals))}</td></tr>`;
+    const eqFn = hasAnyNonMon && (lab === '감액' || lab === '기준 가입금액')
+      ? (a, b) => a === b && a !== nonMonRedLbl && a !== nonMonBaseLbl
+      : undefined;
+    return `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(txt.sameSummary(vals, eqFn))}</td></tr>`;
   }).join('');
+  const payRuleTxt = hasAnyNonMon && nonMonCopy('지급액판정')
+    ? `${nonMonCopy('지급액판정')} 및 기준 가입금액이 회사마다 달라 지급액은 판정에 넣지 않았습니다.`
+    : '지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.';
 
-  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, 지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.</p>`;
+  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
 }
 
 function evidenceList(m, row, extra, c) {
@@ -1109,21 +1117,28 @@ function rowEvidence(c, sid, mode) {
   const pSet = new Set(c.activePeerOrgs || []);
   const scopedCau = c.peerScope === 'all' ? row.cau : row.cau.filter(x => (x['상대종형ID'] || []).some(v => pSet.has(orgOf(v))));
   const st = std(sid);
+  const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
   let judge = '';
   if (mode === 'caution' && scopedCau.length) {
-    judge += scopedCau.map(x => `<p>${ui.verdict('diff')} <span class="note">${esc(x['종류'])}</span></p><p>${esc(x['문장'])}</p>`).join('');
+    judge += scopedCau.map(x => `<p>${ui.verdict('diff')} <span class="note">${esc(x['종류'])}</span></p><p>${esc(x['문장'])}${scBadge}</p>`).join('');
   }
-  judge += pIdxs.slice(0, 3).map(i => {
+  const renderPeerJudge = i => {
     const peer = m.cols[i + 1];
     const v = verdFor(row, m, i, pIdxs);
     const q = v && v.q;
     const noRank = !v || (v.kind !== 'better' && v.kind !== 'worse');
     const word = t => (t === '나음' || t === '못함') ? (noRank ? '다름' : t === '나음' ? '우체국 나음' : '우체국 못함') : t;
-    const its = q && q.it ? `<table class="cv-it"><tr><th scope="col">항목</th><th scope="col">우체국</th><th scope="col">${esc(orgN(peer))}</th><th scope="col">비교</th></tr>${q.it.map(t => `<tr><th scope="row">${esc(t[0])}</th><td>${esc(t[1])}</td><td>${esc(t[2])}</td><td>${esc(word(t[3]))}${t[4] ? `<br><span class="note">${esc(t[4])}</span>` : ''}</td></tr>`).join('')}</table>` : '';
+    const its = q && q.it ? `<div class="cv-ct-w"><table class="cv-it"><tr><th scope="col">항목</th><th scope="col">우체국</th><th scope="col">${esc(orgN(peer))}</th><th scope="col">비교</th></tr>${q.it.map(t => `<tr><th scope="row">${esc(t[0])}</th><td>${esc(t[1])}</td><td>${esc(t[2])}</td><td>${esc(word(t[3]))}${t[4] ? `<br><span class="note">${esc(t[4])}</span>` : ''}</td></tr>`).join('')}</table></div>` : '';
     return `<div class="cv-jd"><p><b>${esc(txt.josa(fullN(peer), '과'))} 견줌</b> ${chip(v)}</p>${v && v.why ? `<p class="note">${esc(v.why)}</p>` : ''}${noRank && q && q.it && q.it.some(t => t[3] === '나음' || t[3] === '못함') ? `<p class="note">대표 급부끼리는 조건이 다른 항목이 있지만, 위 까닭으로 우열을 매기지 않았습니다. 아래 표는 "다름"으로만 적습니다.</p>` : ''}${its}</div>`;
-  }).join('');
+  };
+  judge += pIdxs.slice(0, 3).map(renderPeerJudge).join('');
+  if (pIdxs.length > 3) {
+    const restIdxs = pIdxs.slice(3);
+    const restNames = txt.peerNamesEtc(restIdxs.map(i => orgN(m.cols[i + 1])), 4);
+    judge += `<details class="zr-det cv-vg-det" style="margin-top:8px"><summary><span>나머지 상대 ${fmt(restIdxs.length)}개 종형의 판정 표 보기 (${esc(restNames)})</span>${ui.IC.chevD}</summary><div class="zr-det-b">${restIdxs.map(renderPeerJudge).join('')}</div></details>`;
+  }
   const scopedPts = c.peerScope === 'all' ? row.pts : row.pts.filter(p => (p['관련기관코드'] || []).some(o => pSet.has(o)));
-  const pts = scopedPts.map(p => `<li>${ui.tag(p['분류'])} ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p>${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}</p>` : ''}</li>`).join('');
+  const pts = scopedPts.map(p => `<li>${ui.tag(p['분류'])} ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}${scBadge}</p>${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}</li>`).join('');
   const cauEv = mode === 'caution' ? scopedCau.flatMap(x => (x['근거'] || []).filter(g => g['종형ID'] === c.baseId || c.peerScope === 'all' || pSet.has(orgOf(g['종형ID']))).map(g => `<li><b>${esc(orgN(g['종형ID']))}</b> ${ui.tag(txt.pageText(g['문서'], g['쪽']))} ${g['구분'] ? ui.tag(g['구분']) : ''} <span>${esc(fixG(g['급부명'] || ''))}</span></li>`)).join('') : '';
   const out = [];
   pIdxs.forEach(i => { const v = row.verd[i]; if (v && v.kind === 'unknown') out.push(`${orgN(m.cols[i + 1])}: ${v.why || v.text}`); });
@@ -1176,6 +1191,11 @@ function journeyData(c) {
   const peerCols = c.peerScope === 'all' ? cols.slice(1) : c.peerIds.map(v => byVid[v]).filter(Boolean);
   return { j, cols: [byVid[c.baseId] || cols[0], ...peerCols].filter(Boolean) };
 }
+function journeyTone(idx) {
+  if (idx === 0) return { bar: 'ours', lg: 'lg0' };
+  if (idx === 1) return { bar: 'other', lg: 'lg1' };
+  return { bar: 'other hollow', lg: 'lg2' };
+}
 function journeyHTML(c) {
   const { j, cols } = journeyData(c);
   const rowsG = j['행'];
@@ -1188,8 +1208,7 @@ function journeyHTML(c) {
   const maxT = Math.max(1, ...cols.flatMap(x => STEPS.map(s => x['합계'][s] || 0)));
   const rowSum = (x, g) => STEPS.reduce((a, s) => a + ((x['칸'][g] || {})[s] || 0), 0);
   const maxR = Math.max(1, ...cols.flatMap(x => rowsG.map(g => rowSum(x, g))));
-  const CLS = ['', 'other', 'other hollow', 'other'];
-  const bars = (vals, mx) => dispVals(vals).map((n, i) => `<span class="cvj-b"><span class="hbar"><i class="${CLS[i] || 'other'}" style="width:100%;transform:scaleX(${(n / mx).toFixed(4)})"></i></span><b class="num">${n}</b></span>`).join('');
+  const bars = (vals, mx) => dispVals(vals).map((n, i) => `<span class="cvj-b"><span class="hbar"><i class="${journeyTone(i).bar}" style="width:100%;transform:scaleX(${(n / mx).toFixed(4)})"></i></span><b class="num">${n}</b></span>`).join('');
   const lab = dispLabels.map(d => `<span class="cvj-l" title="${esc(d.title)}">${esc(d.nm)}</span>`).join('');
   let h = `<div class="cvj-h cvj-c0"></div>${STEPS.map(s => `<div class="cvj-h">${esc(s)}</div>`).join('')}<div class="cvj-h cvj-t">대분류 합계</div>`;
   rowsG.forEach(g => {
@@ -1208,14 +1227,15 @@ function journeyHTML(c) {
   h += `<div class="cvj-c cvj-t cvj-all">${dispLabels.map((d, i) => `<span class="cvj-b"><span class="cvj-l2">${esc(d.nm)}</span><b class="num">${dispVals(cols.map(x => x['전체']))[i]}</b></span>`).join('')}</div>`;
   const ours = cols[0];
   const parts = STEPS.map(s => ({ t: s, n: ours['합계'][s] || 0 })).concat(ours['기타'] ? [{ t: '기타', n: ours['기타'] }] : []);
-  const etc = txt.peerNamesEtc(cols.map(x => `${orgN(x['종형ID'])} ${x['기타'] || 0}`), 4);
+  const etcList = cols.map(x => `${orgN(x['종형ID'])} ${x['기타'] || 0}개`);
+  const etc = etcList.length <= 4 ? etcList.join(', ') : txt.peerNamesEtc(etcList, 4);
   return `<section class="panel cv-jr" id="cover-journey" aria-labelledby="cover-journey-h">
     <div class="panel-h"><div><span class="k">${ui.scope('base')} 보장 대분류와 치료 단계마다 표준담보를 셉니다</span><h2 id="cover-journey-h"><span>치료 여정 격자</span>${ui.help('journey-grid', '치료 여정 격자')}</h2></div>
-      <div class="r"><span class="cvj-lg"><span><i class="lg0"></i>${esc(dispLabels[0].nm)}</span>${dispLabels.slice(1).map((d, i) => `<span><i class="lg${Math.min(2, i + 1)}"></i>${esc(d.nm)}</span>`).join('')}<span><i class="lgz"></i>우체국 0인 칸</span></span>
+      <div class="r"><span class="cvj-lg">${dispLabels.map((d, i) => `<span><i class="${journeyTone(i).lg}"></i>${esc(d.nm)}</span>`).join('')}<span><i class="lgz"></i>우체국 0인 칸</span></span>
       <span class="live">${ui.btn('격자 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-journey"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-journey" data-title="치료 여정 격자"' })}</span></div></div>
     <div class="cvj-w"><div class="cvj" role="group" aria-label="치료 여정 격자">${h}</div></div>
     <div class="panel-f">${ui.eq({ total: { t: `${orgN(ours['종형ID'])} 담보`, n: ours['전체'] }, parts, tail: '개' })}
-      <div class="nadd">기타(주요 단계 밖의 급부유형)는 ${esc(etc)}개입니다. 칸 하나에 담보 하나만 셉니다. 회사별 수는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>
+      <div class="nadd">기타(주요 단계 밖의 급부유형)는 ${esc(etc)}입니다. 칸 하나에 담보 하나만 셉니다. 회사별 수는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>
       <p class="note" style="margin:6px 0 0">막대 길이는 칸끼리(합계 줄은 합계끼리) 견준 것입니다. 칸을 누르면 그 칸의 담보 목록이 아래 읽기 띠에 뜹니다. 우열은 이 격자에 매기지 않고 아래 비교표에서 봅니다.</p></div>
   </section>`;
 }
@@ -1225,20 +1245,65 @@ function journeyPick(c, key) {
   const lists = cols.map(x => ((x['담보'][g] || {})[s] || []));
   const all = [...new Set(lists.flat())];
   const m = model(c.baseId);
+  const B = CV && CV.b[c.baseId];
   const pIdxs = peerIdxOf(m, c);
   const order = m ? Object.fromEntries(m.rows.map((r, i) => [r.sid, i])) : {};
   all.sort((a, b) => (order[a] ?? 999) - (order[b] ?? 999));
-  const rows = all.map(sid => {
-    const row = m && m.byId[sid];
-    const marks = cols.slice(0, 5).map((x, i) => lists[i].includes(sid) ? '<td class="ok">있음</td>' : '<td class="no">없음</td>').join('');
-    const v = row ? pIdxs.slice(0, 3).map(i => { const vv = verdFor(row, m, i, pIdxs); return vv ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(vv)}</span>` : ''; }).join('') : '';
-    return `<tr><th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}<div class="cv-bds">${v}</div></th>${marks}</tr>`;
-  }).join('');
+  const peerCols = cols.slice(1);
+  const foldPeers = peerCols.length >= 4;
+  let tblHTML = '<p>이 칸에는 비교 대상 회사 모두 담보가 없습니다.</p>';
+  if (all.length) {
+    if (foldPeers) {
+      const rows = all.map(sid => {
+        const row = m && m.byId[sid];
+        const oursHas = lists[0].includes(sid);
+        const heldNames = [], absentNames = [];
+        peerCols.forEach((x, idx) => {
+          const nm = orgN(x['종형ID']);
+          if (lists[idx + 1].includes(sid)) heldNames.push(nm);
+          else absentNames.push(nm);
+        });
+        let vHTML = '';
+        if (B && B['판정기관코드'] && B['판정기관코드'][sid]) {
+          const pc = B['판정기관코드'][sid];
+          const cntCode = k => (c.peerScope === 'all' ? ((pc[k] || []).length) : c.inScope(pc[k]));
+          const bks = [
+            ['better', '나음', cntCode('나음')],
+            ['same', '같음', cntCode('같음')],
+            ['worse', '못함', cntCode('못함')],
+            ['diff', '우열 보류', cntCode('엇갈림') + cntCode('단정 주의')],
+            ['unknown', '보류', cntCode('판정 보류') + cntCode('검토 대기')],
+            ['none', '우체국 없음', cntCode('우체국에 없음')],
+          ].filter(x => x[2] > 0);
+          vHTML = bks.map(([vd, lb, n]) => ui.verdict(vd, `${lb} ${fmt(n)}곳`)).join(' ');
+        }
+        const peerDetail = `<details class="zr-det cv-vg-det" style="border-top:0"><summary style="padding:2px 0"><span>보유 <b class="num">${fmt(heldNames.length)}</b>/${fmt(peerCols.length)}개 종형</span>${ui.IC.chevD}</summary><div class="zr-det-b" style="padding:4px 0 2px"><div class="note"><b>있음(${fmt(heldNames.length)}):</b> ${heldNames.length ? esc(heldNames.join(', ')) : '없음'}</div><div class="note"><b>없음(${fmt(absentNames.length)}):</b> ${absentNames.length ? esc(absentNames.join(', ')) : '없음'}</div></div></details>`;
+        return `<tr>
+          <th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}${vHTML ? `<div class="cv-bds">${vHTML}</div>` : ''}</th>
+          <td class="${oursHas ? 'ok' : 'no'}">${oursHas ? '있음' : '없음'}</td>
+          <td>${peerDetail}</td>
+        </tr>`;
+      }).join('');
+      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정 묶음</th><th scope="col">${esc(orgN(cols[0]['종형ID']))}</th><th scope="col">상대 보유 현황 (${fmt(peerCols.length)}개 종형)</th></tr>${rows}</table></div><p class="note">상대가 넷 이상이라 판정 묶음과 보유 수로 접었습니다. 상대 보유 현황을 누르면 회사별 있음과 없음 전체 목록이 펼쳐집니다.</p>`;
+    } else {
+      const rows = all.map(sid => {
+        const row = m && m.byId[sid];
+        const marks = cols.map((x, i) => lists[i].includes(sid) ? '<td class="ok">있음</td>' : '<td class="no">없음</td>').join('');
+        const v = row ? pIdxs.map(i => { const vv = verdFor(row, m, i, pIdxs); return vv ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(vv)}</span>` : ''; }).join('') : '';
+        return `<tr><th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}<div class="cv-bds">${v}</div></th>${marks}</tr>`;
+      }).join('');
+      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">담보 이름을 누르면 해당 기둥과 상세로 이동합니다.</p>`;
+    }
+  }
+  const cntItems = cols.map((x, i) => `${orgN(x['종형ID'])} ${lists[i].length}개`);
+  const cntLine = cntItems.length <= 5
+    ? `<p>${esc(cntItems.join(', '))}</p>`
+    : `<p>${esc(txt.peerNamesEtc(cntItems, 5))}</p><details class="zr-det cv-vg-det"><summary><span>전체 ${fmt(cntItems.length)}개 종형 담보 수 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b"><p class="note">${esc(cntItems.join(', '))}</p></div></details>`;
   return {
     kicker: '치료 여정 격자, 선택 종형', title: `${g} ${s}`, badges: [ui.scope('base')],
-    body: `<div class="ev-sec"><h3>칸의 담보 수</h3><p>${esc(txt.peerNamesEtc(cols.map((x, i) => `${orgN(x['종형ID'])} ${lists[i].length}`), 5))}</p>
+    body: `<div class="ev-sec"><h3>칸의 담보 수</h3>${cntLine}
         <div class="nadd">같은 담보를 회사마다 센 수라 서로 더하지 않습니다. 이 칸에 한 회사라도 가진 담보는 ${all.length}개입니다.</div></div>
-      <div class="ev-sec"><h3>담보 목록</h3>${all.length ? `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.slice(0, 5).map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">담보 이름을 누르면 해당 기둥과 상세로 이동합니다.</p>` : '<p>이 칸에는 비교 대상 회사 모두 담보가 없습니다.</p>'}</div>`,
+      <div class="ev-sec"><h3>담보 목록</h3>${tblHTML}</div>`,
   };
 }
 
@@ -1265,7 +1330,7 @@ function cautionHTML(c) {
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${x['담보']}, ${k.k}. 근거 보기`)}"></button>
         <div class="cv-crh selbar">${ui.verdict('diff')}<span class="cv-cn">${esc(x['담보'])}</span></div>
         <p class="cv-cpe">상대 ${esc(peerName(x))}</p>
-        <p class="cv-ctx">${esc(x['문장'])}</p>
+        <p class="cv-ctx">${esc(x['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>
         <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`).join('')}</ul>`).join('') || '<p class="placeholder">단정 주의에 든 담보가 없습니다.</p>'}
   </section>`;
 }
@@ -1278,21 +1343,40 @@ function pendingHTML(c) {
   const whySum = Object.values(why).reduce((a, b) => a + b, 0);
   const B = CV && CV.b[c.baseId];
   const shownPeers = peers.slice(0, 6);
+  const restPeers = peers.slice(6);
   const rows = (p['대분류'] || []).map(x => {
     let rowTot = x['공통담보쌍'], rowWait = x['뺀쌍'], rowCmp = x['견준쌍'];
+    const waitByPeer = Object.assign({}, x['상대별'] || {});
     if (c.peerScope !== 'all' && B) {
       rowTot = 0; rowWait = 0;
       B.rows.forEach(r => {
         if ((std(r[0])['대분류'] || '') !== x['대분류']) return;
         for (const [peer, q] of Object.entries(r[2] || {})) {
-          if (pSet.has(orgOf(peer))) { rowTot++; if (q && q.x) rowWait++; }
+          if (pSet.has(orgOf(peer))) {
+            rowTot++;
+            if (q && q.x) {
+              rowWait++;
+              if (waitByPeer[peer] == null) waitByPeer[peer] = 0;
+            }
+          }
         }
       });
       rowCmp = rowTot - rowWait;
     }
-    return [`<span class="nw">${esc(x['대분류'])}</span>`, `<span class="num">${rowTot}</span>`, `<span class="num">${rowCmp}</span>`, `<span class="num">${rowWait}</span>`,
-      ...shownPeers.map(v => `<span class="num">${(x['상대별'] || {})[v] || 0}</span>`)];
+    const restWait = restPeers.reduce((acc, v) => acc + (waitByPeer[v] || 0), 0);
+    const peerCells = shownPeers.map(v => `<span class="num">${waitByPeer[v] || 0}</span>`);
+    if (restPeers.length) peerCells.push(`<span class="num" title="${esc(restPeers.map(orgN).join(', '))}">${restWait}</span>`);
+    return [`<span class="nw">${esc(x['대분류'])}</span>`, `<span class="num">${rowTot}</span>`, `<span class="num">${rowCmp}</span>`, `<span class="num">${rowWait}</span>`, ...peerCells];
   });
+  const headCols = ['보장 대분류', '공통 쌍', '견줌', '검토 대기', ...shownPeers.map(v => `${esc(orgN(v))} 대기`)];
+  const numCols = [1, 2, 3, ...shownPeers.map((_, i) => i + 4)];
+  if (restPeers.length) {
+    headCols.push(`그 밖 ${fmt(restPeers.length)}곳 대기`);
+    numCols.push(headCols.length - 1);
+  }
+  const sumNote = restPeers.length
+    ? `상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 앞의 ${fmt(shownPeers.length)}개 열과 그 밖 ${fmt(restPeers.length)}곳 열을 더하면 그 줄의 검토 대기 쌍과 같습니다.`
+    : '상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 선택한 상대를 더하면 그 줄의 검토 대기 쌍과 같습니다.';
   const cellsBar = sp.total <= 80 ? ui.cells(Array(sp.cmp).fill('cmp').concat(Array(sp.wait).fill('wait'))) : '';
   return `<section class="panel tbl-wrap cv-pd" id="cover-pending" aria-labelledby="cover-pending-h">
     <div class="panel-h"><div><span class="k">${ui.scope('base')} 공통 담보 쌍 가운데 검토 대기로 뺀 쌍</span><h2 id="cover-pending-h">검토 대기 보류 요약</h2></div>
@@ -1300,8 +1384,8 @@ function pendingHTML(c) {
     <div class="cv-pd-eq">${ui.eq({ total: { t: '공통 담보', n: sp.total }, parts: [{ t: '견줌', n: sp.cmp }, { t: '검토 대기로 뺌', n: sp.wait }], tail: '쌍' })}
       ${cellsBar}
       ${c.peerScope === 'all' && Object.keys(why).length ? `<div class="nadd">뺀 사유는 ${esc(Object.entries(why).map(([a, b]) => `${a} ${b}`).join(', '))}쌍입니다. ${whySum > p['뺀쌍'] ? `한 쌍에 두 사유가 함께 들 수 있어 더하면 ${esc(txt.josa(String(whySum), '으로'))} ${p['뺀쌍']}보다 큽니다.` : `사유를 더하면 ${whySum}쌍입니다.`}</div>` : ''}</div>
-    <div class="cv-pd-t">${ui.table({ id: 'cover-pd-tbl', head: ['보장 대분류', '공통 쌍', '견줌', '검토 대기', ...shownPeers.map(v => `${esc(orgN(v))} 대기`)], rows, num: [1, 2, 3, ...shownPeers.map((_, i) => i + 4)] })}</div>
-    <div class="panel-f">${cellsBar ? '띠의 칸 하나가 한 쌍입니다: <span class="kd-l"><i class="cq cmp"></i>견준 쌍</span> <span class="kd-l"><i class="cq wait"></i>검토 대기로 뺀 쌍</span>. ' : ''}상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 선택한 상대를 더하면 그 줄의 검토 대기 쌍과 같습니다.</div>
+    <div class="cv-pd-t">${ui.table({ id: 'cover-pd-tbl', head: headCols, rows, num: numCols })}</div>
+    <div class="panel-f">${cellsBar ? '띠의 칸 하나가 한 쌍입니다: <span class="kd-l"><i class="cq cmp"></i>견준 쌍</span> <span class="kd-l"><i class="cq wait"></i>검토 대기로 뺀 쌍</span>. ' : ''}${esc(sumNote)}</div>
   </section>`;
 }
 
@@ -1389,7 +1473,7 @@ function tableHTML(c) {
         ${pIdxs.map(i => { const v = m.cols[i + 1]; return `<th scope="col" class="cv-vd" rowspan="2">${esc(txt.josa(orgN(v), '과'))} 견줌<br><span class="sub">우체국 기준</span></th>`; }).join('')}<th rowspan="2" class="cv-ch"><span class="sr">고르기</span></th></tr>
         <tr class="cv-h2">${colIdxs.map(k => `<th scope="col" class="cv-c k${k}">${head2}</th>`).join('')}</tr></thead>
       <tbody>${t.html}</tbody></table></div>
-    <div class="panel-f">대표 급부는 같은 담보의 급부 가운데 주급부, 금액이 큰 줄, 조건이 엄격한 줄 차례로 고릅니다. 줄을 누르면 아래 읽기 띠에 조건 비교, 관계도, 근거 문서와 쪽이 열립니다. 지급액은 기준 가입금액에서의 금액이라 회사끼리 바로 견주지 않습니다.</div>
+    <div class="panel-f">같은 담보를 둘 다 가지면 대표 급부끼리 면책, 감액, 지급 형태로 판정하고, 한쪽에만 있으면 누구에게 없는지 적습니다. 대표 급부는 같은 담보의 급부 가운데 주급부, 금액이 큰 줄, 조건이 엄격한 줄 차례로 고릅니다. 담보 비교는 나이 조건 없이 대표 급부끼리 견준 값이고, 기준 종형을 바꿀 때만 다시 셉니다. 지급액은 기준 가입금액에서의 금액이라 회사끼리 바로 견주지 않습니다.</div>
   </section>`;
 }
 function refreshTable(body, c) {
@@ -1446,7 +1530,7 @@ function copyTable() {
 
 function concl(c) {
   const bRa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '라');
-  if (bRa) return `<p class="concl">${esc(bRa['문장'])}</p>`;
+  if (bRa) return `<p class="concl">${esc(bRa['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>`;
   const p = c.base['보류요약'];
   const pSet = new Set(c.activePeerOrgs || []);
   const sp = c.peerScope === 'all' ? { total: p['공통담보쌍'], wait: p['뺀쌍'], cmp: p['견준쌍'] } : (scopedPairs(c.baseId, pSet) || { total: 0, wait: 0, cmp: 0 });

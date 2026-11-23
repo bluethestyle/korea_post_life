@@ -1281,12 +1281,13 @@
     const bi = vinfo(st.base);
     const pSet = new Set(activePeerOrgs());
     const relPeers = st.peerScope === 'all' ? r['상대'] : r['상대'].filter(p => pSet.has((vinfo(p['종형ID']) || {})['기관코드']));
+    const restPeerNames = relPeers.slice(3).map(p => vname(p['종형ID'])).join(', ');
     const peers = relPeers.slice(0, 3).map(p => {
       const v = vinfo(p['종형ID']);
       const why = p['머리말'] != null ? S['글'][p['머리말']] : '';
       const sd = (why.split(` / ${cp('scopeDiffStruct')}: `)[1] || '');
       return `<span class="it"><span title="${esc(v ? v['전체이름'] : '')}">${esc(vname(p['종형ID']))}</span> <span class="d">${esc(v ? v['적용시작일'] : '')}</span>${p['구조다름'] ? ' ' + tag(cp('scopeDiffStruct'), sd ? cp('scopeDiffStruct') + ': ' + sd : cp('scopeDiffStructHint')) : ''}</span>`;
-    }).join('') + (relPeers.length > 3 ? `<span class="it">+${fmt(relPeers.length - 3)}</span>` : '') + (!relPeers.length ? `<span class="it">${esc(cp('condPeerNone'))}</span>` : '');
+    }).join('') + (relPeers.length > 3 ? `<span class="it" title="${esc(restPeerNames)}" data-tip="${esc(restPeerNames)}">+${fmt(relPeers.length - 3)}</span>` : '') + (!relPeers.length ? `<span class="it">${esc(cp('condPeerNone'))}</span>` : '');
     let pairTot = r['비교쌍'], pairWait = r['뺀비교쌍'], pairScoped = true;
     if (st.peerScope !== 'all') {
       if (window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
@@ -1307,10 +1308,11 @@
     } else {
       const c = g.cell;
       const shownOrgs = activeOrgs().filter(o => o in c['회사']);
+      const restOrgStates = shownOrgs.slice(4).map(o => `${orgShort(o)} ${c['회사'][o]}`).join(', ');
       const states = shownOrgs.slice(0, 4).map(o => {
         const s = c['회사'][o];
         return `<span class="it">${esc(orgShort(o))} <span style="display:inline-flex;align-items:center;gap:4px">${STATE_IC[s] || ''}${esc(s)}</span></span>`;
-      }).join('') + (shownOrgs.length > 4 ? `<span class="it">+${fmt(shownOrgs.length - 4)}</span>` : '');
+      }).join('') + (shownOrgs.length > 4 ? `<span class="it" title="${esc(restOrgStates)}" data-tip="${esc(restOrgStates)}">+${fmt(shownOrgs.length - 4)}</span>` : '');
       const why = shownOrgs.slice(0, 4).map(o => stateWhy(o, c['회사'][o])).filter(Boolean);
       const rep = c['대표'];
       const repT = rep ? `<span class="it">${esc(cp('scopeOurRep'))} <b style="font-weight:600">${esc(vkind(rep))}</b></span>` : '';

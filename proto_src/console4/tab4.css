@@ -137,6 +137,7 @@
 }
 
 /* ---------- [표로 보기] 전체 모달 안의 치료 여정 격자, 단정 주의, 보류 요약, 담보 비교표 ---------- */
+.cv-modal-root,.cv-modal-root .dm-sec,.cv-modal-root .panel,.gt-modal-root,.gt-modal-root .dm-sec,.gt-modal-root .panel{min-width:0;max-width:100%}
 .cv-modal-root .cv-ref{margin:0 0 14px;padding:8px 14px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cvj-w{overflow-x:auto;padding:2px 18px 16px}
 :is(.cv-modal-root,#print-root) .cvj{display:grid;grid-template-columns:minmax(156px,1.1fr) repeat(5,minmax(108px,1fr)) minmax(112px,1fr);gap:4px;min-width:860px}
@@ -198,19 +199,22 @@
 :is(.cv-modal-root,#print-root) .cv-sum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 20px 12px;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cv-sum b{font:600 14px/1 var(--f-num);color:var(--ink-0);margin-right:8px}
 :is(.cv-modal-root,#print-root) .cv-tw{overflow-x:auto;padding:0 12px 6px}
-:is(.cv-modal-root,#print-root) .cv-t{min-width:1000px}
+:is(.cv-modal-root,#print-root) .cv-t{width:max-content;min-width:100%}
 :is(.cv-modal-root,#print-root) .cv-t th,:is(.cv-modal-root,#print-root) .cv-t td{padding:8px 9px;vertical-align:middle}
 :is(.cv-modal-root,#print-root) .cv-t thead th{white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-t thead .sub{font:400 13px/1.2 var(--f-body);color:var(--ink-2)}
 :is(.cv-modal-root,#print-root) .cv-t .cv-h2 th{padding-top:0}
 :is(.cv-modal-root,#print-root) .cv-t th.cv-n,:is(.cv-modal-root,#print-root) .cv-t td.cv-n{min-width:168px}
+:is(.cv-modal-root,#print-root) .cv-t th.cv-c,:is(.cv-modal-root,#print-root) .cv-t td.cv-c{min-width:196px}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n{position:relative}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n .nm{font:600 14px/1.35 var(--f-ko);color:var(--ink-0)}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n .sub{margin-left:6px;font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n .flag{left:-8px;top:0}
-:is(.cv-modal-root,#print-root) .cv-v .pv,:is(.cv-modal-root,#print-root) .cv-v .wv{white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-v > span{min-width:0}
+:is(.cv-modal-root,#print-root) .cv-v .pv{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;line-height:1.3}
+:is(.cv-modal-root,#print-root) .cv-v .wv{white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-v .rv{word-break:keep-all;line-height:1.35}
-:is(.cv-modal-root,#print-root) .cv-v{display:grid;grid-template-columns:minmax(64px,max-content) 40px minmax(56px,1fr);align-items:center;gap:4px 10px;font:400 13.5px/1.3 var(--f-body)}
+:is(.cv-modal-root,#print-root) .cv-v{display:grid;grid-template-columns:minmax(84px,1.15fr) minmax(38px,max-content) minmax(56px,1fr);align-items:center;gap:4px 10px;font:400 13.5px/1.3 var(--f-body)}
 :is(.cv-modal-root,#print-root) .cv-v .pv{text-align:right;font-weight:600}
 :is(.cv-modal-root,#print-root) .cv-v .wv{text-align:right}
 :is(.cv-modal-root,#print-root) .cv-v .rv{text-align:left}
@@ -231,7 +235,15 @@
 :is(#z-right,.ev) .cv-jd .vd{margin-left:6px}
 :is(#z-right,.ev) .cv-ct-w{overflow-x:auto}
 :is(#z-right,.ev) .cv-ct,:is(#z-right,.ev) .cv-it,:is(#z-right,.ev) .cv-jt{width:100%;border-collapse:collapse;font:400 13px/1.45 var(--f-body);color:var(--ink-0)}
-:is(#z-right,.ev) .cv-ct th,:is(#z-right,.ev) .cv-ct td,:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td,:is(#z-right,.ev) .cv-jt th,:is(#z-right,.ev) .cv-jt td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+:is(#z-right,.ev) .cv-ct th,:is(#z-right,.ev) .cv-ct td,:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td,:is(#z-right,.ev) .cv-jt th,:is(#z-right,.ev) .cv-jt td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;word-break:keep-all}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold){min-width:max-content}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold) th,:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold) td{min-width:78px}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold) tr:first-child th{white-space:nowrap}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold) td.sm{min-width:88px;white-space:nowrap}
+:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td{min-width:68px}
+@media (max-width:560px){
+  :is(#z-right,.ev) .cv-ct.cv-ct-fold tr{display:flex;flex-direction:column}
+}
 :is(#z-right,.ev) .cv-ct thead th,:is(#z-right,.ev) .cv-ct tr:first-child th,:is(#z-right,.ev) .cv-it tr:first-child th,:is(#z-right,.ev) .cv-jt tr:first-child th{font:600 13px/1.3 var(--f-ko);color:var(--ink-2);border-bottom-color:var(--line-2)}
 :is(#z-right,.ev) .cv-ct th[scope="row"],:is(#z-right,.ev) .cv-it th[scope="row"]{font:600 13px/1.45 var(--f-ko);color:var(--ink-1);white-space:nowrap}
 :is(#z-right,.ev) .cv-ct td.sm{color:var(--ink-1)}

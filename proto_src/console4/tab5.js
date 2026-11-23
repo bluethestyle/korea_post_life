@@ -530,7 +530,10 @@ App.registerTab((function () {
     const relOk = sid && App.cover && App.cover.hasRow(c.baseId, sid);
     const tv = relOk ? App.cover.verdictOf(c.baseId, sid) : null;
     const peers = App.cover && relOk ? App.cover.peerCols(c.baseId).slice(1) : [];
-    const tableV = tv ? tv.map((v, i) => (v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(peers[i]), '과'))}</span>${ui.verdict(v.kind, v.text, v.why)}</span>` : '')).join(' ') : '';
+    const tvItems = tv ? tv.map((v, i) => (v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(peers[i]), '과'))}</span>${ui.verdict(v.kind, v.text, v.why)}</span>` : '')).filter(Boolean) : [];
+    const tableV = tvItems.length <= 4
+      ? tvItems.join(' ')
+      : `${tvItems.slice(0, 3).join(' ')}<details class="zr-det" style="margin-top:6px"><summary><span>나머지 상대 ${fmt(tvItems.length - 3)}개 종형 판정 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b"><div class="cv-bds">${tvItems.slice(3).join(' ')}</div></div></details>`;
     const omit = sid ? (c.base['뺀포인트'] || []).filter(o => o['표준담보ID'] === sid) : [];
     const cau = cautionOf(c, p);
     const grJump = sid ? `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>` : '';
