@@ -197,6 +197,61 @@ def test_question_hit_without_the_columns_is_no_data():
     assert S.question_hit(v, P()) == S.Q_NONE
 
 
+@pytest.mark.parametrize("vid, profile, step", [
+    (E1, P(), (None, S.Q_NONE)),                                          # 이력이 없으면 기간 질문에 닿지 않는다
+    (E1, P(since=0.25), (S.STEP_PERIOD, S.Q_HIT)),                         # 입원 이력은 기간 마디에서 걸린다
+    (E1, P(since=1), (S.STEP_PERIOD, S.Q_NONE)),
+    (E1, P(since=0.25, surgery_only=True), (S.STEP_SURGERY, S.Q_NONE)),    # 기간 질문이 수술을 묻지 않는다
+    (H1, P(since=0.25, surgery_only=True), (S.STEP_SURGERY, S.Q_HIT)),     # 수술만 이력은 수술 포함 여부 마디에서 걸린다
+    (H1, P(since=1, surgery_only=True), (S.STEP_PERIOD, S.Q_NONE)),
+    (EG, P(since=4), (S.STEP_OPINION, S.Q_REVIEW)),                        # 일반심사는 첫 고지 마디에서 심사로 확인
+])
+def test_question_step_splits_question_hit_by_gate(data, vid, profile, step):
+    assert S.question_step(data.variants[vid], profile) == step
+    assert S.question_hit(data.variants[vid], profile) == step[1]
+
+
+def test_variant_stop_follows_the_variant_state(data):
+    """멈춘 마디와 값은 종형 상태(variant_gate)와 하나씩 맞는다: 열림은 멈추지 않고, 걸림은 닫힘, 모름은 나이나 질문 자료 없음,
+    심사로 확인은 심사로 확인이다. 모든 이력 조건과 나이에서 본다."""
+    want = {S.OPEN: None, S.CLOSED: S.STOP_HIT, S.NO_AGE: S.STOP_UNKNOWN, S.NO_QUESTION: S.STOP_UNKNOWN,
+            S.REVIEW: S.STOP_REVIEW}
+    seen = set()
+    for age in (15, 19, 30, 70):
+        for since in (None, 0.25, 1, 2, 5):
+            for surg in ((False,) if since is None else (False, True)):
+                p = P(age=age, since=since, surgery_only=surg)
+                for c in S.gate(data, p)["회사"].values():
+                    for x in c["종형"]:
+                        k, v = S.variant_stop(data, x, p)
+                        assert v == want[x["상태"]] and (k is None) == (x["상태"] == S.OPEN), (p, x)
+                        seen.add((None if k is None else S.GATE_STEPS[k], v))
+    # 실제로 멈추는 마디: 가입나이(걸림, 나이 자료 없음은 모름), 기간과 수술 포함 여부(걸림), 일반심사는 최근 소견(심사로 확인)
+    assert seen == {(None, None), (S.STEP_AGE, S.STOP_HIT), (S.STEP_AGE, S.STOP_UNKNOWN), (S.STEP_PERIOD, S.STOP_HIT),
+                    (S.STEP_SURGERY, S.STOP_HIT), (S.STEP_OPINION, S.STOP_REVIEW)}
+
+
+def test_gate_flow_counts_companies_by_how_far_they_get(data):
+    groups = S.flow_groups(data, None)
+    assert [g["열쇠"] for g in groups] == ["3·1·5", S.GENERAL] and groups[0]["상대코드"] == ["HANWHALIFE", "SAMSUNGFIRE"]
+    # 수술만 3개월 전: 3·1·5의 두 상대는 기간 질문이 수술을 물어 수술 포함 여부 마디에서 걸리고, 일반심사는 첫 고지 마디에서 심사로 확인
+    p = P(age=30, since=0.25, surgery_only=True)
+    flow = S.gate_flow(data, S.gate(data, p), p)
+    assert [g["열쇠"] for g in flow["유형"]] == [g["열쇠"] for g in groups]
+    simple, general = flow["유형"]
+    assert simple["통과수"] == [2, 2, 2, 0, 0] and simple["멈춤"] == {"3": {S.STOP_HIT: ["HANWHALIFE", "SAMSUNGFIRE"]}}
+    assert general["통과수"] == [2, 0, 0, 0, 0] and general["멈춤"] == {"1": {S.STOP_REVIEW: ["HANWHALIFE", "SAMSUNGFIRE"]}}
+    # 종형은 멈춘 것만 싣는다(우리 1종과 3종은 기간 질문이 수술을 묻지 않아 끝까지 통과)
+    assert flow["종형"] == {EG: [1, S.STOP_REVIEW], H1: [3, S.STOP_HIT], HG: [1, S.STOP_REVIEW], S1: [3, S.STOP_HIT],
+                           SA: [1, S.STOP_REVIEW], SB: [1, S.STOP_REVIEW]}
+    # 입원 1년 전: 한화생명 1년은 끝까지 통과하고, 삼성화재 315는 질문은 넘지만 가입나이 자료가 없어 가입나이 마디에서 모른다
+    p = P(age=30, since=1)
+    simple = S.gate_flow(data, S.gate(data, p), p)["유형"][0]
+    assert simple["통과수"] == [1, 1, 1, 1, 1] and simple["멈춤"] == {"0": {S.STOP_UNKNOWN: ["SAMSUNGFIRE"]}}
+    # 우리 3종(5년)은 기간 마디에서 걸린다
+    assert S.gate_flow(data, S.gate(data, p), p)["종형"][E5] == [2, S.STOP_HIT]
+
+
 def test_gate_states_and_company_order(data):
     g = S.gate(data, P(age=30, since=1))
     by = {x["종형ID"]: x for c in g["회사"].values() for x in c["종형"]}
@@ -1511,7 +1566,9 @@ def test_real_snapshot_export_runs():
     data = load(SNAPSHOT)
     out = S.export(data)
     size = len(json.dumps(out, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
-    assert size < 600 * 1024, size
+    # 크기 기준은 두지 않는다. 600KB 상한은 내부에서 근거 없이 잡았던 값이고, 회사가 열아홉 곳으로 늘면 자료가 몇 배가 된다
+    # (2026-11-23 사용자: 화면 크기 한도는 필요 없다). GitHub가 경고하는 파일 크기(50MB)만 넘지 않는지 본다. 지금 약 674KB
+    assert size < 50_000_000, size
     assert forbidden_hits(data, out) == []
     assert quote_misses(out) == []
     # 일반심사 규칙을 바꿔도 지도 행의 경계는 그대로다(12행)

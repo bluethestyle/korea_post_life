@@ -19,6 +19,9 @@
   지나면 넘는다는 근거가 없어, 이력이 오래됐다고 해당 없음으로 보지 않는다. 그래서 일반심사 종형은 열림이 되지 않는다.
 - 종형 상태: 질문 해당이나 나이 불가는 닫힘, 질문 자료 없음, 심사로 확인, 나이 자료 없음(질문 해당 없음이고 가입나이 자료가
   없음), 열림. 회사 상태는 종형 상태 가운데 STATE_ORDER로 앞선 것이다.
+- 관문 흐름(gate_flow): 위 판정을 마디(GATE_STEPS: 가입나이, 최근 소견, 입원과 수술의 기간, 수술 포함 여부, 중대질병)로 나눠
+  종형마다 멈춘 마디를 적는다(variant_stop, question_step). 판정 규칙은 그대로다. 고객 조건으로 갈리는 마디는 가입나이(나이와
+  성별), 입원과 수술의 기간(이력 시점), 수술 포함 여부(수술만 이력)이고, 최근 소견과 중대질병은 전제(PREMISE_STEPS)다.
 
 고객군 지도(classify, simple_classify, cell, segment_map)
 - 칸 분류는 우리 상태(U)와 상대 상태(열림, 닫힘, 모름. 심사로 확인은 닫힘으로 센다)로 가른다. 관문 상태이지 우열이 아니다.
@@ -32,6 +35,10 @@
   (our_rep, peer_reps). 상대 대표가 compare.peers의 짝과 다르면 insights.analyze_pair로 그 쌍을 다시 돌린다. 대표는 정밀비교
   종형에서만 고르므로, 상대 회사에서 열린 종형이 관문전용뿐이면 칸의 관문만수집에 그 종형을 적는다(GATE_NOTE).
 - 지도 행의 경계(since_cuts)는 최근 소견 질문의 기간과 정밀비교 간편심사 종형의 고지입원수술년수에서 나온다.
+- 지도 열의 경계(map_columns)는 우리 기관 종형의 주계약 가입나이에서만 나온다(회사 수에 매이지 않게. 2026-11-23). 상대 회사는
+  열 안의 모든 나이를 놓고 칸 상태를 낸다(span_cell): 모든 나이에서 열리면 열림, 나이에 따라 열리고 닫히면 일부 나이만 열림
+  (PARTIAL. 열리는 나이를 일부열린나이에 싣는다), 열린 나이 없이 갈리면 STATE_ORDER로 앞선 상태. 칸 분류는 일부 나이만 열린
+  상대를 열린 상대로 친다.
 - 갱신유형 거르개가 있으면 칸의 회사, 대표, 관문 포인트의 짝 모두 거르개 안의 종형만 쓴다.
 - 지도와 관문 탭에 늘 붙이는 주석은 NOTES(글과 출처)다. 내보내기의 "주석"에 싣는다.
 
@@ -114,6 +121,9 @@ SIMPLE, GENERAL = "간편심사", "일반심사"
 Q_NONE, Q_HIT, Q_REVIEW, Q_NODATA = "해당 없음", "해당", "심사로 확인", "자료 없음"
 OPEN, NO_AGE, NO_QUESTION, REVIEW, CLOSED = "열림", "나이 자료 없음", "질문 자료 없음", "심사로 확인", "닫힘"
 STATE_ORDER = (OPEN, NO_AGE, NO_QUESTION, REVIEW, CLOSED)
+# 지도 열(우리 기관의 가입나이 구간) 안에서 나이에 따라 열림과 열리지 않음이 갈리는 상대 회사의 칸 상태(span_cell). 한 나이의
+# 종형 상태나 회사 상태(STATE_ORDER)에는 나오지 않는다
+PARTIAL = "일부 나이만 열림"
 AGE_OK, AGE_NO, AGE_NODATA = "가능", "불가", "자료 없음"
 
 ONLY_OPEN, BOTH_OPEN, ONLY_CLOSED, ALL_CLOSED, NO_DATA = "우리만 열림", "함께 열림", "우리만 닫힘", "모두 닫힘", "자료 없음"
@@ -314,6 +324,9 @@ TEMPLATES = {
     "가_관문만": "{관문만칸수}칸은 상대 회사에서 열리는 종형이 우체국에 없는 고지 유형({관문만종형})뿐입니다.",
     "가_관문만_같은유형": "{관문만칸수}칸은 상대 회사에서 열리는 종형이 담보를 수집하지 않은 종형({관문만종형})뿐입니다.",
     "가_나이자료없음": "{나이자료없음회사:은} 가입나이 자료가 없어 지도에서 상태를 모르는 상대로 셉니다.",
+    "가_일부나이": "{일부열림칸수}칸에는 칸의 나이 가운데 일부 나이에서만 열리는 상대가 있습니다.",
+    "가_일부나이만": "{일부열림칸수}칸에는 칸의 나이 가운데 일부 나이에서만 열리는 상대가 있고, "
+                 "그 가운데 {일부나이로만열림칸수}칸은 열린 상대가 그 상대뿐입니다.",
     "가_자료없음": "고객군 지도를 그릴 가입조건 자료가 없습니다.",
     "나": "{절1}, {절2}",
     "나_개정": "{개정상품:을} 직전 개정과 견주어 달라진 담보는 {개정변동수}개({개정나눔})이고",
@@ -623,27 +636,46 @@ def gate_only(data: Data, vid: str) -> bool:
 
 
 # ---------- 가입 관문 ----------
-def question_hit(variant: dict, p: Profile) -> str:
-    """고객 이력이 종형의 고지 질문에 걸리는지: 해당 없음, 해당, 심사로 확인, 자료 없음(모듈 설명의 규칙)."""
+# 관문 흐름(가입 관문 탭의 흐름도)의 마디. 화면은 이 차례로 그린다. 최근 소견과 중대질병은 고객 조건으로 받지 않는 전제(NOTES의
+# 지도전제)라 아무도 그 마디에서 멈추지 않는다. 일반심사 종형과 심사유형을 모르는 종형은 첫 고지 마디(최근 소견)에서 멈춘다.
+STEP_AGE, STEP_OPINION, STEP_PERIOD, STEP_SURGERY, STEP_MAJOR = (
+    "가입나이", "최근 소견", "입원과 수술의 기간", "수술 포함 여부", "중대질병")
+GATE_STEPS = (STEP_AGE, STEP_OPINION, STEP_PERIOD, STEP_SURGERY, STEP_MAJOR)
+PREMISE_STEPS = (STEP_OPINION, STEP_MAJOR)
+STOP_HIT, STOP_UNKNOWN, STOP_REVIEW = "걸림", "모름", "심사로 확인"
+STOP_ORDER = (STOP_UNKNOWN, STOP_REVIEW, STOP_HIT)     # 같은 마디에서 멈춘 종형끼리는 앞의 값이 그 회사의 값이다
+
+
+def question_step(variant: dict, p: Profile) -> tuple[str | None, str]:
+    """(판정을 낸 고지 마디, question_hit의 값). 마디는 GATE_STEPS의 이름이고, 이력이 없어 기간 질문에 닿지 않으면 None이다.
+    입원 이력이 기간 안이면 입원과 수술의 기간 마디에서, 수술만 이력이 기간 안이고 기간 질문이 수술을 물으면 수술 포함 여부
+    마디에서 걸린다. 일반심사(심사로 확인)와 심사유형을 모르는 종형(자료 없음)은 최근 소견 마디다. 판정의 차례는 모듈 설명 그대로다."""
     uw = variant.get("심사유형")
     if uw == SIMPLE:
         if p.since is None:
-            return Q_NONE
+            return None, Q_NONE
         years = variant.get("고지입원수술년수")
         if years == 0:                    # 입원이나 수술의 기간 질문이 없는 종형(빈칸 None은 자료 없음이다)
-            return Q_NONE
+            return STEP_PERIOD, Q_NONE
         if p.surgery_only:
             surgery = variant.get("고지수술포함여부")
             if surgery is None:
-                return Q_NODATA
+                return STEP_SURGERY, Q_NODATA
             if surgery is False:
-                return Q_NONE
+                return STEP_SURGERY, Q_NONE
         if years is None:
-            return Q_NODATA
-        return Q_NONE if p.since >= years else Q_HIT
+            return STEP_PERIOD, Q_NODATA
+        if p.since >= years:
+            return STEP_PERIOD, Q_NONE
+        return (STEP_SURGERY if p.surgery_only else STEP_PERIOD), Q_HIT
     if uw == GENERAL:                     # 이력이 있든 없든 심사가 정한다(모듈 설명)
-        return Q_REVIEW
-    return Q_NODATA
+        return STEP_OPINION, Q_REVIEW
+    return STEP_OPINION, Q_NODATA
+
+
+def question_hit(variant: dict, p: Profile) -> str:
+    """고객 이력이 종형의 고지 질문에 걸리는지: 해당 없음, 해당, 심사로 확인, 자료 없음(모듈 설명의 규칙. question_step의 값)."""
+    return question_step(variant, p)[1]
 
 
 def variant_gate(data: Data, vid: str, p: Profile) -> dict[str, Any]:
@@ -677,6 +709,78 @@ def gate(data: Data, p: Profile) -> dict[str, Any]:
     for g in out.values():
         g["상태"] = min((x["상태"] for x in g["종형"]), key=STATE_ORDER.index)
     return {"조건": p, "회사": out}
+
+
+def variant_stop(data: Data, x: dict[str, Any], p: Profile) -> tuple[int | None, str | None]:
+    """variant_gate 결과 x의 종형이 관문 흐름(GATE_STEPS)의 어느 마디에서 멈추는지: (마디 번호, 걸림이나 모름이나 심사로 확인).
+    열림이면 (None, None)이다. 종형 상태를 정하는 차례(variant_gate)를 그대로 따른다: 나이 불가는 가입나이에서 걸림, 질문 해당은
+    그 질문 마디(question_step)에서 걸림, 질문 자료 없음은 그 마디에서 모름, 심사로 확인은 최근 소견 마디에서 심사로 확인,
+    나이 자료 없음(질문은 넘음)은 가입나이에서 모름. 그래서 멈춘 값이 걸림이면 상태가 닫힘이고, 없으면 열림이다."""
+    step, q = question_step(data.variants[x["종형ID"]], p)
+    if x["나이"] == AGE_NO:
+        return 0, STOP_HIT
+    if q == Q_HIT:
+        return GATE_STEPS.index(step), STOP_HIT
+    if q == Q_NODATA:
+        return GATE_STEPS.index(step), STOP_UNKNOWN
+    if q == Q_REVIEW:
+        return GATE_STEPS.index(step), STOP_REVIEW
+    if x["나이"] == AGE_NODATA:
+        return 0, STOP_UNKNOWN
+    return None, None
+
+
+def _further(a: tuple | None, b: tuple) -> tuple:
+    """두 종형의 멈춘 자리 가운데 더 멀리 간 것(None은 끝까지 통과). 같은 마디면 STOP_ORDER로 앞선 값."""
+    if a is None:
+        return b
+    if a[0] is None or b[0] is None:
+        return a if a[0] is None else b
+    if a[0] != b[0]:
+        return a if a[0] > b[0] else b
+    return a if STOP_ORDER.index(a[1]) <= STOP_ORDER.index(b[1]) else b
+
+
+def flow_groups(data: Data, renewal: str | None) -> list[dict[str, Any]]:
+    """지도 한 장(갱신 거르개 renewal)의 관문 흐름 줄: 거르개 안의 상대 종형(gate_targets)을 고지 유형 열쇠(notice_key)로 묶은
+    [{열쇠, 상대수, 상대코드}]. 차례는 고지유형별과 같다(_notice_order). 칸의 관문흐름.유형이 이 차례를 그대로 따른다."""
+    groups: dict[str, set[str]] = {}
+    for vid in gate_targets(data, renewal):
+        if _org(data, vid) != HOME_ORG:
+            groups.setdefault(notice_key(data, vid), set()).add(_org(data, vid))
+    return [{"열쇠": k, "상대수": len(groups[k]), "상대코드": sorted(groups[k])} for k in sorted(groups, key=_notice_order)]
+
+
+def gate_flow(data: Data, g: dict[str, Any], p: Profile) -> dict[str, Any]:
+    """칸 하나의 관문 흐름(가입 관문 탭의 흐름도). g는 gate(data, p)다. 판정을 새로 하지 않고 variant_gate와 question_step의 값을
+    마디(GATE_STEPS)로 나눈다. 칸마다 되풀이되므로 짧게 싣는다(줄의 상대 회사 목록은 지도의 고지유형, flow_groups).
+
+    - 유형: flow_groups와 같은 차례의 줄마다 {열쇠, 통과수, 멈춤}. 회사는 그 유형의 종형 가운데 가장 멀리 간 종형의 자리에 선다
+      (_further). 통과수는 마디마다(GATE_STEPS 차례 다섯) 그 마디까지 모두 지난 회사 수이고 앞 마디보다 늘지 않는다. 멈춤은
+      {마디 번호(글자): {멈춘 값: [기관코드]}}이고 멈춘 회사가 있는 마디만 싣는다. 마디마다 통과수 + 그 마디까지 멈춘 회사 수 = 상대수다.
+    - 종형: 멈춘 종형만 {종형ID: [마디 번호, 멈춘 값]}(variant_stop). 우리 종형도 싣는다. 없는 종형은 끝까지 통과(열림)다."""
+    stops: dict[str, tuple] = {}
+    groups: dict[str, dict[str, tuple]] = {}
+    for org, comp in g["회사"].items():
+        for x in comp["종형"]:
+            stop = variant_stop(data, x, p)
+            stops[x["종형ID"]] = stop
+            if org == HOME_ORG:
+                continue
+            per = groups.setdefault(notice_key(data, x["종형ID"]), {})
+            per[org] = _further(per.get(org), stop)
+    out = []
+    for key in sorted(groups, key=_notice_order):
+        per = groups[key]
+        passed = [sum(1 for s in per.values() if s[0] is None or s[0] > k) for k in range(len(GATE_STEPS))]
+        stopped: dict[str, dict[str, list[str]]] = {}
+        for k in range(len(GATE_STEPS)):
+            for value in STOP_ORDER:
+                codes = sorted(o for o, s in per.items() if s[0] == k and s[1] == value)
+                if codes:
+                    stopped.setdefault(str(k), {})[value] = codes
+        out.append({"열쇠": key, "통과수": passed, "멈춤": stopped})
+    return {"유형": out, "종형": {v: list(s) for v, s in stops.items() if s[0] is not None}}
 
 
 def _side(state: str | None) -> str | None:
@@ -903,29 +1007,36 @@ def cell(data: Data, p: Profile, analysis: dict | None, relations: Relations | N
     return out
 
 
-PEER_TALLY = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수")
+PEER_TALLY = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수", "일부열린상대수")
+
+
+def _tally_side(state: str | None) -> str | None:
+    """상대 수를 셀 때의 쪽: 열림, 일부 나이만 열림(PARTIAL. 지도 열의 일부 나이에서만 열린 회사), 닫힘, 모름(None)."""
+    return PARTIAL if state == PARTIAL else _side(state)
 
 
 def peer_tally(states: dict[str, str], gate_only_rows: list[dict[str, Any]]) -> dict[str, int]:
-    """칸의 상대 회사 수(회사가 많을 때 화면이 이름 대신 수로 보일 값). states는 칸의 회사별 상태(cell의 "회사")다.
-    열린 상대는 회사 상태가 열림, 닫힌 상대는 닫힘이나 심사로 확인, 모르는 상대는 나이 자료 없음이나 질문 자료 없음이다(_side).
+    """칸의 상대 회사 수(회사가 많을 때 화면이 이름 대신 수로 보일 값). states는 칸의 회사별 상태(span_cell의 "회사")다.
+    열린 상대는 회사 상태가 열림(열의 모든 나이에서 열림), 일부 열린 상대는 일부 나이만 열림, 닫힌 상대는 닫힘이나 심사로 확인,
+    모르는 상대는 나이 자료 없음이나 질문 자료 없음이다(_tally_side). 넷은 겹치지 않고 합하면 상대수다.
     관문만 수집한 종형으로만 열린 회사(gate_only_open)는 열린 쪽에 세고, 그 수를 관문만열린상대수로 따로도 둔다."""
-    sides = [_side(s) for o, s in states.items() if o != HOME_ORG]
+    sides = [_tally_side(s) for o, s in states.items() if o != HOME_ORG]
     counts = (len(sides), sides.count(OPEN), sides.count(CLOSED), sides.count(None),
-              len({y["기관코드"] for y in gate_only_rows}))
+              len({y["기관코드"] for y in gate_only_rows}), sides.count(PARTIAL))
     return dict(zip(PEER_TALLY, counts))
 
 
-PEER_CODES = ("열린상대코드", "관문만열린상대코드", "닫힌상대코드", "모르는상대코드")
+PEER_CODES = ("열린상대코드", "관문만열린상대코드", "닫힌상대코드", "모르는상대코드", "일부열린상대코드")
 
 
 def peer_codes(states: dict[str, str], gate_only_rows: list[dict[str, Any]]) -> dict[str, list[str]]:
     """peer_tally가 센 상대 회사의 기관코드 목록(정렬). 화면이 고른 비교 범위(상대 회사 일부)와의 교집합 크기만 세면 되게 한다.
-    목록마다 길이가 peer_tally의 열린상대수, 관문만열린상대수, 닫힌상대수, 모르는상대수와 같다(관문만열린상대코드는
+    목록마다 길이가 peer_tally의 열린상대수, 관문만열린상대수, 닫힌상대수, 모르는상대수, 일부열린상대수와 같다(관문만열린상대코드는
     열린상대코드에도 든다)."""
-    sides = {o: _side(s) for o, s in states.items() if o != HOME_ORG}
+    sides = {o: _tally_side(s) for o, s in states.items() if o != HOME_ORG}
     codes = (sorted(o for o, s in sides.items() if s == OPEN), sorted({y["기관코드"] for y in gate_only_rows}),
-             sorted(o for o, s in sides.items() if s == CLOSED), sorted(o for o, s in sides.items() if s is None))
+             sorted(o for o, s in sides.items() if s == CLOSED), sorted(o for o, s in sides.items() if s is None),
+             sorted(o for o, s in sides.items() if s == PARTIAL))
     return dict(zip(PEER_CODES, codes))
 
 
@@ -959,11 +1070,57 @@ def _notice_order(key: str) -> tuple:
     return (0, tuple(float(x) for x in key.split("·")))
 
 
+def disease_count(v: dict[str, Any]) -> int | None:
+    """중대질병 질문의 질병 수: 고지중대질병수, 비었으면 고지중대질병목록의 이름 수, 둘 다 없으면 None(scope_diff와 같은 값)."""
+    if v.get("고지중대질병수") is not None:
+        return v["고지중대질병수"]
+    names = disease_names(v)
+    return len(names) if names else None
+
+
+def _value_order(value: Any) -> tuple:
+    """값마다의 수(고지유형별의 …별)를 늘어놓는 차례: 값이 없는 것(None)은 맨 뒤, 나머지는 값의 차례."""
+    return (value is None, value if value is not None else 0)
+
+
+def _by_value(data: Data, vids: list[str], value) -> list[dict[str, Any]]:
+    """상대 종형을 value(종형ID → 값)로 나눠 값마다 {값, 상대수, 상대코드, 종형수}. 한 회사가 값이 다른 종형을 여럿 가지면
+    값마다 센다(상대수를 모두 더하면 묶음의 상대수보다 클 수 있다)."""
+    per: dict[Any, list[str]] = {}
+    for v in vids:
+        x = value(v)
+        per.setdefault(tuple(x) if isinstance(x, list) else x, []).append(v)
+    out = []
+    for x in sorted(per, key=_value_order):
+        orgs = sorted({_org(data, v) for v in per[x]})
+        out.append({"값": list(x) if isinstance(x, tuple) else x, "상대수": len(orgs), "상대코드": orgs, "종형수": len(per[x])})
+    return out
+
+
+def notice_attributes(data: Data) -> dict[str, dict[str, Any]]:
+    """고지 유형 열쇠마다, 같은 열쇠 안에서 상대 종형마다 갈리는 속성을 값마다 센다(고지유형속성. 고객 조건과 기준 종형에 무관한
+    종형의 속성이다). 종형은 관문 나무가 그리는 상대 종형(gate_targets, 관문전용 포함)이다. 열쇠의 차례는 고지유형별과 같다.
+    {열쇠: {수술포함별, 중대질병수별, 가입나이별}}. 수술포함별은 고지수술포함여부(참, 거짓, 없음 None), 중대질병수별은 disease_count,
+    가입나이별은 성별 M, F마다 주계약 가입나이 [최저, 최고](age_span. 자료가 없으면 None)이고, 값마다 {값, 상대수, 상대코드, 종형수}다."""
+    vids_of: dict[str, list[str]] = {}
+    for v in gate_targets(data):
+        if _org(data, v) != HOME_ORG:
+            vids_of.setdefault(notice_key(data, v), []).append(v)
+    out = {}
+    for k in sorted(vids_of, key=_notice_order):
+        vids = vids_of[k]
+        out[k] = {"수술포함별": _by_value(data, vids, lambda v: data.variants[v].get("고지수술포함여부")),
+                  "중대질병수별": _by_value(data, vids, lambda v: disease_count(data.variants[v])),
+                  "가입나이별": {sex: _by_value(data, vids, lambda v, s=sex: list(age_span(data, v, s) or ()) or None)
+                              for sex in ("M", "F")}}
+    return out
+
+
 def notice_groups(data: Data, base: str, peers: list[str]) -> list[dict[str, Any]]:
     """기준 종형별 고지 유형 집계(고지유형별). 관문 나무가 그리는 종형(gate_targets, 관문전용 포함)을 고지 유형 열쇠(notice_key)로
     묶어, 열쇠마다 상대 회사 수(상대수)와 그 기관코드(상대코드), 상대 종형 수(종형수), 우리 종형 수(우리종형수), 이 기준 종형의
     맞붙는 종형 가운데 그 열쇠인 수(맞붙는종형수)를 센다. 기준은 기준 종형의 열쇠와 같은 묶음이다. 차례는 간편 열쇠(소견 개월,
-    입원수술 년수, 중대질병 년수의 작은 순), 일반심사, 모름이다."""
+    입원수술 년수, 중대질병 년수의 작은 순), 일반심사, 모름이다. 열쇠 안에서 갈리는 속성은 notice_attributes다."""
     groups: dict[str, dict[str, Any]] = {}
 
     def group(k: str) -> dict[str, Any]:
@@ -1085,34 +1242,158 @@ def map_rows(data: Data) -> list[dict[str, Any]]:
     return rows
 
 
+def home_age_edges(data: Data) -> list[int]:
+    """지도 열의 경계: 우리 기관의 관문 대상 종형(gate_targets. 갱신 거르개와 무관하게 모두) 주계약 가입조건 행의 최저 가입나이와
+    최고 가입나이 다음 나이. 상대 회사의 가입나이는 열을 끊지 않는다(회사 수에 매이지 않게. span_cell이 열 안의 나이를 모두 본다)."""
+    edges: set[int] = set()
+    for vid in gate_targets(data):
+        if _org(data, vid) != HOME_ORG:
+            continue
+        main = data.main_rider(vid)
+        for r in data.condition_rows(main) if main else []:
+            edges.update((int(r["최저가입나이"]), int(r["최고가입나이"]) + 1))
+    return sorted(e for e in edges if 0 <= e <= MAX_AGE)
+
+
 def map_columns(data: Data) -> list[tuple[int, int]]:
-    """가입조건이 바뀌는 나이마다 끊은 구간. 맨 앞 경계부터 맨 뒤 경계 앞까지(가입조건이 있는 나이)만 본다."""
-    edges = data.age_edges()
+    """우리 기관의 가입나이 경계(home_age_edges)마다 끊은 구간. 맨 앞 경계부터 맨 뒤 경계 앞까지만 본다. 우리 종형에 가입나이
+    자료가 하나도 없으면 모든 회사의 경계(Data.age_edges)로 끊는다."""
+    edges = home_age_edges(data) or data.age_edges()
     return [(a, b - 1) for a, b in zip(edges, edges[1:])]
+
+
+def _row_profile(r: dict[str, Any], age: int, sex: str, renewal: str | None) -> Profile:
+    return Profile(age=age, sex=sex, since=r["since"], surgery_only=r["종류"] == SURGERY_ONLY, renewal=renewal)
+
+
+def _home_key(data: Data, g: dict[str, Any], renewal: str | None) -> tuple:
+    """칸에서 우리 기관만으로 정해지는 값: 우리 회사 상태와 열린 종형, 간편 쪽, 대표, 보조 줄, 닫힌 사유. 이웃 열을 합칠지 가른다."""
+    home = g["회사"].get(HOME_ORG)
+    if not home:
+        return (None,)
+    return (home["상태"], tuple(x["종형ID"] for x in home["종형"] if x["상태"] == OPEN), simple_side(data, home),
+            our_rep(data, home), general_note(data, home), tuple(closed_reasons(data, home, renewal)))
 
 
 def segment_map(data: Data, sex: str, renewal: str | None, analysis: dict | None,
                 relations: Relations | None = None, ctx: _Ctx | None = None) -> dict[str, Any]:
-    """고객군 지도. 행은 고지 이력(종류 둘 × 시점), 열은 나이 구간(Data.age_edges)이다.
+    """고객군 지도. 행은 고지 이력(종류 둘 × 시점), 열은 우리 기관의 가입나이 구간(map_columns)이다.
 
-    이웃 구간의 칸이 모두 같으면(분류, 숫자, 대표, 자료 없는 회사, 열린 종형까지) 합친다. 열린 종형까지 보는 것은
-    칸을 눌렀을 때 패널에 뜨는 회사별 열린 종형이 같아야 한 칸으로 볼 수 있어서다.
+    이웃 구간에서 우리 기관만으로 정해지는 값(_home_key)이 모든 행에서 같으면 합친다. 상대 회사의 가입나이로는 열을 끊지 않으므로
+    열 수는 상대 회사 수와 무관하다. 칸은 열 안의 모든 나이를 놓고 낸다(span_cell): 상대 회사가 나이에 따라 열리고 닫히면
+    그 회사의 칸 상태는 일부 나이만 열림이다. 상대 회사의 가입나이가 우리 기관의 가입나이 밖(맨 앞 경계 앞, 맨 뒤 경계 뒤)이면
+    지도에 없다.
     """
     ctx = _ctx(data, analysis, relations, ctx)
     rows = map_rows(data)
-    columns: list[dict[str, Any]] = []
-    grid: list[list[dict]] = []          # 열마다 행의 칸
+    fine = data.age_edges()
+    spans: list[dict[str, Any]] = []
     for lo, hi in map_columns(data):
-        col = [cell(data, Profile(age=lo, sex=sex, since=r["since"], surgery_only=r["종류"] == SURGERY_ONLY,
-                                  renewal=renewal), None, ctx=ctx) for r in rows]
-        if grid and grid[-1] == col:
-            columns[-1]["hi"] = hi
+        cuts = [lo] + [e for e in fine if lo < e <= hi] + [hi + 1]
+        subs = [(a, b - 1) for a, b in zip(cuts, cuts[1:])]
+        key = tuple(_home_key(data, gate(data, _row_profile(r, lo, sex, renewal)), renewal) for r in rows)
+        if spans and spans[-1]["key"] == key:
+            spans[-1]["hi"] = hi
+            spans[-1]["subs"] += subs
         else:
-            columns.append({"lo": lo, "hi": hi})
-            grid.append(col)
-    cells = [[grid[j][i] for j in range(len(columns))] for i in range(len(rows))]
+            spans.append({"lo": lo, "hi": hi, "subs": subs, "key": key})
+    columns = [{"lo": s["lo"], "hi": s["hi"]} for s in spans]
+    cells = [[span_cell(data, r, s["subs"], sex, renewal, ctx) for s in spans] for r in rows]
     tally = {c: sum(1 for row in cells for x in row if x["분류"] == c) for c in CLASSES}
     return {"성별": sex, "갱신유형": renewal, "행": rows, "열": columns, "칸": cells, "집계": tally}
+
+
+def _best_side(sides: list[str | None]) -> str | None:
+    """나이마다의 쪽(열림, 닫힘, 모름 None)을 열 하나로: 한 나이라도 열리면 열림(일부 나이만 열림도 열린 쪽으로 친다), 열린 나이가
+    없고 모르는 나이가 있으면 모름, 모두 닫혔으면 닫힘."""
+    if OPEN in sides:
+        return OPEN
+    return None if None in sides else CLOSED
+
+
+def _span_state(states: list[str]) -> str:
+    """나이마다의 회사 상태를 열 하나로: 모두 같으면 그 상태, 열린 나이와 열리지 않은 나이가 섞이면 PARTIAL, 열린 나이 없이
+    갈리면 STATE_ORDER로 앞선 상태(회사 상태를 종형 상태에서 고르는 규칙을 나이에도 쓴다. 닫힘과 심사로 확인이면 심사로 확인)."""
+    if len(set(states)) == 1:
+        return states[0]
+    if OPEN in states:
+        return PARTIAL
+    return min(states, key=STATE_ORDER.index)
+
+
+def _gate_signature(g: dict[str, Any]) -> tuple:
+    return tuple((x["종형ID"], x["상태"], x["질문"], x["나이"]) for c in g["회사"].values() for x in c["종형"])
+
+
+def span_cell(data: Data, r: dict[str, Any], subs: list[tuple[int, int]], sex: str, renewal: str | None,
+              ctx: _Ctx) -> dict[str, Any]:
+    """지도 칸 하나(행 r, 나이 구간 subs. subs는 열을 모든 회사의 가입조건 경계로 더 끊은 구간이라 한 구간 안에서는 관문 결과가 같다).
+
+    - 회사: 회사마다 열 안의 나이를 놓고 낸 상태(_span_state). 우리 기관은 열 안에서 상태가 바뀌지 않는다(열을 우리 경계로 끊었다).
+    - 분류와 라벨: 나이마다의 쪽을 _best_side로 모아 가른다. 일부 나이만 열린 상대도 열린 상대로 친다.
+    - 일부열린나이: 일부 나이만 열린 회사마다 열리는 나이 구간 [[lo, hi], ...]. 일부나이로만열림: 열린 상대가 일부 나이만 열린
+      상대뿐인 칸(열린상대수 0, 일부열린상대수 1 이상. 라벨은 열린 상대가 있는 것으로 쳤다).
+    - 세부나이: 대표, 상대대표, 분류수, 수, 열린종형, 관문만수집, 관문 포인트, 관문흐름을 계산한 나이. 칸의 라벨과 같은 라벨이 나오는
+      나이 가운데, 회사 상태가 칸의 회사 상태(일부 나이만 열림은 열림)와 같은 회사가 가장 많은 구간의 첫 나이다(같으면 앞 구간).
+      관문 결과가 열 안에서 같으면 열의 첫 나이다.
+    - 관문만수집과 관문만열린상대수는 열의 모든 나이에서 열린 회사만 본다(일부 나이만 열린 회사는 일부열린상대에만 든다).
+    - 자료없음은 나이마다의 쪽을 모아 모름인 회사다.
+    """
+    runs: list[dict[str, Any]] = []
+    for a, b in subs:
+        g = gate(data, _row_profile(r, a, sex, renewal))
+        sig = _gate_signature(g)
+        if runs and runs[-1]["sig"] == sig:
+            runs[-1]["hi"] = b
+        else:
+            runs.append({"lo": a, "hi": b, "sig": sig, "g": g})
+    orgs = list(runs[0]["g"]["회사"])
+    states = {o: _span_state([x["g"]["회사"][o]["상태"] for x in runs]) for o in orgs}
+    sides = {o: _best_side([_side(x["g"]["회사"][o]["상태"]) for x in runs]) for o in orgs}
+    simple = {o: _best_side([simple_side(data, x["g"]["회사"][o]) for x in runs]) for o in orgs}
+    cls = _by_sides(sides.get(HOME_ORG), (s for o, s in sides.items() if o != HOME_ORG))
+    shown = (NO_DATA if HOME_ORG not in simple
+             else _by_sides(simple[HOME_ORG], (s for o, s in simple.items() if o != HOME_ORG)))
+    target = {o: OPEN if s == PARTIAL else s for o, s in states.items()}
+
+    def fit(x: dict[str, Any]) -> tuple:
+        agree = sum(1 for o in orgs if x["g"]["회사"][o]["상태"] == target[o])
+        return (simple_classify(data, x["g"])[0] == shown, agree)
+
+    best = max(fit(x) for x in runs)
+    rep = next(x for x in runs if fit(x) == best)
+    p = _row_profile(r, rep["lo"], sex, renewal)
+    out = cell(data, p, None, ctx=ctx)
+    if len(runs) > 1:
+        whole = {o for o, s in states.items() if s == OPEN}
+        out.update({"분류": cls, "라벨": LABELS[shown], "회사": states,
+                    "자료없음": [o for o in orgs if sides[o] is None],
+                    "관문만수집": [y for y in out["관문만수집"] if y["기관코드"] in whole]})
+        if cls == ALL_CLOSED:
+            out["안내"] = ALL_CLOSED_NOTE
+        else:
+            out.pop("안내", None)
+        out.update(peer_tally(out["회사"], out["관문만수집"]))
+    opened: dict[str, list[list[int]]] = {}
+    for o, s in states.items():
+        if s != PARTIAL:
+            continue
+        for x in runs:
+            if x["g"]["회사"][o]["상태"] != OPEN:
+                continue
+            spans = opened.setdefault(o, [])
+            if spans and spans[-1][1] == x["lo"] - 1:
+                spans[-1][1] = x["hi"]
+            else:
+                spans.append([x["lo"], x["hi"]])
+    out["일부열린나이"] = opened
+    out["일부나이로만열림"] = out["열린상대수"] == 0 and out["일부열린상대수"] > 0
+    out["세부나이"] = rep["lo"]
+    out["관문흐름"] = gate_flow(data, rep["g"], p)
+    return out
+
+
+SPAN_KEYS = ("일부열린나이", "일부나이로만열림", "세부나이", "관문흐름")     # span_cell이 더하는 열쇠(내보내기에 싣는다)
 
 
 # ---------- 범위 ----------
@@ -2289,7 +2570,8 @@ def _line_landscape(data: Data, seg: dict[str, Any]) -> dict[str, Any]:
     """(가) 고객군 지형. 라벨 다섯의 칸 수(라벨별. 합이 전체칸수)를 값에 담고 0칸이 아닌 라벨은 모두 문장에 적는다.
     우리간편닫힘칸수는 우리 간편 닫힘 칸 가운데 보조가 일반심사 확인인 칸이다(모두 그렇지 않으면 가_닫힘_일부 틀).
     관문만칸수와 관문만종형은 열린 상대 종형이 관문전용뿐인 칸(칸의 관문만수집)과 그 종형 이름이고, 나이자료없음회사는
-    no_age_companies다."""
+    no_age_companies다. 일부열림칸수는 일부 나이만 열린 상대가 있는 칸, 일부나이로만열림칸수는 열린 상대가 그 상대뿐인 칸이다
+    (span_cell. 0칸이 아니면 둘째 문장의 끝 절로 적는다)."""
     cells = [x for line in seg["칸"] for x in line]
     labels = {lab: sum(1 for x in cells if x["라벨"] == lab) for lab in LABELS.values()}
     only, both = labels[LABELS[ONLY_OPEN]], labels[LABELS[BOTH_OPEN]]
@@ -2303,7 +2585,9 @@ def _line_landscape(data: Data, seg: dict[str, Any]) -> dict[str, Any]:
               "우리간편닫힘칸수": closed, "우리간편닫힘라벨칸수": closed_all, "간편모두닫힘칸수": all_closed,
               "자료없음칸수": nodata, "라벨별": labels, "관문만칸수": gate_cells, "관문만종형": gate_names,
               "나이자료없음회사": no_age, "성별": seg["성별"], "갱신유형": seg["갱신유형"],
-              "열린상대수분포": spread([x["열린상대수"] for x in cells if "열린상대수" in x])}
+              "열린상대수분포": spread([x["열린상대수"] for x in cells if "열린상대수" in x]),
+              "일부열림칸수": sum(1 for x in cells if x.get("일부열린상대수")),
+              "일부나이로만열림칸수": sum(1 for x in cells if x.get("일부나이로만열림"))}
     if not cells:
         used = ["가_자료없음"]
         text = render("가_자료없음", {})
@@ -2319,7 +2603,10 @@ def _line_landscape(data: Data, seg: dict[str, Any]) -> dict[str, Any]:
             used.append(no)
     text = render("가", {"전체칸수": len(cells), "절목록": ", ".join(render(t, values) for t in used)})
     tails = (["가_관문만" if unique else "가_관문만_같은유형"] if gate_cells else []) + (["가_나이자료없음"] if no_age else [])
-    if tails:              # 관문만 열린 칸과 나이 자료가 없는 상대는 둘째 문장 하나로 잇는다
+    # 지도 열 안의 일부 나이에서만 열리는 상대(span_cell)가 있는 칸은 둘째 문장의 끝 절로 적는다(없으면 문장은 지금 그대로다)
+    if values["일부열림칸수"]:
+        tails.append("가_일부나이만" if values["일부나이로만열림칸수"] else "가_일부나이")
+    if tails:              # 관문만 열린 칸, 나이 자료가 없는 상대, 일부 나이만 열린 상대는 둘째 문장 하나로 잇는다
         text += " " + _connect([render(t, {**values, "관문만종형": and_join(gate_names, UNIT_KIND),
                                            "나이자료없음회사": and_join(no_age, UNIT_ORG)})
                                 for t in tails])
@@ -2578,7 +2865,8 @@ def _export_map(ctx: _Ctx, seg: dict[str, Any], pool: dict[str, dict], texts: _T
     for r, line in zip(seg["행"], seg["칸"]):
         row = []
         for c, x in zip(seg["열"], line):
-            p = Profile(age=c["lo"], sex=seg["성별"], since=r["since"], surgery_only=r["종류"] == SURGERY_ONLY,
+            # 칸의 관문 포인트는 칸의 세부 값을 계산한 나이(세부나이. 열 안에서 관문 결과가 같으면 열의 첫 나이)로 계산한다
+            p = Profile(age=x["세부나이"], sex=seg["성별"], since=r["since"], surgery_only=r["종류"] == SURGERY_ONLY,
                         renewal=seg["갱신유형"])
             found, base = cell_gate_points(ctx, p)
             for y in found:
@@ -2587,10 +2875,12 @@ def _export_map(ctx: _Ctx, seg: dict[str, Any], pool: dict[str, dict], texts: _T
                         "대표": x["대표"], "상대대표": x["상대대표"], "분류수": x["분류수"], "자료없음": x["자료없음"],
                         "열린종형": x["열린종형"], "관문기준": base, "관문포인트": [y["포인트ID"] for y in found],
                         "관문만수집": x["관문만수집"],
-                        **{k: x[k] for k in PEER_TALLY}, **peer_codes(x["회사"], x["관문만수집"])})
+                        **{k: x[k] for k in PEER_TALLY}, **peer_codes(x["회사"], x["관문만수집"]),
+                        **{k: x[k] for k in SPAN_KEYS}})
         cells.append(row)
     labels = {lab: sum(1 for line in cells for x in line if x["라벨"] == lab) for lab in LABELS.values()}
-    return {"성별": seg["성별"], "갱신유형": seg["갱신유형"], "행": seg["행"], "열": seg["열"], "칸": cells, "라벨별": labels}
+    return {"성별": seg["성별"], "갱신유형": seg["갱신유형"], "행": seg["행"], "열": seg["열"], "칸": cells, "라벨별": labels,
+            "고지유형": flow_groups(ctx.data, seg["갱신유형"])}
 
 
 def export(data: Data, analysis: dict | None = None, relations: Relations | None = None) -> dict[str, Any]:
@@ -2600,11 +2890,14 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
     - 포인트의 머리말과 회사수, 범위와 단정 주의 목록의 머리말은 "글" 목록의 번호다. 개정 검토 목록의 담보는 근거 대신
       포인트ID로 그 포인트의 근거를 가리킨다.
     - 종형별 값은 대표 조건(representative_profile. 이력 없음)으로 계산한다. 시사점에서 오는 포인트는 고객 조건과 무관하다.
-    - 지도는 성별 남, 갱신 거르개 전체와 갱신과 비갱신 세 장이다. 칸의 관문 포인트는 그 칸의 맨 앞 나이로 계산한다(cell_gate_points).
+    - 지도는 성별 남, 갱신 거르개 전체와 갱신과 비갱신 세 장이다. 열은 우리 기관의 가입나이 경계로 끊고(map_columns), 칸은 열의
+      모든 나이를 놓고 낸다(span_cell. 일부열린나이, 일부나이로만열림, 세부나이, 관문흐름을 더 싣는다). 칸의 관문 포인트는 칸의
+      세부나이로 계산한다(cell_gate_points. 열 안에서 관문 결과가 같으면 열의 맨 앞 나이). "관문마디"는 관문흐름의 마디 이름이다.
       칸의 인사이트 수는 다섯 분류 이름의 분류수(관문 차이는 그 칸의 관문 포인트 수)이고, 안쪽 값인 분류와 수는 싣지 않는다.
       칸의 관문만수집은 열린 종형이 관문전용뿐인 상대 회사의 그 종형이다(cell). 칸의 열린종형과 관문만수집이 가리키는 종형은
       모두 "종형"에도 싣는다(관문전용 종형은 비교역할 관문전용). 칸의 상대 수(peer_tally) 옆에 그 기관코드 목록(peer_codes)을 싣는다.
-    - 포인트의 관련기관코드는 비교종형ID가 속한 상대 회사의 기관코드다(compared_orgs). 기준별의 고지유형별은 notice_groups다.
+    - 포인트의 관련기관코드는 비교종형ID가 속한 상대 회사의 기관코드다(compared_orgs). 기준별의 고지유형별은 notice_groups,
+      "고지유형속성"은 notice_attributes, 지도마다의 "고지유형"은 flow_groups다.
     - 포인트의 관문만수집은 관문전용 종형을 적은 관문 포인트(G2, G3)에만 참으로 싣는다. 짝과 견준 G3에는 차이항목(SCOPE_ITEMS
       가운데 다른 것)을 싣는다.
     - 시장 소식의 요약은 보도를 옮긴 인용이다(news_summary의 인용, 출처표시, 주의표현, 인용안내).
@@ -2673,6 +2966,9 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
                  for sid, s in sorted(data.std.items(), key=lambda kv: ctx.order.get(kv[0], len(ctx.order)))},
         "기준별": by_base,
         "지도": maps,
+        # 지도 칸의 관문흐름이 번호로 가리키는 마디의 이름과 차례, 아무도 멈추지 않는 전제 마디, 멈춘 값
+        "관문마디": {"차례": list(GATE_STEPS), "전제": list(PREMISE_STEPS), "멈춘값": [STOP_HIT, STOP_UNKNOWN, STOP_REVIEW]},
+        "고지유형속성": notice_attributes(data),
         "주석": [dict(x, 탭=list(x["탭"])) for x in NOTES],
         "한도표": limit_steps(data),
         "개정변동": rev,

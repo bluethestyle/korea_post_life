@@ -147,9 +147,15 @@ MAP_CELL = {
     "분류수": Map(Opt(int)), "자료없음": list, "열린종형": Map(Seq(str)), "관문기준": Opt(str), "관문포인트": Seq(str),
     "관문만수집": Seq({"기관코드": str, "종형ID": str, "이름": str, "안내": str}),
     "열린상대코드": Seq(str), "관문만열린상대코드": Seq(str), "닫힌상대코드": Seq(str), "모르는상대코드": Seq(str),
+    "일부열린상대수": int, "일부열린상대코드": Seq(str), "일부열린나이": Map(Seq(Pos(int, int))), "일부나이로만열림": bool,
+    "세부나이": int,
+    "관문흐름": {"유형": Seq({"열쇠": str, "통과수": Seq(int), "멈춤": Map(Map(Seq(str)))}),
+                 "종형": Map(Pos(int, str))},
 }
 SEG_MAP = {"성별": str, "갱신유형": Opt(str), "행": Seq({"종류": str, "since": Opt(NUM), "이름": str}),
-           "열": Seq({"lo": int, "hi": int}), "칸": Seq(Seq(MAP_CELL)), "라벨별": Map(int)}
+           "열": Seq({"lo": int, "hi": int}), "칸": Seq(Seq(MAP_CELL)), "라벨별": Map(int),
+           "고지유형": Seq({"열쇠": str, "상대수": int, "상대코드": Seq(str)})}
+VALUE_COUNT = Seq({"값": ANY, "상대수": int, "상대코드": Seq(str), "종형수": int})
 LIMIT_STEP = {"lo": int, "hi": int, "max": Opt(NUM), "pend": ANY}
 SALES = {
     "형식": int, "자료시각": str, "고지": str,
@@ -162,6 +168,8 @@ SALES = {
     "표준담보": Map({"이름": str, "대분류": str, "중분류": str, "급부유형": str}),
     "기준별": Map(BASE),
     "지도": {"전체": SEG_MAP, "갱신": SEG_MAP, "비갱신": SEG_MAP},
+    "관문마디": {"차례": Seq(str), "전제": Seq(str), "멈춘값": Seq(str)},
+    "고지유형속성": Map({"수술포함별": VALUE_COUNT, "중대질병수별": VALUE_COUNT, "가입나이별": {"M": VALUE_COUNT, "F": VALUE_COUNT}}),
     "주석": Seq({"열쇠": str, "탭": Seq(str), "글": str, "출처": str}),
     "한도표": Seq({"종형ID": str, "이름": str, "심사": str, "간편고지약칭": Opt(str), "갱신": Opt(str), "환급": Opt(str),
                   "성별같음": bool, "구간": {"M": Seq(LIMIT_STEP), "F": Seq(LIMIT_STEP)}}),
@@ -196,7 +204,7 @@ CV = {
     "ben": Seq(Pos(str, int, str)),
     "rid": Seq(Pos(str, str)),
     "b": Map({"cols": Seq(str), "rows": Seq(Pos(str, Seq(One(int, dict)), Map(dict))), "pairs": int, "dropped": int,
-              "보유기관코드": Map(Seq(str))}),
+              "보유기관코드": Map(Seq(str)), "판정기관코드": Map(Map(Seq(str))), "판정상대수": Map(Map(int))}),
 }
 
 # ---------- d.json (const D) ----------
@@ -321,18 +329,27 @@ def test_committed_files_match_snapshot(made, committed):
     assert not stale, f"커밋된 {', '.join(stale)} 가 같은 자료 시각({t})의 사본으로 새로 만든 것과 다르다. {REGEN}"
 
 
-# 회사가 많을 때를 위해 더한 열쇠(2026-11-23). 세 회사 사본에서는 이 열쇠만 더해지고 나머지 열쇠의 값과 문장은 그대로여야 한다
+# 회사가 많을 때를 위해 더한 열쇠(2026-11-23). 세 회사 사본에서는 이 열쇠만 더해지고 나머지 열쇠의 값과 문장은 그대로여야 한다.
+# 지도 열을 우리 기관의 가입나이로만 끊은 뒤(같은 날)로는 비갱신 지도의 열이 넷에서 둘로 줄었다(15세 열과 71~80세 열은 삼성화재
+# 일반심사의 가입나이 16~70세가 만든 열이었다. 합친 열의 칸은 전의 16~65세 칸, 66~70세 칸과 바이트까지 같다)
 ADDED_CELL = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수",
-              "열린상대코드", "관문만열린상대코드", "닫힌상대코드", "모르는상대코드")
+              "열린상대코드", "관문만열린상대코드", "닫힌상대코드", "모르는상대코드",
+              "일부열린상대수", "일부열린상대코드", "일부열린나이", "일부나이로만열림", "세부나이", "관문흐름")
+ADDED_MAP = ("고지유형",)
+ADDED_TOP = ("관문마디", "고지유형속성")
 ADDED_SCOPE = ("업권별",)
-ADDED_BRIEF = ("열린상대수분포", "상대회사수", "상대보유분포", "상대보유요약")
+ADDED_BRIEF = ("열린상대수분포", "상대회사수", "상대보유분포", "상대보유요약", "일부열림칸수", "일부나이로만열림칸수")
 ADDED_POINT = ("관련기관코드",)
 ADDED_BASE = ("고지유형별",)
 
 
 def without_added(S: dict) -> dict:
     S = copy.deepcopy(S)
+    for k in ADDED_TOP:
+        S.pop(k, None)
     for m in S["지도"].values():
+        for k in ADDED_MAP:
+            m.pop(k, None)
         for line in m["칸"]:
             for c in line:
                 for k in ADDED_CELL:
@@ -519,7 +536,43 @@ def test_screen_code_reads_only_d_keys_it_has(files):
 # (scripts/dev/build_console4_synthetic.py --work 폴더 로 남긴 자료를 unpack 해 넘긴다).
 HOME = "EPOST"
 CELL_CODES = {"열린상대코드": "열린상대수", "관문만열린상대코드": "관문만열린상대수", "닫힌상대코드": "닫힌상대수",
-              "모르는상대코드": "모르는상대수"}
+              "모르는상대코드": "모르는상대수", "일부열린상대코드": "일부열린상대수"}
+PARTIAL = "일부 나이만 열림"
+STOPS = ("걸림", "모름", "심사로 확인")
+VERDICTS = ("나음", "같음", "못함", "엇갈림", "판정 보류", "단정 주의", "검토 대기", "우체국에 없음")
+
+
+def _flow_errors(at: str, c: dict, m: dict, S: dict, gate: dict, orgs: set) -> list[str]:
+    """지도 칸의 관문흐름: 줄은 지도의 고지유형 차례, 통과수는 마디 다섯이고 늘지 않으며, 통과수 + 그 마디까지 멈춘 회사 = 상대수,
+    멈춘 회사는 그 줄의 회사이고 겹치지 않는다. 전제 마디(최근 소견)에서는 일반심사와 모름 줄만 멈춘다(중대질병에서는 아무도 멈추지 않는다).
+    멈춘 종형은 관문 나무의 종형이다."""
+    errs: list[str] = []
+    steps, premise = S["관문마디"]["차례"], S["관문마디"]["전제"]
+    flow = c["관문흐름"]
+    if [g["열쇠"] for g in flow["유형"]] != [g["열쇠"] for g in m["고지유형"]]:
+        return [f"{at}: 관문흐름 줄이 지도의 고지유형과 다르다"]
+    for meta, g in zip(m["고지유형"], flow["유형"]):
+        if len(g["통과수"]) != len(steps) or not set(g["멈춤"]) <= {str(k) for k in range(len(steps))}:
+            errs.append(f"{at} {g['열쇠']}: 마디 수가 {len(steps)} 가 아니다")
+            continue
+        seen: list[str] = []
+        prev = meta["상대수"]
+        for k, n in enumerate(g["통과수"]):
+            here = g["멈춤"].get(str(k), {})
+            if not set(here) <= set(STOPS) or any(not v or v != sorted(v) for v in here.values()):
+                errs.append(f"{at} {g['열쇠']} 마디 {k}: 멈춘 값이나 목록이 규약과 다르다({here})")
+            seen += [o for v in here.values() for o in v]
+            if n > prev or n + len(seen) != meta["상대수"]:
+                errs.append(f"{at} {g['열쇠']} 마디 {k}: 통과수 {n} 와 멈춘 회사 {len(seen)} 의 합이 상대수 {meta['상대수']} 와 다르다")
+            if steps[k] in premise and here and not (k == 1 and g["열쇠"] in ("일반심사", "모름")):
+                errs.append(f"{at} {g['열쇠']}: 전제 마디 {steps[k]} 에서 멈춘 회사가 있다")
+            prev = n
+        if len(seen) != len(set(seen)) or not set(seen) <= set(meta["상대코드"]):
+            errs.append(f"{at} {g['열쇠']}: 멈춘 회사가 겹치거나 줄의 회사가 아니다")
+    for vid, (k, v) in flow["종형"].items():
+        if vid not in gate["종형정보"] or not 0 <= k < len(steps) or v not in STOPS:
+            errs.append(f"{at}: 관문흐름 종형 {vid} {k} {v}")
+    return errs
 NOTICE_KEY = re.compile(r"^\d+(?:\.\d+)?·\d+(?:\.\d+)?·\d+(?:\.\d+)?$")
 SECTORS = ("생명보험", "손해보험")
 
@@ -540,22 +593,78 @@ def added_value_errors(f: dict) -> list[str]:
     orgs = {o["code"] for o in D["orgs"]}
     errs += [f"orgs {o['code']}: 업권 {o['업권']!r}" for o in D["orgs"] if o["업권"] not in SECTORS + (None,)]
     kinds = S["종형"]
-    # 지도 칸: 코드 목록 길이 = 수. 열린, 닫힌, 모르는 목록은 겹치지 않고 합하면 칸의 우리 밖 회사 전부다. 관문만 열린 회사는 열린 쪽에 든다
+    # 지도 칸: 코드 목록 길이 = 수. 열린, 일부 열린, 닫힌, 모르는 목록은 겹치지 않고 합하면 칸의 우리 밖 회사 전부다.
+    # 관문만 열린 회사는 열린 쪽에 든다. 일부 열린 회사마다 열리는 나이가 칸의 열 안에 있다
     for name, m in S["지도"].items():
+        if len({(c["lo"], c["hi"]) for c in m["열"]}) != len(m["열"]) or \
+                any(a["hi"] + 1 != b["lo"] for a, b in zip(m["열"], m["열"][1:])):
+            errs.append(f"지도 {name}: 열이 이어지지 않는다")
+        if any(not _codes_ok(g["상대코드"], orgs) or len(g["상대코드"]) != g["상대수"] for g in m["고지유형"]):
+            errs.append(f"지도 {name}: 고지유형의 상대코드")
         for ri, line in enumerate(m["칸"]):
             for ci, c in enumerate(line):
                 at = f"지도 {name} [{ri}][{ci}]"
+                col = m["열"][ci]
                 for ck, nk in CELL_CODES.items():
                     if len(c[ck]) != c[nk] or not _codes_ok(c[ck], orgs):
                         errs.append(f"{at}: {ck} {c[ck]} 와 {nk} {c[nk]}")
-                three = c["열린상대코드"] + c["닫힌상대코드"] + c["모르는상대코드"]
-                if sorted(three) != sorted(o for o in c["회사"] if o != HOME) or len(three) != c["상대수"]:
-                    errs.append(f"{at}: 열린, 닫힌, 모르는 상대코드가 칸의 상대 회사와 다르다")
+                four = c["열린상대코드"] + c["일부열린상대코드"] + c["닫힌상대코드"] + c["모르는상대코드"]
+                if sorted(four) != sorted(o for o in c["회사"] if o != HOME) or len(four) != c["상대수"]:
+                    errs.append(f"{at}: 열린, 일부 열린, 닫힌, 모르는 상대코드가 칸의 상대 회사와 다르다")
                 if not set(c["관문만열린상대코드"]) <= set(c["열린상대코드"]):
                     errs.append(f"{at}: 관문만열린상대코드가 열린상대코드에 들지 않는다")
                 if set(c["관문만열린상대코드"]) != {x["기관코드"] for x in c["관문만수집"]}:
                     errs.append(f"{at}: 관문만열린상대코드가 관문만수집의 회사와 다르다")
                 errs += [f"{at}: 열린상대코드 {o} 의 상태가 {c['회사'][o]}" for o in c["열린상대코드"] if c["회사"][o] != "열림"]
+                errs += [f"{at}: 일부열린상대코드 {o} 의 상태가 {c['회사'][o]}" for o in c["일부열린상대코드"]
+                         if c["회사"][o] != PARTIAL]
+                if sorted(c["일부열린나이"]) != c["일부열린상대코드"]:
+                    errs.append(f"{at}: 일부열린나이의 회사가 일부열린상대코드와 다르다")
+                for o, spans in c["일부열린나이"].items():
+                    flat = [a for s in spans for a in s]
+                    if not spans or flat != sorted(flat) or flat[0] < col["lo"] or flat[-1] > col["hi"] or \
+                            (flat[0] == col["lo"] and flat[-1] == col["hi"] and len(spans) == 1):
+                        errs.append(f"{at}: 일부열린나이 {o} {spans} 가 열 {col} 의 일부가 아니다")
+                if c["일부나이로만열림"] != (c["열린상대수"] == 0 and c["일부열린상대수"] > 0):
+                    errs.append(f"{at}: 일부나이로만열림")
+                if not col["lo"] <= c["세부나이"] <= col["hi"]:
+                    errs.append(f"{at}: 세부나이 {c['세부나이']} 가 열 {col} 밖이다")
+                errs += _flow_errors(at, c, m, S, gate, orgs)
+    # 고지유형속성: 열쇠는 관문 나무의 상대 종형 열쇠, 값마다 센 종형 수의 합은 그 열쇠의 상대 종형 수
+    peer_vids: dict[str, list[str]] = {}
+    for v in gate["종형"]:
+        if gate["종형정보"][v]["회사"] != HOME:
+            peer_vids.setdefault(gate["종형정보"][v]["고지유형열쇠"], []).append(v)
+    if set(S["고지유형속성"]) != set(peer_vids):
+        errs.append("고지유형속성의 열쇠가 관문 나무의 상대 종형 열쇠와 다르다")
+    for key, a in S["고지유형속성"].items():
+        n = len(peer_vids.get(key, []))
+        firms = sorted({gate["종형정보"][v]["회사"] for v in peer_vids.get(key, [])})
+        lists = [a["수술포함별"], a["중대질병수별"], a["가입나이별"]["M"], a["가입나이별"]["F"]]
+        for vals in lists:
+            if sum(x["종형수"] for x in vals) != n or sorted({o for x in vals for o in x["상대코드"]}) != firms or \
+                    any(len(x["상대코드"]) != x["상대수"] or not _codes_ok(x["상대코드"], orgs) for x in vals):
+                errs.append(f"고지유형속성 {key}: 값마다의 수가 상대 종형 {n}개, 회사 {firms} 와 맞지 않는다")
+        surgery = sorted(({gate["종형정보"][v]["질문"]["surgery"] for v in peer_vids.get(key, [])}), key=str)
+        if sorted((x["값"] for x in a["수술포함별"]), key=str) != surgery:
+            errs.append(f"고지유형속성 {key}: 수술포함별 값이 gate.json 과 다르다")
+    # 담보 비교 자료: 판정기관코드는 줄마다 있고, 판정마다 목록이 겹치지 않으며 합하면 그 담보의 보유기관코드다. 판정상대수는 목록 길이
+    for bid, b in CV["b"].items():
+        for sid, per in b["판정기관코드"].items():
+            codes = [o for v in per.values() for o in v]
+            if sorted(codes) != b["보유기관코드"].get(sid) or not set(per) <= set(VERDICTS) or \
+                    any(not v or not _codes_ok(v, orgs) for v in per.values()):
+                errs.append(f"cover {bid} {sid}: 판정기관코드 {per} 와 보유기관코드 {b['보유기관코드'].get(sid)}")
+            if b["판정상대수"].get(sid) != {k: len(v) for k, v in per.items()}:
+                errs.append(f"cover {bid} {sid}: 판정상대수가 판정기관코드의 목록 길이와 다르다")
+        if set(b["판정기관코드"]) != {r[0] for r in b["rows"]} or set(b["판정상대수"]) != set(b["판정기관코드"]):
+            errs.append(f"cover {bid}: 판정기관코드의 담보가 rows 와 다르다")
+        # 우리에게 확정 급부가 없는 담보는 비교쌍 판정이 없다(우체국에 없음이나 검토 대기뿐이다)
+        for r in b["rows"]:
+            mine = r[1][0]
+            if not (isinstance(mine, dict) and mine.get("i")) and \
+                    not set(b["판정기관코드"][r[0]]) <= {"우체국에 없음", "검토 대기"}:
+                errs.append(f"cover {bid} {r[0]}: 우리에게 없는 담보에 비교쌍 판정이 있다")
     # 포인트: 관련기관코드 = 비교종형ID 가 속한 우리 밖 회사
     for pid, p in S["포인트"].items():
         want = sorted({kinds[v]["기관코드"] for v in p["비교종형ID"]} - {HOME})
@@ -621,3 +730,30 @@ def test_added_value_checker_catches_mismatch(made):
     errs = added_value_errors(f)
     assert any("닫힌상대코드" in e for e in errs) and any("고지유형열쇠 '3-2-5'" in e for e in errs)
     assert any("관련기관코드" in e for e in errs)
+    # 일부 나이만 열린 상대, 관문흐름, 고지유형속성, 판정기관코드
+    f = {k: copy.deepcopy(made[k]) for k in ("S", "D", "CV", "T3", "gate")}
+    c = f["S"]["지도"]["전체"]["칸"][1][1]
+    c["일부열린나이"] = {"HANWHALIFE": [[20, 80]]}
+    c["관문흐름"]["유형"][0]["통과수"][0] += 1
+    next(iter(f["S"]["고지유형속성"].values()))["수술포함별"][0]["종형수"] += 1
+    b = next(iter(f["CV"]["b"].values()))
+    sid = next(s for s, per in b["판정기관코드"].items() if per)
+    b["판정기관코드"][sid] = {"나음": ["NOPE"]}
+    errs = added_value_errors(f)
+    assert any("일부열린나이의 회사" in e for e in errs) and any("통과수" in e for e in errs)
+    assert any("고지유형속성" in e for e in errs) and any(f"{sid}: 판정기관코드" in e for e in errs)
+
+
+def test_map_columns_and_flow_on_three_companies(made):
+    """세 회사 사본: 일부 나이만 열린 상대가 없고(지도 열이 우리 가입나이로 끊어도 상대 상태가 열 안에서 같다), 지도마다 칸이 24개다.
+    가입 관문 흐름은 실제로 가입나이, 입원과 수술의 기간, 수술 포함 여부에서 걸리고, 일반심사는 최근 소견에서 심사로 확인이다."""
+    S = made["S"]
+    stops = set()
+    for name, m in S["지도"].items():
+        cells = [c for line in m["칸"] for c in line]
+        assert len(m["열"]) == 2 and len(cells) == 24, name
+        assert not any(c["일부열린상대수"] or c["일부열린나이"] or c["일부나이로만열림"] for c in cells), name
+        stops |= {(S["관문마디"]["차례"][k], v) for c in cells for k, v in c["관문흐름"]["종형"].values()}
+    assert stops == {("가입나이", "걸림"), ("입원과 수술의 기간", "걸림"), ("수술 포함 여부", "걸림"), ("최근 소견", "심사로 확인")}
+    assert [m["열"] for m in S["지도"].values()] == [[{"lo": 15, "hi": 19}, {"lo": 20, "hi": 80}]] * 2 + [
+        [{"lo": 15, "hi": 65}, {"lo": 66, "hi": 80}]]
