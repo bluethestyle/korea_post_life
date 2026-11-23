@@ -6,6 +6,7 @@
 시트 없이 흐름만 확인하려면 --dry-run. 특정 상품만 다시 뽑으려면 --only P500129 (공시상품코드, 여러 번 가능).
 다시 뽑은 종형의 기존 행만 걷어내고 새 행으로 바꾸며, 다른 상품의 행은 건드리지 않는다.
 관문전용 종형(대상 설정의 비교역할구분)만 올리려면 --parts 관문. 급부를 뽑지 않고 종형 행, 주계약 행, 주계약 가입조건만 쓴다.
+시트에 이미 있는 종형의 주계약 가입조건만 뽑으려면 --parts 주계약가입조건(삼성화재. sys_가입조건만 바꾼다).
 """
 from __future__ import annotations
 
@@ -33,7 +34,8 @@ def main() -> int:
     p.add_argument("--only", action="append", help="이 공시상품코드의 종형만 처리")
     p.add_argument("--dry-run", action="store_true", help="시트에 쓰지 않는다")
     p.add_argument("--parts", default="급부,가입조건,관문",
-                   help="돌릴 부분. 급부(요약서), 가입조건(사업방법서), 관문(관문전용 종형의 종형 행과 주계약 가입조건). 쉼표로 구분")
+                   help="돌릴 부분. 급부(요약서), 가입조건(사업방법서), 관문(관문전용 종형의 종형 행과 주계약 가입조건). 쉼표로 구분. "
+                        "주계약가입조건(시트에 있는 주계약의 가입나이와 가입한도만)은 기본값에 들지 않는다")
     p.add_argument("--result", type=Path, help="뽑은 행과 기록을 JSON으로 남길 경로")
     args = p.parse_args()
 
@@ -80,7 +82,8 @@ def main() -> int:
         print("형식 검사에 걸려 시트에 쓰지 않았습니다:", json.dumps(report.errors, ensure_ascii=False)[:2000])
         return 1
     gate_done = getattr(report, "gate_done", None)
-    if not (report.done or report.conditions_done or gate_done):
+    main_done = getattr(report, "main_done", None)
+    if not (report.done or report.conditions_done or gate_done or main_done):
         print("처리한 종형이 없습니다.")
         return 1
     if report.written:
@@ -88,7 +91,8 @@ def main() -> int:
         print(f"시트에 씀: 종형 {len(rows['sys_상품종형'])}, 특약 {len(rows['sys_특약'])}, 급부 {len(rows['sys_급부'])}, "
               f"가입조건 {len(rows['sys_가입조건'])}, 결합제약 {len(rows['sys_결합제약'])}, 기록 {len(report.logs)}행"
               + (f" (관문전용 종형 {len(gate_done)}개, 그 가운데 가입조건까지 {len(report.gate_conditions_done)}개)"
-                 if gate_done else ""))
+                 if gate_done else "")
+              + (f" (주계약 가입조건만 쓴 종형 {len(main_done)}개)" if main_done else ""))
     else:
         print("--dry-run: 시트에 쓰지 않았습니다.")
     return 0

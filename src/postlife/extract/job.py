@@ -9,9 +9,13 @@
 (variants.main_row. 모델을 부르지 않는다)을 쓰고, 사업방법서의 가입나이와 가입한도 절(요약서 자격요건 절의 가입한도 포함)에서
 주계약 가입조건만 뽑는다(결합제약 절은 뽑지 않는다). 다른 종형의 행은 건드리지 않으므로 parts를 "관문"만 주면 이미 뽑은
 급부를 다시 뽑지 않고 관문전용 종형만 시트에 올린다.
+
+"주계약가입조건" 부분(MAIN_PART. 기본 parts에는 들지 않는다)은 시트에 종형 행과 특약 행이 이미 있는 종형(삼성화재. 급부는 표 규칙으로
+적재한다)의 주계약 가입나이와 가입한도만 뽑아 sys_가입조건만 바꾼다(_run_main). 종형, 특약, 급부, 결합제약 탭은 건드리지 않는다.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Callable
@@ -33,6 +37,9 @@ BENEFIT_TABS = ["sys_상품종형", "sys_특약", "sys_급부"]      # 급부 �
 LIMIT_COLUMNS = ("최소가입금액만원", "최대가입금액만원", "합산한도기준키")   # 급부 추출이 채우지 않는 sys_특약의 칸
 GATE_TABS = ["sys_상품종형", "sys_특약"]                    # 관문전용 종형의 종형 행과 주계약 행
 GATE_KINDS = ("가입나이", "가입한도")                       # 관문전용 종형에서 뽑는 절
+MAIN_PART = "주계약가입조건"      # 시트에 있는 주계약의 가입조건만 뽑는 부분. PARTS(기본값)에 넣지 않는다
+# 종형이 사업방법서의 어느 종별 항목에 드는지 찾을 이름. 종형명 앞의 "8종" 다음에 심사유형에 맞는 고지 이름("가. 간편고지")을 본다
+SCOPE_WORDS = {"간편심사": "간편고지", "일반심사": "일반고지"}
 _NOT_LISTED = "뽑아 둔 특약 목록에 없어 건너뜀"              # conditions.build_rows가 목록에 없는 특약 이름마다 남기는 주의의 끝
 
 
@@ -45,9 +52,11 @@ class Report:
     conditions_done: set[str] = field(default_factory=set)  # 가입조건을 처리한 종형ID
     gate_done: set[str] = field(default_factory=set)        # 종형 행과 주계약 행을 쓴 관문전용 종형ID
     gate_conditions_done: set[str] = field(default_factory=set)   # 주계약 가입조건까지 뽑은 관문전용 종형ID
+    main_done: set[str] = field(default_factory=set)        # 주계약가입조건 부분에서 가입조건 행을 쓴 종형ID
     table: list[str] = field(default_factory=list)          # 요약서별 결과 한 줄
     conditions_table: list[str] = field(default_factory=list)
     gate_table: list[str] = field(default_factory=list)
+    main_table: list[str] = field(default_factory=list)
     review: list[str] = field(default_factory=list)         # 사람이 확인할 줄
     notes: list[str] = field(default_factory=list)
     errors: dict[str, dict[str, list[str]]] = field(default_factory=dict)
@@ -68,6 +77,9 @@ class Report:
         if self.gate_table:
             head = ["| 사업방법서(관문전용) | 종형 수 | 항목 | 확정 | 검토 | 제외 | 가입조건 행 |", "| --- | --- | --- | --- | --- | --- | --- |"]
             out += "\n".join(head + self.gate_table) + "\n\n"
+        if self.main_table:
+            head = ["| 사업방법서(주계약) | 종형 수 | 항목 | 확정 | 검토 | 제외 | 가입조건 행 |", "| --- | --- | --- | --- | --- | --- | --- |"]
+            out += "\n".join(head + self.main_table) + "\n\n"
         if self.rerun:
             r = self.rerun
             out += (f"재추출 전후(급부): 시트에 있던 줄 {r['이전 줄']}, 이번 결과 {r['새 줄']}. "
@@ -89,6 +101,7 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
     parts에 "급부"가 없으면 시트에 있는 특약을 기준으로 가입조건만 다시 뽑는다.
     급부만 다시 뽑거나 가입조건을 뽑지 못했으면, 시트에 있던 같은 특약의 가입 한도를 새 특약 행이 이어받는다.
     관문전용 종형은 "관문" 부분에서만 처리한다(_run_gate). "급부"와 "가입조건" 부분은 관문전용 종형을 보지 않는다.
+    MAIN_PART는 관문전용이 아닌 종형 가운데 이번에 "가입조건" 부분이 처리하지 않은 종형의 주계약 가입조건만 뽑는다(_run_main).
     """
     report = Report()
     found, problems = variants.build(targets, index)
@@ -96,6 +109,7 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
     if only:
         found = [v for v in found if v.row["공시상품코드"] in only]
     gate = [v for v in found if v.gate_only] if "관문" in parts else []
+    mains = [v for v in found if not v.gate_only] if MAIN_PART in parts else []
     found = [v for v in found if not v.gate_only] if ("급부" in parts or "가입조건" in parts) else []
     thresholds = dict(pipeline.DEFAULT_THRESHOLDS)
     if read_thresholds:
@@ -211,6 +225,9 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
 
     if gate:
         _run_gate(gemini, report, gate, read_text, on_sheet, now, thresholds, budget)
+    mains = [v for v in mains if v.id not in report.conditions_done]
+    if mains:
+        _run_main(gemini, report, mains, read_text, existing_riders, now, thresholds, budget)
 
     # 같은 ID로 내용까지 같은 행이 두 번 나왔으면 하나만 남긴다. 내용이 다르면 어느 쪽이 맞는지 알 수 없어 아래 검사에서 걸린다.
     for tab in report.rows:
@@ -232,7 +249,7 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
         tally.finish(report, [r for r in old_benefits if str(r["특약ID"]).startswith(heads)],
                      [r for r in report.rows["sys_급부"] if str(r["특약ID"]).startswith(heads)])
     report.errors = {tab: e for tab, rows in report.rows.items() if (e := check_rows(tab, rows))}
-    if report.errors or not (report.done or report.conditions_done or report.gate_done) or dry_run:
+    if report.errors or not (report.done or report.conditions_done or report.gate_done or report.main_done) or dry_run:
         return report
     try:
         if report.done:
@@ -253,6 +270,10 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
             store.replace_variants({"sys_가입조건": [r for r in report.rows["sys_가입조건"]
                                                   if r["종형ID"] in report.gate_conditions_done]},
                                    report.gate_conditions_done, only=["sys_가입조건"])
+        if report.main_done:
+            # 주계약 가입조건만 바꾼다. 가입조건 행이 나오지 않은 종형은 시트에 있던 가입조건을 그대로 둔다
+            store.replace_variants({"sys_가입조건": [r for r in report.rows["sys_가입조건"] if r["종형ID"] in report.main_done]},
+                                   report.main_done, only=["sys_가입조건"])
         store.append("sys_작업로그", report.logs)
     except Exception as e:  # noqa: BLE001  뽑은 결과는 호출한 쪽이 파일로 남길 수 있게 돌려준다
         report.write_error = f"{type(e).__name__}: {str(e)[:300]}"
@@ -314,6 +335,108 @@ def _run_gate(gemini: Any, report: Report, gate: list[variants.Variant], read_te
         s = got.stats
         report.gate_table.append(f"| {name} | {len(group)} | {s['항목']} | {s['확정']} | {s['검토']} | {s['제외']} "
                                  f"| {s['가입조건 행']} |")
+
+
+def scopes_of(v: variants.Variant) -> list[str]:
+    """사업방법서 가입나이 절의 종별 항목 가운데 이 종형을 가리킬 이름 후보. 종형명 앞의 종 번호("8종"), 심사유형의 고지 이름 순서."""
+    out = []
+    head = re.match(r"\d+종", str(v.row["종형명"]).replace(" ", ""))
+    if head:
+        out.append(head.group(0))
+    if SCOPE_WORDS.get(v.row["심사유형"]):
+        out.append(SCOPE_WORDS[v.row["심사유형"]])
+    return out
+
+
+def _run_main(gemini: Any, report: Report, mains: list[variants.Variant], read_text: Callable[[str], str | None],
+              rider_rows: list[dict[str, Any]], now: datetime, thresholds: dict[str, float], budget: dict[str, int]) -> None:
+    """시트에 특약 행이 있는 종형의 주계약 가입나이와 가입한도만 뽑는다. 종형 행과 특약 행은 쓰지 않는다.
+
+    주계약은 시트의 그 종형 특약 가운데 담보구분이 주계약인 행이다(관문 계산의 site/model.py main_rider와 같다). 가입조건 행의
+    특약ID는 비워 두고(주계약 행), 이름은 그 주계약 행의 이름과 기본계약 표의 계약 이름으로도 찾는다(conditions.Target.aliases).
+    사업방법서의 가입나이 절이 종별 항목으로 나뉘어 있으면 scopes_of의 이름으로 항목을 고르고, 그 항목의 기본계약 표만 모델에 넣는다
+    (conditions.main_section). 같은 사업방법서와 같은 항목을 쓰는 종형끼리 묶어 한 번만 뽑는다. 결합제약 절은 뽑지 않는다.
+    갱신 주기를 정해 둔 갱신형 종형은 그 주기와 같은 보험기간의 행만 쓴다(_fixed_term).
+    가입한도를 읽어도 sys_특약의 최소·최대 가입금액은 바꾸지 않는다. 나이 구간 한도는 가입조건 행의 구간최대가입금액만원에 들어간다.
+    """
+    groups: dict[tuple[Any, str | None], list[tuple[variants.Variant, dict[str, Any]]]] = {}
+    pages_of: dict[str, dict[int, str] | None] = {}
+    for v in mains:
+        label = f"{v.row['공시상품명']} {v.row['종형명']}"
+        main = next((r for r in rider_rows if r["종형ID"] == v.id and r["담보구분"] == "주계약"), None)
+        if main is None:
+            report.notes.append(f"{label}: 시트에 주계약 행이 없어 주계약 가입조건을 뽑지 않음. 급부부터 적재해야 함")
+            continue
+        if not v.method:
+            report.notes.append(f"{label}: 공시 수집 결과에 사업방법서가 없어 주계약 가입조건을 뽑지 않음")
+            continue
+        stem = v.method["저장이름"]
+        if stem not in pages_of:
+            text = read_text(stem)
+            pages_of[stem] = pages_from_text(text) if text else None
+        pages = pages_of[stem]
+        if not pages:
+            report.notes.append(f"{label}: 사업방법서 글자 파일이 없어 주계약 가입조건을 뽑지 않음")
+            continue
+        heads = C.age_items(pages)
+        scope = next((s for s in scopes_of(v) if any(C.names_scope(h, s) for h in heads)), None)
+        if heads and scope is None:
+            report.notes.append(f"{label}: 가입나이 절의 종별 항목({', '.join(heads)}) 가운데 이 종형의 항목을 찾지 못해 "
+                                "주계약 가입조건을 뽑지 않음")
+            continue
+        groups.setdefault((v.method.get("해시") or stem, scope), []).append((v, main))
+    for (_, scope), group in groups.items():
+        first = group[0][0]
+        name = f"{first.row['공시상품명']}(주계약{', ' + scope if scope else ''})"
+        group_ids = {v.id for v, _ in group}
+        summary_text = read_text(first.summary["저장이름"]) if first.summary else None
+        goals = [C.target_of(v.id, v.row["종형명"], [main]) for v, main in group]
+        got = conditions_run.run(gemini, pages_of[first.method["저장이름"]],
+                                 pages_from_text(summary_text) if summary_text else None, goals, now, thresholds, budget,
+                                 kinds=GATE_KINDS, scope=scope, main_only=True)
+        report.logs += got.logs
+        skipped = [n for n in got.notes if n.endswith(_NOT_LISTED)]
+        report.notes += [f"{name}: {n}" for n in got.notes if not n.endswith(_NOT_LISTED)]
+        if skipped:
+            report.notes.append(f"{name}: 주계약 가입조건만 뽑으므로 특약 {len(skipped)}개의 항목은 행으로 만들지 않음")
+        report.review += [f"- {name} · {line[2:]}" for line in got.review]
+        rows = _fixed_term(got.conditions, [v for v, _ in group], report, name)
+        if not rows:
+            report.notes.append(f"{name}: 가입조건을 뽑지 못해 기존 행을 그대로 둠")
+            continue
+        if got.amounts:
+            report.notes.append(f"{name}: 주계약 가입 한도를 읽었지만 이 부분은 sys_특약을 바꾸지 않음. 나이 구간 한도만 가입조건 행에 씀")
+        report.rows["sys_가입조건"] += rows
+        report.main_done |= {r["종형ID"] for r in rows} & group_ids
+        missing = [v.row["종형명"] for v, _ in group if v.id not in report.main_done]
+        if missing:
+            report.notes.append(f"{name}: {', '.join(missing)}은(는) 가입조건 행이 나오지 않아 시트에 있던 가입조건을 그대로 둠")
+        s = got.stats
+        report.main_table.append(f"| {name} | {len(group)} | {s['항목']} | {s['확정']} | {s['검토']} | {s['제외']} | {len(rows)} |")
+
+
+def _fixed_term(rows: list[dict[str, Any]], group: list[variants.Variant], report: Report, name: str) -> list[dict[str, Any]]:
+    """갱신 주기를 정해 둔 갱신형 종형은 보험기간이 그 주기("20년")인 행만 남긴다. 그런 행이 없으면 모두 남기고 주의를 적는다.
+
+    문서가 기본계약 보험기간을 여럿(10, 15, 20, 30년) 두고 고르게 해도, 종형은 갱신주기년 하나로 정해 두었다(data/targets의 근거).
+    다른 보험기간의 가입나이까지 넣으면 그 주기로는 가입할 수 없는 나이가 열린 것으로 보인다.
+    """
+    out: list[dict[str, Any]] = []
+    dropped = 0
+    for v in group:
+        mine = [r for r in rows if r["종형ID"] == v.id]
+        years = v.row["갱신주기년"] if v.row["갱신유형"] == "갱신" else None
+        if years:
+            same = [r for r in mine if re.match(rf"{years}년(?!납)", str(r["보험기간구분"] or "").replace(" ", ""))]
+            if same:
+                dropped += len(mine) - len(same)
+                mine = same
+            elif mine:
+                report.notes.append(f"{name}: {v.row['종형명']}은(는) 갱신 주기 {years}년과 같은 보험기간의 행이 없어 뽑은 행을 모두 씀")
+        out += mine
+    if dropped:
+        report.notes.append(f"{name}: 갱신 주기를 정해 둔 종형이라 보험기간이 그 주기와 다른 행 {dropped}개는 쓰지 않음")
+    return out
 
 
 def _held(result: pipeline.Result) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:

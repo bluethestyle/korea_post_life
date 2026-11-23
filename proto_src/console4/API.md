@@ -7,13 +7,18 @@
 - 탭마다 자기 파일만 고친다: 탭 2 `tab2.js`(+`tab2.css`), 탭 3 `tab3.js`(+`tab3.css`), 탭 4 `tab4.js`(+`tab4.css`), 탭 5 `tab5.js`(+`tab5.css`). `tabN.css`는 새로 만들면 build가 알아서 넣는다.
 - `core.js`, `style.css`, `tpl.html`, `tab1.*`, `build.py`는 고치지 않는다. 공통 부품이 모자라면 탭 파일 안에 만들고, 공통으로 올릴 것은 보고에 적는다. (2026-11-20 보완 때 공통 부품을 이 규약대로 올렸다: 표 행 ›, 구역 머리, 지금 조건 배지, 빨강 넓이, 고른 행 몸통, 쪽 표지, 근거 기둥의 `.evl`, `.kv`)
 - 탭 CSS의 선택자는 `#view-<탭id>` 아래로 가둔다(예: `#view-market .map{...}`). 공통 클래스 이름을 다시 정의하지 않는다.
-- 값과 문장은 `App.S`(sales.json)와 `App.D`(시안 3의 자료)에서 읽는다. 숫자와 판정을 화면에서 지어내지 않는다. 판정과 문장은 sales.json을 따른다(R10).
+- 값과 문장은 `App.S`(sales.json)와 `App.D`(d.json, 간편 세 등급 x 세 회사 비교 자료)에서 읽는다. 숫자와 판정을 화면에서 지어내지 않는다. 판정과 문장은 sales.json을 따른다(R10).
 - 탭 파일은 build가 `(function(){ 'use strict'; ... })()`로 감싼다. 전역 이름을 만들지 않는다.
 - 자리 표시 글("이 탭은 다음 단계에서 채운다")은 지운다. build가 남은 것을 경고한다.
 
 ## 2. 명령
 
 ```bash
+# 자료 다시 만들기(사본이 바뀌었을 때). sales.json, combo.json, gate.json, cover.json, d.json 과 tab3.js 의 자료 줄,
+# tab4.js 를 같은 사본으로 한 번에 쓴다. 손으로 쓴 코드(tab3.js 의 표식 밖, tab4.src.js)는 고치지 않는다
+python scripts/export_app_data.py
+# 탭 4 코드(tab4.src.js)만 고쳤을 때 tab4.js 다시 합치기
+python proto_src/console4/gen_cover.py --assemble
 # 합치기(검사 포함, 오류면 쓰지 않는다). 출력 경로를 주면 거기에 쓴다
 python proto_src/console4/build.py
 # 사진과 잰 값(흰 면, 빨강 넓이, 명암비, 가로 넘침, 콘솔 오류, 외부 요청). 둘째 인자는 이름 거르개
@@ -22,7 +27,7 @@ python proto_src/console4/shoot.py "" w1920
 
 `shoot.py`는 지금 브리핑 위주로 찍는다. 탭을 채우면 그 탭의 상태(고른 행, 좁은 화면의 판)를 찍는 줄을 `shoot.py`에 더해도 된다(이 파일은 함께 쓴다. 남의 줄은 지우지 않는다).
 
-build 검사: 손으로 쓴 원본에 외부 주소(http, https, //, @import), 가운뎃점 나열(표식 문구 "내부 교육·비교 참고용(대외 배포 금지)"만 예외), 엠대시, "판올림", "됨", "준비 중"이 있으면 멈춘다. 합친 파일에 외부 요청(src, href, url()의 바깥 주소, link 태그)이 있거나 noindex 메타 태그가 없으면 멈춘다. 글꼴(PLKo)에 없는 한글은 경고한다.
+build 검사: 손으로 쓴 원본에 외부 주소(http, https, //, @import), 가운뎃점 나열(표식 문구 "내부 교육·비교 참고용(대외 배포 금지)"만 예외), 엠대시, "판올림", "됨", "준비 중"이 있으면 멈춘다. 합친 파일에 외부 요청(src, href, url()의 바깥 주소, link 태그)이 있거나 noindex 메타 태그가 없으면 멈춘다. d.json 이 없거나 자료 파일들(sales.json, combo.json, gate.json, tab4.js, d.json)의 자료 시각이 서로 다르면 멈춘다(`python scripts/export_app_data.py`로 다시 만든다). build 는 `tab4.js`를 실으므로, `tab4.js`가 cover.json 과 `tab4.src.js`를 합친 것과 다르면 멈춘다(`python proto_src/console4/gen_cover.py --assemble`로 다시 합친다). 글꼴(PLKo)에 없는 한글은 경고한다.
 
 ## 3. 탭 등록
 
@@ -47,7 +52,7 @@ App.registerTab({
 
 | 이름 | 뜻 |
 | --- | --- |
-| `S`, `D` | sales.json 전체, 시안 3의 `const D` |
+| `S`, `D` | sales.json 전체, d.json 전체(`const D`) |
 | `st` | 상태 복사본(아래 표) |
 | `changed` | 이번에 바뀐 상태 이름의 Set (`age`, `sex`, `since`, `surg`, `base`, `renewal`, `tab`) |
 | `baseId`, `base`, `baseInfo` | 기준 종형 ID, `S.기준별[baseId]`, `S.종형[baseId]` |
@@ -229,5 +234,6 @@ App.registerTab((function () {
 - `S.포인트[ID]`: `분류`, `세부`, `문장`(본문용 분석 문장), `카드질문`과 `카드답`(응대 카드 미리 보기 안에서만), `머리말`(`S.글`의 번호), `근거`, `원문대조`, `원문대조글`, `목적`.
 - `S.지도[전체|갱신|비갱신]`: 남성 기준만 있다. 여성이면 `ctx.seg.sexNote`를 보인다. 칸: `라벨`, `보조`, `닫힌사유`, `회사`(회사별 관문 상태), `대표`, `상대대표`, `분류수`, `자료없음`, `열린종형`, `관문기준`, `관문포인트`.
 - `S.한도표`, `S.개정변동`, `S.시장소식`(`인용안내`를 함께 보인다), `S.목적`(화면 이름 "암", "3대 질병", "입원과 수술", "보장 대분류 기준"), `S.분류`, `S.카드분류차례`, `S.라벨`.
-- `App.D`: 시안 3의 자료(담보 비교표와 관계 그림). 로직은 시안 3(`site/proto/console3.html`)에서 가져왔다. 판정과 문장은 sales.json 을 따른다.
+- `App.D`: d.json(간편 3.1.5, 3.2.5, 3.5.5 세 등급 x 세 회사 종형의 비교 자료). `scripts/export_app_data.py`가 사본에서 만들고(계산은 `src/postlife/site/lineup.py`), build 가 `const D = <d.json>;`으로 싣는다. d.json 이 없으면 build 가 멈춘다. 지금 읽는 곳은 회사 짧은 이름(`orgs`, core)뿐이다. 탭 2의 개정 변동 근거(보장대분류와 급부유형)는 `S.표준담보`를, 담보 비교표와 관계 그림은 `CV`(cover.json)를 읽는다. 판정과 문장은 sales.json 을 따른다.
+- 자료 파일의 열쇠와 꼴은 `tests/test_console4_data.py`가 본다(사본으로 새로 만든 자료와 커밋된 자료 파일 둘 다. 커밋된 자료의 자료 시각이 사본과 같으면 바이트까지 같아야 하고, 사본이 더 새것이면 그 시험은 건너뛰며 다시 만들라고 알린다). 합친 결과가 커밋된 `site/proto/console4.html`과 같은지는 `tests/test_console4_build.py`가 본다.
 - 기준별 값과 문장은 대표 조건(`S.기준조건`, 50세 남성, 이력 없음)으로 계산한 값이다. 조건을 바꿔도 그대로인 값에는 왜 그대로인지 적는다(R11, 브리핑의 안내 줄 참고).

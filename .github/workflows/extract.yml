@@ -1,13 +1,14 @@
 name: 추출·검증
 
 # 공시 문서를 받아 종형·특약·급부와 가입조건·결합 제약을 뽑고, 검증을 거쳐 시트에 쓴다. 원본 PDF는 저장소에도 결과물에도 남기지 않는다.
-# samsungfire(삼성화재)는 모델을 부르지 않는다. 요약서의 급부 표를 규칙으로 읽고 대조 자료와의 교차 확인으로 판정해 급부만 쓴다
-# (scripts/load_table_product.py). parts 입력은 쓰지 않는다.
+# samsungfire(삼성화재)의 급부는 모델을 부르지 않는다. 요약서의 급부 표를 규칙으로 읽고 대조 자료와의 교차 확인으로 판정해 쓴다
+# (scripts/load_table_product.py). parts에 가입조건을 주면 시트에 있는 주계약의 가입나이와 가입한도만 모델로 뽑아 sys_가입조건만 바꾼다
+# (extract_product.py --parts 주계약가입조건). parts를 비우면 급부만 돈다.
 on:
   workflow_dispatch:
     inputs:
       org:
-        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재, 표 규칙과 교차 확인으로 급부만)"
+        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재, 급부는 표 규칙과 교차 확인, 가입조건은 주계약만)"
         type: choice
         options: [epost, hanwha, samsungfire]
         default: epost
@@ -15,7 +16,7 @@ on:
         description: "이 공시상품코드만 처리 (여러 개면 공백으로 구분). 비우면 전체"
         required: false
       parts:
-        description: "돌릴 부분: 급부,가입조건,관문 (비우면 모두). 가입조건만 돌리면 시트의 특약을 기준으로 뽑는다. 관문만 돌리면 관문전용 종형의 종형 행과 주계약 가입조건만 쓴다(급부는 다시 뽑지 않는다)"
+        description: "돌릴 부분: 급부,가입조건,관문 (비우면 모두. samsungfire는 비우면 급부만). 가입조건만 돌리면 시트의 특약을 기준으로 뽑는다(samsungfire는 주계약 가입조건만). 관문만 돌리면 관문전용 종형의 종형 행과 주계약 가입조건만 쓴다(급부는 다시 뽑지 않는다)"
         required: false
       dry_run:
         description: "시트에 쓰지 않고 흐름만 확인"
@@ -68,7 +69,18 @@ jobs:
           for code in $INPUT_ONLY; do args+=(--only "$code"); done
           if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           if [ "$INPUT_ORG" = "samsungfire" ]; then
-            python scripts/load_table_product.py --docs out --targets data/targets/samsungfire.json --result result/extract.json "${args[@]}"
+            parts=",${INPUT_PARTS// /},"
+            if [ "$parts" = ",," ]; then parts=",급부,"; fi
+            ran=0
+            if [[ "$parts" == *",급부,"* ]]; then
+              python scripts/load_table_product.py --docs out --targets data/targets/samsungfire.json --result result/extract.json "${args[@]}"
+              ran=1
+            fi
+            if [[ "$parts" == *",가입조건,"* ]]; then
+              python scripts/extract_product.py --docs out --targets data/targets/samsungfire.json --parts 주계약가입조건 --result result/conditions.json "${args[@]}"
+              ran=1
+            fi
+            if [ "$ran" = 0 ]; then echo "samsungfire에서 돌릴 수 있는 부분은 급부, 가입조건입니다: $INPUT_PARTS"; exit 1; fi
           else
             if [ -n "$INPUT_PARTS" ]; then args+=(--parts "$INPUT_PARTS"); fi
             python scripts/extract_product.py --docs out --targets "data/targets/$INPUT_ORG.json" --result result/extract.json "${args[@]}"

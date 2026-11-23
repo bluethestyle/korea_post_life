@@ -1,11 +1,11 @@
 """가입조건·결합 제약 추출의 전체 흐름: 절 찾기 → 추출 → 코드 대조 → 판정 → 재추출 → 행 만들기."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Any
 
-from .. import config
+from .. import config, ids
 from ..gemini import GeminiError
 from ..worklog import WorkLog
 from . import conditions as C
@@ -116,15 +116,31 @@ KINDS = ("가입나이", "가입한도", "결합제약")
 
 def run(gemini: Any, method_pages: dict[int, str], summary_pages: dict[int, str] | None, targets: list[C.Target],
         now: datetime, thresholds: dict[str, float], budget: dict[str, int] | None = None,
-        kinds: tuple[str, ...] = KINDS) -> Result:
+        kinds: tuple[str, ...] = KINDS, scope: str | None = None, main_only: bool = False) -> Result:
     """사업방법서 한 건(과 그 요약서의 자격요건 절)을 처리한다. targets는 이 문서를 함께 쓰는 종형들.
 
     kinds: 뽑을 절의 종류. 관문전용 종형은 주계약만 두므로 가입나이와 가입한도만 뽑는다(결합제약 절은 모델을 부르지 않는다).
+    scope: 절이 종별 항목("가. 간편고지", "라. 8종")으로 나뉜 문서에서 볼 항목의 이름(conditions.method_sections).
+    main_only: 가입나이 절에서 기본계약 줄만 남긴다(conditions.main_section). 특약 줄이 수백 개인 표(삼성화재)에서 주계약 가입조건만
+    뽑을 때 쓴다. 기본계약 표를 찾지 못하면 가입나이 절을 뽑지 않는다(특약 줄까지 든 큰 절을 모델에 넣지 않는다).
     """
     budget = budget if budget is not None else {"상위모델": 0}
     result = Result()
     # 여러 가입유형을 한 표에 담은 문서(가입최고나이 표)는 대상 종형의 줄 묶음만 남긴다. 그런 표가 없는 문서는 절이 그대로다
-    sections = C.method_sections(method_pages, types=[t.variant_name for t in targets])
+    sections = C.method_sections(method_pages, scope=scope, types=[t.variant_name for t in targets])
+    found = set(sections)
+    if main_only and "가입나이" in sections and "가입나이" in kinds:
+        main = C.main_section(method_pages, scope)
+        if main:
+            sections["가입나이"] = main
+            # 기본계약 표의 계약 이름도 주계약으로 찾는다. 급부 표에서 읽은 주계약 이름과 글자가 다를 수 있다
+            alias = C.main_name(main)
+            if alias:
+                key = ids.rider_lineage_key(alias)
+                targets = [replace(t, aliases=t.aliases | {key}) for t in targets]
+        else:
+            del sections["가입나이"]
+            result.notes.append("가입나이 절에서 기본계약 표를 찾지 못해 가입나이를 뽑지 않음")
     anchor = targets[0].variant_id
     logs = {tab: WorkLog(now, tab) for tab in ("sys_가입조건", "sys_결합제약")}
 
@@ -138,7 +154,7 @@ def run(gemini: Any, method_pages: dict[int, str], summary_pages: dict[int, str]
             jobs.append((kind, kind, sections[kind]))
         elif kind == "가입한도" and summary_limits:
             jobs.append((kind, "가입한도(요약서)", summary_limits))
-        else:
+        elif not (kind == "가입나이" and main_only and "가입나이" in found):
             result.notes.append(f"사업방법서에서 {kind} 절을 찾지 못함")
     # 제약은 사업방법서의 가입한도·특약부가 절과 요약서의 자격요건 절에 흩어져 있다
     rule_parts = [sections[k] for k in ("가입한도", "특약부가") if k in sections] if "결합제약" in kinds else []

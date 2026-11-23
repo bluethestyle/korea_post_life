@@ -16,7 +16,7 @@
 시안 4
 
 - `site/proto/console4.html`(2,251,386바이트)을 올렸습니다. 원본은 저장소의 `proto_src/console4/`(규약은 `API.md`), 글꼴 묶음은 `proto_src/fonts/fonts_v4.css`입니다. 옮긴 원본으로 합친 결과가 올라간 파일과 바이트까지 같습니다.
-- 자료를 다시 뜨는 순서(사본이 바뀌었을 때): `python scripts/dev/export_sales.py --snapshot data/snapshot --out proto_src/console4/sales.json`, `python proto_src/console4/build_combo.py`, `python proto_src/console4/gen_cover.py`, `python proto_src/console4/gen_cover.py --assemble`, `python proto_src/console4/build.py`.
+- 자료를 다시 뜨는 순서(사본이 바뀌었을 때): `python scripts/export_app_data.py`(sales.json, combo.json, gate.json, cover.json, d.json 과 tab3.js 의 자료 줄, tab4.js 를 같은 사본으로 한 번에), 그다음 `python proto_src/console4/build.py`. `const D`도 이제 d.json 으로 지금 사본에서 만들고(`src/postlife/site/lineup.py`), 옛 시안(`site/proto/console.html`)에서 가져오지 않습니다. 자료 시각이 서로 다르거나, d.json 이 없거나, `tab4.js`가 cover.json 과 `tab4.src.js`를 합친 것과 다르면(`tab4.src.js`만 고치고 `python proto_src/console4/gen_cover.py --assemble`을 잊었을 때) build 가 멈춥니다. 다시 합친 결과가 커밋된 파일과 다르면 `tests/test_console4_build.py`가, 커밋된 자료 파일이 규약에 맞지 않거나 같은 자료 시각의 사본으로 새로 만든 것과 다르면 `tests/test_console4_data.py`가 깨집니다(주간 사본이 들어와 사본이 더 새것이면 그 비교만 건너뛰고 다시 만들라고 알립니다).
 - 스타일 합의안은 `docs/proposals/게임UI_기준표.md` 10절에 있습니다.
 - 알려진 것은 `docs/gemini_requests/20_이어받기_개발_Antigravity.md`의 2번 일에 적었습니다(브리핑 다섯째 줄이 1920x1080 첫 화면을 넘어감, 관문만 수집한 종형의 표시와 주석 넷이 화면에 없음, 용어 풀이).
 - 아직 하지 않은 것: 카본의 사진 비평, 운영 화면(`src/postlife/site/`)에 이 스타일 입히기.

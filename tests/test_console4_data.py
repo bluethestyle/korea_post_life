@@ -1,0 +1,464 @@
+"""시안 4(proto_src/console4) 화면 자료의 규약: 실제 사본으로 만든 자료 파일의 열쇠, 형, 서로 가리키는 ID.
+
+화면 코드(core.js, tab1~5.js)가 읽는 열쇠를 적었다. 규약은 "적어도 이 열쇠가 이 형으로 있다"이다. 열쇠가 지워지거나
+형이 바뀌면(뜻이 바뀌면) 깨지고, 열쇠나 뒤 자리를 더하는 것은 통과한다. 규약은 두 자료에 똑같이 건다.
+- export: scripts/export_app_data.py 와 같은 길(console4.export_texts)로 사본에서 메모리에 새로 만든 자료(내보내기 코드의 규약)
+- committed: 저장소에 커밋된 자료 파일(proto_src/console4 의 sales.json, tab3.js, tab4.js, d.json 등. build 가 싣는 것)
+커밋된 자료의 자료 시각이 사본과 같으면 새로 만든 것과 바이트까지 같아야 한다. 사본이 더 새것이면(주간 사본이 들어온 뒤)
+그 시험만 건너뛰고 다시 만들라고 알린다. 합친 결과는 test_console4_build.py 가 본다.
+"""
+from __future__ import annotations
+
+import copy
+import importlib.util
+import json
+import re
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+
+from postlife.site import console4 as C4
+from postlife.site import lineup
+from postlife.site.model import load
+
+ROOT = Path(__file__).resolve().parents[1]
+SNAPSHOT = ROOT / "data" / "snapshot"
+SRC = ROOT / "proto_src" / "console4"
+
+pytestmark = pytest.mark.skipif(not (SNAPSHOT / "meta.json").exists(), reason="실제 사본(data/snapshot)이 없다")
+
+
+# ---------- 규약 검사기 ----------
+NUM = "num"           # int 나 float(bool 은 아님)
+ANY = "any"           # 있기만 하면 된다
+
+
+class Opt:
+    """None 이거나 spec."""
+
+    def __init__(self, spec):
+        self.spec = spec
+
+
+class Seq:
+    """목록. 항목마다 spec."""
+
+    def __init__(self, spec):
+        self.spec = spec
+
+
+class Map:
+    """ID(또는 이름) 사전. 값마다 spec."""
+
+    def __init__(self, spec):
+        self.spec = spec
+
+
+class Pos:
+    """자리로 읽는 짧은 목록. 앞 자리마다 spec. 뒤에 자리를 더하는 것은 괜찮다."""
+
+    def __init__(self, *specs):
+        self.specs = specs
+
+
+class One:
+    """spec 여럿 가운데 하나."""
+
+    def __init__(self, *specs):
+        self.specs = specs
+
+
+def check(v, spec, path: str = "$") -> list[str]:
+    if spec is ANY:
+        return []
+    if spec is None:
+        return [] if v is None else [f"{path}: null 이어야 한다({type(v).__name__})"]
+    if isinstance(spec, Opt):
+        return [] if v is None else check(v, spec.spec, path)
+    if isinstance(spec, One):
+        errs = [check(v, s, path) for s in spec.specs]
+        return [] if any(not e for e in errs) else [f"{path}: 어느 꼴에도 맞지 않는다({errs[0][0]})"]
+    if spec == NUM:
+        ok = isinstance(v, (int, float)) and not isinstance(v, bool)
+        return [] if ok else [f"{path}: 수가 아니다({type(v).__name__})"]
+    if isinstance(spec, type):
+        ok = isinstance(v, spec) and not (spec is int and isinstance(v, bool))
+        return [] if ok else [f"{path}: {spec.__name__} 가 아니다({type(v).__name__})"]
+    if isinstance(spec, dict):
+        if not isinstance(v, dict):
+            return [f"{path}: dict 가 아니다({type(v).__name__})"]
+        errs = []
+        for k, sub in spec.items():
+            if k not in v:
+                errs.append(f"{path}: 열쇠 {k!r} 가 없다")
+            else:
+                errs += check(v[k], sub, f"{path}.{k}")
+        return errs
+    if isinstance(spec, Seq):
+        if not isinstance(v, list):
+            return [f"{path}: list 가 아니다({type(v).__name__})"]
+        return [e for i, x in enumerate(v) for e in check(x, spec.spec, f"{path}[{i}]")]
+    if isinstance(spec, Map):
+        if not isinstance(v, dict):
+            return [f"{path}: dict 가 아니다({type(v).__name__})"]
+        return [e for k, x in v.items() for e in check(x, spec.spec, f"{path}[{k!r}]")]
+    if isinstance(spec, Pos):
+        if not isinstance(v, list) or len(v) < len(spec.specs):
+            return [f"{path}: 자리 {len(spec.specs)}개 이상인 list 가 아니다"]
+        return [e for i, s in enumerate(spec.specs) for e in check(v[i], s, f"{path}[{i}]")]
+    raise TypeError(f"모르는 spec: {spec!r}")
+
+
+# ---------- sales.json (App.S) ----------
+EVIDENCE = {"종형ID": str, "문서": Opt(str)}
+POINT = {
+    "포인트ID": str, "분류": str, "세부": str, "세부이름": str, "표준담보ID": Opt(str), "문장": str,
+    "카드질문": Opt(str), "카드답": str, "머리말": int, "회사수": int, "비교종형ID": Seq(str), "근거": Seq(EVIDENCE),
+    "목적": Seq(str), "구조다름": bool, "원문대조": bool, "원문대조글": Opt(str), "브리핑": bool, "점수": Opt(NUM),
+}
+BASE = {
+    "맞붙는종형": Seq(str),
+    "범위": {"상대": Seq({"종형ID": str, "머리말": int, "구조다름": bool}), "회사수": int, "머리말": int,
+             "비교쌍": int, "뺀비교쌍": int, "뺀시사점": int, "문장": str},
+    "관문": {"질문": str, "나이": str, "상태": str, "한도만원": Opt(NUM)},
+    "포인트": Seq(str),
+    "분류집계": Map(int),
+    "세부집계": Map(int),
+    "먼저": {"브리핑": Seq(str), "카드": Seq(str)},
+    "뺀포인트": Seq({"분류": str, "세부": str, "표준담보ID": Opt(str), "비교종형ID": Seq(str), "사유": str}),
+    "단정주의": Seq({"종류": str, "표준담보ID": str, "담보": str, "상대종형ID": Seq(str), "대표밖줄": dict, "문장": str,
+                    "머리말": int, "근거": Seq(EVIDENCE)}),
+    "개정검토": Seq({"대분류": str, "중분류": str, "담보수": int, "좁은담보만수": int,
+                    "담보": Seq({"표준담보ID": str, "담보": str, "급부유형": str, "가진상대수": int, "가진상대": Seq(str),
+                                 "가진종형ID": Seq(str), "우리상태": str, "좁은담보": list, "점수": Opt(NUM),
+                                 "포인트ID": Opt(str)})}),
+    "치료여정": {"행": Seq(str), "열": Seq(str),
+                 "종형": Seq({"종형ID": str, "이름": str, "칸": Map(Map(int)), "담보": Map(Map(Seq(str))), "합계": dict})},
+    "보류요약": {"맞붙는종형": Seq(str), "공통담보쌍": int, "뺀쌍": int, "견준쌍": int, "사유별": dict,
+                 "대분류": Seq({"대분류": str, "공통담보쌍": int, "뺀쌍": int, "견준쌍": int, "상대별": dict})},
+    "브리핑": Seq({"줄": str, "범위": str, "값": dict, "문장": str, "갈곳": str, "틀": Seq(str)}),
+}
+MAP_CELL = {
+    "라벨": str, "보조": Opt(str), "닫힌사유": list, "회사": Map(str), "대표": Opt(str), "상대대표": Map(Opt(str)),
+    "분류수": Map(Opt(int)), "자료없음": list, "열린종형": Map(Seq(str)), "관문기준": Opt(str), "관문포인트": Seq(str),
+    "관문만수집": Seq({"기관코드": str, "종형ID": str, "이름": str, "안내": str}),
+}
+SEG_MAP = {"성별": str, "갱신유형": Opt(str), "행": Seq({"종류": str, "since": Opt(NUM), "이름": str}),
+           "열": Seq({"lo": int, "hi": int}), "칸": Seq(Seq(MAP_CELL)), "라벨별": Map(int)}
+LIMIT_STEP = {"lo": int, "hi": int, "max": Opt(NUM), "pend": ANY}
+SALES = {
+    "형식": int, "자료시각": str, "고지": str,
+    "기준조건": {"나이": int, "성별": str, "이력": Opt(NUM)},
+    "탭": Seq(str), "분류": Seq(str), "카드분류차례": Seq(str), "라벨": Seq(str),
+    "목적": Seq({"이름": str, "기준": str, "값": Seq(str)}),
+    "기준종형": Seq({"종형ID": str, "이름": str, "심사": str, "간편고지약칭": Opt(str), "갱신": Opt(str), "환급": Opt(str)}),
+    "종형": Map({"회사": str, "기관코드": str, "종형명": str, "이름": str, "전체이름": str, "심사": str,
+                 "간편고지약칭": Opt(str), "갱신": Opt(str), "환급": Opt(str), "적용시작일": Opt(str)}),
+    "표준담보": Map({"이름": str, "대분류": str, "중분류": str, "급부유형": str}),
+    "기준별": Map(BASE),
+    "지도": {"전체": SEG_MAP, "갱신": SEG_MAP, "비갱신": SEG_MAP},
+    "주석": Seq({"열쇠": str, "탭": Seq(str), "글": str, "출처": str}),
+    "한도표": Seq({"종형ID": str, "이름": str, "심사": str, "간편고지약칭": Opt(str), "갱신": Opt(str), "환급": Opt(str),
+                  "성별같음": bool, "구간": {"M": Seq(LIMIT_STEP), "F": Seq(LIMIT_STEP)}}),
+    "개정변동": {"짝": Seq({"전": str, "후": str, "신설": int, "변경": int, "종료": int}),
+                 "담보": Seq({"열쇠": str, "담보": str, "종류": str, "항목": Seq(str), "종형ID": Seq(str)}),
+                 "수": {"신설": int, "변경": int, "종료": int, "전체": int}, "관문변경": list, "가입나이변경": Seq(str)},
+    "시장소식": {"주차": str, "건수": int, "연결": int, "분류별": Map(int), "인용안내": str,
+                 "소식": Seq({"회사": str, "분류": str, "발표일자": str, "요약": str, "매체": str, "출처URL": str,
+                              "출처표시": str, "주의표현": list, "인용": bool, "표준담보ID": Seq(str)})},
+    "포인트": Map(POINT),
+    "글": Seq(str),
+}
+
+# ---------- tab3.js 의 자료 줄 (const T3) ----------
+T3 = {
+    "구성": {"P": Seq(str), "PB": Seq({"이름": str, "기준": str, "값": Seq(str)}),
+             "S": Map(Pos(str, str, str, str)),
+             "V": Map({"n": str, "m": Opt(str), "mn": Opt(str), "k": Pos(int, int, int), "K": Seq(list), "pk": Map(int),
+                       "L": Opt(dict), "R": Seq(Pos(str)), "U": Seq(Pos(int)), "B": Seq(Pos(str, ANY, int)),
+                       "X": Seq({"r": Seq(Pos(int, int, int)), "g": Seq(Pos(str, int, int, Opt(int))), "o": int}),
+                       "C": Map(Map(Seq(Pos(int, int, int))))})},
+    "관문": {"V": Seq(str), "ST": Seq(str), "Q": Seq(str), "A": Seq(str), "rule": dict,
+             "I": Map({"회사": str, "이름": str, "심사": str, "질문": dict, "가입나이": {"M": ANY, "F": ANY}, "관문전용": bool}),
+             "X": Seq({"s": Seq(Pos(int, int, int)), "라벨": str, "회사": Map(str), "닫힌사유": list}),
+             "C": Map(Seq(Pos(int, int, int)))},
+}
+
+# ---------- tab4.js 첫 줄 (const CV) ----------
+CV = {
+    "t": str,
+    "ben": Seq(Pos(str, int, str)),
+    "rid": Seq(Pos(str, str)),
+    "b": Map({"cols": Seq(str), "rows": Seq(Pos(str, Seq(One(int, dict)), Map(dict))), "pairs": int, "dropped": int}),
+}
+
+# ---------- d.json (const D) ----------
+D = {
+    "asOf": str,
+    "orgs": Seq({"code": str, "name": str, "short": str}),
+    "lineup": Map(Pos(str, str, str)), "defaultGrade": str,
+    "bands": Seq(Pos(int, int)), "stds": Seq(str),
+    "std": Map({"name": str, "group": str, "mid": str, "type": str, "unit": Opt(NUM)}),
+    "groups": Seq(str), "types": Seq(str), "compare": Seq(str), "pool": Seq(str),
+    "variants": Map({"org": str, "product": str, "name": str, "grade": Opt(str), "uw": str, "renew": Opt(str),
+                     "cycle": Opt(int), "start": Opt(str), "q": list, "ages": Seq(Pos(int, int)), "gap": Opt(dict)}),
+    "riders": Map({"name": str, "kind": Opt(str), "max": Opt(NUM), "renew": ANY, "cycle": Opt(int)}),
+    "benefits": Map({"tid": str, "name": str, "role": Opt(str), "base": Opt(NUM), "pay": Opt(NUM), "ratio": bool,
+                     "wait": NUM, "red": list, "limit": Opt(str), "exc": Opt(str), "doc": Opt(str), "page": Opt(NUM),
+                     "prob": Opt(NUM), "state": str, "pend": list}),
+    "cells": Map(Map({"ids": Seq(str), "n": int})),
+    "conds": Map(int),
+    "payloads": Seq({"pres": Map(str), "rep": Map(Map(Pos(str, Opt(NUM), int, int))), "verd": Map(Seq(str)),
+                     "ins": {"gap": Seq(str), "uniq": Seq(str), "skip": {"gap": int, "uniq": int, "diff": int},
+                             "diff": Seq({"sid": str, "t": Seq(str), "worse": int, "better": int, "mixed": int,
+                                          "alt": Seq(int)})}}),
+}
+
+
+# ---------- 자료 ----------
+REGEN = "python scripts/export_app_data.py 와 python proto_src/console4/build.py 로 다시 만든다"
+
+
+def unpack(texts: dict[str, str]) -> dict:
+    """자료 파일 일곱의 글을 화면이 읽는 꼴(S, T3, CV, D)로 푼다."""
+    t3 = json.loads(C4.tab3_data(texts["tab3.js"]))
+    first = texts["tab4.js"].split("\n", 1)[0]
+    assert first.startswith(C4.LINE_HEAD) and first.endswith(";"), "tab4.js 첫 줄이 const CV = {...}; 가 아니다"
+    return {"texts": texts, "S": json.loads(texts["sales.json"]), "T3": t3,
+            "CV": json.loads(first[len(C4.LINE_HEAD):-1]), "D": json.loads(texts["d.json"]),
+            "combo": json.loads(texts["combo.json"]), "gate": json.loads(texts["gate.json"])}
+
+
+def times_of(f: dict) -> dict[str, str]:
+    return {"sales.json": f["S"]["자료시각"], "combo.json": f["combo"]["자료시각"], "gate.json": f["gate"]["자료시각"],
+            "tab4.js": f["CV"]["t"], "d.json": f["D"]["asOf"]}
+
+
+@pytest.fixture(scope="module")
+def made():
+    data = load(SNAPSHOT)
+    out = unpack(C4.export_texts(data, SRC))
+    out["data"] = data
+    return out
+
+
+@pytest.fixture(scope="module")
+def committed():
+    missing = [n for n in C4.FILES if not (SRC / n).exists()]
+    if missing:
+        pytest.fail(f"커밋된 자료 파일 {', '.join(missing)} 이 없다. {REGEN}")
+    return unpack({n: (SRC / n).read_text(encoding="utf-8") for n in C4.FILES})
+
+
+@pytest.fixture(scope="module", params=["export", "committed"])
+def files(request):
+    """규약을 거는 자료: 사본으로 새로 만든 것과 커밋된 파일 둘 다."""
+    return request.getfixturevalue("made" if request.param == "export" else "committed")
+
+
+def test_checker_allows_added_keys_and_rejects_removed_or_retyped(made):
+    S = copy.deepcopy(made["S"])
+    assert check(S, SALES) == []
+    S["새열쇠"] = 1
+    next(iter(S["포인트"].values()))["새열쇠"] = [1]
+    S["기준종형"][0]["새열쇠"] = None
+    assert check(S, SALES) == [], "열쇠를 더하는 것은 통과해야 한다"
+    gone = copy.deepcopy(S)
+    del next(iter(gone["기준별"].values()))["치료여정"]
+    assert any("'치료여정' 가 없다" in e for e in check(gone, SALES))
+    retyped = copy.deepcopy(S)
+    next(iter(retyped["기준별"].values()))["포인트"] = "PT_x"
+    assert check(retyped, SALES)
+    flag = copy.deepcopy(S)
+    next(iter(flag["포인트"].values()))["회사수"] = True     # bool 은 수가 아니다
+    assert check(flag, SALES)
+    t = [["STD_X", [0], {}, []]]
+    assert check(t, Seq(Pos(str, Seq(One(int, dict)), Map(dict)))) == [] and check([["STD_X"]], Seq(Pos(str, list, dict)))
+
+
+def test_files_and_hand_written_code_untouched(made):
+    texts = made["texts"]
+    assert set(texts) == set(C4.FILES)
+    src3 = (SRC / "tab3.js").read_text(encoding="utf-8")
+    a, b = src3.find(C4.MARK_A), src3.find(C4.MARK_B)
+    out3 = texts["tab3.js"]
+    assert out3.startswith(src3[:a + len(C4.MARK_A)]) and out3.endswith(src3[b:]), "tab3.js 의 표식 밖이 바뀌었다"
+    src4 = (SRC / "tab4.src.js").read_text(encoding="utf-8")
+    assert texts["tab4.js"] == C4.LINE_HEAD + texts["cover.json"] + ";\n" + src4
+    # 자료 글이 script 를 닫거나 build 의 글 검사에 걸리지 않는다
+    assert "</" not in C4.tab3_data(out3) and "</" not in texts["cover.json"]
+    spec = importlib.util.spec_from_file_location("console4_build_for_test", SRC / "build.py")
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    for name in ("tab3.js", "tab4.js"):
+        build.check_authored(name, texts[name])
+    assert build.errors == []
+
+
+def test_same_snapshot_time(made):
+    t = made["data"].meta["snapshot_at"]
+    assert made["S"]["자료시각"] == made["combo"]["자료시각"] == made["gate"]["자료시각"] == t
+    assert made["CV"]["t"] == made["D"]["asOf"] == t
+
+
+def test_committed_files_match_snapshot(made, committed):
+    """커밋된 자료 파일이 커밋된 사본으로 새로 만든 것과 같은가(사본과 어긋난 자료를 페이지째 다시 합쳐 커밋하는 것을 막는다)."""
+    times = times_of(committed)
+    assert len(set(times.values())) == 1, f"커밋된 자료 파일의 자료 시각이 서로 다르다({times}). {REGEN}"
+    t, t_snap = next(iter(times.values())), made["data"].meta["snapshot_at"]
+    if t != t_snap:
+        assert datetime.fromisoformat(t) < datetime.fromisoformat(t_snap), \
+            f"커밋된 자료({t})가 커밋된 사본({t_snap})보다 새것이다. 커밋하지 않은 사본으로 만든 자료다. {REGEN}"
+        pytest.skip(f"사본({t_snap})이 커밋된 자료({t})보다 새것이다. 화면 자료를 {REGEN}")
+    stale = [n for n in C4.FILES if made["texts"][n] != committed["texts"][n]]
+    assert not stale, f"커밋된 {', '.join(stale)} 가 같은 자료 시각({t})의 사본으로 새로 만든 것과 다르다. {REGEN}"
+
+
+def test_sales_shape(files):
+    assert check(files["S"], SALES) == []
+
+
+def test_sales_ids(files):
+    S = files["S"]
+    kinds, stds, pts = S["종형"], S["표준담보"], S["포인트"]
+    bases = [b["종형ID"] for b in S["기준종형"]]
+    assert bases and set(bases) <= set(kinds) and set(bases) <= set(S["기준별"])
+    assert len(S["탭"]) == 5 and set(S["카드분류차례"]) == set(S["분류"])
+    purposes = {p["이름"] for p in S["목적"]}
+    for pid, p in pts.items():
+        assert p["포인트ID"] == pid
+        assert p["분류"] in S["분류"], pid
+        assert p["표준담보ID"] is None or p["표준담보ID"] in stds, pid
+        assert set(p["비교종형ID"]) <= set(kinds), pid
+        assert all(g["종형ID"] in kinds for g in p["근거"]), pid
+        assert 0 <= p["머리말"] < len(S["글"]), pid
+        assert set(p["목적"]) <= purposes, pid
+    for bid, b in S["기준별"].items():
+        assert set(b["맞붙는종형"]) <= set(kinds), bid
+        assert b["포인트"] and set(b["포인트"]) <= set(pts), bid
+        assert set(b["먼저"]["브리핑"]) <= set(pts) and set(b["먼저"]["카드"]) <= set(pts), bid
+        assert set(b["분류집계"]) <= set(S["분류"]), bid
+        assert [x["종형ID"] for x in b["범위"]["상대"]] == b["맞붙는종형"], bid
+        assert all(0 <= x["머리말"] < len(S["글"]) for x in b["범위"]["상대"]) and 0 <= b["범위"]["머리말"] < len(S["글"])
+        assert all(x["표준담보ID"] in stds for x in b["단정주의"]), bid
+        assert all(x["표준담보ID"] is None or x["표준담보ID"] in stds for x in b["뺀포인트"]), bid
+        for g in b["개정검토"]:
+            for x in g["담보"]:
+                assert x["표준담보ID"] in stds and (x["포인트ID"] is None or x["포인트ID"] in pts), bid
+                assert set(x["가진종형ID"]) <= set(kinds), bid
+        grid = b["치료여정"]
+        assert [x["종형ID"] for x in grid["종형"]] == [bid] + b["맞붙는종형"], bid
+        for x in grid["종형"]:
+            assert set(x["칸"]) == set(grid["행"]) and all(set(r) == set(grid["열"]) for r in x["칸"].values()), bid
+            assert {s for r in x["담보"].values() for ss in r.values() for s in ss} <= set(stds), bid
+        assert len(b["브리핑"]) == 5, bid
+    for name, m in S["지도"].items():
+        assert len(m["칸"]) == len(m["행"]) and all(len(line) == len(m["열"]) for line in m["칸"]), name
+        assert set(m["라벨별"]) <= set(S["라벨"]), name
+        for line in m["칸"]:
+            for c in line:
+                assert c["라벨"] in S["라벨"], name
+                assert c["대표"] is None or c["대표"] in kinds, name
+                assert set(c["관문포인트"]) <= set(pts), name
+                assert {v for vs in c["열린종형"].values() for v in vs} <= set(kinds), name
+                assert all(x["종형ID"] in kinds for x in c["관문만수집"]), name
+    assert all(x["종형ID"] in kinds for x in S["한도표"])
+    rev = S["개정변동"]
+    assert all(x["후"] in kinds for x in rev["짝"])
+    for x in rev["담보"]:
+        assert set(x["종형ID"]) <= set(kinds), x["열쇠"]
+        assert x["열쇠"] in stds or x["열쇠"].startswith("급부:"), x["열쇠"]
+    news = S["시장소식"]
+    assert news["건수"] == len(news["소식"]) == sum(news["분류별"].values())
+    assert all(set(n["표준담보ID"]) <= set(stds) for n in news["소식"])
+    assert S["고지"].strip()
+
+
+def test_tab3_shape_and_ids(files):
+    T, S = files["T3"], files["S"]
+    assert check(T, T3) == []
+    g = T["구성"]
+    assert g["P"] == [p["이름"] for p in S["목적"]]
+    assert list(g["V"]) == [b["종형ID"] for b in S["기준종형"]]
+    assert set(g["S"]) <= set(S["표준담보"])
+    for vid, v in g["V"].items():
+        for x in v["X"]:
+            assert all(r[0] < len(v["R"]) for r in x["r"]), vid
+            assert all(s[0] in g["S"] and (s[3] is None or s[3] < len(v["B"])) for s in x["g"]), vid
+        assert all(b[2] < len(v["R"]) for b in v["B"]), vid
+        assert set(v["C"]) <= set(g["P"]), vid
+        assert all(r[2] < len(v["X"]) and r[0] <= r[1] for per in v["C"].values() for rows in per.values() for r in rows), vid
+    q = T["관문"]
+    assert set(q["I"]) == set(q["V"]) and set(S["종형"]) & set(q["V"]) >= {b["종형ID"] for b in S["기준종형"]}
+    for x in q["X"]:
+        assert len(x["s"]) == len(q["V"])
+        assert all(s[0] < len(q["ST"]) and s[1] < len(q["Q"]) and s[2] < len(q["A"]) for s in x["s"])
+        assert x["라벨"] in S["라벨"]
+    assert all(r[2] < len(q["X"]) for rows in q["C"].values() for r in rows)
+
+
+def test_cover_shape_and_ids(files):
+    V, S = files["CV"], files["S"]
+    assert check(V, CV) == []
+    assert list(V["b"]) == [b["종형ID"] for b in S["기준종형"]]
+    assert all(b[1] < len(V["rid"]) for b in V["ben"])
+    for vid, b in V["b"].items():
+        assert b["cols"] == [vid] + S["기준별"][vid]["맞붙는종형"], vid
+        for row in b["rows"]:
+            sid, cells, prs = row[0], row[1], row[2]
+            assert sid in S["표준담보"], (vid, sid)
+            assert len(cells) == len(b["cols"]), (vid, sid)
+            for c in cells:
+                if isinstance(c, dict) and ("r" in c or "i" in c):
+                    assert c["r"] is None or c["r"] < len(V["ben"]), (vid, sid)
+                    assert all(i < len(V["ben"]) for i in c["i"]), (vid, sid)
+            assert set(prs) <= set(b["cols"][1:]), (vid, sid)
+
+
+def test_d_shape_and_ids(files):
+    d, S = files["D"], files["S"]
+    assert check(d, D) == []
+    assert set(lineup.KEYS) <= set(d)
+    codes = {o["code"] for o in d["orgs"]}
+    assert {v["기관코드"] for v in S["종형"].values()} <= codes, "core.js 의 회사 짧은 이름(ORG_SHORT)이 빠진다"
+    assert set(d["std"]) == set(d["stds"])
+    assert set(d["compare"]) <= set(d["pool"]) <= set(d["stds"])
+    assert d["defaultGrade"] in d["lineup"]
+    assert {v for vs in d["lineup"].values() for v in vs} == set(d["variants"]) == set(d["cells"])
+    assert all(v["org"] in codes for v in d["variants"].values())
+    want = {f"{g}|{i}|{s}" for g in d["lineup"] for i in range(len(d["bands"])) for s in ("M", "F")}
+    assert set(d["conds"]) == want and all(0 <= i < len(d["payloads"]) for i in d["conds"].values())
+    for p in d["payloads"]:
+        assert all(len(x) == len(d["stds"]) and set(x) <= set("nwuo") for x in p["pres"].values())
+        assert all(r[0] in d["benefits"] and sid in d["pool"] for reps in p["rep"].values() for sid, r in reps.items())
+        assert set(p["verd"]) == set(d["pool"])
+    assert all(set(c["ids"]) <= set(d["benefits"]) for cs in d["cells"].values() for c in cs.values())
+    assert all(b["tid"] in d["riders"] for b in d["benefits"].values())
+
+
+# 화면 코드에서 const D 를 읽는 곳: DD.열쇠(core.js), App.D.열쇠, ctx.D.열쇠, D['열쇠']. 따옴표 안의 "D." 는 뺀다
+SCREEN_JS = ["core.js", "tab1.js", "tab2.js", "tab3.js", "tab4.src.js", "tab5.js"]
+D_READ = re.compile(r"""(?<![\w$'"])DD?\s*(?:\.\s*([A-Za-z_$][\w$]*)|\[\s*['"]([^'"]+)['"]\s*\])""")
+
+
+def d_keys_read(text: str) -> set[str]:
+    return {a or b for a, b in D_READ.findall(text)}
+
+
+def test_screen_code_reads_only_d_keys_it_has(files):
+    """화면 코드가 const D 에서 읽는 최상위 열쇠가 규약(D)과 d.json 에 있다. 지금 읽는 곳은 core.js 의 orgs(회사 짧은
+    이름)뿐이다. 탭 2의 개정 변동 근거는 S.표준담보를, 담보 비교표와 관계 그림은 CV 를 읽는다."""
+    sample = ("if (DD && Array.isArray(DD.orgs)) a = ctx.D.std[k]; b = App.D['lineup']; "
+              "const c = { S, D: DD }; d = typeof D; e = 'D.no' + S.std + ODD.x")
+    assert d_keys_read(sample) == {"orgs", "std", "lineup"}
+    read: dict[str, list[str]] = {}
+    for name in SCREEN_JS:
+        text = (SRC / name).read_text(encoding="utf-8")
+        if name == "tab3.js":   # 자료 줄(두 표식 사이)은 코드가 아니다
+            a, b = text.find(C4.MARK_A), text.find(C4.MARK_B)
+            text = text[:a] + text[b:]
+        for k in d_keys_read(text):
+            read.setdefault(k, []).append(name)
+    assert set(read) <= set(D), f"화면 코드가 D 규약에 없는 열쇠를 읽는다: {read}. 규약(D)에 그 열쇠를 적는다"
+    assert set(read) <= set(files["D"]), f"화면 코드가 읽는 D 열쇠가 d.json 에 없다: {read}"

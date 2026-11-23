@@ -168,6 +168,18 @@ def _keep_row_groups(kind: str, lines: list[tuple[int, str]], start: int, end: i
     return Section(kind, text, kept[0][0], kept[-1][0])
 
 
+def _item_heads(lines: list[tuple[int, str]], start: int, end: int) -> list[int]:
+    """절 안의 종별 항목 제목 줄 번호. "가.", "나." 순서로 나오는 줄만 본다(같은 글자가 되풀이되는 것은 받아들인다)."""
+    heads: list[int] = []
+    last = ""
+    for i in range(start + 1, end):
+        m = _ITEM.match(lines[i][1].strip())
+        if m and m.group(1) >= last:
+            heads.append(i)
+            last = m.group(1)
+    return heads
+
+
 def _section(kind: str, lines: list[tuple[int, str]], start: int, end: int, scope: str | None,
              whole: bool = True, types: Sequence[str] | None = None) -> Section | None:
     """절이 "가. 1종, 9종 및 11종", "라. 8종"처럼 종별 항목으로 나뉘어 있으면 scope의 항목만 남긴다.
@@ -177,13 +189,7 @@ def _section(kind: str, lines: list[tuple[int, str]], start: int, end: int, scop
     항목 제목은 "가.", "나." 순서로 나오는 줄만 본다(같은 글자가 되풀이되는 것은 받아들인다). 본문 속의 "가. …" 줄에 끊기지 않게 하기 위함이다.
     types: 절을 통째로 돌려줄 때, 절 안의 표가 가입유형별 줄 묶음이면 이 이름들의 묶음만 남긴다(_keep_row_groups).
     """
-    heads: list[int] = []
-    last = ""
-    for i in range(start + 1, end) if scope else ():
-        m = _ITEM.match(lines[i][1].strip())
-        if m and m.group(1) >= last:
-            heads.append(i)
-            last = m.group(1)
+    heads = _item_heads(lines, start, end) if scope else []
     if not scope or not any(_names_scope(lines[i][1], scope) for i in heads):
         if not whole:
             return None
@@ -219,6 +225,86 @@ def method_sections(pages: dict[int, str], scope: str | None = None,
     if other:
         out["기타사항"] = other
     return out
+
+
+def age_items(pages: dict[int, str]) -> list[str]:
+    """가입나이 절이 "가. 간편고지", "라. 8종"처럼 종별 항목으로 나뉘어 있으면 그 항목 제목들. 나뉘지 않았거나 절이 없으면 빈 목록."""
+    lines = _lines(pages)
+    span = _span(lines, _HEADS["가입나이"])
+    return [lines[i][1].strip() for i in _item_heads(lines, *span)] if span else []
+
+
+def names_scope(head: str, scope: str) -> bool:
+    """항목 제목이 그 종(가입유형)을 가리키는가(_names_scope와 같다)."""
+    return _names_scope(head, scope)
+
+
+# 기본계약 표. 삼성화재 사업방법서의 가입나이 표는 맨 앞 칸이 "기본계약"과 "선택계약"으로 나뉘고, 합쳐진 칸의 글자는
+# 글자로 풀면 두 줄로 갈린다("기본 20년 전기납 만15세~60세", "계약 10년 전기납 만15세~70세"처럼). 계약 이름은 "·"로 시작하는 줄이다.
+# 보험기간·납입기간·가입나이 칸도 여러 줄에 걸쳐 합쳐져 있어, 다음 계약의 첫 줄이 그 계약 이름보다 먼저 나온다.
+_MAIN_LABEL = re.compile(r"^기본(?:계약)?(?:\s|$)")      # 칸이 갈리지 않은 "기본계약 …" 줄도 받는다
+_NAME_LINE = re.compile(r"^[·∙•ㆍ]")
+_BLOCK_HEAD = re.compile(r"^(?:[가-힣]\.\s|[1-9]\d*\.\s|\(\d+\)|0\d\.)")
+_BLOCK_STOP = re.compile(r"^(?:선택(?:\s|$)|주\d*\)|※|\(\d+\)|[가-힣]\.\s|[1-9]\d*\.\s|0\d\.)")
+_AGE_SPAN = re.compile(r"만?\s*\d+\s*세?\s*[~∼\-]\s*\d+\s*세")
+_PERIOD_CELL = re.compile(r"\d+\s*세\s*만기|\d+\s*[년세]\s*납|\d+\s*년(?!\s*납)|전기납|일시납|종신")
+
+
+def _main_rows(body: list[tuple[int, str]]) -> list[tuple[int, str]] | None:
+    """줄 목록에서 첫 기본계약 표의 머리와 기본계약 줄만 남긴다. 그런 표가 없으면 None.
+
+    표 머리는 "기본" 줄 앞의 제목 줄("(1) 최초계약", "01. 건강 모듈 보장") 다음부터다. 기본계약 줄은 두 번째 계약 이름 줄,
+    "선택" 줄, 주석과 다음 제목 앞에서 끝나고, 보험기간·납입기간 칸의 글자 묶음이 앞 줄의 것과 같은 줄(다음 계약의 첫 줄)에서도 끝난다.
+    """
+    anchor = next((i for i, (_, l) in enumerate(body) if _MAIN_LABEL.match(l.strip())), None)
+    if anchor is None:
+        return None
+    begin = anchor
+    while begin > 0 and not _BLOCK_HEAD.match(body[begin - 1][1].strip()):
+        begin -= 1
+    kept: list[tuple[int, str]] = []
+    seen: set[tuple[str, ...]] = set()
+    named = False
+    for page, raw in body[begin:]:
+        line = raw.strip()
+        if _NAME_LINE.match(line):
+            if named:
+                break
+            named = True
+        elif _BLOCK_STOP.match(line):
+            break
+        else:
+            cells = tuple(c.replace(" ", "") for c in _PERIOD_CELL.findall(_AGE_SPAN.sub(" ", line)))
+            if cells and cells in seen:
+                break
+            seen.add(cells)
+        kept.append((page, raw))
+    if not named or not any(_AGE_SPAN.search(l) for _, l in kept):
+        return None
+    return kept
+
+
+def main_section(pages: dict[int, str], scope: str | None = None) -> Section | None:
+    """가입나이 절에서 기본계약(주계약) 줄만 남긴 절. 기본계약 표가 없는 문서는 None.
+
+    scope: 절이 종별 항목으로 나뉜 문서에서 볼 항목의 이름(method_sections와 같다). 그 이름의 첫 항목만 본다.
+    항목으로 나뉘어 있는데 그 이름의 항목이 없으면 None. 선택계약(특약) 줄과 갱신계약 표는 남기지 않는다.
+    """
+    lines = _lines(pages)
+    span = _span(lines, _HEADS["가입나이"])
+    if span is None:
+        return None
+    start, end = span
+    heads = _item_heads(lines, start, end) if scope else []
+    if heads:
+        mine = [n for n, i in enumerate(heads) if _names_scope(lines[i][1], scope)]
+        if not mine:
+            return None
+        start, end = heads[mine[0]], heads[mine[0] + 1] if mine[0] + 1 < len(heads) else end
+    rows = _main_rows(lines[start:end])
+    if not rows:
+        return None
+    return Section("가입나이", "\n".join(l for _, l in rows).strip(), rows[0][0], rows[-1][0])
 
 
 def _eligible_span(lines: list[tuple[int, str]]) -> tuple[int, int] | None:
@@ -387,7 +473,17 @@ LIMIT_TILDE_NOTE = """이 본문은 나이 구간을 "~70세", "71세~"처럼 �
 PERIOD_LINK_NOTE = """"(주계약 보험기간 이내)", "(주계약 납입기간 이내)"처럼 특약의 보험기간·납입기간을 주계약에 맞춘다는 문장은
 가입금액에 대한 제약이 아니므로 옮기지 않습니다."""
 
-_NOTES = {"가입나이": ((_BY_MAX_AGE, AGE_BY_MAX_NOTE),), "가입한도": ((_TILDE_BAND, LIMIT_TILDE_NOTE),),
+# "기본" 줄 뒤 네 줄 안에 계약 이름 줄("·…")이 오는 표. main_section이 남긴 기본계약 표가 이 모양이다
+_MAIN_TABLE = re.compile(r"(?m)^기본(?:계약)?(?:[ \t].*)?$(?:\n.*){0,3}\n[·∙•ㆍ]")
+
+AGE_MAIN_NOTE = """이 본문은 가입나이 표에서 기본계약 줄만 남긴 것입니다. 맨 앞 칸의 "기본"과 "계약"은 여러 줄에 걸친 칸 "기본계약"의 글자가
+두 줄로 갈린 것이고, "·"로 시작하는 줄의 이름이 기본계약(주계약)입니다. 이 모양에서는 아래와 같이 옮깁니다.
+- subjects: "·" 뒤의 기본계약 이름 하나. 예: "·가나 사망 월납" 줄이면 ["가나 사망"]. 줄 끝의 "월납"은 납입주기 칸의 글자라 이름에 넣지 않습니다
+- contract: "구분없음"
+- 보험기간, 납입기간, 가입나이 칸이 여러 줄에 걸쳐 합쳐져 있으면 그 칸의 글자는 걸친 줄들의 가운데쯤에 한 번만 나옵니다. 걸친 줄마다 같은 값을 적습니다
+- 항목 하나에는 보험기간 하나와 납입기간 하나만 적습니다. 보험기간 칸에 글자가 둘 이상이면(예: "100세만기"와 "90세만기") 그 글자마다 항목을 따로 만듭니다"""
+
+_NOTES = {"가입나이": ((_BY_MAX_AGE, AGE_BY_MAX_NOTE), (_MAIN_TABLE, AGE_MAIN_NOTE)), "가입한도": ((_TILDE_BAND, LIMIT_TILDE_NOTE),),
           "결합제약": ((_PERIOD_LINK, PERIOD_LINK_NOTE),)}
 
 
@@ -469,12 +565,13 @@ _PRODUCT_WORD = re.compile(r"보험(?!료|금|기간|가입|계약)")
 
 
 def is_main(name: str) -> bool:
-    """주계약을 가리키는 이름인가. 사업방법서는 주계약을 상품 이름으로 적는다. 특약 이름에는 "특약"이나 "특별약관"이 들어 있다.
+    """주계약을 가리키는 이름인가. 사업방법서는 주계약을 상품 이름으로 적는다("기본계약"으로 적는 문서도 있다). 특약 이름에는
+    "특약"이나 "특별약관"이 들어 있다.
 
     "보험"이 "보험료", "보험금"처럼 다른 낱말의 앞부분으로만 들어 있는 이름("보험료 납입면제대상")은 상품 이름이 아니다.
     """
     flat = ids.normalize(name)
-    return flat == "주계약" or ("특약" not in flat and "특별약관" not in flat and _PRODUCT_WORD.search(flat) is not None)
+    return flat in ("주계약", "기본계약") or ("특약" not in flat and "특별약관" not in flat and _PRODUCT_WORD.search(flat) is not None)
 
 
 def _same(a: str, b: str) -> bool:
@@ -890,19 +987,40 @@ class Target:
     variant_name: str                       # 종형명. 예: 1종(간편가입315)
     riders: dict[str, str]                  # 특약계보키 → 특약ID
     main_id: str | None                     # 주계약의 특약ID
+    # 주계약을 가리키는 이름의 특약계보키. 주계약 이름이 상품 이름도 "주계약"도 아닌 문서(삼성화재 기본계약 "상해 사망")에서 쓴다.
+    # 뽑아 둔 주계약 행의 이름과, 기본계약 표(main_section)의 계약 이름이 든다. 둘이 다른 문서가 있다("상해 사망", "[건강]상해 사망")
+    aliases: frozenset[str] = frozenset()
 
     def rider(self, name: str) -> tuple[bool, str | None]:
         """(찾았는가, 특약ID). 주계약은 (True, None). 뽑아 둔 특약 목록에 있는 이름은 "보험"이 들어 있어도 특약이다."""
         key = ids.rider_lineage_key(name)
         if key in self.riders:
             return True, self.riders[key]
-        return (True, None) if is_main(name) else (False, None)
+        main = is_main(name) or ids.rider_lineage_key(_bare(name)) in self.aliases
+        return (True, None) if main else (False, None)
 
 
 def target_of(variant_id: str, variant_name: str, rider_rows: list[dict[str, Any]]) -> Target:
     mine = [r for r in rider_rows if r["종형ID"] == variant_id]
+    main = next((r for r in mine if r["담보구분"] == "주계약"), None)
     return Target(variant_id, variant_name, {r["특약계보키"]: r["특약ID"] for r in mine if r["담보구분"] != "주계약"},
-                  next((r["특약ID"] for r in mine if r["담보구분"] == "주계약"), None))
+                  main["특약ID"] if main else None, frozenset({main["특약계보키"]}) if main else frozenset())
+
+
+_PAY_CYCLE = re.compile(r"\s*(?:월납|연납|일시납|\d+개월납)\s*$")
+
+
+def _bare(name: str) -> str:
+    """계약 이름 끝에 붙은 납입주기 칸의 글자("월납")를 뗀다. 기본계약 표에서는 이름 줄에 그 칸의 글자가 함께 풀린다."""
+    return _PAY_CYCLE.sub("", str(name)).strip()
+
+
+def main_name(section: Section) -> str | None:
+    """기본계약 표(main_section)의 계약 이름. "·[건강]상해 사망 월납" → "[건강]상해 사망". 이름 줄이 없으면 None."""
+    line = next((l.strip() for l in section.text.split("\n") if _NAME_LINE.match(l.strip())), None)
+    if line is None:
+        return None
+    return _bare(_NAME_LINE.sub("", line)) or None
 
 
 def _applies(scope: str, target: Target, everyone: list[Target]) -> bool | None:
