@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import math
+from typing import Iterable, Sequence
+import cairo
 import numpy as np
 from manim import *
 
 # ---------------------------------------------------------------------------
-# 3Blue1Brown Clarity x Post Life Architectural Palette
+# 3Blue1Brown Documentary Cinema x Post Life Palette
 # ---------------------------------------------------------------------------
-C_BG = "#090D12"
+C_BG = "#070B10"
 C_BG_SUB = "#101720"
-C_GRID = "#1E2936"
+C_GRID = "#1B2634"
 
 C_CYAN = "#58C4DD"       # Collection, fact layer, deterministic code
-C_CYAN_DIM = "#1E4E5C"
+C_CYAN_DIM = "#1A4350"
 C_GOLD = "#E2C878"       # Verified truth, shared standard, Post Life strength
 C_GOLD_DEEP = "#8F7B3E"
 C_AMBER = "#F59E0B"      # Constraint / pending review / caution
@@ -28,8 +30,8 @@ C_INK_0 = "#F2F5F8"
 C_INK_1 = "#C2CBD4"
 C_INK_2 = "#7F8C99"
 C_WHITE = "#FFFFFF"
-C_PANEL = "#131B24"
-C_PANEL_HI = "#1B2633"
+C_PANEL = "#111922"
+C_PANEL_HI = "#192431"
 C_SLATE = "#334150"
 C_IVORY = "#F4F3EE"
 C_DARK_INK = "#141B22"
@@ -152,12 +154,6 @@ def capacity_ring(
         angle=-2 * math.pi * min(max(ratio, 0.05), 1.0),
         color=col,
         stroke_width=4.2,
-    ).move_center_to_arc_center if False else Arc(
-        radius=radius,
-        start_angle=math.pi / 2,
-        angle=-2 * math.pi * min(max(ratio, 0.05), 1.0),
-        color=col,
-        stroke_width=4.2,
     )
     arc.shift(p - arc.get_arc_center()).set_z_index(z + 1)
     t1 = txt(top_txt, size=11.0, color=col, bold=True, z=z + 2)
@@ -166,28 +162,117 @@ def capacity_ring(
     return VGroup(bg_ring, arc, tg)
 
 
-def build_canvas() -> VGroup:
-    bg = VGroup()
-    base = Rectangle(width=15.0, height=8.6, fill_color=C_BG, fill_opacity=1.0, stroke_width=0)
-    bg.add(base)
-
+def build_world_grid(span_x: float = 11.0, span_y: float = 6.5) -> VGroup:
+    """3D/2D mathematical coordinate grid living in world space (zooms & tilts with camera!)."""
     grid = VGroup()
-    for x in np.arange(-6.5, 6.6, 1.0):
-        grid.add(Line([x, -3.28, 0], [x, 3.28, 0], color=C_GRID, stroke_width=0.7, stroke_opacity=0.32))
-    for y in np.arange(-3.0, 3.1, 1.0):
-        grid.add(Line([-7.1, y, 0], [7.1, y, 0], color=C_GRID, stroke_width=0.7, stroke_opacity=0.32))
-    bg.add(grid)
+    for x in np.arange(-span_x, span_x + 0.1, 1.0):
+        is_ax = abs(x) < 1e-6
+        grid.add(
+            Line(
+                [x, -span_y, 0],
+                [x, span_y, 0],
+                color=C_CYAN_DIM if is_ax else C_GRID,
+                stroke_width=1.1 if is_ax else 0.75,
+                stroke_opacity=0.42 if is_ax else 0.30,
+            )
+        )
+    for y in np.arange(-span_y, span_y + 0.1, 1.0):
+        is_ax = abs(y) < 1e-6
+        grid.add(
+            Line(
+                [-span_x, y, 0],
+                [span_x, y, 0],
+                color=C_CYAN_DIM if is_ax else C_GRID,
+                stroke_width=1.1 if is_ax else 0.75,
+                stroke_opacity=0.42 if is_ax else 0.30,
+            )
+        )
+    grid.set_z_index(-5)
+    return grid
 
-    top_bar = Rectangle(width=14.6, height=0.72, fill_color="#06090D", fill_opacity=0.96, stroke_width=0).move_to([0, 3.64, 0])
-    bot_bar = Rectangle(width=14.6, height=0.72, fill_color="#06090D", fill_opacity=0.96, stroke_width=0).move_to([0, -3.64, 0])
-    top_line = Line([-7.15, 3.28, 0], [7.15, 3.28, 0], color=C_SLATE, stroke_width=1.1)
-    bot_line = Line([-7.15, -3.28, 0], [7.15, -3.28, 0], color=C_SLATE, stroke_width=1.1)
-    bg.add(top_bar, bot_bar, top_line, bot_line)
-    bg.set_z_index(0)
-    return bg
+
+def build_hud_chrome() -> VGroup:
+    """Fixed-in-frame cinema matte bars that stay pinned to the 1080p screen."""
+    top_bar = Rectangle(width=14.6, height=0.74, fill_color="#05080C", fill_opacity=0.96, stroke_width=0).move_to([0, 3.65, 0])
+    bot_bar = Rectangle(width=14.6, height=0.74, fill_color="#05080C", fill_opacity=0.96, stroke_width=0).move_to([0, -3.65, 0])
+    top_line = Line([-7.15, 3.28, 0], [7.15, 3.28, 0], color=C_SLATE, stroke_width=1.15)
+    bot_line = Line([-7.15, -3.28, 0], [7.15, -3.28, 0], color=C_SLATE, stroke_width=1.15)
+    chrome = VGroup(top_bar, bot_bar, top_line, bot_line)
+    chrome.set_z_index(30)
+    return chrome
 
 
-class PostLifeBaseScene(Scene):
+def build_canvas() -> VGroup:
+    """Legacy wrapper returning world grid (kept for compatibility)."""
+    return build_world_grid()
+
+
+# ---------------------------------------------------------------------------
+# 3Blue1Brown Documentary 3D + Zoom/Pan Base Scene
+# ---------------------------------------------------------------------------
+class PostLifeBaseScene(ThreeDScene):
+    def init_cinema_canvas(self) -> tuple[VGroup, VGroup]:
+        self.camera.background_color = C_BG
+        cam = self.camera
+
+        def _origin_locked_get_cairo_context(pixel_array: np.ndarray) -> cairo.Context:
+            cached_ctx = cam.get_cached_cairo_context(pixel_array)
+            if cached_ctx:
+                return cached_ctx
+            pw, ph = cam.pixel_width, cam.pixel_height
+            fw, fh = cam.frame_width, cam.frame_height
+            surface = cairo.ImageSurface.create_for_data(pixel_array.data, cairo.FORMAT_ARGB32, pw, ph)
+            ctx = cairo.Context(surface)
+            ctx.set_matrix(cairo.Matrix(pw / fw, 0, 0, -(ph / fh), pw / 2, ph / 2))
+            cam.cache_cairo_context(pixel_array, ctx)
+            return ctx
+
+        cam.get_cairo_context = _origin_locked_get_cairo_context  # type: ignore[method-assign]
+        self.set_camera_orientation(phi=0 * DEGREES, theta=-90 * DEGREES, gamma=0 * DEGREES, zoom=1.0, frame_center=ORIGIN)
+        world_grid = build_world_grid()
+        hud_chrome = build_hud_chrome()
+        self.add(world_grid)
+        self.add_fixed_in_frame_mobjects(hud_chrome)
+        self._hud_chrome = hud_chrome
+        self._world_grid = world_grid
+        return world_grid, hud_chrome
+
+    def cam_move(
+        self,
+        phi: float | None = None,
+        theta: float | None = None,
+        gamma: float | None = None,
+        zoom: float | None = None,
+        center: Sequence[float] | np.ndarray | None = None,
+        anims: Iterable[Animation] = (),
+        rt: float = 1.10,
+        rate_func=smooth,
+    ) -> None:
+        fc = np.array(center, dtype=float) if center is not None else None
+        self.move_camera(
+            phi=phi,
+            theta=theta,
+            gamma=gamma,
+            zoom=zoom,
+            frame_center=fc,
+            added_anims=list(anims),
+            run_time=rt,
+            rate_func=rate_func,
+        )
+
+    def reset_cam_2d(self, anims: Iterable[Animation] = (), rt: float = 0.90) -> None:
+        self.cam_move(phi=0 * DEGREES, theta=-90 * DEGREES, gamma=0 * DEGREES, zoom=1.0, center=ORIGIN, anims=anims, rt=rt)
+
+    def snap_cam_2d(self) -> None:
+        self.set_camera_orientation(phi=0 * DEGREES, theta=-90 * DEGREES, gamma=0 * DEGREES, zoom=1.0, frame_center=ORIGIN)
+
+    def add_billboard(self, *mobs: Mobject) -> None:
+        self.add_fixed_orientation_mobjects(*mobs)
+
+    def remove_billboard(self, *mobs: Mobject) -> None:
+        self.remove_fixed_orientation_mobjects(*mobs)
+        self.remove(*mobs)
+
     def make_hud(self, ch_num: int, title: str, subtitle: str) -> tuple[VGroup, VGroup, VGroup]:
         is_finale = ch_num == TOTAL_CHAPTERS
         badge = RoundedRectangle(
@@ -199,12 +284,12 @@ class PostLifeBaseScene(Scene):
             stroke_color=C_GOLD if is_finale else C_CYAN,
             stroke_width=1.2,
         )
-        b_txt = txt(f"{ch_num}장", size=13, color=C_DARK_INK if is_finale else C_CYAN, bold=True, z=21).move_to(badge)
-        tag = VGroup(badge.set_z_index(20), b_txt)
-        t_mob = txt(title, size=17.0, color=C_INK_0, bold=True, z=21)
+        b_txt = txt(f"{ch_num}장", size=13, color=C_DARK_INK if is_finale else C_CYAN, bold=True, z=32).move_to(badge)
+        tag = VGroup(badge.set_z_index(31), b_txt)
+        t_mob = txt(title, size=17.0, color=C_INK_0, bold=True, z=32)
         left = VGroup(tag, t_mob).arrange(RIGHT, buff=0.16)
         fit(left, max_w=7.65)
-        left.move_to([-6.18 + left.width / 2, 3.63, 0]).set_z_index(20)
+        left.move_to([-6.18 + left.width / 2, 3.63, 0]).set_z_index(31)
 
         dots = VGroup()
         for i in range(1, TOTAL_CHAPTERS + 1):
@@ -221,14 +306,24 @@ class PostLifeBaseScene(Scene):
                 )
             )
         dots.arrange(RIGHT, buff=0.055)
-        app_lbl = txt("우체국보험 상품·청약 판단 지원", size=12.6, color=C_INK_2, z=21)
+        app_lbl = txt("우체국보험 상품·청약 판단 지원", size=12.6, color=C_INK_2, z=32)
         right = VGroup(app_lbl, dots).arrange(RIGHT, buff=0.16)
-        right.move_to([6.18 - right.width / 2, 3.63, 0]).set_z_index(20)
+        right.move_to([6.18 - right.width / 2, 3.63, 0]).set_z_index(31)
 
-        sub_mob = fit(txt(subtitle, size=15.6, color=C_INK_1, bold=False, z=21), max_w=12.4)
+        sub_mob = fit(txt(subtitle, size=15.6, color=C_INK_1, bold=False, z=32), max_w=12.4)
         sub_mob.move_to([0, -3.63, 0])
-        bot = VGroup(sub_mob).set_z_index(20)
+        bot = VGroup(sub_mob).set_z_index(31)
         return left, right, bot
+
+    def show_initial_hud(self, hl: VGroup, hr: VGroup, hb: VGroup, extra_anims: Iterable[Animation] = (), rt: float = 0.95) -> None:
+        self.add_fixed_in_frame_mobjects(hl, hr, hb)
+        self.play(
+            FadeIn(hl, shift=DOWN * 0.06),
+            FadeIn(hr, shift=DOWN * 0.06),
+            FadeIn(hb, shift=UP * 0.06),
+            *list(extra_anims),
+            run_time=rt,
+        )
 
     def switch_hud(
         self,
@@ -241,32 +336,53 @@ class PostLifeBaseScene(Scene):
         subtitle: str,
     ) -> tuple[VGroup, VGroup, VGroup]:
         nl, nr, nb = self.make_hud(ch_num, title, subtitle)
-        self.play(
-            FadeOut(outgoing_stage, shift=UP * 0.12, run_time=0.50),
-            Succession(FadeOut(hl, shift=UP * 0.05, run_time=0.22), FadeIn(nl, shift=UP * 0.05, run_time=0.28)),
-            ReplacementTransform(hr[1], nr[1], run_time=0.50),
-            FadeOut(hr[0], run_time=0.25),
-            FadeIn(nr[0], run_time=0.25),
-            Succession(FadeOut(hb, shift=DOWN * 0.05, run_time=0.22), FadeIn(nb, shift=UP * 0.05, run_time=0.28)),
+        self.add_fixed_in_frame_mobjects(nl, nr, nb)
+        self.cam_move(
+            phi=0 * DEGREES,
+            theta=-90 * DEGREES,
+            gamma=0 * DEGREES,
+            zoom=1.0,
+            center=ORIGIN,
+            anims=[
+                FadeOut(outgoing_stage, shift=UP * 0.12),
+                FadeOut(hl, shift=UP * 0.04),
+                FadeIn(nl, shift=UP * 0.04),
+                FadeOut(hr),
+                FadeIn(nr),
+                FadeOut(hb, shift=DOWN * 0.04),
+                FadeIn(nb, shift=UP * 0.04),
+            ],
+            rt=0.60,
         )
-        self.remove(outgoing_stage)
+        self.remove_fixed_in_frame_mobjects(hl, hr, hb)
+        self.remove(outgoing_stage, hl, hr, hb)
         return nl, nr, nb
 
     def fade_out_part(self, stage: Mobject, hl: VGroup, hr: VGroup, hb: VGroup) -> None:
-        self.play(
-            FadeOut(stage, shift=UP * 0.10),
-            FadeOut(hl, shift=UP * 0.05),
-            FadeOut(hr, shift=UP * 0.05),
-            FadeOut(hb, shift=DOWN * 0.05),
-            run_time=0.45,
+        self.cam_move(
+            phi=0 * DEGREES,
+            theta=-90 * DEGREES,
+            gamma=0 * DEGREES,
+            zoom=1.0,
+            center=ORIGIN,
+            anims=[
+                FadeOut(stage, shift=UP * 0.10),
+                FadeOut(hl, shift=UP * 0.04),
+                FadeOut(hr, shift=UP * 0.04),
+                FadeOut(hb, shift=DOWN * 0.04),
+            ],
+            rt=0.50,
         )
+        self.remove_fixed_in_frame_mobjects(hl, hr, hb)
         self.remove(stage, hl, hr, hb)
         self.wait(0.10)
 
     def update_subtitle(self, hb: VGroup, new_sub: str, rt: float = 0.38) -> VGroup:
-        new_mob = fit(txt(new_sub, size=15.6, color=C_INK_1, bold=False, z=21), max_w=12.4).move_to([0, -3.63, 0])
-        nb = VGroup(new_mob).set_z_index(20)
-        self.play(Succession(FadeOut(hb, run_time=rt * 0.45), FadeIn(nb, run_time=rt * 0.55)))
+        new_mob = fit(txt(new_sub, size=15.6, color=C_INK_1, bold=False, z=32), max_w=12.4).move_to([0, -3.63, 0])
+        nb = VGroup(new_mob).set_z_index(31)
+        self.add_fixed_in_frame_mobjects(nb)
+        self.play(FadeOut(hb, run_time=rt * 0.45), FadeIn(nb, run_time=rt * 0.55))
+        self.remove_fixed_in_frame_mobjects(hb)
         self.remove(hb)
         return nb
 

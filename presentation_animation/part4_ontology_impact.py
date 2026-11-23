@@ -11,7 +11,6 @@ from common import (
     C_CORAL,
     C_CORAL_DIM,
     C_CYAN,
-    C_CYAN_DIM,
     C_DARK_INK,
     C_GOLD,
     C_GOLD_DEEP,
@@ -27,7 +26,6 @@ from common import (
     C_WHITE,
     PostLifeBaseScene,
     arrow_2d,
-    build_canvas,
     capacity_ring,
     fit,
     glow_dot,
@@ -38,10 +36,10 @@ from common import (
 
 class Part4OntologyImpactScene(PostLifeBaseScene):
     def construct(self) -> None:
-        self.add(build_canvas())
+        self.init_cinema_canvas()
 
         # ===================================================================
-        # 7장 [~35s]: 온톨로지·단독 화면 프로세스 — 2x2 난제 보드와 3계층·관계망 해법
+        # 7장 [~40s]: 온톨로지·단독 화면 프로세스 — 3D Z평면 적층 & 3D 지식그래프 은하
         # ===================================================================
         hl, hr, hb = self.make_hud(
             7,
@@ -50,9 +48,11 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         )
 
         # -------------------------------------------------------------------
-        # Beat 7A: Left Resource Gauges + Right 2x2 Visual Comparison Obstacles
+        # Beat 7A: Resource Gauges + 2x2 Comparison Obstacles + Microscope Zoom
         # -------------------------------------------------------------------
-        res_box_7 = RoundedRectangle(corner_radius=0.09, width=3.36, height=4.68, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=C_GOLD, stroke_width=2.0).move_to([-4.38, 0.02, 0]).set_z_index(4)
+        res_box_7 = RoundedRectangle(
+            corner_radius=0.09, width=3.36, height=4.68, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=C_GOLD, stroke_width=2.0
+        ).move_to([-4.38, 0.02, 0]).set_z_index(4)
         res_hdr_7 = pill("저장 · 배포 제약", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.0, z=7).move_to([-4.38, 1.92, 0])
 
         rg7_1 = capacity_ring([-5.15, 0.72, 0], 0.58, 0.74, C_GOLD, "단독 HTML", "4MB 상한 제약", z=6)
@@ -70,7 +70,6 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             th = fit(txt(title_s, size=10.8, color=col, bold=True, z=7), max_w=3.44).move_to([cx, cy + 0.76, 0])
             return VGroup(bx, th)
 
-        # Q1 (-0.10, 1.18): Name & Payout-type mismatch chips
         q7_1 = diag_frame(-0.10, 1.18, C_AMBER, "문제 ① 특약명 · 고지약칭 · 지급방식 상이")
         m7_r1 = VGroup(
             pill('"315 간편"', fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=8.6, px=0.08, py=0.03).move_to([-1.05, 1.32, 0]),
@@ -84,13 +83,11 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).set_z_index(7)
         q7_1_cap = txt("단순 문자열·금액 비교 불가능", size=9.0, color=C_INK_1, z=7).move_to([-0.10, 0.42, 0])
 
-        # Q2 (3.88, 1.18): 52-std small funnel overflowing with 1,951 unmapped rows!
         q7_2 = diag_frame(3.88, 1.18, C_CORAL, "문제 ② 초기 52종 사전 → 1,951줄 미매핑")
         fun_box = pill("기존 사전 52종", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD_DEEP, size=8.8, px=0.09, py=0.04, z=7).move_to([2.92, 1.12, 0])
         spill_dots = VGroup(*[Dot([3.95 + (k % 5) * 0.26, 1.38 - (k // 5) * 0.26, 0], radius=0.055, color=C_AMBER if k % 2 == 0 else C_CORAL) for k in range(10)]).set_z_index(7)
         q7_2_cap = txt("한화 급부 388종류(1,951줄) 대기 적체", size=9.0, color=C_CORAL, bold=True, z=7).move_to([3.88, 0.44, 0])
 
-        # Q3 (-0.10, -1.14): Integrated vs Split false 'Missing' stamp
         q7_3 = diag_frame(-0.10, -1.14, C_VIOLET, "문제 ③ 통합 대 분리 오판 · 대기 건 착시")
         int_vs_spl = VGroup(
             pill("타사 통합특약 ◆", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=8.6, px=0.08, py=0.03).move_to([-1.06, -1.04, 0]),
@@ -99,7 +96,6 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).set_z_index(7)
         q7_3_cap = txt("당사 분리특약 보유분 누락 · 대기 건을 공백으로 오인", size=8.8, color=C_INK_1, z=7).move_to([-0.10, -1.74, 0])
 
-        # Q4 (3.88, -1.14): Pre-bake blowing past 4MB + Missing rider premium slot
         q7_4 = diag_frame(3.88, -1.14, C_CORAL, "문제 ④ 사전 저장 시 4MB 초과 · 보험료 부재")
         ov_bar_bg = RoundedRectangle(corner_radius=0.04, width=1.85, height=0.22, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_SLATE, stroke_width=1.2).move_to([3.05, -0.96, 0]).set_z_index(6)
         ov_bar_fg = Rectangle(width=2.15, height=0.16, fill_color=C_CORAL, fill_opacity=0.92, stroke_width=0).move_to([3.20, -0.96, 0]).set_z_index(7)
@@ -108,34 +104,64 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         no_prem = DashedVMobject(RoundedRectangle(corner_radius=0.04, width=2.92, height=0.38, fill_opacity=0.0, stroke_color=C_INK_2, stroke_width=1.4).move_to([3.88, -1.56, 0]), num_dashes=20).set_z_index(6)
         no_prem_t = txt("특약별 보험료 : 공시 문서에 부재", size=8.8, color=C_INK_2, bold=True, z=7).move_to([3.88, -1.56, 0])
 
-        self.play(
-            FadeIn(hl, shift=DOWN * 0.08), FadeIn(hr, shift=DOWN * 0.08), FadeIn(hb, shift=UP * 0.08),
-            FadeIn(VGroup(res_box_7, res_hdr_7, rg7_1[0], rg7_1[2], rg7_2[0], rg7_2[2], size_bg, size_lbl, res_sub_7), shift=RIGHT * 0.12),
-            Create(rg7_1[1]), Create(rg7_2[1]), GrowFromEdge(size_fg, LEFT),
-            GrowArrow(vs_arr_7),
-            FadeIn(VGroup(q7_1, m7_r1, m7_r2, q7_1_cap)),
-            FadeIn(VGroup(q7_2, fun_box, q7_2_cap)),
-            LaggedStart(*[FadeIn(sd, scale=0.4) for sd in spill_dots], lag_ratio=0.03),
-            run_time=1.10,
+        self.show_initial_hud(
+            hl,
+            hr,
+            hb,
+            extra_anims=[
+                FadeIn(VGroup(res_box_7, res_hdr_7, rg7_1[0], rg7_1[2], rg7_2[0], rg7_2[2], size_bg, size_lbl, res_sub_7), shift=RIGHT * 0.12),
+                Create(rg7_1[1]),
+                Create(rg7_2[1]),
+                GrowFromEdge(size_fg, LEFT),
+                GrowArrow(vs_arr_7),
+                FadeIn(VGroup(q7_1, m7_r1, m7_r2, q7_1_cap)),
+                FadeIn(VGroup(q7_2, fun_box, q7_2_cap)),
+                FadeIn(VGroup(q7_3, int_vs_spl, q7_3_cap)),
+                FadeIn(VGroup(q7_4, ov_bar_bg, ov_lim, ov_tag, no_prem, no_prem_t)),
+            ],
+            rt=1.10,
         )
-        self.play(
-            FadeIn(VGroup(q7_3, int_vs_spl, q7_3_cap), shift=UP * 0.08),
-            FadeIn(VGroup(q7_4, ov_bar_bg, ov_lim, ov_tag, no_prem, no_prem_t), shift=UP * 0.08),
-            GrowFromEdge(ov_bar_fg, LEFT),
-            run_time=1.05,
+
+        # Microscope zoom onto 1,951 unmapped overflow + >4MB pre-bake burst!
+        self.cam_move(
+            zoom=1.46,
+            center=[3.88, 0.02, 0],
+            anims=[
+                LaggedStart(*[FadeIn(sd, scale=0.4) for sd in spill_dots], lag_ratio=0.04),
+                GrowFromEdge(ov_bar_fg, LEFT),
+            ],
+            rt=1.05,
         )
+        self.wait(0.35)
+        self.reset_cam_2d(rt=0.80)
+
         beat7a_all = VGroup(
-            res_grp_7, vs_arr_7,
-            q7_1, m7_r1, m7_r2, q7_1_cap,
-            q7_2, fun_box, spill_dots, q7_2_cap,
-            q7_3, int_vs_spl, q7_3_cap,
-            q7_4, ov_bar_bg, ov_bar_fg, ov_lim, ov_tag, no_prem, no_prem_t,
+            res_grp_7,
+            vs_arr_7,
+            q7_1,
+            m7_r1,
+            m7_r2,
+            q7_1_cap,
+            q7_2,
+            fun_box,
+            spill_dots,
+            q7_2_cap,
+            q7_3,
+            int_vs_spl,
+            q7_3_cap,
+            q7_4,
+            ov_bar_bg,
+            ov_bar_fg,
+            ov_lim,
+            ov_tag,
+            no_prem,
+            no_prem_t,
         )
         self.check_bounds(beat7a_all, "CH7A ONTOLOGY DIAGNOSTIC")
-        self.wait(2.55)
+        self.wait(1.60)
 
         # -------------------------------------------------------------------
-        # Beat 7B: Solution 1 - 3-Layer Ontology Architecture + Ascending Pulses
+        # Beat 7B: True 3D Stacked Translucent Z-Planes -> Unfold into Crisp 2D 3-Band Diagram!
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
@@ -143,24 +169,106 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             rt=0.38,
         )
 
+        # 1) True 3D Z-Planes Stack (z = -1.25, 0.0, +1.25) centered slightly right so left HUD legend stays clear!
+        p3d_x = 1.25
+        plane_fct_3d = RoundedRectangle(corner_radius=0.14, width=6.6, height=3.5, fill_color="#101B24", fill_opacity=0.68, stroke_color=C_CYAN, stroke_width=2.2).move_to([p3d_x, 0.0, -1.25])
+        plane_std_3d = RoundedRectangle(corner_radius=0.14, width=6.6, height=3.5, fill_color="#1E1B12", fill_opacity=0.68, stroke_color=C_GOLD, stroke_width=2.2).move_to([p3d_x, 0.0, 0.00])
+        plane_der_3d = RoundedRectangle(corner_radius=0.14, width=6.6, height=3.5, fill_color="#171528", fill_opacity=0.68, stroke_color=C_VIOLET, stroke_width=2.2).move_to([p3d_x, 0.0, 1.25])
+
+        nodes_3d = VGroup()
+        shafts_3d = VGroup()
+        pulses_3d = VGroup()
+        shaft_xy = [
+            (p3d_x - 2.1, -0.75, C_CYAN),
+            (p3d_x - 0.7, 0.65, C_GOLD),
+            (p3d_x + 0.7, -0.55, C_MINT),
+            (p3d_x + 2.1, 0.55, C_VIOLET),
+        ]
+        for sx, sy, scol in shaft_xy:
+            shafts_3d.add(DashedLine([sx, sy, -1.25], [sx, sy, 1.25], dash_length=0.10, color=scol, stroke_width=2.0))
+            for sz, zcol in [(-1.25, C_CYAN), (0.0, C_GOLD), (1.25, C_VIOLET)]:
+                nodes_3d.add(
+                    Prism(dimensions=[0.26, 0.26, 0.14], fill_color=zcol, fill_opacity=0.92, stroke_color=WHITE, stroke_width=1.0).move_to([sx, sy, sz + 0.07])
+                )
+            pulses_3d.add(Prism(dimensions=[0.18, 0.18, 0.18], fill_color=WHITE, fill_opacity=1.0, stroke_color=scol, stroke_width=1.4).move_to([sx, sy, -1.25]))
+
+        stack_3d_grp = VGroup(plane_fct_3d, plane_std_3d, plane_der_3d, shafts_3d, nodes_3d)
+
+        z_lbl_3d = VGroup(
+            fit(pill("상단 Z평면 : 분석·시사점 (용량 0MB · 화면 즉시 산출)", fg=C_VIOLET, bg=C_PANEL_HI, border=C_VIOLET, size=10.4), max_w=4.35).move_to([-4.05, 1.45, 0]),
+            fit(pill("중간 Z평면 : 표준 기준 계층 (76종 담보 · 관계망)", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=10.4), max_w=4.35).move_to([-4.05, 0.05, 0]),
+            fit(pill("하단 Z평면 : 원천 사실 정본 (2.97MB 내장)", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=10.4), max_w=4.35).move_to([-4.05, -1.35, 0]),
+        ).set_z_index(25)
+
+        self.add_fixed_in_frame_mobjects(z_lbl_3d)
+        self.cam_move(
+            phi=60 * DEGREES,
+            theta=-52 * DEGREES,
+            zoom=0.96,
+            center=[0.25, 0.0, 0.0],
+            anims=[
+                FadeOut(beat7a_all, shift=UP * 0.10),
+                FadeIn(stack_3d_grp),
+                FadeIn(z_lbl_3d, shift=RIGHT * 0.10),
+            ],
+            rt=1.15,
+        )
+        self.remove(beat7a_all)
+
+        # Shoot 3D vertical pulses through all 3 Z-planes while orbiting the 3D camera!
+        self.add(pulses_3d)
+        self.cam_move(
+            phi=56 * DEGREES,
+            theta=-34 * DEGREES,
+            zoom=0.98,
+            center=[0.25, 0.0, 0.0],
+            anims=[
+                *[
+                    MoveAlongPath(pulses_3d[k], Line([shaft_xy[k][0], shaft_xy[k][1], -1.25], [shaft_xy[k][0], shaft_xy[k][1], 1.25]))
+                    for k in range(len(shaft_xy))
+                ]
+            ],
+            rt=1.20,
+        )
+        self.remove(pulses_3d, *pulses_3d)
+
+        # 2) Build Crisp 2D 3-Band Architecture Diagram & Smoothly Unfold Camera into 2D!
         def make_layer_band(y_c: float, h_b: float, col: str, fill_c: str, title_s: str, sub_s: str) -> tuple[RoundedRectangle, VGroup]:
             band = RoundedRectangle(corner_radius=0.08, width=11.90, height=h_b, fill_color=fill_c, fill_opacity=0.90, stroke_color=col, stroke_width=2.0).move_to([0.0, y_c, 0]).set_z_index(2)
             sep = Line([-3.25, y_c - h_b * 0.38, 0], [-3.25, y_c + h_b * 0.38, 0], color=col, stroke_width=1.4, stroke_opacity=0.65).set_z_index(4)
-            hdr = fit(VGroup(txt(title_s, size=13.5, color=col, bold=True, z=7), txt(sub_s, size=10.4, color=C_INK_1, z=7)).arrange(DOWN, aligned_edge=LEFT, buff=0.05), max_w=2.40).move_to([-4.62, y_c, 0])
+            hdr = fit(
+                VGroup(txt(title_s, size=13.5, color=col, bold=True, z=7), txt(sub_s, size=10.4, color=C_INK_1, z=7)).arrange(DOWN, aligned_edge=LEFT, buff=0.05),
+                max_w=2.40,
+            ).move_to([-4.62, y_c, 0])
             return band, VGroup(sep, hdr)
 
         b_der, h_der = make_layer_band(1.62, 1.00, C_VIOLET, "#171528", "분석 · 시사점 계층", "저장 없이 화면 즉시 산출")
         d_n1 = pill("동일 심사등급 경쟁종형 대조", fg=C_VIOLET, bg=C_PANEL_HI, border=C_VIOLET, size=11.2, px=0.11, py=0.06).move_to([-1.85, 1.62, 0])
         d_n2 = pill("대응 특약 · 지급조건 대조", fg=C_MINT, bg=C_PANEL_HI, border=C_MINT, size=11.2, px=0.11, py=0.06).move_to([1.25, 1.62, 0])
         d_n4 = pill("★ 영업 · 상품기획 시사점 도출", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.4, px=0.13, py=0.06).move_to([4.25, 1.62, 0])
-        layer_der = VGroup(b_der, h_der, d_n1, d_n2, d_n4, arrow_2d(d_n1.get_right(), d_n2.get_left(), color=C_VIOLET, sw=1.8, tip=0.10, z=6), arrow_2d(d_n2.get_right(), d_n4.get_left(), color=C_GOLD, sw=1.8, tip=0.10, z=6))
+        layer_der = VGroup(
+            b_der,
+            h_der,
+            d_n1,
+            d_n2,
+            d_n4,
+            arrow_2d(d_n1.get_right(), d_n2.get_left(), color=C_VIOLET, sw=1.8, tip=0.10, z=6),
+            arrow_2d(d_n2.get_right(), d_n4.get_left(), color=C_GOLD, sw=1.8, tip=0.10, z=6),
+        )
 
         b_std, h_std = make_layer_band(0.14, 1.08, C_GOLD, "#1E1B12", "표준 기준 계층", "타사 특약 · 심사기준 표준화")
         s_grade = pill("심사유형 · 간편고지 등급 체계", fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=11.0, px=0.11, py=0.06).move_to([-1.68, 0.14, 0])
         sd1 = Square(side_length=0.20, fill_color=C_GOLD, fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.3).rotate(PI / 4).move_to([0.65, 0.34, 0]).set_z_index(7)
         sd2 = Square(side_length=0.18, fill_color=C_MINT, fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.2).rotate(PI / 4).move_to([1.45, 0.46, 0]).set_z_index(7)
         sd3 = Square(side_length=0.18, fill_color=C_CYAN, fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.2).rotate(PI / 4).move_to([1.45, 0.02, 0]).set_z_index(7)
-        s_dag_grp = VGroup(Line(sd1.get_center(), sd2.get_center(), color=C_GOLD, stroke_width=2.0).set_z_index(6), Line(sd1.get_center(), sd3.get_center(), color=C_MINT, stroke_width=2.0).set_z_index(6), sd1, sd2, sd3, txt("◆ 표준담보 76종 및 포함·합산 관계", size=11.0, color=C_GOLD, bold=True, z=7).move_to([1.35, -0.24, 0]))
+        s_dag_grp = VGroup(
+            Line(sd1.get_center(), sd2.get_center(), color=C_GOLD, stroke_width=2.0).set_z_index(6),
+            Line(sd1.get_center(), sd3.get_center(), color=C_MINT, stroke_width=2.0).set_z_index(6),
+            sd1,
+            sd2,
+            sd3,
+            txt("◆ 표준담보 76종 및 포함·합산 관계", size=11.0, color=C_GOLD, bold=True, z=7).move_to([1.35, -0.24, 0]),
+        )
         s_pay = pill("지급형태 · 치료 5단계 분류", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.0, px=0.11, py=0.06).move_to([4.32, 0.14, 0])
         layer_std = VGroup(b_std, h_std, s_grade, s_dag_grp, s_pay)
 
@@ -171,7 +279,13 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         f_ben_s = Circle(radius=0.12, fill_color=C_GOLD, fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.4).move_to([2.88, -1.24, 0]).set_z_index(7)
         f_nws_s = RegularPolygon(n=5, fill_color=C_VIOLET, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.3).scale(0.15).move_to([4.72, -1.24, 0]).set_z_index(7)
         layer_fct = VGroup(
-            b_fct, h_fct, f_org_s, f_var_s, f_rid_s, f_ben_s, f_nws_s,
+            b_fct,
+            h_fct,
+            f_org_s,
+            f_var_s,
+            f_rid_s,
+            f_ben_s,
+            f_nws_s,
             txt("19개 보험기관", size=10.8, color=C_INK_0, bold=True, z=7).move_to([-2.48, -1.64, 0]),
             txt("23개 상품 종형", size=10.8, color=C_INK_0, bold=True, z=7).move_to([-0.82, -1.64, 0]),
             txt("2,747개 특약", size=10.8, color=C_INK_0, bold=True, z=7).move_to([1.00, -1.64, 0]),
@@ -197,25 +311,28 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             max_w=11.85,
         ).move_to([0.0, -2.56, 0]).set_z_index(9)
 
-        self.play(FadeOut(beat7a_all, shift=UP * 0.10), FadeIn(layer_fct, shift=UP * 0.12), FadeIn(layer_std, shift=UP * 0.12), FadeIn(layer_der, shift=UP * 0.12), run_time=1.00)
-        self.remove(beat7a_all)
-
-        up_pulses = VGroup(*[glow_dot(p0, color=col, r=0.055, z=14) for p0, _, col in up_coords])
-        self.add(up_pulses)
-        self.play(
-            LaggedStart(*[GrowArrow(va) for va in cross_layer_arrows], lag_ratio=0.06),
-            *[MoveAlongPath(up_pulses[k], Line(up_coords[k][0], up_coords[k][1])) for k in range(6)],
-            FadeIn(foot_7b, shift=UP * 0.08),
-            Circumscribe(d_n4[0], color=WHITE, stroke_width=2.2, buff=0.04),
-            run_time=1.00,
+        self.reset_cam_2d(
+            anims=[
+                FadeOut(stack_3d_grp),
+                FadeOut(z_lbl_3d),
+                FadeIn(layer_fct),
+                FadeIn(layer_std),
+                FadeIn(layer_der),
+                LaggedStart(*[GrowArrow(va) for va in cross_layer_arrows], lag_ratio=0.05),
+                FadeIn(foot_7b, shift=UP * 0.08),
+            ],
+            rt=0.95,
         )
-        self.remove(up_pulses, *up_pulses)
+        self.remove_fixed_in_frame_mobjects(z_lbl_3d)
+        self.remove(stack_3d_grp, z_lbl_3d)
+        self.play(Circumscribe(d_n4[0], color=WHITE, stroke_width=2.2, buff=0.04), run_time=0.55)
+
         beat7b_all = VGroup(layer_fct, layer_std, layer_der, cross_layer_arrows, foot_7b)
         self.check_bounds(beat7b_all, "CH7B THREE LAYERS")
-        self.wait(2.40)
+        self.wait(1.55)
 
         # -------------------------------------------------------------------
-        # Beat 7C: Network Graph (Pending 672 Dashed) & Standard Dictionary 52 -> 76
+        # Beat 7C: True 3D Knowledge-Graph Constellation Orbit & 52 -> 76 Expansion
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
@@ -228,7 +345,9 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         total_v = n_per_org * 3 + n_hubs
         for h_i in range(n_hubs - 1):
             G.add_edge(45 + h_i, 45 + h_i + 1)
-        G.add_edge(45, 49); G.add_edge(46, 51); G.add_edge(48, 53)
+        G.add_edge(45, 49)
+        G.add_edge(46, 51)
+        G.add_edge(48, 53)
         for c_idx in range(3):
             base = c_idx * n_per_org
             for k in range(1, 4):
@@ -237,51 +356,63 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 G.add_edge(base + 1 + ((k - 4) % 3), base + k)
                 G.add_edge(base + k, 45 + ((k * 2 + c_idx * 3) % n_hubs))
 
-        raw_pos = nx.spring_layout(G, seed=19, k=0.46, iterations=90)
+        # True 3D (x, y, z) spring layout!
+        raw_pos = nx.spring_layout(G, dim=3, seed=19, k=0.50, iterations=90)
         xs = np.array([raw_pos[i][0] for i in range(total_v)])
         ys = np.array([raw_pos[i][1] for i in range(total_v)])
-        xs = (xs - xs.mean()) / (xs.max() - xs.min() + 1e-6) * 10.2
-        ys = (ys - ys.mean()) / (ys.max() - ys.min() + 1e-6) * 4.05 - 0.08
-        net_pts = {i: np.array([xs[i], ys[i], 0.0]) for i in range(total_v)}
+        zs = np.array([raw_pos[i][2] for i in range(total_v)])
+        xs = (xs - xs.mean()) / (xs.max() - xs.min() + 1e-6) * 9.8
+        ys = (ys - ys.mean()) / (ys.max() - ys.min() + 1e-6) * 3.85 - 0.08
+        zs = (zs - zs.mean()) / (zs.max() - zs.min() + 1e-6) * 3.10
+        net_pts = {i: np.array([xs[i], ys[i], zs[i]]) for i in range(total_v)}
 
         radar_bg = VGroup(
-            *[Circle(radius=rad, fill_opacity=0.0, stroke_color=C_CYAN, stroke_width=0.8, stroke_opacity=0.14).move_to([0, -0.08, 0]) for rad in [1.15, 2.30, 3.45, 4.65]],
-            Line([-5.8, -0.08, 0], [5.8, -0.08, 0], color=C_CYAN, stroke_width=0.7, stroke_opacity=0.10),
-            Line([0, -2.85, 0], [0, 2.75, 0], color=C_CYAN, stroke_width=0.7, stroke_opacity=0.10),
+            *[Circle(radius=rad, fill_opacity=0.0, stroke_color=C_CYAN, stroke_width=0.8, stroke_opacity=0.16).move_to([0, -0.08, 0]) for rad in [1.15, 2.30, 3.45, 4.65]],
+            Line([-5.8, -0.08, 0], [5.8, -0.08, 0], color=C_CYAN, stroke_width=0.7, stroke_opacity=0.12),
+            Line([0, -2.85, 0], [0, 2.75, 0], color=C_CYAN, stroke_width=0.7, stroke_opacity=0.12),
         ).set_z_index(1)
 
-        net_vertices = VGroup()
+        hub_prisms = VGroup()
+        billboard_nodes: list[Mobject] = []
         for i in range(total_v):
             pt = net_pts[i]
             if i >= 45:
-                v_mob: Mobject = Square(side_length=0.20, fill_color=C_GOLD, fill_opacity=0.96, stroke_color=WHITE, stroke_width=1.5).rotate(PI / 4).move_to(pt)
+                v_mob: Mobject = (
+                    Prism(dimensions=[0.22, 0.22, 0.22], fill_color=C_GOLD, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.2)
+                    .rotate(PI / 4, axis=OUT)
+                    .rotate(PI / 5, axis=RIGHT)
+                    .move_to(pt)
+                )
+                hub_prisms.add(v_mob)
             elif i % 15 == 0:
                 c_col = C_GOLD if i == 0 else (C_CYAN if i == 15 else C_VIOLET)
-                v_mob = RegularPolygon(n=6, fill_color=c_col, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.6).scale(0.16).move_to(pt)
+                v_mob = RegularPolygon(n=6, fill_color=c_col, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.5).scale(0.16).move_to(pt)
+                billboard_nodes.append(v_mob)
             else:
                 c_col = C_GOLD if i < 15 else (C_CYAN if i < 30 else C_VIOLET)
-                v_mob = Circle(radius=0.074, fill_color=c_col, fill_opacity=0.88, stroke_color=c_col, stroke_width=1.2).move_to(pt)
-            v_mob.set_z_index(5)
-            net_vertices.add(v_mob)
+                v_mob = Circle(radius=0.076, fill_color=c_col, fill_opacity=0.88, stroke_color=c_col, stroke_width=1.1).move_to(pt)
+                billboard_nodes.append(v_mob)
+
+        billboard_grp = VGroup(*billboard_nodes)
 
         intra_edges, dag_edges, confirmed_bridge_edges, waiting_dashed_edges = VGroup(), VGroup(), VGroup(), VGroup()
         bridge_counter = 0
         for u, v in G.edges():
             if u >= 45 and v >= 45:
-                dag_edges.add(Line(net_pts[u], net_pts[v], color=C_GOLD, stroke_width=2.2, stroke_opacity=0.92).set_z_index(4))
+                dag_edges.add(Line(net_pts[u], net_pts[v], color=C_GOLD, stroke_width=2.2, stroke_opacity=0.92))
             elif u < 45 and v < 45:
-                intra_edges.add(Line(net_pts[u], net_pts[v], color=C_SLATE, stroke_width=1.1, stroke_opacity=0.52).set_z_index(3))
+                intra_edges.add(Line(net_pts[u], net_pts[v], color=C_SLATE, stroke_width=1.1, stroke_opacity=0.52))
             else:
                 bridge_counter += 1
                 if bridge_counter % 4 == 0:
-                    waiting_dashed_edges.add(DashedLine(net_pts[u], net_pts[v], dash_length=0.09, color=C_AMBER, stroke_width=1.7, stroke_opacity=0.88).set_z_index(4))
+                    waiting_dashed_edges.add(DashedLine(net_pts[u], net_pts[v], dash_length=0.09, color=C_AMBER, stroke_width=1.8, stroke_opacity=0.90))
                 else:
-                    confirmed_bridge_edges.add(Line(net_pts[u], net_pts[v], color=C_MINT, stroke_width=1.4, stroke_opacity=0.72).set_z_index(3))
+                    confirmed_bridge_edges.add(Line(net_pts[u], net_pts[v], color=C_MINT, stroke_width=1.4, stroke_opacity=0.72))
 
         build_banner = fit(
-            pill("온톨로지 관계망 : 6,615건 급부 전량 1대1 매핑 연결 (누락 0건) · 매핑 확정 3,807건 실선 vs 검토 대기 672건 점선 분리", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.4),
+            pill("3D 온톨로지 관계망 : 6,615건 급부 전량 1대1 매핑 연결 (누락 0건) · 매핑 확정 3,807건 실선 vs 검토 대기 672건 점선 분리", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.4),
             max_w=11.85,
-        ).move_to([0, 2.70, 0]).set_z_index(12)
+        ).move_to([0, 2.70, 0]).set_z_index(25)
         build_legend = fit(
             VGroup(
                 pill("◆ 담보 포함·합산 관계 (31건)", fg=C_GOLD, bg=C_PANEL, border=C_GOLD_DEEP, size=11.0),
@@ -289,29 +420,66 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 pill("●- -● 검토 대기 급부 (점선 672건 · 미보유 오판 방지)", fg=C_AMBER, bg=C_PANEL, border=C_AMBER, size=11.0),
             ).arrange(RIGHT, buff=0.14),
             max_w=11.85,
-        ).move_to([0, -2.70, 0]).set_z_index(12)
+        ).move_to([0, -2.70, 0]).set_z_index(25)
 
-        self.play(
-            FadeOut(beat7b_all, shift=UP * 0.10),
-            FadeIn(radar_bg), FadeIn(net_vertices, lag_ratio=0.01),
-            Create(intra_edges, lag_ratio=0.01), Create(dag_edges, lag_ratio=0.03),
-            Create(confirmed_bridge_edges, lag_ratio=0.01), Create(waiting_dashed_edges, lag_ratio=0.02),
-            FadeIn(build_banner, shift=DOWN * 0.08), FadeIn(build_legend, shift=UP * 0.08),
-            run_time=1.30,
+        self.add_fixed_in_frame_mobjects(build_banner, build_legend)
+        self.add_billboard(*billboard_nodes)
+
+        # Enter 3D Galaxy view!
+        self.cam_move(
+            phi=56 * DEGREES,
+            theta=-64 * DEGREES,
+            zoom=0.98,
+            center=[0.0, -0.05, 0.0],
+            anims=[
+                FadeOut(beat7b_all, shift=UP * 0.10),
+                FadeIn(radar_bg),
+                FadeIn(hub_prisms, lag_ratio=0.03),
+                FadeIn(billboard_grp, lag_ratio=0.01),
+                Create(intra_edges, lag_ratio=0.01),
+                Create(dag_edges, lag_ratio=0.03),
+                Create(confirmed_bridge_edges, lag_ratio=0.01),
+                Create(waiting_dashed_edges, lag_ratio=0.02),
+                FadeIn(build_banner, shift=DOWN * 0.08),
+                FadeIn(build_legend, shift=UP * 0.08),
+            ],
+            rt=1.25,
         )
         self.remove(beat7b_all)
-        self.wait(2.05)
 
+        # Majestic 3Blue1Brown 3D Orbit around the Ontology Constellation!
+        self.cam_move(
+            phi=48 * DEGREES,
+            theta=-24 * DEGREES,
+            zoom=1.04,
+            center=[0.0, -0.05, 0.0],
+            rt=2.05,
+        )
+
+        # Level to 2D while dimming the constellation into ambient cosmos for the 52 -> 76 cards
         all_net_lines = VGroup(intra_edges, dag_edges, confirmed_bridge_edges, waiting_dashed_edges)
-        self.play(all_net_lines.animate.set_stroke(opacity=0.14), net_vertices.animate.set_opacity(0.16), FadeOut(build_banner), FadeOut(build_legend), run_time=0.40)
+        self.reset_cam_2d(
+            anims=[
+                all_net_lines.animate.set_stroke(opacity=0.14),
+                hub_prisms.animate.set_opacity(0.16),
+                billboard_grp.animate.set_opacity(0.16),
+                FadeOut(build_banner),
+                FadeOut(build_legend),
+            ],
+            rt=0.65,
+        )
+        self.remove_fixed_in_frame_mobjects(build_banner, build_legend)
         self.remove(build_banner, build_legend)
 
         z1_card = RoundedRectangle(corner_radius=0.08, width=3.30, height=4.35, fill_color=C_PANEL, fill_opacity=0.88, stroke_color=C_CYAN, stroke_width=1.9).move_to([-4.32, -0.05, 0]).set_z_index(4)
         z1_old = fit(pill("직전 상품 (간편건강 2504)", fg=C_INK_1, bg=C_PANEL_HI, border=C_SLATE, size=11.2, z=7), max_w=2.95).move_to([-4.32, 0.92, 0])
         z1_new = fit(pill("현행 상품 (간편한건강 2606)", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=11.4, z=7), max_w=2.95).move_to([-4.32, -0.18, 0])
         exp_left = VGroup(
-            z1_card, fit(txt("확장 ① 상품 개정 전후 계보 연결", size=13.2, color=C_CYAN, bold=True, z=7), max_w=3.02).move_to([-4.32, 1.72, 0]),
-            z1_old, z1_new, arrow_2d(z1_old.get_bottom(), z1_new.get_top(), color=C_GOLD, sw=2.2, tip=0.12, z=7),
+            z1_card,
+            fit(txt("확장 ① 상품 개정 전후 계보 연결", size=13.2, color=C_CYAN, bold=True, z=7), max_w=3.02).move_to([-4.32, 1.72, 0]),
+            z1_old,
+            z1_new,
+            arrow_2d(z1_old.get_bottom(), z1_new.get_top(), color=C_GOLD, sw=2.2, tip=0.12, z=7),
             pill("특약 계보 자동 승계", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD_DEEP, size=10.3, px=0.10, py=0.03, z=8).move_to([-4.32, 0.37, 0]),
             fit(pill("정밀비교 3개사 → 19개사 단계 확대", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=10.6, z=7), max_w=2.95).move_to([-4.32, -0.92, 0]),
             fit(txt("변경 약관만 재추출 · 기존 검수분 유지", size=10.4, color=C_INK_1, z=7), max_w=2.98).move_to([-4.32, -1.62, 0]),
@@ -346,8 +514,12 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         z3_cand = pill("신규 담보 후보", fg=C_MINT, bg=C_PANEL_HI, border=C_MINT, size=10.5, px=0.10, py=0.05, z=7).move_to([5.08, 0.08, 0])
         z3_prom = fit(pill("◆ 차기 표준담보 편입 후보", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=11.0, z=7), max_w=2.95).move_to([4.32, -0.85, 0])
         exp_right = VGroup(
-            z3_card, fit(txt("확장 ③ 시장동향 → 신규 담보 후보", size=13.2, color=C_VIOLET, bold=True, z=7), max_w=3.02).move_to([4.32, 1.72, 0]),
-            z3_news, z3_xr, z3_cand, z3_prom,
+            z3_card,
+            fit(txt("확장 ③ 시장동향 → 신규 담보 후보", size=13.2, color=C_VIOLET, bold=True, z=7), max_w=3.02).move_to([4.32, 1.72, 0]),
+            z3_news,
+            z3_xr,
+            z3_cand,
+            z3_prom,
             arrow_2d(z3_news.get_bottom() + LEFT * 0.35, z3_xr.get_top(), color=C_VIOLET, sw=1.7, tip=0.10, z=6),
             arrow_2d(z3_news.get_bottom() + RIGHT * 0.35, z3_cand.get_top(), color=C_MINT, sw=1.7, tip=0.10, z=6),
             arrow_2d(z3_cand.get_bottom(), z3_prom.get_top() + RIGHT * 0.35, color=C_GOLD, sw=2.0, tip=0.11, z=6),
@@ -356,37 +528,34 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         self.play(FadeIn(exp_left, shift=UP * 0.12), FadeIn(VGroup(z2_card, z2_t, z2_sub, drift_dots), shift=UP * 0.12), FadeIn(exp_right, shift=UP * 0.12), run_time=0.85)
         self.play(
-            FadeIn(new_hubs_4c, scale=0.3), FadeIn(new_hub_lbls),
+            FadeIn(new_hubs_4c, scale=0.3),
+            FadeIn(new_hub_lbls),
             *[drift_dots[idx].animate.move_to(target_positions_4c[idx]).set_color(C_GOLD if (idx // 4) == 1 else C_MINT) for idx in range(12)],
-            Create(remap_edges, lag_ratio=0.02), FadeIn(remap_ok, shift=UP * 0.08),
+            Create(remap_edges, lag_ratio=0.02),
+            FadeIn(remap_ok, shift=UP * 0.08),
             run_time=1.00,
         )
-        bg_cosmos = VGroup(radar_bg, all_net_lines, net_vertices)
+        bg_cosmos = VGroup(radar_bg, all_net_lines, hub_prisms, billboard_grp)
         fg_7c = VGroup(exp_left, z2_card, z2_t, z2_sub, drift_dots, new_hubs_4c, new_hub_lbls, remap_edges, remap_ok, exp_right)
         self.check_bounds(fg_7c, "CH7C EXPANSION")
-        self.wait(2.35)
+        self.wait(1.85)
 
         # ===================================================================
-        # 8장 [~34s]: 지식그래프 담보 해석 · 관문·치료여정 차트 · 4대 전략과 A4 카드
+        # 8장 [~38s]: 은하 심층 다이브 → 다단계 담보 탐색 → 관문·여정 줌인 → 4대 전략·카드
         # ===================================================================
-        nl8, nr8, nb8 = self.make_hud(
+        hl, hr, hb = self.switch_hud(
+            fg_7c,
+            hl,
+            hr,
+            hb,
             8,
             "지식그래프 담보 분석과 실행 — 합산 탐색·관문 차트부터 응대 카드까지",
             "타사는 통합특약 하나로, 우체국은 분리특약 두 개로 운영하는 경우 포함·합산 관계로 실질 보장을 찾아냅니다",
         )
-        self.play(
-            FadeOut(fg_7c, shift=UP * 0.12, run_time=0.50),
-            Succession(FadeOut(hl, shift=UP * 0.05, run_time=0.22), FadeIn(nl8, shift=UP * 0.05, run_time=0.28)),
-            ReplacementTransform(hr[1], nr8[1], run_time=0.50),
-            FadeOut(hr[0], run_time=0.25), FadeIn(nr8[0], run_time=0.25),
-            Succession(FadeOut(hb, shift=DOWN * 0.05, run_time=0.22), FadeIn(nb8, shift=UP * 0.05, run_time=0.28)),
-        )
-        self.remove(fg_7c)
-        hl, hr, hb = nl8, nr8, nb8
         print(f"[TIMING] Ch7 end: {self.renderer.time:.2f}s")
 
         # -------------------------------------------------------------------
-        # Beat 8A: Multi-Hop Coverage Graph Traversal
+        # Beat 8A: Camera Dive into Central Hub -> Pull Out across Multi-Hop Subgraph!
         # -------------------------------------------------------------------
         def graph_hub(label: str, pos: list[float], col: str = C_GOLD, r: float = 0.22, lbl_dir: np.ndarray = DOWN) -> VGroup:
             dm = Square(side_length=r * 1.5, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=col, stroke_width=2.5).rotate(PI / 4).move_to(pos).set_z_index(8)
@@ -408,7 +577,10 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         cv4 = pill("◆ 뇌출혈", fg=C_WHITE, bg=C_PANEL_HI, border=C_WHITE, size=12.0, px=0.13, py=0.06, z=8).move_to([3.70, 2.22, 0])
         top_chain_grp = VGroup(
             txt("보장 범위 포함 관계 :", size=12.2, color=C_GOLD, bold=True, z=9).move_to([-4.62, 2.22, 0]),
-            cv1, cv2, cv3, cv4,
+            cv1,
+            cv2,
+            cv3,
+            cv4,
             arrow_2d(cv1.get_right(), cv2.get_left(), color=C_GOLD, sw=2.0, tip=0.11, z=8),
             arrow_2d(cv2.get_right(), cv3.get_left(), color=C_CYAN, sw=2.0, tip=0.11, z=8),
             arrow_2d(cv3.get_right(), cv4.get_left(), color=C_CYAN, sw=2.0, tip=0.11, z=8),
@@ -432,32 +604,109 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         e_hop3_b = Line([3.27, -1.12, 0], [4.16, -0.48, 0], color=C_SLATE, stroke_width=2.0).set_z_index(6)
 
         fg_subgraph = VGroup(
-            top_chain_grp, n_peer_rider, n_peer_ben, h_integrated, sel_ring, h_part_br, h_part_ht, n_ep_ben1, n_ep_ben2, n_ep_prod,
+            top_chain_grp,
+            n_peer_rider,
+            n_peer_ben,
+            h_integrated,
+            sel_ring,
+            h_part_br,
+            h_part_ht,
+            n_ep_ben1,
+            n_ep_ben2,
+            n_ep_prod,
             arrow_2d(n_peer_rider[0].get_right(), n_peer_ben[0].get_left(), color=C_CYAN, sw=2.0, tip=0.11, z=7),
             arrow_2d(n_peer_ben[0].get_right(), [-1.82, -0.25, 0], color=C_CYAN, sw=2.0, tip=0.11, z=7),
-            e_hop1_a, e_hop1_b,
+            e_hop1_a,
+            e_hop1_b,
             pill("분리특약 합산 대응", fg=C_MINT, bg=C_PANEL, border=C_MINT, size=9.6, px=0.08, py=0.03, z=9).move_to([-0.08, 0.46, 0]),
             pill("분리특약 합산 대응", fg=C_MINT, bg=C_PANEL, border=C_MINT, size=9.6, px=0.08, py=0.03, z=9).move_to([-0.08, -0.96, 0]),
-            e_hop2_a, e_hop2_b, e_hop3_a, e_hop3_b,
+            e_hop2_a,
+            e_hop2_b,
+            e_hop3_a,
+            e_hop3_b,
         )
-        self.play(FadeIn(fg_subgraph, lag_ratio=0.03), run_time=0.90)
 
-        bad_arc = DashedVMobject(CubicBezier(np.array([-1.45, -0.62, 0]), np.array([0.2, -2.55, 0]), np.array([3.2, -2.55, 0]), np.array([4.95, -0.62, 0]), color=C_CORAL, stroke_width=2.4), num_dashes=28).set_z_index(10)
+        # Deep 3Blue1Brown Camera Dive into the '뇌·심장질환 수술비' diamond hub -> Pull out across subgraph!
+        self.cam_move(
+            zoom=1.52,
+            center=[-1.45, -0.25, 0],
+            anims=[FadeIn(h_integrated, scale=0.8), FadeIn(sel_ring)],
+            rt=0.75,
+        )
+        self.reset_cam_2d(
+            anims=[
+                FadeIn(
+                    VGroup(
+                        top_chain_grp,
+                        n_peer_rider,
+                        n_peer_ben,
+                        h_part_br,
+                        h_part_ht,
+                        n_ep_ben1,
+                        n_ep_ben2,
+                        n_ep_prod,
+                        fg_subgraph[10],
+                        fg_subgraph[11],
+                        e_hop1_a,
+                        e_hop1_b,
+                        fg_subgraph[14],
+                        fg_subgraph[15],
+                        e_hop2_a,
+                        e_hop2_b,
+                        e_hop3_a,
+                        e_hop3_b,
+                    ),
+                    lag_ratio=0.03,
+                )
+            ],
+            rt=0.85,
+        )
+
+        bad_arc = DashedVMobject(
+            CubicBezier(np.array([-1.45, -0.62, 0]), np.array([0.2, -2.55, 0]), np.array([3.2, -2.55, 0]), np.array([4.95, -0.62, 0]), color=C_CORAL, stroke_width=2.4),
+            num_dashes=28,
+        ).set_z_index(10)
         bad_1hop_lbl = fit(pill('단순 특약명 대조 시 : "통합수술비 특약이 없으니 미보유"로 오판 ×', fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=11.6, z=11), max_w=8.50).move_to([1.65, -2.38, 0])
         self.play(Create(bad_arc), FadeIn(bad_1hop_lbl, shift=UP * 0.08), run_time=0.65)
 
-        hop_badge = fit(pill("합산 관계 탐색 ✓ : 외견상 미보유 29종 중 25종이 분리·상위 특약으로 실질 보장 확인!", fg=C_DARK_INK, bg=C_MINT, border=WHITE, size=11.6, z=12), max_w=9.20).move_to([1.45, -2.38, 0])
+        hop_badge = fit(
+            pill("합산 관계 탐색 ✓ : 외견상 미보유 29종 중 25종이 분리·상위 특약으로 실질 보장 확인!", fg=C_DARK_INK, bg=C_MINT, border=WHITE, size=11.6, z=12),
+            max_w=9.20,
+        ).move_to([1.45, -2.38, 0])
         p_up, p_dn = glow_dot([-1.12, -0.05, 0], color=C_MINT, r=0.068, z=14), glow_dot([-1.12, -0.45, 0], color=C_MINT, r=0.068, z=14)
         self.add(p_up, p_dn)
-        self.play(FadeOut(bad_arc), FadeOut(bad_1hop_lbl), Rotate(sel_ring, angle=PI / 3), MoveAlongPath(p_up, e_hop1_a), MoveAlongPath(p_dn, e_hop1_b), e_hop1_a.animate.set_stroke(color=C_MINT, width=3.4), e_hop1_b.animate.set_stroke(color=C_MINT, width=3.4), run_time=0.60)
+        self.play(
+            FadeOut(bad_arc),
+            FadeOut(bad_1hop_lbl),
+            Rotate(sel_ring, angle=PI / 3),
+            MoveAlongPath(p_up, e_hop1_a),
+            MoveAlongPath(p_dn, e_hop1_b),
+            e_hop1_a.animate.set_stroke(color=C_MINT, width=3.4),
+            e_hop1_b.animate.set_stroke(color=C_MINT, width=3.4),
+            run_time=0.60,
+        )
         self.remove(bad_arc, bad_1hop_lbl)
-        self.play(MoveAlongPath(p_up, e_hop2_a), MoveAlongPath(p_dn, e_hop2_b), e_hop2_a.animate.set_stroke(color=C_GOLD, width=3.4), e_hop2_b.animate.set_stroke(color=C_GOLD, width=3.4), run_time=0.50)
-        self.play(MoveAlongPath(p_up, e_hop3_a), MoveAlongPath(p_dn, e_hop3_b), e_hop3_a.animate.set_stroke(color=C_GOLD, width=3.4), e_hop3_b.animate.set_stroke(color=C_GOLD, width=3.4), Circumscribe(n_ep_prod[0], color=C_MINT, stroke_width=2.2, buff=0.03), FadeIn(hop_badge, shift=UP * 0.08), run_time=0.65)
+        self.play(
+            MoveAlongPath(p_up, e_hop2_a),
+            MoveAlongPath(p_dn, e_hop2_b),
+            e_hop2_a.animate.set_stroke(color=C_GOLD, width=3.4),
+            e_hop2_b.animate.set_stroke(color=C_GOLD, width=3.4),
+            run_time=0.50,
+        )
+        self.play(
+            MoveAlongPath(p_up, e_hop3_a),
+            MoveAlongPath(p_dn, e_hop3_b),
+            e_hop3_a.animate.set_stroke(color=C_GOLD, width=3.4),
+            e_hop3_b.animate.set_stroke(color=C_GOLD, width=3.4),
+            Circumscribe(n_ep_prod[0], color=C_MINT, stroke_width=2.2, buff=0.03),
+            FadeIn(hop_badge, shift=UP * 0.08),
+            run_time=0.65,
+        )
         self.remove(p_up, p_dn)
-        self.wait(1.90)
+        self.wait(1.55)
 
         # -------------------------------------------------------------------
-        # Beat 8B: Visual Phase Map (4x2 UW Matrix) + Care Journey 5-Stage Bar Chart + Constraint Graph!
+        # Beat 8B: 4x2 UW Matrix Crosshair Zoom -> Pan to Care Journey 0종 Gap -> Pull Back
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
@@ -476,7 +725,15 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 cx = -3.65 if c_i == 0 else -1.55
                 is_gold_open = r_i == 1 and c_i == 1
                 is_both_open = r_i >= 2 and c_i == 1
-                cell_r = RoundedRectangle(corner_radius=0.05, width=cw_p, height=0.68, fill_color="#383016" if is_gold_open else ("#182832" if is_both_open else C_PANEL_HI), fill_opacity=0.95, stroke_color=C_GOLD if is_gold_open else (C_CYAN if is_both_open else C_SLATE), stroke_width=2.2 if is_gold_open else 1.2).move_to([cx, ry, 0]).set_z_index(4)
+                cell_r = RoundedRectangle(
+                    corner_radius=0.05,
+                    width=cw_p,
+                    height=0.68,
+                    fill_color="#383016" if is_gold_open else ("#182832" if is_both_open else C_PANEL_HI),
+                    fill_opacity=0.95,
+                    stroke_color=C_GOLD if is_gold_open else (C_CYAN if is_both_open else C_SLATE),
+                    stroke_width=2.2 if is_gold_open else 1.2,
+                ).move_to([cx, ry, 0]).set_z_index(4)
                 if is_gold_open:
                     ct = fit(txt("▲ 우체국 적격 (입원만)", size=10.6, color=C_GOLD, bold=True, z=7), max_w=2.00)
                     ct.move_to(cell_r.get_left() + RIGHT * (0.12 + ct.width / 2))
@@ -505,16 +762,35 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         cj_base_y = 0.44
         for s_i, (s_nm, s_cnt, s_col) in enumerate(cj_stages):
             sx = 1.05 + s_i * 1.10
-            slot_bg = RoundedRectangle(corner_radius=0.05, width=0.84, height=1.36, fill_color=C_PANEL_HI, fill_opacity=0.92, stroke_color=C_CORAL if s_cnt == 0 else C_SLATE, stroke_width=1.8 if s_cnt == 0 else 1.1).move_to([sx, cj_base_y + 0.68, 0]).set_z_index(3)
+            slot_bg = RoundedRectangle(
+                corner_radius=0.05,
+                width=0.84,
+                height=1.36,
+                fill_color=C_PANEL_HI,
+                fill_opacity=0.92,
+                stroke_color=C_CORAL if s_cnt == 0 else C_SLATE,
+                stroke_width=1.8 if s_cnt == 0 else 1.1,
+            ).move_to([sx, cj_base_y + 0.68, 0]).set_z_index(3)
             if s_cnt > 0:
                 bh = (s_cnt / 8.0) * 0.80
                 bar = RoundedRectangle(corner_radius=0.04, width=0.56, height=bh, fill_color=s_col, fill_opacity=0.86, stroke_color=WHITE, stroke_width=1.0).move_to([sx, cj_base_y + 0.10 + bh / 2, 0]).set_z_index(5)
                 cj_bars.add(VGroup(slot_bg, bar, txt(f"{s_cnt}종", size=11.2, color=WHITE, bold=True, z=7).move_to([sx, cj_base_y + 0.10 + bh + 0.18, 0])))
             else:
-                cj_bars.add(VGroup(slot_bg, txt("0종", size=13.2, color=C_CORAL, bold=True, z=7).move_to(slot_bg.get_center() + UP * 0.12), txt("공백 구간", size=9.4, color=C_CORAL, bold=True, z=7).move_to(slot_bg.get_center() + DOWN * 0.28)))
+                cj_bars.add(
+                    VGroup(
+                        slot_bg,
+                        txt("0종", size=13.2, color=C_CORAL, bold=True, z=7).move_to(slot_bg.get_center() + UP * 0.12),
+                        txt("공백 구간", size=9.4, color=C_CORAL, bold=True, z=7).move_to(slot_bg.get_center() + DOWN * 0.28),
+                    )
+                )
             cj_nodes.add(txt(s_nm, size=11.0, color=C_CORAL if s_cnt == 0 else C_INK_1, bold=(s_cnt == 0), z=7).move_to([sx, cj_base_y - 0.20, 0]))
 
-        cj_links = VGroup(*[Line([1.05 + i * 1.10 + 0.44, cj_base_y + 0.68, 0], [1.05 + (i + 1) * 1.10 - 0.44, cj_base_y + 0.68, 0], color=C_CORAL if i == 3 else C_GOLD, stroke_width=2.2).set_z_index(6) for i in range(4)])
+        cj_links = VGroup(
+            *[
+                Line([1.05 + i * 1.10 + 0.44, cj_base_y + 0.68, 0], [1.05 + (i + 1) * 1.10 - 0.44, cj_base_y + 0.68, 0], color=C_CORAL if i == 3 else C_GOLD, stroke_width=2.2).set_z_index(6)
+                for i in range(4)
+            ]
+        )
         care_journey_grp = VGroup(cj_title, cj_bars, cj_nodes, cj_links)
 
         rc_box = RoundedRectangle(corner_radius=0.07, width=5.35, height=1.85, fill_color=C_PANEL, fill_opacity=0.92, stroke_color=C_SLATE, stroke_width=1.4).move_to([3.25, -1.18, 0]).set_z_index(3)
@@ -522,8 +798,11 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         nd_rider = pill("● 표적항암 2,000만", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=10.6, px=0.10, py=0.05, z=7).move_to([3.28, -1.10, 0])
         nd_excl = pill("● 배타선택 차단", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=10.6, px=0.10, py=0.05, z=7).move_to([5.02, -1.10, 0])
         constraint_grp = VGroup(
-            rc_box, txt("특약 결합 제약 및 실수령액 산출", size=12.2, color=C_GOLD, bold=True, z=7).move_to([3.25, -0.52, 0]),
-            nd_main, nd_rider, nd_excl,
+            rc_box,
+            txt("특약 결합 제약 및 실수령액 산출", size=12.2, color=C_GOLD, bold=True, z=7).move_to([3.25, -0.52, 0]),
+            nd_main,
+            nd_rider,
+            nd_excl,
             arrow_2d(nd_main.get_right(), nd_rider.get_left(), color=C_MINT, sw=1.9, tip=0.09, z=7),
             DashedLine(nd_rider.get_right(), nd_excl.get_left(), dash_length=0.06, color=C_CORAL, stroke_width=1.9).set_z_index(6),
             txt("주계약 연동 한도 반영 ✓ · 중복 불가 조합 자동 차단 ×", size=10.4, color=C_INK_1, z=7).move_to([3.25, -1.72, 0]),
@@ -531,27 +810,48 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         beat8b_all = VGroup(phase_map_grp, care_journey_grp, constraint_grp)
 
         self.play(
-            FadeOut(bg_cosmos), FadeOut(fg_subgraph), FadeOut(hop_badge),
-            FadeIn(pm_title), FadeIn(pm_age_hdr),
+            FadeOut(bg_cosmos),
+            FadeOut(fg_subgraph),
+            FadeOut(hop_badge),
+            FadeIn(pm_title),
+            FadeIn(pm_age_hdr),
             LaggedStart(*[FadeIn(c, shift=UP * 0.05) for c in pm_cells], lag_ratio=0.025),
             FadeIn(care_journey_grp, shift=LEFT * 0.12),
             FadeIn(constraint_grp, shift=UP * 0.10),
-            run_time=1.10,
+            run_time=1.05,
         )
+        self.remove_billboard(*billboard_nodes)
         self.remove(bg_cosmos, fg_subgraph, hop_badge)
+
         assert gold_corridor_cell is not None
+        # Zoom in onto Crosshair [20~80세 × 수술만 = 우체국 적격 ▲] -> Pan Right to [통원 0종 공백]!
+        self.cam_move(
+            zoom=1.42,
+            center=[-2.90, 0.35, 0],
+            anims=[
+                FadeIn(target_cursor, scale=1.5),
+                Circumscribe(gold_corridor_cell, color=C_GOLD, stroke_width=2.2, buff=0.03),
+            ],
+            rt=0.85,
+        )
+        self.wait(0.35)
         cj_pulse = glow_dot([1.05, cj_base_y + 0.68, 0], color=C_GOLD, r=0.065, z=13)
         self.add(cj_pulse)
-        self.play(
-            FadeIn(target_cursor, scale=1.5),
-            Circumscribe(gold_corridor_cell, color=C_GOLD, stroke_width=2.2, buff=0.03),
-            MoveAlongPath(cj_pulse, Line([1.05, cj_base_y + 0.68, 0], [1.05 + 4 * 1.10, cj_base_y + 0.68, 0])),
-            Circumscribe(cj_bars[4][0], color=C_CORAL, stroke_width=2.2, buff=0.03),
-            run_time=0.95,
+        self.cam_move(
+            zoom=1.38,
+            center=[3.25, 0.85, 0],
+            anims=[
+                MoveAlongPath(cj_pulse, Line([1.05, cj_base_y + 0.68, 0], [1.05 + 4 * 1.10, cj_base_y + 0.68, 0])),
+                Circumscribe(cj_bars[4][0], color=C_CORAL, stroke_width=2.2, buff=0.03),
+            ],
+            rt=0.95,
         )
         self.remove(cj_pulse)
+        self.wait(0.35)
+        self.reset_cam_2d(rt=0.75)
+
         self.check_bounds(beat8b_all, "CH8B PHASE & CARE CHARTS")
-        self.wait(2.10)
+        self.wait(1.40)
 
         # -------------------------------------------------------------------
         # Beat 8C: 4 Practical Strategies Compass -> Dock into Console & A4 Card
@@ -566,7 +866,10 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             box = RoundedRectangle(corner_radius=0.09, width=5.46, height=1.96, fill_color=C_PANEL, fill_opacity=0.94, stroke_color=col, stroke_width=2.2).move_to([cx, cy, 0]).set_z_index(4)
             div = Line([cx - 1.18, cy - 0.72, 0], [cx - 1.18, cy + 0.72, 0], color=col, stroke_width=1.2, stroke_opacity=0.55).set_z_index(5)
             icon_mob.move_to([cx - 1.95, cy, 0]).set_z_index(7)
-            t_blk = fit(VGroup(txt(title_s, size=13.2, color=col, bold=True, z=7), txt(action_s, size=12.2, color=WHITE, bold=True, z=7)).arrange(DOWN, aligned_edge=LEFT, buff=0.14), max_w=3.58).move_to([cx + 0.78, cy, 0])
+            t_blk = fit(
+                VGroup(txt(title_s, size=13.2, color=col, bold=True, z=7), txt(action_s, size=12.2, color=WHITE, bold=True, z=7)).arrange(DOWN, aligned_edge=LEFT, buff=0.14),
+                max_w=3.58,
+            ).move_to([cx + 0.78, cy, 0])
             return VGroup(box, div, icon_mob, t_blk)
 
         ic1 = VGroup(
@@ -590,7 +893,11 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         ic3_step = VMobject(color=C_CYAN, stroke_width=2.8)
         ic3_step.set_points_as_corners([[-0.52, -0.32, 0], [-0.05, -0.32, 0], [-0.05, 0.26, 0], [0.52, 0.26, 0]])
-        ic3 = VGroup(Line([-0.55, -0.42, 0], [0.55, -0.42, 0], color=C_SLATE, stroke_width=1.4), ic3_step, txt("1년 후 100%", size=8.8, color=C_GOLD, bold=True, z=8).move_to([0.22, 0.46, 0]))
+        ic3 = VGroup(
+            Line([-0.55, -0.42, 0], [0.55, -0.42, 0], color=C_SLATE, stroke_width=1.4),
+            ic3_step,
+            txt("1년 후 100%", size=8.8, color=C_GOLD, bold=True, z=8).move_to([0.22, 0.46, 0]),
+        )
         q_s3 = make_strat_quad(-3.15, -1.24, C_CYAN, "전략 ③ [조건 열위 방어]", "분리특약 합산 · 감액 경과 안내 (단정 보류 분리)", ic3)
 
         ic4 = VGroup(
@@ -608,9 +915,14 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).move_to([0.0, 0.04, 0]).set_z_index(11)
         four_strategies = VGroup(q_s1, q_s2, q_s3, q_s4, compass_hub)
 
-        self.play(FadeOut(beat8b_all, scale=0.94), FadeIn(compass_hub, scale=0.6), LaggedStart(*[FadeIn(q, shift=UP * 0.10) for q in [q_s1, q_s2, q_s3, q_s4]], lag_ratio=0.10), run_time=1.05)
+        self.play(
+            FadeOut(beat8b_all, scale=0.94),
+            FadeIn(compass_hub, scale=0.6),
+            LaggedStart(*[FadeIn(q, shift=UP * 0.10) for q in [q_s1, q_s2, q_s3, q_s4]], lag_ratio=0.10),
+            run_time=1.05,
+        )
         self.remove(beat8b_all)
-        self.wait(1.65)
+        self.wait(1.40)
 
         app_window = RoundedRectangle(corner_radius=0.10, width=8.05, height=4.75, fill_color=C_PANEL, fill_opacity=0.92, stroke_color=C_INK_1, stroke_width=2.2).move_to([-2.05, -0.15, 0]).set_z_index(1)
         app_win_hdr = pill("본부 상품 · 영업지원 판단 화면 (단독 HTML · 2.97MB)", fg=WHITE, bg=C_PANEL_HI, border=C_SLATE, size=11.8).move_to([-2.05, 1.92, 0]).set_z_index(8)
@@ -629,20 +941,32 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         mini_cards.arrange(DOWN, buff=0.14).move_to([4.48, -0.22, 0])
         a4_foot = Rectangle(width=2.98, height=0.48, fill_color=C_DARK_INK, fill_opacity=1.0, stroke_width=0).move_to(a4_box.get_bottom() + UP * 0.24).set_z_index(6)
         proj_beam = arrow_2d([2.04, -0.15, 0], [2.92, -0.15, 0], color=C_GOLD, sw=3.2, tip=0.18, z=8)
-        a4_full = VGroup(a4_box, a4_top_bar, a4_badge, a4_title, mini_cards, a4_foot, fit(txt("본부 정밀 판단 → 현장 A4 1매 전달", size=11.4, color=C_GOLD, bold=True, z=7), max_w=2.72).move_to(a4_foot))
+        a4_full = VGroup(
+            a4_box,
+            a4_top_bar,
+            a4_badge,
+            a4_title,
+            mini_cards,
+            a4_foot,
+            fit(txt("본부 정밀 판단 → 현장 A4 1매 전달", size=11.4, color=C_GOLD, bold=True, z=7), max_w=2.72).move_to(a4_foot),
+        )
 
         self.play(
             four_strategies.animate.scale(0.43).move_to([-2.05, 0.52, 0]),
-            FadeIn(app_window), FadeIn(app_win_hdr), FadeIn(tpl_bar, shift=UP * 0.08), FadeIn(nlq_bar, shift=UP * 0.08),
-            GrowArrow(proj_beam), FadeIn(a4_full, shift=LEFT * 0.16),
+            FadeIn(app_window),
+            FadeIn(app_win_hdr),
+            FadeIn(tpl_bar, shift=UP * 0.08),
+            FadeIn(nlq_bar, shift=UP * 0.08),
+            GrowArrow(proj_beam),
+            FadeIn(a4_full, shift=LEFT * 0.16),
             run_time=1.15,
         )
         ch8_stage = VGroup(app_window, app_win_hdr, four_strategies, tpl_bar, nlq_bar, proj_beam, a4_full)
         self.check_bounds(ch8_stage, "CH8C CONSOLE & CARD")
-        self.wait(2.20)
+        self.wait(1.90)
 
         # ===================================================================
-        # 9장 [~26s]: 최종 업무 혁신 인포그래픽 — 신설 · 해결 · 개선 시각 대변환!
+        # 9장 [~28s]: 시네마틱 트래킹 샷 — Before 한계 → 3대 광선 → After 도넛 지표!
         # ===================================================================
         hl, hr, hb = self.switch_hud(
             ch8_stage,
@@ -671,7 +995,6 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             a_widgets.move_to([2.16, ly - 0.16, 0]).set_z_index(8)
             return VGroup(bc, bt, b_vis), VGroup(arr, albl), VGroup(ac, at, a_widgets)
 
-        # Lane 1: Newly Created — Radar Icon + 13,671 Log Counter + Console->A4 Icon!
         bv1 = VGroup(
             Circle(radius=0.18, fill_opacity=0.0, stroke_color=C_SLATE, stroke_width=1.4),
             txt("수동조회 ?", size=8.6, color=C_INK_2, bold=True),
@@ -693,7 +1016,6 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).arrange(RIGHT, buff=0.12)
         b_l1, t_l1, a_l1 = make_ba_lane(1.24, "× [없던 체계] 모니터링 · 현장 카드 부재", bv1, "신설 ✓", C_CYAN, "① 무서버 상시 수집·검증 정본 & 본부 화면 ↔ 창구 A4 카드 구축", aw1)
 
-        # Lane 2: Solved — 3 Mini Donut Metric Rings (100% / 100% / 86%)!
         bv2 = VGroup(
             Rectangle(width=0.32, height=0.40, fill_color=C_CORAL_DIM, fill_opacity=0.95, stroke_color=C_CORAL, stroke_width=1.4),
             txt("308p 그림 ×", size=8.6, color=C_CORAL, bold=True),
@@ -717,7 +1039,6 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).arrange(RIGHT, buff=0.22)
         b_l2, t_l2, a_l2 = make_ba_lane(-0.20, "× [안 되던 비교] 그림 문서 · 이질적 특약", bv2, "해결 ✓", C_GOLD, "② 원문·코드 분리 + 교차판독 + decision-1 + 76종 합산 탐색", aw2)
 
-        # Lane 3: Improved — Dashed Separator Icon + Shield Icon + Verified Stamp!
         bv3 = VGroup(
             Dot([0, 0, 0], radius=0.07, color=C_AMBER),
             txt("대기=공백 착각", size=8.6, color=C_AMBER, bold=True),
@@ -745,8 +1066,17 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             max_w=11.85,
         ).move_to([0.0, -2.68, 0])
 
-        self.play(FadeIn(col_hdr_before, shift=DOWN * 0.08), LaggedStart(*[FadeIn(bc, shift=RIGHT * 0.12) for bc in before_cards], lag_ratio=0.10), run_time=1.00)
-        self.wait(0.45)
+        # Zoom in onto Before Friction -> Track Right with Golden Pulses into After Donuts -> Pull Back!
+        self.cam_move(
+            zoom=1.24,
+            center=[-4.15, 0.25, 0],
+            anims=[
+                FadeIn(col_hdr_before, shift=DOWN * 0.08),
+                LaggedStart(*[FadeIn(bc, shift=RIGHT * 0.12) for bc in before_cards], lag_ratio=0.10),
+            ],
+            rt=1.05,
+        )
+        self.wait(0.40)
 
         pulses_9 = VGroup(
             glow_dot([-2.42, 1.24, 0], color=C_CYAN, r=0.06, z=12),
@@ -754,23 +1084,30 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             glow_dot([-2.42, -1.64, 0], color=C_MINT, r=0.06, z=12),
         )
         self.add(pulses_9)
-        self.play(
-            FadeIn(col_hdr_after, shift=DOWN * 0.08),
-            LaggedStart(*[FadeIn(ta, scale=0.9) for ta in trans_arrows], lag_ratio=0.10),
-            MoveAlongPath(pulses_9[0], Line([-2.42, 1.24, 0], [-1.56, 1.24, 0])),
-            MoveAlongPath(pulses_9[1], Line([-2.42, -0.20, 0], [-1.56, -0.20, 0])),
-            MoveAlongPath(pulses_9[2], Line([-2.42, -1.64, 0], [-1.56, -1.64, 0])),
-            LaggedStart(*[FadeIn(ac, shift=LEFT * 0.14) for ac in after_cards], lag_ratio=0.10),
-            run_time=1.30,
+        self.cam_move(
+            zoom=1.22,
+            center=[1.85, 0.22, 0],
+            anims=[
+                FadeIn(col_hdr_after, shift=DOWN * 0.08),
+                LaggedStart(*[FadeIn(ta, scale=0.9) for ta in trans_arrows], lag_ratio=0.10),
+                MoveAlongPath(pulses_9[0], Line([-2.42, 1.24, 0], [-1.56, 1.24, 0])),
+                MoveAlongPath(pulses_9[1], Line([-2.42, -0.20, 0], [-1.56, -0.20, 0])),
+                MoveAlongPath(pulses_9[2], Line([-2.42, -1.64, 0], [-1.56, -1.64, 0])),
+                LaggedStart(*[FadeIn(ac, shift=LEFT * 0.14) for ac in after_cards], lag_ratio=0.10),
+            ],
+            rt=1.35,
         )
         self.remove(pulses_9, *pulses_9)
-        self.play(
-            FadeIn(finale_ribbon, shift=UP * 0.08),
-            LaggedStart(*[Circumscribe(ac[0], color=C_GOLD, stroke_width=2.0, buff=0.03) for ac in after_cards], lag_ratio=0.12),
-            run_time=1.05,
+
+        self.reset_cam_2d(
+            anims=[
+                FadeIn(finale_ribbon, shift=UP * 0.08),
+                LaggedStart(*[Circumscribe(ac[0], color=C_GOLD, stroke_width=2.0, buff=0.03) for ac in after_cards], lag_ratio=0.12),
+            ],
+            rt=0.95,
         )
 
         ch9_stage = VGroup(col_hdr_before, col_hdr_after, before_cards, trans_arrows, after_cards, finale_ribbon)
         self.check_bounds(ch9_stage, "CH9 VISUAL BEFORE AFTER")
-        self.wait(3.80)
+        self.wait(3.60)
         print(f"[TIMING] Part 4 end: {self.renderer.time:.2f}s")
