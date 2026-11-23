@@ -1072,10 +1072,12 @@ function condTable(m, row, c) {
 
   const cols = allColIdxs.map(k => m.cols[k]);
   const reps = allColIdxs.map(k => repOf(row.cells[k]));
-  const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
   const nonMonRedLbl = nonMonCopy('감액') || '원문 확인';
   const nonMonBaseLbl = nonMonCopy('기준') || '금액 하나로 적을 수 없는 급부';
-  const body = items.map(([lab, f]) => {
+  const payRuleTxt = hasAnyNonMon && nonMonCopy('지급액판정')
+    ? `${nonMonCopy('지급액판정')} 및 기준 가입금액이 회사마다 달라 지급액은 판정에 넣지 않았습니다.`
+    : '지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.';
+  const summaries = items.map(([lab, f]) => {
     const vals = {};
     allColIdxs.forEach(k => {
       const rp = repOf(row.cells[k]);
@@ -1084,11 +1086,28 @@ function condTable(m, row, c) {
     const eqFn = hasAnyNonMon && (lab === '감액' || lab === '기준 가입금액')
       ? (a, b) => a === b && a !== nonMonRedLbl && a !== nonMonBaseLbl
       : undefined;
-    return `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(txt.sameSummary(vals, eqFn))}</td></tr>`;
-  }).join('');
-  const payRuleTxt = hasAnyNonMon && nonMonCopy('지급액판정')
-    ? `${nonMonCopy('지급액판정')} 및 기준 가입금액이 회사마다 달라 지급액은 판정에 넣지 않았습니다.`
-    : '지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.';
+    return [lab, txt.sameSummary(vals, eqFn)];
+  });
+
+  // 좁은 창(380px 등)에서는 열이 눌리거나 안쪽 가로 스크롤이 생기지 않게 회사를 줄로 세워 보여 준다(요청 30의 7-2)
+  if (innerWidth <= 560) {
+    const mobRows = cols.map((v, k) => {
+      const rp = reps[k];
+      const detail = rp
+        ? items.map(([lab, f]) => `<span class="cv-ours-kv"><span>${esc(lab)}</span><b>${esc(f(rp))}</b></span>`).join('')
+        : '<span class="cv-na">없음</span>';
+      return `<tr><th scope="row" title="${esc(fullN(v))}">${esc(orgN(v))}</th><td><div class="cv-ours-grid">${detail}</div></td></tr>`;
+    }).join('');
+    const sumDetail = summaries.map(([lab, sm]) => `<span class="cv-ours-kv"><span>${esc(lab)}</span><b>${esc(sm)}</b></span>`).join('');
+    return `<div class="cv-ct-w"><table class="cv-ct cv-ct-mob">
+      <tr><th scope="col">회사</th><th scope="col">대표 급부 조건</th></tr>
+      ${mobRows}
+      <tr><th scope="row">요약</th><td class="sm"><div class="cv-ours-grid">${sumDetail}</div></td></tr>
+    </table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
+  }
+
+  const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
+  const body = items.map(([lab, f], idx) => `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(summaries[idx][1])}</td></tr>`).join('');
 
   return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
 }

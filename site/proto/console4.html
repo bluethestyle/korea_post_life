@@ -1464,7 +1464,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 /* ---------- [표로 보기] 전체 모달 안의 치료 여정 격자, 단정 주의, 보류 요약, 담보 비교표 ---------- */
 .cv-modal-root,.cv-modal-root .dm-sec,.cv-modal-root .panel,.gt-modal-root,.gt-modal-root .dm-sec,.gt-modal-root .panel{min-width:0;max-width:100%}
 .cv-modal-root .cv-ref{margin:0 0 14px;padding:8px 14px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--ink-1)}
-:is(.cv-modal-root,#print-root) .cvj-w{overflow-x:auto;padding:2px 18px 16px}
+:is(.cv-modal-root,#print-root) .cvj-w{position:relative;overflow-x:auto;padding:2px 18px 16px}
 :is(.cv-modal-root,#print-root) .cvj{display:grid;grid-template-columns:minmax(156px,1.1fr) repeat(5,minmax(108px,1fr)) minmax(112px,1fr);gap:4px;min-width:860px}
 :is(.cv-modal-root,#print-root) .cvj-h{padding:6px 10px 4px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2);white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cvj-h.cvj-t{color:var(--ink-1)}
@@ -1508,7 +1508,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(.cv-modal-root,#print-root) .cv-ctx{margin:0;padding:2px 36px 10px 0;font:400 14px/1.6 var(--f-body);color:var(--ink-0);word-break:keep-all}
 :is(.cv-modal-root,#print-root) .cv-pd-eq{padding:0 20px 10px}
 :is(.cv-modal-root,#print-root) .cv-pd-eq .nadd{margin-top:6px}
-:is(.cv-modal-root,#print-root) .cv-pd-t{padding:0 12px 4px;overflow-x:auto}
+:is(.cv-modal-root,#print-root) .cv-pd-t{position:relative;padding:0 12px 4px;overflow-x:auto}
 :is(.cv-modal-root,#print-root) .cv-pd-t .nw{white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-pd-eq .cqs{margin-top:8px;gap:3px}
 :is(.cv-modal-root,#print-root) .cv-pd-eq .cq{width:14px;height:14px}
@@ -1523,7 +1523,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(.cv-modal-root,#print-root) .cv-cnt{margin-left:auto;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cv-sum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 20px 12px;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cv-sum b{font:600 14px/1 var(--f-num);color:var(--ink-0);margin-right:8px}
-:is(.cv-modal-root,#print-root) .cv-tw{overflow-x:auto;padding:0 12px 6px}
+:is(.cv-modal-root,#print-root) .cv-tw{position:relative;overflow-x:auto;padding:0 12px 6px}
 :is(.cv-modal-root,#print-root) .cv-t{width:max-content;min-width:100%}
 :is(.cv-modal-root,#print-root) .cv-t th,:is(.cv-modal-root,#print-root) .cv-t td{padding:8px 9px;vertical-align:middle}
 :is(.cv-modal-root,#print-root) .cv-t thead th{white-space:nowrap}
@@ -1549,7 +1549,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
 :is(.cv-modal-root,#print-root) .cv-x.wait{background:transparent;border-color:var(--unknown-edge);color:var(--unknown-ink)}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-vd{min-width:136px}
-:is(.cv-modal-root,#print-root) .cv-t .cv-ch{width:24px;padding-left:0;color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cv-t .cv-ch{position:relative;width:24px;padding-left:0;color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cv-both{font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-t tr.cv-gh th{padding:8px 14px;font:600 14px/1.3 var(--f-ko);color:#fff;border-bottom:0;background:var(--slate)}
 :is(.cv-modal-root,#print-root) .cv-t tr.cv-gh .num{font:600 15px/1 var(--f-num);color:#fff}
@@ -1561,11 +1561,12 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(#z-right,.ev) .cv-ct-w{overflow-x:auto}
 :is(#z-right,.ev) .cv-ct,:is(#z-right,.ev) .cv-it,:is(#z-right,.ev) .cv-jt{width:100%;border-collapse:collapse;font:400 13px/1.45 var(--f-body);color:var(--ink-0)}
 :is(#z-right,.ev) .cv-ct th,:is(#z-right,.ev) .cv-ct td,:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td,:is(#z-right,.ev) .cv-jt th,:is(#z-right,.ev) .cv-jt td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;word-break:keep-all}
-:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold){min-width:max-content}
-:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold) th,:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold) td{min-width:78px}
-:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold) tr:first-child th{white-space:nowrap}
-:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold) td.sm{min-width:88px;white-space:nowrap}
-:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td{min-width:68px}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob){min-width:max-content}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) th,:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) td{min-width:78px}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) tr:first-child th{white-space:nowrap}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) td.sm{min-width:88px;white-space:nowrap}
+:is(#z-right,.ev) .cv-ct.cv-ct-mob th{min-width:82px;white-space:nowrap}
+:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td{min-width:56px}
 @media (max-width:560px){
   :is(#z-right,.ev) .cv-ct.cv-ct-fold tr{display:flex;flex-direction:column}
 }
@@ -4284,7 +4285,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   function clearSelLink() {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot');
     if (p) { if (p._anim) p._anim.cancel(); p.setAttribute('d', ''); }
-    if (dot) { dot.hidden = true; dot.style.display = 'none'; }
+    if (dot) { dot.setAttribute('hidden', ''); dot.style.display = 'none'; }
   }
 
   function updateSelLink(drawLine) {
@@ -4372,8 +4373,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       });
     }
     if (dot) {
-      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; dot.style.display = ''; }
-      else { dot.hidden = true; dot.style.display = 'none'; }
+      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.removeAttribute('hidden'); dot.style.display = ''; }
+      else { dot.setAttribute('hidden', ''); dot.style.display = 'none'; }
     }
   }
 
@@ -5511,7 +5512,11 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       clearTimeout(rz);
       rz = setTimeout(() => {
         const m = mode();
-        if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
+        if (m !== lastMode) {
+          if (m !== 'sheet') hideEv();
+          lastMode = m;
+          if (st.tab !== 'brief' && st.sel[st.tab] != null) applySelectionState(false);
+        }
         closeHelp(false); hideAimReticle(); hideHudTip();
         syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);
@@ -8698,10 +8703,12 @@ function condTable(m, row, c) {
 
   const cols = allColIdxs.map(k => m.cols[k]);
   const reps = allColIdxs.map(k => repOf(row.cells[k]));
-  const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
   const nonMonRedLbl = nonMonCopy('감액') || '원문 확인';
   const nonMonBaseLbl = nonMonCopy('기준') || '금액 하나로 적을 수 없는 급부';
-  const body = items.map(([lab, f]) => {
+  const payRuleTxt = hasAnyNonMon && nonMonCopy('지급액판정')
+    ? `${nonMonCopy('지급액판정')} 및 기준 가입금액이 회사마다 달라 지급액은 판정에 넣지 않았습니다.`
+    : '지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.';
+  const summaries = items.map(([lab, f]) => {
     const vals = {};
     allColIdxs.forEach(k => {
       const rp = repOf(row.cells[k]);
@@ -8710,11 +8717,28 @@ function condTable(m, row, c) {
     const eqFn = hasAnyNonMon && (lab === '감액' || lab === '기준 가입금액')
       ? (a, b) => a === b && a !== nonMonRedLbl && a !== nonMonBaseLbl
       : undefined;
-    return `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(txt.sameSummary(vals, eqFn))}</td></tr>`;
-  }).join('');
-  const payRuleTxt = hasAnyNonMon && nonMonCopy('지급액판정')
-    ? `${nonMonCopy('지급액판정')} 및 기준 가입금액이 회사마다 달라 지급액은 판정에 넣지 않았습니다.`
-    : '지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.';
+    return [lab, txt.sameSummary(vals, eqFn)];
+  });
+
+  // 좁은 창(380px 등)에서는 열이 눌리거나 안쪽 가로 스크롤이 생기지 않게 회사를 줄로 세워 보여 준다(요청 30의 7-2)
+  if (innerWidth <= 560) {
+    const mobRows = cols.map((v, k) => {
+      const rp = reps[k];
+      const detail = rp
+        ? items.map(([lab, f]) => `<span class="cv-ours-kv"><span>${esc(lab)}</span><b>${esc(f(rp))}</b></span>`).join('')
+        : '<span class="cv-na">없음</span>';
+      return `<tr><th scope="row" title="${esc(fullN(v))}">${esc(orgN(v))}</th><td><div class="cv-ours-grid">${detail}</div></td></tr>`;
+    }).join('');
+    const sumDetail = summaries.map(([lab, sm]) => `<span class="cv-ours-kv"><span>${esc(lab)}</span><b>${esc(sm)}</b></span>`).join('');
+    return `<div class="cv-ct-w"><table class="cv-ct cv-ct-mob">
+      <tr><th scope="col">회사</th><th scope="col">대표 급부 조건</th></tr>
+      ${mobRows}
+      <tr><th scope="row">요약</th><td class="sm"><div class="cv-ours-grid">${sumDetail}</div></td></tr>
+    </table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
+  }
+
+  const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
+  const body = items.map(([lab, f], idx) => `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(summaries[idx][1])}</td></tr>`).join('');
 
   return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
 }

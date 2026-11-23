@@ -2023,7 +2023,7 @@
   function clearSelLink() {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot');
     if (p) { if (p._anim) p._anim.cancel(); p.setAttribute('d', ''); }
-    if (dot) { dot.hidden = true; dot.style.display = 'none'; }
+    if (dot) { dot.setAttribute('hidden', ''); dot.style.display = 'none'; }
   }
 
   function updateSelLink(drawLine) {
@@ -2111,8 +2111,8 @@
       });
     }
     if (dot) {
-      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; dot.style.display = ''; }
-      else { dot.hidden = true; dot.style.display = 'none'; }
+      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.removeAttribute('hidden'); dot.style.display = ''; }
+      else { dot.setAttribute('hidden', ''); dot.style.display = 'none'; }
     }
   }
 
@@ -3250,7 +3250,11 @@
       clearTimeout(rz);
       rz = setTimeout(() => {
         const m = mode();
-        if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
+        if (m !== lastMode) {
+          if (m !== 'sheet') hideEv();
+          lastMode = m;
+          if (st.tab !== 'brief' && st.sel[st.tab] != null) applySelectionState(false);
+        }
         closeHelp(false); hideAimReticle(); hideHudTip();
         syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);
