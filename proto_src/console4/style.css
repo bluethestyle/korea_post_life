@@ -312,9 +312,12 @@ button{cursor:pointer}
 /* 패널 없이 안개 위에 놓이는 작은 글은 뒤로 기하 기둥과 바닥 격자가 지나가므로 한 단 짙게 쓴다 */
 .ttl-k{font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
 .ttl-t{margin:2px 0 0;font:600 32px/1.2 var(--f-ko);color:var(--ink-0);letter-spacing:0;word-break:keep-all}
-.ttl-i{display:flex;align-items:center;gap:8px;height:4px;margin-top:12px}
-.ttl-i i{display:block;width:4px;height:4px;background:var(--ink-3)}
-.ttl-i i.on{width:16px;background:var(--red)}
+.ttl-i{display:inline-flex;align-items:center;gap:7px;height:18px;margin-top:8px}
+.ttl-i i{display:block;width:4px;height:4px;background:var(--ink-3);transition:width 180ms var(--ease),background 180ms var(--ease)}
+.ttl-i i.on{width:18px;background:var(--red)}
+.ttl-step{display:inline-grid;place-items:center;width:18px;height:18px;padding:0;border:0;background:transparent;color:var(--ink-1);opacity:.78}
+.ttl-step:hover{opacity:1;color:var(--red-ink)}
+.ttl-step svg{width:7px;height:11px;display:block}
 .view{position:relative;scroll-margin-top:calc(var(--head-h) + 16px)}
 .view[hidden]{display:none}
 .vbody{position:relative;z-index:1}
@@ -697,25 +700,26 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
   box-shadow:0 6px 18px rgba(21,29,36,.22)}
 .hud-tip[hidden]{display:none!important}
 
-/* 여는 화면(로딩): 안개 바탕 한가운데 기하 도형이 채워진 뒤 탭 구성으로 펼쳐진다 */
+/* 여는 화면(로딩): 화이트룸 안개 바탕 위에서 정사각 테두리와 마름모 교차선이 그려진 뒤 탭 구성으로 펼쳐진다 */
 .boot-loader{position:fixed;inset:0;z-index:70;display:grid;place-items:center;
-  background:radial-gradient(50% 42% at 50% 48%,var(--panel-hi),transparent 78%)}
+  background:radial-gradient(56% 48% at 50% 46%,rgba(236,240,244,.86),rgba(196,204,213,.54) 72%,transparent 100%)}
+:root[data-theme="dark"] .boot-loader{background:radial-gradient(56% 48% at 50% 46%,rgba(22,29,37,.90),rgba(11,16,22,.64) 72%,transparent 100%)}
 .boot-loader[hidden]{display:none!important}
-.bl-emblem{position:relative;width:168px;height:168px;display:grid;place-items:center;
-  transition:transform 260ms var(--ease),opacity 260ms var(--ease)}
+.bl-emblem{position:relative;width:176px;height:176px;display:grid;place-items:center;
+  transition:transform 280ms var(--ease),opacity 280ms var(--ease)}
 .boot-loader.is-out{pointer-events:none}
-.boot-loader.is-out .bl-emblem{transform:scale(1.18);opacity:0}
+.boot-loader.is-out .bl-emblem{transform:scale(1.22);opacity:0}
 .bl-svg{width:100%;height:100%;display:block;overflow:visible}
-.bl-outer{stroke:var(--ink-2);stroke-opacity:.38}
-.bl-cross{stroke:var(--ink-1);stroke-opacity:.65}
-.bl-trk{stroke:var(--ink-2);stroke-opacity:.24}
+.bl-axis{stroke:var(--ink-2);stroke-opacity:.48}
+.bl-outer{stroke:var(--ink-2);stroke-opacity:.36}
+.bl-trk{stroke:var(--ink-2);stroke-opacity:.22}
 .bl-arc{stroke:var(--ink-0);transition:stroke-dasharray 180ms var(--ease)}
-.bl-gold{stroke:var(--gold-line);stroke-opacity:.85}
+.bl-gold{stroke:var(--gold-line);stroke-opacity:.72}
 .bl-dia{stroke:var(--ink-0);transition:stroke-dasharray 180ms var(--ease)}
-.bl-pct{position:absolute;inset:0;display:grid;place-items:center;font:600 20px/1 var(--f-num);color:var(--ink-0);font-variant-numeric:tabular-nums}
+.bl-pct{position:absolute;inset:0;display:grid;place-items:center;font:600 19px/1 var(--f-num);color:var(--ink-0);font-variant-numeric:tabular-nums;letter-spacing:.03em}
 body.is-booting #head,body.is-booting #shell{opacity:0;pointer-events:none}
-body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
-@keyframes bootOpen{from{opacity:.25;transform:scale(.985)}to{opacity:1;transform:none}}
+body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
+@keyframes bootOpen{from{opacity:.2;transform:scale(.982)}to{opacity:1;transform:none}}
 
 .snotes{padding:12px 24px 14px;background:var(--panel-lo);border-top:1px solid var(--line)}
 .snotes-h{margin:0 0 6px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}

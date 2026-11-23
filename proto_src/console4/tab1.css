@@ -1,11 +1,11 @@
 /* 탭 1 브리핑 전용. 주인공 도형은 원형 이중 고리 메달.
-   1층은 큰 메달 다섯과 결론 한 줄만 두고(둘레 여백 48px 이상, 빈 면 35% 이상),
-   메달을 고르면 2층 시각화 하나만 그 메달 아래에서 펼쳐지며, 2층 요소를 고르면 3층 근거가 열린다. */
+   1층은 화이트룸 반투명 유리 판 위에 큰 메달 다섯만 두고(둘레 여백 48px 이상, 빈 면 35% 이상),
+   메달을 고르면 아래에 쌓지 않고 무대 전체가 2층(윗줄 다섯 분류 탭과 단일 시각화 무대가 하나로 이어진 틀)으로 교체된다. */
 
 /* ---------- 1. 머리 줄 ---------- */
 #view-brief .vhead{align-items:flex-end;justify-content:space-between;min-height:82px;gap:12px 24px}
 #view-brief .vhead .ttl{width:auto;min-width:200px;padding:2px 0 8px}
-#view-brief .vhead .ttl-t{font-size:50px;line-height:1.22;letter-spacing:.04em}
+#view-brief .vhead .ttl-t{font-size:50px;line-height:1.18;letter-spacing:.04em}
 #view-brief .vhead .ttl-i{margin-top:8px}
 #view-brief .bhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;padding-bottom:8px}
 #view-brief .btn.is-mode-on{background:var(--slate);color:var(--on-slate);box-shadow:none}
@@ -15,19 +15,27 @@
 #view-brief .b-concl{margin:0 0 18px;padding:10px 48px 10px 18px;font:600 16px/1.5 var(--f-body)}
 @media (min-width:1600px){ #view-brief .b-concl{display:none} }
 
-/* ---------- 2. 1층 주인공 무대: 큰 원형 메달 다섯과 넉넉한 여백(둘레 48px 이상) ---------- */
+/* ---------- 2. 1층 주인공 무대: 화이트룸 반투명 유리 판 위의 큰 원형 메달 다섯(둘레 48px 이상) ---------- */
 #view-brief .bstage{position:relative;padding:0;overflow:visible}
-#view-brief .bstage-l1{position:relative;padding:56px 52px 54px}
+#view-brief .bstage-l1{position:relative;padding:58px 52px 56px;
+  background:linear-gradient(180deg,rgba(238,242,246,.62) 0%,rgba(222,228,235,.32) 100%);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-top:2px solid var(--top-line);box-shadow:inset 0 0 0 1px var(--panel-edge)}
+:root[data-theme="dark"] #view-brief .bstage-l1{
+  background:linear-gradient(180deg,rgba(32,41,51,.76) 0%,rgba(16,22,29,.44) 100%)}
+#view-brief .bstage-l1.l1-open{animation:l1Reveal 240ms var(--ease)}
+@keyframes l1Reveal{from{opacity:.3;transform:scale(.985)}to{opacity:1;transform:none}}
+
 /* 다섯 메달 중심을 가로지르는 가느다란 기준선 */
-#view-brief .bstage-l1::before{content:"";position:absolute;left:52px;right:52px;top:calc(56px + 68px);height:1px;
+#view-brief .bstage-l1::before{content:"";position:absolute;left:52px;right:52px;top:calc(58px + 68px);height:1px;
   background:var(--line-2);pointer-events:none;z-index:0}
 
 #view-brief .bmedals{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px;align-items:start}
-#view-brief .bmedal{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
+#view-brief .bstage-l1 .bmedal{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
   padding:8px 6px 10px;min-width:0;transition:transform 200ms var(--ease)}
-#view-brief .bmedal:hover{transform:translateY(-3px)}
+#view-brief .bstage-l1 .bmedal:hover{transform:translateY(-3px)}
 #view-brief .bmedal > *:not(.lrow-hit){position:relative;z-index:2;pointer-events:none}
-#view-brief .bmedal > .flag{position:absolute;left:10px;top:2px;z-index:4;pointer-events:auto}
+#view-brief .bstage-l1 .bmedal > .flag{position:absolute;left:10px;top:2px;z-index:4;pointer-events:auto}
 
 /* 지름 136px(최소 96px 이상) 원형 이중 고리 메달 */
 #view-brief .bm-emblem{position:relative;width:136px;height:136px;display:grid;place-items:center;margin:0 0 14px;flex:none}
@@ -40,43 +48,72 @@
 #view-brief .bm-svg .arc.gold{stroke:var(--gold-line)}
 #view-brief .bm-svg .bm-inner{stroke:var(--ink-2);stroke-opacity:.38}
 #view-brief .bm-svg .bm-inner.gold{stroke:var(--gold);stroke-opacity:.96}
-#view-brief .bm-svg .bm-disc{fill:rgba(222,227,233,.66);stroke:var(--line-2);stroke-width:1;
+#view-brief .bm-svg .bm-disc{fill:rgba(226,231,237,.64);stroke:var(--line-2);stroke-width:1;
   transition:fill 180ms var(--ease),stroke 180ms var(--ease)}
 :root[data-theme="dark"] #view-brief .bm-svg .bm-disc{fill:rgba(22,29,37,.84)}
 #view-brief .bm-svg .bm-diag{stroke:var(--ink-2);stroke-opacity:.28;transition:stroke 180ms var(--ease),stroke-opacity 180ms var(--ease)}
-
-/* 고른 메달 하나만 빨강 원과 네 귀 사선 초점 */
-#view-brief .bmedal.is-sel .bm-svg .bm-disc{fill:var(--red);stroke:#fff;stroke-width:1.8}
-#view-brief .bmedal.is-sel .bm-svg .bm-diag{stroke:var(--ink-0);stroke-opacity:1}
-:root[data-theme="dark"] #view-brief .bmedal.is-sel .bm-svg .bm-diag{stroke:#fff;stroke-opacity:1}
-#view-brief .bmedal.is-sel .bm-svg .bm-outer{stroke:var(--ink-0);stroke-opacity:.75}
+#view-brief .bstage-l1 .bmedal:hover .bm-svg .bm-diag{stroke:var(--red);stroke-opacity:.9}
 
 /* 메달 안에는 대표 숫자 하나만 둔다 */
 #view-brief .bm-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 #view-brief .bm-n{font:600 38px/1 var(--f-num);color:var(--ink-0);letter-spacing:-.01em;white-space:nowrap}
 #view-brief .bm-n.frac{font-size:30px}
 #view-brief .bm-d{font-size:.60em;font-weight:400;color:var(--ink-2)}
-#view-brief .bmedal.is-sel .bm-n,
-#view-brief .bmedal.is-sel .bm-d{color:#fff}
 
 /* 메달 아래 짧은 이름과 범위 기호 */
 #view-brief .bm-foot{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0}
 #view-brief .bm-sc{display:inline-grid;place-items:center;width:16px;height:16px;color:var(--ink-2);flex:none}
 #view-brief .bm-name{font:600 16px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
-#view-brief .bmedal.is-sel .bm-name{box-shadow:inset 0 -2px 0 var(--red)}
 
-/* 고른 메달 아래로 뻗어 2층 판과 이어지는 수직 연결선 */
-#view-brief .bmedal.is-sel::after{content:"";position:absolute;left:50%;bottom:-54px;width:2px;height:54px;
-  margin-left:-1px;background:var(--red);z-index:3;pointer-events:none}
+/* ---------- 3. 2층 무대: 신디케이트 진행 기록처럼 윗줄 분류 탭과 단일 시각화 무대가 하나로 이어진다 ---------- */
+#view-brief .bstage-l2{position:relative}
+#view-brief .l2-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;align-items:stretch}
+#view-brief .l2-tab{position:relative;display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 14px;
+  background:rgba(228,233,238,.58);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  border-top:2px solid rgba(255,255,255,.78);color:var(--ink-0);min-width:0;
+  transition:background 160ms var(--ease),color 160ms var(--ease)}
+:root[data-theme="dark"] #view-brief .l2-tab{background:rgba(22,29,37,.66);border-top-color:rgba(255,255,255,.22)}
+#view-brief .l2-tab:hover{background:rgba(236,240,244,.82)}
+:root[data-theme="dark"] #view-brief .l2-tab:hover{background:rgba(36,45,55,.82)}
+#view-brief .l2-tab > .flag{position:absolute;right:4px;top:0;left:auto;z-index:4;pointer-events:auto}
 
-/* ---------- 3. 2층: 고른 메달 하나에서 펼쳐지는 단일 시각화(200~400ms) ---------- */
-#view-brief .blayer2{position:relative;border-top:2px solid var(--ink-0);background:var(--panel-hi);
+/* 고른 탭은 짙은 슬레이트 면으로 채워 아래 시각화 무대의 윗단과 경계 없이 이어진다 */
+#view-brief .l2-tab.is-sel,#view-brief .l2-tab.is-sel:hover{background:var(--slate);color:var(--on-slate);border-top-color:var(--red)}
+#view-brief .l2-tring{position:relative;width:42px;height:42px;flex:none;display:grid;place-items:center}
+#view-brief .l2-tsvg{width:100%;height:100%;display:block;overflow:visible}
+#view-brief .l2-tsvg .trk{stroke:var(--ink-2);stroke-opacity:.28}
+#view-brief .l2-tsvg .tks line{stroke:var(--ink-2);stroke-opacity:.5}
+#view-brief .l2-tsvg .arc{stroke:var(--ink-0)}
+#view-brief .l2-tsvg .arc.gold{stroke:var(--gold-line)}
+#view-brief .l2-tsvg .disc{fill:rgba(255,255,255,.45);stroke:var(--line-2);stroke-width:1}
+:root[data-theme="dark"] #view-brief .l2-tsvg .disc{fill:rgba(12,17,22,.65)}
+#view-brief .l2-tab.is-sel .l2-tsvg .trk{stroke:rgba(255,255,255,.32)}
+#view-brief .l2-tab.is-sel .l2-tsvg .tks line{stroke:rgba(255,255,255,.55)}
+#view-brief .l2-tab.is-sel .l2-tsvg .arc{stroke:#fff}
+#view-brief .l2-tab.is-sel .l2-tsvg .arc.gold{stroke:var(--gold)}
+#view-brief .l2-tab.is-sel .l2-tsvg .disc{fill:var(--red);stroke:#fff;stroke-width:1.4}
+#view-brief .l2-tn{position:absolute;inset:0;display:grid;place-items:center;font:600 14px/1 var(--f-num);color:var(--ink-0)}
+#view-brief .l2-tab.is-sel .l2-tn{color:#fff}
+#view-brief .l2-tnm{font:600 14px/1.25 var(--f-ko);color:inherit;word-break:keep-all;min-width:0}
+
+/* 2층 본체: 윗줄 활성 탭(var(--slate))과 이어지는 3px 상단 띠와 반투명 안개 유리 무대 */
+#view-brief .blayer2{position:relative;border-top:3px solid var(--slate);
+  background:linear-gradient(180deg,rgba(234,238,243,.84) 0%,rgba(220,226,233,.68) 100%);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:inset 0 0 0 1px var(--panel-edge);
   padding:22px 32px 28px;transform-origin:var(--ox,50%) 0}
-:root[data-theme="dark"] #view-brief .blayer2{border-top-color:rgba(255,255,255,.72)}
+:root[data-theme="dark"] #view-brief .blayer2{border-top-color:var(--slate);
+  background:linear-gradient(180deg,rgba(28,36,45,.86) 0%,rgba(16,22,29,.74) 100%)}
 #view-brief .blayer2.l2-open{animation:l2Unfold 280ms var(--ease)}
-@keyframes l2Unfold{from{opacity:.35;transform:scaleY(.88) translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes l2Unfold{from{opacity:.32;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes l2Cascade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#view-brief .blayer2.l2-open .bmap-row,
+#view-brief .blayer2.l2-open .l2-node,
+#view-brief .blayer2.l2-open .bstep,
+#view-brief .blayer2.l2-open .l2-org-grp{animation:l2Cascade 240ms var(--ease) both;animation-delay:calc(var(--ri,0) * 28ms)}
 
-#view-brief .l2-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:18px}
+#view-brief .l2-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;
+  padding-bottom:12px;margin-bottom:18px;border-bottom:1px solid var(--line-2)}
 #view-brief .l2-title{display:inline-flex;align-items:center;gap:8px;margin:0;font:600 17px/1.3 var(--f-ko);color:var(--ink-0)}
 #view-brief .l2-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 
@@ -111,29 +148,30 @@
 #view-brief .bm-cell.is-sub-sel .bm-cbg{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff}
 #view-brief .bm-cs svg{width:13px;height:13px;display:block}
 
-/* 2층 (나, 다, 마): 보조 원형 메달 줄(주인공 도형인 원형 메달 문법으로 통일) */
-#view-brief .l2-rings{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:20px;max-width:920px;margin:6px auto 0}
-#view-brief .l2-node{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 8px;
-  border:0;background:transparent;color:var(--ink-0);text-align:center}
+/* 2층 (나, 다, 마): 보조 원형 메달 줄(세로 1px 안내 구분선 포함) */
+#view-brief .l2-rings{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:0;max-width:940px;margin:6px auto 0}
+#view-brief .l2-node{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 10px;
+  border:0;border-left:1px solid var(--line);background:transparent;color:var(--ink-0);text-align:center}
+#view-brief .l2-node:first-child{border-left:0}
 #view-brief .l2-node:hover{background:var(--hover)}
 #view-brief .l2-node > *{pointer-events:none}
-#view-brief .l2-rbox{position:relative;width:92px;height:92px;display:grid;place-items:center}
+#view-brief .l2-rbox{position:relative;width:96px;height:96px;display:grid;place-items:center}
 #view-brief .l2-rbox svg{width:100%;height:100%;display:block;overflow:visible}
 #view-brief .l2-rbox .trk{stroke:var(--ink-2);stroke-opacity:.22}
 #view-brief .l2-rbox .tks line{stroke:var(--ink-2);stroke-opacity:.52}
 #view-brief .l2-rbox .arc{stroke:var(--ink-0);transition:stroke-dasharray 420ms var(--ease)}
 #view-brief .l2-rbox .arc.gold{stroke:var(--gold-line)}
-#view-brief .l2-rbox .disc{fill:rgba(222,227,233,.58);stroke:var(--line-2);stroke-width:1}
+#view-brief .l2-rbox .disc{fill:rgba(226,231,237,.58);stroke:var(--line-2);stroke-width:1}
 :root[data-theme="dark"] #view-brief .l2-rbox .disc{fill:rgba(22,29,37,.84)}
-#view-brief .l2-node.is-sub-sel .l2-rbox .disc{fill:var(--slate);stroke:var(--ink-0);stroke-width:2}
+#view-brief .l2-node.is-sub-sel .l2-rbox .disc{fill:var(--red);stroke:#fff;stroke-width:1.8}
 #view-brief .l2-n{position:absolute;inset:0;display:grid;place-items:center;font:600 28px/1 var(--f-num);color:var(--ink-0)}
 #view-brief .l2-node.is-sub-sel .l2-n{color:#fff}
 #view-brief .l2-lbl{display:inline-flex;align-items:center;gap:5px;font:600 14px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
-#view-brief .l2-node.is-sub-sel .l2-lbl{box-shadow:inset 0 -2px 0 var(--ink-0)}
+#view-brief .l2-node.is-sub-sel .l2-lbl{box-shadow:inset 0 -2px 0 var(--red)}
 
 /* 2층 (라): 치료 여정 다섯 단계 타일(보유 단계는 금색, 빈 단계는 빗금, 안에는 숫자 하나만) */
 #view-brief .bsteps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;max-width:880px;margin:4px auto 0}
-#view-brief .bstep{position:relative;min-height:104px;padding:14px 8px;border:0;background:transparent;
+#view-brief .bstep{position:relative;min-height:108px;padding:14px 8px;border:0;background:transparent;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--ink-0)}
 #view-brief .bs-bg{position:absolute;inset:0;z-index:0}
 #view-brief .bstep > *:not(.bs-bg){position:relative;z-index:1;pointer-events:none}
@@ -141,8 +179,7 @@
 #view-brief .bstep.is-gold{color:#151D24}
 #view-brief .bstep.is-empty .bs-bg{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 6px);outline:1px dashed var(--dash);outline-offset:-1px}
 #view-brief .bstep:hover .bs-bg{filter:brightness(.96)}
-#view-brief .bstep.is-sub-sel .bs-bg{outline:3px solid var(--ink-0);outline-offset:1px}
-:root[data-theme="dark"] #view-brief .bstep.is-sub-sel .bs-bg{outline-color:#fff}
+#view-brief .bstep.is-sub-sel .bs-bg{outline:3px solid var(--red);outline-offset:1px}
 #view-brief .bs-n{font:600 34px/1 var(--f-num)}
 #view-brief .bstep.is-empty .bs-n{color:var(--ink-2)}
 #view-brief .bs-s{font:600 14px/1.2 var(--f-ko)}
@@ -163,11 +200,11 @@
 #view-brief .l2-empty{margin:10px 0 0;text-align:center;font:400 14px/1.5 var(--f-body);color:var(--ink-1)}
 
 /* font 단축 속성이 .num 의 고정폭 숫자를 되돌리므로 다시 건다 */
-#view-brief .bm-n,#view-brief .l2-n,#view-brief .bs-n,#view-brief .l2-org-n,#view-brief .brow .no{font-variant-numeric:tabular-nums}
+#view-brief .bm-n,#view-brief .l2-tn,#view-brief .l2-n,#view-brief .bs-n,#view-brief .l2-org-n,#view-brief .brow .no{font-variant-numeric:tabular-nums}
 
 /* ---------- 4. 탭 열림 움직임(전체 600ms 안쪽) ---------- */
 @keyframes bmSlide{from{transform:translateY(10px)}to{transform:none}}
-#view-brief.b-enter .bmedal{animation:bmSlide 300ms var(--ease) both;animation-delay:calc(var(--mi,0) * 45ms)}
+#view-brief.b-enter .bstage-l1 .bmedal{animation:bmSlide 300ms var(--ease) both;animation-delay:calc(var(--mi,0) * 45ms)}
 
 /* ---------- 5. "문장으로 보기" 목록 모드 ---------- */
 #view-brief .brows{margin-top:0}
@@ -198,16 +235,17 @@
   #view-brief .bm-emblem{width:120px;height:120px}
   #view-brief .bm-n{font-size:34px}
   #view-brief .bm-n.frac{font-size:27px}
-  #view-brief .bmedal.is-sel::after{bottom:-46px;height:46px}
+  #view-brief .l2-tab{padding:8px 10px;gap:8px}
 }
 @media (min-width:1000px) and (max-width:1360px){
   body.ev-open #view-brief .bstage-l1::before{display:none}
-  body.ev-open #view-brief .bmedal.is-sel::after{display:none}
   body.ev-open #view-brief .bmedals{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
   body.ev-open #view-brief .bm-emblem{width:104px;height:104px}
   body.ev-open #view-brief .bm-n{font-size:30px}
   body.ev-open #view-brief .bm-n.frac{font-size:24px}
+  body.ev-open #view-brief .l2-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
   body.ev-open #view-brief .l2-rings{grid-template-columns:repeat(3,minmax(0,1fr))}
+  body.ev-open #view-brief .l2-node{border-left:0}
 }
 @media (max-width:999px){
   #view-brief .vhead{align-items:stretch;min-height:0;gap:8px}
@@ -217,12 +255,15 @@
   #view-brief .b-concl{padding:10px 14px;font-size:15px}
   #view-brief .bstage-l1{padding:28px 14px 26px}
   #view-brief .bstage-l1::before{display:none}
-  #view-brief .bmedal.is-sel::after{display:none}
   #view-brief .bmedals{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px}
-  #view-brief .bmedal:nth-child(5){grid-column:1/-1}
+  #view-brief .bstage-l1 .bmedal:nth-child(5){grid-column:1/-1}
   #view-brief .bm-emblem{width:96px;height:96px;margin-bottom:8px}
   #view-brief .bm-n{font-size:28px}
   #view-brief .bm-n.frac{font-size:23px}
+  #view-brief .l2-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #view-brief .l2-tab{min-height:48px;padding:6px 10px;gap:8px}
+  #view-brief .l2-tab:nth-child(5){grid-column:1/-1}
+  #view-brief .l2-tring{width:36px;height:36px}
   #view-brief .blayer2{padding:16px 12px 20px}
   #view-brief .bmap-cols,
   #view-brief .bmap-row{grid-template-columns:66px repeat(6,minmax(22px,1fr));gap:3px}
@@ -231,6 +272,7 @@
   #view-brief .bmap-rh{font-size:13px;white-space:normal;line-height:1.2}
   #view-brief .bm-cell{min-height:36px;min-width:22px}
   #view-brief .l2-rings{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  #view-brief .l2-node{border-left:0}
   #view-brief .l2-org-many{grid-template-columns:minmax(0,1fr)}
   #view-brief .bsteps{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
   #view-brief .bstep{min-height:84px;padding:10px 4px}

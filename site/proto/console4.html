@@ -333,9 +333,12 @@ button{cursor:pointer}
 /* 패널 없이 안개 위에 놓이는 작은 글은 뒤로 기하 기둥과 바닥 격자가 지나가므로 한 단 짙게 쓴다 */
 .ttl-k{font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
 .ttl-t{margin:2px 0 0;font:600 32px/1.2 var(--f-ko);color:var(--ink-0);letter-spacing:0;word-break:keep-all}
-.ttl-i{display:flex;align-items:center;gap:8px;height:4px;margin-top:12px}
-.ttl-i i{display:block;width:4px;height:4px;background:var(--ink-3)}
-.ttl-i i.on{width:16px;background:var(--red)}
+.ttl-i{display:inline-flex;align-items:center;gap:7px;height:18px;margin-top:8px}
+.ttl-i i{display:block;width:4px;height:4px;background:var(--ink-3);transition:width 180ms var(--ease),background 180ms var(--ease)}
+.ttl-i i.on{width:18px;background:var(--red)}
+.ttl-step{display:inline-grid;place-items:center;width:18px;height:18px;padding:0;border:0;background:transparent;color:var(--ink-1);opacity:.78}
+.ttl-step:hover{opacity:1;color:var(--red-ink)}
+.ttl-step svg{width:7px;height:11px;display:block}
 .view{position:relative;scroll-margin-top:calc(var(--head-h) + 16px)}
 .view[hidden]{display:none}
 .vbody{position:relative;z-index:1}
@@ -718,25 +721,26 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
   box-shadow:0 6px 18px rgba(21,29,36,.22)}
 .hud-tip[hidden]{display:none!important}
 
-/* 여는 화면(로딩): 안개 바탕 한가운데 기하 도형이 채워진 뒤 탭 구성으로 펼쳐진다 */
+/* 여는 화면(로딩): 화이트룸 안개 바탕 위에서 정사각 테두리와 마름모 교차선이 그려진 뒤 탭 구성으로 펼쳐진다 */
 .boot-loader{position:fixed;inset:0;z-index:70;display:grid;place-items:center;
-  background:radial-gradient(50% 42% at 50% 48%,var(--panel-hi),transparent 78%)}
+  background:radial-gradient(56% 48% at 50% 46%,rgba(236,240,244,.86),rgba(196,204,213,.54) 72%,transparent 100%)}
+:root[data-theme="dark"] .boot-loader{background:radial-gradient(56% 48% at 50% 46%,rgba(22,29,37,.90),rgba(11,16,22,.64) 72%,transparent 100%)}
 .boot-loader[hidden]{display:none!important}
-.bl-emblem{position:relative;width:168px;height:168px;display:grid;place-items:center;
-  transition:transform 260ms var(--ease),opacity 260ms var(--ease)}
+.bl-emblem{position:relative;width:176px;height:176px;display:grid;place-items:center;
+  transition:transform 280ms var(--ease),opacity 280ms var(--ease)}
 .boot-loader.is-out{pointer-events:none}
-.boot-loader.is-out .bl-emblem{transform:scale(1.18);opacity:0}
+.boot-loader.is-out .bl-emblem{transform:scale(1.22);opacity:0}
 .bl-svg{width:100%;height:100%;display:block;overflow:visible}
-.bl-outer{stroke:var(--ink-2);stroke-opacity:.38}
-.bl-cross{stroke:var(--ink-1);stroke-opacity:.65}
-.bl-trk{stroke:var(--ink-2);stroke-opacity:.24}
+.bl-axis{stroke:var(--ink-2);stroke-opacity:.48}
+.bl-outer{stroke:var(--ink-2);stroke-opacity:.36}
+.bl-trk{stroke:var(--ink-2);stroke-opacity:.22}
 .bl-arc{stroke:var(--ink-0);transition:stroke-dasharray 180ms var(--ease)}
-.bl-gold{stroke:var(--gold-line);stroke-opacity:.85}
+.bl-gold{stroke:var(--gold-line);stroke-opacity:.72}
 .bl-dia{stroke:var(--ink-0);transition:stroke-dasharray 180ms var(--ease)}
-.bl-pct{position:absolute;inset:0;display:grid;place-items:center;font:600 20px/1 var(--f-num);color:var(--ink-0);font-variant-numeric:tabular-nums}
+.bl-pct{position:absolute;inset:0;display:grid;place-items:center;font:600 19px/1 var(--f-num);color:var(--ink-0);font-variant-numeric:tabular-nums;letter-spacing:.03em}
 body.is-booting #head,body.is-booting #shell{opacity:0;pointer-events:none}
-body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
-@keyframes bootOpen{from{opacity:.25;transform:scale(.985)}to{opacity:1;transform:none}}
+body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
+@keyframes bootOpen{from{opacity:.2;transform:scale(.982)}to{opacity:1;transform:none}}
 
 .snotes{padding:12px 24px 14px;background:var(--panel-lo);border-top:1px solid var(--line)}
 .snotes-h{margin:0 0 6px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
@@ -749,13 +753,13 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
 
 /* tab1.css */
 /* 탭 1 브리핑 전용. 주인공 도형은 원형 이중 고리 메달.
-   1층은 큰 메달 다섯과 결론 한 줄만 두고(둘레 여백 48px 이상, 빈 면 35% 이상),
-   메달을 고르면 2층 시각화 하나만 그 메달 아래에서 펼쳐지며, 2층 요소를 고르면 3층 근거가 열린다. */
+   1층은 화이트룸 반투명 유리 판 위에 큰 메달 다섯만 두고(둘레 여백 48px 이상, 빈 면 35% 이상),
+   메달을 고르면 아래에 쌓지 않고 무대 전체가 2층(윗줄 다섯 분류 탭과 단일 시각화 무대가 하나로 이어진 틀)으로 교체된다. */
 
 /* ---------- 1. 머리 줄 ---------- */
 #view-brief .vhead{align-items:flex-end;justify-content:space-between;min-height:82px;gap:12px 24px}
 #view-brief .vhead .ttl{width:auto;min-width:200px;padding:2px 0 8px}
-#view-brief .vhead .ttl-t{font-size:50px;line-height:1.22;letter-spacing:.04em}
+#view-brief .vhead .ttl-t{font-size:50px;line-height:1.18;letter-spacing:.04em}
 #view-brief .vhead .ttl-i{margin-top:8px}
 #view-brief .bhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;padding-bottom:8px}
 #view-brief .btn.is-mode-on{background:var(--slate);color:var(--on-slate);box-shadow:none}
@@ -765,19 +769,27 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
 #view-brief .b-concl{margin:0 0 18px;padding:10px 48px 10px 18px;font:600 16px/1.5 var(--f-body)}
 @media (min-width:1600px){ #view-brief .b-concl{display:none} }
 
-/* ---------- 2. 1층 주인공 무대: 큰 원형 메달 다섯과 넉넉한 여백(둘레 48px 이상) ---------- */
+/* ---------- 2. 1층 주인공 무대: 화이트룸 반투명 유리 판 위의 큰 원형 메달 다섯(둘레 48px 이상) ---------- */
 #view-brief .bstage{position:relative;padding:0;overflow:visible}
-#view-brief .bstage-l1{position:relative;padding:56px 52px 54px}
+#view-brief .bstage-l1{position:relative;padding:58px 52px 56px;
+  background:linear-gradient(180deg,rgba(238,242,246,.62) 0%,rgba(222,228,235,.32) 100%);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-top:2px solid var(--top-line);box-shadow:inset 0 0 0 1px var(--panel-edge)}
+:root[data-theme="dark"] #view-brief .bstage-l1{
+  background:linear-gradient(180deg,rgba(32,41,51,.76) 0%,rgba(16,22,29,.44) 100%)}
+#view-brief .bstage-l1.l1-open{animation:l1Reveal 240ms var(--ease)}
+@keyframes l1Reveal{from{opacity:.3;transform:scale(.985)}to{opacity:1;transform:none}}
+
 /* 다섯 메달 중심을 가로지르는 가느다란 기준선 */
-#view-brief .bstage-l1::before{content:"";position:absolute;left:52px;right:52px;top:calc(56px + 68px);height:1px;
+#view-brief .bstage-l1::before{content:"";position:absolute;left:52px;right:52px;top:calc(58px + 68px);height:1px;
   background:var(--line-2);pointer-events:none;z-index:0}
 
 #view-brief .bmedals{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px;align-items:start}
-#view-brief .bmedal{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
+#view-brief .bstage-l1 .bmedal{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
   padding:8px 6px 10px;min-width:0;transition:transform 200ms var(--ease)}
-#view-brief .bmedal:hover{transform:translateY(-3px)}
+#view-brief .bstage-l1 .bmedal:hover{transform:translateY(-3px)}
 #view-brief .bmedal > *:not(.lrow-hit){position:relative;z-index:2;pointer-events:none}
-#view-brief .bmedal > .flag{position:absolute;left:10px;top:2px;z-index:4;pointer-events:auto}
+#view-brief .bstage-l1 .bmedal > .flag{position:absolute;left:10px;top:2px;z-index:4;pointer-events:auto}
 
 /* 지름 136px(최소 96px 이상) 원형 이중 고리 메달 */
 #view-brief .bm-emblem{position:relative;width:136px;height:136px;display:grid;place-items:center;margin:0 0 14px;flex:none}
@@ -790,43 +802,72 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
 #view-brief .bm-svg .arc.gold{stroke:var(--gold-line)}
 #view-brief .bm-svg .bm-inner{stroke:var(--ink-2);stroke-opacity:.38}
 #view-brief .bm-svg .bm-inner.gold{stroke:var(--gold);stroke-opacity:.96}
-#view-brief .bm-svg .bm-disc{fill:rgba(222,227,233,.66);stroke:var(--line-2);stroke-width:1;
+#view-brief .bm-svg .bm-disc{fill:rgba(226,231,237,.64);stroke:var(--line-2);stroke-width:1;
   transition:fill 180ms var(--ease),stroke 180ms var(--ease)}
 :root[data-theme="dark"] #view-brief .bm-svg .bm-disc{fill:rgba(22,29,37,.84)}
 #view-brief .bm-svg .bm-diag{stroke:var(--ink-2);stroke-opacity:.28;transition:stroke 180ms var(--ease),stroke-opacity 180ms var(--ease)}
-
-/* 고른 메달 하나만 빨강 원과 네 귀 사선 초점 */
-#view-brief .bmedal.is-sel .bm-svg .bm-disc{fill:var(--red);stroke:#fff;stroke-width:1.8}
-#view-brief .bmedal.is-sel .bm-svg .bm-diag{stroke:var(--ink-0);stroke-opacity:1}
-:root[data-theme="dark"] #view-brief .bmedal.is-sel .bm-svg .bm-diag{stroke:#fff;stroke-opacity:1}
-#view-brief .bmedal.is-sel .bm-svg .bm-outer{stroke:var(--ink-0);stroke-opacity:.75}
+#view-brief .bstage-l1 .bmedal:hover .bm-svg .bm-diag{stroke:var(--red);stroke-opacity:.9}
 
 /* 메달 안에는 대표 숫자 하나만 둔다 */
 #view-brief .bm-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 #view-brief .bm-n{font:600 38px/1 var(--f-num);color:var(--ink-0);letter-spacing:-.01em;white-space:nowrap}
 #view-brief .bm-n.frac{font-size:30px}
 #view-brief .bm-d{font-size:.60em;font-weight:400;color:var(--ink-2)}
-#view-brief .bmedal.is-sel .bm-n,
-#view-brief .bmedal.is-sel .bm-d{color:#fff}
 
 /* 메달 아래 짧은 이름과 범위 기호 */
 #view-brief .bm-foot{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0}
 #view-brief .bm-sc{display:inline-grid;place-items:center;width:16px;height:16px;color:var(--ink-2);flex:none}
 #view-brief .bm-name{font:600 16px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
-#view-brief .bmedal.is-sel .bm-name{box-shadow:inset 0 -2px 0 var(--red)}
 
-/* 고른 메달 아래로 뻗어 2층 판과 이어지는 수직 연결선 */
-#view-brief .bmedal.is-sel::after{content:"";position:absolute;left:50%;bottom:-54px;width:2px;height:54px;
-  margin-left:-1px;background:var(--red);z-index:3;pointer-events:none}
+/* ---------- 3. 2층 무대: 신디케이트 진행 기록처럼 윗줄 분류 탭과 단일 시각화 무대가 하나로 이어진다 ---------- */
+#view-brief .bstage-l2{position:relative}
+#view-brief .l2-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;align-items:stretch}
+#view-brief .l2-tab{position:relative;display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 14px;
+  background:rgba(228,233,238,.58);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  border-top:2px solid rgba(255,255,255,.78);color:var(--ink-0);min-width:0;
+  transition:background 160ms var(--ease),color 160ms var(--ease)}
+:root[data-theme="dark"] #view-brief .l2-tab{background:rgba(22,29,37,.66);border-top-color:rgba(255,255,255,.22)}
+#view-brief .l2-tab:hover{background:rgba(236,240,244,.82)}
+:root[data-theme="dark"] #view-brief .l2-tab:hover{background:rgba(36,45,55,.82)}
+#view-brief .l2-tab > .flag{position:absolute;right:4px;top:0;left:auto;z-index:4;pointer-events:auto}
 
-/* ---------- 3. 2층: 고른 메달 하나에서 펼쳐지는 단일 시각화(200~400ms) ---------- */
-#view-brief .blayer2{position:relative;border-top:2px solid var(--ink-0);background:var(--panel-hi);
+/* 고른 탭은 짙은 슬레이트 면으로 채워 아래 시각화 무대의 윗단과 경계 없이 이어진다 */
+#view-brief .l2-tab.is-sel,#view-brief .l2-tab.is-sel:hover{background:var(--slate);color:var(--on-slate);border-top-color:var(--red)}
+#view-brief .l2-tring{position:relative;width:42px;height:42px;flex:none;display:grid;place-items:center}
+#view-brief .l2-tsvg{width:100%;height:100%;display:block;overflow:visible}
+#view-brief .l2-tsvg .trk{stroke:var(--ink-2);stroke-opacity:.28}
+#view-brief .l2-tsvg .tks line{stroke:var(--ink-2);stroke-opacity:.5}
+#view-brief .l2-tsvg .arc{stroke:var(--ink-0)}
+#view-brief .l2-tsvg .arc.gold{stroke:var(--gold-line)}
+#view-brief .l2-tsvg .disc{fill:rgba(255,255,255,.45);stroke:var(--line-2);stroke-width:1}
+:root[data-theme="dark"] #view-brief .l2-tsvg .disc{fill:rgba(12,17,22,.65)}
+#view-brief .l2-tab.is-sel .l2-tsvg .trk{stroke:rgba(255,255,255,.32)}
+#view-brief .l2-tab.is-sel .l2-tsvg .tks line{stroke:rgba(255,255,255,.55)}
+#view-brief .l2-tab.is-sel .l2-tsvg .arc{stroke:#fff}
+#view-brief .l2-tab.is-sel .l2-tsvg .arc.gold{stroke:var(--gold)}
+#view-brief .l2-tab.is-sel .l2-tsvg .disc{fill:var(--red);stroke:#fff;stroke-width:1.4}
+#view-brief .l2-tn{position:absolute;inset:0;display:grid;place-items:center;font:600 14px/1 var(--f-num);color:var(--ink-0)}
+#view-brief .l2-tab.is-sel .l2-tn{color:#fff}
+#view-brief .l2-tnm{font:600 14px/1.25 var(--f-ko);color:inherit;word-break:keep-all;min-width:0}
+
+/* 2층 본체: 윗줄 활성 탭(var(--slate))과 이어지는 3px 상단 띠와 반투명 안개 유리 무대 */
+#view-brief .blayer2{position:relative;border-top:3px solid var(--slate);
+  background:linear-gradient(180deg,rgba(234,238,243,.84) 0%,rgba(220,226,233,.68) 100%);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:inset 0 0 0 1px var(--panel-edge);
   padding:22px 32px 28px;transform-origin:var(--ox,50%) 0}
-:root[data-theme="dark"] #view-brief .blayer2{border-top-color:rgba(255,255,255,.72)}
+:root[data-theme="dark"] #view-brief .blayer2{border-top-color:var(--slate);
+  background:linear-gradient(180deg,rgba(28,36,45,.86) 0%,rgba(16,22,29,.74) 100%)}
 #view-brief .blayer2.l2-open{animation:l2Unfold 280ms var(--ease)}
-@keyframes l2Unfold{from{opacity:.35;transform:scaleY(.88) translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes l2Unfold{from{opacity:.32;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes l2Cascade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#view-brief .blayer2.l2-open .bmap-row,
+#view-brief .blayer2.l2-open .l2-node,
+#view-brief .blayer2.l2-open .bstep,
+#view-brief .blayer2.l2-open .l2-org-grp{animation:l2Cascade 240ms var(--ease) both;animation-delay:calc(var(--ri,0) * 28ms)}
 
-#view-brief .l2-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:18px}
+#view-brief .l2-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;
+  padding-bottom:12px;margin-bottom:18px;border-bottom:1px solid var(--line-2)}
 #view-brief .l2-title{display:inline-flex;align-items:center;gap:8px;margin:0;font:600 17px/1.3 var(--f-ko);color:var(--ink-0)}
 #view-brief .l2-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 
@@ -861,29 +902,30 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
 #view-brief .bm-cell.is-sub-sel .bm-cbg{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff}
 #view-brief .bm-cs svg{width:13px;height:13px;display:block}
 
-/* 2층 (나, 다, 마): 보조 원형 메달 줄(주인공 도형인 원형 메달 문법으로 통일) */
-#view-brief .l2-rings{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:20px;max-width:920px;margin:6px auto 0}
-#view-brief .l2-node{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 8px;
-  border:0;background:transparent;color:var(--ink-0);text-align:center}
+/* 2층 (나, 다, 마): 보조 원형 메달 줄(세로 1px 안내 구분선 포함) */
+#view-brief .l2-rings{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:0;max-width:940px;margin:6px auto 0}
+#view-brief .l2-node{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 10px;
+  border:0;border-left:1px solid var(--line);background:transparent;color:var(--ink-0);text-align:center}
+#view-brief .l2-node:first-child{border-left:0}
 #view-brief .l2-node:hover{background:var(--hover)}
 #view-brief .l2-node > *{pointer-events:none}
-#view-brief .l2-rbox{position:relative;width:92px;height:92px;display:grid;place-items:center}
+#view-brief .l2-rbox{position:relative;width:96px;height:96px;display:grid;place-items:center}
 #view-brief .l2-rbox svg{width:100%;height:100%;display:block;overflow:visible}
 #view-brief .l2-rbox .trk{stroke:var(--ink-2);stroke-opacity:.22}
 #view-brief .l2-rbox .tks line{stroke:var(--ink-2);stroke-opacity:.52}
 #view-brief .l2-rbox .arc{stroke:var(--ink-0);transition:stroke-dasharray 420ms var(--ease)}
 #view-brief .l2-rbox .arc.gold{stroke:var(--gold-line)}
-#view-brief .l2-rbox .disc{fill:rgba(222,227,233,.58);stroke:var(--line-2);stroke-width:1}
+#view-brief .l2-rbox .disc{fill:rgba(226,231,237,.58);stroke:var(--line-2);stroke-width:1}
 :root[data-theme="dark"] #view-brief .l2-rbox .disc{fill:rgba(22,29,37,.84)}
-#view-brief .l2-node.is-sub-sel .l2-rbox .disc{fill:var(--slate);stroke:var(--ink-0);stroke-width:2}
+#view-brief .l2-node.is-sub-sel .l2-rbox .disc{fill:var(--red);stroke:#fff;stroke-width:1.8}
 #view-brief .l2-n{position:absolute;inset:0;display:grid;place-items:center;font:600 28px/1 var(--f-num);color:var(--ink-0)}
 #view-brief .l2-node.is-sub-sel .l2-n{color:#fff}
 #view-brief .l2-lbl{display:inline-flex;align-items:center;gap:5px;font:600 14px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
-#view-brief .l2-node.is-sub-sel .l2-lbl{box-shadow:inset 0 -2px 0 var(--ink-0)}
+#view-brief .l2-node.is-sub-sel .l2-lbl{box-shadow:inset 0 -2px 0 var(--red)}
 
 /* 2층 (라): 치료 여정 다섯 단계 타일(보유 단계는 금색, 빈 단계는 빗금, 안에는 숫자 하나만) */
 #view-brief .bsteps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;max-width:880px;margin:4px auto 0}
-#view-brief .bstep{position:relative;min-height:104px;padding:14px 8px;border:0;background:transparent;
+#view-brief .bstep{position:relative;min-height:108px;padding:14px 8px;border:0;background:transparent;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--ink-0)}
 #view-brief .bs-bg{position:absolute;inset:0;z-index:0}
 #view-brief .bstep > *:not(.bs-bg){position:relative;z-index:1;pointer-events:none}
@@ -891,8 +933,7 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
 #view-brief .bstep.is-gold{color:#151D24}
 #view-brief .bstep.is-empty .bs-bg{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 6px);outline:1px dashed var(--dash);outline-offset:-1px}
 #view-brief .bstep:hover .bs-bg{filter:brightness(.96)}
-#view-brief .bstep.is-sub-sel .bs-bg{outline:3px solid var(--ink-0);outline-offset:1px}
-:root[data-theme="dark"] #view-brief .bstep.is-sub-sel .bs-bg{outline-color:#fff}
+#view-brief .bstep.is-sub-sel .bs-bg{outline:3px solid var(--red);outline-offset:1px}
 #view-brief .bs-n{font:600 34px/1 var(--f-num)}
 #view-brief .bstep.is-empty .bs-n{color:var(--ink-2)}
 #view-brief .bs-s{font:600 14px/1.2 var(--f-ko)}
@@ -913,11 +954,11 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
 #view-brief .l2-empty{margin:10px 0 0;text-align:center;font:400 14px/1.5 var(--f-body);color:var(--ink-1)}
 
 /* font 단축 속성이 .num 의 고정폭 숫자를 되돌리므로 다시 건다 */
-#view-brief .bm-n,#view-brief .l2-n,#view-brief .bs-n,#view-brief .l2-org-n,#view-brief .brow .no{font-variant-numeric:tabular-nums}
+#view-brief .bm-n,#view-brief .l2-tn,#view-brief .l2-n,#view-brief .bs-n,#view-brief .l2-org-n,#view-brief .brow .no{font-variant-numeric:tabular-nums}
 
 /* ---------- 4. 탭 열림 움직임(전체 600ms 안쪽) ---------- */
 @keyframes bmSlide{from{transform:translateY(10px)}to{transform:none}}
-#view-brief.b-enter .bmedal{animation:bmSlide 300ms var(--ease) both;animation-delay:calc(var(--mi,0) * 45ms)}
+#view-brief.b-enter .bstage-l1 .bmedal{animation:bmSlide 300ms var(--ease) both;animation-delay:calc(var(--mi,0) * 45ms)}
 
 /* ---------- 5. "문장으로 보기" 목록 모드 ---------- */
 #view-brief .brows{margin-top:0}
@@ -948,16 +989,17 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
   #view-brief .bm-emblem{width:120px;height:120px}
   #view-brief .bm-n{font-size:34px}
   #view-brief .bm-n.frac{font-size:27px}
-  #view-brief .bmedal.is-sel::after{bottom:-46px;height:46px}
+  #view-brief .l2-tab{padding:8px 10px;gap:8px}
 }
 @media (min-width:1000px) and (max-width:1360px){
   body.ev-open #view-brief .bstage-l1::before{display:none}
-  body.ev-open #view-brief .bmedal.is-sel::after{display:none}
   body.ev-open #view-brief .bmedals{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
   body.ev-open #view-brief .bm-emblem{width:104px;height:104px}
   body.ev-open #view-brief .bm-n{font-size:30px}
   body.ev-open #view-brief .bm-n.frac{font-size:24px}
+  body.ev-open #view-brief .l2-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
   body.ev-open #view-brief .l2-rings{grid-template-columns:repeat(3,minmax(0,1fr))}
+  body.ev-open #view-brief .l2-node{border-left:0}
 }
 @media (max-width:999px){
   #view-brief .vhead{align-items:stretch;min-height:0;gap:8px}
@@ -967,12 +1009,15 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
   #view-brief .b-concl{padding:10px 14px;font-size:15px}
   #view-brief .bstage-l1{padding:28px 14px 26px}
   #view-brief .bstage-l1::before{display:none}
-  #view-brief .bmedal.is-sel::after{display:none}
   #view-brief .bmedals{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px}
-  #view-brief .bmedal:nth-child(5){grid-column:1/-1}
+  #view-brief .bstage-l1 .bmedal:nth-child(5){grid-column:1/-1}
   #view-brief .bm-emblem{width:96px;height:96px;margin-bottom:8px}
   #view-brief .bm-n{font-size:28px}
   #view-brief .bm-n.frac{font-size:23px}
+  #view-brief .l2-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #view-brief .l2-tab{min-height:48px;padding:6px 10px;gap:8px}
+  #view-brief .l2-tab:nth-child(5){grid-column:1/-1}
+  #view-brief .l2-tring{width:36px;height:36px}
   #view-brief .blayer2{padding:16px 12px 20px}
   #view-brief .bmap-cols,
   #view-brief .bmap-row{grid-template-columns:66px repeat(6,minmax(22px,1fr));gap:3px}
@@ -981,6 +1026,7 @@ body.boot-unfold #shell{animation:bootOpen 280ms var(--ease)}
   #view-brief .bmap-rh{font-size:13px;white-space:normal;line-height:1.2}
   #view-brief .bm-cell{min-height:36px;min-width:22px}
   #view-brief .l2-rings{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  #view-brief .l2-node{border-left:0}
   #view-brief .l2-org-many{grid-template-columns:minmax(0,1fr)}
   #view-brief .bsteps{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
   #view-brief .bstep{min-height:84px;padding:10px 4px}
@@ -1877,36 +1923,44 @@ body.ev-open #view-gate .gt-trees{gap:0 20px}
       <mask id="flm"><rect width="1920" height="240" fill="url(#flg)"/></mask>
     </defs>
     <g mask="url(#flm)">
-      <!-- 지평선 쪽에 낮게 깔리는 평면 기하 실루엣 -->
-      <g fill="var(--floor-block)" opacity=".45">
-        <rect x="40" y="28" width="150" height="36"/><rect x="210" y="18" width="110" height="46"/>
-        <rect x="350" y="34" width="190" height="30"/><rect x="1380" y="30" width="170" height="34"/>
-        <rect x="1570" y="16" width="130" height="48"/><rect x="1720" y="26" width="160" height="38"/>
+      <!-- 화이트룸 지평선 너머 세 겹 깊이로 서 있는 층진 도시 기하 실루엣 -->
+      <g fill="var(--floor-block)" opacity=".24">
+        <path d="M0 92V56h90V42h110V64h80V34h140V52h95V72h130V48h115V66h160V44h120V68h140V38h135V58h110V32h155V54h130V40h210v52Z"/>
       </g>
-      <!-- 먼 쪽이 흐려지는 이중 원근 격자 -->
-      <g fill="none" stroke="var(--floor-ink)" stroke-width="1" vector-effect="non-scaling-stroke" transform="translate(0,1)">
-        <path d="M-1560 240L960 -540M-1200 240L960 -540M-840 240L960 -540M-480 240L960 -540M-120 240L960 -540M240 240L960 -540M600 240L960 -540M960 240L960 -540M1320 240L960 -540M1680 240L960 -540M2040 240L960 -540M2400 240L960 -540M2760 240L960 -540M3120 240L960 -540M3480 240L960 -540"/>
-        <path d="M0 16H1920M0 30H1920M0 48H1920M0 70H1920M0 98H1920M0 132H1920M0 174H1920M0 226H1920"/>
+      <g fill="var(--floor-block)" stroke="var(--floor)" stroke-width=".7" stroke-opacity=".5" opacity=".42">
+        <rect x="24" y="54" width="118" height="58"/><rect x="156" y="38" width="96" height="74"/>
+        <rect x="268" y="62" width="144" height="50"/><rect x="428" y="48" width="88" height="64"/>
+        <rect x="1280" y="56" width="112" height="56"/><rect x="1408" y="36" width="132" height="76"/>
+        <rect x="1556" y="50" width="108" height="62"/><rect x="1680" y="28" width="154" height="84"/>
       </g>
-      <g fill="none" stroke="var(--floor)" stroke-width="1" opacity=".82" vector-effect="non-scaling-stroke">
+      <g fill="var(--floor-block)" stroke="var(--floor)" stroke-width=".9" stroke-opacity=".68" opacity=".58">
+        <rect x="68" y="84" width="136" height="68"/><rect x="224" y="72" width="112" height="80"/>
+        <rect x="1464" y="76" width="142" height="76"/><rect x="1626" y="64" width="168" height="88"/>
+      </g>
+      <!-- 먼 쪽이 안개 속으로 흐려지는 1px 원근 바닥 격자 -->
+      <g fill="none" stroke="var(--floor-ink)" stroke-width="1" opacity=".62" vector-effect="non-scaling-stroke" transform="translate(0,1)">
         <path d="M-1560 240L960 -540M-1200 240L960 -540M-840 240L960 -540M-480 240L960 -540M-120 240L960 -540M240 240L960 -540M600 240L960 -540M960 240L960 -540M1320 240L960 -540M1680 240L960 -540M2040 240L960 -540M2400 240L960 -540M2760 240L960 -540M3120 240L960 -540M3480 240L960 -540"/>
-        <path d="M0 16H1920M0 30H1920M0 48H1920M0 70H1920M0 98H1920M0 132H1920M0 174H1920M0 226H1920"/>
+        <path d="M0 24H1920M0 44H1920M0 68H1920M0 98H1920M0 134H1920M0 178H1920M0 228H1920"/>
+      </g>
+      <g fill="none" stroke="var(--floor)" stroke-width="1" opacity=".76" vector-effect="non-scaling-stroke">
+        <path d="M-1560 240L960 -540M-1200 240L960 -540M-840 240L960 -540M-480 240L960 -540M-120 240L960 -540M240 240L960 -540M600 240L960 -540M960 240L960 -540M1320 240L960 -540M1680 240L960 -540M2040 240L960 -540M2400 240L960 -540M2760 240L960 -540M3120 240L960 -540M3480 240L960 -540"/>
+        <path d="M0 24H1920M0 44H1920M0 68H1920M0 98H1920M0 134H1920M0 178H1920M0 228H1920"/>
       </g>
     </g>
   </svg>
   <div class="guides" id="guides"></div>
 </div>
 
-<!-- 여는 화면: 첫 화면이 그려진 뒤 자료 읽기, 지도, 표 단계에 맞춰 가운데 기하 도형이 채워지고 탭 구성으로 펼쳐진다 -->
+<!-- 여는 화면: 화이트룸 안개 위에서 정사각 테두리와 마름모, 교차 기준선이 단계별로 그려진 뒤 탭 무대로 펼쳐진다 -->
 <div class="boot-loader" id="boot-loader" role="status" aria-live="polite" hidden>
   <div class="bl-emblem">
-    <svg class="bl-svg" width="168" height="168" viewBox="-76 -76 152 152" aria-hidden="true" focusable="false">
-      <circle class="bl-outer" r="64" fill="none" stroke-width="1"/>
-      <path class="bl-cross" d="M0 -70V-60M70 0H60M0 70V60M-70 0H-60M-50 -50l9 9M50 -50l-9 9M-50 50l9 -9M50 50l-9 -9" fill="none" stroke-width="1.5"/>
-      <circle class="bl-trk" r="52" fill="none" stroke-width="1.2"/>
-      <circle class="bl-arc" id="boot-arc" r="52" fill="none" stroke-width="5.2" pathLength="100" stroke-dasharray="10 100" transform="rotate(-90)"/>
-      <circle class="bl-gold" r="43" fill="none" stroke-width="1.4"/>
-      <path class="bl-dia" id="boot-dia" d="M0 -33L33 0 0 33 -33 0Z" fill="none" stroke-width="1.8" pathLength="100" stroke-dasharray="10 100"/>
+    <svg class="bl-svg" width="176" height="176" viewBox="-80 -80 160 160" aria-hidden="true" focusable="false">
+      <path class="bl-axis" d="M0 -76V-54M76 0H54M0 76V54M-76 0H-54M-58 -58l12 12M58 -58l-12 12M-58 58l12 -12M58 58l-12 -12" fill="none" stroke-width="1.2"/>
+      <circle class="bl-outer" r="64" fill="none" stroke-width="1" stroke-dasharray="2 4"/>
+      <rect class="bl-trk" x="-44" y="-44" width="88" height="88" fill="none" stroke-width="1"/>
+      <rect class="bl-arc" id="boot-arc" x="-44" y="-44" width="88" height="88" fill="none" stroke-width="2.6" pathLength="100" stroke-dasharray="10 100"/>
+      <path class="bl-gold" d="M0 -38L38 0 0 38 -38 0Z" fill="none" stroke-width="1.2"/>
+      <path class="bl-dia" id="boot-dia" d="M0 -31L31 0 0 31 -31 0Z" fill="none" stroke-width="2" pathLength="100" stroke-dasharray="10 100"/>
     </svg>
     <span class="bl-pct num" id="boot-pct">10%</span>
   </div>
@@ -2133,6 +2187,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     tabErrorPrefix: '이 탭을 그리다 멈췄습니다: ',
     chevPrevSuffix: ' 앞 값',
     chevNextSuffix: ' 다음 값',
+    tabPrevAria: '앞 분석 단계',
+    tabNextAria: '다음 분석 단계',
     stepDecSuffix: ' 하나 줄이기',
     stepIncSuffix: ' 하나 늘리기',
 
@@ -2161,8 +2217,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     briefLgStepGold: '금색 타일: 우체국 담보가 있는 치료 단계, 빗금은 없는 단계',
     briefGoTabTpl: '{tab} 탭으로',
     briefGoDetailTpl: '{tab} 탭에서 자세히',
-    briefUpBtn: '닫기',
-    briefL2GaTitle: '고객군 24칸 지형',
+    briefUpBtn: '뒤로',
+    briefL2GaTitleTpl: '고객군 {n}칸 지형',
     briefL2NaTitle: '개정 담보 나눔과 시장 소식',
     briefL2DaTitle: '회사별 열린 종형 수',
     briefL2RaTitle: '치료 여정 다섯 단계',
@@ -2638,12 +2694,12 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const r = shortName(full, opts);
     return r.changed ? `<span class="nm" title="${esc(r.full)}">${esc(r.short)}</span>` : `<span class="nm">${esc(r.full)}</span>`;
   }
-  /** 제목 묶음: 한 줄 층 경로(.lpath), 큰 제목, 탭 자리 표시 */
+  /** 제목 묶음: 한 줄 층 경로(.lpath), 큰 제목, 좌우 꺾쇠 달린 탭 자리 표시(< · ━ · >) */
   function title(tabId, kicker, text) {
     const i = TAB_IDS.indexOf(tabId);
     const dots = TAB_IDS.map((_, j) => `<i${j === i ? ' class="on"' : ''}></i>`).join('');
     return `<div class="ttl"><nav class="lpath" aria-label="${esc(cp('pathAria'))}"><span class="lp-cur">${esc(TAB_NAME[tabId])}</span></nav><h1 class="ttl-t">${esc(text || TAB_NAME[tabId])}</h1>
-      <div class="ttl-i" role="img" aria-label="${esc(TAB_NAME[tabId])}">${dots}</div></div>`;
+      <div class="ttl-i" role="group" aria-label="${esc(TAB_NAME[tabId])}"><button type="button" class="ttl-step" data-tab-step="-1" aria-label="${esc(cp('tabPrevAria'))}">${IC.chevL}</button>${dots}<button type="button" class="ttl-step" data-tab-step="1" aria-label="${esc(cp('tabNextAria'))}">${IC.chevR}</button></div></div>`;
   }
   const big = (n, d, unit) => `<span class="big"><span class="n">${esc(fmt(n))}</span>${d != null ? `<span class="d">/${esc(fmt(d))}</span>` : ''}${unit ? `<span class="u">${esc(unit)}</span>` : ''}</span>`;
   function ring({ v = 0, max = 1, size = 72, lead = false, segs = null, pct = null, sel = false, label = '' } = {}) {
@@ -3613,6 +3669,14 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }
     const lu = e.target.closest('[data-layer-up]');
     if (lu) { e.stopPropagation(); stepUp(); return; }
+    const ts = e.target.closest('[data-tab-step]');
+    if (ts) {
+      e.stopPropagation();
+      const d = +ts.dataset.tabStep || 1;
+      const i = TAB_IDS.indexOf(st.tab);
+      set({ tab: TAB_IDS[(i + d + TAB_IDS.length) % TAB_IDS.length] });
+      return;
+    }
 
     const a = e.target.closest('[data-act],[data-go],button[data-copy],button[data-print]');
     if (a) {
@@ -3740,6 +3804,7 @@ App.registerTab((function () {
   const MAP_LABELS = S['라벨'];
 
   let viewMode = 'medal';
+  let lastStageSel = null;
 
   const brief = c => (c.base ? c.base['브리핑'] : []);
   const line = (c, k) => brief(c).find(b => b['줄'] === k) || null;
@@ -3899,7 +3964,43 @@ App.registerTab((function () {
       </div>`).join('')}</div>`;
   }
 
-  // ---------- 3. 2층: 고른 메달 하나에 해당하는 시각화 하나만 ----------
+  function miniMedalSVG(m) {
+    let acc = 0, arcs = '';
+    for (const s of m.segs) {
+      const f = m.max > 0 ? Math.max(0, Math.min(1 - acc, s.v / m.max)) : 0;
+      if (f > 0) {
+        const to = (f * 100).toFixed(2);
+        arcs += `<circle class="arc ${s.cls || ''}" r="17" fill="none" stroke-width="2.6" pathLength="100" stroke-dasharray="${to} 100" stroke-dashoffset="${(-acc * 100).toFixed(2)}" transform="rotate(-90)" data-to="${to}"/>`;
+      }
+      acc += f;
+    }
+    const frac = Math.min(1, acc);
+    let tks = '';
+    for (let i = 0; i < 24; i++) {
+      const a = i / 24;
+      if (a < frac - 1e-6) continue;
+      const th = a * Math.PI * 2 - Math.PI / 2, cs = Math.cos(th), sn = Math.sin(th);
+      tks += `<line x1="${(cs * 15.2).toFixed(2)}" y1="${(sn * 15.2).toFixed(2)}" x2="${(cs * 18.8).toFixed(2)}" y2="${(sn * 18.8).toFixed(2)}"/>`;
+    }
+    return `<svg class="ring l2-tsvg" width="42" height="42" viewBox="-22 -22 44 44" aria-hidden="true" focusable="false">
+      <circle class="trk" r="17" fill="none" stroke-width="1"/>
+      <g class="tks" stroke-width="1.1">${tks}</g>
+      ${arcs}
+      <circle class="disc" r="13.2"/>
+    </svg>`;
+  }
+
+  function l2TabsHTML(c) {
+    return `<div class="l2-tabs" data-pick-group="brief">${medalSpecs(c).map(m => `
+      <div class="bmedal brow l2-tab" data-pick="${esc(m.key)}" data-tip="${esc(m.tip)}">
+        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${m.name}, ${m.numText}, ${m.scopeText}`)}"></button>
+        ${m.flag ? ui.flag(m.flagText || ui.FLAG_TEXT) : ''}
+        <div class="l2-tring">${miniMedalSVG(m)}<span class="l2-tn num">${esc(m.num)}</span></div>
+        <span class="l2-tnm">${esc(m.name)}</span>
+      </div>`).join('')}</div>`;
+  }
+
+  // ---------- 3. 2층: 무대 전체가 전환되어 고른 메달의 시각화 하나만 열린다 ----------
   function subRingSVG(v, max, cls = '') {
     const f = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
     const to = (f * 100).toFixed(2);
@@ -3957,14 +4058,16 @@ App.registerTab((function () {
     let inner = '';
 
     if (key === '가') {
-      titleStr = t('briefL2GaTitle');
       const m = App.mapOf(null);
       const nowSeg = App.cellOf(Object.assign({}, c.st, { renewal: null }));
       const cols = m['열'] || [];
+      const totalCells = (b['값'] && b['값']['전체칸수']) || ((m['행'] || []).length * cols.length);
+      titleStr = t('briefL2GaTitleTpl', { n: fmt(totalCells) });
       const hospRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
       const surgRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
       const colHeads = `<div class="bmap-cols" aria-hidden="true"><span></span>${hospRows.map(x => `<span class="bmap-ch">${esc(timeShort(x.r))}</span>`).join('')}</div>`;
       const rows = [];
+      let rowIdx = 0;
       [
         { label: t('briefHospShort'), list: hospRows, surg: false },
         { label: t('briefSurgShort'), list: surgRows, surg: true },
@@ -3975,7 +4078,9 @@ App.registerTab((function () {
             const st = CELL_STYLE[cell['라벨']] || CELL_STYLE['자료 없음'];
             const isNow = nowSeg && nowSeg.cell && nowSeg.ri === ri && nowSeg.ci === ci;
             const go = cell['관문만수집'] || [];
-            const goTxt = go.length ? `, ${go.map(z => `${z['이름']} ${z['안내'] || ''}`).join(', ')}` : '';
+            const goTxt = !go.length ? '' : go.length <= 2
+              ? `, ${go.map(z => `${z['이름']} ${z['안내'] || ''}`).join(', ')}`
+              : `, ${t('peerRestTpl', { first: go[0]['이름'], rest: go.length - 1 })} ${go[0]['안내'] || ''}`;
             const tip = `${x.r['이름']}, ${col.lo}~${col.hi}${t('condAgeUnit')}: ${cell['라벨']}${cell['보조'] ? ` (${cell['보조']})` : ''}${goTxt}`;
             return `<button type="button" class="bm-cell ${st.cls}${go.length ? ' has-go' : ''}${isNow ? ' is-now' : ''}" data-sub-pick="seg:${ri}-${ci}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
               <i class="bm-cbg" aria-hidden="true"></i>
@@ -3983,7 +4088,7 @@ App.registerTab((function () {
               <span class="bm-cs" aria-hidden="true">${st.ic}</span>
             </button>`;
           }).join('');
-          rows.push(`<div class="bmap-row${g.surg && ci === 0 ? ' surg-start' : ''}">
+          rows.push(`<div class="bmap-row${g.surg && ci === 0 ? ' surg-start' : ''}" style="--ri:${rowIdx++}">
             <span class="bmap-rh">${esc(`${g.label} ${col.lo}~${col.hi}`)}</span>${cells}
           </div>`);
         });
@@ -4000,8 +4105,8 @@ App.registerTab((function () {
         { k: 'rev:end', lbl: t('briefRevEnd'), n: v['개정종료'] || 0, max: tot, cls: '' },
         { k: 'rev:news', lbl: t('briefNewsNode'), n: nw['건수'] || 0, max: Math.max(1, nw['건수'] || 1), cls: (nw['연결'] || 0) > 0 ? 'gold' : '' },
       ];
-      inner = `<div class="l2-rings" style="--cols:4">${items.map(it => `
-        <button type="button" class="l2-node" data-sub-pick="${esc(it.k)}" data-tip="${esc(`${it.lbl}: ${fmt(it.n)}`)}" aria-pressed="false" aria-label="${esc(`${it.lbl} ${fmt(it.n)}`)}">
+      inner = `<div class="l2-rings" style="--cols:4">${items.map((it, idx2) => `
+        <button type="button" class="l2-node" style="--ri:${idx2}" data-sub-pick="${esc(it.k)}" data-tip="${esc(`${it.lbl}: ${fmt(it.n)}`)}" aria-pressed="false" aria-label="${esc(`${it.lbl} ${fmt(it.n)}`)}">
           <div class="l2-rbox">${subRingSVG(it.n, it.max, it.cls)}<span class="l2-n num">${esc(fmt(it.n))}</span></div>
           <span class="l2-lbl">${esc(it.lbl)}</span>
         </button>`).join('')}</div>`;
@@ -4013,12 +4118,12 @@ App.registerTab((function () {
       Object.values(S['종형']).forEach(v => { orgTotals[v['기관코드']] = (orgTotals[v['기관코드']] || 0) + 1; });
       const peers = c.activePeerOrgs || [];
       const orgs = ['EPOST'].concat(peers);
-      const ringBtn = info => `<button type="button" class="l2-node" data-sub-pick="org:${esc(info.org)}" data-tip="${esc(info.tip)}" aria-pressed="false" aria-label="${esc(info.tip)}">
+      const ringBtn = (info, riIdx = 0) => `<button type="button" class="l2-node" style="--ri:${riIdx}" data-sub-pick="org:${esc(info.org)}" data-tip="${esc(info.tip)}" aria-pressed="false" aria-label="${esc(info.tip)}">
         <div class="l2-rbox">${subRingSVG(info.noData ? 0 : info.openIds.length, info.max, info.cls)}<span class="l2-n num">${esc(info.nTxt)}</span></div>
         <span class="l2-lbl"><span aria-hidden="true">${info.ic}</span>${esc(txt.orgShort(info.org))}</span>
       </button>`;
       if (peers.length <= 3) {
-        inner = `<div class="l2-rings" style="--cols:${Math.max(1, orgs.length)}">${orgs.map(o => ringBtn(orgNodeInfo(o, cell, orgTotals))).join('')}</div>`
+        inner = `<div class="l2-rings" style="--cols:${Math.max(1, orgs.length)}">${orgs.map((o, i2) => ringBtn(orgNodeInfo(o, cell, orgTotals), i2)).join('')}</div>`
           + (peers.length === 0 ? `<p class="l2-empty">${esc(t('peerEmptyHint'))}</p>` : '');
       } else {
         // 상대 회사가 넷을 넘을 때는 우체국 고리 하나와 업권별(생명보험, 손해보험) 세로 목록으로 그린다
@@ -4028,8 +4133,8 @@ App.registerTab((function () {
           { lbl: t('peerNonLifeGroup'), list: peers.filter(o => txt.orgSector(o) === 'nonlife') },
         ].filter(g => g.list.length > 0);
         inner = `<div class="l2-org-many">
-          <div>${ringBtn(ours)}</div>
-          <div class="l2-org-groups">${groups.map(g => `<div class="l2-org-grp">
+          <div>${ringBtn(ours, 0)}</div>
+          <div class="l2-org-groups">${groups.map((g, gi) => `<div class="l2-org-grp" style="--ri:${gi + 1}">
             <div class="l2-org-gh">${esc(`${g.lbl} (${fmt(g.list.length)})`)}</div>
             <div class="l2-org-ul">${g.list.map(o => {
               const inf = orgNodeInfo(o, cell, orgTotals);
@@ -4048,12 +4153,12 @@ App.registerTab((function () {
       const activeSet = new Set(c.activeOrgs || txt.ORG_ORDER);
       const cols = (j['종형'] || []).filter(x => activeSet.has(orgCodeOfVid(x['종형ID'])));
       const ours = (j['종형'] || []).find(x => x['종형ID'] === c.baseId) || (j['종형'] || [])[0];
-      inner = `<div class="bsteps">${steps.map(s => {
+      inner = `<div class="bsteps">${steps.map((s, si) => {
         const n = ours ? (ours['합계'][s] || 0) : 0;
         const shownCols = cols.slice(0, 4);
         const orgSummary = shownCols.map(x => `${txt.orgShort(orgCodeOfVid(x['종형ID']))} ${x['합계'][s] || 0}`).join(', ');
         const tip = `${s}: ${orgSummary}`;
-        return `<button type="button" class="bstep ${n > 0 ? 'is-gold' : 'is-empty'}" data-sub-pick="step:${esc(s)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
+        return `<button type="button" class="bstep ${n > 0 ? 'is-gold' : 'is-empty'}" style="--ri:${si}" data-sub-pick="step:${esc(s)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
           <i class="bs-bg" aria-hidden="true"></i>
           <span class="bs-n num">${esc(fmt(n))}</span>
           <span class="bs-s">${esc(s)}</span>
@@ -4067,7 +4172,7 @@ App.registerTab((function () {
         const n = cnt[cat] || 0;
         const cls = (idx2 === 1 || idx2 === 2) && n > 0 ? 'gold' : '';
         const tip = `${cat}: ${fmt(n)}${t('briefInsUnit')}`;
-        return `<button type="button" class="l2-node" data-sub-pick="cat:${esc(cat)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
+        return `<button type="button" class="l2-node" style="--ri:${idx2}" data-sub-pick="cat:${esc(cat)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
           <div class="l2-rbox">${subRingSVG(n, total, cls)}<span class="l2-n num">${esc(fmt(n))}</span></div>
           <span class="l2-lbl">${esc(cat)}</span>
         </button>`;
@@ -4083,12 +4188,22 @@ App.registerTab((function () {
     </div>`;
   }
 
+  function stageInnerHTML(sel, c, animate, fromL2) {
+    if (!sel) {
+      return `<div class="bstage-l1${animate && fromL2 && App.motionOn() ? ' l1-open' : ''}">${medalsHTML(c)}</div>`;
+    }
+    return `<div class="bstage-l2">
+      ${l2TabsHTML(c)}
+      <div id="brief-l2-slot">${layer2HTML(sel, c, animate)}</div>
+    </div>`;
+  }
+
   function stageHTML(c) {
     const sel = c.st.sel.brief || null;
+    lastStageSel = sel;
     return `<p class="concl b-concl">${esc(conclText(c))}</p>
-      <section class="panel bstage" id="brief-stage" aria-label="${esc(App.TAB_NAME.brief)}">
-        <div class="bstage-l1">${medalsHTML(c)}</div>
-        <div id="brief-l2-slot">${layer2HTML(sel, c, false)}</div>
+      <section class="bstage${sel ? ' is-l2' : ' is-l1'}" id="brief-stage" aria-label="${esc(App.TAB_NAME.brief)}">
+        ${stageInnerHTML(sel, c, false, false)}
       </section>`;
   }
 
@@ -4405,14 +4520,25 @@ App.registerTab((function () {
 
   function onLayer(body, c, animate) {
     if (viewMode !== 'medal') return;
-    const slot = body.querySelector('#brief-l2-slot');
-    if (!slot) return;
+    const stage = body.querySelector('#brief-stage');
+    if (!stage) return;
     const sel = c.st.sel.brief || null;
-    slot.innerHTML = layer2HTML(sel, c, animate);
-    if (sel && animate && App.motionOn()) {
-      const medalEl = body.querySelector(`.bmedal[data-pick="${CSS.escape(sel)}"]`);
-      if (medalEl) ui.drawRings(medalEl);
-      ui.drawRings(slot);
+    const prev = lastStageSel;
+    if (sel === prev) return;
+    lastStageSel = sel;
+    stage.classList.toggle('is-l2', !!sel);
+    stage.classList.toggle('is-l1', !sel);
+    if (!sel || !prev) {
+      stage.innerHTML = stageInnerHTML(sel, c, animate, !!prev);
+      if (animate && App.motionOn()) ui.drawRings(stage);
+      return;
+    }
+    const slot = stage.querySelector('#brief-l2-slot');
+    if (slot) {
+      slot.innerHTML = layer2HTML(sel, c, animate);
+      if (animate && App.motionOn()) ui.drawRings(slot);
+    } else {
+      stage.innerHTML = stageInnerHTML(sel, c, animate, false);
     }
   }
 

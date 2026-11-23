@@ -13,6 +13,7 @@ App.registerTab((function () {
   const MAP_LABELS = S['라벨'];
 
   let viewMode = 'medal';
+  let lastStageSel = null;
 
   const brief = c => (c.base ? c.base['브리핑'] : []);
   const line = (c, k) => brief(c).find(b => b['줄'] === k) || null;
@@ -172,7 +173,43 @@ App.registerTab((function () {
       </div>`).join('')}</div>`;
   }
 
-  // ---------- 3. 2층: 고른 메달 하나에 해당하는 시각화 하나만 ----------
+  function miniMedalSVG(m) {
+    let acc = 0, arcs = '';
+    for (const s of m.segs) {
+      const f = m.max > 0 ? Math.max(0, Math.min(1 - acc, s.v / m.max)) : 0;
+      if (f > 0) {
+        const to = (f * 100).toFixed(2);
+        arcs += `<circle class="arc ${s.cls || ''}" r="17" fill="none" stroke-width="2.6" pathLength="100" stroke-dasharray="${to} 100" stroke-dashoffset="${(-acc * 100).toFixed(2)}" transform="rotate(-90)" data-to="${to}"/>`;
+      }
+      acc += f;
+    }
+    const frac = Math.min(1, acc);
+    let tks = '';
+    for (let i = 0; i < 24; i++) {
+      const a = i / 24;
+      if (a < frac - 1e-6) continue;
+      const th = a * Math.PI * 2 - Math.PI / 2, cs = Math.cos(th), sn = Math.sin(th);
+      tks += `<line x1="${(cs * 15.2).toFixed(2)}" y1="${(sn * 15.2).toFixed(2)}" x2="${(cs * 18.8).toFixed(2)}" y2="${(sn * 18.8).toFixed(2)}"/>`;
+    }
+    return `<svg class="ring l2-tsvg" width="42" height="42" viewBox="-22 -22 44 44" aria-hidden="true" focusable="false">
+      <circle class="trk" r="17" fill="none" stroke-width="1"/>
+      <g class="tks" stroke-width="1.1">${tks}</g>
+      ${arcs}
+      <circle class="disc" r="13.2"/>
+    </svg>`;
+  }
+
+  function l2TabsHTML(c) {
+    return `<div class="l2-tabs" data-pick-group="brief">${medalSpecs(c).map(m => `
+      <div class="bmedal brow l2-tab" data-pick="${esc(m.key)}" data-tip="${esc(m.tip)}">
+        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${m.name}, ${m.numText}, ${m.scopeText}`)}"></button>
+        ${m.flag ? ui.flag(m.flagText || ui.FLAG_TEXT) : ''}
+        <div class="l2-tring">${miniMedalSVG(m)}<span class="l2-tn num">${esc(m.num)}</span></div>
+        <span class="l2-tnm">${esc(m.name)}</span>
+      </div>`).join('')}</div>`;
+  }
+
+  // ---------- 3. 2층: 무대 전체가 전환되어 고른 메달의 시각화 하나만 열린다 ----------
   function subRingSVG(v, max, cls = '') {
     const f = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
     const to = (f * 100).toFixed(2);
@@ -230,14 +267,16 @@ App.registerTab((function () {
     let inner = '';
 
     if (key === '가') {
-      titleStr = t('briefL2GaTitle');
       const m = App.mapOf(null);
       const nowSeg = App.cellOf(Object.assign({}, c.st, { renewal: null }));
       const cols = m['열'] || [];
+      const totalCells = (b['값'] && b['값']['전체칸수']) || ((m['행'] || []).length * cols.length);
+      titleStr = t('briefL2GaTitleTpl', { n: fmt(totalCells) });
       const hospRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
       const surgRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
       const colHeads = `<div class="bmap-cols" aria-hidden="true"><span></span>${hospRows.map(x => `<span class="bmap-ch">${esc(timeShort(x.r))}</span>`).join('')}</div>`;
       const rows = [];
+      let rowIdx = 0;
       [
         { label: t('briefHospShort'), list: hospRows, surg: false },
         { label: t('briefSurgShort'), list: surgRows, surg: true },
@@ -248,7 +287,9 @@ App.registerTab((function () {
             const st = CELL_STYLE[cell['라벨']] || CELL_STYLE['자료 없음'];
             const isNow = nowSeg && nowSeg.cell && nowSeg.ri === ri && nowSeg.ci === ci;
             const go = cell['관문만수집'] || [];
-            const goTxt = go.length ? `, ${go.map(z => `${z['이름']} ${z['안내'] || ''}`).join(', ')}` : '';
+            const goTxt = !go.length ? '' : go.length <= 2
+              ? `, ${go.map(z => `${z['이름']} ${z['안내'] || ''}`).join(', ')}`
+              : `, ${t('peerRestTpl', { first: go[0]['이름'], rest: go.length - 1 })} ${go[0]['안내'] || ''}`;
             const tip = `${x.r['이름']}, ${col.lo}~${col.hi}${t('condAgeUnit')}: ${cell['라벨']}${cell['보조'] ? ` (${cell['보조']})` : ''}${goTxt}`;
             return `<button type="button" class="bm-cell ${st.cls}${go.length ? ' has-go' : ''}${isNow ? ' is-now' : ''}" data-sub-pick="seg:${ri}-${ci}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
               <i class="bm-cbg" aria-hidden="true"></i>
@@ -256,7 +297,7 @@ App.registerTab((function () {
               <span class="bm-cs" aria-hidden="true">${st.ic}</span>
             </button>`;
           }).join('');
-          rows.push(`<div class="bmap-row${g.surg && ci === 0 ? ' surg-start' : ''}">
+          rows.push(`<div class="bmap-row${g.surg && ci === 0 ? ' surg-start' : ''}" style="--ri:${rowIdx++}">
             <span class="bmap-rh">${esc(`${g.label} ${col.lo}~${col.hi}`)}</span>${cells}
           </div>`);
         });
@@ -273,8 +314,8 @@ App.registerTab((function () {
         { k: 'rev:end', lbl: t('briefRevEnd'), n: v['개정종료'] || 0, max: tot, cls: '' },
         { k: 'rev:news', lbl: t('briefNewsNode'), n: nw['건수'] || 0, max: Math.max(1, nw['건수'] || 1), cls: (nw['연결'] || 0) > 0 ? 'gold' : '' },
       ];
-      inner = `<div class="l2-rings" style="--cols:4">${items.map(it => `
-        <button type="button" class="l2-node" data-sub-pick="${esc(it.k)}" data-tip="${esc(`${it.lbl}: ${fmt(it.n)}`)}" aria-pressed="false" aria-label="${esc(`${it.lbl} ${fmt(it.n)}`)}">
+      inner = `<div class="l2-rings" style="--cols:4">${items.map((it, idx2) => `
+        <button type="button" class="l2-node" style="--ri:${idx2}" data-sub-pick="${esc(it.k)}" data-tip="${esc(`${it.lbl}: ${fmt(it.n)}`)}" aria-pressed="false" aria-label="${esc(`${it.lbl} ${fmt(it.n)}`)}">
           <div class="l2-rbox">${subRingSVG(it.n, it.max, it.cls)}<span class="l2-n num">${esc(fmt(it.n))}</span></div>
           <span class="l2-lbl">${esc(it.lbl)}</span>
         </button>`).join('')}</div>`;
@@ -286,12 +327,12 @@ App.registerTab((function () {
       Object.values(S['종형']).forEach(v => { orgTotals[v['기관코드']] = (orgTotals[v['기관코드']] || 0) + 1; });
       const peers = c.activePeerOrgs || [];
       const orgs = ['EPOST'].concat(peers);
-      const ringBtn = info => `<button type="button" class="l2-node" data-sub-pick="org:${esc(info.org)}" data-tip="${esc(info.tip)}" aria-pressed="false" aria-label="${esc(info.tip)}">
+      const ringBtn = (info, riIdx = 0) => `<button type="button" class="l2-node" style="--ri:${riIdx}" data-sub-pick="org:${esc(info.org)}" data-tip="${esc(info.tip)}" aria-pressed="false" aria-label="${esc(info.tip)}">
         <div class="l2-rbox">${subRingSVG(info.noData ? 0 : info.openIds.length, info.max, info.cls)}<span class="l2-n num">${esc(info.nTxt)}</span></div>
         <span class="l2-lbl"><span aria-hidden="true">${info.ic}</span>${esc(txt.orgShort(info.org))}</span>
       </button>`;
       if (peers.length <= 3) {
-        inner = `<div class="l2-rings" style="--cols:${Math.max(1, orgs.length)}">${orgs.map(o => ringBtn(orgNodeInfo(o, cell, orgTotals))).join('')}</div>`
+        inner = `<div class="l2-rings" style="--cols:${Math.max(1, orgs.length)}">${orgs.map((o, i2) => ringBtn(orgNodeInfo(o, cell, orgTotals), i2)).join('')}</div>`
           + (peers.length === 0 ? `<p class="l2-empty">${esc(t('peerEmptyHint'))}</p>` : '');
       } else {
         // 상대 회사가 넷을 넘을 때는 우체국 고리 하나와 업권별(생명보험, 손해보험) 세로 목록으로 그린다
@@ -301,8 +342,8 @@ App.registerTab((function () {
           { lbl: t('peerNonLifeGroup'), list: peers.filter(o => txt.orgSector(o) === 'nonlife') },
         ].filter(g => g.list.length > 0);
         inner = `<div class="l2-org-many">
-          <div>${ringBtn(ours)}</div>
-          <div class="l2-org-groups">${groups.map(g => `<div class="l2-org-grp">
+          <div>${ringBtn(ours, 0)}</div>
+          <div class="l2-org-groups">${groups.map((g, gi) => `<div class="l2-org-grp" style="--ri:${gi + 1}">
             <div class="l2-org-gh">${esc(`${g.lbl} (${fmt(g.list.length)})`)}</div>
             <div class="l2-org-ul">${g.list.map(o => {
               const inf = orgNodeInfo(o, cell, orgTotals);
@@ -321,12 +362,12 @@ App.registerTab((function () {
       const activeSet = new Set(c.activeOrgs || txt.ORG_ORDER);
       const cols = (j['종형'] || []).filter(x => activeSet.has(orgCodeOfVid(x['종형ID'])));
       const ours = (j['종형'] || []).find(x => x['종형ID'] === c.baseId) || (j['종형'] || [])[0];
-      inner = `<div class="bsteps">${steps.map(s => {
+      inner = `<div class="bsteps">${steps.map((s, si) => {
         const n = ours ? (ours['합계'][s] || 0) : 0;
         const shownCols = cols.slice(0, 4);
         const orgSummary = shownCols.map(x => `${txt.orgShort(orgCodeOfVid(x['종형ID']))} ${x['합계'][s] || 0}`).join(', ');
         const tip = `${s}: ${orgSummary}`;
-        return `<button type="button" class="bstep ${n > 0 ? 'is-gold' : 'is-empty'}" data-sub-pick="step:${esc(s)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
+        return `<button type="button" class="bstep ${n > 0 ? 'is-gold' : 'is-empty'}" style="--ri:${si}" data-sub-pick="step:${esc(s)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
           <i class="bs-bg" aria-hidden="true"></i>
           <span class="bs-n num">${esc(fmt(n))}</span>
           <span class="bs-s">${esc(s)}</span>
@@ -340,7 +381,7 @@ App.registerTab((function () {
         const n = cnt[cat] || 0;
         const cls = (idx2 === 1 || idx2 === 2) && n > 0 ? 'gold' : '';
         const tip = `${cat}: ${fmt(n)}${t('briefInsUnit')}`;
-        return `<button type="button" class="l2-node" data-sub-pick="cat:${esc(cat)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
+        return `<button type="button" class="l2-node" style="--ri:${idx2}" data-sub-pick="cat:${esc(cat)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
           <div class="l2-rbox">${subRingSVG(n, total, cls)}<span class="l2-n num">${esc(fmt(n))}</span></div>
           <span class="l2-lbl">${esc(cat)}</span>
         </button>`;
@@ -356,12 +397,22 @@ App.registerTab((function () {
     </div>`;
   }
 
+  function stageInnerHTML(sel, c, animate, fromL2) {
+    if (!sel) {
+      return `<div class="bstage-l1${animate && fromL2 && App.motionOn() ? ' l1-open' : ''}">${medalsHTML(c)}</div>`;
+    }
+    return `<div class="bstage-l2">
+      ${l2TabsHTML(c)}
+      <div id="brief-l2-slot">${layer2HTML(sel, c, animate)}</div>
+    </div>`;
+  }
+
   function stageHTML(c) {
     const sel = c.st.sel.brief || null;
+    lastStageSel = sel;
     return `<p class="concl b-concl">${esc(conclText(c))}</p>
-      <section class="panel bstage" id="brief-stage" aria-label="${esc(App.TAB_NAME.brief)}">
-        <div class="bstage-l1">${medalsHTML(c)}</div>
-        <div id="brief-l2-slot">${layer2HTML(sel, c, false)}</div>
+      <section class="bstage${sel ? ' is-l2' : ' is-l1'}" id="brief-stage" aria-label="${esc(App.TAB_NAME.brief)}">
+        ${stageInnerHTML(sel, c, false, false)}
       </section>`;
   }
 
@@ -678,14 +729,25 @@ App.registerTab((function () {
 
   function onLayer(body, c, animate) {
     if (viewMode !== 'medal') return;
-    const slot = body.querySelector('#brief-l2-slot');
-    if (!slot) return;
+    const stage = body.querySelector('#brief-stage');
+    if (!stage) return;
     const sel = c.st.sel.brief || null;
-    slot.innerHTML = layer2HTML(sel, c, animate);
-    if (sel && animate && App.motionOn()) {
-      const medalEl = body.querySelector(`.bmedal[data-pick="${CSS.escape(sel)}"]`);
-      if (medalEl) ui.drawRings(medalEl);
-      ui.drawRings(slot);
+    const prev = lastStageSel;
+    if (sel === prev) return;
+    lastStageSel = sel;
+    stage.classList.toggle('is-l2', !!sel);
+    stage.classList.toggle('is-l1', !sel);
+    if (!sel || !prev) {
+      stage.innerHTML = stageInnerHTML(sel, c, animate, !!prev);
+      if (animate && App.motionOn()) ui.drawRings(stage);
+      return;
+    }
+    const slot = stage.querySelector('#brief-l2-slot');
+    if (slot) {
+      slot.innerHTML = layer2HTML(sel, c, animate);
+      if (animate && App.motionOn()) ui.drawRings(slot);
+    } else {
+      stage.innerHTML = stageInnerHTML(sel, c, animate, false);
     }
   }
 

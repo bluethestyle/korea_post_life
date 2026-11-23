@@ -164,6 +164,8 @@
     tabErrorPrefix: '이 탭을 그리다 멈췄습니다: ',
     chevPrevSuffix: ' 앞 값',
     chevNextSuffix: ' 다음 값',
+    tabPrevAria: '앞 분석 단계',
+    tabNextAria: '다음 분석 단계',
     stepDecSuffix: ' 하나 줄이기',
     stepIncSuffix: ' 하나 늘리기',
 
@@ -192,8 +194,8 @@
     briefLgStepGold: '금색 타일: 우체국 담보가 있는 치료 단계, 빗금은 없는 단계',
     briefGoTabTpl: '{tab} 탭으로',
     briefGoDetailTpl: '{tab} 탭에서 자세히',
-    briefUpBtn: '닫기',
-    briefL2GaTitle: '고객군 24칸 지형',
+    briefUpBtn: '뒤로',
+    briefL2GaTitleTpl: '고객군 {n}칸 지형',
     briefL2NaTitle: '개정 담보 나눔과 시장 소식',
     briefL2DaTitle: '회사별 열린 종형 수',
     briefL2RaTitle: '치료 여정 다섯 단계',
@@ -669,12 +671,12 @@
     const r = shortName(full, opts);
     return r.changed ? `<span class="nm" title="${esc(r.full)}">${esc(r.short)}</span>` : `<span class="nm">${esc(r.full)}</span>`;
   }
-  /** 제목 묶음: 한 줄 층 경로(.lpath), 큰 제목, 탭 자리 표시 */
+  /** 제목 묶음: 한 줄 층 경로(.lpath), 큰 제목, 좌우 꺾쇠 달린 탭 자리 표시(< · ━ · >) */
   function title(tabId, kicker, text) {
     const i = TAB_IDS.indexOf(tabId);
     const dots = TAB_IDS.map((_, j) => `<i${j === i ? ' class="on"' : ''}></i>`).join('');
     return `<div class="ttl"><nav class="lpath" aria-label="${esc(cp('pathAria'))}"><span class="lp-cur">${esc(TAB_NAME[tabId])}</span></nav><h1 class="ttl-t">${esc(text || TAB_NAME[tabId])}</h1>
-      <div class="ttl-i" role="img" aria-label="${esc(TAB_NAME[tabId])}">${dots}</div></div>`;
+      <div class="ttl-i" role="group" aria-label="${esc(TAB_NAME[tabId])}"><button type="button" class="ttl-step" data-tab-step="-1" aria-label="${esc(cp('tabPrevAria'))}">${IC.chevL}</button>${dots}<button type="button" class="ttl-step" data-tab-step="1" aria-label="${esc(cp('tabNextAria'))}">${IC.chevR}</button></div></div>`;
   }
   const big = (n, d, unit) => `<span class="big"><span class="n">${esc(fmt(n))}</span>${d != null ? `<span class="d">/${esc(fmt(d))}</span>` : ''}${unit ? `<span class="u">${esc(unit)}</span>` : ''}</span>`;
   function ring({ v = 0, max = 1, size = 72, lead = false, segs = null, pct = null, sel = false, label = '' } = {}) {
@@ -1644,6 +1646,14 @@
     }
     const lu = e.target.closest('[data-layer-up]');
     if (lu) { e.stopPropagation(); stepUp(); return; }
+    const ts = e.target.closest('[data-tab-step]');
+    if (ts) {
+      e.stopPropagation();
+      const d = +ts.dataset.tabStep || 1;
+      const i = TAB_IDS.indexOf(st.tab);
+      set({ tab: TAB_IDS[(i + d + TAB_IDS.length) % TAB_IDS.length] });
+      return;
+    }
 
     const a = e.target.closest('[data-act],[data-go],button[data-copy],button[data-print]');
     if (a) {
