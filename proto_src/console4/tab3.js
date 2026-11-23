@@ -16,6 +16,15 @@ App.registerTab((function () {
   const KIND_IC = { only: ui.IC.open, open: ui.IC.open, review: ui.IC.check, nodata: ui.IC.hatch, closed: ui.IC.lock };
   let purpose = CB ? CB['P'][0] : '암';
 
+  ui.registerLegend('gate', 'legendVerdictTitle', () => `<dl class="legend">
+      <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>채운 기둥: 그 관문까지 통과한 상대 회사의 비율(바깥 실선 윤곽은 그 유형의 전체 상대 수)</dd>
+      <dt>${ui.IC.hatch}</dt><dd>빗금 기둥: 고객 조건으로 받지 않는 전제 관문(최근 소견, 중대질병)</dd>
+      <dt>${ui.IC.check}</dt><dd>점선 빈 윤곽과 끊긴 선: 통과한 상대가 0곳이 된 관문과 그 뒤 구간</dd>
+      <dt><i class="cq m-only" aria-hidden="true"></i></dt><dd>금색 상태 표지: 우체국 종형만 열리는 구간</dd>
+      <dt><i class="cq m-ours" aria-hidden="true"></i></dt><dd>먹색 상태 표지: 우체국 종형은 닫히고 상대는 통과하는 구간</dd>
+      <dt>${ui.flagText(App.t('flagShort'))}</dt><dd>${esc(App.t('lgFlag'))}</dd>
+    </dl>`);
+
   // ---------- 작은 도구 ----------
   const info = vid => (G && G['I'][vid]) || null;
   const vk = vid => {
@@ -28,7 +37,6 @@ App.registerTab((function () {
   const jo = (word, p) => txt.josa(word, p).slice(String(word).length);
   const man = v => (v == null ? '' : `${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}만원`);
   const condText = () => App.condSegOnly();
-
 
   // ---------- 관문 자료 찾기 ----------
   function gateAt(st) {
@@ -84,6 +92,109 @@ App.registerTab((function () {
     return n;
   }
 
+  /** 고지유형 줄에 속하는 우체국 종형과 지금 조건에서의 대표 상태를 찾는다 */
+  function oursOnTypeKey(typeKey, c, g) {
+    if (!G) return null;
+    const ren = c.st.renewal;
+    const vids = G['V'].filter(v => {
+      const f = info(v);
+      if (!f || f['회사'] !== 'EPOST' || f['고지유형열쇠'] !== typeKey) return false;
+      if (ren != null && f['갱신'] !== ren) return false;
+      return true;
+    });
+    if (!vids.length) return null;
+    let repVid = vids.includes(c.baseId) ? c.baseId : vids[0];
+    if (g) {
+      const openVid = vids.find(v => g.vs[v] && g.vs[v].state === '열림');
+      if (openVid && (!g.vs[repVid] || g.vs[repVid].state !== '열림')) repVid = openVid;
+    }
+    const state = g && g.vs[repVid] ? g.vs[repVid].state : '자료 없음';
+    return { vids, repVid, state, isBase: vids.includes(c.baseId) };
+  }
+
+  // ---------- 새 무대: 관문 차례 가로축(5개) x 고지 유형 줄 x 통과 기둥(44x44px) ----------
+  function pillarCellSVG(passN, totalN, isPremise) {
+    const S0 = 44;
+    const stoppedAll = totalN <= 0 || passN <= 0;
+    const ratio = totalN > 0 ? Math.max(0, Math.min(1, passN / totalN)) : 0;
+    const fillH = ratio > 0 ? Math.max(4, Math.round(ratio * S0)) : 0;
+    const fy = S0 - fillH;
+    const outCls = stoppedAll ? 'pil-empty' : 'pil-outline';
+    const fillCls = isPremise ? 'pil-hatch' : 'pil-fill-neutral';
+    const meniscus = (!stoppedAll && fillH > 0 && fillH < S0)
+      ? `<line x1="1" y1="${fy}" x2="${S0 - 1}" y2="${fy}" stroke="var(--ink-0)" stroke-width="1.3"/>`
+      : '';
+    return `<svg class="gtf-svg" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+      ${fillH > 0 ? `<rect class="${fillCls}" x="1" y="${fy}" width="${S0 - 2}" height="${fillH - 1}"/>` : ''}
+      <rect class="${outCls}" x="0.5" y="0.5" width="${S0 - 1}" height="${S0 - 1}"/>
+      ${meniscus}
+    </svg>`;
+  }
+
+  function renderStage(center, c) {
+    const map = App.mapOf(c.st.renewal);
+    const g = gateAt(c.st);
+    const cell = c.seg ? c.seg.cell : null;
+    const flowRows = c.gateFlowRows(map, cell);
+    const gm = S['관문마디'] || { '차례': [], '전제': [] };
+    const steps = gm['차례'] || [];
+    const premiseSet = new Set(gm['전제'] || []);
+
+    const axisCols = steps.map((stNm, k) => {
+      const prem = premiseSet.has(stNm);
+      return `<div class="gtf-acol${prem ? ' is-prem' : ''}">
+        <span class="gtf-anm">${esc(stNm)}</span>
+        <i class="gtf-atk" aria-hidden="true"></i>
+      </div>`;
+    }).join('');
+
+    const rowsHTML = flowRows.map((row, rIdx) => {
+      const ours = oursOnTypeKey(row.key, c, g);
+      let oursChip = '';
+      if (ours) {
+        let chipCls = 'is-neutral';
+        if (ours.state === '열림' && row.finalPass === 0) chipCls = 'is-gold';
+        else if (ours.state === '닫힘' && row.finalPass > 0) chipCls = 'is-worse';
+        else if (ours.state === '심사로 확인' || ours.state === '자료 없음') chipCls = 'is-dash';
+        const chipTxt = `${txt.orgShort('EPOST')} ${ours.state}`;
+        oursChip = `<span class="gtf-ours ${chipCls}" title="${esc(ours.vids.map(vk).join(', '))}">${esc(chipTxt)}</span>`;
+      }
+
+      const nodesHTML = steps.map((stNm, k) => {
+        const passN = row.pass[k] != null ? row.pass[k] : 0;
+        const prevPass = k === 0 ? row.total : (row.pass[k - 1] != null ? row.pass[k - 1] : 0);
+        const isPrem = premiseSet.has(stNm);
+        const pk = `gf:${row.key}|${k}`;
+        const connBefore = k > 0
+          ? `<span class="gtf-conn${prevPass > 0 ? (passN > 0 ? ' is-on' : ' is-cut') : ' is-off'}" aria-hidden="true"></span>`
+          : '';
+        const ratioTxt = `${fmt(passN)}/${fmt(row.total)}`;
+        const tip = `${row.key}, ${stNm}: 통과 ${ratioTxt}곳${isPrem ? ' (전제 관문)' : ''}`;
+        return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
+          <span class="gtf-pil" data-link-pt="1">${pillarCellSVG(passN, row.total, isPrem)}</span>
+          <span class="gtf-cnt num">${esc(ratioTxt)}</span>
+        </button>`;
+      }).join('');
+
+      const rowHeadTxt = `${row.key} (${fmt(row.total)})`;
+      return `<div class="gtf-row${ours && ours.isBase ? ' is-base' : ''}">
+        <div class="gtf-rh">
+          <span class="gtf-rkey num">${esc(rowHeadTxt)}</span>
+          ${oursChip}
+        </div>
+        <div class="gtf-track">${nodesHTML}</div>
+      </div>`;
+    }).join('');
+
+    center.innerHTML = `<div class="gtf-stage" id="gt-flow-stage">
+      <div class="gtf-axis-head">
+        <span class="gtf-corner"></span>
+        <div class="gtf-acols">${axisCols}</div>
+      </div>
+      <div class="gtf-rows" id="gt-flow-rows">${rowsHTML}</div>
+    </div>`;
+  }
+
   // ---------- 구성 예시 자료 찾기 ----------
   function comboAt(vid, p, age, sex) {
     const v = CB && CB['V'][vid];
@@ -107,7 +218,6 @@ App.registerTab((function () {
     }
   }
   const CHEV = ui.RCHEV;
-  /** 줄무늬 없는 표(공통 .tbl 꼴). 칸마다 {h: HTML, c: 복사할 글자}. 눌리는 행은 마지막 칸 끝에 › 를 둔다 */
   function tbl({ id, head, rows, num = [], pick = null }) {
     const th = head.map((h, i) => `<th scope="col"${num.includes(i) ? ' class="v"' : ''}>${esc(h)}</th>`).join('');
     const tr = rows.map((r, ri) => {
@@ -132,7 +242,6 @@ App.registerTab((function () {
       return (b.g[1] - a.g[1]) || (TYPE_ORDER.indexOf(A[3]) - TYPE_ORDER.indexOf(B[3])) || (a.i - b.i);
     }).map(o => o.g);
   }
-  /** 응대 카드에 실을 구성 예시 요약 한 줄(지금 조건, 기준 종형, 목적) */
   function comboLine(p) {
     const st = App.state;
     p = p || purpose;
@@ -155,7 +264,18 @@ App.registerTab((function () {
     } catch (e) { console.error(e); }
   }
 
-  // ---------- 관문 나무 ----------
+  // ---------- [표로 보기] 안에 보존하는 회사별 요약, 관문 나무, 질문 비교표, 한도 표, 구성 예시 ----------
+  function asideHTML(c, g) {
+    if (!g) return '';
+    return `<div class="gt-aside">${shownOrgsOf(c).map(org => {
+      const vids = branch(org);
+      const open = vids.filter(v => g.vs[v].state === '열림').length;
+      const rest = {};
+      vids.forEach(v => { const s = g.vs[v].state; if (s !== '열림') rest[s] = (rest[s] || 0) + 1; });
+      return `<div class="gt-ao"><span class="k">${esc(txt.orgShort(org))}</span>${ui.big(open, vids.length)}<span class="sub">${Object.keys(rest).length ? esc(Object.entries(rest).map(([s, x]) => `${s} ${x}`).join(', ')) : '모두 열림'}</span></div>`;
+    }).join('')}<div class="gt-al">지금 조건에서 열리는 종형 요약</div></div>`;
+  }
+
   function nodeHTML(vid, g, c) {
     const f = info(vid), v = g.vs[vid], k = kindOf(vid, g);
     const span = f['가입나이'][c.st.sex];
@@ -166,7 +286,7 @@ App.registerTab((function () {
     const nm = `<span class="nm">${esc(vk(vid))}</span>`;
     return `<li class="gt-item k-${k}">
       <button type="button" class="gt-node" data-pick="g:${esc(vid)}" aria-pressed="false" aria-label="${esc(`${txt.orgShort(f['회사'])} ${vk(vid)}: ${stT}${gateOnly ? ', 관문만 수집(담보 미수집)' : ''}. 근거 보기`)}">
-        <span class="sq gt-sq k-${k}"><i class="cur t"></i><i class="cur r"></i><i class="cur b"></i><i class="cur l"></i>
+        <span class="sq gt-sq k-${k}">
           <span class="gt-code num">${esc(code)}</span><span class="gt-ic">${KIND_IC[k]}</span></span>
         <span class="gt-tx">
           <span class="gt-nm">${nm}${isBase ? ui.tag('기준') : ''}${isPeer ? ui.tag('비교 상대') : ''}${gateOnly ? ui.tag('관문만 수집(담보 미수집)', '가입 관문만 수집했고 특약과 급부 담보는 수집하지 않았습니다', 'gt-go') : ''}</span>
@@ -176,6 +296,7 @@ App.registerTab((function () {
         <span class="gt-chev" aria-hidden="true">${ui.IC.chevR}</span>
       </button></li>`;
   }
+
   function treePanel(c, g) {
     if (!g) {
       return `<section class="panel gt-tree" id="gt-tree"><div class="panel-h"><div><span class="k">${ui.scope('now')}</span><h2>관문 나무</h2></div></div>
@@ -197,7 +318,7 @@ App.registerTab((function () {
         <ol class="gt-list">${vids.map(v => nodeHTML(v, g, c)).join('')}</ol>
       </div>`;
     }).join('');
-    const mapNote = g.note || (g.closed.length ? '' : '');
+    const mapNote = g.note || '';
     return `<section class="panel gt-tree" id="gt-tree" aria-labelledby="gt-tree-h">
       <div class="panel-h">
         <div><span class="k">${ui.scope('now')} <span class="gt-cond">${esc(condText())}</span></span><h2 id="gt-tree-h">관문 나무</h2></div>
@@ -215,7 +336,6 @@ App.registerTab((function () {
     </section>`;
   }
 
-  // ---------- 고지 질문 비교 ----------
   function qRow(vid, c) {
     const f = info(vid); if (!f) return '';
     const q = f['질문'];
@@ -232,18 +352,20 @@ App.registerTab((function () {
       ${cell(span ? `<span class="num">${span[0]}~${span[1]}</span>세` : '<span class="gt-gen">나이 자료 없음</span>', span ? `${span[0]}~${span[1]}세` : '나이 자료 없음')}
     </tr>`;
   }
-  function gatePoints(c, g) {
+
+  function gatePoints(c) {
     const pSet = new Set(c.activePeerOrgs || []);
     const inSc = id => {
       const p = S['포인트'][id];
       return p && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o)));
     };
-    const ids = (c.base && c.base['포인트'] || []).filter(id => S['포인트'][id] && S['포인트'][id]['분류'] === '관문 차이' && inSc(id));
+    const ids = ((c.base && c.base['포인트']) || []).filter(id => S['포인트'][id] && S['포인트'][id]['분류'] === '관문 차이' && inSc(id));
     const seg = c.seg && c.seg.cell;
     const extra = seg && seg['관문기준'] === c.baseId ? (seg['관문포인트'] || []).filter(id => !ids.includes(id) && inSc(id)) : [];
     const other = seg && seg['관문기준'] && seg['관문기준'] !== c.baseId ? seg['관문기준'] : null;
     return { ids, extra, other };
   }
+
   function pointRow(id, now) {
     const p = S['포인트'][id];
     return `<li class="lrow gt-pt" data-pick="p:${esc(id)}">
@@ -254,6 +376,7 @@ App.registerTab((function () {
       <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span>
     </li>`;
   }
+
   function qPanel(c, g) {
     const rows = [c.baseId].concat(c.peerIds).map(v => qRow(v, c)).join('');
     const gp = gatePoints(c, g);
@@ -277,7 +400,6 @@ App.registerTab((function () {
     </section>`;
   }
 
-  /** 청약 규정 구역 머리: 기준 종형의 간편 고지 약칭, 가입나이, 지금 나이의 주계약 한도, 관문 차이 수 */
   function midBand(c, g) {
     const f = info(c.baseId);
     if (!f) return '';
@@ -298,7 +420,6 @@ App.registerTab((function () {
       note: '간편 고지 약칭은 최근 소견 개월, 입원과 수술 질문 햇수, 중대질병 질문 햇수입니다. 한도는 지금 나이가 드는 구간의 값이고 막대는 그 종형의 가장 큰 구간 한도에 견준 길이입니다.' });
   }
 
-  // ---------- 나이 구간별 한도 표 ----------
   function limitPanel(c) {
     const sex = c.st.sex;
     let rows = '';
@@ -332,7 +453,6 @@ App.registerTab((function () {
     </section>`;
   }
 
-  // ---------- 구성 예시 ----------
   function comboPanel(c) {
     const pb = CB ? (CB['PB'] || []).find(x => x['이름'] === purpose) : null;
     const r = comboAt(c.baseId, purpose, c.st.age, c.st.sex);
@@ -355,7 +475,7 @@ App.registerTab((function () {
         <section class="panel tbl-wrap gt-cb" id="gt-combo" aria-labelledby="gt-cb-h">${head}<p class="gt-why-b">${esc(why)}</p>${peerNote}</section></div>`;
     }
     const v = r.v, x = r.x;
-    const limT = (v['L'] && v['L'][c.st.sex] || []).find(s => c.st.age >= s.lo && c.st.age <= s.hi);
+    const limT = ((v['L'] && v['L'][c.st.sex]) || []).find(s => c.st.age >= s.lo && c.st.age <= s.hi);
     const inR = x['r'].filter(z => z[1]);
     const onN = inR.filter(z => z[2]).length;
     const groups = sortedGroups(x);
@@ -405,7 +525,50 @@ App.registerTab((function () {
     </section></div>`;
   }
 
-  // ---------- 그리기 ----------
+  function bindPurposeSlot(container) {
+    const slot = container && container.querySelector('[data-slot="gt-purpose"]');
+    if (slot && CB) {
+      slot.replaceWith(ui.chevSel({
+        label: '구성 예시의 목적',
+        options: CB['P'].map(p => ({ v: p, t: p })),
+        value: purpose,
+        w: '104px',
+        onChange: p => {
+          purpose = p;
+          publish();
+          const dmBody = document.getElementById('dm-body');
+          const old = dmBody && dmBody.querySelector('#gt-combo-w');
+          if (old) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = comboPanel(App.ctx());
+            const fresh = tmp.firstElementChild;
+            old.replaceWith(fresh);
+            bindPurposeSlot(fresh);
+          }
+        },
+      }));
+    }
+  }
+
+  function renderFullTablesModal(c) {
+    const g = gateAt(c.st);
+    const html = `<div id="view-gate-modal" class="gt-modal-root">
+      <p class="concl">${esc(conclText(c, g))}</p>
+      ${asideHTML(c, g)}
+      <div class="dm-sec">${treePanel(c, g)}</div>
+      <div class="dm-sec">${midBand(c, g)}<div class="gt-mid">${qPanel(c, g)}${limitPanel(c)}</div></div>
+      <div class="dm-sec">${comboPanel(c)}</div>
+    </div>`;
+    return {
+      kicker: App.TAB_NAME.gate,
+      title: '관문 나무, 고지 질문 비교, 한도와 구성 예시',
+      badges: [ui.scope('now'), ui.scope('base'), ui.fullScopeTag()].filter(Boolean),
+      html,
+      after: body => bindPurposeSlot(body),
+    };
+  }
+
+  // ---------- 결론 한 문장과 고른 기둥/종형/포인트 읽기 영역 ----------
   function conclText(c, g) {
     if (!g) return `${condText()}: 관문 자료 없음, 가입조건 자료가 다루는 나이 밖입니다.`;
     const bv = g.vs[c.baseId];
@@ -415,70 +578,120 @@ App.registerTab((function () {
     const st = k === 'nodata' ? bv.state : KIND_T[k];
     return `${condText()}에서 기준 종형 우체국 ${vk(c.baseId)}의 관문 상태는 ${txt.josa(st, '이고')}, 견준 종형 ${shownVids.length}개 가운데 열림은 ${n['열림']}개입니다.`;
   }
-  function asideHTML(c, g) {
-    if (!g) return '';
-    return `<div class="gt-aside pillar tl">${shownOrgsOf(c).map(org => {
-      const vids = branch(org);
-      const open = vids.filter(v => g.vs[v].state === '열림').length;
-      const rest = {};
-      vids.forEach(v => { const s = g.vs[v].state; if (s !== '열림') rest[s] = (rest[s] || 0) + 1; });
-      return `<div class="gt-ao"><span class="k">${esc(txt.orgShort(org))}</span>${ui.big(open, vids.length)}<span class="sub">${Object.keys(rest).length ? esc(Object.entries(rest).map(([s, x]) => `${s} ${x}`).join(', ')) : '모두 열림'}</span></div>`;
-    }).join('')}<div class="gt-al">지금 조건에서 열리는 종형</div></div>`;
-  }
-  function render(body, c) {
-    const g = gateAt(c.st);
-    if (c.aside) c.aside.innerHTML = asideHTML(c, g);
-    body.innerHTML = `<p class="concl">${esc(conclText(c, g))}</p>
-      ${treePanel(c, g)}
-      ${midBand(c, g)}
-      <div class="gt-mid">${qPanel(c, g)}${limitPanel(c)}</div>
-      ${comboPanel(c)}`;
-    const slot = body.querySelector('[data-slot="gt-purpose"]');
-    if (slot && CB) slot.replaceWith(ui.chevSel({ label: '구성 예시의 목적', options: CB['P'].map(p => ({ v: p, t: p })), value: purpose, w: '104px', onChange: setPurpose }));
-    publish();
-  }
-  function setPurpose(p) {
-    purpose = p;
-    const view = document.getElementById('view-gate');
-    const old = view && view.querySelector('#gt-combo-w');
-    if (!old) return;
-    const c = App.ctx();
-    const tmp = document.createElement('div');
-    tmp.innerHTML = comboPanel(c);
-    const fresh = tmp.firstElementChild;
-    old.replaceWith(fresh);
-    const slot = fresh.querySelector('[data-slot="gt-purpose"]');
-    if (slot) {
-      const sel = ui.chevSel({ label: '구성 예시의 목적', options: CB['P'].map(x => ({ v: x, t: x })), value: purpose, w: '104px', onChange: setPurpose });
-      slot.replaceWith(sel);
-      const btn = sel.querySelector(document.activeElement && document.activeElement.classList.contains('p') ? '.p' : '.n');
-      if (btn && !btn.disabled) btn.focus();
-    }
-    if (App.motionOn()) { fresh.classList.add('gt-in'); setTimeout(() => fresh.classList.remove('gt-in'), 400); }
-    // 구성 예시의 줄을 고른 채로 목적을 바꾸면, 새 표에 같은 줄이 있으면 다시 고르고 없으면 고르기를 푼다
-    const key = (App.state.sel || {}).gate;
-    if (key && /^c[rg]:/.test(key)) {
-      if (fresh.querySelector(`[data-pick="${CSS.escape(key)}"]`)) App.select(key, { reveal: false, open: false, animate: false });
-      else App.unselect();
-    }
-    publish();
-    if (App.mode() === 'sheet') App.reveal(fresh.querySelector('.gt-cbs') || fresh);
-  }
-  function enter(body) {
-    const t = body.querySelector('#gt-trees');
-    if (!t || !App.motionOn()) return;
-    t.classList.remove('gt-anim'); void t.offsetWidth; t.classList.add('gt-anim');
-    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('gt-anim'), 900);
-  }
-  function focus(key, body) {
-    const el = body.querySelector({ tree: '#gt-tree', q: '#gt-q', limit: '#gt-limit', combo: '#gt-combo' }[key] || '#gt-tree');
-    if (!el) return;
-    if (App.mode() === 'sheet') App.reveal(el);
-    else el.scrollIntoView({ block: 'start', behavior: App.motionOn() ? 'smooth' : 'auto' });
+
+  function conclusion(c) {
+    const bDa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '다');
+    if (bDa) return { text: App.firstSentence(bDa['문장']), flag: '' };
+    return { text: App.firstSentence(conclText(c, gateAt(c.st))), flag: '' };
   }
 
-  // ---------- 근거 기둥 ----------
   function sec(title, html, lo) { return `<div class="ev-sec${lo ? ' lo' : ''}">${title ? `<h3>${title}</h3>` : ''}${html}</div>`; }
+
+  function flowPillarSpec(typeKey, kIdx, c) {
+    const map = App.mapOf(c.st.renewal);
+    const cell = c.seg ? c.seg.cell : null;
+    const g = gateAt(c.st);
+    const flowRows = c.gateFlowRows(map, cell);
+    const row = flowRows.find(r => r.key === typeKey);
+    if (!row) return null;
+    const gm = S['관문마디'] || { '차례': [], '전제': [] };
+    const stNm = (gm['차례'] || [])[kIdx] || '';
+    const isPrem = (gm['전제'] || []).includes(stNm);
+    const passN = row.pass[kIdx] != null ? row.pass[kIdx] : 0;
+    const stopObj = row.stops[kIdx] || {};
+    const stopEntries = Object.entries(stopObj);
+    const ours = oursOnTypeKey(typeKey, c, g);
+
+    // 1. 고른 기둥에서 멈춘 상대 목록과 종형 상세
+    const varStops = (cell && cell['관문흐름'] && cell['관문흐름']['종형']) || {};
+    const pSet = new Set(c.activePeerOrgs || []);
+    const stoppedVarsHere = G ? G['V'].filter(vid => {
+      const f = info(vid);
+      if (!f || f['고지유형열쇠'] !== typeKey) return false;
+      if (f['회사'] !== 'EPOST' && c.peerScope !== 'all' && !pSet.has(f['회사'])) return false;
+      const sv = varStops[vid];
+      return sv && sv[0] === kIdx;
+    }) : [];
+
+    let stopHTML = `<p>이 유형의 상대 <b>${fmt(row.total)}곳</b> 가운데 <b>${esc(stNm)}</b> 관문까지 통과한 곳은 <b>${fmt(passN)}곳</b>입니다.</p>`;
+    if (isPrem) {
+      stopHTML += `<p class="note">최근 3개월 소견과 5년 안 중대질병은 고객 조건으로 받지 않는 전제 관문이라 간편 종형을 가르지 않습니다.</p>`;
+    }
+    if (cell && (c.st.age !== cell['세부나이'] || c.st.sex !== map['성별'])) {
+      stopHTML += `<p class="note">관문 흐름 통과 수는 지도 칸의 세부나이(${fmt(cell['세부나이'])}세, ${esc(txt.sexText(map['성별']))}) 기준입니다.</p>`;
+    }
+    if (stopEntries.length) {
+      stopHTML += `<ul class="evl" style="margin-top:6px">${stopEntries.map(([reason, codes]) => `<li><b>${esc(reason)} (${fmt(codes.length)}곳)</b>: ${esc(txt.peerNamesEtc(codes.map(txt.orgShort), 6))}</li>`).join('')}</ul>`;
+    } else {
+      stopHTML += `<p class="note" style="margin-top:4px">이 관문에서 새로 멈춘 상대 회사가 없습니다.</p>`;
+    }
+    if (stoppedVarsHere.length) {
+      stopHTML += `<ul class="evl" style="margin-top:6px">${stoppedVarsHere.slice(0, 8).map(vid => {
+        const f = info(vid);
+        const sv = varStops[vid];
+        return `<li><button type="button" class="btn sm ghost live" data-pick="g:${esc(vid)}" style="height:24px;padding:0 8px">${esc(`${txt.orgShort(f['회사'])} ${vk(vid)}`)}</button> <span class="note">${esc(sv ? sv[1] : '')}</span></li>`;
+      }).join('')}</ul>`;
+    }
+    if (ours) {
+      stopHTML += `<p class="note" style="margin-top:6px"><b>${esc(txt.orgShort('EPOST'))}:</b> ${esc(ours.vids.map(vk).join(', '))} (${esc(ours.state)})</p>`;
+    }
+
+    let body = sec('관문 통과와 멈춘 상대', stopHTML);
+
+    // 2. 고지 유형의 질문 및 가입나이 범위(S.고지유형속성 + T3.관문.I)
+    const attr = (S['고지유형속성'] || {})[typeKey];
+    if (attr) {
+      const fmtValCnts = (list, fmtVal) => list.map(x => {
+        const cnt = c.inScope(x['상대코드']);
+        if (cnt <= 0) return '';
+        return `${fmtVal(x['값'])} (${fmt(cnt)}곳)`;
+      }).filter(Boolean).join(', ') || '해당 상대 없음';
+
+      const surgStr = fmtValCnts(attr['수술포함별'] || [], v => (v == null ? '자료 없음' : (v ? '입원과 수술' : '입원만')));
+      const majStr = fmtValCnts(attr['중대질병수별'] || [], v => (v == null ? '일반 고지' : `${v}개 질병`));
+      const ageList = (attr['가입나이별'] && attr['가입나이별'][c.st.sex]) || [];
+      const ageStr = fmtValCnts(ageList, v => (Array.isArray(v) ? `${v[0]}~${v[1]}세` : '자료 없음'));
+
+      const partsKey = typeKey.split('\u00b7');
+      const periodLine = partsKey.length === 3
+        ? `<dt>고지 기간 열쇠</dt><dd class="num">소견 ${esc(partsKey[0])}개월, 입원수술 ${esc(partsKey[1])}년, 중대질병 ${esc(partsKey[2])}년</dd>`
+        : `<dt>심사 구분</dt><dd>${esc(typeKey)}</dd>`;
+
+      body += sec('이 유형의 질문과 가입나이 범위', `<p>${ui.flagText()}</p><dl class="kv" style="margin-top:6px">
+        ${periodLine}
+        <dt>수술 포함 여부</dt><dd>${esc(surgStr)}</dd>
+        <dt>중대질병 질문 수</dt><dd>${esc(majStr)}</dd>
+        <dt>가입나이(${esc(txt.sexText(c.st.sex))})</dt><dd>${esc(ageStr)}</dd>
+      </dl>`);
+    }
+
+    // 3. 우체국과의 차이 문장(자료의 관문 포인트)
+    const gp = gatePoints(c, g);
+    const allPtIds = gp.ids.concat(gp.extra);
+    body += sec(
+      `우체국과의 관문 차이 (${fmt(allPtIds.length)}건)`,
+      allPtIds.length
+        ? `<ul class="evl">${allPtIds.map(id => {
+          const p = S['포인트'][id];
+          return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p></li>`;
+        }).join('')}</ul>`
+        : '<p class="note">선택한 비교 범위에서 나온 관문 차이 문장이 없습니다.</p>'
+    );
+
+    const badges = [
+      ui.scope('now'),
+      ui.tag(`통과 ${fmt(passN)}/${fmt(row.total)}곳`),
+      isPrem ? ui.tag('전제 관문') : '',
+    ].filter(Boolean);
+
+    return {
+      kicker: `고지 유형 ${typeKey}`,
+      title: `${stNm} 관문`,
+      badges,
+      body,
+    };
+  }
+
   function nodeSpec(vid, c) {
     const g = gateAt(c.st); const f = info(vid);
     if (!g || !f) return null;
@@ -511,7 +724,8 @@ App.registerTab((function () {
     body += sec('근거 문서와 쪽', `<p class="note">${esc(full)}${startT}. 사업방법서: 쪽 번호 자료 없음.</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}`, true);
     return { kicker: `${txt.orgShort(f['회사'])} 종형`, title: vk(vid), badges: [ui.scope('now'), `<span class="tag gt-k k-${k}">${esc(stT)}</span>`].concat(vid === c.baseId ? [ui.tag('기준')] : []).concat(f['관문전용'] ? [ui.tag('관문만 수집(담보 미수집)')] : []), body };
   }
-  function pointSpec(id, c) {
+
+  function pointSpec(id) {
     const p = S['포인트'][id]; if (!p) return null;
     const head = p['머리말'] != null ? S['글'][p['머리말']] : '';
     let body = sec('', `<p>${esc(p['문장'])}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}`);
@@ -520,6 +734,7 @@ App.registerTab((function () {
     body += sec('근거 문서와 쪽', `<ul class="evl">${(p['근거'] || []).map(e => `<li><b>${esc(txt.orgShort((txt.vinfo(e['종형ID']) || {})['기관코드'] || ''))} ${esc(vk(e['종형ID']))}</b> ${ui.tag(txt.pageText(e['문서'], e['쪽']))}</li>`).join('')}</ul>${noPage ? `<p class="note">${esc(txt.PAGE_WHY)}.</p>` : ''}<p class="note">창구 말투의 문답은 영업 인사이트 탭의 응대 카드 미리 보기에서만 씁니다.</p>`, true);
     return { kicker: `${p['분류']}, ${p['세부이름'] || p['세부']}`, title: p['세부이름'] || p['분류'], badges: [ui.scope('base')], body };
   }
+
   function comboRiderSpec(ri, c) {
     const r = comboAt(c.baseId, purpose, c.st.age, c.st.sex);
     if (!r.x) return null;
@@ -537,6 +752,7 @@ App.registerTab((function () {
     body += sec('근거 문서와 쪽', `<p class="note">${esc(meta[1] || '')}. 가입금액 범위와 결합 제약은 사업방법서, 급부는 상품요약서에서 읽은 값입니다. 계산 구간 ${r.lo}~${r.hi}세.</p>`, true);
     return { kicker: `구성 예시 특약, 목적 ${purpose}`, title: meta[1] || '', badges: [ui.scope('base')].concat(z[11] ? [ui.tag('주계약')] : []), body };
   }
+
   function comboGroupSpec(sid, c) {
     const r = comboAt(c.baseId, purpose, c.st.age, c.st.sex);
     if (!r.x) return null;
@@ -551,32 +767,66 @@ App.registerTab((function () {
     body += sec('근거 문서와 쪽', `<p class="note">${b ? `${esc(txt.pageText(b[5], b[6]))}. ` : ''}표준담보 ${esc(s[0])}(${esc([s[1], s[2], s[3]].filter(Boolean).join(', '))}).</p>`, true);
     return { kicker: `구성 예시 담보, 목적 ${purpose}`, title: s[0], badges: [ui.scope('base')].concat(g[1] ? [] : [ui.tag('목적 밖')]), body };
   }
+
   function pick(key, c) {
+    if (key.startsWith('gf:')) {
+      const rest = key.slice(3);
+      const bar = rest.lastIndexOf('|');
+      if (bar > 0) return flowPillarSpec(rest.slice(0, bar), +rest.slice(bar + 1), c);
+    }
     if (key.startsWith('g:')) return nodeSpec(key.slice(2), c);
     if (key.startsWith('p:')) return pointSpec(key.slice(2), c);
     if (key.startsWith('cr:')) return comboRiderSpec(+key.slice(3), c);
     if (key.startsWith('cg:')) return comboGroupSpec(key.slice(3), c);
     return null;
   }
-  function evidence(c) {
-    const g = gateAt(c.st);
-    if (!g) return { kicker: '지금 조건의 관문', title: condText(), badges: [ui.scope('now')], body: sec('', `<p>관문 자료 없음: ${esc(c.st.age)}세는 가입조건 자료가 다루는 나이 밖입니다.</p>`) };
-    const shownVids = shownVidsOf(c);
-    const n = counts(g, shownVids);
-    let body = sec('', `<p>지도 칸 <b>${esc(g.label)}</b>${g.note ? ` (${esc(g.note)})` : ''}. 견준 종형 ${shownVids.length}개 가운데 열림 ${n['열림']}개입니다.</p>${g.closed.length ? `<p class="note">우리 간편이 닫힌 사유: ${esc(g.closed.join(', '))}</p>` : ''}`);
-    body += sec('관문 나무 읽는 법', `<dl class="legend">
-        <dt><i class="gt-sw k-only"></i></dt><dd>우리만 열림: 지도 칸이 우리 간편만 열림이고 우체국 간편 종형이 열림</dd>
-        <dt><i class="gt-sw k-open"></i></dt><dd>열림: 고지 질문에 걸리지 않고 가입나이 안</dd>
-        <dt><i class="gt-sw k-review"></i></dt><dd>심사로 확인: 일반심사 종형은 이력과 무관하게 심사로 봄</dd>
-        <dt><i class="gt-sw k-nodata"></i></dt><dd>자료 없음: 가입나이나 고지 질문 자료가 아직 없음</dd>
-        <dt><i class="gt-sw k-closed"></i></dt><dd>닫힘: 고지 질문 해당이거나 가입나이 밖</dd></dl>
-      <p class="note">간편심사 종형은 마지막 입원이나 수술이 질문 기간보다 오래되면 질문에 걸리지 않습니다. 최근 3개월 소견과 5년 안 중대질병 질문은 비교 대상 회사가 같아 칸을 가르지 않고 문장의 전제로 둡니다.</p>`);
-    body += sec('', `<p class="note">칸을 누르면 그 종형의 고지 질문, 가입나이, 구조가 여기에 뜹니다.</p>`, true);
-    return { kicker: '지금 조건의 관문', title: condText(), badges: [ui.scope('now'), `<span class="tag">${ui.swatch(g.label)}${esc(g.label)}</span>`], body };
+
+  function actions() {
+    return ui.btn(App.t('actModeTable'), { sm: true, ghost: true, icon: 'table', attrs: 'id="gt-btn-tbl" data-gt-modal="1"' });
   }
+
+  function focus(key) {
+    if (key === 'tree' || key === 'q' || key === 'limit' || key === 'combo') {
+      App.openModal({
+        trigger: document.getElementById('gt-btn-tbl'),
+        render: c => {
+          const spec = renderFullTablesModal(c);
+          const origAfter = spec.after;
+          spec.after = (body, ctx2) => {
+            if (origAfter) origAfter(body, ctx2);
+            const targetId = { tree: '#gt-tree', q: '#gt-q', limit: '#gt-limit', combo: '#gt-combo' }[key];
+            const el = targetId && body.querySelector(targetId);
+            if (el) el.scrollIntoView({ block: 'start', behavior: 'auto' });
+          };
+          return spec;
+        },
+      });
+    }
+  }
+
+  function enter(body) {
+    const r = body && body.querySelector('#gt-flow-rows');
+    if (!r || !App.motionOn()) return;
+    r.classList.remove('gtf-anim'); void r.offsetWidth; r.classList.add('gtf-anim');
+    clearTimeout(r._t); r._t = setTimeout(() => r.classList.remove('gtf-anim'), 600);
+  }
+
+  document.addEventListener('click', e => {
+    const mb = e.target.closest && e.target.closest('[data-gt-modal]');
+    if (mb) {
+      e.stopPropagation();
+      App.openModal({ trigger: mb, render: renderFullTablesModal });
+      return;
+    }
+    const evPick = e.target.closest && e.target.closest('#ev-body [data-pick]');
+    if (evPick) {
+      e.stopPropagation();
+      App.select(evPick.dataset.pick, { focus: false });
+    }
+  });
 
   App.on('change', () => publish());
   publish();
 
-  return { id: 'gate', kicker: '좁혀 확인한다, 청약 규정', render, pick, evidence, focus, enter };
+  return { id: 'gate', layout: 'side', kicker: '좁혀 확인한다, 청약 규정', renderStage, conclusion, pick, actions, focus, enter };
 })());
