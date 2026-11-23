@@ -24,6 +24,10 @@ on:
         description: "매핑 전에 data/seed의 표준담보 사전을 시트 탭에 올린다 (행 추가와 사용여부 변경만)"
         type: boolean
         default: false
+      sync_only:
+        description: "표준담보 사전만 시트 탭에 올리고 끝낸다. 매핑을 하지 않고 판정 모델도 부르지 않는다"
+        type: boolean
+        default: false
       prune:
         description: "시트에 더는 없는 급부의 매핑 행을 걷어낸다"
         type: boolean
@@ -61,6 +65,7 @@ jobs:
       INPUT_REMAP_STATES: ${{ inputs.remap_states }}
       INPUT_REMAP_MATCH: ${{ inputs.remap_match }}
       INPUT_SYNC_DICTIONARY: ${{ inputs.sync_dictionary }}
+      INPUT_SYNC_ONLY: ${{ inputs.sync_only }}
       INPUT_CHARS_PER_MINUTE: ${{ inputs.chars_per_minute }}
       INPUT_PLAN: ${{ inputs.plan }}
       INPUT_DRY_RUN: ${{ inputs.dry_run }}
@@ -91,6 +96,7 @@ jobs:
           if [ -n "${INPUT_REMAP_MATCH//[[:space:]]/}" ]; then args+=(--remap-match="$INPUT_REMAP_MATCH"); fi
           if [ -n "${INPUT_SKIP_RUN//[[:space:]]/}" ]; then args+=(--skip-result previous/mapping.json); fi
           if [ "$INPUT_SYNC_DICTIONARY" = "true" ]; then args+=(--sync-dictionary); fi
+          if [ "$INPUT_SYNC_ONLY" = "true" ]; then args+=(--sync-only); fi
           if [ -n "$INPUT_CHARS_PER_MINUTE" ]; then args+=(--chars-per-minute "$INPUT_CHARS_PER_MINUTE"); fi
           if [ "$INPUT_PLAN" = "true" ]; then args+=(--plan); fi
           if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi

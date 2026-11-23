@@ -103,8 +103,8 @@ def test_existing_rows_are_not_asked_again_and_reviewed_rows_survive():
 
 def test_options_come_from_the_dictionary_and_thresholds_from_the_sheet():
     options = M.criteria(DICTIONARY + [{"표준담보명": "안 쓰는 담보", "보장대분류": "x", "보장중분류": "y", "급부유형": "진단", "사용여부": False}])
-    # 사전 77개 가운데 사용하지 않는 심혈관질환 진단비를 빼고 해당없음을 더한다
-    assert M.NONE in options and "일반암 진단비" in options and "안 쓰는 담보" not in options and len(options) == 77
+    # 사전 87개 가운데 사용하지 않는 심혈관질환 진단비를 빼고 해당없음을 더한다
+    assert M.NONE in options and "일반암 진단비" in options and "안 쓰는 담보" not in options and len(options) == 87
     assert "심혈관질환 진단비" not in options and "뇌·심장질환 주요치료비" in options
     t = M.thresholds_from([{"기준키": "담보매핑_자동확정", "기준분류": "판정구간", "수치값": 0.8}])
     assert t == {"담보매핑_자동확정": 0.8, "담보매핑_대상외": 0.9}
@@ -239,7 +239,7 @@ def test_plan_counts_questions_and_calls_without_asking():
     variants, riders, benefits, existing = state_world()
     p = M.plan(riders, benefits, DICTIONARY, existing, M.Remap(match="1인실|응급실"))
     assert p["처음 묻는 급부"] == 1 and p["다시 묻는 급부"] == {"대기": 2, "대상외": 1, "자동확정": 1}
-    assert p["문항"] == 5 and p["호출"] == math.ceil(5 / M.BATCH) and p["선택지"] == 77
+    assert p["문항"] == 5 and p["호출"] == math.ceil(5 / M.BATCH) and p["선택지"] == 87
     assert p["호출당 입력 글자 최대"] >= p["호출당 입력 글자 평균"] > 0
     g = FakeGemini()
     M.run(g, variants, riders, benefits, DICTIONARY, existing, NOW, remap=M.Remap(match="1인실|응급실"))

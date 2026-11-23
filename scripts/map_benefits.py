@@ -99,6 +99,8 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
                    help="앞 실행의 결과 파일(--result로 남긴 mapping.json). 그 rows에 있는 급부는 이번에 묻지 않는다")
     p.add_argument("--sync-dictionary", action="store_true",
                    help="매핑 전에 data/seed의 표준담보 사전을 시트 탭에 올린다 (행 추가와 사용여부 변경만)")
+    p.add_argument("--sync-only", action="store_true",
+                   help="표준담보 사전만 시트 탭에 올리고 끝낸다(--sync-dictionary를 켠다). 매핑을 하지 않고 판정 모델도 부르지 않는다")
     p.add_argument("--dry-run", action="store_true", help="시트에 쓰지 않는다")
     p.add_argument("--chars-per-minute", type=int, default=SAFE_CHARS_PER_MINUTE,
                    help=f"판정 모델에 분당 보낼 입력 글자 수 상한 (기본 {SAFE_CHARS_PER_MINUTE}). 호출 간격과 분당 토큰 창 "
@@ -184,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
     report: dict = {}
     text = ""
 
-    if args.sync_dictionary:
+    if args.sync_dictionary or args.sync_only:
         sync = mapping.sync_dictionary(data["hum_표준담보사전"], load_jsonl(SEED),
                                        read_snapshot(SNAPSHOT).get("hum_표준담보사전", []))
         print(sync.report())
@@ -204,6 +206,10 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             print(f"시트에 씀: 표준담보 사전 {len(sync.added)}행 추가, 사용여부 {len(sync.switched)}행 변경")
         data["hum_표준담보사전"] = sync.rows        # 이번 매핑은 새 사전으로 묻는다
+        if args.sync_only:
+            print("--sync-only: 사전만 맞추고 끝냅니다. 매핑은 하지 않았습니다.")
+            _save(args.result, report)
+            return 0
 
     existing = data["hum_담보매핑"]
     if args.prune:
