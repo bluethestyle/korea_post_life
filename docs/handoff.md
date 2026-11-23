@@ -20,6 +20,7 @@
 - 스타일 합의안은 `docs/proposals/게임UI_기준표.md` 10절에 있습니다.
 - 알려진 것은 `docs/gemini_requests/20_이어받기_개발_Antigravity.md`의 2번 일에 적었습니다(브리핑 다섯째 줄이 1920x1080 첫 화면을 넘어감, 관문만 수집한 종형의 표시와 주석 넷이 화면에 없음, 용어 풀이).
 - 아직 하지 않은 것: 카본의 사진 비평, 운영 화면(`src/postlife/site/`)에 이 스타일 입히기.
+- 화면의 용어 정리(버전 1 전에 한 번): 지금 화면과 문장의 용어 가운데 Claude가 지은 말(근거 기둥, 범위 띠, 가입 관문, 우리 간편만 열림, 단정 주의, 앞세울 강점, 치료 여정 따위)이 보험 실무 용어가 아니라는 사용자 지적이 있었습니다(2026-11-23. 나중에 고치기로 함). 용어 대조표(지금 말, 실무 용어 제안)를 만들어 사용자가 정한 뒤, 자료 쪽(`sales.py`의 라벨과 문장 틀)과 화면 쪽(문구 표)을 한 번에 바꿉니다.
 
 Antigravity가 이어받을 수 있는 일은 `docs/gemini_requests/20_이어받기_개발_Antigravity.md`에 지시문으로 적었습니다(화면 흐름도 고치기, 시안 4 점검과 보완, 문서 숫자 맞추기, 그래프 탐색 다음 시안). Claude Code는 원격 서버에서, Antigravity는 사용자의 PC에서 돌기 때문에 둘 사이의 길은 GitHub 저장소뿐입니다. 그래서 시안의 원본을 git 제외 폴더에서 저장소의 `proto_src/`로 옮기고 있습니다. 화면 흐름도와 시안 4의 원본과 글꼴은 옮겼고(`proto_src/flow/`, `proto_src/console4/`, `proto_src/fonts/`), 그래프 탐색의 원본은 아직 `local/postlife_local_assets/proto_src/graph/`에 있습니다. Antigravity는 `antigravity/<주제>` 가지를 푸시해 PR을 열고, Claude가 검수해 합칩니다. 기록은 `docs/antigravity_log.md`에 따로 남깁니다.
 
