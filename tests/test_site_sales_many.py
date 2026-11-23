@@ -129,6 +129,22 @@ def test_peer_tally_counts_states():
     gate_only = [{"기관코드": "A", "종형ID": "A_1"}, {"기관코드": "A", "종형ID": "A_2"}]
     assert S.peer_tally(states, gate_only) == {"상대수": 5, "열린상대수": 1, "닫힌상대수": 2, "모르는상대수": 2,
                                                "관문만열린상대수": 1}
+    assert S.peer_codes(states, gate_only) == {"열린상대코드": ["A"], "관문만열린상대코드": ["A"], "닫힌상대코드": ["B", "C"],
+                                               "모르는상대코드": ["D", "E"]}
+
+
+def test_notice_key_and_groups(data):
+    assert S.notice_key(data, E1) == "3·1·5" and S.notice_key(data, EG) == S.GENERAL
+    blank = Data(many_book().t, META)
+    blank.variants[L2] = dict(blank.variants[L2], 고지입원수술년수=None)
+    zero = dict(blank.variants[F1], 고지입원수술년수=0)
+    blank.variants[F1] = zero
+    assert S.notice_key(blank, L2) == S.NOTICE_UNKNOWN and S.notice_key(blank, F1) == "3·0·5"
+    groups = S.notice_groups(data, E1, list(PEERS5))
+    mine = [g for g in groups if g["기준"]]
+    assert [g["열쇠"] for g in mine] == ["3·1·5"] and mine[0]["맞붙는종형수"] == 5
+    assert mine[0]["상대코드"] == sorted({S._org(data, v) for v in PEERS5}) and mine[0]["상대수"] == len(mine[0]["상대코드"])
+    assert [g["열쇠"] for g in groups][-1] == S.GENERAL      # 간편 열쇠 다음에 일반심사
 
 
 def test_map_cells_count_peers_and_briefing_adds_the_spread(data):
@@ -156,6 +172,10 @@ def test_export_with_five_peers_passes_the_forbidden_word_check(data):
         for line in m["칸"]:
             for c in line:
                 assert set(S.PEER_TALLY) <= set(c)
+                assert len(c["열린상대코드"]) == c["열린상대수"] and len(c["닫힌상대코드"]) == c["닫힌상대수"]
+                assert len(c["모르는상대코드"]) == c["모르는상대수"] and len(c["관문만열린상대코드"]) == c["관문만열린상대수"]
+    for p in out["포인트"].values():
+        assert p["관련기관코드"] == sorted({out["종형"][v]["기관코드"] for v in p["비교종형ID"]} - {"EPOST"})
     b = out["기준별"][E1]
     assert b["범위"]["업권별"] == {"생명보험": 3, "손해보험": 2}
     assert out["종형"][L1]["회사"] == "가상생명 01"

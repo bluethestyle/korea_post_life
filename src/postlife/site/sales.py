@@ -69,6 +69,9 @@
   주의의 머리말(header)도 상품마다 적지 않고 회사 수, 상품 수, 기준일의 범위를 적는다. 상품마다의 머리말은 범위의 상대에 남는다.
 - 지도 칸마다 상대 회사 수를 상태별로 센다(peer_tally). 브리핑 (가)의 값에 칸마다 열린 상대 수의 분포를 싣고, (라)는 상대가 넷
   이상이면 상대마다의 보유 수 대신 범위와 중앙값을 적는다.
+- 화면이 고른 비교 범위(상대 회사 일부)로 다시 셀 수 있게, 지도 칸에는 센 상대의 기관코드 목록(peer_codes)을, 포인트에는 견준
+  상대의 기관코드(관련기관코드)를 싣는다. 기준 종형별로 관문 나무의 종형을 고지 유형 열쇠(notice_key)로 묶은 수(notice_groups)를
+  싣는다. 화면은 교집합의 크기만 세고 열림과 닫힘을 다시 판정하지 않는다.
 
 분석 담당자용 집계(합의안 5번): 단정 주의 목록(caution), 개정 검토 목록(revision_candidates), 치료 여정 격자(journey),
 한도 표(limit_steps), 보류 요약(pending_summary). 먼저 보일 것(pick, 합의안 7번), 지도 칸의 이름(cell의 라벨, 보조, 닫힌사유,
@@ -911,6 +914,79 @@ def peer_tally(states: dict[str, str], gate_only_rows: list[dict[str, Any]]) -> 
     counts = (len(sides), sides.count(OPEN), sides.count(CLOSED), sides.count(None),
               len({y["기관코드"] for y in gate_only_rows}))
     return dict(zip(PEER_TALLY, counts))
+
+
+PEER_CODES = ("열린상대코드", "관문만열린상대코드", "닫힌상대코드", "모르는상대코드")
+
+
+def peer_codes(states: dict[str, str], gate_only_rows: list[dict[str, Any]]) -> dict[str, list[str]]:
+    """peer_tally가 센 상대 회사의 기관코드 목록(정렬). 화면이 고른 비교 범위(상대 회사 일부)와의 교집합 크기만 세면 되게 한다.
+    목록마다 길이가 peer_tally의 열린상대수, 관문만열린상대수, 닫힌상대수, 모르는상대수와 같다(관문만열린상대코드는
+    열린상대코드에도 든다)."""
+    sides = {o: _side(s) for o, s in states.items() if o != HOME_ORG}
+    codes = (sorted(o for o, s in sides.items() if s == OPEN), sorted({y["기관코드"] for y in gate_only_rows}),
+             sorted(o for o, s in sides.items() if s == CLOSED), sorted(o for o, s in sides.items() if s is None))
+    return dict(zip(PEER_CODES, codes))
+
+
+def compared_orgs(data: Data, vids: Iterable[str]) -> list[str]:
+    """종형 목록이 속한 상대 회사의 기관코드(우리 기관은 뺀다, 정렬). 포인트의 관련기관코드(비교종형ID)에 쓴다."""
+    return sorted({_org(data, v) for v in vids} - {HOME_ORG, None})
+
+
+NOTICE_UNKNOWN = "모름"
+
+
+def notice_key(data: Data, vid: str) -> str:
+    """종형의 고지 유형 열쇠. 일반심사 종형은 "일반심사", 간편심사 종형은 종형 표의 고지 열(고지최근소견개월,
+    고지입원수술년수, 고지중대질병년수)을 가운뎃점으로 이은 "3·2·5" 꼴(입원과 수술의 기간 질문이 없는 종형은 그 열이 0이라
+    가운데가 0)이다. 심사유형을 모르거나 세 열 가운데 빈 값이 있으면 "모름"이다. 같은 열쇠의 종형을 화면이 한 묶음으로 그린다."""
+    v = data.variants[vid]
+    kind = v.get("심사유형")
+    if kind == GENERAL:
+        return GENERAL
+    vals = [v.get("고지최근소견개월"), v.get("고지입원수술년수"), v.get("고지중대질병년수")]
+    if kind != SIMPLE or any(_blank(x) for x in vals):
+        return NOTICE_UNKNOWN
+    return "·".join(I._num_text(x) for x in vals)
+
+
+def _notice_order(key: str) -> tuple:
+    if key == GENERAL:
+        return (1, ())
+    if key == NOTICE_UNKNOWN:
+        return (2, ())
+    return (0, tuple(float(x) for x in key.split("·")))
+
+
+def notice_groups(data: Data, base: str, peers: list[str]) -> list[dict[str, Any]]:
+    """기준 종형별 고지 유형 집계(고지유형별). 관문 나무가 그리는 종형(gate_targets, 관문전용 포함)을 고지 유형 열쇠(notice_key)로
+    묶어, 열쇠마다 상대 회사 수(상대수)와 그 기관코드(상대코드), 상대 종형 수(종형수), 우리 종형 수(우리종형수), 이 기준 종형의
+    맞붙는 종형 가운데 그 열쇠인 수(맞붙는종형수)를 센다. 기준은 기준 종형의 열쇠와 같은 묶음이다. 차례는 간편 열쇠(소견 개월,
+    입원수술 년수, 중대질병 년수의 작은 순), 일반심사, 모름이다."""
+    groups: dict[str, dict[str, Any]] = {}
+
+    def group(k: str) -> dict[str, Any]:
+        return groups.setdefault(k, {"열쇠": k, "orgs": set(), "종형수": 0, "우리종형수": 0, "맞붙는종형수": 0})
+
+    for v in gate_targets(data):
+        g = group(notice_key(data, v))
+        if _org(data, v) == HOME_ORG:
+            g["우리종형수"] += 1
+        else:
+            g["orgs"].add(_org(data, v))
+            g["종형수"] += 1
+    for v in peers:
+        group(notice_key(data, v))["맞붙는종형수"] += 1
+    mine = notice_key(data, base)
+    group(mine)
+    out = []
+    for k in sorted(groups, key=_notice_order):
+        g = groups[k]
+        orgs = sorted(o for o in g.pop("orgs") if o)
+        out.append({"열쇠": k, "기준": k == mine, "상대수": len(orgs), "상대코드": orgs, **{n: g[n] for n in
+                    ("종형수", "우리종형수", "맞붙는종형수")}})
+    return out
 
 
 def gate_only_open(data: Data, g: dict[str, Any]) -> list[dict[str, Any]]:
@@ -2481,7 +2557,8 @@ def _export_point(data: Data, x: dict[str, Any], texts: _Texts) -> dict[str, Any
            "문장": x["문장"], "카드질문": x["카드질문"], "카드답": x["카드답"],
            "머리말": texts.add(x["머리말"]), "회사수": texts.add(x["회사수"]), "비교종형ID": x["비교종형ID"],
            "근거": _export_evidence(data, x["근거"]), "점수": x["점수"], "목적": x["목적"], "구조다름": x["구조다름"],
-           "원문대조": x["원문대조"], "원문대조글": x["원문대조글"], "브리핑": x["브리핑"]}
+           "원문대조": x["원문대조"], "원문대조글": x["원문대조글"], "브리핑": x["브리핑"],
+           "관련기관코드": compared_orgs(data, x["비교종형ID"])}
     for key in ("주의", "좁은담보", "견준항목", "관문만수집", "차이항목"):
         if x.get(key):
             out[key] = x[key]
@@ -2510,7 +2587,7 @@ def _export_map(ctx: _Ctx, seg: dict[str, Any], pool: dict[str, dict], texts: _T
                         "대표": x["대표"], "상대대표": x["상대대표"], "분류수": x["분류수"], "자료없음": x["자료없음"],
                         "열린종형": x["열린종형"], "관문기준": base, "관문포인트": [y["포인트ID"] for y in found],
                         "관문만수집": x["관문만수집"],
-                        **{k: x[k] for k in PEER_TALLY}})
+                        **{k: x[k] for k in PEER_TALLY}, **peer_codes(x["회사"], x["관문만수집"])})
         cells.append(row)
     labels = {lab: sum(1 for line in cells for x in line if x["라벨"] == lab) for lab in LABELS.values()}
     return {"성별": seg["성별"], "갱신유형": seg["갱신유형"], "행": seg["행"], "열": seg["열"], "칸": cells, "라벨별": labels}
@@ -2526,7 +2603,8 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
     - 지도는 성별 남, 갱신 거르개 전체와 갱신과 비갱신 세 장이다. 칸의 관문 포인트는 그 칸의 맨 앞 나이로 계산한다(cell_gate_points).
       칸의 인사이트 수는 다섯 분류 이름의 분류수(관문 차이는 그 칸의 관문 포인트 수)이고, 안쪽 값인 분류와 수는 싣지 않는다.
       칸의 관문만수집은 열린 종형이 관문전용뿐인 상대 회사의 그 종형이다(cell). 칸의 열린종형과 관문만수집이 가리키는 종형은
-      모두 "종형"에도 싣는다(관문전용 종형은 비교역할 관문전용).
+      모두 "종형"에도 싣는다(관문전용 종형은 비교역할 관문전용). 칸의 상대 수(peer_tally) 옆에 그 기관코드 목록(peer_codes)을 싣는다.
+    - 포인트의 관련기관코드는 비교종형ID가 속한 상대 회사의 기관코드다(compared_orgs). 기준별의 고지유형별은 notice_groups다.
     - 포인트의 관문만수집은 관문전용 종형을 적은 관문 포인트(G2, G3)에만 참으로 싣는다. 짝과 견준 G3에는 차이항목(SCOPE_ITEMS
       가운데 다른 것)을 싣는다.
     - 시장 소식의 요약은 보도를 옮긴 인용이다(news_summary의 인용, 출처표시, 주의표현, 인용안내).
@@ -2567,6 +2645,7 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
             "개정검토": [{**g, "담보": [{k: v for k, v in d.items() if k != "근거"} for d in g["담보"]]}
                      for g in revision_candidates(data, pts)],
             "치료여정": grid,
+            "고지유형별": notice_groups(data, base, peers),
             "보류요약": pending_summary(data, base, None, ctx=ctx, peers=peers),
             "브리핑": briefing(data, base, p, None, ctx=ctx, seg=segs["전체"], rev=rev, news=news, pts=pts,
                             cautions=cautions, grid=grid),

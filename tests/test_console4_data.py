@@ -116,6 +116,7 @@ POINT = {
     "포인트ID": str, "분류": str, "세부": str, "세부이름": str, "표준담보ID": Opt(str), "문장": str,
     "카드질문": Opt(str), "카드답": str, "머리말": int, "회사수": int, "비교종형ID": Seq(str), "근거": Seq(EVIDENCE),
     "목적": Seq(str), "구조다름": bool, "원문대조": bool, "원문대조글": Opt(str), "브리핑": bool, "점수": Opt(NUM),
+    "관련기관코드": Seq(str),
 }
 BASE = {
     "맞붙는종형": Seq(str),
@@ -135,6 +136,8 @@ BASE = {
                                  "포인트ID": Opt(str)})}),
     "치료여정": {"행": Seq(str), "열": Seq(str),
                  "종형": Seq({"종형ID": str, "이름": str, "칸": Map(Map(int)), "담보": Map(Map(Seq(str))), "합계": dict})},
+    "고지유형별": Seq({"열쇠": str, "기준": bool, "상대수": int, "상대코드": Seq(str), "종형수": int, "우리종형수": int,
+                      "맞붙는종형수": int}),
     "보류요약": {"맞붙는종형": Seq(str), "공통담보쌍": int, "뺀쌍": int, "견준쌍": int, "사유별": dict,
                  "대분류": Seq({"대분류": str, "공통담보쌍": int, "뺀쌍": int, "견준쌍": int, "상대별": dict})},
     "브리핑": Seq({"줄": str, "범위": str, "값": dict, "문장": str, "갈곳": str, "틀": Seq(str)}),
@@ -143,6 +146,7 @@ MAP_CELL = {
     "라벨": str, "보조": Opt(str), "닫힌사유": list, "회사": Map(str), "대표": Opt(str), "상대대표": Map(Opt(str)),
     "분류수": Map(Opt(int)), "자료없음": list, "열린종형": Map(Seq(str)), "관문기준": Opt(str), "관문포인트": Seq(str),
     "관문만수집": Seq({"기관코드": str, "종형ID": str, "이름": str, "안내": str}),
+    "열린상대코드": Seq(str), "관문만열린상대코드": Seq(str), "닫힌상대코드": Seq(str), "모르는상대코드": Seq(str),
 }
 SEG_MAP = {"성별": str, "갱신유형": Opt(str), "행": Seq({"종류": str, "since": Opt(NUM), "이름": str}),
            "열": Seq({"lo": int, "hi": int}), "칸": Seq(Seq(MAP_CELL)), "라벨별": Map(int)}
@@ -180,7 +184,8 @@ T3 = {
                        "X": Seq({"r": Seq(Pos(int, int, int)), "g": Seq(Pos(str, int, int, Opt(int))), "o": int}),
                        "C": Map(Map(Seq(Pos(int, int, int))))})},
     "관문": {"V": Seq(str), "ST": Seq(str), "Q": Seq(str), "A": Seq(str), "rule": dict,
-             "I": Map({"회사": str, "이름": str, "심사": str, "질문": dict, "가입나이": {"M": ANY, "F": ANY}, "관문전용": bool}),
+             "I": Map({"회사": str, "이름": str, "심사": str, "질문": dict, "가입나이": {"M": ANY, "F": ANY}, "관문전용": bool,
+                       "고지유형열쇠": str}),
              "X": Seq({"s": Seq(Pos(int, int, int)), "라벨": str, "회사": Map(str), "닫힌사유": list}),
              "C": Map(Seq(Pos(int, int, int)))},
 }
@@ -190,13 +195,14 @@ CV = {
     "t": str,
     "ben": Seq(Pos(str, int, str)),
     "rid": Seq(Pos(str, str)),
-    "b": Map({"cols": Seq(str), "rows": Seq(Pos(str, Seq(One(int, dict)), Map(dict))), "pairs": int, "dropped": int}),
+    "b": Map({"cols": Seq(str), "rows": Seq(Pos(str, Seq(One(int, dict)), Map(dict))), "pairs": int, "dropped": int,
+              "보유기관코드": Map(Seq(str))}),
 }
 
 # ---------- d.json (const D) ----------
 D = {
     "asOf": str,
-    "orgs": Seq({"code": str, "name": str, "short": str}),
+    "orgs": Seq({"code": str, "name": str, "short": str, "업권": Opt(str)}),
     "lineup": Map(Pos(str, str, str)), "defaultGrade": str,
     "bands": Seq(Pos(int, int)), "stds": Seq(str),
     "std": Map({"name": str, "group": str, "mid": str, "type": str, "unit": Opt(NUM)}),
@@ -316,9 +322,12 @@ def test_committed_files_match_snapshot(made, committed):
 
 
 # 회사가 많을 때를 위해 더한 열쇠(2026-11-23). 세 회사 사본에서는 이 열쇠만 더해지고 나머지 열쇠의 값과 문장은 그대로여야 한다
-ADDED_CELL = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수")
+ADDED_CELL = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수",
+              "열린상대코드", "관문만열린상대코드", "닫힌상대코드", "모르는상대코드")
 ADDED_SCOPE = ("업권별",)
 ADDED_BRIEF = ("열린상대수분포", "상대회사수", "상대보유분포", "상대보유요약")
+ADDED_POINT = ("관련기관코드",)
+ADDED_BASE = ("고지유형별",)
 
 
 def without_added(S: dict) -> dict:
@@ -328,7 +337,12 @@ def without_added(S: dict) -> dict:
             for c in line:
                 for k in ADDED_CELL:
                     c.pop(k, None)
+    for p in S["포인트"].values():
+        for k in ADDED_POINT:
+            p.pop(k, None)
     for b in S["기준별"].values():
+        for k in ADDED_BASE:
+            b.pop(k, None)
         for k in ADDED_SCOPE:
             b["범위"].pop(k, None)
         for line in b["브리핑"]:
@@ -497,3 +511,113 @@ def test_screen_code_reads_only_d_keys_it_has(files):
             read.setdefault(k, []).append(name)
     assert set(read) <= set(D), f"화면 코드가 D 규약에 없는 열쇠를 읽는다: {read}. 규약(D)에 그 열쇠를 적는다"
     assert set(read) <= set(files["D"]), f"화면 코드가 읽는 D 열쇠가 d.json 에 없다: {read}"
+
+
+# ---------- 회사 수와 무관한 화면을 위해 더한 값(2026-11-23) ----------
+# 화면이 고른 비교 범위(상대 회사 일부)와의 교집합 크기만 세면 되게 하는 기관코드 목록과, 고지 유형 열쇠와 그 집계.
+# 아래 검사기(added_value_errors)는 가상 자료(회사 20곳)로 내보낸 작업 폴더에도 그대로 건다
+# (scripts/dev/build_console4_synthetic.py --work 폴더 로 남긴 자료를 unpack 해 넘긴다).
+HOME = "EPOST"
+CELL_CODES = {"열린상대코드": "열린상대수", "관문만열린상대코드": "관문만열린상대수", "닫힌상대코드": "닫힌상대수",
+              "모르는상대코드": "모르는상대수"}
+NOTICE_KEY = re.compile(r"^\d+(?:\.\d+)?·\d+(?:\.\d+)?·\d+(?:\.\d+)?$")
+SECTORS = ("생명보험", "손해보험")
+
+
+def _num_text(x) -> str:
+    x = float(x)
+    return str(int(x)) if x.is_integer() else f"{x:g}"
+
+
+def _codes_ok(codes, orgs) -> bool:
+    return codes == sorted(set(codes)) and set(codes) <= orgs and HOME not in codes
+
+
+def added_value_errors(f: dict) -> list[str]:
+    """더한 값의 규약. 목록 길이와 수가 같고, 기관코드는 orgs 에 있고 정렬되어 있고 겹치지 않으며, 열쇠는 정한 꼴이다."""
+    S, D, CV, T, gate = f["S"], f["D"], f["CV"], f["T3"], f["gate"]
+    errs: list[str] = []
+    orgs = {o["code"] for o in D["orgs"]}
+    errs += [f"orgs {o['code']}: 업권 {o['업권']!r}" for o in D["orgs"] if o["업권"] not in SECTORS + (None,)]
+    kinds = S["종형"]
+    # 지도 칸: 코드 목록 길이 = 수. 열린, 닫힌, 모르는 목록은 겹치지 않고 합하면 칸의 우리 밖 회사 전부다. 관문만 열린 회사는 열린 쪽에 든다
+    for name, m in S["지도"].items():
+        for ri, line in enumerate(m["칸"]):
+            for ci, c in enumerate(line):
+                at = f"지도 {name} [{ri}][{ci}]"
+                for ck, nk in CELL_CODES.items():
+                    if len(c[ck]) != c[nk] or not _codes_ok(c[ck], orgs):
+                        errs.append(f"{at}: {ck} {c[ck]} 와 {nk} {c[nk]}")
+                three = c["열린상대코드"] + c["닫힌상대코드"] + c["모르는상대코드"]
+                if sorted(three) != sorted(o for o in c["회사"] if o != HOME) or len(three) != c["상대수"]:
+                    errs.append(f"{at}: 열린, 닫힌, 모르는 상대코드가 칸의 상대 회사와 다르다")
+                if not set(c["관문만열린상대코드"]) <= set(c["열린상대코드"]):
+                    errs.append(f"{at}: 관문만열린상대코드가 열린상대코드에 들지 않는다")
+                if set(c["관문만열린상대코드"]) != {x["기관코드"] for x in c["관문만수집"]}:
+                    errs.append(f"{at}: 관문만열린상대코드가 관문만수집의 회사와 다르다")
+                errs += [f"{at}: 열린상대코드 {o} 의 상태가 {c['회사'][o]}" for o in c["열린상대코드"] if c["회사"][o] != "열림"]
+    # 포인트: 관련기관코드 = 비교종형ID 가 속한 우리 밖 회사
+    for pid, p in S["포인트"].items():
+        want = sorted({kinds[v]["기관코드"] for v in p["비교종형ID"]} - {HOME})
+        if p["관련기관코드"] != want or not _codes_ok(p["관련기관코드"], orgs):
+            errs.append(f"포인트 {pid}: 관련기관코드 {p['관련기관코드']}, 비교종형ID 로는 {want}")
+    # 담보 비교 자료: 보유기관코드는 줄마다 있고, 확정 급부가 있는 칸(i 가 비지 않음. tab4 의 has)의 상대 회사다
+    for bid, b in CV["b"].items():
+        own = b["보유기관코드"]
+        if set(own) != {r[0] for r in b["rows"]}:
+            errs.append(f"cover {bid}: 보유기관코드의 담보가 rows 와 다르다")
+            continue
+        for r in b["rows"]:
+            want = sorted({kinds[v]["기관코드"] for v, c in zip(b["cols"][1:], r[1][1:])
+                           if isinstance(c, dict) and c.get("i")} - {HOME})
+            if own[r[0]] != want or not _codes_ok(own[r[0]], orgs):
+                errs.append(f"cover {bid} {r[0]}: 보유기관코드 {own[r[0]]}, 칸으로는 {want}")
+    # 관문: 고지유형열쇠의 꼴(gate.json 과 tab3.js 의 자료 줄이 같다), 기준별 고지유형별의 수
+    info = gate["종형정보"]
+    for vid, x in info.items():
+        key, q = x["고지유형열쇠"], x["질문"]
+        vals = [q["months"], q["hospYears"], q["majorYears"]]
+        if x["심사"] == "일반심사":
+            want = "일반심사"
+        elif x["심사"] != "간편심사" or any(v is None for v in vals):
+            want = "모름"
+        else:
+            want = "·".join(_num_text(v) for v in vals)
+        if key != want or not (key in ("일반심사", "모름") or NOTICE_KEY.match(key)):
+            errs.append(f"gate {vid}: 고지유형열쇠 {key!r}, 고지 열로는 {want!r}")
+        if T["관문"]["I"].get(vid, {}).get("고지유형열쇠") != key:
+            errs.append(f"tab3 {vid}: 고지유형열쇠가 gate.json 과 다르다")
+    for bid, b in S["기준별"].items():
+        groups = b["고지유형별"]
+        keys = [g["열쇠"] for g in groups]
+        if len(keys) != len(set(keys)) or [g["열쇠"] for g in groups if g["기준"]] != [info[bid]["고지유형열쇠"]]:
+            errs.append(f"기준별 {bid}: 고지유형별 열쇠가 겹치거나 기준 묶음이 기준 종형의 열쇠와 다르다")
+        for g in groups:
+            vids = [v for v in gate["종형"] if info[v]["고지유형열쇠"] == g["열쇠"]]
+            peer = [v for v in vids if info[v]["회사"] != HOME]
+            same = sum(1 for v in b["맞붙는종형"] if info.get(v, {}).get("고지유형열쇠") == g["열쇠"])
+            if (g["종형수"], g["우리종형수"], g["맞붙는종형수"]) != (len(peer), len(vids) - len(peer), same) or \
+                    g["상대코드"] != sorted({info[v]["회사"] for v in peer}) or g["상대수"] != len(g["상대코드"]):
+                errs.append(f"기준별 {bid} {g['열쇠']}: 고지유형별의 수가 gate.json 과 다르다({g})")
+        if sum(g["종형수"] + g["우리종형수"] for g in groups) != len(gate["종형"]):
+            errs.append(f"기준별 {bid}: 고지유형별 종형 수의 합이 관문 나무의 종형 수와 다르다")
+        if sum(g["맞붙는종형수"] for g in groups) != len(b["맞붙는종형"]):
+            errs.append(f"기준별 {bid}: 고지유형별 맞붙는종형수의 합이 맞붙는 종형 수와 다르다")
+    return errs
+
+
+def test_added_values_for_any_number_of_companies(files):
+    assert added_value_errors(files) == []
+    sectors = {o["code"]: o["업권"] for o in files["D"]["orgs"]}
+    assert sectors["HANWHALIFE"] == "생명보험" and sectors["SAMSUNGFIRE"] == "손해보험" and sectors["EPOST"] is None
+
+
+def test_added_value_checker_catches_mismatch(made):
+    f = {k: copy.deepcopy(made[k]) for k in ("S", "D", "CV", "T3", "gate")}
+    c = f["S"]["지도"]["전체"]["칸"][0][0]
+    c["닫힌상대코드"] = c["닫힌상대코드"] + ["NOPE"]
+    next(iter(f["gate"]["종형정보"].values()))["고지유형열쇠"] = "3-2-5"
+    next(iter(f["S"]["포인트"].values()))["관련기관코드"] = []
+    errs = added_value_errors(f)
+    assert any("닫힌상대코드" in e for e in errs) and any("고지유형열쇠 '3-2-5'" in e for e in errs)
+    assert any("관련기관코드" in e for e in errs)

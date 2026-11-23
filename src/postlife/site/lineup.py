@@ -243,7 +243,9 @@ def export(d: Data) -> dict[str, Any]:
     codes = ORGS + [c for c in dict.fromkeys(d.variants[v].get("기관코드") for v in d.variant_order) if c not in ORGS]
     out = {
         "asOf": d.meta.get("snapshot_at"),
-        "orgs": [{"code": c, "name": d.org_name(c), "short": SHORT.get(c) or d.org_name(c)} for c in codes],
+        # 업권은 Data.org_sector 의 값("생명보험", "손해보험"). 업권 자료가 없는 기관(우체국)은 null 이다
+        "orgs": [{"code": c, "name": d.org_name(c), "short": SHORT.get(c) or d.org_name(c), "업권": d.org_sector(c)}
+                 for c in codes],
         "lineup": LINEUP, "defaultGrade": DEFAULT_GRADE,
         "bands": bands, "stds": stds, "std": std_out, "groups": GROUPS, "types": TYPES,
         "compare": COMPARE, "pool": pool_list,

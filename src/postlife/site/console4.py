@@ -163,7 +163,8 @@ def build_combo(data: Data) -> dict:
 def build_gate(data: Data) -> dict:
     """관문 나무(gate.json). sales.gate, sales.simple_classify(지도 라벨), sales.closed_reasons, sales.general_note 를
     나이 구간 x 성별 x 이력(없음, 0.25~5년) x 수술만 마다 부른다. 이웃 나이 구간의 결과가 같으면 합친다.
-    종형마다 고지 질문 값(eligibility.gate)과 가입나이(sales.age_span), 갱신과 환급 구조를 함께 싣는다."""
+    종형마다 고지 질문 값(eligibility.gate)과 가입나이(sales.age_span), 갱신과 환급 구조, 고지 유형 열쇠(sales.notice_key)를
+    함께 싣는다."""
     conds = [c for c in data.conds() if c.age is not None]
     vids = SA.gate_targets(data)          # 관문전용 종형(고지 질문과 주계약 가입조건만 모은 종형)도 관문 나무에 싣는다
     info = {}
@@ -173,7 +174,8 @@ def build_gate(data: Data) -> dict:
                      '간편고지약칭': v.get('간편고지약칭'), '갱신': v.get('갱신유형'), '갱신주기': v.get('갱신주기년'),
                      '환급': v.get('환급유형'), '질문': eligibility.gate(v),
                      '가입나이': {s: SA.age_span(data, vid, s) for s in ('M', 'F')},
-                     '한도빈칸': data.limit_gap(vid), '관문전용': SA.gate_only(data, vid)}
+                     '한도빈칸': data.limit_gap(vid), '관문전용': SA.gate_only(data, vid),
+                     '고지유형열쇠': SA.notice_key(data, vid)}
     table = {}
     for sex in ('M', 'F'):
         for since in SINCE:
@@ -393,6 +395,7 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
             ins.setdefault(x['표준담보ID'], []).append({'k': x['유형'], 'd': x['방향'], 'p': x['비교종형ID'], 'drop': x['사유']})
 
         rows = []
+        owners: dict[str, list[str]] = {}
         for sid in sids:
             cells = []
             for v in vids:
@@ -433,11 +436,14 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
                 if rb is not None and ro is not None:
                     q['it'] = [[i['항목'], i['기준'], i['상대'], i['판정'], i['사유']] for i in I.compare_conditions(rb, ro)['항목']]
                 prs[p] = q
+            # 이 담보를 가진 상대 회사: 확정 급부가 있는 칸(화면의 has, 칸의 i 가 비지 않음)의 회사. 우리 기관은 뺀다
+            owners[sid] = sorted({data.variants[v].get('기관코드') for v, c in zip(vids[1:], cells[1:])
+                                  if isinstance(c, dict) and c.get('i')} - {SA.HOME_ORG, None})
             row = [sid, cells, prs]
             if sid in ins:
                 row.append(ins[sid])
             rows.append(row)
-        bases[bid0] = {'cols': vids, 'rows': rows, 'pairs': r['비교쌍'], 'dropped': r['뺀비교쌍']}
+        bases[bid0] = {'cols': vids, 'rows': rows, 'pairs': r['비교쌍'], 'dropped': r['뺀비교쌍'], '보유기관코드': owners}
 
     # 급부와 특약은 번호로 가리킨다(줄마다 긴 ID를 되풀이하지 않게)
     return {'t': A['자료시각'], 'ben': list(ben.values()), 'rid': list(rid.values()), 'b': bases}
