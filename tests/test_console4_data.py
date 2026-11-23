@@ -315,6 +315,41 @@ def test_committed_files_match_snapshot(made, committed):
     assert not stale, f"커밋된 {', '.join(stale)} 가 같은 자료 시각({t})의 사본으로 새로 만든 것과 다르다. {REGEN}"
 
 
+# 회사가 많을 때를 위해 더한 열쇠(2026-11-23). 세 회사 사본에서는 이 열쇠만 더해지고 나머지 열쇠의 값과 문장은 그대로여야 한다
+ADDED_CELL = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수")
+ADDED_SCOPE = ("업권별",)
+ADDED_BRIEF = ("열린상대수분포", "상대회사수", "상대보유분포", "상대보유요약")
+
+
+def without_added(S: dict) -> dict:
+    S = copy.deepcopy(S)
+    for m in S["지도"].values():
+        for line in m["칸"]:
+            for c in line:
+                for k in ADDED_CELL:
+                    c.pop(k, None)
+    for b in S["기준별"].values():
+        for k in ADDED_SCOPE:
+            b["범위"].pop(k, None)
+        for line in b["브리핑"]:
+            for k in ADDED_BRIEF:
+                line["값"].pop(k, None)
+    return S
+
+
+def test_added_keys_are_the_only_change_on_three_companies(made, committed):
+    """회사가 많을 때의 규칙(sales.py 의 MANY)은 세 회사 사본에서 더한 열쇠 말고는 아무것도 바꾸지 않는다.
+    더한 열쇠를 뺀 sales.json 이 커밋된 것(더한 열쇠를 뺀 것)과 바이트까지 같아야 한다. 커밋된 자료가 더한 열쇠 전의 것이어도
+    통과하므로, 자료를 다시 만들기 전에도 이 규칙만 따로 확인할 수 있다. 사본이 더 새것이면 건너뛴다."""
+    if made["S"]["자료시각"] != committed["S"]["자료시각"]:
+        pytest.skip("사본과 커밋된 자료의 자료 시각이 다르다")
+    for k in ADDED_CELL:
+        assert all(k in c for m in made["S"]["지도"].values() for line in m["칸"] for c in line), k
+    assert C4.dumps(without_added(made["S"])) == C4.dumps(without_added(committed["S"]))
+    for name in ("combo.json", "gate.json", "cover.json", "d.json", "tab3.js", "tab4.js"):
+        assert made["texts"][name] == committed["texts"][name], name
+
+
 def test_sales_shape(files):
     assert check(files["S"], SALES) == []
 

@@ -1,7 +1,11 @@
 """시안 4를 한 파일로 합친다: tpl.html + style.css + tabN.css + core.js + tabN.js + sales.json + d.json(const D) + 글꼴.
 
-쓰기: python proto_src/console4/build.py [출력 경로]
+쓰기: python proto_src/console4/build.py [출력 경로] [--src 폴더] [--banner 글]
       출력 경로를 주지 않으면 site/proto/console4.html 에 쓴다.
+      --src 를 주면 원본과 자료를 그 폴더에서 읽는다(기본은 이 파일이 있는 proto_src/console4). 글꼴은 늘 저장소에서 읽는다.
+      --banner 를 주면 맨 위 고지 줄의 고지 글(#notice-t) 바로 앞과 창 제목 앞에 그 글을 끼운다(tpl.html 은 고치지 않는다).
+      끼운 글은 줄어들지 않고 늘 다 보이며, 좁은 화면(380px)에서는 고지 글이 줄임표로 줄어든다.
+      가상 사본으로 회사 수에 매이지 않는 화면을 시험할 때 쓴다(scripts/dev/build_console4_synthetic.py).
 자료(sales.json, combo.json, gate.json, cover.json, d.json 과 tab3.js 의 자료 줄, tab4.js)는 먼저
 python scripts/export_app_data.py 로 같은 사본에서 만든다.
 
@@ -16,6 +20,7 @@ build 때 검사한다(오류면 쓰지 않고 멈춘다)
 """
 from __future__ import annotations
 
+import argparse
 import base64
 import html
 import io
@@ -29,7 +34,11 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT_DEFAULT = ROOT / 'site/proto/console4.html'
 FONTS = ROOT / 'proto_src/fonts/fonts_v4.css'
 FONT_NOTICE = ROOT / 'proto_src/fonts/fonts_v4_notice.txt'
-D_JSON = HERE / 'd.json'              # const D. scripts/export_app_data.py 가 만든다(src/postlife/site/lineup.py)
+SRC = HERE                             # 원본과 자료를 읽는 폴더(--src 로 바꾼다)
+D_JSON = SRC / 'd.json'                # const D. scripts/export_app_data.py 가 만든다(src/postlife/site/lineup.py)
+NOTICE_SPAN = '<span id="notice-t">'   # tpl.html 의 맨 위 고지 자리. --banner 의 글은 이 span 바로 앞에 끼운다
+# --banner 때 고지 글에 붙이는 꼴: 끼운 글에 밀려 좁은 화면에서 넘치면 줄임표로 줄어든다(.nt 는 flex 라 고지 글에 직접 준다)
+NOTICE_FIT = ' style="min-width:0;overflow:hidden;text-overflow:ellipsis"'
 EXPORT_CMD = 'python scripts/export_app_data.py'
 TABS = [1, 2, 3, 4, 5]
 ALLOWED_DOT = ['교육·비교']           # 기획 확정본의 표식 문구 "내부 교육·비교 참고용(대외 배포 금지)"
@@ -93,11 +102,11 @@ def data_times(sales: str) -> dict[str, object]:
 
     take('sales.json', lambda: json.loads(sales)['자료시각'])
     for name in ('combo.json', 'gate.json'):
-        p = HERE / name
+        p = SRC / name
         if p.exists():
             take(name, lambda p=p: json.loads(read(p))['자료시각'])
     head = 'const CV = '
-    take('tab4.js', lambda: json.loads(read(HERE / 'tab4.js').split('\n', 1)[0][len(head):].rstrip(';'))['t'])
+    take('tab4.js', lambda: json.loads(read(SRC / 'tab4.js').split('\n', 1)[0][len(head):].rstrip(';'))['t'])
     if D_JSON.exists():
         take(D_JSON.name, lambda: json.loads(read(D_JSON))['asOf'])
     return out
@@ -106,7 +115,7 @@ def data_times(sales: str) -> dict[str, object]:
 def check_tab4() -> None:
     """tab4.js 는 cover.json 한 줄과 tab4.src.js 를 합친 것이다. build 는 tab4.js 를 실으므로, 다르면 합치기를 잊은 것이라
     멈춘다(tab4.src.js 만 고친 것이 화면에 들어가지 않은 채 합쳐지지 않게)."""
-    parts = [HERE / 'cover.json', HERE / 'tab4.src.js', HERE / 'tab4.js']
+    parts = [SRC / 'cover.json', SRC / 'tab4.src.js', SRC / 'tab4.js']
     if not all(p.exists() for p in parts):
         return
     cover, src, tab4 = (read(p) for p in parts)
@@ -126,24 +135,47 @@ def font_cmap(css: str) -> set[int]:
     return out
 
 
+def with_banner(tpl: str, banner: str) -> str:
+    """맨 위 고지 줄의 고지 글(#notice-t) 바로 앞과 창 제목 앞에 banner 를 끼운 tpl. 고지 자리가 없으면 오류로 멈춘다.
+    고지 줄(.notice .nt)은 한 줄(nowrap)에 넘치는 것을 자른다(overflow hidden). 끼운 글을 고지 글 뒤에 두면 380px 에서
+    "가상 자료(화면 배..."까지만 보여서, 앞에 두고 줄어들지 않게(flex:none) 하고 고지 글이 줄임표로 줄어들게 한다."""
+    a = tpl.find(NOTICE_SPAN)
+    if a < 0:
+        errors.append(f'tpl.html 에 {NOTICE_SPAN} 가 없어 --banner 의 글을 끼우지 못했다')
+        return tpl
+    text = html.escape(banner)
+    flag = (f'<span id="banner-t" class="banner" style="flex:none;font-weight:700;color:#c62828;white-space:nowrap">'
+            f'{text}</span>')
+    tpl = tpl[:a] + flag + NOTICE_SPAN[:-1] + NOTICE_FIT + '>' + tpl[a + len(NOTICE_SPAN):]
+    return re.sub(r'<title>', f'<title>[{text}] ', tpl, count=1)
+
+
 def main() -> int:
-    out = Path(sys.argv[1]) if len(sys.argv) > 1 else OUT_DEFAULT
-    tpl = read(HERE / 'tpl.html')
-    style = read(HERE / 'style.css')
+    global SRC, D_JSON
+    ap = argparse.ArgumentParser()
+    ap.add_argument('out', nargs='?', type=Path, default=OUT_DEFAULT, help='출력 경로(기본 site/proto/console4.html)')
+    ap.add_argument('--src', type=Path, default=HERE, help='원본과 자료를 읽는 폴더(기본 proto_src/console4)')
+    ap.add_argument('--banner', help='맨 위 고지 줄 옆에 끼울 글(가상 자료 표시)')
+    args = ap.parse_args()
+    out = args.out
+    SRC = args.src.resolve()
+    D_JSON = SRC / 'd.json'
+    tpl = read(SRC / 'tpl.html')
+    style = read(SRC / 'style.css')
     tab_css = []
     for n in TABS:
-        p = HERE / f'tab{n}.css'
+        p = SRC / f'tab{n}.css'
         if p.exists():
             tab_css.append((p.name, read(p)))
-    core = read(HERE / 'core.js')
+    core = read(SRC / 'core.js')
     tab_js = []
     for n in TABS:
-        p = HERE / f'tab{n}.js'
+        p = SRC / f'tab{n}.js'
         if not p.exists():
             errors.append(f'{p.name} 가 없다')
             continue
         tab_js.append((p.name, read(p)))
-    sales = read(HERE / 'sales.json')
+    sales = read(SRC / 'sales.json')
 
     for name, text in [('tpl.html', tpl), ('style.css', style), ('core.js', core)] + tab_css + tab_js:
         check_authored(name, text)
@@ -169,6 +201,8 @@ def main() -> int:
     for key in ['/*__FONTS__*/', '/*__STYLE__*/', '/*__SALES__*/', '/*__D__*/', '/*__SCRIPTS__*/', '/*__FONT_NOTICE__*/']:
         if tpl.count(key) != 1:
             errors.append(f'tpl.html 에 {key} 가 {tpl.count(key)}번 있다')
+    if args.banner:
+        tpl = with_banner(tpl, args.banner)
     page = (tpl.replace('/*__FONTS__*/', fonts.strip())
                .replace('/*__STYLE__*/', css)
                .replace('/*__SALES__*/', sales_safe)

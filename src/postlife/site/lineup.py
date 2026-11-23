@@ -238,9 +238,12 @@ def export(d: Data) -> dict[str, Any]:
     std_out = {s: {"name": d.std[s]["표준담보명"], "group": d.std[s]["보장대분류"], "mid": d.std[s]["보장중분류"],
                    "type": d.std[s]["급부유형"], "unit": d.std[s].get("비교기준단위만원")} for s in stds}
 
+    # 화면(core.js)은 orgs 의 짧은 이름으로 회사를 부른다. 세 회사 밖의 회사(가상 사본의 회사 따위)도 이름이 나오게 사본에 있는
+    # 회사를 종형 차례로 뒤에 더한다(짧은 이름은 기관 이름). 세 회사뿐인 사본은 지금과 같다
+    codes = ORGS + [c for c in dict.fromkeys(d.variants[v].get("기관코드") for v in d.variant_order) if c not in ORGS]
     out = {
         "asOf": d.meta.get("snapshot_at"),
-        "orgs": [{"code": c, "name": d.org_name(c), "short": SHORT[c]} for c in ORGS],
+        "orgs": [{"code": c, "name": d.org_name(c), "short": SHORT.get(c) or d.org_name(c)} for c in codes],
         "lineup": LINEUP, "defaultGrade": DEFAULT_GRADE,
         "bands": bands, "stds": stds, "std": std_out, "groups": GROUPS, "types": TYPES,
         "compare": COMPARE, "pool": pool_list,

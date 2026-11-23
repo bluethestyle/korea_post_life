@@ -87,6 +87,70 @@ def test_build_stops_when_tab4_src_changed_without_assemble(tmp_path):
     assert not out.exists(), "멈췄는데 합친 파일을 썼다"
 
 
+BANNER = "가상 자료(화면 배치 시험용, 실제 회사 자료 아님)"
+NOTICE_FIT = ' style="min-width:0;overflow:hidden;text-overflow:ellipsis"'   # build.py 의 NOTICE_FIT
+
+
+@pytest.fixture(scope="module")
+def bannered(tmp_path_factory):
+    # --src 는 원본과 자료를 그 폴더에서 읽고(이 폴더는 건드리지 않는다), --banner 는 맨 위 고지 줄과 창 제목에 글을 끼운다.
+    # tpl.html 은 고치지 않는다. 가상 자료 화면(scripts/dev/build_console4_synthetic.py)이 쓴다
+    tmp = tmp_path_factory.mktemp("banner")
+    work = tmp / "work"
+    shutil.copytree(SRC, work, ignore=shutil.ignore_patterns("__pycache__"))
+    out = tmp / "banner.html"
+    run = subprocess.run([sys.executable, str(SRC / "build.py"), str(out), "--src", str(work), "--banner", BANNER],
+                         cwd=tmp, capture_output=True, text=True, encoding="utf-8")
+    assert run.returncode == 0, run.stdout + run.stderr
+    return out
+
+
+def test_build_reads_another_folder_and_adds_a_banner(bannered, built):
+    page = bannered.read_text(encoding="utf-8")
+    # 끼운 글은 고지 글 바로 앞에 줄어들지 않게(flex:none) 들어가고, 고지 글은 넘치면 줄임표로 줄어든다
+    assert re.search(r'<span id="banner-t"[^>]*flex:none[^>]*>' + re.escape(BANNER)
+                     + '</span><span id="notice-t"' + re.escape(NOTICE_FIT) + ">", page)
+    assert f"<title>[{BANNER}] " in page
+    # 끼운 글을 빼면 보통으로 합친 결과와 같다(같은 원본과 자료를 읽었다)
+    plain = (re.sub(r'<span id="banner-t"[^>]*>[^<]*</span>', "", page).replace(f"[{BANNER}] ", "", 1)
+             .replace('<span id="notice-t"' + NOTICE_FIT + ">", '<span id="notice-t">', 1))
+    assert plain == built
+
+
+@pytest.mark.parametrize("width", [380, 1280, 1920])
+def test_banner_is_fully_visible(bannered, width):
+    # 가상 자료 띠는 어느 폭에서나 다 보여야 한다. 고지 줄(.notice .nt)은 한 줄에 넘치는 것을 잘라서, 고지 글 뒤에 끼우면
+    # 380px 에서 "가상 자료(화면 배..."까지만 보였다(2026-11-23 점검). 좁으면 고지 글 쪽이 줄임표로 줄어든다
+    sync_api = pytest.importorskip("playwright.sync_api")
+    with sync_api.sync_playwright() as p:
+        try:
+            chromium = p.chromium.launch()
+        except Exception as error:          # 브라우저 파일이 없는 환경
+            pytest.skip(f"chromium을 띄우지 못함: {error}")
+        try:
+            page = chromium.new_page(viewport={"width": width, "height": 800})
+            errors = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(bannered.as_uri())
+            page.evaluate("document.fonts.ready")
+            box = page.evaluate("""() => {
+                const r = el => el.getBoundingClientRect();
+                const b = document.getElementById('banner-t'), n = document.getElementById('notice-t');
+                const nt = b.parentElement;
+                return {b: [r(b).left, r(b).right], nt: [r(nt).left, r(nt).right], clipped: b.scrollWidth > b.clientWidth,
+                        text: b.textContent, n_over: n.scrollWidth > n.clientWidth,
+                        n_ellipsis: getComputedStyle(n).textOverflow, n_text: n.textContent};
+            }""")
+        finally:
+            chromium.close()
+    assert errors == []
+    assert box["text"] == BANNER and not box["clipped"]
+    assert box["nt"][0] - 0.5 <= box["b"][0] and box["b"][1] <= box["nt"][1] + 0.5, box
+    assert box["n_text"].strip() and box["n_ellipsis"] == "ellipsis"
+    if width >= 1280:
+        assert not box["n_over"], f"{width}px 에서 고지 글이 줄었다"
+
+
 def test_data_lines_present(built):
     # const D(d.json), const CV(tab4.js 첫 줄), const T3(tab3.js 자료 줄)가 한 번씩 실린다
     assert built.count("<script>const D = {") == 1

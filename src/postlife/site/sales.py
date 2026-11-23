@@ -61,6 +61,15 @@
   앞세울 강점은 분석 문장을 카드에도 그대로 쓴다(카드질문 없음). 원문 대조가 필요한 포인트는 "원문대조글"을 단다.
   꼬리 문장(Q2_좁은, Q3_경과)은 분석 문장과 카드 답에 함께 붙는다. 입원 담보의 A1에는 주의(A1_주의)를 "주의"에 싣고 문장 끝에도 붙인다.
 
+회사가 많을 때(비교 대상이 생명보험 10곳, 손해보험 9곳으로 늘어난다. 셋까지는 지금 문장 그대로다)
+- 회사나 종형 이름을 잇는 곳(and_join, or_join에 UNIT_ORG, UNIT_KIND를 준 곳)은 넷 이상이면 "A, B, C 등 N곳"(종형은 "등 N개")으로
+  줄인다. 종형마다 한 문장씩 잇던 G2(가입나이, 기간 질문), 지급 형태 다름의 상대 문장, 범위의 구조 문장은 넷 이상이면 값이 같은 것끼리
+  묶어 적는다. 근거 목록, 비교종형ID, 범위의 상대는 줄이지 않는다.
+- 범위 문장은 상대 회사가 넷 이상이면 상품을 다 적지 않고 업권별 회사 수와 상품 수를 적는다(scope_products_many). 포인트와 단정
+  주의의 머리말(header)도 상품마다 적지 않고 회사 수, 상품 수, 기준일의 범위를 적는다. 상품마다의 머리말은 범위의 상대에 남는다.
+- 지도 칸마다 상대 회사 수를 상태별로 센다(peer_tally). 브리핑 (가)의 값에 칸마다 열린 상대 수의 분포를 싣고, (라)는 상대가 넷
+  이상이면 상대마다의 보유 수 대신 범위와 중앙값을 적는다.
+
 분석 담당자용 집계(합의안 5번): 단정 주의 목록(caution), 개정 검토 목록(revision_candidates), 치료 여정 격자(journey),
 한도 표(limit_steps), 보류 요약(pending_summary). 먼저 보일 것(pick, 합의안 7번), 지도 칸의 이름(cell의 라벨, 보조, 닫힌사유,
 합의안 6번), 브리핑 다섯 줄(briefing, 합의안 3번), 화면용 내보내기(export)는 각 함수의 설명에 규칙을 적는다.
@@ -69,6 +78,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import statistics
 from dataclasses import asdict, dataclass
 from typing import Any, Iterable
 
@@ -78,7 +88,7 @@ from . import eligibility
 from . import insights as I
 from . import revision as RV
 from . import weekly
-from .model import Cond, Data, HOME_ORG, MAX_AGE, _blank
+from .model import Cond, Data, HOME_ORG, MAX_AGE, SECTOR_LIFE, SECTOR_NONLIFE, _blank
 from .relations import Relations, load_relations
 
 
@@ -193,6 +203,8 @@ TEMPLATES = {
     "질문_기간만": "기간 {기간}년",
     "G2": "{나이}세는 우체국 {우리종형}의 가입나이({우리최저}~{우리최고}세) 밖입니다. {상대문장}",
     "G2_상대": "{상대}의 가입나이는 {상대최저}~{상대최고}세입니다.",
+    # 열린 상대 종형이 넷 이상이고 가입나이가 넷 이상으로 갈리면 하한과 상한의 범위만 적는다("15~18", 같으면 "15")
+    "G2_상대많음": "{상대}의 가입나이 하한은 {하한}세, 상한은 {상한}세입니다.",
     # 그 나이가 우체국 일반심사 종형(심사로 확인이고 가입나이가 맞는 것. 대표 고르는 차례로 하나)의 가입나이 안이면 붙인다
     "G2_일반": "우체국에서는 일반심사 종형({일반종형}, {일반최저}~{일반최고}세)으로 심사를 받을 수 있습니다.",
     # 기준 종형이 고지 질문에 걸린 칸의 G2. 열린 상대 종형마다 기간 질문을 적는다(기간이 있으면 G1_상대_기간 틀)
@@ -214,6 +226,9 @@ TEMPLATES = {
     "G3_짧은": "{상대회사:은} {상대기간}년 안의 {상대범위:을} 묻는 {상대종형:을} 함께 팝니다.",
     "G3_미수집": "이 종형은 고지 질문과 주계약 가입조건만 모았고 담보는 수집하지 않았습니다.",
     "A1": "{담보:은} 우체국 {우리종형}에 따로 있는 담보입니다. 견준 {상대회사목록} 상품에는 이 담보를 따로 주는 급부가 없습니다.",
+    # 없는 회사가 넷 이상이면 상대회사목록은 "A, B, C 등 N곳"으로 줄인 이름이다(_shortened)
+    "A1_많음": "{담보:은} 우체국 {우리종형}에 따로 있는 담보입니다. 견준 {상대회사목록}의 상품에는 이 담보를 따로 주는 급부가 "
+             "없습니다.",
     "A1_주의": "상대의 일반 입원 담보로 같은 입원이 지급될 수 있습니다.",
     # 조건 나음(A2)과 조건 못함(Q3). 조건문은 절_* 틀로 만든 쪽마다의 절을 _connect로 이은 것이다(우리 쪽이 먼저).
     # 견준 급부의 면책 기간이 모두 같고 0보다 크면 _면책같음 틀로 그 사실을 앞에 적는다
@@ -236,12 +251,19 @@ TEMPLATES = {
     "Q3_경과": "{경과:이} 지나면 {모두} 보험금 전액을 지급합니다.",
     "머리말": "수집한 {상품} 기준({기준일})",
     "머리말_관문": "관문만 수집한 {상품} 기준({기준일}, 담보 미수집)",
+    # 상대 회사가 넷 이상이면 상품마다 적지 않는다(header. 상품마다의 머리말은 범위의 상대에 있다)
+    "머리말_많음": "수집한 {상대회사수}곳의 상품 {상품수}개 기준({기준일})",
+    "머리말_많음_관문": "수집한 {상대회사수}곳의 상품 {상품수}개 기준({기준일}, 그 가운데 {미수집수}개는 담보 미수집)",
     "구조": "구조 다름: 우체국 {우리구조} 대 {상대구조}",
     "회사수": "견준 {전체}개 회사 가운데 {해당}곳",
     # 범위 띠의 문장: 견준 상품(범위), 구조가 다른 상대가 있으면 갱신과 환급 구조(범위_구조), 견준 쌍(범위_대기, 범위_모두)
     "범위": "견준 상품은 {상품목록}입니다.",
     "범위_상품": "{상품}({기준일} 기준)",
     "범위_상품_관문": "{상품}({기준일} 기준, 담보 미수집)",
+    # 상대 회사가 넷 이상이면 상품을 다 적지 않는다(scope_products_many. 상품 목록은 범위의 상대에 있다)
+    "범위_많음": "견준 상품은 {업권나눔}의 상품 {상품수}개입니다.",
+    "범위_많음_업권모름": "견준 상품은 상대 {상대회사수}곳의 상품 {상품수}개입니다.",
+    "범위_미수집수": "그 가운데 {미수집수}개는 담보를 수집하지 않은 상품입니다.",
     "범위_구조": "갱신과 환급 구조는 우체국이 {우리구조}이고 {상대문장}입니다.",
     "구조_상대": "{상대:은} {상대구조}",
     "범위_대기": "공통 담보 {비교쌍}쌍 가운데 {뺀비교쌍}쌍은 검토 대기라 견주지 않았습니다.",
@@ -322,6 +344,13 @@ TEMPLATES = {
     "라_보유_없음": "확정 급부 기준으로 우체국 {우리종형:이} 가진 담보는 없습니다.",
     "라_보유_없음_상대": "확정 급부 기준으로 우체국 {우리종형:이} 가진 담보는 없고, 맞붙는 상대 종형은 {상대보유나눔}입니다.",
     "라_상대보유": "{상대} {보유수}개",
+    # 상대가 넷 이상이면 상대마다의 보유 수 대신 상대 회사 수와 보유 수의 범위, 중앙값을 적는다(상대보유요약)
+    "라_보유_상대많음": "확정 급부 기준으로 우체국 {우리종형:이} 가진 담보는 모두 {보유수}개({보유나눔})이고, "
+                   "상대 {상대회사수}곳의 보유 담보는 {상대보유요약}입니다.",
+    "라_보유_없음_상대많음": "확정 급부 기준으로 우체국 {우리종형:이} 가진 담보는 없고, 상대 {상대회사수}곳의 보유 담보는 "
+                     "{상대보유요약}입니다.",
+    "라_상대보유범위": "{최소}~{최대}개(중앙값 {중앙}개)",
+    "라_상대보유같음": "모두 {최소}개",
     "라_보류": "우열을 단정하지 않은 비교는 조건이 다른 특약을 함께 판매한 것 {단정보류수}건, "
               "지급 형태가 다른 것 {지급형태다름수}건입니다.",
     "라_보류_없음": "우열을 단정하지 않은 비교는 없습니다.",
@@ -465,17 +494,39 @@ def _connect(clauses: list[str], sep: str = ", ") -> str:
     return sep.join([_connective(c) for c in clauses[:-1]] + clauses[-1:])
 
 
-def or_join(names: Iterable[str]) -> str:
-    """"한화생명이나 삼성화재"처럼 잇는다."""
+# 회사나 종형 이름을 이을 때 줄이는 기준(회사가 많을 때). MANY 개 이상이면 앞의 SHOWN 개만 적고 "등 N곳"(회사), "등 N개"(종형)로
+# 줄인다. 셋까지는 줄이지 않는다(세 회사 사본의 문장은 그대로다). 줄인 이름의 전체 목록은 포인트의 비교종형ID와 근거, 범위의 상대에 남는다
+MANY, SHOWN = 4, 3
+UNIT_ORG, UNIT_KIND = "곳", "개"
+SECTOR_UNKNOWN = "업권 모름"        # 범위의 업권별에서 업권을 모르는 상대(Data.org_sector가 None)
+
+
+def _shortened(names: list[str], unit: str | None) -> str | None:
+    """"A, B, C 등 18곳". unit이 없거나 이름이 MANY 개보다 적으면 None(줄이지 않는다)."""
+    if unit is None or len(names) < MANY:
+        return None
+    return f"{', '.join(names[:SHOWN])} 등 {len(names)}{unit}"
+
+
+def or_join(names: Iterable[str], unit: str | None = None) -> str:
+    """"한화생명이나 삼성화재"처럼 잇는다. unit(UNIT_ORG, UNIT_KIND)을 주면 넷 이상일 때 "A, B, C 등 N곳"으로 줄인다."""
     names = [str(n) for n in names]
     if not names:
         return ""
+    short = _shortened(names, unit)
+    if short:
+        return short
     return "".join(josa(n, "이나") + " " for n in names[:-1]) + names[-1]
 
 
-def and_join(names: Iterable[str]) -> str:
-    """"한화생명 간편가입형(1년)과 삼성화재 7종"처럼 잇는다. 셋 이상이면 앞은 쉼표로 잇는다."""
+def and_join(names: Iterable[str], unit: str | None = None) -> str:
+    """"한화생명 간편가입형(1년)과 삼성화재 7종"처럼 잇는다. 셋 이상이면 앞은 쉼표로 잇는다.
+    unit(UNIT_ORG는 회사 이름, UNIT_KIND는 종형 이름)을 주면 넷 이상일 때 "A, B, C 등 N곳"("등 N개")으로 줄인다.
+    표준담보 이름이나 조건 항목처럼 회사와 종형이 아닌 이름은 unit 없이 부른다(줄이지 않는다)."""
     names = [str(n) for n in names]
+    short = _shortened(names, unit)
+    if short:
+        return short
     if len(names) < 2:
         return names[0] if names else ""
     return ", ".join(names[:-2] + [josa(names[-2], "과") + " " + names[-1]])
@@ -843,9 +894,23 @@ def cell(data: Data, p: Profile, analysis: dict | None, relations: Relations | N
            "자료없음": nodata,
            "열린종형": {o: [y["종형ID"] for y in x["종형"] if y["상태"] == OPEN] for o, x in g["회사"].items()},
            "관문만수집": gate_only_open(data, g)}
+    out.update(peer_tally(out["회사"], out["관문만수집"]))
     if cls == ALL_CLOSED:
         out["안내"] = ALL_CLOSED_NOTE
     return out
+
+
+PEER_TALLY = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수")
+
+
+def peer_tally(states: dict[str, str], gate_only_rows: list[dict[str, Any]]) -> dict[str, int]:
+    """칸의 상대 회사 수(회사가 많을 때 화면이 이름 대신 수로 보일 값). states는 칸의 회사별 상태(cell의 "회사")다.
+    열린 상대는 회사 상태가 열림, 닫힌 상대는 닫힘이나 심사로 확인, 모르는 상대는 나이 자료 없음이나 질문 자료 없음이다(_side).
+    관문만 수집한 종형으로만 열린 회사(gate_only_open)는 열린 쪽에 세고, 그 수를 관문만열린상대수로 따로도 둔다."""
+    sides = [_side(s) for o, s in states.items() if o != HOME_ORG]
+    counts = (len(sides), sides.count(OPEN), sides.count(CLOSED), sides.count(None),
+              len({y["기관코드"] for y in gate_only_rows}))
+    return dict(zip(PEER_TALLY, counts))
 
 
 def gate_only_open(data: Data, g: dict[str, Any]) -> list[dict[str, Any]]:
@@ -982,13 +1047,31 @@ def source_text(data: Data, vid: str) -> str:
 
 
 def header(data: Data, base: str, peers: list[str]) -> tuple[str, bool]:
-    """(범위 머리말, 구조 다름). 회사마다 수집한 상품과 기준일을 적고, 갱신이나 환급 구조가 다른 짝이 있으면 뒤에 붙인다."""
-    text = ", ".join(source_text(data, p) for p in peers)
+    """(범위 머리말, 구조 다름). 회사마다 수집한 상품과 기준일을 적고, 갱신이나 환급 구조가 다른 짝이 있으면 뒤에 붙인다.
+    상대 회사가 넷 이상이면 상품마다 적지 않고 회사 수, 상품 수와 기준일의 범위를 적는다(머리말_많음. 상품마다의 머리말은 범위의
+    상대에 있다). 구조가 다른 상대가 넷 이상이면 구조가 같은 회사끼리 묶어 적는다. 셋까지는 지금 그대로다."""
+    orgs = list(dict.fromkeys(_org(data, p) for p in peers))
+    text = _sources_many(data, peers, orgs) if len(orgs) >= MANY else ", ".join(source_text(data, p) for p in peers)
     diff = [p for p in peers if structure_differs(data, base, p)]
     if diff:
-        text += " / " + render("구조", {"우리구조": _structure(data.variants[base]),
-                                        "상대구조": "; ".join(f"{_org_name(data, p)} {_structure(data.variants[p])}" for p in diff)})
+        if len(diff) >= MANY:
+            by: dict[str, list[str]] = {}
+            for p in diff:
+                by.setdefault(_structure(data.variants[p]), []).append(_org_name(data, p))
+            theirs = "; ".join(f"{and_join(names, UNIT_ORG)} {struct}" for struct, names in by.items())
+        else:
+            theirs = "; ".join(f"{_org_name(data, p)} {_structure(data.variants[p])}" for p in diff)
+        text += " / " + render("구조", {"우리구조": _structure(data.variants[base]), "상대구조": theirs})
     return text, bool(diff)
+
+
+def _sources_many(data: Data, peers: list[str], orgs: list[str]) -> str:
+    """상대 회사가 넷 이상일 때의 머리말: "수집한 19곳의 상품 19개 기준(2026-07-01~2026-10-01)". 관문전용 종형이 있으면 그 수를 적는다."""
+    days = sorted({str(data.variants[p].get("적용시작일")) for p in peers if data.variants[p].get("적용시작일")})
+    gated = sum(1 for p in peers if gate_only(data, p))
+    values = {"상대회사수": len(orgs), "상품수": len(peers), "미수집수": gated,
+              "기준일": (days[0] if len(days) == 1 else f"{days[0]}~{days[-1]}") if days else None}
+    return render("머리말_많음_관문" if gated else "머리말_많음", values)
 
 
 def _company_count(data: Data, peers: list[str], hit: list[str]) -> str:
@@ -1001,19 +1084,49 @@ def scope_sentence(data: Data, base: str, peers: list[str], pairs: int, pending:
     담보 쌍이다. 구조가 같은 상대만 있으면 구조 문장은 뺀다. 상대가 없으면 None."""
     if not peers:
         return None
-    names = [render("범위_상품_관문" if gate_only(data, p) else "범위_상품",
-                    {"상품": full_name(data, p), "기준일": data.variants[p].get("적용시작일")}) for p in peers]
-    parts = [("범위", {"상품목록": and_join(names)})]
+    orgs = list(dict.fromkeys(_org(data, p) for p in peers))
+    if len(orgs) >= MANY:
+        parts = scope_products_many(data, peers, orgs)
+    else:
+        names = [render("범위_상품_관문" if gate_only(data, p) else "범위_상품",
+                        {"상품": full_name(data, p), "기준일": data.variants[p].get("적용시작일")}) for p in peers]
+        parts = [("범위", {"상품목록": and_join(names)})]
     diff = [p for p in peers if structure_differs(data, base, p)]
     if diff:
-        theirs = ", ".join(render("구조_상대", {"상대": _org_name(data, p), "상대구조": _structure(data.variants[p])})
-                           for p in diff)
+        if len(diff) >= MANY:
+            # 구조가 다른 상대가 넷 이상이면 구조가 같은 회사끼리 묶어 적는다(셋까지는 회사마다. 지금 그대로)
+            by: dict[str, list[str]] = {}
+            for p in diff:
+                by.setdefault(_structure(data.variants[p]), []).append(_org_name(data, p))
+            theirs = ", ".join(render("구조_상대", {"상대": and_join(names, UNIT_ORG), "상대구조": struct})
+                               for struct, names in by.items())
+        else:
+            theirs = ", ".join(render("구조_상대", {"상대": _org_name(data, p), "상대구조": _structure(data.variants[p])})
+                               for p in diff)
         parts.append(("범위_구조", {"우리구조": _structure(data.variants[base]), "상대문장": theirs}))
     if not pairs:
         parts.append(("범위_쌍없음", {}))
     else:
         parts.append(("범위_대기" if pending else "범위_모두", {"비교쌍": pairs, "뺀비교쌍": pending}))
     return _joined(parts[0][0], parts[0][1], parts[1:])
+
+
+def scope_products_many(data: Data, peers: list[str], orgs: list[str]) -> list[tuple[str, dict]]:
+    """상대 회사가 넷 이상일 때 범위 문장의 첫 문장: 상품을 다 적지 않고 업권별 회사 수와 상품 수를 적는다
+    ("견준 상품은 생명보험 10곳, 손해보험 9곳의 상품 19개입니다"). 상품 목록은 범위의 상대(scope)에 그대로 있다.
+    업권은 자료에 있는 값(Data.org_sector: meta.json 의 기관업권, 없으면 config 의 생명보험, 손해보험 표)만 쓴다. 업권을 모르는
+    상대가 하나라도 있으면 구분을 빼고 상대 회사 수만 적는다(범위_많음_업권모름). 관문전용 종형이 있으면 그 수를 덧붙인다."""
+    sectors = [data.org_sector(o) for o in orgs]
+    values: dict[str, Any] = {"상대회사수": len(orgs), "상품수": len(peers)}
+    if all(sectors):
+        split = [f"{s} {sectors.count(s)}곳" for s in (SECTOR_LIFE, SECTOR_NONLIFE) if sectors.count(s)]
+        parts = [("범위_많음", {**values, "업권나눔": ", ".join(split)})]
+    else:
+        parts = [("범위_많음_업권모름", values)]
+    gated = sum(1 for p in peers if gate_only(data, p))
+    if gated:
+        parts.append(("범위_미수집수", {"미수집수": gated}))
+    return parts
 
 
 def scope(data: Data, base: str, peers: list[str], analysis: dict | None, relations: Relations | None = None,
@@ -1029,8 +1142,10 @@ def scope(data: Data, base: str, peers: list[str], analysis: dict | None, relati
 
     rows = [{**info(p), "머리말": source_text(data, p), "구조다름": structure_differs(data, base, p)} for p in peers]
     text, _ = header(data, base, peers)
+    sectors = [data.org_sector(o) or SECTOR_UNKNOWN for o in dict.fromkeys(_org(data, p) for p in peers)]
     return {
         "기준": info(base), "상대": rows, "회사수": len({_org(data, p) for p in peers}),
+        "업권별": {s: sectors.count(s) for s in (SECTOR_LIFE, SECTOR_NONLIFE, SECTOR_UNKNOWN) if sectors.count(s)},
         "머리말": text,
         "비교쌍": result["비교쌍"], "뺀비교쌍": result["뺀비교쌍"], "뺀시사점": len(result["뺀시사점"]),
         "문장": scope_sentence(data, base, peers, result["비교쌍"], result["뺀비교쌍"]),
@@ -1174,7 +1289,8 @@ def gate_points(ctx: _Ctx, base: str, peers: list[str], p: Profile, out: _Points
                 v = data.variants[pv]
                 groups.setdefault((_range_text(v), _period(v)), []).append(pv)
             parts = [render("G1_상대_기간",
-                            {"상대": and_join(_peer_name(data, pv) for pv in group), "상대범위": rng, "상대기간": period})
+                            {"상대": and_join((_peer_name(data, pv) for pv in group), UNIT_KIND), "상대범위": rng,
+                             "상대기간": period})
                      for (rng, period), group in groups.items()]
             values = {"이력": history_text(p, since_cuts(data)), "소견개월": bv.get("고지최근소견개월"),
                       "중대년수": bv.get("고지중대질병년수"), "우리종형": _kind_name(data, base),
@@ -1200,8 +1316,11 @@ def gate_points(ctx: _Ctx, base: str, peers: list[str], p: Profile, out: _Points
         if not named:
             out.drop("G2", None, "기간 질문을 적을 수 있는 열린 상대 종형이 없음", chosen)
         else:
+            # 상대가 넷 이상이면 기간 질문이 같은 종형끼리 묶어 한 문장으로 적는다(셋까지는 종형마다 한 문장. 지금 그대로)
+            text = (_period_groups(data, named) if len(named) >= MANY
+                    else " ".join(part for _, part in said if part))
             out.add("G2", None, "G2_질문", {"이력": history_text(p, since_cuts(data)), "우리종형": _kind_name(data, base),
-                                          "상대문장": " ".join(part for _, part in said if part)},
+                                          "상대문장": text},
                     named, _gate_evidence(base, named), extra_key=p.key(), source_check=True,
                     관문만수집=any(gate_only(data, v) for v in named))
 
@@ -1212,10 +1331,22 @@ def gate_points(ctx: _Ctx, base: str, peers: list[str], p: Profile, out: _Points
                 out.drop("G2", None, f"나이 자료 없음: {data.org_name(org)}")
         ours = age_span(data, base, p.sex)
         parts = []
+        spans: dict[tuple, list[str]] = {}
         for pv in chosen:
             span = age_span(data, pv, p.sex)
             if span:
                 parts.append(render("G2_상대", {"상대": _peer_name(data, pv), "상대최저": span[0], "상대최고": span[1]}))
+                spans.setdefault(span, []).append(pv)
+        if len(parts) >= MANY and len(spans) <= SHOWN:
+            # 상대가 넷 이상이면 가입나이가 같은 종형끼리 묶어 한 문장으로 적는다(셋까지는 종형마다 한 문장. 지금 그대로)
+            parts = [render("G2_상대", {"상대": and_join((_peer_name(data, pv) for pv in group), UNIT_KIND),
+                                       "상대최저": span[0], "상대최고": span[1]}) for span, group in spans.items()]
+        elif len(parts) >= MANY:
+            # 가입나이가 넷 이상으로 갈리면 하한과 상한의 범위만 적는다(종형마다의 가입나이는 근거의 종형으로 찾는다)
+            los, his = [s[0] for s in spans], [s[1] for s in spans]
+            parts = [render("G2_상대많음", {
+                "상대": and_join((_peer_name(data, pv) for pv in chosen if age_span(data, pv, p.sex)), UNIT_KIND),
+                "하한": _bounds(min(los), max(los)), "상한": _bounds(min(his), max(his))})]
         if not parts or not ours:
             out.drop("G2", None, "가입나이를 적을 수 있는 열린 상대 종형이 없음" if ours else "기준 종형 가입나이 자료 없음", chosen)
         else:
@@ -1322,6 +1453,26 @@ def _period_part(data: Data, vid: str) -> str | None:
         return render("G1_상대_기간", {"상대": _peer_name(data, vid), "상대기간": period, "상대범위": _range_text(v)})
     except TemplateValueMissing:
         return None
+
+
+def _bounds(lo: int, hi: int) -> str:
+    """"15"(같으면) 또는 "15~18"."""
+    return f"{lo}" if lo == hi else f"{lo}~{hi}"
+
+
+def _period_groups(data: Data, vids: list[str]) -> str:
+    """G2(질문)에서 열린 상대 종형이 넷 이상일 때: 기간 질문(기간과 범위)이 같은 종형끼리 묶어 묶음마다 한 문장으로 적는다.
+    종형 이름은 and_join(UNIT_KIND)으로 잇는다. vids는 _period_part가 문장을 낸 종형이다(차례는 그대로)."""
+    groups: dict[tuple, list[str]] = {}
+    for vid in vids:
+        v = data.variants[vid]
+        groups.setdefault((_period(v), _range_text(v) if _period(v) != 0 else None), []).append(vid)
+    out = []
+    for (period, rng), group in groups.items():
+        who = and_join((_peer_name(data, v) for v in group), UNIT_KIND)
+        out.append(render("G2_상대_질문없음", {"상대": who}) if period == 0
+                   else render("G1_상대_기간", {"상대": who, "상대기간": period, "상대범위": rng}))
+    return " ".join(out)
 
 
 def shorter_questions(data: Data, base: str, peers: list[str], renewal: str | None, out: _Points) -> None:
@@ -1444,7 +1595,7 @@ def condition_values(data: Data, base_view: dict[str, Any], peer_views: dict[str
     for p, view in peer_views.items():
         groups.setdefault(_cond_clause(view, shown), []).append(p)
     sides = [_cond_clause(base_view, shown)]
-    sides += [render("조건절_상대", {"상대": and_join(_peer_name(data, p) for p in group), "상대절": clause})
+    sides += [render("조건절_상대", {"상대": and_join((_peer_name(data, p) for p in group), UNIT_KIND), "상대절": clause})
               for clause, group in groups.items()]
     out: dict[str, Any] = {"조건문": _connect(sides)}
     waits = {float(v.get("wait") or 0) for v in views}
@@ -1501,11 +1652,14 @@ def insight_points(ctx: _Ctx, result: dict[str, Any], out: _Points | None = None
         if code == "A1":
             # 입원 담보에는 주의(상대의 일반 입원 담보로 같은 입원이 지급될 수 있다)를 "주의"에 싣고 문장 끝에도 붙인다
             note = render("A1_주의", {}) if data.std[sid].get("급부유형") == "입원" else None
-            out.add(code, sid, "A1", {"담보": v["담보"], "우리종형": mine, "상대회사목록": v.get("없는회사")},
+            # 없는 회사가 넷 이상이면 "A, B, C 등 N곳"으로 줄인다(셋까지는 지금처럼 목록을 쉼표로 잇는다)
+            short = _shortened([str(n) for n in v.get("없는회사") or []], UNIT_ORG)
+            out.add(code, sid, "A1_많음" if short else "A1",
+                    {"담보": v["담보"], "우리종형": mine, "상대회사목록": short or v.get("없는회사")},
                     involved, evidence, tail=[("A1_주의", {})] if note else None, 주의=note, **common)
         elif code in ("Q1", "Q2"):
-            q = ("Q_질문", {"상대회사": or_join(v.get("가진회사") or []), "담보": v["담보"]})
-            holders = and_join(v.get("가진회사") or [])
+            q = ("Q_질문", {"상대회사": or_join(v.get("가진회사") or [], UNIT_ORG), "담보": v["담보"]})
+            holders = and_join(v.get("가진회사") or [], UNIT_ORG)
             if code == "Q1":
                 values = {"우리종형": mine, "담보": v["담보"], "덮는담보": and_join(v.get("덮는담보") or [])}
                 out.add(code, sid, "Q1_분석", {**values, "상대회사목록": holders}, involved, evidence, question=q,
@@ -1543,7 +1697,7 @@ def insight_points(ctx: _Ctx, result: dict[str, Any], out: _Points | None = None
                     if months:
                         tail = [("Q3_경과", {"경과": I.months_text(max(months)),
                                             "모두": "둘 다" if len(kept_peers) == 1 else "모두"})]
-                q = ("Q3_질문", {"담보": v["담보"], "상대회사": or_join(_org_name(data, p) for p in kept_peers)})
+                q = ("Q3_질문", {"담보": v["담보"], "상대회사": or_join((_org_name(data, p) for p in kept_peers), UNIT_ORG)})
                 out.add(code, sid, "Q3_분석_면책같음" if same_wait else "Q3_분석", values, kept_peers, evidence, question=q,
                         tail=tail, card=("Q3_면책같음" if same_wait else "Q3", values), card_tail=tail, 견준항목=items,
                         **common)
@@ -1726,9 +1880,16 @@ def caution(data: Data, base: str, analysis: dict | None, relations: Relations |
             continue
         v, peers = ins["변수"], list(ins["비교종형ID"])
         theirs = {p: v["상대지급형태"].get(_org_name(data, p)) for p in peers}
-        values = {"담보": v["담보"], "우리종형": mine, "우리지급형태": v["기준지급형태"],
-                  "상대문장": ", ".join(render("지급_상대", {"상대": _peer_name(data, p), "상대지급형태": theirs[p]})
-                                     for p in peers),
+        if len(peers) >= MANY:
+            # 상대가 넷 이상이면 지급 형태가 같은 상대끼리 묶어 적는다(셋까지는 상대마다. 지금 그대로)
+            forms: dict[Any, list[str]] = {}
+            for p in peers:
+                forms.setdefault(theirs[p], []).append(p)
+            said = ", ".join(render("지급_상대", {"상대": and_join((_peer_name(data, p) for p in group), UNIT_KIND),
+                                                "상대지급형태": form}) for form, group in forms.items())
+        else:
+            said = ", ".join(render("지급_상대", {"상대": _peer_name(data, p), "상대지급형태": theirs[p]}) for p in peers)
+        values = {"담보": v["담보"], "우리종형": mine, "우리지급형태": v["기준지급형태"], "상대문장": said,
                   "지급차이": pay_difference(data, ins)}
         # 같은 상대와 조건 우열이 난 포인트(A2, Q3)
         ranked = [x for x in pts["포인트"] if x["표준담보ID"] == ins["표준담보ID"] and x["세부"] in ("A2", "Q3")
@@ -1737,7 +1898,7 @@ def caution(data: Data, base: str, analysis: dict | None, relations: Relations |
             text = render("주의_지급_조건", values)
             for x in ranked:
                 text += " " + render("주의_지급_조건상대", {
-                    "상대": and_join(_peer_name(data, p) for p in x["비교종형ID"] if p in peers),
+                    "상대": and_join((_peer_name(data, p) for p in x["비교종형ID"] if p in peers), UNIT_KIND),
                     "조건항목": and_join(x["견준항목"]), "조건분류": x["분류"]})
         else:
             text = render("주의_지급", values)
@@ -2030,6 +2191,14 @@ def no_age_companies(data: Data, renewal: str | None = None) -> list[str]:
     return [data.org_name(o) for o, ok in has.items() if not ok]
 
 
+def spread(values: list[float]) -> dict[str, float] | None:
+    """{"최소", "중앙", "최대"}. 중앙은 statistics.median이고 정수로 떨어지면 정수로 적는다. 값이 없으면 None."""
+    if not values:
+        return None
+    mid = statistics.median(values)
+    return {"최소": min(values), "중앙": int(mid) if float(mid).is_integer() else mid, "최대": max(values)}
+
+
 def _gate_only_cells(data: Data, seg: dict[str, Any]) -> tuple[int, list[str], bool]:
     """(열린 상대 종형이 관문전용뿐인 칸의 수, 그 종형 이름, 그 종형이 모두 우리 간편 종형에 없는 기간 질문인지)."""
     cells = [x for line in seg["칸"] for x in line if x.get("관문만수집")]
@@ -2057,7 +2226,8 @@ def _line_landscape(data: Data, seg: dict[str, Any]) -> dict[str, Any]:
     values = {"전체칸수": len(cells), "우리간편만열림칸수": only, "우리간편만열림요약": summary, "함께열림칸수": both,
               "우리간편닫힘칸수": closed, "우리간편닫힘라벨칸수": closed_all, "간편모두닫힘칸수": all_closed,
               "자료없음칸수": nodata, "라벨별": labels, "관문만칸수": gate_cells, "관문만종형": gate_names,
-              "나이자료없음회사": no_age, "성별": seg["성별"], "갱신유형": seg["갱신유형"]}
+              "나이자료없음회사": no_age, "성별": seg["성별"], "갱신유형": seg["갱신유형"],
+              "열린상대수분포": spread([x["열린상대수"] for x in cells if "열린상대수" in x])}
     if not cells:
         used = ["가_자료없음"]
         text = render("가_자료없음", {})
@@ -2074,7 +2244,8 @@ def _line_landscape(data: Data, seg: dict[str, Any]) -> dict[str, Any]:
     text = render("가", {"전체칸수": len(cells), "절목록": ", ".join(render(t, values) for t in used)})
     tails = (["가_관문만" if unique else "가_관문만_같은유형"] if gate_cells else []) + (["가_나이자료없음"] if no_age else [])
     if tails:              # 관문만 열린 칸과 나이 자료가 없는 상대는 둘째 문장 하나로 잇는다
-        text += " " + _connect([render(t, {**values, "관문만종형": and_join(gate_names), "나이자료없음회사": and_join(no_age)})
+        text += " " + _connect([render(t, {**values, "관문만종형": and_join(gate_names, UNIT_KIND),
+                                           "나이자료없음회사": and_join(no_age, UNIT_ORG)})
                                 for t in tails])
     return _brief_line("가", SCOPE_ALL, values, text, TAB_MARKET, used + tails, 구역="고객군 지형")
 
@@ -2167,13 +2338,20 @@ def _line_position(pts: dict[str, Any], grid: dict[str, Any], cautions: list[dic
               **{f"{t}수": held[t] for t in JOURNEY_TYPES}, "기타수": row.get("기타", 0), "보유수": row["전체"],
               "보유나눔": ", ".join(split), "단정보류수": held_back, "지급형태다름수": pay, "상대보유": others,
               "상대보유나눔": ", ".join(render("라_상대보유", {"상대": r["이름"], "보유수": r["보유수"]}) for r in others)}
+    # 상대가 넷 이상이면 상대마다의 보유 수(상대보유나눔) 대신 범위와 중앙값을 적는다(맞붙는 상대 종형은 회사마다 하나다)
+    many = len(others) >= MANY
+    if many:
+        dist = spread([r["보유수"] for r in others])
+        values.update({"상대회사수": len(others), "상대보유분포": dist,
+                       "상대보유요약": render("라_상대보유같음" if dist["최소"] == dist["최대"] else "라_상대보유범위",
+                                         {"최소": dist["최소"], "최대": dist["최대"], "중앙": dist["중앙"]})})
     if not s["비교쌍"]:
         first = "라_범위_없음"
     elif not compared:
         first = "라_범위_모두대기"
     else:
         first = "라_범위" if s["뺀비교쌍"] else "라_범위_대기없음"
-    second = ("라_보유" if row["전체"] else "라_보유_없음") + ("_상대" if others else "")
+    second = ("라_보유" if row["전체"] else "라_보유_없음") + (("_상대많음" if many else "_상대") if others else "")
     third = "라_보류" if held_back or pay else "라_보류_없음"
     used = [first, second, third]
     # 첫 문장은 견준 쌍과 우열을 단정하지 않은 비교를 잇고, 둘째 문장은 보유 수다(틀 목록은 지금처럼 범위, 보유, 보류 차례)
@@ -2331,7 +2509,8 @@ def _export_map(ctx: _Ctx, seg: dict[str, Any], pool: dict[str, dict], texts: _T
             row.append({"라벨": x["라벨"], "보조": x["보조"], "닫힌사유": x["닫힌사유"], "회사": x["회사"],
                         "대표": x["대표"], "상대대표": x["상대대표"], "분류수": x["분류수"], "자료없음": x["자료없음"],
                         "열린종형": x["열린종형"], "관문기준": base, "관문포인트": [y["포인트ID"] for y in found],
-                        "관문만수집": x["관문만수집"]})
+                        "관문만수집": x["관문만수집"],
+                        **{k: x[k] for k in PEER_TALLY}})
         cells.append(row)
     labels = {lab: sum(1 for line in cells for x in line if x["라벨"] == lab) for lab in LABELS.values()}
     return {"성별": seg["성별"], "갱신유형": seg["갱신유형"], "행": seg["행"], "열": seg["열"], "칸": cells, "라벨별": labels}
@@ -2377,7 +2556,7 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
             "맞붙는종형": peers,
             "범위": {"상대": [{"종형ID": r["종형ID"], "머리말": texts.add(r["머리말"]), "구조다름": r["구조다름"]} for r in s["상대"]],
                    "회사수": s["회사수"], "머리말": texts.add(s["머리말"]), "비교쌍": s["비교쌍"], "뺀비교쌍": s["뺀비교쌍"],
-                   "뺀시사점": s["뺀시사점"], "문장": s["문장"]},
+                   "뺀시사점": s["뺀시사점"], "문장": s["문장"], "업권별": s["업권별"]},
             "관문": {k: v for k, v in pts["관문"].items() if k != "종형ID"},
             "포인트": [x["포인트ID"] for x in pts["포인트"]],
             "분류집계": pts["분류집계"], "세부집계": pts["집계"],

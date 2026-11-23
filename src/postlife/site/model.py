@@ -32,6 +32,9 @@ MAX_AGE = 120                            # 나이 입력의 상한
 # 기준가입금액만원 100, 기준지급금액만원 = 지급률(%)로 적는다. 열이 없거나 비어 있으면 "금액"으로 본다.
 BASIS_COLUMN = "지급기준구분"
 RATIO_BASIS = "가입금액비율"
+# meta.json 의 선택 열쇠(가상 사본이 싣는다): 기관코드 → 기관 이름, 기관코드 → 업권
+META_NAMES, META_SECTORS = "기관이름", "기관업권"
+SECTOR_LIFE, SECTOR_NONLIFE = "생명보험", "손해보험"
 
 
 @dataclass(frozen=True)
@@ -126,7 +129,24 @@ class Data:
                 -started, str(v.get("공시상품명")), str(v.get("종형명")))
 
     def org_name(self, code: str) -> str:
+        """기관 이름. 사본의 meta.json 에 이름 표(기관이름)가 있으면 먼저 읽고(가상 사본. scripts/dev/make_synthetic_snapshot.py),
+        없으면 config 의 기관 표다. 실제 사본에는 이름 표가 없어 config 그대로다."""
+        names = self.meta.get(META_NAMES)
+        if isinstance(names, dict) and code in names:
+            return str(names[code])
         return {**config.INSTITUTIONS, **config.COMMON}.get(code, code)
+
+    def org_sector(self, code: str) -> str | None:
+        """기관의 업권(SECTOR_LIFE, SECTOR_NONLIFE). meta.json 의 기관업권을 먼저 읽고, 없으면 config 의 생명보험(LIFE),
+        손해보험(NONLIFE) 표에서 찾는다. 어디에도 없으면(우체국, 모르는 기관) None 이다. 지어내지 않는다."""
+        sectors = self.meta.get(META_SECTORS)
+        if isinstance(sectors, dict) and sectors.get(code) in (SECTOR_LIFE, SECTOR_NONLIFE):
+            return sectors[code]
+        if code in config.LIFE:
+            return SECTOR_LIFE
+        if code in config.NONLIFE:
+            return SECTOR_NONLIFE
+        return None
 
     def main_rider(self, vid: str) -> str | None:
         for tid in self.riders_of.get(vid, []):

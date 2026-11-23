@@ -9,3 +9,5 @@ credentials*.json
 local/
 # 시안 사진(proto_src의 shoot.py가 만든다)
 shots_console4/
+# 시험용 생성물(가상 사본과 그 화면. scripts/dev/make_synthetic_snapshot.py, build_console4_synthetic.py). 공개하지 않는다
+out/
