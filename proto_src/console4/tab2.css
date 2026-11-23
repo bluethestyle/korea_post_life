@@ -1,174 +1,124 @@
-/* 탭 2 고객군과 시장 전용. 공통 부품은 style.css. 주인공 도형은 구역 지도(acs_09의 구역과 꺾쇠 커서) */
+/* 탭 2 고객군과 시장 전용: 진행 추적기 3구역 구성(왼쪽 이력/나이 묶음 + 가운데 4x6 고리 격자 + 오른쪽 고객군 상세). */
 
-/* 제목 옆: 오른쪽이 짙고 왼쪽으로 안개에 풀리는 구역 띠(acs_09 오른쪽 위의 정복 띠) */
-@media (min-width:1000px){ #view-market .vhead{align-items:flex-end} }
-/* 글자 묶음(.mk-zin)은 늘 불투명한 슬레이트 위에 두고, 안개로 풀리는 꼬리(400px)는 그 왼쪽에만 붙인다.
-   본문이 좁아져(근거 기둥이 밀려 들어온 1180~1280) 띠가 짧아지면 꼬리가 잘릴 뿐 글자 밑 면은 그대로다 */
-#view-market .mk-zone{position:relative;display:flex;justify-content:flex-end;min-height:108px;overflow:hidden}
-#view-market .mk-zin{position:relative;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:14px 28px 14px 32px;background:var(--slate);color:var(--on-slate)}
-#view-market .mk-zin::before{content:"";position:absolute;right:100%;top:0;bottom:0;width:400px;background:linear-gradient(90deg,rgba(58,66,74,0),var(--slate))}
-#view-market .mk-zin::after{content:"";position:absolute;right:0;top:0;width:calc(100% + 200px);height:3px;background:linear-gradient(270deg,var(--top-line) 60%,rgba(255,255,255,0))}
-#view-market .mk-zt{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right;min-width:0}
-#view-market .mk-zt .k{font:600 13px/1.3 var(--f-ko);color:#E2D59A}
-#view-market .mk-zt b{font:600 18px/1.3 var(--f-ko);color:#fff;white-space:nowrap}
-#view-market .mk-zt .sub{font:400 13px/1.4 var(--f-body);color:var(--on-slate-2);white-space:nowrap}
-#view-market .mk-zone .ring .trk{stroke:#fff;stroke-opacity:.25}
-#view-market .mk-zone .ring .tks line{stroke:#fff;stroke-opacity:.6}
-#view-market .mk-zone .ring .arc{stroke:#fff}
-#view-market .mk-zone .ring .arc.gold{stroke:var(--gold)}
-#view-market .mk-zone .ring .diag{stroke:#fff}
-#view-market .mk-zone .big{color:#fff}
-#view-market .mk-zone .big .d{color:var(--on-slate-2)}
-:root[data-theme="dark"] #view-market .mk-zin::before{background:linear-gradient(90deg,rgba(66,76,86,0),var(--slate))}
+.mk-zl-ren{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 10px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.mk-zl-ren .zl-k{white-space:nowrap}
+.mk-zl-ren .chev-sel{height:32px}
+.mk-zl-ren .chev-sel button{width:30px}
+.mk-zl-ren .chev-sel .v{min-width:50px;font-size:13px}
+.mk-zl-sep{height:1px;margin:8px 0;background:var(--line-2)}
 
-/* 지도 패널 */
-#view-market .mk-map .panel-h .k{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-#view-market .mk-k{font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
-#view-market .mk-renl{font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
-#view-market .mk-why{margin:0 24px 10px;padding:8px 12px;font:400 14px/1.55 var(--f-body);color:var(--ink-0);background:var(--panel-lo);border-left:3px solid var(--ink-1)}
-#view-market .mk-body{padding:4px 24px 18px}
-#view-market .mk-sum{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:0 24px 14px}
-#view-market .mk-sum .cqs{gap:2px}
-#view-market .mk-sum .cq{width:12px;height:12px}
-#view-market .mk-foot3{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr) auto;gap:16px 28px;align-items:start;padding:14px 24px 18px;border-top:1px solid var(--line)}
-#view-market .mk-nt{display:flex;flex-direction:column;gap:8px;min-width:0}
-#view-market .mk-nt .note{margin:0}
-/* 지도 격자: 행 머리 + 나이 열. 칸은 네모(.sq), 고른 칸은 공통의 빨강 테두리와 꺾쇠 */
-#view-market .mk-grid{display:grid;grid-template-columns:150px repeat(var(--nc),minmax(0,1fr));gap:4px;align-items:stretch;container-type:inline-size;container-name:mkgrid}
-#view-market .mk-corner{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;padding:0 8px 6px 0;font:600 13px/1.3 var(--f-ko);color:var(--ink-2)}
-#view-market .mk-corner .num{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-ko)}
-#view-market .mk-ch{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding:0 10px 6px;border-bottom:2px solid var(--ink-0)}
-#view-market .mk-ch b{font:600 15px/1.2 var(--f-num);color:var(--ink-0);white-space:nowrap}
-#view-market .mk-nh{display:grid;grid-template-columns:repeat(6,31px);font:600 13px/1.2 var(--f-ko);color:var(--ink-2);text-align:right}
-#view-market .mk-nh i{font-style:normal}
-#view-market .mk-gh{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:10px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
-#view-market .mk-gh i{flex:1 1 auto;height:1px;background:var(--line-2)}
-#view-market .mk-rh{display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font:400 13px/1.35 var(--f-body);color:var(--ink-0);text-align:right;word-break:keep-all}
+/* 가운데 구역: 고리 격자 무대(1920x1080에서 24개 고리가 스크롤 없이 한 화면에 들어온다) */
+.mkc-stage{display:flex;flex-direction:column;justify-content:space-between;min-height:100%;gap:8px}
+.mkc-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.mkc-head h2{margin:0;font:600 17px/1.3 var(--f-ko);color:var(--ink-0)}
+.mkc-cue{font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
+.mkc-banner{margin:0;padding:6px 10px;font:400 13px/1.45 var(--f-body);color:var(--ink-0);background:var(--panel-lo);border-left:3px solid var(--ink-1)}
 
-#view-market .mk-cell{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;
-  align-content:center;align-items:center;place-items:initial;column-gap:8px;row-gap:3px;min-height:58px;padding:7px 10px 7px 12px;
-  background:transparent;text-align:left;color:var(--ink-0);overflow:visible}
-#view-market .mk-bg{position:absolute;inset:0;z-index:-1;transform-origin:0 0}
-#view-market .mk-cell[data-l="m-all"]{color:var(--m-all-fg)}
-#view-market .mk-cell[data-l="m-ours"]{color:var(--m-ours-fg)}
-#view-market .mk-cell[data-l="m-only"]{color:var(--m-only-fg)}
-#view-market .mk-cell[data-l="m-both"]{color:var(--m-both-fg)}
-/* 밝은 스킨에서 함께 열림 칸은 흰 면 예산(10%) 안에 들도록 한 단계 낮춘 밝은 회색 */
-:root:not([data-theme="dark"]) #view-market .mk-bg.m-both{background:#ECEEEF}
-#view-market .mk-cell:hover .mk-bg{filter:brightness(.96)}
-:root[data-theme="dark"] #view-market .mk-cell:hover .mk-bg{filter:brightness(1.12)}
-#view-market .mk-l{font:600 14px/1.25 var(--f-ko);word-break:keep-all}
-#view-market .mk-s{font:400 13px/1.35 var(--f-body);word-break:keep-all}
-#view-market .mk-cell[data-l="m-all"] .mk-s{opacity:1}
-#view-market .mk-o{display:flex;gap:6px;justify-self:end}
-#view-market .mk-os{display:inline-flex;align-items:center;gap:3px;font:600 13px/1 var(--f-ko)}
-#view-market .mk-os svg{width:10px;height:10px}
-#view-market .mk-n{display:grid;grid-template-columns:repeat(6,31px);justify-self:end;font:600 13px/1 var(--f-num);font-variant-numeric:tabular-nums;text-align:right}
-#view-market .mk-n b{font-weight:600}
-#view-market .mk-n b.na::after{content:"";display:inline-block;width:8px;height:8px;border:1px dashed currentColor;opacity:.6}
-#view-market .mk-cell > .flag{z-index:3}
-/* 지금 조건이 가리키는 칸: 빨강을 쓰지 않고 먹색 4px 막대와 꼬리표 */
-#view-market .mk-now{display:inline-flex;align-items:center;gap:4px;height:20px;margin-right:8px;padding:0 6px;vertical-align:1px;
-  font:600 13px/1 var(--f-ko);color:#fff;background:var(--slate-solid);white-space:nowrap;opacity:1}
-#view-market .mk-now svg{width:9px;height:9px}
-#view-market .mk-go{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;margin-top:1px;font:400 13px/1.3 var(--f-body)}
-#view-market .mk-gob{display:inline-flex;align-items:center;padding:1px 5px;border:1px dashed currentColor;font:600 13px/1.2 var(--f-ko);white-space:nowrap}
-#view-market .mk-cell:has(.mk-now){box-shadow:inset 4px 0 0 var(--ink-0)}
-#view-market .mk-cell.is-sel:has(.mk-now){box-shadow:inset 0 0 0 2px #fff,inset 6px 0 0 var(--ink-0)}
-#view-market .mk-cell.is-sel .mk-bg{filter:none}
+/* 4행 x 6열 고리 격자: 1920x1080 기준 지름 76px(>=72px), 가로 간격 42px(>=38px), 세로 간격 42px(>=38px) */
+.mk-rgrid-wrap{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:4px 0}
+.mk-rcols{display:grid;grid-template-columns:86px repeat(6,76px);column-gap:42px;align-items:end;justify-content:center}
+.mk-rch{text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
+.mk-rrows{display:flex;flex-direction:column;gap:42px;align-items:center}
+.mk-rrow{display:grid;grid-template-columns:86px repeat(6,76px);column-gap:42px;align-items:center;justify-content:center;
+  transition:opacity 180ms var(--ease)}
+.mk-rrow.surg-sep{position:relative}
+.mk-rrow.surg-sep::before{content:"";position:absolute;left:0;right:0;top:-21px;height:1px;background:var(--line-2)}
+.mk-rrows.has-hl .mk-rrow:not(.is-hl){opacity:.42}
+.mk-rrh{font:600 13px/1.28 var(--f-ko);color:var(--ink-0);text-align:right;padding-right:6px;word-break:keep-all}
 
-/* 칸이 왼쪽 위에서 번져 나온다(400ms). 글자는 바탕 위에 늘 보인다 */
-#view-market .mk-anim .mk-bg{animation:mkGrow 200ms var(--ease) both;animation-delay:var(--d,0ms)}
-@keyframes mkGrow{from{transform:scale(.08);opacity:.2}to{transform:none;opacity:1}}
+/* 고리 하나(색과 선의 뜻 4가지: 금색=우리 간편 열림, 회색=우리 간편 닫힘/일반심사, 점선=자료 없음, 빨강 원=고른 것) */
+.mk-ring{position:relative;width:76px;height:76px;padding:0;border:0;background:transparent;display:grid;place-items:center;
+  color:var(--ink-0);transition:transform 160ms var(--ease)}
+.mk-ring:hover{transform:scale(1.05)}
+.mk-ring svg{width:100%;height:100%;display:block;overflow:visible}
+.mk-ring > .flag{left:2px;top:2px}
+.mk-rn{position:absolute;inset:0;display:grid;place-items:center;font:600 22px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none}
 
-/* 집계 */
-#view-market .mk-tl .tbl td,#view-market .mk-tl .tbl th{padding:6px 8px}
-#view-market .mk-tl .tbl td:first-child{display:flex;align-items:center;gap:8px}
-#view-market .mk-gap{list-style:none;margin:0;padding:10px 12px;background:var(--panel-lo);font:400 13px/1.55 var(--f-body);color:var(--ink-0)}
-#view-market .mk-gap li{display:flex;gap:8px;align-items:flex-start}
-#view-market .mk-gap svg{flex:none;margin-top:4px}
-#view-market .mk-gap b{font-weight:600}
-#view-market .mk-acts{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+/* 1. 금색 고리: 우리 간편도 열림 */
+.mk-ring.is-gold .mkr-bg{fill:var(--gold-soft)}
+.mk-ring.is-gold .mkr-out{stroke:var(--gold-line);stroke-opacity:.72}
+.mk-ring.is-gold .mkr-trk{stroke:var(--gold-line);stroke-opacity:.36}
+.mk-ring.is-gold .mkr-tks line{stroke:var(--gold-line);stroke-opacity:.58}
+.mk-ring.is-gold .mkr-arc{stroke:var(--gold-line)}
+:root[data-theme="dark"] .mk-ring.is-gold .mkr-out,
+:root[data-theme="dark"] .mk-ring.is-gold .mkr-arc{stroke:var(--gold)}
 
-#view-market .mk-legend{display:flex;flex-direction:column;gap:6px}
-#view-market .mk-legend .lg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px}
-#view-market .mk-legend .lg > span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-#view-market .mk-legend .lg b{font:600 13px/1 var(--f-ko);color:var(--ink-0)}
-#view-market .mk-legend .mk-lgn{display:block;white-space:normal}
+/* 2. 회색 고리: 우리 간편 닫힘(일반심사로 확인) */
+.mk-ring.is-grey .mkr-bg{fill:rgba(255,255,255,.18)}
+:root[data-theme="dark"] .mk-ring.is-grey .mkr-bg{fill:rgba(255,255,255,.03)}
+.mk-ring.is-grey .mkr-out{stroke:var(--ink-2);stroke-opacity:.28}
+.mk-ring.is-grey .mkr-trk{stroke:var(--ink-2);stroke-opacity:.26}
+.mk-ring.is-grey .mkr-tks line{stroke:var(--ink-2);stroke-opacity:.52}
+.mk-ring.is-grey .mkr-arc{stroke:var(--ink-1)}
 
-/* 개정과 시장 */
-#view-market .mk-lower{margin-top:8px}
-#view-market .mk-cls{display:flex;flex-direction:column;gap:6px}
-#view-market .mk-clb{display:grid;grid-template-columns:minmax(90px,auto) minmax(80px,1fr) 28px;align-items:center;gap:10px;font:400 13px/1.3 var(--f-body);color:var(--ink-1)}
-#view-market .mk-clb b{font:600 15px/1 var(--f-num);text-align:right;color:var(--ink-0)}
-#view-market .mk-two{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:var(--gap);align-items:start}
-#view-market .mk-pad{padding:0 24px 14px;display:flex;flex-direction:column;gap:10px}
-#view-market .mk-pad .note{margin:0}
-#view-market .mk-pairs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
-#view-market .mk-pairs li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--line);font:400 14px/1.5 var(--f-body)}
-#view-market .mk-pairs li:first-child{border-top:0}
-#view-market .mk-pairs b{font-weight:600}
-#view-market .mk-kv{font-size:13px}
-#view-market .mk-kv dd{font-weight:600;text-align:right}
-#view-market .mk-rev .tbl td:nth-child(2){white-space:nowrap}
-#view-market .mk-rev .tbl td:nth-child(4){font-size:13px;color:var(--ink-1)}
-#view-market .mk-rev .tbl tr.is-sel td:nth-child(4){color:#fff}
-#view-market .mk-rev .tbl td:first-child,#view-market .mk-rev .tbl th:first-child{padding-left:24px}
-#view-market .mk-quote{margin:0;padding:8px 12px 8px 14px;font:400 13px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--gold-line)}
-#view-market .mk-nw{padding:10px 48px 10px 24px}
-#view-market .mk-nwh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:30px}
-#view-market .mk-nwh.selbar::before{right:-48px}
-#view-market .mk-nwh b{font:600 15px/1.3 var(--f-ko)}
-#view-market .mk-tg{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
-#view-market .mk-tg:empty{display:none}
-#view-market .mk-d{font:600 13px/1 var(--f-num);color:var(--ink-1)}
-#view-market .mk-q{margin:6px 0 4px;font:400 14px/1.65 var(--f-body);color:var(--ink-0);word-break:keep-all}
-#view-market .mk-src{margin:0;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
-#view-market .mk-nw.is-sel .mk-q,#view-market .mk-nw.is-sel .mk-src{color:var(--ink-0)}
-.ev .mk-url{word-break:break-all;font-family:var(--f-num)}
-.ev .mk-quote{margin:0 0 8px;padding:8px 12px 8px 14px;font:400 13px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--gold-line)}
-.ev .mk-est{display:inline-flex;align-items:center;gap:6px}
-.ev .mk-est b{font-weight:600}
+/* 3. 점선 고리: 자료 없음 */
+.mk-ring.is-dash .mkr-bg{fill:transparent}
+.mk-ring.is-dash .mkr-out{stroke:var(--dash);stroke-dasharray:4 3.5;stroke-opacity:.85}
+.mk-ring.is-dash .mkr-trk{stroke:var(--dash);stroke-dasharray:3 3;stroke-opacity:.65}
+.mk-ring.is-dash .mkr-tks{display:none}
+.mk-ring.is-dash .mkr-arc{stroke:var(--ink-2)}
 
-/* 폭에 따라 */
-@media (max-width:1599px){
-  #view-market .mk-zin{gap:14px;padding-left:24px}
-  #view-market .mk-zone .big{font-size:40px}
+/* 4. 빨강 원: 고른 고객군 */
+.mk-ring.is-sel .mkr-disc{fill:var(--red)}
+.mk-ring.is-sel .mkr-out{stroke:var(--red);stroke-opacity:.9}
+.mk-ring.is-sel .mkr-trk{stroke:#fff;stroke-opacity:.36}
+.mk-ring.is-sel .mkr-tks line{stroke:#fff;stroke-opacity:.62}
+.mk-ring.is-sel .mkr-arc{stroke:#fff}
+.mk-ring.is-sel .mkr-diag{stroke:var(--ink-0);opacity:1}
+:root[data-theme="dark"] .mk-ring.is-sel .mkr-diag{stroke:#fff}
+.mk-ring.is-sel .mk-rn{color:#fff}
+
+.mkr-disc{fill:transparent;transition:fill 160ms var(--ease)}
+.mkr-diag{stroke:transparent;opacity:0;transition:opacity 160ms var(--ease)}
+.mkr-arc{transition:stroke-dasharray 380ms var(--ease)}
+
+/* 진입 시 차오름 */
+.mk-anim .mk-ring{animation:mkPop 260ms var(--ease) both;animation-delay:var(--d,0ms)}
+@keyframes mkPop{from{opacity:.25;transform:scale(.88)}to{opacity:1;transform:none}}
+
+/* 가운데 구역: 개정과 시장 / 집계와 일러두기 / 문장 보기 모드 */
+.mk-subtabs{display:inline-flex;gap:6px}
+.mk-subtab{height:28px;padding:0 12px;border:1px solid var(--line-2);background:rgba(255,255,255,.32);font:600 13px/1 var(--f-ko);color:var(--ink-1)}
+:root[data-theme="dark"] .mk-subtab{background:rgba(255,255,255,.05)}
+.mk-subtab.is-on{background:var(--slate);color:#fff;border-color:transparent}
+.mk-pane-scroll{display:flex;flex-direction:column;gap:12px}
+.mk-pairs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.mk-pairs li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--line);font:400 14px/1.5 var(--f-body)}
+.mk-pairs li:first-child{border-top:0}
+.mk-quote{margin:0;padding:8px 12px;font:400 13px/1.55 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--gold-line)}
+.mk-nw{padding:10px 36px 10px 16px}
+.mk-nwh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:28px}
+.mk-d{font:600 13px/1 var(--f-num);color:var(--ink-1)}
+.mk-q{margin:5px 0 3px;font:400 13.5px/1.58 var(--f-body);color:var(--ink-0);word-break:keep-all}
+.mk-src{margin:0;font:400 13px/1.45 var(--f-body);color:var(--ink-1)}
+.mk-gap{list-style:none;margin:0;padding:8px 12px;background:var(--panel-lo);font:400 13px/1.55 var(--f-body);color:var(--ink-0)}
+.mk-gap li{display:flex;gap:8px;align-items:flex-start}
+.mk-url{word-break:break-all;font-family:var(--f-num)}
+.mk-est{display:inline-flex;align-items:center;gap:6px}
+
+/* 해상도별 고리 격자 치수 */
+@media (max-width:1599px) and (min-width:1280px){
+  .mk-rcols,.mk-rrow{grid-template-columns:80px repeat(6,60px);column-gap:28px}
+  .mk-rrows{gap:26px}
+  .mk-rrow.surg-sep::before{top:-13px}
+  .mk-ring{width:60px;height:60px}
+  .mk-rn{font-size:18px}
 }
-@container mkgrid (max-width:760px){
-  #view-market .mk-n,#view-market .mk-nh{display:none}
-}
-@media (max-width:1279px){
-  #view-market .mk-two{grid-template-columns:minmax(0,1fr)}
-  #view-market .mk-foot3{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}
-  #view-market .mk-acts{grid-column:1/-1;flex-direction:row}
+@media (max-width:1279px) and (min-width:1000px){
+  .mk-rcols,.mk-rrow{grid-template-columns:72px repeat(6,50px);column-gap:18px}
+  .mk-rrows{gap:20px}
+  .mk-rrow.surg-sep::before{top:-10px}
+  .mk-ring{width:50px;height:50px}
+  .mk-rn{font-size:16px}
 }
 @media (max-width:999px){
-  #view-market .mk-zone{min-height:0}
-  #view-market .mk-zin{flex:1 1 auto;padding:12px 16px;justify-content:space-between}
-  #view-market .mk-zin::before{display:none}
-  #view-market .mk-zin::after{width:100%}
-  #view-market .mk-zt{align-items:flex-start;text-align:left}
-  #view-market .mk-zt b{font-size:16px;white-space:normal}
-  #view-market .mk-zone .ring{width:48px;height:48px}
-  #view-market .mk-zone .big{font-size:30px}
-  #view-market .mk-body{padding:4px 10px 14px}
-  #view-market .mk-sum{padding:0 16px 12px}
-  #view-market .mk-foot3{grid-template-columns:minmax(0,1fr);padding:12px 16px 16px}
-  #view-market .mk-grid{grid-template-columns:repeat(var(--nc),minmax(0,1fr));gap:3px}
-  #view-market .mk-corner{display:none}
-  #view-market .mk-ch{padding:0 4px 4px}
-  #view-market .mk-ch b{font-size:14px}
-  #view-market .mk-gh{margin-top:12px}
-  #view-market .mk-rh{grid-column:1/-1;justify-content:flex-start;padding:6px 0 0;font:600 13px/1.3 var(--f-ko);text-align:left}
-  #view-market .mk-cell{grid-template-columns:minmax(0,1fr);min-height:64px;padding:6px 6px 6px 8px;row-gap:4px}
-  #view-market .mk-l{font-size:13px}
-  #view-market .mk-s{font-size:13px;line-height:1.3}
-  #view-market .mk-o{justify-self:start;flex-wrap:wrap;gap:2px 6px}
-  #view-market .mk-os{font-size:13px}
-  #view-market .mk-os svg{width:10px;height:10px}
-  #view-market .mk-now{height:20px;padding:0 5px;font-size:13px;margin:0 0 2px;display:flex;width:max-content}
-  #view-market .mk-pad{padding:0 16px 12px}
-  #view-market .mk-nw{padding:10px 40px 10px 16px}
-  #view-market .mk-nwh.selbar::before{left:-16px;right:-40px}
+  .mk-rcols{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:8px}
+  .mk-rcols > span:first-child{display:none}
+  .mk-rch{white-space:normal;font-size:13px;line-height:1.18;word-break:keep-all}
+  .mk-rrows{gap:14px;align-items:stretch}
+  .mk-rrow{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:8px;row-gap:6px;justify-items:center}
+  .mk-rrow.surg-sep::before{top:-7px}
+  .mk-rrh{grid-column:1/-1;justify-self:start;text-align:left;padding:2px 0 0}
+  .mk-ring{width:46px;height:46px}
+  .mk-rn{font-size:15px}
 }

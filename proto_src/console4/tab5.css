@@ -1,6 +1,6 @@
 /* 탭 5 영업 인사이트 전용. 본문은 #view-insight 아래로 가둔다.
    응대 카드(.ins-card)는 미리 보기, 쪽 수 재기(.icd-measure), 인쇄(#print-root) 세 곳에서 같은 꼴이어야 해서 .ins-card 이름으로 가둔다.
-   주인공 도형: 위 2.5px 금색 선의 짙은 결과 카드(acs_22)와 다섯 분류의 묶음(번호 01~05, 메뉴 목록) */
+   주인공 도형: 위 2.5px 금색 선의 짙은 결과 카드(acs_22)와 분류별 묶음(번호 01~05, 메뉴 목록) */
 #view-insight .vbody{container-type:inline-size}
 #view-insight .ins-ref{margin:-8px 0 20px;padding:10px 20px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--ink-1);word-break:keep-all}
 #view-insight .ins-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,0.62fr);gap:var(--gap);align-items:start}
@@ -12,7 +12,7 @@
 #view-insight .ins-pf .lb{font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
 #view-insight .ins-pn{font:400 13px/1.45 var(--f-body);color:var(--ink-1);word-break:keep-all}
 
-/* 다섯 분류로 가는 메뉴(번호, 이름, 건수) */
+/* 분류 바로가기 메뉴(번호, 이름, 건수) */
 #view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
 #view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 14px;background:var(--panel);color:var(--ink-0);text-decoration:none}
 #view-insight .ins-jump a:hover{background:var(--panel-hi)}

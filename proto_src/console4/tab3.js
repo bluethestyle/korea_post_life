@@ -1,4 +1,4 @@
-/* 탭 3 가입 관문: 주인공 도형은 기술 나무(세 회사 세 갈래, 56px 칸, 1.5px 직선). 가운데는 고지 질문 비교와 나이 구간별 한도 표,
+/* 탭 3 가입 관문: 주인공 도형은 기술 나무(회사별 갈래, 56px 칸, 1.5px 직선). 가운데는 고지 질문 비교와 나이 구간별 한도 표,
    아래는 구성 예시(우체국만, 최대 가입 기준, 보험료 자료 없음).
    관문 나무와 구성 예시의 값은 build_combo.py 가 src/postlife/site 의 함수(sales.gate, combo.evaluate, combo.payouts)로 미리 계산해
    아래 자료 줄에 넣은 것이다. 화면은 그 값을 찾아 보일 뿐 다시 계산하지 않는다. 문장과 판정은 sales.json 을 따른다. */
@@ -71,9 +71,16 @@ App.registerTab((function () {
       return ((A['질문'].hospYears || 0) - (B['질문'].hospYears || 0)) || (G['V'].indexOf(a) - G['V'].indexOf(b));
     });
   }
-  function counts(g) {
+  function shownOrgsOf(c) {
+    return (c && c.activeOrgs ? c.activeOrgs : ORGS).filter(o => ORGS.includes(o));
+  }
+  function shownVidsOf(c) {
+    const setO = new Set(shownOrgsOf(c));
+    return G ? G['V'].filter(v => setO.has(info(v)['회사'])) : [];
+  }
+  function counts(g, vids) {
     const n = { '열림': 0, '심사로 확인': 0, '나이 자료 없음': 0, '질문 자료 없음': 0, '닫힘': 0 };
-    G['V'].forEach(v => { n[g.vs[v].state] = (n[g.vs[v].state] || 0) + 1; });
+    (vids || G['V']).forEach(v => { n[g.vs[v].state] = (n[g.vs[v].state] || 0) + 1; });
     return n;
   }
 
@@ -174,10 +181,12 @@ App.registerTab((function () {
       return `<section class="panel gt-tree" id="gt-tree"><div class="panel-h"><div><span class="k">${ui.scope('now')}</span><h2>관문 나무</h2></div></div>
         <p class="gt-why-b">관문 자료 없음: ${esc(c.st.age)}세는 가입조건 자료가 다루는 나이 밖입니다.</p>${ui.notes('가입 관문')}</section>`;
     }
-    const n = counts(g);
+    const shownOrgs = shownOrgsOf(c);
+    const shownVids = shownVidsOf(c);
+    const n = counts(g, shownVids);
     const parts = Object.entries(n).filter(([, x]) => x).map(([t, x]) => ({ t, n: x }));
-    const onlyN = G['V'].filter(v => kindOf(v, g) === 'only').length;
-    const branches = ORGS.map(org => {
+    const onlyN = shownVids.filter(v => kindOf(v, g) === 'only').length;
+    const branches = shownOrgs.map(org => {
       const vids = branch(org);
       const open = vids.filter(v => g.vs[v].state === '열림').length;
       const gapWhy = Array.from(new Set(vids.map(v => g.vs[v].state).filter(s => s === '나이 자료 없음' || s === '질문 자료 없음'))).map(s => txt.stateWhy(org, s));
@@ -194,7 +203,7 @@ App.registerTab((function () {
         <div><span class="k">${ui.scope('now')} <span class="gt-cond">${esc(condText())}</span></span><h2 id="gt-tree-h">관문 나무</h2></div>
         <div class="r gt-map"><span>고객군 지도 칸</span>${ui.swatch(g.label)}<b>${esc(g.label)}</b>${mapNote ? `<span>(${esc(mapNote)})</span>` : ''}${g.closed.length ? `<span>닫힌 사유: ${esc(g.closed.join(', '))}</span>` : ''}</div>
       </div>
-      <div class="gt-eq">${ui.eq({ total: { t: '견준 종형', n: G['V'].length }, parts, tail: '개' })}
+      <div class="gt-eq">${ui.eq({ total: { t: '견준 종형', n: shownVids.length }, parts, tail: '개' })}
         ${onlyN ? `<div class="nadd">우리만 열림 ${fmt(onlyN)}개는 열림 ${fmt(n['열림'])}개에 듭니다. 지도 칸이 "우리 간편만 열림"이고 우체국 간편 종형이 열린 경우입니다.</div>` : ''}</div>
       <div class="gt-trees" id="gt-trees">${branches}</div>
       <div class="panel-f gt-legend">
@@ -224,9 +233,14 @@ App.registerTab((function () {
     </tr>`;
   }
   function gatePoints(c, g) {
-    const ids = (c.base && c.base['포인트'] || []).filter(id => S['포인트'][id] && S['포인트'][id]['분류'] === '관문 차이');
+    const pSet = new Set(c.activePeerOrgs || []);
+    const inSc = id => {
+      const p = S['포인트'][id];
+      return p && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o)));
+    };
+    const ids = (c.base && c.base['포인트'] || []).filter(id => S['포인트'][id] && S['포인트'][id]['분류'] === '관문 차이' && inSc(id));
     const seg = c.seg && c.seg.cell;
-    const extra = seg && seg['관문기준'] === c.baseId ? (seg['관문포인트'] || []).filter(id => !ids.includes(id) && S['포인트'][id]) : [];
+    const extra = seg && seg['관문기준'] === c.baseId ? (seg['관문포인트'] || []).filter(id => !ids.includes(id) && inSc(id)) : [];
     const other = seg && seg['관문기준'] && seg['관문기준'] !== c.baseId ? seg['관문기준'] : null;
     return { ids, extra, other };
   }
@@ -395,14 +409,15 @@ App.registerTab((function () {
   function conclText(c, g) {
     if (!g) return `${condText()}: 관문 자료 없음, 가입조건 자료가 다루는 나이 밖입니다.`;
     const bv = g.vs[c.baseId];
-    const n = counts(g);
+    const shownVids = shownVidsOf(c);
+    const n = counts(g, shownVids);
     const k = kindOf(c.baseId, g);
     const st = k === 'nodata' ? bv.state : KIND_T[k];
-    return `${condText()}에서 기준 종형 우체국 ${vk(c.baseId)}의 관문 상태는 ${txt.josa(st, '이고')}, 견준 세 회사 종형 ${G['V'].length}개 가운데 열림은 ${n['열림']}개입니다.`;
+    return `${condText()}에서 기준 종형 우체국 ${vk(c.baseId)}의 관문 상태는 ${txt.josa(st, '이고')}, 견준 종형 ${shownVids.length}개 가운데 열림은 ${n['열림']}개입니다.`;
   }
   function asideHTML(c, g) {
     if (!g) return '';
-    return `<div class="gt-aside pillar tl">${ORGS.map(org => {
+    return `<div class="gt-aside pillar tl">${shownOrgsOf(c).map(org => {
       const vids = branch(org);
       const open = vids.filter(v => g.vs[v].state === '열림').length;
       const rest = {};
@@ -546,15 +561,16 @@ App.registerTab((function () {
   function evidence(c) {
     const g = gateAt(c.st);
     if (!g) return { kicker: '지금 조건의 관문', title: condText(), badges: [ui.scope('now')], body: sec('', `<p>관문 자료 없음: ${esc(c.st.age)}세는 가입조건 자료가 다루는 나이 밖입니다.</p>`) };
-    const n = counts(g);
-    let body = sec('', `<p>지도 칸 <b>${esc(g.label)}</b>${g.note ? ` (${esc(g.note)})` : ''}. 견준 종형 ${G['V'].length}개 가운데 열림 ${n['열림']}개입니다.</p>${g.closed.length ? `<p class="note">우리 간편이 닫힌 사유: ${esc(g.closed.join(', '))}</p>` : ''}`);
+    const shownVids = shownVidsOf(c);
+    const n = counts(g, shownVids);
+    let body = sec('', `<p>지도 칸 <b>${esc(g.label)}</b>${g.note ? ` (${esc(g.note)})` : ''}. 견준 종형 ${shownVids.length}개 가운데 열림 ${n['열림']}개입니다.</p>${g.closed.length ? `<p class="note">우리 간편이 닫힌 사유: ${esc(g.closed.join(', '))}</p>` : ''}`);
     body += sec('관문 나무 읽는 법', `<dl class="legend">
         <dt><i class="gt-sw k-only"></i></dt><dd>우리만 열림: 지도 칸이 우리 간편만 열림이고 우체국 간편 종형이 열림</dd>
         <dt><i class="gt-sw k-open"></i></dt><dd>열림: 고지 질문에 걸리지 않고 가입나이 안</dd>
         <dt><i class="gt-sw k-review"></i></dt><dd>심사로 확인: 일반심사 종형은 이력과 무관하게 심사로 봄</dd>
         <dt><i class="gt-sw k-nodata"></i></dt><dd>자료 없음: 가입나이나 고지 질문 자료가 아직 없음</dd>
         <dt><i class="gt-sw k-closed"></i></dt><dd>닫힘: 고지 질문 해당이거나 가입나이 밖</dd></dl>
-      <p class="note">간편심사 종형은 마지막 입원이나 수술이 질문 기간보다 오래되면 질문에 걸리지 않습니다. 최근 3개월 소견과 5년 안 중대질병 질문은 세 회사가 같아 칸을 가르지 않고 문장의 전제로 둡니다.</p>`);
+      <p class="note">간편심사 종형은 마지막 입원이나 수술이 질문 기간보다 오래되면 질문에 걸리지 않습니다. 최근 3개월 소견과 5년 안 중대질병 질문은 비교 대상 회사가 같아 칸을 가르지 않고 문장의 전제로 둡니다.</p>`);
     body += sec('', `<p class="note">칸을 누르면 그 종형의 고지 질문, 가입나이, 구조가 여기에 뜹니다.</p>`, true);
     return { kicker: '지금 조건의 관문', title: condText(), badges: [ui.scope('now'), `<span class="tag">${ui.swatch(g.label)}${esc(g.label)}</span>`], body };
   }
