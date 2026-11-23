@@ -321,6 +321,43 @@ def inject_tab3(tab3_text: str, blob: str) -> str:
 
 
 # ---------- 담보 비교 탭(tab4)과 관계 그림 ----------
+# 담보별 판정 집계(판정기관코드)의 판정. 앞 다섯은 insights 의 비교쌍 판정(기준 종형 쪽에서 적는다. 나음은 우체국 조건이 낫다)이고,
+# 단정 주의는 sales.json 의 단정주의, 검토 대기는 insights 의 뺀 비교쌍이거나 우리 확정 급부 없이 매핑 대기 급부만 있는 것,
+# 우체국에 없음은 상대에게 확정 급부가 있고 우리에게 확정 급부도 매핑 대기 급부도 없는 것이다
+VERDICT_KEYS = ['나음', '같음', '못함', '엇갈림', '판정 보류', '단정 주의', '검토 대기', '우체국에 없음']
+CAUTION_KEY, PENDING_KEY, NONE_KEY = '단정 주의', '검토 대기', '우체국에 없음'
+
+
+def _has(cell) -> bool:
+    """확정 급부가 있는 칸(tab4.src.js 의 has: 칸이 객체이고 i 가 비지 않음)."""
+    return isinstance(cell, dict) and bool(cell.get('i'))
+
+
+def verdict_codes(data: Data, sid: str, cells: list, peers: list[str], pair: dict, cautious: dict) -> dict[str, list[str]]:
+    """표준담보 하나의 판정별 상대 기관코드(판정기관코드의 한 줄). 그 담보의 확정 급부가 있는 상대(보유기관코드)만 판정 하나에
+    넣는다. 자료 쪽에 이미 있는 값만 쓴다(판정을 새로 만들지 않는다).
+    - 우리도 확정 급부가 있으면: 단정 주의(sales.json 의 단정주의에 그 상대가 들면. R10 대로 판정보다 먼저), 검토 대기(insights 의
+      뺀 비교쌍), 아니면 insights 의 비교쌍 판정(같음, 나음, 못함, 엇갈림, 판정 보류).
+    - 우리에게 확정 급부가 없으면: 매핑 대기 급부가 있으면 검토 대기(insights 의 규칙: 대기는 없음이 아니라 모름), 없으면 우체국에 없음.
+    값이 빈 판정은 싣지 않는다. 목록을 모두 합하면 그 담보의 보유기관코드다."""
+    base = cells[0]
+    out: dict[str, list[str]] = {}
+    for p, c in zip(peers, cells[1:]):
+        if not _has(c):
+            continue
+        if _has(base):
+            q = pair.get((sid, p))
+            if q is None:
+                raise ValueError(f'두 쪽 모두 확정 급부가 있는데 비교쌍이 없다: {sid}, {p}')
+            key = CAUTION_KEY if (sid, p) in cautious else (PENDING_KEY if q.get('x') else q['v'])
+        else:
+            key = PENDING_KEY if isinstance(base, dict) and base.get('w') else NONE_KEY
+        if key not in VERDICT_KEYS:
+            raise ValueError(f'모르는 판정: {key} ({sid}, {p})')
+        out.setdefault(key, []).append(data.variants[p].get('기관코드'))
+    return {k: sorted(out[k]) for k in VERDICT_KEYS if k in out}
+
+
 def num(x):
     if x is None:
         return None
@@ -396,6 +433,11 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
 
         rows = []
         owners: dict[str, list[str]] = {}
+        verdicts: dict[str, dict[str, list[str]]] = {}
+        cautious = {}                    # 단정 주의(sales.json)에 든 (표준담보ID, 상대 종형ID)
+        for c in S['기준별'][bid0]['단정주의']:
+            for p in c['상대종형ID']:
+                cautious[(c['표준담보ID'], p)] = c['종류']
         for sid in sids:
             cells = []
             for v in vids:
@@ -439,11 +481,14 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
             # 이 담보를 가진 상대 회사: 확정 급부가 있는 칸(화면의 has, 칸의 i 가 비지 않음)의 회사. 우리 기관은 뺀다
             owners[sid] = sorted({data.variants[v].get('기관코드') for v, c in zip(vids[1:], cells[1:])
                                   if isinstance(c, dict) and c.get('i')} - {SA.HOME_ORG, None})
+            verdicts[sid] = verdict_codes(data, sid, cells, peers, pair, cautious)
             row = [sid, cells, prs]
             if sid in ins:
                 row.append(ins[sid])
             rows.append(row)
-        bases[bid0] = {'cols': vids, 'rows': rows, 'pairs': r['비교쌍'], 'dropped': r['뺀비교쌍'], '보유기관코드': owners}
+        bases[bid0] = {'cols': vids, 'rows': rows, 'pairs': r['비교쌍'], 'dropped': r['뺀비교쌍'], '보유기관코드': owners,
+                       '판정기관코드': verdicts,
+                       '판정상대수': {sid: {k: len(v) for k, v in per.items()} for sid, per in verdicts.items()}}
 
     # 급부와 특약은 번호로 가리킨다(줄마다 긴 ID를 되풀이하지 않게)
     return {'t': A['자료시각'], 'ben': list(ben.values()), 'rid': list(rid.values()), 'b': bases}

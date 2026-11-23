@@ -125,12 +125,66 @@ def test_g2_groups_open_peers_by_age_span(data):
 
 # ---------- 지도 칸과 브리핑 ----------
 def test_peer_tally_counts_states():
-    states = {"EPOST": S.OPEN, "A": S.OPEN, "B": S.REVIEW, "C": S.CLOSED, "D": S.NO_AGE, "E": S.NO_QUESTION}
+    states = {"EPOST": S.OPEN, "A": S.OPEN, "B": S.REVIEW, "C": S.CLOSED, "D": S.NO_AGE, "E": S.NO_QUESTION, "F": S.PARTIAL}
     gate_only = [{"기관코드": "A", "종형ID": "A_1"}, {"기관코드": "A", "종형ID": "A_2"}]
-    assert S.peer_tally(states, gate_only) == {"상대수": 5, "열린상대수": 1, "닫힌상대수": 2, "모르는상대수": 2,
-                                               "관문만열린상대수": 1}
+    assert S.peer_tally(states, gate_only) == {"상대수": 6, "열린상대수": 1, "닫힌상대수": 2, "모르는상대수": 2,
+                                               "관문만열린상대수": 1, "일부열린상대수": 1}
     assert S.peer_codes(states, gate_only) == {"열린상대코드": ["A"], "관문만열린상대코드": ["A"], "닫힌상대코드": ["B", "C"],
-                                               "모르는상대코드": ["D", "E"]}
+                                               "모르는상대코드": ["D", "E"], "일부열린상대코드": ["F"]}
+
+
+# ---------- 지도의 나이 열(우리 기관의 가입나이로만 끊는다) ----------
+def test_map_columns_come_from_our_ages_only(data):
+    """상대가 다섯 곳이고 가입나이가 15~80, 16~80, 17~79세로 달라도 열은 세 회사 자료와 같다(우리 종형 20~80, 15~65세)."""
+    three = Data(Book().t)
+    many = S.segment_map(data, "M", None, None, REL)
+    assert many["열"] == S.segment_map(three, "M", None, None, REL)["열"] == [
+        {"lo": 15, "hi": 19}, {"lo": 20, "hi": 65}, {"lo": 66, "hi": 80}]
+    assert S.home_age_edges(data) == [15, 20, 66, 81]
+    # 15~19세 이력 없음: 가상생명 02(16~80세)와 가상화재 01(17~79세)은 그 열의 일부 나이에서만 열린다
+    x = many["칸"][2][0]
+    assert x["회사"]["SYNLIFE02"] == x["회사"]["SYNFIRE01"] == S.PARTIAL
+    assert x["일부열린나이"] == {"SYNLIFE02": [[16, 19]], "SYNFIRE01": [[17, 19]]}
+    assert (x["일부열린상대수"], S.peer_codes(x["회사"], x["관문만수집"])["일부열린상대코드"]) == (2, ["SYNFIRE01", "SYNLIFE02"])
+    assert x["열린상대수"] == 2 and not x["일부나이로만열림"]                  # 한화생명, 가상생명 01은 15~19세 모두 열린다
+    # 66~80세: 가상화재 01은 79세까지
+    assert many["칸"][2][2]["일부열린나이"] == {"SYNFIRE01": [[66, 79]]}
+    # 넷(열린, 일부 열린, 닫힌, 모르는)은 겹치지 않고 합하면 상대수다
+    for line in many["칸"]:
+        for c in line:
+            assert c["열린상대수"] + c["일부열린상대수"] + c["닫힌상대수"] + c["모르는상대수"] == c["상대수"] == 5
+
+
+def test_partial_peer_counts_as_open_and_marks_the_cell():
+    """열린 상대가 일부 나이만 열린 상대뿐이면 라벨은 열린 상대가 있는 것으로 치고 칸에 표시(일부나이로만열림)를 남긴다.
+    칸의 세부 값은 칸의 라벨과 같은 라벨이 나오는 나이(17세)에서 계산하고, 브리핑 (가)의 둘째 문장 끝에 그 칸 수를 적는다."""
+    only = (L2, "SYNLIFE02", "간편가입형(1년)", "간편심사", "3.1.5", (3, 1, 5, True, 7), "비갱신", UNPAID, "2026-10-01",
+            [(17, 80)])
+    b = Book(skip=(H1, "HANWHALIFE_HG_bbbbbb", S1, "SAMSUNGFIRE_SA_cccccc", "SAMSUNGFIRE_SB_cccccc"), extra=[only])
+    d = Data(b.t, META)
+    seg = S.segment_map(d, "M", None, None, REL)
+    x = seg["칸"][2][0]                                     # 15~19세 이력 없음: 우리 간편(20세부터)은 나이로 닫힌다
+    assert x["라벨"] == S.LABELS[S.ONLY_CLOSED] and x["회사"]["SYNLIFE02"] == S.PARTIAL
+    assert (x["열린상대수"], x["일부열린상대수"], x["일부나이로만열림"], x["세부나이"]) == (0, 1, True, 17)
+    assert x["상대대표"] == {"SYNLIFE02": L2}                # 17세에서 견준 짝
+    line = S.briefing(d, E1, P(age=30), None, REL, seg=seg)[0]
+    assert line["값"]["일부열림칸수"] >= line["값"]["일부나이로만열림칸수"] >= 1
+    assert line["틀"][-1] == "가_일부나이만" and line["문장"].count(". ") <= 1
+    assert line["문장"].endswith(f"그 가운데 {line['값']['일부나이로만열림칸수']}칸은 열린 상대가 그 상대뿐입니다.")
+
+
+def test_notice_attributes_count_values_inside_a_key(data):
+    attrs = S.notice_attributes(data)
+    assert list(attrs) == ["3·1·5", S.GENERAL]
+    a = attrs["3·1·5"]
+    assert a["수술포함별"] == [{"값": True, "상대수": 5, "상대코드": sorted(S._org(data, v) for v in PEERS5), "종형수": 5}]
+    assert a["중대질병수별"] == [{"값": 5, "상대수": 2, "상대코드": ["SAMSUNGFIRE", "SYNFIRE01"], "종형수": 2},
+                             {"값": 7, "상대수": 3, "상대코드": ["HANWHALIFE", "SYNLIFE01", "SYNLIFE02"], "종형수": 3}]
+    assert a["가입나이별"]["M"] == [
+        {"값": [15, 80], "상대수": 2, "상대코드": ["HANWHALIFE", "SYNLIFE01"], "종형수": 2},
+        {"값": [16, 80], "상대수": 1, "상대코드": ["SYNLIFE02"], "종형수": 1},
+        {"값": [17, 79], "상대수": 1, "상대코드": ["SYNFIRE01"], "종형수": 1},
+        {"값": None, "상대수": 1, "상대코드": ["SAMSUNGFIRE"], "종형수": 1}]        # 삼성화재 315는 가입나이 자료가 없다
 
 
 def test_notice_key_and_groups(data):
@@ -151,8 +205,9 @@ def test_map_cells_count_peers_and_briefing_adds_the_spread(data):
     seg = S.segment_map(data, "M", None, None, REL)
     cells = [x for line in seg["칸"] for x in line]
     for x in cells:
-        assert x["상대수"] == 5 == x["열린상대수"] + x["닫힌상대수"] + x["모르는상대수"]
+        assert x["상대수"] == 5 == x["열린상대수"] + x["일부열린상대수"] + x["닫힌상대수"] + x["모르는상대수"]
         assert x["열린상대수"] == sum(1 for o, s in x["회사"].items() if o != "EPOST" and s == S.OPEN)
+        assert x["일부열린상대수"] == sum(1 for o, s in x["회사"].items() if o != "EPOST" and s == S.PARTIAL)
     lines = S.briefing(data, E1, P(age=30), None, REL)
     opened = sorted(x["열린상대수"] for x in cells)
     assert lines[0]["값"]["열린상대수분포"] == {"최소": opened[0], "중앙": S.spread(opened)["중앙"], "최대": opened[-1]}
