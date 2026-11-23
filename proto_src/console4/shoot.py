@@ -112,7 +112,6 @@ COUNTS_JS = r"""() => {
       const s = getComputedStyle(a);
       if (a.hidden || s.display === 'none' || s.visibility === 'hidden' || +s.opacity < 0.05) { hidden = true; break; }
       if (a.tagName === 'DETAILS' && !a.open && !el.closest('summary')) { hidden = true; break; }
-      if (a.getAttribute && a.getAttribute('aria-hidden') === 'true' && a.closest('svg')) { hidden = true; break; }
       a = a.parentElement;
     }
     if (hidden) continue;
@@ -195,10 +194,13 @@ COUNTS_JS = r"""() => {
         const ps = getComputedStyle(pa);
         if (pa.hidden || ps.display === 'none' || ps.visibility === 'hidden' || +ps.opacity < 0.05) { phid = true; break; }
         if (pa.tagName === 'DETAILS' && !pa.open && !pel.closest('summary')) { phid = true; break; }
-        if (pa.getAttribute && pa.getAttribute('aria-hidden') === 'true' && pa.closest('svg')) { phid = true; break; }
         pa = pa.parentElement;
       }
       if (phid) continue;
+      const sr = document.createRange();
+      sr.selectNodeContents(sn);
+      const sb = sr.getBoundingClientRect();
+      if (sb.width < 1 || sb.height < 1) continue;
       stageNodes += 1;
       const m = txt.match(/\.(?=\s|$)/g);
       if (m) sentences += m.length;

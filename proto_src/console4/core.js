@@ -187,7 +187,7 @@
     stepIncSuffix: ' 하나 늘리기',
 
     // 첫 화면(전체 요약)과 상단 고리 탭 문구
-    homeListHead: '전체 결론 다섯 줄',
+    homeListHeadTpl: '전체 결론 {n}줄',
     homeListHint: '줄을 누르면 해당 화면으로 들어갑니다',
     homeRevBadgeTpl: '개정 {n}',
     briefRowGa: '고객군 지형',
@@ -222,7 +222,7 @@
     mkCenterTitle: '고객군 시간축과 고리',
     mkTimeOver5: '5년+',
     mkUnknownSym: '?',
-    mkOursOpenRatioTpl: '우리 열림 {open}/6',
+    mkOursOpenRatioTpl: '우리 열림 {open}/{total}',
     mkPartialOnlyMark: '일부 나이만',
     mkPartialHeadTpl: '일부 나이에서만 열리는 상대 {n}곳',
     mkPartialSpanTpl: '{org} {spans}세만 열림',
@@ -636,10 +636,24 @@
     });
   }
 
-  const STAGE_ORDER = ['진단', '수술', '치료', '입원', '통원'];
+  function stageOrderOf(baseId) {
+    const b = S['기준별'] && S['기준별'][baseId || st.base];
+    const cols = b && b['치료여정'] && b['치료여정']['열'];
+    if (Array.isArray(cols) && cols.length) return cols;
+    for (const v of Object.values(S['기준별'] || {})) {
+      const c2 = v && v['치료여정'] && v['치료여정']['열'];
+      if (Array.isArray(c2) && c2.length) return c2;
+    }
+    const seen = [];
+    for (const info of Object.values(S['표준담보'] || {})) {
+      const tp = info && info['급부유형'];
+      if (tp && !seen.includes(tp)) seen.push(tp);
+    }
+    return seen;
+  }
   function coverStageStacks(baseId, s = st) {
     const B = window.App && App.cover && typeof App.cover.rawB === 'function' ? App.cover.rawB(baseId) : null;
-    const stages = STAGE_ORDER.map(nm => ({
+    const stages = stageOrderOf(baseId).map(nm => ({
       name: nm,
       oursCnt: 0,
       totalCnt: 0,
@@ -1626,21 +1640,49 @@
     ringFlyEl._anim.onfinish = () => { if (ringFlyEl) { ringFlyEl.hidden = true; ringFlyEl.innerHTML = ''; } };
   }
 
+  function syncRtabsCue(scrollActive) {
+    const nav = $('#rtabs');
+    const cueL = $('#rt-cue-l'), cueR = $('#rt-cue-r');
+    if (!nav || nav.hidden) {
+      if (cueL) cueL.hidden = true;
+      if (cueR) cueR.hidden = true;
+      return;
+    }
+    if (scrollActive) {
+      const act = $('.rtab[aria-selected="true"]', nav);
+      if (act && nav.scrollWidth > nav.clientWidth + 4) {
+        const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
+        nav.scrollLeft = Math.max(0, Math.min(maxLeft, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2)));
+      }
+    }
+    const over = nav.scrollWidth > nav.clientWidth + 4;
+    const moreL = over && nav.scrollLeft > 4;
+    const moreR = over && (nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
+    nav.classList.toggle('has-more-l', moreL);
+    nav.classList.toggle('has-more-r', moreR);
+    if (cueL) cueL.hidden = !moreL;
+    if (cueR) cueR.hidden = !moreR;
+  }
+
   function renderRingTabs(c, snap) {
     const nav = $('#rtabs');
+    const wrap = $('#rtabs-wrap');
     const thTotal = $('#th-total');
     if (!nav) return;
     const isHome = st.tab === 'brief';
     if (isHome) {
       nav.hidden = true;
-      nav.classList.remove('has-pill');
+      if (wrap) wrap.hidden = true;
+      nav.classList.remove('has-pill', 'has-more-l', 'has-more-r');
       nav.innerHTML = '';
       if (thTotal) { thTotal.hidden = true; thTotal.innerHTML = ''; }
+      syncRtabsCue(false);
       lastRenderedTab = 'brief';
       return;
     }
     const enteredFromHome = lastRenderedTab === 'brief' && motionOn();
     lastRenderedTab = st.tab;
+    if (wrap) wrap.hidden = false;
     nav.hidden = false;
     if (enteredFromHome) {
       nav.classList.remove('from-home');
@@ -1664,9 +1706,7 @@
     nav.innerHTML = pillHTML + homeBtn + tabsHTML;
 
     const act = $('.rtab[aria-selected="true"]', nav);
-    if (act && nav.scrollWidth > nav.clientWidth + 4) {
-      nav.scrollLeft = Math.max(0, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2));
-    }
+    syncRtabsCue(true);
     const pill = $('#rtab-bg', nav);
     if (pill && act) {
       const toX = act.offsetLeft, toS = Math.max(0.1, act.offsetWidth / 100);
@@ -1796,7 +1836,7 @@
     const t = tabs[id];
     if (t && t.layout) return t.layout;
     if (id === 'cover') return 'band';
-    if (id === 'market' || id === 'gate') return 'side';
+    if (id === 'market' || id === 'gate' || id === 'insight') return 'side';
     return 'three';
   }
 
@@ -1981,7 +2021,7 @@
   function clearSelLink() {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot');
     if (p) { if (p._anim) p._anim.cancel(); p.setAttribute('d', ''); }
-    if (dot) dot.hidden = true;
+    if (dot) { dot.hidden = true; dot.style.display = 'none'; }
   }
 
   function updateSelLink(drawLine) {
@@ -1994,9 +2034,11 @@
     const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
     if (!selEl) { clearSelLink(); return; }
     const anchor = selEl.querySelector('[data-link-pt]') || selEl.querySelector('[data-aim-box]') || selEl;
+    const zc = $('#z-center');
     const bBox = board.getBoundingClientRect();
     const sBox = anchor.getBoundingClientRect();
     const rBox = zr.getBoundingClientRect();
+    const zcBox = zc ? zc.getBoundingClientRect() : sBox;
     if (!sBox.width || !sBox.height || !rBox.width || !rBox.height) { clearSelLink(); return; }
     const lay = board.dataset.layout || 'side';
     let d = '', dx = 0, dy = 0;
@@ -2009,14 +2051,53 @@
         dx = sx; dy = sy;
       }
     } else {
-      const sx = Math.round(sBox.right - bBox.left);
-      const sy = Math.round(sBox.top + sBox.height / 2 - bBox.top);
       const ex = Math.round(rBox.left - bBox.left);
       const ey = Math.round(Math.max(rBox.top + 22, Math.min(rBox.bottom - 22, sBox.top + sBox.height / 2)) - bBox.top);
-      if (ex > sx + 2) {
-        const mx = Math.round(sx + (ex - sx) * 0.55);
-        d = Math.abs(ey - sy) <= 3 ? `M${sx} ${sy}H${ex}` : `M${sx} ${sy}H${mx}V${ey}H${ex}`;
-        dx = sx; dy = sy;
+      const zcRight = Math.round(zcBox.right - bBox.left);
+      const gutterX = Math.max(zcRight + 2, Math.min(ex - 4, Math.round((zcRight + ex) / 2)));
+      const fullSelBox = selEl.getBoundingClientRect();
+      const midY = sBox.top + sBox.height / 2;
+      // 같은 줄 오른쪽에 다른 도형이나 글자가 있으면 줄 사이 빈 틈으로 내려서 꺾어 보낸다(요청 30의 2-1)
+      let blockedRight = false;
+      const track = selEl.closest('.mk-track, .gtf-track');
+      if (track) {
+        let sib = selEl.nextElementSibling;
+        while (sib) {
+          if (sib.matches('[data-pick], .mk-ring, .gtf-cell')) { blockedRight = true; break; }
+          sib = sib.nextElementSibling;
+        }
+      } else {
+        for (const other of $$('[data-pick], [data-gr-node]', root)) {
+          if (other === selEl || selEl.contains(other) || other.contains(selEl)) continue;
+          const ob = other.getBoundingClientRect();
+          if (ob.width < 2 || ob.height < 2) continue;
+          if (ob.left >= fullSelBox.right - 2 && midY >= ob.top - 4 && midY <= ob.bottom + 4) {
+            blockedRight = true;
+            break;
+          }
+        }
+      }
+      if (blockedRight) {
+        const cx = Math.round(sBox.left + sBox.width / 2 - bBox.left);
+        const by = Math.round(sBox.bottom - bBox.top);
+        const drop = st.tab === 'gate' ? 5 : st.tab === 'market' ? 9 : 7;
+        const corrY = by + drop;
+        if (ex > cx + 4) {
+          const turnX = Math.max(cx + 6, gutterX);
+          d = Math.abs(ey - corrY) <= 2
+            ? `M${cx} ${by}V${corrY}H${ex}`
+            : `M${cx} ${by}V${corrY}H${turnX}V${ey}H${ex}`;
+          dx = cx; dy = by;
+        }
+      } else {
+        const rightStart = Math.max(sBox.right, fullSelBox.right);
+        const sx = Math.round(rightStart - bBox.left);
+        const sy = Math.round(midY - bBox.top);
+        if (ex > sx + 2) {
+          const turnX = Math.max(sx + 4, Math.min(ex - 3, gutterX));
+          d = Math.abs(ey - sy) <= 3 ? `M${sx} ${sy}H${ex}` : `M${sx} ${sy}H${turnX}V${ey}H${ex}`;
+          dx = sx; dy = sy;
+        }
       }
     }
     p.setAttribute('d', d);
@@ -2028,8 +2109,8 @@
       });
     }
     if (dot) {
-      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; }
-      else dot.hidden = true;
+      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; dot.style.display = ''; }
+      else { dot.hidden = true; dot.style.display = 'none'; }
     }
   }
 
@@ -2117,8 +2198,10 @@
     zr.classList.remove('is-picked');
     if (zrIn) zrIn.hidden = true;
     unsel.hidden = false;
-    const info = unselectedConclusion(c);
-    unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}</p>` : '';
+    const curC = c || ctx();
+    const info = unselectedConclusion(curC);
+    const scopeBadge = (curC.peerScope !== 'all' && st.tab !== 'graph' && !(info && info.scoped)) ? ' ' + fullScopeTag() : '';
+    unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}${scopeBadge}</p>` : '';
     clearSelLink();
   }
 
@@ -2913,12 +2996,8 @@
     if (rt) {
       e.stopPropagation();
       const id = rt.dataset.rtab;
-      if (id === 'brief') {
-        returnToHome(st.tab);
-        return;
-      }
-      if (st.tab === id && st.sel[id] == null && !st.grp[id]) {
-        returnToHome(id);
+      if (id === 'brief' || st.tab === id) {
+        returnToHome(st.tab === 'brief' ? id : st.tab);
         return;
       }
       set({ tab: id });
@@ -3131,6 +3210,12 @@
       set({ motion: next });
     });
     $('#ev-x').addEventListener('click', () => unselect({ restoreFocus: true }));
+    const rtabsEl = $('#rtabs'), rtCueL = $('#rt-cue-l'), rtCueR = $('#rt-cue-r');
+    if (rtabsEl) {
+      rtabsEl.addEventListener('scroll', () => { syncRtabsCue(false); placeGuides(); }, { passive: true });
+    }
+    if (rtCueL && rtabsEl) rtCueL.addEventListener('click', () => rtabsEl.scrollBy({ left: -160, behavior: motionOn() ? 'smooth' : 'auto' }));
+    if (rtCueR && rtabsEl) rtCueR.addEventListener('click', () => rtabsEl.scrollBy({ left: 160, behavior: motionOn() ? 'smooth' : 'auto' }));
     const zc = $('#z-center');
     if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
     const evBody = $('#ev-body'), zrMore = $('#zr-more');
@@ -3149,7 +3234,7 @@
         const m = mode();
         if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
         closeHelp(false); hideAimReticle(); hideHudTip();
-        sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
+        syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);
     });
 

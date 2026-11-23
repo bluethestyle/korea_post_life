@@ -20,10 +20,10 @@
 .mk-tch.is-hot{color:var(--ink-0);font-weight:700}
 .mk-tch.is-hot::after{width:2px;height:9px;background:var(--ink-0)}
 
-/* 네 줄 시간축: 1920x1080 에서 줄 간격(행 피치) 약 128~132px, 고리 지름 64px */
-.mk-trows{display:flex;flex-direction:column;gap:64px}
+/* 네 줄 시간축: 1920x1080 과 1600x900 에서 줄 중심 간격(행 피치) 132px(64px 고리 + 68px 간격), 고리 지름 64px */
+.mk-trows{display:flex;flex-direction:column;gap:68px}
 .mk-trow{position:relative;display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:center}
-.mk-trow.is-break::before{content:"";position:absolute;left:0;right:0;top:-32px;height:1px;background:var(--line)}
+.mk-trow.is-break::before{content:"";position:absolute;left:0;right:0;top:-34px;height:1px;background:var(--line)}
 
 .mk-rh{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;transition:opacity 120ms var(--ease-in)}
 .mk-rh-nm{font:600 14px/1.28 var(--f-ko);color:var(--ink-0);word-break:keep-all}
@@ -103,19 +103,19 @@
 @keyframes mkArcDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 
 /* 해상도별 치수: 1600px, 1280px, 380px 모두 안쪽 가로 스크롤 0 */
-@media (max-width:1599px) and (min-width:1280px){
+@media (max-width:1599px) and (min-width:1281px){
   .mk-thead,.mk-trow{grid-template-columns:128px minmax(0,1fr);column-gap:12px}
   .mk-tch{width:54px}
-  .mk-trows{gap:40px}
-  .mk-trow.is-break::before{top:-20px}
+  .mk-trows{gap:44px}
+  .mk-trow.is-break::before{top:-22px}
   .mk-ring{width:54px;height:54px}
   .mk-rn{font-size:17px}
 }
-@media (max-width:1279px) and (min-width:1000px){
-  .mk-thead,.mk-trow{grid-template-columns:114px minmax(0,1fr);column-gap:10px}
+@media (max-width:1280px) and (min-width:1000px){
+  .mk-thead,.mk-trow{grid-template-columns:126px minmax(0,638px);column-gap:14px}
   .mk-tch{width:48px}
-  .mk-trows{gap:30px}
-  .mk-trow.is-break::before{top:-15px}
+  .mk-trows{gap:32px}
+  .mk-trow.is-break::before{top:-16px}
   .mk-rh-nm{font-size:13px}
   .mk-ring{width:48px;height:48px}
   .mk-rn{font-size:15px}

@@ -4,7 +4,7 @@
 .home-panel[hidden]{display:none!important}
 
 .hm-stage{display:grid;grid-template-rows:62% 38%;min-height:clamp(540px,calc(100vh - 216px),700px)}
-.hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.38fr 1.02fr 1.04fr 1fr 0.80fr;
+.hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.44fr 1.04fr 1.02fr 0.98fr 0.76fr;
   align-items:stretch;border-bottom:2px solid var(--axis);padding-left:28px}
 .hm-ruler{height:124px;left:0;bottom:0}
 .hm-grp{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;
@@ -32,8 +32,8 @@
 .hm-grp:hover .hm-stem,.hm-grp:focus-visible .hm-stem,.hm-grp.is-aim .hm-stem{transform:scaleY(1);background:var(--red)}
 .hm-grp:hover .hm-dia,.hm-grp:focus-visible .hm-dia,.hm-grp.is-aim .hm-dia{background:var(--red);border-color:var(--red);transform:translateY(-2px) rotate(45deg)}
 
-.hm-pils{position:relative;width:100%;display:flex;align-items:flex-end;min-height:132px;overflow:visible}
-.hm-svg{display:block;max-width:100%;height:auto;overflow:visible}
+.hm-pils{position:relative;width:100%;display:flex;align-items:flex-end;min-height:124px;margin-bottom:-8px;overflow:visible}
+.hm-svg{display:block;height:132px;width:auto;max-width:100%;overflow:visible}
 .hm-bar-g{transform-box:fill-box;transform-origin:center bottom}
 .hm-enter .hm-bar-g{animation:hmPilRise 360ms var(--ease-in) both;animation-delay:var(--pd,0ms)}
 :root[data-motion="calm"] .hm-enter .hm-bar-g{animation-duration:200ms}

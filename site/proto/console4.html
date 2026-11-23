@@ -268,6 +268,12 @@ button{cursor:pointer}
 @media (max-width:999px){ .fade-band{padding:10px 14px} .scope-l .it{white-space:normal} }
 
 /* ---------- 6. 상단 고리 탭 줄(.rtabs: 맨 왼쪽 [전체 요약] + 다섯 고리 탭, 바탕 면 없음) ---------- */
+.rtabs-wrap{position:relative}
+.rtabs-wrap[hidden]{display:none!important}
+.rtabs-cue{position:absolute;top:0;bottom:0;width:22px;border:0;padding:0;background:transparent;color:var(--ink-0);z-index:4;display:grid;place-items:center}
+.rtabs-cue.is-l{left:0}
+.rtabs-cue.is-r{right:0}
+.rtabs-cue[hidden]{display:none!important}
 .rtabs{position:relative;display:grid;grid-template-columns:auto repeat(5,minmax(0,1fr));
   background:transparent;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
 .rtabs[hidden]{display:none!important}
@@ -330,6 +336,9 @@ button{cursor:pointer}
 @media (max-width:999px){
   .rtabs{grid-template-columns:repeat(6,minmax(94px,1fr));overflow-x:auto;scrollbar-width:none}
   .rtabs::-webkit-scrollbar{display:none}
+  .rtabs.has-more-r:not(.has-more-l){-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent 100%);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent 100%)}
+  .rtabs.has-more-l:not(.has-more-r){-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 28px);mask-image:linear-gradient(90deg,transparent 0,#000 28px)}
+  .rtabs.has-more-l.has-more-r{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
   .rtab,.rtab.rtab-home{flex-direction:column;justify-content:center;text-align:center;padding:7px 6px;gap:4px}
   .rt-txt{align-items:center}
   .rt-name{font-size:13px;white-space:nowrap;justify-content:center}
@@ -449,6 +458,7 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 .sel-link-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;overflow:visible}
 .sel-link-p{stroke:var(--red);stroke-width:1;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:0}
 .sel-link-dot{fill:var(--red)}
+.sel-link-dot[hidden]{display:none!important}
 
 /* 읽기 영역(.z-right): 아무것도 고르지 않았을 때는 면 없이 결론 한 문장만, 고르면 면이 생긴다 */
 .z-right{position:relative;min-width:0;min-height:0;background:transparent;border:0;box-shadow:none}
@@ -521,9 +531,7 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 .zr-det-b{padding:6px 18px 12px}
 
 @container zcenter (max-width: 900px){
-  .z-center .gt-mid,.z-center .gt-cb2,.z-center .cv-mid,.z-center .ins-grid{grid-template-columns:minmax(0,1fr)!important}
-  .z-center .ins-jump{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))!important}
-  .z-center .ins-r{position:static!important;top:auto!important}
+  .z-center .gt-mid,.z-center .gt-cb2,.z-center .cv-mid{grid-template-columns:minmax(0,1fr)!important}
   .z-center .sband{grid-template-columns:minmax(0,1fr)!important}
 }
 
@@ -766,15 +774,28 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 .sb-st .hbar{width:100%;min-width:70px}
 .sb-f{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;padding:8px 16px 0}
 .sb-f .note{margin:0}
+@media (max-width:760px){
+  .sband{grid-template-columns:minmax(0,1fr)}
+  .sb-t{padding:10px 12px 6px}
+  .sb-s{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 0;padding:0 4px 8px}
+  .sb-st{min-width:0;padding:8px 10px 4px}
+  .sb-st:nth-child(odd){border-left-color:transparent}
+  .sb-st .big{font-size:26px;flex-wrap:wrap;white-space:normal}
+  .sb-st .hbar{min-width:0}
+  .sb-f{padding:8px 12px 0}
+}
 
 .evl{list-style:none;margin:0;padding:0}
 .evl li{padding:8px 0;border-top:1px solid var(--line);font:400 14px/1.6 var(--f-body);color:var(--ink-0)}
 .evl li:first-child{border-top:0;padding-top:0}
 .evl li b{font-weight:600}
 .evl li p{margin:6px 0 0}
-.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;margin:0;font:400 14px/1.5 var(--f-body)}
-.kv dt{color:var(--ink-1)}
-.kv dd{margin:0;text-align:right;font-weight:600;color:var(--ink-0)}
+.kv{display:grid;grid-template-columns:minmax(118px,max-content) minmax(0,1fr);gap:6px 14px;align-items:baseline;margin:0;font:400 14px/1.5 var(--f-body)}
+.kv dt{color:var(--ink-1);word-break:keep-all}
+.kv dd{margin:0;min-width:0;text-align:right;font-weight:600;color:var(--ink-0);word-break:keep-all;overflow-wrap:anywhere}
+@media (max-width:560px){
+  .kv{grid-template-columns:minmax(96px,40%) minmax(0,1fr);gap:6px 10px}
+}
 .ev-sec .eq + .eq{margin-top:6px}
 .ev-sec .eq + .cqs{margin-top:10px}
 .concl{position:relative;margin:0 0 12px;padding:6px 0 6px 12px;font:600 15px/1.55 var(--f-body);color:var(--ink-0);word-break:keep-all;
@@ -876,7 +897,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .home-panel[hidden]{display:none!important}
 
 .hm-stage{display:grid;grid-template-rows:62% 38%;min-height:clamp(540px,calc(100vh - 216px),700px)}
-.hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.38fr 1.02fr 1.04fr 1fr 0.80fr;
+.hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.44fr 1.04fr 1.02fr 0.98fr 0.76fr;
   align-items:stretch;border-bottom:2px solid var(--axis);padding-left:28px}
 .hm-ruler{height:124px;left:0;bottom:0}
 .hm-grp{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;
@@ -904,8 +925,8 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .hm-grp:hover .hm-stem,.hm-grp:focus-visible .hm-stem,.hm-grp.is-aim .hm-stem{transform:scaleY(1);background:var(--red)}
 .hm-grp:hover .hm-dia,.hm-grp:focus-visible .hm-dia,.hm-grp.is-aim .hm-dia{background:var(--red);border-color:var(--red);transform:translateY(-2px) rotate(45deg)}
 
-.hm-pils{position:relative;width:100%;display:flex;align-items:flex-end;min-height:132px;overflow:visible}
-.hm-svg{display:block;max-width:100%;height:auto;overflow:visible}
+.hm-pils{position:relative;width:100%;display:flex;align-items:flex-end;min-height:124px;margin-bottom:-8px;overflow:visible}
+.hm-svg{display:block;height:132px;width:auto;max-width:100%;overflow:visible}
 .hm-bar-g{transform-box:fill-box;transform-origin:center bottom}
 .hm-enter .hm-bar-g{animation:hmPilRise 360ms var(--ease-in) both;animation-delay:var(--pd,0ms)}
 :root[data-motion="calm"] .hm-enter .hm-bar-g{animation-duration:200ms}
@@ -978,10 +999,10 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .mk-tch.is-hot{color:var(--ink-0);font-weight:700}
 .mk-tch.is-hot::after{width:2px;height:9px;background:var(--ink-0)}
 
-/* 네 줄 시간축: 1920x1080 에서 줄 간격(행 피치) 약 128~132px, 고리 지름 64px */
-.mk-trows{display:flex;flex-direction:column;gap:64px}
+/* 네 줄 시간축: 1920x1080 과 1600x900 에서 줄 중심 간격(행 피치) 132px(64px 고리 + 68px 간격), 고리 지름 64px */
+.mk-trows{display:flex;flex-direction:column;gap:68px}
 .mk-trow{position:relative;display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:center}
-.mk-trow.is-break::before{content:"";position:absolute;left:0;right:0;top:-32px;height:1px;background:var(--line)}
+.mk-trow.is-break::before{content:"";position:absolute;left:0;right:0;top:-34px;height:1px;background:var(--line)}
 
 .mk-rh{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;transition:opacity 120ms var(--ease-in)}
 .mk-rh-nm{font:600 14px/1.28 var(--f-ko);color:var(--ink-0);word-break:keep-all}
@@ -1061,19 +1082,19 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 @keyframes mkArcDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 
 /* 해상도별 치수: 1600px, 1280px, 380px 모두 안쪽 가로 스크롤 0 */
-@media (max-width:1599px) and (min-width:1280px){
+@media (max-width:1599px) and (min-width:1281px){
   .mk-thead,.mk-trow{grid-template-columns:128px minmax(0,1fr);column-gap:12px}
   .mk-tch{width:54px}
-  .mk-trows{gap:40px}
-  .mk-trow.is-break::before{top:-20px}
+  .mk-trows{gap:44px}
+  .mk-trow.is-break::before{top:-22px}
   .mk-ring{width:54px;height:54px}
   .mk-rn{font-size:17px}
 }
-@media (max-width:1279px) and (min-width:1000px){
-  .mk-thead,.mk-trow{grid-template-columns:114px minmax(0,1fr);column-gap:10px}
+@media (max-width:1280px) and (min-width:1000px){
+  .mk-thead,.mk-trow{grid-template-columns:126px minmax(0,638px);column-gap:14px}
   .mk-tch{width:48px}
-  .mk-trows{gap:30px}
-  .mk-trow.is-break::before{top:-15px}
+  .mk-trows{gap:32px}
+  .mk-trow.is-break::before{top:-16px}
   .mk-rh-nm{font-size:13px}
   .mk-ring{width:48px;height:48px}
   .mk-rn{font-size:15px}
@@ -2123,7 +2144,11 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   <section class="scope" id="scope" aria-label="범위 띠" aria-live="polite" hidden></section>
 
   <!-- 열린 화면 상단 고리 탭 줄: 맨 왼쪽 [전체 요약] + 다섯 고리 탭(고른 탭의 슬레이트 면이 미끄러져 이동) -->
-  <nav class="rtabs is-compact" id="rtabs" role="tablist" aria-label="분석 화면" hidden></nav>
+  <div class="rtabs-wrap" id="rtabs-wrap" hidden>
+    <button type="button" class="rtabs-cue is-l" id="rt-cue-l" aria-hidden="true" tabindex="-1" hidden><svg width="8" height="14" viewBox="0 0 8 14"><path d="M7 1L1 7l6 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+    <nav class="rtabs is-compact" id="rtabs" role="tablist" aria-label="분석 화면" hidden></nav>
+    <button type="button" class="rtabs-cue is-r" id="rt-cue-r" aria-hidden="true" tabindex="-1" hidden><svg width="8" height="14" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+  </div>
 
   <div id="work-anchor" tabindex="-1"></div>
 
@@ -2400,7 +2425,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     stepIncSuffix: ' 하나 늘리기',
 
     // 첫 화면(전체 요약)과 상단 고리 탭 문구
-    homeListHead: '전체 결론 다섯 줄',
+    homeListHeadTpl: '전체 결론 {n}줄',
     homeListHint: '줄을 누르면 해당 화면으로 들어갑니다',
     homeRevBadgeTpl: '개정 {n}',
     briefRowGa: '고객군 지형',
@@ -2435,7 +2460,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     mkCenterTitle: '고객군 시간축과 고리',
     mkTimeOver5: '5년+',
     mkUnknownSym: '?',
-    mkOursOpenRatioTpl: '우리 열림 {open}/6',
+    mkOursOpenRatioTpl: '우리 열림 {open}/{total}',
     mkPartialOnlyMark: '일부 나이만',
     mkPartialHeadTpl: '일부 나이에서만 열리는 상대 {n}곳',
     mkPartialSpanTpl: '{org} {spans}세만 열림',
@@ -2849,10 +2874,24 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     });
   }
 
-  const STAGE_ORDER = ['진단', '수술', '치료', '입원', '통원'];
+  function stageOrderOf(baseId) {
+    const b = S['기준별'] && S['기준별'][baseId || st.base];
+    const cols = b && b['치료여정'] && b['치료여정']['열'];
+    if (Array.isArray(cols) && cols.length) return cols;
+    for (const v of Object.values(S['기준별'] || {})) {
+      const c2 = v && v['치료여정'] && v['치료여정']['열'];
+      if (Array.isArray(c2) && c2.length) return c2;
+    }
+    const seen = [];
+    for (const info of Object.values(S['표준담보'] || {})) {
+      const tp = info && info['급부유형'];
+      if (tp && !seen.includes(tp)) seen.push(tp);
+    }
+    return seen;
+  }
   function coverStageStacks(baseId, s = st) {
     const B = window.App && App.cover && typeof App.cover.rawB === 'function' ? App.cover.rawB(baseId) : null;
-    const stages = STAGE_ORDER.map(nm => ({
+    const stages = stageOrderOf(baseId).map(nm => ({
       name: nm,
       oursCnt: 0,
       totalCnt: 0,
@@ -3839,21 +3878,49 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     ringFlyEl._anim.onfinish = () => { if (ringFlyEl) { ringFlyEl.hidden = true; ringFlyEl.innerHTML = ''; } };
   }
 
+  function syncRtabsCue(scrollActive) {
+    const nav = $('#rtabs');
+    const cueL = $('#rt-cue-l'), cueR = $('#rt-cue-r');
+    if (!nav || nav.hidden) {
+      if (cueL) cueL.hidden = true;
+      if (cueR) cueR.hidden = true;
+      return;
+    }
+    if (scrollActive) {
+      const act = $('.rtab[aria-selected="true"]', nav);
+      if (act && nav.scrollWidth > nav.clientWidth + 4) {
+        const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
+        nav.scrollLeft = Math.max(0, Math.min(maxLeft, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2)));
+      }
+    }
+    const over = nav.scrollWidth > nav.clientWidth + 4;
+    const moreL = over && nav.scrollLeft > 4;
+    const moreR = over && (nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
+    nav.classList.toggle('has-more-l', moreL);
+    nav.classList.toggle('has-more-r', moreR);
+    if (cueL) cueL.hidden = !moreL;
+    if (cueR) cueR.hidden = !moreR;
+  }
+
   function renderRingTabs(c, snap) {
     const nav = $('#rtabs');
+    const wrap = $('#rtabs-wrap');
     const thTotal = $('#th-total');
     if (!nav) return;
     const isHome = st.tab === 'brief';
     if (isHome) {
       nav.hidden = true;
-      nav.classList.remove('has-pill');
+      if (wrap) wrap.hidden = true;
+      nav.classList.remove('has-pill', 'has-more-l', 'has-more-r');
       nav.innerHTML = '';
       if (thTotal) { thTotal.hidden = true; thTotal.innerHTML = ''; }
+      syncRtabsCue(false);
       lastRenderedTab = 'brief';
       return;
     }
     const enteredFromHome = lastRenderedTab === 'brief' && motionOn();
     lastRenderedTab = st.tab;
+    if (wrap) wrap.hidden = false;
     nav.hidden = false;
     if (enteredFromHome) {
       nav.classList.remove('from-home');
@@ -3877,9 +3944,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     nav.innerHTML = pillHTML + homeBtn + tabsHTML;
 
     const act = $('.rtab[aria-selected="true"]', nav);
-    if (act && nav.scrollWidth > nav.clientWidth + 4) {
-      nav.scrollLeft = Math.max(0, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2));
-    }
+    syncRtabsCue(true);
     const pill = $('#rtab-bg', nav);
     if (pill && act) {
       const toX = act.offsetLeft, toS = Math.max(0.1, act.offsetWidth / 100);
@@ -4009,7 +4074,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const t = tabs[id];
     if (t && t.layout) return t.layout;
     if (id === 'cover') return 'band';
-    if (id === 'market' || id === 'gate') return 'side';
+    if (id === 'market' || id === 'gate' || id === 'insight') return 'side';
     return 'three';
   }
 
@@ -4194,7 +4259,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   function clearSelLink() {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot');
     if (p) { if (p._anim) p._anim.cancel(); p.setAttribute('d', ''); }
-    if (dot) dot.hidden = true;
+    if (dot) { dot.hidden = true; dot.style.display = 'none'; }
   }
 
   function updateSelLink(drawLine) {
@@ -4207,9 +4272,11 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
     if (!selEl) { clearSelLink(); return; }
     const anchor = selEl.querySelector('[data-link-pt]') || selEl.querySelector('[data-aim-box]') || selEl;
+    const zc = $('#z-center');
     const bBox = board.getBoundingClientRect();
     const sBox = anchor.getBoundingClientRect();
     const rBox = zr.getBoundingClientRect();
+    const zcBox = zc ? zc.getBoundingClientRect() : sBox;
     if (!sBox.width || !sBox.height || !rBox.width || !rBox.height) { clearSelLink(); return; }
     const lay = board.dataset.layout || 'side';
     let d = '', dx = 0, dy = 0;
@@ -4222,14 +4289,53 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         dx = sx; dy = sy;
       }
     } else {
-      const sx = Math.round(sBox.right - bBox.left);
-      const sy = Math.round(sBox.top + sBox.height / 2 - bBox.top);
       const ex = Math.round(rBox.left - bBox.left);
       const ey = Math.round(Math.max(rBox.top + 22, Math.min(rBox.bottom - 22, sBox.top + sBox.height / 2)) - bBox.top);
-      if (ex > sx + 2) {
-        const mx = Math.round(sx + (ex - sx) * 0.55);
-        d = Math.abs(ey - sy) <= 3 ? `M${sx} ${sy}H${ex}` : `M${sx} ${sy}H${mx}V${ey}H${ex}`;
-        dx = sx; dy = sy;
+      const zcRight = Math.round(zcBox.right - bBox.left);
+      const gutterX = Math.max(zcRight + 2, Math.min(ex - 4, Math.round((zcRight + ex) / 2)));
+      const fullSelBox = selEl.getBoundingClientRect();
+      const midY = sBox.top + sBox.height / 2;
+      // 같은 줄 오른쪽에 다른 도형이나 글자가 있으면 줄 사이 빈 틈으로 내려서 꺾어 보낸다(요청 30의 2-1)
+      let blockedRight = false;
+      const track = selEl.closest('.mk-track, .gtf-track');
+      if (track) {
+        let sib = selEl.nextElementSibling;
+        while (sib) {
+          if (sib.matches('[data-pick], .mk-ring, .gtf-cell')) { blockedRight = true; break; }
+          sib = sib.nextElementSibling;
+        }
+      } else {
+        for (const other of $$('[data-pick], [data-gr-node]', root)) {
+          if (other === selEl || selEl.contains(other) || other.contains(selEl)) continue;
+          const ob = other.getBoundingClientRect();
+          if (ob.width < 2 || ob.height < 2) continue;
+          if (ob.left >= fullSelBox.right - 2 && midY >= ob.top - 4 && midY <= ob.bottom + 4) {
+            blockedRight = true;
+            break;
+          }
+        }
+      }
+      if (blockedRight) {
+        const cx = Math.round(sBox.left + sBox.width / 2 - bBox.left);
+        const by = Math.round(sBox.bottom - bBox.top);
+        const drop = st.tab === 'gate' ? 5 : st.tab === 'market' ? 9 : 7;
+        const corrY = by + drop;
+        if (ex > cx + 4) {
+          const turnX = Math.max(cx + 6, gutterX);
+          d = Math.abs(ey - corrY) <= 2
+            ? `M${cx} ${by}V${corrY}H${ex}`
+            : `M${cx} ${by}V${corrY}H${turnX}V${ey}H${ex}`;
+          dx = cx; dy = by;
+        }
+      } else {
+        const rightStart = Math.max(sBox.right, fullSelBox.right);
+        const sx = Math.round(rightStart - bBox.left);
+        const sy = Math.round(midY - bBox.top);
+        if (ex > sx + 2) {
+          const turnX = Math.max(sx + 4, Math.min(ex - 3, gutterX));
+          d = Math.abs(ey - sy) <= 3 ? `M${sx} ${sy}H${ex}` : `M${sx} ${sy}H${turnX}V${ey}H${ex}`;
+          dx = sx; dy = sy;
+        }
       }
     }
     p.setAttribute('d', d);
@@ -4241,8 +4347,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       });
     }
     if (dot) {
-      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; }
-      else dot.hidden = true;
+      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; dot.style.display = ''; }
+      else { dot.hidden = true; dot.style.display = 'none'; }
     }
   }
 
@@ -4330,8 +4436,10 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     zr.classList.remove('is-picked');
     if (zrIn) zrIn.hidden = true;
     unsel.hidden = false;
-    const info = unselectedConclusion(c);
-    unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}</p>` : '';
+    const curC = c || ctx();
+    const info = unselectedConclusion(curC);
+    const scopeBadge = (curC.peerScope !== 'all' && st.tab !== 'graph' && !(info && info.scoped)) ? ' ' + fullScopeTag() : '';
+    unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}${scopeBadge}</p>` : '';
     clearSelLink();
   }
 
@@ -5126,12 +5234,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (rt) {
       e.stopPropagation();
       const id = rt.dataset.rtab;
-      if (id === 'brief') {
-        returnToHome(st.tab);
-        return;
-      }
-      if (st.tab === id && st.sel[id] == null && !st.grp[id]) {
-        returnToHome(id);
+      if (id === 'brief' || st.tab === id) {
+        returnToHome(st.tab === 'brief' ? id : st.tab);
         return;
       }
       set({ tab: id });
@@ -5344,6 +5448,12 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       set({ motion: next });
     });
     $('#ev-x').addEventListener('click', () => unselect({ restoreFocus: true }));
+    const rtabsEl = $('#rtabs'), rtCueL = $('#rt-cue-l'), rtCueR = $('#rt-cue-r');
+    if (rtabsEl) {
+      rtabsEl.addEventListener('scroll', () => { syncRtabsCue(false); placeGuides(); }, { passive: true });
+    }
+    if (rtCueL && rtabsEl) rtCueL.addEventListener('click', () => rtabsEl.scrollBy({ left: -160, behavior: motionOn() ? 'smooth' : 'auto' }));
+    if (rtCueR && rtabsEl) rtCueR.addEventListener('click', () => rtabsEl.scrollBy({ left: 160, behavior: motionOn() ? 'smooth' : 'auto' }));
     const zc = $('#z-center');
     if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
     const evBody = $('#ev-body'), zrMore = $('#zr-more');
@@ -5362,7 +5472,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         const m = mode();
         if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
         closeHelp(false); hideAimReticle(); hideHudTip();
-        sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
+        syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);
     });
 
@@ -5434,7 +5544,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     </dl>`);
 
   // 1. 고객군과 시장 축소 기둥 24개(이력과 나이 네 무리 x 여섯 마디, 폭 8px, 사이 4px, 최대 120px, 최소 6px)
-  function marketPillarsSVG(c) {
+  function marketPillarsSVG(c, maxW) {
     const m = App.mapOf(c.st.renewal);
     const hospIdx = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
     const surgIdx = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
@@ -5445,7 +5555,18 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         groups.push(periods.map(p => (m['칸'][p.i] || [])[ci] || null));
       });
     });
-    const pw = 8, gap = 4, gGap = 10, H = 124;
+    const totBars = groups.reduce((a, g) => a + g.length, 0);
+    const gCnt = Math.max(0, groups.length - 1);
+    const iCnt = Math.max(0, totBars - groups.length);
+    let pw = 8, gap = 4, gGap = 10;
+    const H = 124;
+    if (maxW && totBars * pw + iCnt * gap + gCnt * gGap > maxW) {
+      gap = 3; gGap = 7;
+      if (totBars * pw + iCnt * gap + gCnt * gGap > maxW) {
+        gap = 2; gGap = 5;
+        pw = Math.max(5, Math.floor((maxW - iCnt * gap - gCnt * gGap) / Math.max(1, totBars)));
+      }
+    }
     let x = 0, barIdx = 0;
     const rects = [];
     const ticks = [];
@@ -5453,38 +5574,43 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       if (gi > 0) x += gGap - gap;
       cells.forEach((cell, ci) => {
         const cc = c.cellCounts(cell);
-        let h = 6;
-        if (cc.total > 0 && cc.openAny > 0) h = Math.max(10, Math.round((cc.openAny / cc.total) * 120));
-        else if (cc.state === 'only') h = 22;
+        const h = cc.total > 0 && cc.openAny > 0 ? Math.max(6, Math.round((cc.openAny / cc.total) * 120)) : 6;
         const y = H - h;
         let cls = 'pil-empty';
         let extra = '';
         if (cc.state === 'worse') cls = 'pil-fill-worse';
         else if (cc.state === 'only') {
           cls = 'pil-fill-gold';
-          extra = `<line x1="${x + 1}" y1="${y + 3}" x2="${x + pw - 1}" y2="${y + 3}" stroke="var(--gold-edge)" stroke-width="1.2"/>`;
+          extra = `<line x1="${x + 1}" y1="${y + 2.5}" x2="${x + pw - 1}" y2="${y + 2.5}" stroke="var(--gold-edge)" stroke-width="1.2"/>`;
         } else if (cc.state === 'both') cls = 'pil-fill-neutral';
         else if (cc.state === 'unknown') cls = 'pil-hatch';
         const dMs = Math.min(320, barIdx * 6);
         barIdx++;
-        rects.push(`<g class="hm-bar-g" style="--pd:${dMs}ms"><rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(5, h - 1)}"/>${extra}</g>`);
+        rects.push(`<g class="hm-bar-g" style="--pd:${dMs}ms"><rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(5, h - 0.5)}"/>${extra}</g>`);
         if (ci === 0 || ci === cells.length - 1) {
-          ticks.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 6}" stroke="var(--axis)" stroke-width="1"/>`);
+          ticks.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
         }
         x += pw + gap;
       });
     });
     const W = Math.max(40, x - gap);
-    return `<svg class="hm-svg" width="${W}" height="${H + 6}" viewBox="0 0 ${W} ${H + 6}" aria-hidden="true" focusable="false">${rects.join('')}${ticks.join('')}</svg>`;
+    return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${rects.join('')}${ticks.join('')}</svg>`;
   }
 
-  // 2. 가입 관문 축소 기둥(고지 유형마다 기둥 하나, 폭 20px, 사이 10px, 윤곽=상대 수, 채움=끝까지 통과한 수)
-  function gatePillarsSVG(c) {
+  // 2. 가입 관문 축소 기둥(고지 유형마다 기둥 하나, 폭 20px, 사이 10px, 유형이 늘면 높이는 두고 사이 간격부터 줄임)
+  function gatePillarsSVG(c, maxW) {
     const m = App.mapOf(c.st.renewal);
     const rows = c.gateFlowRows(m, c.seg ? c.seg.cell : null);
     if (!rows.length) return '';
     const maxP = Math.max(1, ...rows.map(r => r.total));
-    const pw = 20, gap = 10, H = 124;
+    let pw = 20, gap = 10;
+    const H = 124;
+    if (rows.length > 1 && maxW && rows.length * pw + (rows.length - 1) * gap > maxW) {
+      gap = Math.max(4, Math.floor((maxW - rows.length * pw) / (rows.length - 1)));
+      if (rows.length * pw + (rows.length - 1) * gap > maxW) {
+        pw = Math.max(10, Math.floor((maxW - (rows.length - 1) * gap) / rows.length));
+      }
+    }
     const W = rows.length * pw + (rows.length - 1) * gap;
     const els = [];
     rows.forEach((r, idx) => {
@@ -5495,10 +5621,10 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       const dMs = Math.min(320, 70 + idx * 14);
       let bar = '';
       if (r.total === 0 || r.finalPass === 0) {
-        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/>`;
+        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 0.5}"/>`;
       } else {
         const fy = H - fillH;
-        bar = `<rect class="pil-outline" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/><rect class="pil-fill-neutral" x="${x + 1}" y="${fy}" width="${pw - 2}" height="${fillH}"/>`;
+        bar = `<rect class="pil-outline" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 0.5}"/><rect class="pil-fill-neutral" x="${x + 1}" y="${fy + 0.5}" width="${pw - 2}" height="${Math.max(1, fillH - 0.5)}"/>`;
       }
       els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${bar}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
@@ -5506,11 +5632,18 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
   }
 
-  // 3. 담보 비교 축소 기둥(치료 단계 다섯마다 판정별 상대 수를 쌓은 기둥 하나, 폭 36px, 사이 16px)
-  function coverPillarsSVG(c) {
+  // 3. 담보 비교 축소 기둥(치료 단계마다 판정별 상대 수를 쌓은 기둥 하나, 폭 36px, 사이 16px)
+  function coverPillarsSVG(c, maxW) {
     const stages = c.coverStageStacks(c.baseId);
     const maxS = Math.max(1, ...stages.map(s => s.sum));
-    const pw = 36, gap = 16, H = 124;
+    let pw = 36, gap = 16;
+    const H = 124;
+    if (stages.length > 1 && maxW && stages.length * pw + (stages.length - 1) * gap > maxW) {
+      gap = Math.max(6, Math.floor((maxW - stages.length * pw) / (stages.length - 1)));
+      if (stages.length * pw + (stages.length - 1) * gap > maxW) {
+        pw = Math.max(22, Math.floor((maxW - (stages.length - 1) * gap) / stages.length));
+      }
+    }
     const W = stages.length * pw + (stages.length - 1) * gap;
     const els = [];
     stages.forEach((s, idx) => {
@@ -5519,10 +5652,10 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       const segEls = [];
       if (s.sum <= 0) {
         if (s.oursCnt > 0) {
-          const cx = x + pw / 2, cy = H - 8;
+          const cx = x + pw / 2, cy = H - 7;
           segEls.push(`<polygon class="pil-fill-gold" points="${cx},${cy - 7} ${cx + 7},${cy} ${cx},${cy + 7} ${cx - 7},${cy}"/>`);
         } else {
-          segEls.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 8.5}" width="${pw - 1}" height="8"/>`);
+          segEls.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 7.5}" width="${pw - 1}" height="7.5"/>`);
         }
       } else {
         const totH = Math.max(14, Math.round((s.sum / maxS) * 120));
@@ -5554,8 +5687,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
   }
 
-  // 4. 영업 인사이트 축소 기둥(분류 다섯마다 기둥 하나, 폭 36px, 높이는 건수)
-  function insightPillarsSVG(c) {
+  // 4. 영업 인사이트 축소 기둥(분류마다 기둥 하나, 폭 36px, 높이는 건수)
+  function insightPillarsSVG(c, maxW) {
     const cats = S['분류'] || [];
     const base = c.base || S['기준별'][c.baseId];
     const pSet = new Set(c.activePeerOrgs || []);
@@ -5572,7 +5705,14 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }
     const vals = cats.map(nm => cntMap[nm] || 0);
     const maxV = Math.max(1, ...vals);
-    const pw = 36, gap = 10, H = 124;
+    let pw = 36, gap = 10;
+    const H = 124;
+    if (cats.length > 1 && maxW && cats.length * pw + (cats.length - 1) * gap > maxW) {
+      gap = Math.max(5, Math.floor((maxW - cats.length * pw) / (cats.length - 1)));
+      if (cats.length * pw + (cats.length - 1) * gap > maxW) {
+        pw = Math.max(22, Math.floor((maxW - (cats.length - 1) * gap) / cats.length));
+      }
+    }
     const W = cats.length * pw + (cats.length - 1) * gap;
     const els = [];
     cats.forEach((nm, idx) => {
@@ -5581,7 +5721,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       const dMs = Math.min(320, 190 + idx * 16);
       let bar = '';
       if (v <= 0) {
-        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${H - 6.5}" width="${pw - 1}" height="6"/>`;
+        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${H - 5.5}" width="${pw - 1}" height="5.5"/>`;
       } else {
         const h = Math.max(10, Math.round((v / maxV) * 120));
         const y = H - h;
@@ -5595,7 +5735,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         } else if (nm === '개정 검토 후보') {
           cls = 'pil-hatch-pale';
         }
-        bar = `<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${h - 1}"/>${extra}`;
+        bar = `<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${h - 0.5}"/>${extra}`;
       }
       els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${bar}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
@@ -5604,45 +5744,48 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   }
 
   // 5. 관계 지도: 숫자 없이 노드 다섯과 잇는 선
-  function graphNodesSVG() {
-    const H = 124, W = 188;
+  function graphNodesSVG(maxW) {
+    const H = 124;
+    const W = Math.max(132, Math.min(188, maxW || 188));
+    const sx = W / 188;
     const pts = [
-      { x: 24, y: 74, s: 12 },
-      { x: 64, y: 40, s: 12 },
-      { x: 108, y: 66, s: 14 },
-      { x: 146, y: 30, s: 12 },
-      { x: 164, y: 84, s: 10 },
+      { x: Math.round(24 * sx), y: 74, s: 12 },
+      { x: Math.round(64 * sx), y: 40, s: 12 },
+      { x: Math.round(108 * sx), y: 66, s: 14 },
+      { x: Math.round(146 * sx), y: 30, s: 12 },
+      { x: Math.round(164 * sx), y: 84, s: 10 },
     ];
     const edges = [[0, 1], [1, 2], [2, 3], [2, 4], [1, 3]];
     const lines = edges.map(([a, b]) => `<line x1="${pts[a].x}" y1="${pts[a].y}" x2="${pts[b].x}" y2="${pts[b].y}" stroke="var(--ink-1)" stroke-width="1.3"/>`).join('');
-    const stems = pts.map(p => `<line x1="${p.x}" y1="${p.y + p.s / 2}" x2="${p.x}" y2="${H + 6}" stroke="var(--line-2)" stroke-width="1"/>`).join('');
+    const stems = pts.map(p => `<line x1="${p.x}" y1="${p.y + p.s / 2}" x2="${p.x}" y2="${H + 8}" stroke="var(--line-2)" stroke-width="1"/>`).join('');
     const nodes = pts.map((p, i) => `<rect class="${i === 2 ? 'pil-fill-neutral' : 'pil-outline'}" fill="${i === 2 ? 'var(--neutral-pil)' : 'var(--fog-1)'}" x="${p.x - p.s / 2}" y="${p.y - p.s / 2}" width="${p.s}" height="${p.s}"/>`).join('');
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false"><g class="hm-bar-g" style="--pd:260ms">${stems}${lines}${nodes}</g></svg>`;
   }
 
   function groupReadHTML(id, base, c) {
     if (!base) return '';
+    const fullBadge = c && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
     if (id === 'market') {
       const bGa = lineOf(base, '가'), bNa = lineOf(base, '나');
-      return `<p class="hm-read-main">${esc(bGa ? bGa['문장'] : '')}</p>${bNa ? `<p class="hm-read-sub">${esc(bNa['문장'])}</p>` : ''}`;
+      return `<p class="hm-read-main">${esc(bGa ? bGa['문장'] : '')}${fullBadge}</p>${bNa ? `<p class="hm-read-sub">${esc(bNa['문장'])}</p>` : ''}`;
     }
     if (id === 'gate') {
       const bDa = lineOf(base, '다');
-      return `<p class="hm-read-main">${esc(bDa ? bDa['문장'] : '')}</p>`;
+      return `<p class="hm-read-main">${esc(bDa ? bDa['문장'] : '')}${fullBadge}</p>`;
     }
     if (id === 'cover') {
       const bRa = lineOf(base, '라');
-      return `<p class="hm-read-main">${esc(bRa ? bRa['문장'] : '')}</p>`;
+      return `<p class="hm-read-main">${esc(bRa ? bRa['문장'] : '')}${fullBadge}</p>`;
     }
     if (id === 'insight') {
       const bMa = lineOf(base, '마');
-      return `<p class="hm-read-main">${esc(bMa ? bMa['문장'] : '')}</p>`;
+      return `<p class="hm-read-main">${esc(bMa ? bMa['문장'] : '')}${fullBadge}</p>`;
     }
     if (id === 'graph') {
       return `<p class="hm-read-main">${esc(t('grCenterDesc'))}</p>`;
     }
     const bMa = lineOf(base, '마');
-    return `<p class="hm-read-main">${esc(App.firstSentence(bMa ? bMa['문장'] : ''))}</p>`;
+    return `<p class="hm-read-main">${esc(App.firstSentence(bMa ? bMa['문장'] : ''))}${fullBadge}</p>`;
   }
 
   function groupPlainSummary(id, base) {
@@ -5655,16 +5798,36 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     return '';
   }
 
+  function colBudgets() {
+    const vw = window.innerWidth || 1920;
+    if (vw < 1000) {
+      const w = Math.max(260, vw - 36);
+      return { market: w, gate: w, cover: w, insight: w, graph: w };
+    }
+    const pad = vw >= 1600 ? 48 : 32;
+    const wrapW = Math.max(600, vw - pad * 2 - 28);
+    const hPad = vw >= 1600 ? 36 : 24;
+    const edgePad = vw >= 1600 ? 22 : 16;
+    return {
+      market: Math.floor(wrapW * (1.44 / 5.24)) - edgePad,
+      gate: Math.floor(wrapW * (1.04 / 5.24)) - hPad,
+      cover: Math.floor(wrapW * (1.02 / 5.24)) - hPad,
+      insight: Math.floor(wrapW * (0.98 / 5.24)) - hPad,
+      graph: Math.floor(wrapW * (0.76 / 5.24)) - edgePad,
+    };
+  }
+
   function renderHome(panel, c, why) {
     const base = c.base || S['기준별'][c.baseId];
     if (!base) { panel.innerHTML = ''; return; }
     const metrics = App.ringTabMetrics(c);
+    const maxW = colBudgets();
     const svgByTab = {
-      market: marketPillarsSVG(c),
-      gate: gatePillarsSVG(c),
-      cover: coverPillarsSVG(c),
-      insight: insightPillarsSVG(c),
-      graph: graphNodesSVG(),
+      market: marketPillarsSVG(c, maxW.market),
+      gate: gatePillarsSVG(c, maxW.gate),
+      cover: coverPillarsSVG(c, maxW.cover),
+      insight: insightPillarsSVG(c, maxW.insight),
+      graph: graphNodesSVG(maxW.graph),
     };
     const groupsHTML = App.SCREEN_IDS.map((id, idx) => {
       const m = metrics[id];
@@ -5757,7 +5920,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     </div>`;
     return {
       kicker: t('homePathRoot'),
-      title: t('homeListHead'),
+      title: t('homeListHeadTpl', { n: fmt(rows.length) }),
       badges: [ui.fullScopeTag()].filter(Boolean),
       actions: ui.btn(t('actCopySum'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="copy-summary"' }),
       html: listHTML,
@@ -5782,6 +5945,12 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const rows = (base['브리핑'] || []).map(b => [b['줄'], rowName(b), b['범위'], b['문장'], b['갈곳']]);
     App.copyRows(t('briefCopyCols').split(','), rows, { title: t('briefCopyTitle') });
   }
+
+  App.on('resize', () => {
+    if (App.state.tab !== 'brief') return;
+    const p = document.getElementById('home-panel');
+    if (p && !p.hidden) renderHome(p, App.ctx(), 'resize');
+  });
 
   App.registerTab({ id: 'brief', renderHome, actions: homeActions, copySummary });
 })();
@@ -6340,7 +6509,7 @@ App.registerTab((function () {
     }));
 
     const html = `<div class="mk-pane-scroll" id="mk-tally-wrap">
-      ${bGa && c.st.renewal == null ? `<p class="concl">${esc(bGa['문장'])}</p>` : `<p class="concl">${esc(conclFullText(c))}</p>`}
+      ${bGa && c.st.renewal == null ? `<p class="concl">${esc(bGa['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>` : `<p class="concl">${esc(conclFullText(c))}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>`}
       <div class="dm-sec">
         <div class="mkc-head">
           <h2>${esc(t('mkTallyHead'))} (${esc(txt.sexText(map['성별']))}, ${esc(renLabel(c.st.renewal))})</h2>
@@ -6360,7 +6529,7 @@ App.registerTab((function () {
       <div class="dm-sec">
         ${ui.table({
           id: 'mk-cells-tbl',
-          caption: `${App.TAB_NAME.market} 24${t('mkClosedUnit')} (${txt.sexText(map['성별'])})`,
+          caption: `${App.TAB_NAME.market} ${fmt(cellRows.length)}${t('mkClosedUnit')} (${txt.sexText(map['성별'])})`,
           head: ['이력', t('condAge'), t('mkTallyCol1'), txt.orgShort('EPOST'), '열린 상대', t('scopeClosedWhy')],
           rows: cellRows.map(r => r.cells),
           num: [4],

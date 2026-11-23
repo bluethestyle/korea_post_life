@@ -40,7 +40,7 @@
     </dl>`);
 
   // 1. 고객군과 시장 축소 기둥 24개(이력과 나이 네 무리 x 여섯 마디, 폭 8px, 사이 4px, 최대 120px, 최소 6px)
-  function marketPillarsSVG(c) {
+  function marketPillarsSVG(c, maxW) {
     const m = App.mapOf(c.st.renewal);
     const hospIdx = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
     const surgIdx = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
@@ -51,7 +51,18 @@
         groups.push(periods.map(p => (m['칸'][p.i] || [])[ci] || null));
       });
     });
-    const pw = 8, gap = 4, gGap = 10, H = 124;
+    const totBars = groups.reduce((a, g) => a + g.length, 0);
+    const gCnt = Math.max(0, groups.length - 1);
+    const iCnt = Math.max(0, totBars - groups.length);
+    let pw = 8, gap = 4, gGap = 10;
+    const H = 124;
+    if (maxW && totBars * pw + iCnt * gap + gCnt * gGap > maxW) {
+      gap = 3; gGap = 7;
+      if (totBars * pw + iCnt * gap + gCnt * gGap > maxW) {
+        gap = 2; gGap = 5;
+        pw = Math.max(5, Math.floor((maxW - iCnt * gap - gCnt * gGap) / Math.max(1, totBars)));
+      }
+    }
     let x = 0, barIdx = 0;
     const rects = [];
     const ticks = [];
@@ -59,38 +70,43 @@
       if (gi > 0) x += gGap - gap;
       cells.forEach((cell, ci) => {
         const cc = c.cellCounts(cell);
-        let h = 6;
-        if (cc.total > 0 && cc.openAny > 0) h = Math.max(10, Math.round((cc.openAny / cc.total) * 120));
-        else if (cc.state === 'only') h = 22;
+        const h = cc.total > 0 && cc.openAny > 0 ? Math.max(6, Math.round((cc.openAny / cc.total) * 120)) : 6;
         const y = H - h;
         let cls = 'pil-empty';
         let extra = '';
         if (cc.state === 'worse') cls = 'pil-fill-worse';
         else if (cc.state === 'only') {
           cls = 'pil-fill-gold';
-          extra = `<line x1="${x + 1}" y1="${y + 3}" x2="${x + pw - 1}" y2="${y + 3}" stroke="var(--gold-edge)" stroke-width="1.2"/>`;
+          extra = `<line x1="${x + 1}" y1="${y + 2.5}" x2="${x + pw - 1}" y2="${y + 2.5}" stroke="var(--gold-edge)" stroke-width="1.2"/>`;
         } else if (cc.state === 'both') cls = 'pil-fill-neutral';
         else if (cc.state === 'unknown') cls = 'pil-hatch';
         const dMs = Math.min(320, barIdx * 6);
         barIdx++;
-        rects.push(`<g class="hm-bar-g" style="--pd:${dMs}ms"><rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(5, h - 1)}"/>${extra}</g>`);
+        rects.push(`<g class="hm-bar-g" style="--pd:${dMs}ms"><rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(5, h - 0.5)}"/>${extra}</g>`);
         if (ci === 0 || ci === cells.length - 1) {
-          ticks.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 6}" stroke="var(--axis)" stroke-width="1"/>`);
+          ticks.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
         }
         x += pw + gap;
       });
     });
     const W = Math.max(40, x - gap);
-    return `<svg class="hm-svg" width="${W}" height="${H + 6}" viewBox="0 0 ${W} ${H + 6}" aria-hidden="true" focusable="false">${rects.join('')}${ticks.join('')}</svg>`;
+    return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${rects.join('')}${ticks.join('')}</svg>`;
   }
 
-  // 2. 가입 관문 축소 기둥(고지 유형마다 기둥 하나, 폭 20px, 사이 10px, 윤곽=상대 수, 채움=끝까지 통과한 수)
-  function gatePillarsSVG(c) {
+  // 2. 가입 관문 축소 기둥(고지 유형마다 기둥 하나, 폭 20px, 사이 10px, 유형이 늘면 높이는 두고 사이 간격부터 줄임)
+  function gatePillarsSVG(c, maxW) {
     const m = App.mapOf(c.st.renewal);
     const rows = c.gateFlowRows(m, c.seg ? c.seg.cell : null);
     if (!rows.length) return '';
     const maxP = Math.max(1, ...rows.map(r => r.total));
-    const pw = 20, gap = 10, H = 124;
+    let pw = 20, gap = 10;
+    const H = 124;
+    if (rows.length > 1 && maxW && rows.length * pw + (rows.length - 1) * gap > maxW) {
+      gap = Math.max(4, Math.floor((maxW - rows.length * pw) / (rows.length - 1)));
+      if (rows.length * pw + (rows.length - 1) * gap > maxW) {
+        pw = Math.max(10, Math.floor((maxW - (rows.length - 1) * gap) / rows.length));
+      }
+    }
     const W = rows.length * pw + (rows.length - 1) * gap;
     const els = [];
     rows.forEach((r, idx) => {
@@ -101,10 +117,10 @@
       const dMs = Math.min(320, 70 + idx * 14);
       let bar = '';
       if (r.total === 0 || r.finalPass === 0) {
-        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/>`;
+        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 0.5}"/>`;
       } else {
         const fy = H - fillH;
-        bar = `<rect class="pil-outline" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/><rect class="pil-fill-neutral" x="${x + 1}" y="${fy}" width="${pw - 2}" height="${fillH}"/>`;
+        bar = `<rect class="pil-outline" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 0.5}"/><rect class="pil-fill-neutral" x="${x + 1}" y="${fy + 0.5}" width="${pw - 2}" height="${Math.max(1, fillH - 0.5)}"/>`;
       }
       els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${bar}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
@@ -112,11 +128,18 @@
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
   }
 
-  // 3. 담보 비교 축소 기둥(치료 단계 다섯마다 판정별 상대 수를 쌓은 기둥 하나, 폭 36px, 사이 16px)
-  function coverPillarsSVG(c) {
+  // 3. 담보 비교 축소 기둥(치료 단계마다 판정별 상대 수를 쌓은 기둥 하나, 폭 36px, 사이 16px)
+  function coverPillarsSVG(c, maxW) {
     const stages = c.coverStageStacks(c.baseId);
     const maxS = Math.max(1, ...stages.map(s => s.sum));
-    const pw = 36, gap = 16, H = 124;
+    let pw = 36, gap = 16;
+    const H = 124;
+    if (stages.length > 1 && maxW && stages.length * pw + (stages.length - 1) * gap > maxW) {
+      gap = Math.max(6, Math.floor((maxW - stages.length * pw) / (stages.length - 1)));
+      if (stages.length * pw + (stages.length - 1) * gap > maxW) {
+        pw = Math.max(22, Math.floor((maxW - (stages.length - 1) * gap) / stages.length));
+      }
+    }
     const W = stages.length * pw + (stages.length - 1) * gap;
     const els = [];
     stages.forEach((s, idx) => {
@@ -125,10 +148,10 @@
       const segEls = [];
       if (s.sum <= 0) {
         if (s.oursCnt > 0) {
-          const cx = x + pw / 2, cy = H - 8;
+          const cx = x + pw / 2, cy = H - 7;
           segEls.push(`<polygon class="pil-fill-gold" points="${cx},${cy - 7} ${cx + 7},${cy} ${cx},${cy + 7} ${cx - 7},${cy}"/>`);
         } else {
-          segEls.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 8.5}" width="${pw - 1}" height="8"/>`);
+          segEls.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 7.5}" width="${pw - 1}" height="7.5"/>`);
         }
       } else {
         const totH = Math.max(14, Math.round((s.sum / maxS) * 120));
@@ -160,8 +183,8 @@
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
   }
 
-  // 4. 영업 인사이트 축소 기둥(분류 다섯마다 기둥 하나, 폭 36px, 높이는 건수)
-  function insightPillarsSVG(c) {
+  // 4. 영업 인사이트 축소 기둥(분류마다 기둥 하나, 폭 36px, 높이는 건수)
+  function insightPillarsSVG(c, maxW) {
     const cats = S['분류'] || [];
     const base = c.base || S['기준별'][c.baseId];
     const pSet = new Set(c.activePeerOrgs || []);
@@ -178,7 +201,14 @@
     }
     const vals = cats.map(nm => cntMap[nm] || 0);
     const maxV = Math.max(1, ...vals);
-    const pw = 36, gap = 10, H = 124;
+    let pw = 36, gap = 10;
+    const H = 124;
+    if (cats.length > 1 && maxW && cats.length * pw + (cats.length - 1) * gap > maxW) {
+      gap = Math.max(5, Math.floor((maxW - cats.length * pw) / (cats.length - 1)));
+      if (cats.length * pw + (cats.length - 1) * gap > maxW) {
+        pw = Math.max(22, Math.floor((maxW - (cats.length - 1) * gap) / cats.length));
+      }
+    }
     const W = cats.length * pw + (cats.length - 1) * gap;
     const els = [];
     cats.forEach((nm, idx) => {
@@ -187,7 +217,7 @@
       const dMs = Math.min(320, 190 + idx * 16);
       let bar = '';
       if (v <= 0) {
-        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${H - 6.5}" width="${pw - 1}" height="6"/>`;
+        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${H - 5.5}" width="${pw - 1}" height="5.5"/>`;
       } else {
         const h = Math.max(10, Math.round((v / maxV) * 120));
         const y = H - h;
@@ -201,7 +231,7 @@
         } else if (nm === '개정 검토 후보') {
           cls = 'pil-hatch-pale';
         }
-        bar = `<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${h - 1}"/>${extra}`;
+        bar = `<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${h - 0.5}"/>${extra}`;
       }
       els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${bar}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
@@ -210,45 +240,48 @@
   }
 
   // 5. 관계 지도: 숫자 없이 노드 다섯과 잇는 선
-  function graphNodesSVG() {
-    const H = 124, W = 188;
+  function graphNodesSVG(maxW) {
+    const H = 124;
+    const W = Math.max(132, Math.min(188, maxW || 188));
+    const sx = W / 188;
     const pts = [
-      { x: 24, y: 74, s: 12 },
-      { x: 64, y: 40, s: 12 },
-      { x: 108, y: 66, s: 14 },
-      { x: 146, y: 30, s: 12 },
-      { x: 164, y: 84, s: 10 },
+      { x: Math.round(24 * sx), y: 74, s: 12 },
+      { x: Math.round(64 * sx), y: 40, s: 12 },
+      { x: Math.round(108 * sx), y: 66, s: 14 },
+      { x: Math.round(146 * sx), y: 30, s: 12 },
+      { x: Math.round(164 * sx), y: 84, s: 10 },
     ];
     const edges = [[0, 1], [1, 2], [2, 3], [2, 4], [1, 3]];
     const lines = edges.map(([a, b]) => `<line x1="${pts[a].x}" y1="${pts[a].y}" x2="${pts[b].x}" y2="${pts[b].y}" stroke="var(--ink-1)" stroke-width="1.3"/>`).join('');
-    const stems = pts.map(p => `<line x1="${p.x}" y1="${p.y + p.s / 2}" x2="${p.x}" y2="${H + 6}" stroke="var(--line-2)" stroke-width="1"/>`).join('');
+    const stems = pts.map(p => `<line x1="${p.x}" y1="${p.y + p.s / 2}" x2="${p.x}" y2="${H + 8}" stroke="var(--line-2)" stroke-width="1"/>`).join('');
     const nodes = pts.map((p, i) => `<rect class="${i === 2 ? 'pil-fill-neutral' : 'pil-outline'}" fill="${i === 2 ? 'var(--neutral-pil)' : 'var(--fog-1)'}" x="${p.x - p.s / 2}" y="${p.y - p.s / 2}" width="${p.s}" height="${p.s}"/>`).join('');
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false"><g class="hm-bar-g" style="--pd:260ms">${stems}${lines}${nodes}</g></svg>`;
   }
 
   function groupReadHTML(id, base, c) {
     if (!base) return '';
+    const fullBadge = c && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
     if (id === 'market') {
       const bGa = lineOf(base, '가'), bNa = lineOf(base, '나');
-      return `<p class="hm-read-main">${esc(bGa ? bGa['문장'] : '')}</p>${bNa ? `<p class="hm-read-sub">${esc(bNa['문장'])}</p>` : ''}`;
+      return `<p class="hm-read-main">${esc(bGa ? bGa['문장'] : '')}${fullBadge}</p>${bNa ? `<p class="hm-read-sub">${esc(bNa['문장'])}</p>` : ''}`;
     }
     if (id === 'gate') {
       const bDa = lineOf(base, '다');
-      return `<p class="hm-read-main">${esc(bDa ? bDa['문장'] : '')}</p>`;
+      return `<p class="hm-read-main">${esc(bDa ? bDa['문장'] : '')}${fullBadge}</p>`;
     }
     if (id === 'cover') {
       const bRa = lineOf(base, '라');
-      return `<p class="hm-read-main">${esc(bRa ? bRa['문장'] : '')}</p>`;
+      return `<p class="hm-read-main">${esc(bRa ? bRa['문장'] : '')}${fullBadge}</p>`;
     }
     if (id === 'insight') {
       const bMa = lineOf(base, '마');
-      return `<p class="hm-read-main">${esc(bMa ? bMa['문장'] : '')}</p>`;
+      return `<p class="hm-read-main">${esc(bMa ? bMa['문장'] : '')}${fullBadge}</p>`;
     }
     if (id === 'graph') {
       return `<p class="hm-read-main">${esc(t('grCenterDesc'))}</p>`;
     }
     const bMa = lineOf(base, '마');
-    return `<p class="hm-read-main">${esc(App.firstSentence(bMa ? bMa['문장'] : ''))}</p>`;
+    return `<p class="hm-read-main">${esc(App.firstSentence(bMa ? bMa['문장'] : ''))}${fullBadge}</p>`;
   }
 
   function groupPlainSummary(id, base) {
@@ -261,16 +294,36 @@
     return '';
   }
 
+  function colBudgets() {
+    const vw = window.innerWidth || 1920;
+    if (vw < 1000) {
+      const w = Math.max(260, vw - 36);
+      return { market: w, gate: w, cover: w, insight: w, graph: w };
+    }
+    const pad = vw >= 1600 ? 48 : 32;
+    const wrapW = Math.max(600, vw - pad * 2 - 28);
+    const hPad = vw >= 1600 ? 36 : 24;
+    const edgePad = vw >= 1600 ? 22 : 16;
+    return {
+      market: Math.floor(wrapW * (1.44 / 5.24)) - edgePad,
+      gate: Math.floor(wrapW * (1.04 / 5.24)) - hPad,
+      cover: Math.floor(wrapW * (1.02 / 5.24)) - hPad,
+      insight: Math.floor(wrapW * (0.98 / 5.24)) - hPad,
+      graph: Math.floor(wrapW * (0.76 / 5.24)) - edgePad,
+    };
+  }
+
   function renderHome(panel, c, why) {
     const base = c.base || S['기준별'][c.baseId];
     if (!base) { panel.innerHTML = ''; return; }
     const metrics = App.ringTabMetrics(c);
+    const maxW = colBudgets();
     const svgByTab = {
-      market: marketPillarsSVG(c),
-      gate: gatePillarsSVG(c),
-      cover: coverPillarsSVG(c),
-      insight: insightPillarsSVG(c),
-      graph: graphNodesSVG(),
+      market: marketPillarsSVG(c, maxW.market),
+      gate: gatePillarsSVG(c, maxW.gate),
+      cover: coverPillarsSVG(c, maxW.cover),
+      insight: insightPillarsSVG(c, maxW.insight),
+      graph: graphNodesSVG(maxW.graph),
     };
     const groupsHTML = App.SCREEN_IDS.map((id, idx) => {
       const m = metrics[id];
@@ -363,7 +416,7 @@
     </div>`;
     return {
       kicker: t('homePathRoot'),
-      title: t('homeListHead'),
+      title: t('homeListHeadTpl', { n: fmt(rows.length) }),
       badges: [ui.fullScopeTag()].filter(Boolean),
       actions: ui.btn(t('actCopySum'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="copy-summary"' }),
       html: listHTML,
@@ -388,6 +441,12 @@
     const rows = (base['브리핑'] || []).map(b => [b['줄'], rowName(b), b['범위'], b['문장'], b['갈곳']]);
     App.copyRows(t('briefCopyCols').split(','), rows, { title: t('briefCopyTitle') });
   }
+
+  App.on('resize', () => {
+    if (App.state.tab !== 'brief') return;
+    const p = document.getElementById('home-panel');
+    if (p && !p.hidden) renderHome(p, App.ctx(), 'resize');
+  });
 
   App.registerTab({ id: 'brief', renderHome, actions: homeActions, copySummary });
 })();

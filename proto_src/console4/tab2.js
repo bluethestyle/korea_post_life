@@ -548,7 +548,7 @@ App.registerTab((function () {
     }));
 
     const html = `<div class="mk-pane-scroll" id="mk-tally-wrap">
-      ${bGa && c.st.renewal == null ? `<p class="concl">${esc(bGa['문장'])}</p>` : `<p class="concl">${esc(conclFullText(c))}</p>`}
+      ${bGa && c.st.renewal == null ? `<p class="concl">${esc(bGa['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>` : `<p class="concl">${esc(conclFullText(c))}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>`}
       <div class="dm-sec">
         <div class="mkc-head">
           <h2>${esc(t('mkTallyHead'))} (${esc(txt.sexText(map['성별']))}, ${esc(renLabel(c.st.renewal))})</h2>
@@ -568,7 +568,7 @@ App.registerTab((function () {
       <div class="dm-sec">
         ${ui.table({
           id: 'mk-cells-tbl',
-          caption: `${App.TAB_NAME.market} 24${t('mkClosedUnit')} (${txt.sexText(map['성별'])})`,
+          caption: `${App.TAB_NAME.market} ${fmt(cellRows.length)}${t('mkClosedUnit')} (${txt.sexText(map['성별'])})`,
           head: ['이력', t('condAge'), t('mkTallyCol1'), txt.orgShort('EPOST'), '열린 상대', t('scopeClosedWhy')],
           rows: cellRows.map(r => r.cells),
           num: [4],
