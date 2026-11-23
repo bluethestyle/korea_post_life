@@ -35,6 +35,8 @@
   (our_rep, peer_reps). 상대 대표가 compare.peers의 짝과 다르면 insights.analyze_pair로 그 쌍을 다시 돌린다. 대표는 정밀비교
   종형에서만 고르므로, 상대 회사에서 열린 종형이 관문전용뿐이면 칸의 관문만수집에 그 종형을 적는다(GATE_NOTE).
 - 지도 행의 경계(since_cuts)는 최근 소견 질문의 기간과 정밀비교 간편심사 종형의 고지입원수술년수에서 나온다.
+  맨 끝 입원 행("5년 넘음이나 없음")은 마지막 입원이 5년 전인 고객으로 계산하므로, 관문전용 종형처럼 5년보다 긴 기간을 묻는
+  종형은 그 칸에서 닫힌다. 이력이 없는 고객의 값은 지도마다 열 수만큼 따로 계산해 이력없음에 싣는다(segment_map, NO_HISTORY_ROW).
 - 지도 열의 경계(map_columns)는 우리 기관 종형의 주계약 가입나이에서만 나온다(회사 수에 매이지 않게. 2026-11-23). 상대 회사는
   열 안의 모든 나이를 놓고 칸 상태를 낸다(span_cell): 모든 나이에서 열리면 열림, 나이에 따라 열리고 닫히면 일부 나이만 열림
   (PARTIAL. 열리는 나이를 일부열린나이에 싣는다), 열린 나이 없이 갈리면 STATE_ORDER로 앞선 상태. 칸 분류는 일부 나이만 열린
@@ -1244,6 +1246,11 @@ def map_rows(data: Data) -> list[dict[str, Any]]:
     return rows
 
 
+# 이력 없는 고객의 줄. 지도의 행(map_rows)에는 넣지 않고(칸의 수와 뜻은 그대로) 지도마다 열 수만큼 따로 계산한다(segment_map의
+# 이력없음). 맨 끝 입원 행은 since가 마지막 경계(5년)라 그보다 긴 기간을 묻는 종형(관문전용 10년형 따위)이 그 행에서 닫힌다.
+NO_HISTORY_ROW = {"종류": HOSPITAL, "since": None, "이름": "이력 없음"}
+
+
 def home_age_edges(data: Data) -> list[int]:
     """지도 열의 경계: 우리 기관의 관문 대상 종형(gate_targets. 갱신 거르개와 무관하게 모두) 주계약 가입조건 행의 최저 가입나이와
     최고 가입나이 다음 나이. 상대 회사의 가입나이는 열을 끊지 않는다(회사 수에 매이지 않게. span_cell이 열 안의 나이를 모두 본다)."""
@@ -1285,6 +1292,9 @@ def segment_map(data: Data, sex: str, renewal: str | None, analysis: dict | None
     열 수는 상대 회사 수와 무관하다. 칸은 열 안의 모든 나이를 놓고 낸다(span_cell): 상대 회사가 나이에 따라 열리고 닫히면
     그 회사의 칸 상태는 일부 나이만 열림이다. 상대 회사의 가입나이가 우리 기관의 가입나이 밖(맨 앞 경계 앞, 맨 뒤 경계 뒤)이면
     지도에 없다.
+
+    이력없음은 이력이 없는 고객(NO_HISTORY_ROW)의 칸을 열마다 하나씩 계산한 목록이다(칸과 같은 꼴, span_cell). 열을 합칠지
+    가르는 데는 쓰지 않고, 집계에도 세지 않는다.
     """
     ctx = _ctx(data, analysis, relations, ctx)
     rows = map_rows(data)
@@ -1302,7 +1312,8 @@ def segment_map(data: Data, sex: str, renewal: str | None, analysis: dict | None
     columns = [{"lo": s["lo"], "hi": s["hi"]} for s in spans]
     cells = [[span_cell(data, r, s["subs"], sex, renewal, ctx) for s in spans] for r in rows]
     tally = {c: sum(1 for row in cells for x in row if x["분류"] == c) for c in CLASSES}
-    return {"성별": sex, "갱신유형": renewal, "행": rows, "열": columns, "칸": cells, "집계": tally}
+    none = [span_cell(data, NO_HISTORY_ROW, s["subs"], sex, renewal, ctx) for s in spans]
+    return {"성별": sex, "갱신유형": renewal, "행": rows, "열": columns, "칸": cells, "집계": tally, "이력없음": none}
 
 
 def _best_side(sides: list[str | None]) -> str | None:
@@ -2878,27 +2889,29 @@ def _variant_info(data: Data, vid: str) -> dict[str, Any]:
             "판매종료일": v.get("판매종료일"), "비교역할": v.get("비교역할구분")}
 
 
+def _export_cell(ctx: _Ctx, seg: dict[str, Any], r: dict[str, Any], x: dict[str, Any], pool: dict[str, dict],
+                 texts: _Texts) -> dict[str, Any]:
+    # 칸의 관문 포인트는 칸의 세부 값을 계산한 나이(세부나이. 열 안에서 관문 결과가 같으면 열의 첫 나이)로 계산한다
+    p = Profile(age=x["세부나이"], sex=seg["성별"], since=r["since"], surgery_only=r["종류"] == SURGERY_ONLY,
+                renewal=seg["갱신유형"])
+    found, base = cell_gate_points(ctx, p)
+    for y in found:
+        pool.setdefault(y["포인트ID"], _export_point(ctx.data, y, texts))
+    return {"라벨": x["라벨"], "보조": x["보조"], "닫힌사유": x["닫힌사유"], "회사": x["회사"],
+            "대표": x["대표"], "상대대표": x["상대대표"], "분류수": x["분류수"], "자료없음": x["자료없음"],
+            "열린종형": x["열린종형"], "관문기준": base, "관문포인트": [y["포인트ID"] for y in found],
+            "관문만수집": x["관문만수집"],
+            **{k: x[k] for k in PEER_TALLY}, **peer_codes(x["회사"], x["관문만수집"]),
+            **{k: x[k] for k in SPAN_KEYS}}
+
+
 def _export_map(ctx: _Ctx, seg: dict[str, Any], pool: dict[str, dict], texts: _Texts) -> dict[str, Any]:
-    cells = []
-    for r, line in zip(seg["행"], seg["칸"]):
-        row = []
-        for c, x in zip(seg["열"], line):
-            # 칸의 관문 포인트는 칸의 세부 값을 계산한 나이(세부나이. 열 안에서 관문 결과가 같으면 열의 첫 나이)로 계산한다
-            p = Profile(age=x["세부나이"], sex=seg["성별"], since=r["since"], surgery_only=r["종류"] == SURGERY_ONLY,
-                        renewal=seg["갱신유형"])
-            found, base = cell_gate_points(ctx, p)
-            for y in found:
-                pool.setdefault(y["포인트ID"], _export_point(ctx.data, y, texts))
-            row.append({"라벨": x["라벨"], "보조": x["보조"], "닫힌사유": x["닫힌사유"], "회사": x["회사"],
-                        "대표": x["대표"], "상대대표": x["상대대표"], "분류수": x["분류수"], "자료없음": x["자료없음"],
-                        "열린종형": x["열린종형"], "관문기준": base, "관문포인트": [y["포인트ID"] for y in found],
-                        "관문만수집": x["관문만수집"],
-                        **{k: x[k] for k in PEER_TALLY}, **peer_codes(x["회사"], x["관문만수집"]),
-                        **{k: x[k] for k in SPAN_KEYS}})
-        cells.append(row)
+    cells = [[_export_cell(ctx, seg, r, x, pool, texts) for x in line] for r, line in zip(seg["행"], seg["칸"])]
     labels = {lab: sum(1 for line in cells for x in line if x["라벨"] == lab) for lab in LABELS.values()}
+    # 이력없음은 칸과 같은 꼴로 열마다 하나다. 라벨별(칸 24개의 라벨 수)에는 세지 않는다
+    none = [_export_cell(ctx, seg, NO_HISTORY_ROW, x, pool, texts) for x in seg["이력없음"]]
     return {"성별": seg["성별"], "갱신유형": seg["갱신유형"], "행": seg["행"], "열": seg["열"], "칸": cells, "라벨별": labels,
-            "고지유형": flow_groups(ctx.data, seg["갱신유형"])}
+            "고지유형": flow_groups(ctx.data, seg["갱신유형"]), "이력없음": none}
 
 
 def export(data: Data, analysis: dict | None = None, relations: Relations | None = None) -> dict[str, Any]:
@@ -2911,6 +2924,7 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
     - 지도는 성별 남, 갱신 거르개 전체와 갱신과 비갱신 세 장이다. 열은 우리 기관의 가입나이 경계로 끊고(map_columns), 칸은 열의
       모든 나이를 놓고 낸다(span_cell. 일부열린나이, 일부나이로만열림, 세부나이, 관문흐름을 더 싣는다). 칸의 관문 포인트는 칸의
       세부나이로 계산한다(cell_gate_points. 열 안에서 관문 결과가 같으면 열의 맨 앞 나이). "관문마디"는 관문흐름의 마디 이름이다.
+      지도마다 "이력없음"에 이력 없는 고객의 값을 열마다 칸과 같은 꼴로 싣는다(맨 끝 입원 행은 마지막 입원이 5년 전인 고객의 값이다).
       칸의 인사이트 수는 다섯 분류 이름의 분류수(관문 차이는 그 칸의 관문 포인트 수)이고, 안쪽 값인 분류와 수는 싣지 않는다.
       칸의 관문만수집은 열린 종형이 관문전용뿐인 상대 회사의 그 종형이다(cell). 칸의 열린종형과 관문만수집이 가리키는 종형은
       모두 "종형"에도 싣는다(관문전용 종형은 비교역할 관문전용). 칸의 상대 수(peer_tally) 옆에 그 기관코드 목록(peer_codes)을 싣는다.
@@ -2963,7 +2977,7 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
         }
     maps = {k: _export_map(ctx, seg, pool, texts) for k, seg in segs.items()}
     for m in maps.values():
-        for line in m["칸"]:
+        for line in m["칸"] + [m["이력없음"]]:
             for x in line:
                 used.update(v for v in [x["대표"], x["관문기준"], *x["상대대표"].values()] if v)
                 # 칸이 가리키는 종형ID는 모두 "종형"에 싣는다. 정밀비교 종형 옆에서 함께 열린 관문전용 종형은
