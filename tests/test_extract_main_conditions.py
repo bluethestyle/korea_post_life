@@ -4,6 +4,7 @@
 첫 줄이 그 계약 이름보다 먼저 나옴)만 본떠 직접 만든 것이다. 상품과 계약 이름, 나이와 기간은 지어낸 것이다.
 모델은 부르지 않는다. 모델이 돌려줄 법한 답을 손으로 만들어 넣는다.
 """
+from dataclasses import replace
 from datetime import datetime
 
 from postlife import ids
@@ -344,6 +345,74 @@ def test_missing_method_text_or_main_rider_or_item_skips_without_calls():
     assert any("8종(일반형): 시트에 주계약 행이 없어" in n for n in report.notes)
     assert any("8종(미지급형,일반고지): 가입나이 절의 종별 항목" in n for n in report.notes)
     assert [r for r in store.read()["sys_가입조건"] if r["종형ID"] == R8] == [before["sys_가입조건"][1]]   # 시트에 있던 행 그대로
+
+
+class Stripped(Fake):
+    """기본계약 표의 계약 이름에서 대괄호 표시를 빼고 옮기는 모델. 실행 45092778802에서 본 꼴이다("[건강]상해 사망"을
+    "건강상해 사망"으로, "[갱신형]상해 사망"을 "상해 사망"으로 옮겼다). 같은 본문을 다시 물으면 줄을 절반만 돌려준다.
+
+    extra: 건강 모듈 표에서 함께 돌려줄 항목. 기본계약 표에 다른 계약의 줄이 섞여 든 경우를 본뜬다.
+    """
+
+    def __init__(self, extra=()):
+        super().__init__()
+        self.extra = list(extra)
+        self.asked = {}
+
+    def generate(self, model, prompt, schema=None, temperature=0.0):
+        out = super().generate(model, prompt, schema, temperature)
+        body = self.bodies[-1]
+        if '"가입나이, 보험기간' not in prompt:
+            return out
+        self.asked[body] = self.asked.get(body, 0) + 1
+        if "[건강]가나 사망" in body:
+            rows = [item("건강가나 사망", t, p, a) for t, p, a in HEALTH]
+            return {"items": (rows if self.asked[body] == 1 else rows[::2]) + self.extra}
+        if "[갱신형]가나 사망" in body:
+            return {"items": [item("가나 사망", t, "전기납", a) for t, a in GENERAL]}
+        return out
+
+
+def test_main_table_names_without_brackets_still_point_to_the_main_rider():
+    store = sheet_store()
+    fake = Stripped()
+    report = job.run(fake, store, TARGETS, INDEX, TEXTS.get, NOW, read_thresholds=False, parts=(job.MAIN_PART,))
+    assert report.written and report.errors == {}
+    assert report.main_done == {S315, S355, R8, M8}
+    assert not any("특약" in n and "행으로 만들지 않음" in n for n in report.notes)
+    # 이름이 원문 글자와 조금 달라도 주계약 이름과 겹치면 원문 대조에 걸리지 않는다. 다시 뽑지 않아 줄을 절반만 돌려준 답으로 바뀌지 않는다
+    assert fake.calls["가입나이"] == 3
+    mine = [r for r in store.read()["sys_가입조건"] if r["종형ID"] in (R8, M8)]
+    assert all(r["특약ID"] is None for r in mine)
+    assert sorted((r["보험기간구분"], r["납입기간구분"], r["최저가입나이"], r["최고가입나이"]) for r in mine if r["종형ID"] == R8) \
+        == [("18년", "전기납", 17, 75)]
+    health = {(r["보험기간구분"], r["납입기간구분"]): (r["최저가입나이"], r["최고가입나이"]) for r in mine if r["종형ID"] == M8}
+    assert health == {(t, p): tuple(int(x) for x in a.replace("세", "").split("~")) for t, p, a in HEALTH}
+
+
+def test_other_contract_lines_in_the_main_table_are_still_left_out():
+    store = sheet_store()
+    extra = [item("다라 사망", "80세만기", "10년납", "20세~50세"), item("가나 사망 특약", "80세만기", "11년납", "20세~50세")]
+    report = job.run(Stripped(extra), store, TARGETS, INDEX, TEXTS.get, NOW, read_thresholds=False, parts=(job.MAIN_PART,))
+    assert report.written and M8 in report.main_done
+    rows = [r for r in store.read()["sys_가입조건"] if r["종형ID"] == M8]
+    assert len(rows) == 10 and not any(r["보험기간구분"] == "80세만기" for r in rows)
+    assert any("주계약 가입조건만 뽑으므로 특약 2개의 항목은 행으로 만들지 않음" in n for n in report.notes)
+
+
+def test_near_main_names_only_count_for_the_main_table():
+    t = C.target_of(M8, "8종(일반형)", [rider(M8, "가나 사망", "주계약")])
+    # 기본계약 표만 넣지 않은 경로(우체국, 한화생명의 가입조건)는 이름을 느슨하게 맞추지 않는다
+    assert t.near_names == frozenset() and t.rider("건강가나 사망", near=True) == (False, None)
+    loose = replace(t, near_names=frozenset({"가나 사망", "[건강]가나 사망"}))
+    assert loose.rider("건강가나 사망", near=True) == (True, None)                 # 대괄호를 뺀 이름
+    assert loose.rider("[건강] 가나 사망 월납", near=True) == (True, None)
+    assert loose.rider("사망", near=True) == (True, None)                         # 주계약 이름에 포함되는 이름
+    assert loose.rider("건강가나 사망", near=False) == (False, None)               # 가입한도와 결합제약 항목은 그대로
+    for other in ("다라 사망", "가나 사망 특약", "가나 사망 특별약관", "", "[]·"):
+        assert loose.rider(other, near=True) == (False, None), other
+    assert C.near_main("상해 사망", ["[갱신형]상해 사망"]) and C.near_main("건강상해 사망", ["[건강]상해 사망", "상해 사망"])
+    assert not C.near_main("질병 사망", ["[갱신형]상해 사망"]) and not C.near_main("상해 사망", [])
 
 
 def test_without_a_main_table_the_age_section_is_not_sent():

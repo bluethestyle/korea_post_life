@@ -66,8 +66,11 @@ class _Shot:
 
 
 def run_section(gemini: Any, kind: str, section: C.Section, thresholds: dict[str, float], log: WorkLog,
-                target: str, budget: dict[str, int]) -> _Shot | None:
-    """한 절을 뽑는다. 값이 의심스러우면 다른 모델로, 그래도 안 되면 상위 모델로 다시 뽑아 더 나은 쪽을 쓴다."""
+                target: str, budget: dict[str, int], near_names: frozenset[str] = frozenset()) -> _Shot | None:
+    """한 절을 뽑는다. 값이 의심스러우면 다른 모델로, 그래도 안 되면 상위 모델로 다시 뽑아 더 나은 쪽을 쓴다.
+
+    near_names: 기본계약 표 하나만 넣은 절의 주계약 이름(C.literal_problems). 이 이름과 겹치는 이름은 원문 대조에서 이름 칸을 보지 않는다.
+    """
     best: _Shot | None = None
     for model in (config.MODEL_EXTRACT, config.MODEL_EXTRACT_ALT, config.MODEL_SUMMARY):
         if best is not None and not best.needs_retry(thresholds):
@@ -79,7 +82,7 @@ def run_section(gemini: Any, kind: str, section: C.Section, thresholds: dict[str
         stage = "추출" if best is None else "재추출"
         try:
             ex = C.extract(gemini, kind, section, model, best.feedback(thresholds) if best else None)
-            got = _Shot(ex, C.judge(gemini, ex, config.MODEL_DECIDE) if ex.items else {}, C.literal_problems(ex))
+            got = _Shot(ex, C.judge(gemini, ex, config.MODEL_DECIDE) if ex.items else {}, C.literal_problems(ex, near_names))
         except (GeminiError, ValueError, KeyError) as e:
             log.add(stage, target, "보류", f"{kind} 절 호출 실패: {str(e)[:200]}", model=model)
             continue
@@ -123,21 +126,26 @@ def run(gemini: Any, method_pages: dict[int, str], summary_pages: dict[int, str]
     scope: 절이 종별 항목("가. 간편고지", "라. 8종")으로 나뉜 문서에서 볼 항목의 이름(conditions.method_sections).
     main_only: 가입나이 절에서 기본계약 줄만 남긴다(conditions.main_section). 특약 줄이 수백 개인 표(삼성화재)에서 주계약 가입조건만
     뽑을 때 쓴다. 기본계약 표를 찾지 못하면 가입나이 절을 뽑지 않는다(특약 줄까지 든 큰 절을 모델에 넣지 않는다).
+    모델에 넣는 글이 기본계약 표 하나뿐이므로, 그 표에서 뽑은 가입나이 항목은 이름이 조금 달라도 주계약 이름(시트의 주계약 행 이름과
+    기본계약 표의 계약 이름)과 conditions.near_main으로 겹치면 주계약으로 본다. 겹치지 않는 이름은 지금처럼 행으로 만들지 않는다.
     """
     budget = budget if budget is not None else {"상위모델": 0}
     result = Result()
     # 여러 가입유형을 한 표에 담은 문서(가입최고나이 표)는 대상 종형의 줄 묶음만 남긴다. 그런 표가 없는 문서는 절이 그대로다
     sections = C.method_sections(method_pages, scope=scope, types=[t.variant_name for t in targets])
     found = set(sections)
+    near: frozenset[str] = frozenset()      # 기본계약 표 하나만 넣은 가입나이 절에서 이름을 느슨하게 견줄 주계약 이름
     if main_only and "가입나이" in sections and "가입나이" in kinds:
         main = C.main_section(method_pages, scope)
         if main:
             sections["가입나이"] = main
             # 기본계약 표의 계약 이름도 주계약으로 찾는다. 급부 표에서 읽은 주계약 이름과 글자가 다를 수 있다
             alias = C.main_name(main)
-            if alias:
-                key = ids.rider_lineage_key(alias)
-                targets = [replace(t, aliases=t.aliases | {key}) for t in targets]
+            key = {ids.rider_lineage_key(alias)} if alias else set()
+            # 모델이 대괄호 표시를 빼고 옮긴 이름("[건강]상해 사망" → "건강상해 사망")도 주계약으로 찾는다
+            targets = [replace(t, aliases=t.aliases | key,
+                               near_names=frozenset(n for n in (t.main_name, alias) if n)) for t in targets]
+            near = frozenset().union(*(t.near_names for t in targets))
         else:
             del sections["가입나이"]
             result.notes.append("가입나이 절에서 기본계약 표를 찾지 못해 가입나이를 뽑지 않음")
@@ -176,7 +184,8 @@ def run(gemini: Any, method_pages: dict[int, str], summary_pages: dict[int, str]
     status: dict[str, tuple[str, str, float, int]] = {}           # 항목 키 → (구간, 칸, 확률, 쪽)
     for kind, label, section in jobs:
         log = logs[TAB_OF[kind]]
-        shot = run_section(gemini, kind, section, thresholds, log, f"{anchor}:{label}", budget)
+        shot = run_section(gemini, kind, section, thresholds, log, f"{anchor}:{label}", budget,
+                           near if kind == "가입나이" else frozenset())
         if shot is None:
             result.notes.append(f"{label} 절을 뽑지 못함")
             continue

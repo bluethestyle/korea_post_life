@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any, Iterable, Sequence
 
 from .. import ids
 from .benefits import money_token, parse_money, squash
@@ -574,6 +574,27 @@ def is_main(name: str) -> bool:
     return flat in ("주계약", "기본계약") or ("특약" not in flat and "특별약관" not in flat and _PRODUCT_WORD.search(flat) is not None)
 
 
+# 이름을 느슨하게 견줄 때 지우는 글자: 대괄호와 괄호, 가운뎃점 같은 기호, 밑줄. 글자(한글, 영문)와 숫자만 남긴다
+_NOT_LETTER = re.compile(r"[\W_]+")
+
+
+def _letters(name: str) -> str:
+    return _NOT_LETTER.sub("", ids.normalize(_bare(name)))
+
+
+def near_main(name: str, mains: Iterable[str]) -> bool:
+    """이름에서 대괄호와 공백과 기호를 지운 글자가 주계약 이름의 같은 꼴을 포함하거나 거기에 포함되는가.
+
+    기본계약 표 하나만 모델에 넣었을 때(conditions_run.run의 main_only) 쓴다. 모델이 "[건강]상해 사망"을 "건강상해 사망"으로,
+    "[갱신형]상해 사망"을 "상해 사망"으로 대괄호 표시를 빼고 옮겨도 주계약으로 본다. "특약"이나 "특별약관"이 든 이름은 특약이므로
+    주계약 이름을 포함해도 아니다. 기호만 있는 이름은 아무 이름에나 포함되므로 아니다.
+    """
+    flat = _letters(name)
+    if not flat or "특약" in flat or "특별약관" in flat:
+        return False
+    return any(main and (flat in main or main in flat) for main in map(_letters, mains))
+
+
 def _same(a: str, b: str) -> bool:
     return ids.normalize(a) == ids.normalize(b)
 
@@ -849,13 +870,15 @@ def _headed_by_main(part: str) -> bool:
     return bool(_GROUP.match(head)) and is_main(_GROUP.sub("", head, count=1).split(",")[0])
 
 
-def literal_problems(ex: Extracted) -> dict[str, list[str]]:
+def literal_problems(ex: Extracted, near_names: frozenset[str] = frozenset()) -> dict[str, list[str]]:
     """항목별로 원문에서 글자 그대로 확인되지 않은 칸.
 
     가입나이·가입한도는 대상 이름과 값이 같은 "가.", "나." 항목 안에 함께 있는지도 본다("묶음").
     이름과 값이 각각 원문에 있어도 서로 다른 항목의 것이면 잘못 묶은 것이다.
     주계약은 그 항목에 "주계약"이라고 적혀 있거나 항목 제목이 상품 이름으로 시작하면 그 항목의 것으로 본다.
     결합제약은 값에 적힌 수치 글자("50%", "2배", "1,000만원")가 원문에 있는지도 본다("수치").
+    near_names: 기본계약 표 하나만 모델에 넣었을 때의 주계약 이름(Target.near_names). 이 이름들과 near_main으로 겹치는 이름은
+    주계약처럼 이름 칸을 원문과 대조하지 않는다. 행에는 이름이 아니라 주계약이라는 것만 쓰인다.
     """
     source = ex.section.text
     parts = groups(source)
@@ -885,7 +908,7 @@ def literal_problems(ex: Extracted) -> dict[str, list[str]]:
             if not any(holds(part) for part in parts):
                 missing.append("묶음")
         names = item.subjects if ex.kind != "결합제약" else [item.base, *item.targets]
-        if any(not is_main(n) and not _in(n, source) for n in names if n):
+        if any(not is_main(n) and not _in(n, source) and not (near_names and near_main(n, near_names)) for n in names if n):
             missing.append("이름")
         if ex.kind == "가입나이":
             if not by_max and not _in(item.age_text, source):
@@ -990,13 +1013,21 @@ class Target:
     # 주계약을 가리키는 이름의 특약계보키. 주계약 이름이 상품 이름도 "주계약"도 아닌 문서(삼성화재 기본계약 "상해 사망")에서 쓴다.
     # 뽑아 둔 주계약 행의 이름과, 기본계약 표(main_section)의 계약 이름이 든다. 둘이 다른 문서가 있다("상해 사망", "[건강]상해 사망")
     aliases: frozenset[str] = frozenset()
+    main_name: str | None = None            # 뽑아 둔 주계약 행의 이름(원시특약명)
+    # 이름이 조금 달라도 주계약으로 볼 때 견줄 주계약 이름(near_main). 기본계약 표 하나만 모델에 넣을 때(conditions_run.run의
+    # main_only)만 채운다. 비어 있으면 이름을 느슨하게 맞추지 않는다
+    near_names: frozenset[str] = frozenset()
 
-    def rider(self, name: str) -> tuple[bool, str | None]:
-        """(찾았는가, 특약ID). 주계약은 (True, None). 뽑아 둔 특약 목록에 있는 이름은 "보험"이 들어 있어도 특약이다."""
+    def rider(self, name: str, near: bool = False) -> tuple[bool, str | None]:
+        """(찾았는가, 특약ID). 주계약은 (True, None). 뽑아 둔 특약 목록에 있는 이름은 "보험"이 들어 있어도 특약이다.
+
+        near: 기본계약 표에서 뽑은 가입나이 항목인가. 그렇고 near_names가 있으면, 이름이 near_names와 near_main으로 겹칠 때도 주계약이다.
+        """
         key = ids.rider_lineage_key(name)
         if key in self.riders:
             return True, self.riders[key]
-        main = is_main(name) or ids.rider_lineage_key(_bare(name)) in self.aliases
+        main = (is_main(name) or ids.rider_lineage_key(_bare(name)) in self.aliases
+                or (near and bool(self.near_names) and near_main(name, self.near_names)))
         return (True, None) if main else (False, None)
 
 
@@ -1004,7 +1035,8 @@ def target_of(variant_id: str, variant_name: str, rider_rows: list[dict[str, Any
     mine = [r for r in rider_rows if r["종형ID"] == variant_id]
     main = next((r for r in mine if r["담보구분"] == "주계약"), None)
     return Target(variant_id, variant_name, {r["특약계보키"]: r["특약ID"] for r in mine if r["담보구분"] != "주계약"},
-                  main["특약ID"] if main else None, frozenset({main["특약계보키"]}) if main else frozenset())
+                  main["특약ID"] if main else None, frozenset({main["특약계보키"]}) if main else frozenset(),
+                  main.get("원시특약명") if main else None)
 
 
 _PAY_CYCLE = re.compile(r"\s*(?:월납|연납|일시납|\d+개월납)\s*$")
@@ -1102,7 +1134,7 @@ def build_rows(targets: list[Target], ages: list[AgeItem], limits: list[LimitIte
             if not applies:
                 continue
             for name in item.subjects:
-                ok, rider_id = target.rider(name)
+                ok, rider_id = target.rider(name, near=True)       # 가입나이 항목만 near_names로도 찾는다
                 if not ok:
                     unknown.add(name)
                     continue
