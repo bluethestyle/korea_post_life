@@ -732,8 +732,9 @@ function update(body, c) {
   return true;
 }
 
-// 탭 5 와 core.js 가 쓰는 것
+// 탭 5 와 core.js, tab1.js 가 쓰는 것
 App.cover = {
+  rawB: baseId => (CV && CV.b ? CV.b[baseId] || null : null),
   model, scopedPairs, verdictOf: (baseId, sid) => { const m = model(baseId); const r = m && m.byId[sid]; return r ? r.verd : null; },
   rel: drawRel, relLegend, chipText, hasRow: (baseId, sid) => { const m = model(baseId); return !!(m && m.byId[sid]); },
   peerCols: baseId => { const m = model(baseId); return m ? m.cols : []; },

@@ -1,5 +1,5 @@
-/* 시안 4 공통 실행부: 진행 추적기 뼈대(제목 줄, 고리 탭 줄, 세 구역 판, 아래 단추 줄, 처음 여는 브리핑 상태).
-   화면 문구는 아래 COPY 한 곳에서 읽고, 회사 목록과 업권, 비교 범위 재계산은 자료(sales.json, d.json)에서 읽는다. */
+/* 시안 4 공통 실행부: 안개 바탕 위 기준축과 기둥 무대, 상단 고리 탭 줄, 읽기 영역, 눌러서 여는 전체 표 창.
+   화면 문구는 아래 COPY 한 곳에서 읽고, 회사 목록과 업권, 비교 범위 교집합은 자료(sales.json, d.json)에서 읽는다. */
 (function () {
   'use strict';
 
@@ -47,7 +47,7 @@
     condPeers: '비교 상대',
     condPeersHint: '비교 범위에 맞춰 걸러집니다',
     condRenewal: '갱신 유형',
-    condRenewalHint: '고객군 지도에만 씁니다',
+    condRenewalHint: '고객군과 관문 지도에 씁니다',
     condRenAll: '전체',
     condRenRenew: '갱신',
     condRenNon: '비갱신',
@@ -66,7 +66,7 @@
     peerRestTpl: '{first} 외 {rest}곳',
     peerEtcTpl: '{names} 등 {total}곳',
     fullScopeBadge: '전체 기준',
-    fullScopeHint: '자료의 문장은 전체 비교 상대 기준으로 작성된 값입니다',
+    fullScopeHint: '자료의 문장과 집계는 전체 비교 상대 기준으로 작성한 값입니다',
     sameCountSuffix: '개',
     scopeAria: '범위 띠',
     scopeTitle: '범위 띠',
@@ -82,7 +82,7 @@
 
     pathAria: '현재 층 경로',
     zoneLeftAria: '분류',
-    zoneCenterAria: '단위',
+    zoneCenterAria: '단위 도형',
     evAria: '고른 것의 상세',
     evKickerDefault: '화면 결론',
     evKickerPick: '상세와 근거',
@@ -114,29 +114,31 @@
 
     actBack: '뒤로',
     actModeText: '문장으로 보기',
+    actModeTable: '표로 보기',
     actModeShape: '도형으로 보기',
     actCopySum: '요약 복사',
     legendBtn: '범례',
     legendCloseAria: '창 닫기',
+    modalCloseBtn: '닫기',
     helpSuffixAria: ' 뜻 보기',
-    legendVerdictTitle: '판정과 범위 범례',
-    lgBetter: '같은 담보를 견줘 우체국 조건이 나은 것',
-    lgOnly: '견준 상대에는 없고 우체국에만 있는 담보',
-    lgWorse: '같은 담보를 견줘 우체국 조건이 못한 것',
-    lgSame: '조건이 같은 것',
-    lgDiff: '지급 형태나 판매 구성이 달라 우열을 매기지 않은 것',
-    lgNone: '상대에는 있고 우체국에는 없는 담보',
-    lgUnknown: '검토 대기라 아직 견주지 않은 것',
+    legendVerdictTitle: '판정과 기둥 범례',
+    lgBetter: '같은 담보를 견줘 우체국 조건이 나은 것(금색)',
+    lgOnly: '견준 상대에는 없고 우체국에만 있는 담보나 우리만 열리는 고객군(금색 이중선)',
+    lgWorse: '같은 담보를 견줘 우체국 조건이 못하거나 우리만 닫힌 곳(먹색 채움)',
+    lgSame: '조건이 같은 것(중립)',
+    lgDiff: '지급 형태나 판매 구성이 달라 우열을 매기지 않은 것(중립)',
+    lgNone: '상대에는 있고 우체국에는 없는 담보나 닫힌 구간(점선 윤곽)',
+    lgUnknown: '검토 대기이거나 자료가 아직 없는 구간(빗금)',
     lgFlag: '화면에 옮긴 값이 사업방법서 원문과 같은지 사람이 확인해야 합니다',
-    lgSel: '지금 고른 항목. 오른쪽 구역에 상세와 근거가 열립니다',
+    lgSel: '지금 고른 항목. 읽기 영역으로 1px 선이 이어집니다',
     lgScopeAll: '기준 종형과 조건을 바꿔도 그대로인 값입니다.',
     lgScopeBase: '기준 종형을 바꾸면 다시 계산하는 값입니다.',
     lgScopeNow: '조건 줄의 나이, 성별, 이력을 따라 바뀌는 값입니다.',
 
     termScopeTitle: '범위 띠',
     termScopeBody: '위쪽 줄은 지금 고른 기준 종형과 맞붙는 상대 상품, 공통 담보 쌍의 수를 보여 줍니다. 아래쪽 줄은 조건 줄의 나이, 성별, 이력이 고객군 지도에서 어느 관문 칸에 해당하는지 보여 줍니다.',
-    termEvTitle: '상세와 근거 구역',
-    termEvBody: '가운데 구역에서 도형이나 줄을 고르면 그 단위의 이름, 판정, 문장, 관계 식, 원문 문서 쪽 번호를 이 구역에 보여 줍니다. 아무것도 고르지 않았을 때는 지금 화면의 결론 한 문장만 보여 줍니다.',
+    termEvTitle: '읽기 영역',
+    termEvBody: '무대에서 도형을 고르면 그 단위의 이름, 판정, 문장, 관계 식, 원문 문서 쪽 번호를 이 영역에 보여 줍니다. 아무것도 고르지 않았을 때는 면 없이 지금 화면의 결론 한 문장만 보여 줍니다.',
     termBaseTitle: '기준 종형과 선택 종형',
     termBaseBody: '기준 종형은 조건 줄에서 고른 우체국 상품 종형이며, 비교 상대는 그 종형의 심사 유형과 갱신 구조에 맞춰 정해집니다. 선택 종형 배지가 붙은 숫자와 문장은 이 기준 종형을 바꿀 때 함께 다시 계산하는 값입니다.',
     termJourneyTitle: '치료 여정 격자',
@@ -181,9 +183,10 @@
     stepDecSuffix: ' 하나 줄이기',
     stepIncSuffix: ' 하나 늘리기',
 
-    // 처음 여는 상태(브리핑)와 공통 고리 탭 문구
-    homeListHead: '결론 요약 목록',
-    homeListHint: '위 고리 탭이나 아래 줄을 누르면 해당 화면으로 들어갑니다',
+    // 첫 화면(전체 요약)과 상단 고리 탭 문구
+    homeListHead: '전체 결론 다섯 줄',
+    homeListHint: '줄을 누르면 해당 화면으로 들어갑니다',
+    homeRevBadgeTpl: '개정 {n}',
     briefRowGa: '고객군 지형',
     briefRowNa: '개정과 시장',
     briefRowDa: '가입 관문과 한도',
@@ -196,24 +199,30 @@
     briefLimitInTpl: '지금 조건 {who}: 주계약 최대 가입금액 {max}만원({lo}~{hi}세 구간{extra}).',
     briefLimitPend: ', 검토 대기',
     briefLimitSameSex: ', 남녀 같음',
-    homeLegendTitle: '처음 화면과 고리 탭 읽는 법',
-    homeLgGold: '금색 호: 우체국 단독 열림이나 보유 강점 몫',
-    homeLgDark: '먹색 호: 비교 범위 안에서 채워진 비율',
-    homeLgTick: '방사형 잔눈금: 전체 가운데 채우지 못한 몫이나 검토 대기',
-    homeLgRed: '짙은 탭과 빨강 원: 지금 열어 둔 화면',
+    homeLegendTitle: '첫 화면 기준축과 기둥 읽는 법',
+    homeLgGold: '금색 기둥(이중 상단선): 우체국 조건이 나은 담보이거나 우리 간편만 열리는 고객군',
+    homeLgWorse: '먹색 채움 기둥: 우체국 조건이 못하거나 우리 간편은 닫히고 상대는 열리는 고객군',
+    homeLgNeutral: '중립 기둥: 함께 열리는 고객군, 조건이 같거나 우열을 매기지 않은 담보',
+    homeLgOutline: '일부 채움 기둥: 바깥 윤곽은 전체 상대 수, 안쪽 채움은 통과한 상대 수',
+    homeLgEmpty: '점선 윤곽과 빗금: 닫힌 구간, 우체국 미보유 담보, 검토 대기 및 자료 없음',
+    homeLgRed: '빨강 마름모와 세로선: 지금 올리거나 고른 묶음',
 
     // 고객군과 시장(tab2) 문구
     mkRenLabel: '갱신',
     mkRenAria: '고객군 지도의 갱신 유형',
+    mkMaleBasis: '남성 기준',
     mkGroupAll: '고객군 전체',
     mkGroupHosp: '입원',
     mkGroupSurg: '수술만',
     mkGroupRev: '개정과 시장',
     mkGroupTally: '집계와 일러두기',
-    mkCenterTitle: '고객군 고리 격자',
-    mkCenterCue: '안 숫자: 열린 상대 수 / 금색: 우리 간편 열림, 회색: 일반심사 확인, 점선: 자료 없음',
+    mkCenterTitle: '고객군 시간축과 고리',
     mkTimeOver5: '5년+',
     mkUnknownSym: '?',
+    mkOursOpenRatioTpl: '우리 열림 {open}/6',
+    mkPartialOnlyMark: '일부 나이만',
+    mkPartialHeadTpl: '일부 나이에서만 열리는 상대 {n}곳',
+    mkPartialSpanTpl: '{org} {spans}세만 열림',
     mkRevTabVar: '개정 변동',
     mkRevTabNews: '시장 소식',
     mkRevHead: '우체국 직전 개정과 견준 변동',
@@ -231,6 +240,7 @@
     mkNewsQuoteTag: '인용',
     mkNewsConnTpl: '표준담보에 이어진 소식 {n}건.',
     mkNewsNoConn: ' 이어진 담보가 없어 대응 문장을 달지 않습니다.',
+    mkNewsNonAddNote: '시장 소식 건수는 개정 변동 담보 수와 단위가 달라 더하지 않습니다.',
     mkNewsLinkedTpl: ', 표준담보 {n}개에 이어짐',
     mkNewsUnlinked: ', 표준담보에 이어지지 않음',
     mkNewsWarnTpl: '주의 표현 {w}',
@@ -240,17 +250,21 @@
     mkTallyCol2: '칸 수',
     mkTallyCopyBtn: '집계 복사',
     mkCellsCopyBtn: '칸 목록 복사',
+    mkClosedUnit: '칸',
     mkClosedNoteTpl: '우리 간편이 닫힌 칸 {cells}칸의 사유는 {why}입니다.',
     mkClosedNonAddTpl: '한 칸에 사유 둘이 함께 들 수 있어 사유별 칸 수를 더하면 {sum}칸으로 {cells}칸보다 큽니다.',
     mkClosedZero: '우리 간편이 닫힌 칸이 없습니다.',
     mkGapItemTpl: '{org} 자료 없음 표지 {n}칸. {why}',
     mkStaticNote: '칸의 수는 기준 종형과 조건을 바꿔도 그대로입니다. 갱신 유형 거르개를 바꾸면 그 유형의 종형만으로 다시 센 지도로 바뀝니다.',
-    mkLegendTitle: '고객군 고리 격자 읽는 법',
-    mkLgGold: '금색 고리: 우체국 간편심사가 열리는 고객군(우리 간편만 열림, 함께 열림)',
-    mkLgGrey: '회색 고리: 우체국 간편심사가 닫혀 일반심사로 확인하는 고객군',
-    mkLgDash: '점선 고리: 가입나이나 고지 질문 자료가 아직 없는 구간',
-    mkLgRed: '빨강 원과 사선: 지금 고른 고객군. 오른쪽 구역에 상세와 근거가 열립니다',
-    mkLgNum: '고리 안 숫자와 호: 고른 비교 범위 상대 회사 가운데 간편심사가 열리는 회사 수와 비율',
+    mkLegendTitle: '고객군 시간축과 고리 읽는 법',
+    mkLgWorse: '먹색 채움 원(흰 숫자): 우리 간편은 닫히고 열린 상대가 있는 고객군',
+    mkLgGold: '금색 이중 고리: 우리 간편만 열리는 고객군(열린 상대 0곳)',
+    mkLgBoth: '짙은 선 고리: 우리 간편과 상대가 함께 열리는 고객군',
+    mkLgAllClosed: '옅은 회색 고리: 우리와 상대 모두 간편심사가 닫힌 고객군',
+    mkLgDash: '점선 고리와 빗금 트랙: 가입나이나 고지 질문 자료가 아직 없는 구간',
+    mkLgArc: '바깥 호: 실선은 확정 열림, 반굵기 실선은 일부 나이만 열림, 점선은 관문만 열림',
+    mkLgAxis: '마디 사이 선분: 우리 간편이 이어서 열리면 2px 실선, 닫히면 1px 점선(전환 자리에 12px 눈금)',
+    mkLgRed: '빨강 원과 네 귀 사선: 지금 고른 고객군. 오른쪽 읽기 영역으로 1px 선이 이어집니다',
     mkEvKickerCell: '고객군 상세',
     mkEvNowTag: '지금 조건',
     mkEvOursHead: '우리 종형 상태',
@@ -288,14 +302,14 @@
     mkEvNewsWarnBodyTpl: '보도 요약에 "{list}" 같은 말이 들어 있습니다. 화면 문장에는 쓰지 않는 말이라 인용한 그대로 두고 표지만 붙였습니다.',
     mkMissingSegWhyTpl: '지금 조건의 칸이 이 지도에 없습니다. {why}',
 
-    // 관계 지도(graph) 1단계 자리 문구
+    // 관계 지도(graph) 문구
     grLeftHead: '노드 종류',
     grKindOrg: '회사',
     grKindVar: '상품 종형',
     grKindStd: '표준담보',
     grKindPt: '영업 포인트',
     grKindNews: '시장 소식',
-    grCenterDesc: '회사, 상품 종형, 특약, 급부, 표준담보의 연결 구조를 한 홉씩 펼쳐 탐색하는 관계 지도입니다. 1단계에서는 기존 그래프 시안으로 바로 이동할 수 있는 연결 자리를 두었으며, 3단계에서 이 세 구역 판 안에 통합됩니다.',
+    grCenterDesc: '회사, 상품 종형, 특약, 급부, 표준담보의 연결 구조를 한 홉씩 펼쳐 탐색하는 관계 지도입니다.',
     grOpenProtoBtn: '관계 지도 시안(graph2.html) 열기',
     grEvTitle: '지식그래프 관계 지도',
     grEvBodyTpl: '수집 회사 {orgs}곳, 종형 {vars}개, 표준담보 {stds}개, 영업 포인트 {pts}건, 시장 소식 {news}건이 노드와 엣지로 이어집니다.',
@@ -310,7 +324,6 @@
     return s;
   }
 
-  // 다섯 고리 탭(고객군과 시장, 가입 관문, 담보 비교, 영업 인사이트, 관계 지도) + 처음 여는 상태(brief)
   const SCREEN_IDS = ['market', 'gate', 'cover', 'insight', 'graph'];
   const TAB_IDS = ['brief'].concat(SCREEN_IDS);
   const TAB_NAME = {
@@ -324,6 +337,7 @@
   const TAB_BY_NAME = {
     [S['탭'][0]]: 'brief',
     [cp('homeTitle')]: 'brief',
+    [cp('homePathRoot')]: 'brief',
     [S['탭'][1]]: 'market',
     [S['탭'][2]]: 'gate',
     [S['탭'][3]]: 'cover',
@@ -392,6 +406,7 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
   const fmt = n => (n == null || n === '' ? '' : (typeof n === 'number' ? n.toLocaleString('ko-KR') : String(n)));
+  const firstSentence = s => (String(s == null ? '' : s).trim().split(/(?<=\.)\s+/)[0] || '');
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* */ } },
@@ -493,7 +508,7 @@
     return '';
   }
 
-  // ---------- 상태(tab='brief' 는 처음 여는 상태, grp=왼쪽 분류, sel=가운데 단위, peerScope=비교 범위) ----------
+  // ---------- 상태 ----------
   const PEER_SCOPES = ['all', 'life', 'nonlife', 'custom'];
   const st = {
     tab: 'brief',
@@ -516,6 +531,7 @@
   let booted = false;
   let condOpen = false;
   let scopeOpen = false;
+  let lastRenderedTab = 'brief';
 
   function activePeerOrgs(s = st) {
     const sc = s.peerScope || 'all';
@@ -541,6 +557,125 @@
     if ((s.peerScope || 'all') === 'all') return codes.slice();
     const setP = new Set(activePeerOrgs(s));
     return codes.filter(c => setP.has(c));
+  }
+
+  // ---------- 공통 자료 집계(판정을 새로 만들지 않고 기관코드 교집합 크기만 센다) ----------
+  function cellCounts(cell, s = st) {
+    if (!cell) {
+      return {
+        open: 0, partial: 0, gateOnly: 0, openConfirmed: 0, closed: 0, unknown: 0,
+        total: 0, openAny: 0, oursOpen: false, oursState: '', partialOnly: false, state: 'unknown',
+      };
+    }
+    const open = inScope(cell['열린상대코드'], s);
+    const partial = inScope(cell['일부열린상대코드'], s);
+    const gateOnly = inScope(cell['관문만열린상대코드'], s);
+    const openConfirmed = Math.max(0, open - gateOnly);
+    const closed = inScope(cell['닫힌상대코드'], s);
+    const unknown = inScope(cell['모르는상대코드'], s);
+    const total = open + partial + closed + unknown;
+    const openAny = open + partial;
+    const oursState = (cell['회사'] && cell['회사'].EPOST) || '';
+    const oursOpen = oursState === '열림';
+    const partialOnly = open === 0 && partial > 0;
+    let state = 'none';
+    if (!oursOpen && openAny > 0) state = 'worse';
+    else if (oursOpen && openAny === 0) state = 'only';
+    else if (oursOpen && openAny > 0) state = 'both';
+    else if ((!oursOpen && total > 0 && unknown === total) || cell['라벨'] === '자료 없음') state = 'unknown';
+    return {
+      open, partial, gateOnly, openConfirmed, closed, unknown,
+      total, openAny, oursOpen, oursState, partialOnly, state,
+    };
+  }
+
+  function gateFlowRows(map, cell, s = st) {
+    const gm = S['관문마디'] || { '차례': [], '전제': [], '멈춘값': [] };
+    const steps = gm['차례'] || [];
+    const premiseSet = new Set(gm['전제'] || []);
+    const types = (map && map['고지유형']) || [];
+    const flowTypes = (cell && cell['관문흐름'] && cell['관문흐름']['유형']) || [];
+    const flowByKey = {};
+    flowTypes.forEach(f => { flowByKey[f['열쇠']] = f; });
+    return types.map(meta => {
+      const key = meta['열쇠'];
+      const total = inScope(meta['상대코드'], s);
+      const fl = flowByKey[key] || null;
+      const pass = [];
+      const stops = [];
+      let stoppedSoFar = 0;
+      for (let k = 0; k < steps.length; k++) {
+        const rawStop = (fl && fl['멈춤'] && fl['멈춤'][String(k)]) || {};
+        const scopedStop = {};
+        let stoppedHere = 0;
+        for (const [reason, codes] of Object.entries(rawStop)) {
+          const fc = filterScopeCodes(codes, s);
+          if (fc.length) {
+            scopedStop[reason] = fc;
+            stoppedHere += fc.length;
+          }
+        }
+        stoppedSoFar += stoppedHere;
+        stops.push(scopedStop);
+        if (!cell || !fl) pass.push(0);
+        else if ((s.peerScope || 'all') === 'all') pass.push(fl['통과수'][k] != null ? fl['통과수'][k] : Math.max(0, total - stoppedSoFar));
+        else pass.push(Math.max(0, total - stoppedSoFar));
+      }
+      return {
+        key,
+        total,
+        codes: filterScopeCodes(meta['상대코드'], s),
+        pass,
+        finalPass: pass.length ? pass[pass.length - 1] : 0,
+        stops,
+        steps,
+        premiseSet,
+      };
+    });
+  }
+
+  const STAGE_ORDER = ['진단', '수술', '치료', '입원', '통원'];
+  function coverStageStacks(baseId, s = st) {
+    const B = window.App && App.cover && typeof App.cover.rawB === 'function' ? App.cover.rawB(baseId) : null;
+    const stages = STAGE_ORDER.map(nm => ({
+      name: nm,
+      oursCnt: 0,
+      totalCnt: 0,
+      better: 0,
+      neutral: 0,
+      worse: 0,
+      wait: 0,
+      miss: 0,
+      sum: 0,
+    }));
+    const byStage = Object.fromEntries(stages.map(stObj => [stObj.name, stObj]));
+    if (!B || !Array.isArray(B.rows)) return stages;
+    const isAll = (s.peerScope || 'all') === 'all';
+    B.rows.forEach(r => {
+      const sid = r[0];
+      const info = S['표준담보'][sid] || {};
+      const stg = byStage[info['급부유형']];
+      if (!stg) return;
+      stg.totalCnt++;
+      const mine = r[1] && r[1][0];
+      const oursHas = !!(mine && typeof mine === 'object' && Array.isArray(mine.i) && mine.i.length);
+      if (oursHas) stg.oursCnt++;
+      const perCodes = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
+      const perCounts = (B['판정상대수'] && B['판정상대수'][sid]) || {};
+      const cntOf = vdKey => (isAll ? (perCounts[vdKey] || 0) : inScope(perCodes[vdKey], s));
+      const bCnt = cntOf('나음');
+      const nCnt = cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의');
+      const wCnt = cntOf('못함');
+      const wtCnt = cntOf('검토 대기') + cntOf('판정 보류');
+      const mCnt = cntOf('우체국에 없음');
+      stg.better += bCnt;
+      stg.neutral += nCnt;
+      stg.worse += wCnt;
+      stg.wait += wtCnt;
+      stg.miss += mCnt;
+      stg.sum += bCnt + nCnt + wCnt + wtCnt + mCnt;
+    });
+    return stages;
   }
 
   function mapOf(renewal) { return S['지도'][MAP_KEY[renewal]] || S['지도']['전체']; }
@@ -597,6 +732,9 @@
       peerScope: st.peerScope, activePeerOrgs: pOrgs, activeOrgs: ['EPOST'].concat(pOrgs),
       inScope: codes => inScope(codes, st),
       filterScopeCodes: codes => filterScopeCodes(codes, st),
+      cellCounts: cell => cellCounts(cell, st),
+      gateFlowRows: (m, cell) => gateFlowRows(m, cell, st),
+      coverStageStacks: bid => coverStageStacks(bid || st.base, st),
       seg: cellOf(), limit: limitOf(), ref: REF, isRef: isRefCond(),
       ui: UI, txt: TXT, t: cp,
     };
@@ -673,10 +811,11 @@
     try {
       if (onlyAge) history.replaceState({ c4: 1 }, '', url);
       else history.pushState({ c4: 1 }, '', url);
-    } catch (e) { /* file:// 제한 환경 방어 */ }
+    } catch (e) { /* */ }
   }
   addEventListener('popstate', () => {
     inPop = true;
+    closeModal(false);
     const { patch, grp, pick } = decodeHash(location.hash);
     st.grp = {};
     if (grp != null) st.grp[patch.tab] = grp;
@@ -709,6 +848,7 @@
     check: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><rect x="1.5" y="1.5" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 1.5"/></svg>',
     hatch: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="2 1.5"/><path d="M2 9L9 2" stroke="currentColor" stroke-width="1.1"/></svg>',
     arrow: '<svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 5h11M8.5 1.5L12 5 8.5 8.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+    table: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1.5" width="10" height="9" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1 4.5h10M4.5 4.5v6" stroke="currentColor" stroke-width="1.1"/></svg>',
     legend: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1.5" width="2.5" height="2.5" fill="currentColor"/><path d="M5 2.8h6M5 6h6M5 9.2h6" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="4.8" width="2.5" height="2.5" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M2.2 8l1.3 2.3H1Z" fill="currentColor"/></svg>',
   };
 
@@ -786,7 +926,7 @@
       ticks = `<g class="tks">${lines.join('')}</g>`;
     }
     const diag = (opts.lead || opts.sel)
-      ? '<g class="diag" stroke-width="1.2"><line x1="-30" y1="-30" x2="-23" y2="-23"/><line x1="30" y1="-30" x2="23" y2="-23"/><line x1="-30" y1="30" x2="-23" y2="23"/><line x1="30" y1="30" x2="23" y2="23"/></g>'
+      ? '<g class="diag" stroke-width="1.2"><line x1="-30" y1="-30" x2="-23" y2="-23"/><line x1="30" y1="-30" x2="23" y2="-30"/><line x1="-30" y1="30" x2="-23" y2="23"/><line x1="30" y1="30" x2="23" y2="23"/></g>'
       : '';
     const disc = opts.sel ? `<circle class="disc" r="${r - 3}"/>` : '';
     const txtEl = opts.pct != null ? `<text class="pct" y="8" text-anchor="middle">${esc(opts.pct)}</text>` : '';
@@ -829,7 +969,7 @@
     const item = TERMS[termKey];
     if (!item) return '';
     const nm = label || cp(item.titleKey);
-    return `<button type="button" class="qhelp" data-help="${esc(termKey)}" aria-label="${esc(nm + cp('helpSuffixAria'))}" aria-expanded="false">?</button>`;
+    return `<button type="button" class="qhelp" data-help="${esc(termKey)}" aria-controls="help-pop" aria-label="${esc(nm + cp('helpSuffixAria'))}" aria-expanded="false">?</button>`;
   }
 
   const LEGENDS = {};
@@ -837,7 +977,7 @@
     LEGENDS[key] = { titleKey, htmlFn };
   }
   function legendBtn(key, labelText) {
-    return `<button type="button" class="btn sm ghost leg-btn" data-legend="${esc(key || 'verdict')}" aria-expanded="false">${IC.legend}<span>${esc(labelText || cp('legendBtn'))}</span></button>`;
+    return `<button type="button" class="btn sm ghost leg-btn" data-legend="${esc(key || 'verdict')}" aria-controls="help-pop" aria-expanded="false">${IC.legend}<span>${esc(labelText || cp('legendBtn'))}</span></button>`;
   }
 
   const NOTE_HEAD = {
@@ -884,9 +1024,10 @@
     const scs = (Array.isArray(o.sc) ? o.sc : o.sc ? [o.sc] : []).map(scope).join(' ');
     const stats = (o.stats || []).map(s => `<div class="sb-st"${s.title ? ` title="${esc(s.title)}"` : ''}>
       ${big(s.n, s.d, s.u)}<span class="sb-l">${esc(s.l)}</span>${s.bar ? hbar(s.bar[0], s.bar[1], s.bar[2]) : ''}</div>`).join('');
-    const foot = (o.eq || o.note) ? `<div class="sb-f">${o.eq || ''}${o.note ? `<p class="note">${o.note}</p>` : ''}</div>` : '';
+    const noteHTML = o.noteHTML ? o.noteHTML : (o.note ? esc(o.note) : '');
+    const foot = (o.eq || noteHTML) ? `<div class="sb-f">${o.eq || ''}${noteHTML ? `<p class="note">${noteHTML}</p>` : ''}</div>` : '';
     const hlp = o.help ? help(o.help, o.title) : '';
-    return `<div class="sband"><div class="sb-t pillar tl"><i class="sb-tk" aria-hidden="true"></i>
+    return `<div class="sband"><div class="sb-t pillar"><i class="sb-tk" aria-hidden="true"></i>
       <span class="k">${scs}${o.kicker ? `<span>${esc(o.kicker)}</span>` : ''}</span><h2><span>${esc(o.title)}</span>${hlp}</h2></div>
       <div class="sb-s">${stats}</div>${foot}</div>`;
   }
@@ -963,10 +1104,10 @@
   const pageText = (doc, page) => (page != null && page !== '' ? `${doc || cp('docFallback')} ${page}${cp('pageSuffix')}` : `${doc || cp('docFallback')}${cp('pageMissingSuffix')}`);
   const PAGE_WHY = cp('pageWhy');
 
-  const UI = { esc, fmt, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
-  const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, orgSector, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, PEER_ORGS, ORG_SHORT };
+  const UI = { esc, fmt, firstSentence, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
+  const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, orgSector, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, PEER_ORGS, ORG_SHORT, firstSentence };
 
-  // ---------- 진행 추적기 머리(조건 요약, 비교 범위, 전체 값의 원)와 접히는 조건 편집 판 ----------
+  // ---------- 진행 추적기 머리와 접히는 조건 편집 판 ----------
   const SINCE_OPTS = [{ v: null, t: cp('condNoHist') }].concat(
     S['지도']['전체']['행'].filter(r => r['종류'] === '입원').map(r => ({ v: r.since, t: r.since === 5 ? cp('condSince5') : r['이름'].replace(/^입원\s*/, '') })));
   const C = {};
@@ -1016,6 +1157,7 @@
       if (act) act.textContent = cp(condOpen ? 'condCloseBtn' : 'condOpenBtn');
     }
     placeGuides();
+    requestAnimationFrame(updateSelLink);
   }
   function setScopeOpen(open) {
     scopeOpen = !!open;
@@ -1023,6 +1165,7 @@
     if (el) el.hidden = !scopeOpen;
     if (b) b.setAttribute('aria-expanded', String(scopeOpen));
     placeGuides();
+    requestAnimationFrame(updateSelLink);
   }
 
   function renderCond() {
@@ -1030,7 +1173,7 @@
     mid.innerHTML = `<div class="th-cond-line" id="cond-sum-t"></div>
       <div class="th-cond-btns">
         <button class="scope-tgl" id="cond-sum" type="button" aria-expanded="false" aria-controls="cond"><span class="act-t">${esc(cp('condOpenBtn'))}</span> ${IC.chevD}</button>
-        <button class="scope-tgl peer-tgl" id="peer-tgl" type="button" data-peer-pop="1" aria-expanded="false"><span id="peer-tgl-t"></span> ${IC.chevD}</button>
+        <button class="scope-tgl peer-tgl" id="peer-tgl" type="button" data-peer-pop="1" aria-controls="help-pop" aria-expanded="false"><span id="peer-tgl-t"></span> ${IC.chevD}</button>
         <button class="scope-tgl" id="scope-tgl" type="button" aria-expanded="false" aria-controls="scope">${esc(cp('scopeBtn'))} ${IC.chevD}</button>${help('scope-band', cp('scopeTitle'))}
       </div>`;
 
@@ -1085,7 +1228,7 @@
     if (cs) cs.textContent = condSummary();
   }
 
-  const STATE_IC = { '열림': IC.open, '닫힘': IC.lock, '심사로 확인': IC.check, '나이 자료 없음': IC.hatch, '질문 자료 없음': IC.hatch };
+  const STATE_IC = { '열림': IC.open, '일부 나이만 열림': IC.open, '닫힘': IC.lock, '심사로 확인': IC.check, '나이 자료 없음': IC.hatch, '질문 자료 없음': IC.hatch };
   function renderScope() {
     const el = $('#scope');
     el.setAttribute('aria-label', cp('scopeAria'));
@@ -1142,125 +1285,146 @@
     el.innerHTML = fadeBand(line1 + line2);
   }
 
-  // ---------- 다섯 고리 탭과 전체 값의 원 수치(비교 범위 교집합 반영) ----------
+  // ---------- 다섯 고리 탭 수치(갱신 유형 및 비교 범위 교집합 정확히 반영, 숫자 창작 금지) ----------
   function lineOf(base, k) {
     return ((base && base['브리핑']) || []).find(x => x['줄'] === k) || null;
   }
 
   function ringTabMetrics(c) {
-    const base = c.base || S['기준별'][st.base];
-    const pSet = new Set(c.activePeerOrgs);
-    const bGa = lineOf(base, '가'), bDa = lineOf(base, '다'), bRa = lineOf(base, '라'), bMa = lineOf(base, '마');
-    const vGa = (bGa && bGa['값']) || {}, vDa = (bDa && bDa['값']) || {}, vRa = (bRa && bRa['값']) || {}, vMa = (bMa && bMa['값']) || {};
+    const curC = c || ctx();
+    const base = curC.base || S['기준별'][st.base];
+    const pSet = new Set(curC.activePeerOrgs);
+    const bGa = lineOf(base, '가'), bNa = lineOf(base, '나'), bDa = lineOf(base, '다'), bRa = lineOf(base, '라'), bMa = lineOf(base, '마');
+    const vNa = (bNa && bNa['값']) || {}, vDa = (bDa && bDa['값']) || {}, vRa = (bRa && bRa['값']) || {}, vMa = (bMa && bMa['값']) || {};
 
-    // 1. 고객군과 시장: 우리 간편 열림 칸 수 / 전체 칸 수 (비교 범위 안에서 상대가 모두 닫힌 칸은 단독 열림 금색 호)
-    const mAll = S['지도']['전체'];
-    let gaTotal = vGa['전체칸수'] || 0, gaOnly = vGa['우리간편만열림칸수'] || 0, gaBoth = vGa['함께열림칸수'] || 0;
-    if (c.peerScope !== 'all' && mAll && mAll['칸']) {
-      gaTotal = 0; gaOnly = 0; gaBoth = 0;
-      mAll['칸'].forEach(row => row.forEach(cell => {
+    // 1. 고객군과 시장: 현재 갱신 선택 지도(mapOf(renewal))의 열린 칸 수 / 전체 칸 수
+    const mCur = mapOf(curC.st.renewal);
+    let gaTotal = 0, gaOnly = 0, gaBoth = 0;
+    if (mCur && mCur['칸']) {
+      mCur['칸'].forEach(row => row.forEach(cell => {
         gaTotal++;
-        if (cell['회사'] && cell['회사'].EPOST === '열림') {
-          if (inScope(cell['열린상대코드'], c.st) === 0) gaOnly++;
+        const cc = cellCounts(cell, curC.st);
+        if (cc.oursOpen) {
+          if (cc.openAny === 0) gaOnly++;
           else gaBoth++;
         }
       }));
     }
     const gaOpen = gaOnly + gaBoth;
+    const revCnt = vNa['개정변동수'] != null ? vNa['개정변동수'] : ((S['개정변동'] && S['개정변동']['수'] && S['개정변동']['수']['전체']) || 0);
 
-    // 2. 가입 관문: 고른 비교 범위 안의 관문 차이 상대 회사 수
+    // 2. 가입 관문: 자료의 관문차이수(관문차이상대코드가 있으면 교집합, 없으면 전체 값 + 전체 기준 배지)
     let daVal = vDa['관문차이수'] || 0;
     let daMax = Math.max(1, (base && base['범위'] && base['범위']['회사수']) || 1);
-    if (c.peerScope !== 'all' && base) {
-      const diffOrgs = new Set();
-      (base['포인트'] || []).forEach(id => {
-        const p = S['포인트'][id];
-        if (p && p['분류'] === '관문 차이') {
-          (p['관련기관코드'] || []).forEach(o => { if (pSet.has(o)) diffOrgs.add(o); });
-        }
-      });
-      daVal = diffOrgs.size;
-      daMax = Math.max(1, c.activePeerOrgs.length);
-    }
-
-    // 3. 담보 비교: 고른 비교 범위 안의 견준 공통 담보 쌍 / 공통 담보 쌍
-    let raCmp = vRa['견준쌍'] || 0, raTot = vRa['공통담보쌍'] || 0;
-    if (c.peerScope !== 'all') {
-      if (window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
-        const sp = App.cover.scopedPairs(c.baseId, pSet);
-        if (sp) { raCmp = sp.cmp; raTot = sp.total; }
+    let daFullBadge = false;
+    if (curC.peerScope !== 'all') {
+      if (Array.isArray(vDa['관문차이상대코드'])) {
+        daVal = inScope(vDa['관문차이상대코드'], curC.st);
+        daMax = Math.max(1, curC.activePeerOrgs.length);
+      } else {
+        daFullBadge = true;
       }
     }
 
-    // 4. 영업 인사이트: 고른 비교 범위와 겹치는 포인트 건수
-    let maVal = vMa['전체수'] || 0, maGold = (vMa['앞세울수'] || 0) + (vMa['관련담보수'] || 0);
-    if (c.peerScope !== 'all' && base) {
+    // 3. 담보 비교: 고른 비교 범위 안의 견준 쌍 / 공통 담보 쌍
+    let raCmp = vRa['견준쌍'] || 0, raTot = vRa['공통담보쌍'] || 0;
+    if (curC.peerScope !== 'all' && window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
+      const sp = App.cover.scopedPairs(curC.baseId, pSet);
+      if (sp) { raCmp = sp.cmp; raTot = sp.total; }
+    }
+
+    // 4. 영업 인사이트: 고른 비교 범위와 겹치는 포인트 건수(우체국 나음인 앞세울 강점만 금색 호)
+    let maVal = vMa['전체수'] || 0, maGold = vMa['앞세울수'] || 0;
+    if (curC.peerScope !== 'all' && base) {
       maVal = 0; maGold = 0;
       (base['포인트'] || []).forEach(id => {
         const p = S['포인트'][id];
         if (!p) return;
         if ((p['관련기관코드'] || []).some(o => pSet.has(o))) {
           maVal++;
-          if (p['분류'] === '앞세울 강점' || p['분류'] === '관련 담보 안내') maGold++;
+          if (p['분류'] === '앞세울 강점') maGold++;
         }
       });
     }
 
-    // 5. 관계 지도: 고른 비교 범위 안의 수집 상품 종형 수
-    const allVars = Object.values(S['종형'] || {});
-    const oursVars = allVars.filter(v => v['기관코드'] === 'EPOST').length;
-    const peerVars = allVars.filter(v => v['기관코드'] !== 'EPOST' && (c.peerScope === 'all' || pSet.has(v['기관코드']))).length;
-    const grTot = oursVars + peerVars;
-
     return {
       market: {
         id: 'market', name: TAB_NAME.market,
+        val: gaOpen, denom: gaTotal, revCnt,
         numHTML: `${esc(fmt(gaOpen))}<small>/${esc(fmt(gaTotal))}</small>`,
+        subText: cp('homeRevBadgeTpl', { n: fmt(revCnt) }),
         max: Math.max(1, gaTotal), segs: [{ v: gaOnly, cls: 'gold' }, { v: gaBoth, cls: '' }],
         flag: bGa && bGa['원문대조'] ? (bGa['원문대조글'] || cp('flagDefault')) : '',
+        fullBadge: false,
       },
       gate: {
         id: 'gate', name: TAB_NAME.gate,
+        val: daVal, denom: null,
         numHTML: `${esc(fmt(daVal))}`,
+        subText: '',
         max: daMax, segs: [{ v: daVal, cls: '' }],
         flag: bDa && bDa['원문대조'] ? (bDa['원문대조글'] || cp('flagDefault')) : '',
+        fullBadge: daFullBadge,
       },
       cover: {
         id: 'cover', name: TAB_NAME.cover,
+        val: raCmp, denom: raTot,
         numHTML: `${esc(fmt(raCmp))}<small>/${esc(fmt(raTot))}</small>`,
-        max: Math.max(1, raTot || 1), segs: [{ v: raCmp, cls: 'gold' }],
+        subText: '',
+        max: Math.max(1, raTot || 1), segs: [{ v: raCmp, cls: '' }],
         flag: bRa && bRa['원문대조'] ? (bRa['원문대조글'] || cp('flagDefault')) : '',
+        fullBadge: false,
       },
       insight: {
         id: 'insight', name: TAB_NAME.insight,
+        val: maVal, denom: null,
         numHTML: `${esc(fmt(maVal))}`,
+        subText: '',
         max: Math.max(1, maVal || 1), segs: [{ v: maGold, cls: 'gold' }, { v: Math.max(0, maVal - maGold), cls: '' }],
         flag: bMa && bMa['원문대조'] ? (bMa['원문대조글'] || cp('flagDefault')) : '',
+        fullBadge: false,
       },
       graph: {
         id: 'graph', name: TAB_NAME.graph,
-        numHTML: `${esc(fmt(grTot))}`,
-        max: Math.max(1, allVars.length), segs: [{ v: oursVars, cls: 'gold' }, { v: peerVars, cls: '' }],
+        val: null, denom: null,
+        numHTML: '',
+        subText: '',
+        isGraph: true,
+        max: 1, segs: [],
         flag: '',
+        fullBadge: false,
       },
     };
   }
 
-  function rtabRingSVG(m, isHome) {
+  function graphGlyphSVG() {
+    return `<svg viewBox="-24 -24 48 48" aria-hidden="true" focusable="false">
+      <circle class="rt-trk" r="20" fill="none" stroke-width="1"/>
+      <path class="rt-glyph" d="M-10 4L-2 -7L10 -3M-2 -7L3 8L-10 4M3 8L11 6"/>
+      <rect class="rt-glyph-dot" x="-12.5" y="1.5" width="5" height="5"/>
+      <rect class="rt-glyph-dot" x="-4.5" y="-9.5" width="5" height="5"/>
+      <rect class="rt-glyph-dot" x="7.5" y="-5.5" width="5" height="5"/>
+      <rect class="rt-glyph-dot" x="0.5" y="5.5" width="5" height="5"/>
+      <rect class="rt-glyph-dot" x="8.5" y="3.5" width="4.5" height="4.5"/>
+    </svg>`;
+  }
+
+  function rtabRingSVG(m, withDiag) {
+    if (m.isGraph) return graphGlyphSVG();
     const r = 34, C = +(2 * Math.PI * r).toFixed(2);
     const max = Math.max(0.0001, m.max || 1);
     let off = 0, sum = 0;
     const arcs = (m.segs || []).filter(s => s.v > 0).map(s => {
       sum += s.v;
       const len = +(C * Math.min(1, s.v / max)).toFixed(2);
-      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="${isHome ? 3.8 : 4.6}" stroke-dasharray="${len} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
+      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
       off += len;
       return el;
     }).join('');
     const f = Math.min(1, sum / max);
     let ticks = '';
     if (f < 0.999) {
-      const N = isHome ? 40 : 24, r1 = r - 2.6, r2 = r + 2.6;
+      const N = 24, r1 = r - 2.6, r2 = r + 2.6;
       const ls = [];
       for (let i = 0; i < N; i++) {
         if (i / N < f - 0.004) continue;
@@ -1269,7 +1433,7 @@
       }
       ticks = `<g class="rt-tks">${ls.join('')}</g>`;
     }
-    const diag = isHome
+    const diag = withDiag
       ? '<g class="rt-tks" stroke-width="1.1"><line x1="-36" y1="-36" x2="-30" y2="-30"/><line x1="36" y1="-36" x2="30" y2="-30"/><line x1="-36" y1="36" x2="-30" y2="30"/><line x1="36" y1="36" x2="30" y2="30"/></g>'
       : '';
     return `<svg viewBox="-42 -42 84 84" aria-hidden="true" focusable="false">
@@ -1291,39 +1455,55 @@
     </svg>`;
   }
   UI.miniRingSVG = miniRingSVG;
+  UI.graphGlyphSVG = graphGlyphSVG;
 
   function renderRingTabs(c) {
     const nav = $('#rtabs');
+    const thTotal = $('#th-total');
     if (!nav) return;
     const isHome = st.tab === 'brief';
-    nav.classList.toggle('is-home', isHome);
-    nav.classList.toggle('is-compact', !isHome);
+    if (isHome) {
+      nav.hidden = true;
+      nav.innerHTML = '';
+      if (thTotal) { thTotal.hidden = true; thTotal.innerHTML = ''; }
+      lastRenderedTab = 'brief';
+      return;
+    }
+    const enteredFromHome = lastRenderedTab === 'brief' && motionOn();
+    lastRenderedTab = st.tab;
+    nav.hidden = false;
+    if (enteredFromHome) {
+      nav.classList.remove('from-home');
+      void nav.offsetWidth;
+      nav.classList.add('from-home');
+    }
     const metrics = ringTabMetrics(c || ctx());
-    nav.innerHTML = SCREEN_IDS.map((id, idx) => {
+    const homeBtn = `<button class="rtab rtab-home" type="button" role="tab" id="tab-brief" data-rtab="brief" aria-selected="false" tabindex="-1">${IC.chevL}<span>${esc(cp('homePathRoot'))}</span></button>`;
+    const tabsHTML = SCREEN_IDS.map(id => {
       const m = metrics[id];
       const on = st.tab === id;
-      const tabIdx = isHome ? (idx === 0 ? 0 : -1) : (on ? 0 : -1);
-      return `<button class="rtab" type="button" role="tab" id="tab-${id}" data-rtab="${id}" aria-selected="${on}" tabindex="${tabIdx}">
-        <span class="rt-ring">${m.flag ? flag(m.flag) : ''}${rtabRingSVG(m, isHome)}<span class="rt-num num">${m.numHTML}</span></span>
-        <span class="rt-name">${esc(m.name)}</span>
+      const badge = m.fullBadge ? ` <span class="tag" title="${esc(cp('fullScopeHint'))}">${esc(cp('fullScopeBadge'))}</span>` : '';
+      const sub = m.subText ? `<span class="rt-sub">${esc(m.subText)}</span>` : '';
+      return `<button class="rtab" type="button" role="tab" id="tab-${id}" data-rtab="${id}" aria-selected="${on}" tabindex="${on ? 0 : -1}">
+        <span class="rt-ring">${m.flag ? flag(m.flag) : ''}${rtabRingSVG(m, false)}${m.numHTML ? `<span class="rt-num num">${m.numHTML}</span>` : ''}</span>
+        <span class="rt-txt"><span class="rt-name"><span>${esc(m.name)}</span>${badge}</span>${sub}</span>
       </button>`;
     }).join('');
-    if (!isHome) {
-      const act = $('.rtab[aria-selected="true"]', nav);
-      if (act && nav.scrollWidth > nav.clientWidth + 4) {
-        nav.scrollLeft = Math.max(0, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2));
-      }
+    nav.innerHTML = homeBtn + tabsHTML;
+
+    const act = $('.rtab[aria-selected="true"]', nav);
+    if (act && nav.scrollWidth > nav.clientWidth + 4) {
+      nav.scrollLeft = Math.max(0, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2));
     }
 
-    // 오른쪽 위 전체 값의 원(#th-total): 현재 화면의 대표 고리를 네 귀 사선과 함께 표시
-    const thTotal = $('#th-total');
     if (thTotal) {
-      const curM = metrics[isHome ? 'market' : st.tab] || metrics.market;
-      thTotal.innerHTML = `<div class="tht-ring">${rtabRingSVG(curM, true)}<span class="tht-val num">${curM.numHTML}</span></div>`;
+      const curM = metrics[st.tab] || metrics.market;
+      thTotal.hidden = false;
+      thTotal.innerHTML = `<div class="tht-ring">${rtabRingSVG(curM, true)}${curM.numHTML ? `<span class="tht-val num">${curM.numHTML}</span>` : ''}</div>`;
     }
   }
 
-  // ---------- 제목, 한 줄 경로(#lpath), 하단 조작 막대(#actbar) ----------
+  // ---------- 제목, 경로(#lpath), 하단 조작 막대(#actbar) ----------
   function syncHeaderAndPath(c) {
     const curC = c || ctx();
     const ttl = $('#th-title');
@@ -1373,7 +1553,7 @@
     box.innerHTML = btns.join('');
   }
 
-  // ---------- 3구역 보드 렌더링(새 3구역 탭 + 기존 2, 3단계 탭 호환) ----------
+  // ---------- 본문 무대 렌더링 ----------
   function ensureLegacySections() {
     const center = $('#z-center');
     for (const id of SCREEN_IDS) {
@@ -1400,7 +1580,7 @@
           const h2 = $('h2', s);
           const nm = h2 ? h2.textContent.replace(/^0\d\s*/, '').replace(/\s*\?\s*$/, '').trim() : s.id;
           return `<button type="button" class="zl-item${idx === 0 ? ' is-on' : ''}" data-jump-sec="${esc(s.id)}">
-            <span class="zl-ring">${miniRingSVG(1, 1, idx === 0 ? 'gold' : '')}<span class="zl-n num">0${idx + 1}</span></span>
+            <span class="zl-ring">${miniRingSVG(1, 1, '')}<span class="zl-n num">0${idx + 1}</span></span>
             <span class="zl-t">${esc(nm)}</span>
           </button>`;
         }).join('')}
@@ -1416,6 +1596,14 @@
     });
   }
 
+  function boardLayoutFor(id) {
+    const t = tabs[id];
+    if (t && t.layout) return t.layout;
+    if (id === 'cover') return 'band';
+    if (id === 'market' || id === 'gate') return 'side';
+    return 'three';
+  }
+
   function renderActiveScreen(c, why) {
     const curC = c || ctx();
     renderRingTabs(curC);
@@ -1427,6 +1615,7 @@
 
     if (isHome) {
       hideEv();
+      clearSelLink();
       const tb = tabs.brief;
       if (tb && tb.renderHome) tb.renderHome(homePanel, curC);
       syncHeaderAndPath(curC);
@@ -1434,6 +1623,11 @@
       placeGuides();
       return;
     }
+
+    const lay = boardLayoutFor(st.tab);
+    board.dataset.layout = lay;
+    const zl = $('#z-left');
+    if (zl) zl.hidden = lay !== 'three';
 
     ensureLegacySections();
     for (const x of SCREEN_IDS) {
@@ -1447,11 +1641,20 @@
     const body = sec ? $('.vbody', sec) : $('#z-center');
     const aside = sec ? $('.vhead-aside', sec) : null;
     if (!t) {
-      $('#z-left').innerHTML = '';
+      if (zl) zl.innerHTML = '';
       if (body) body.innerHTML = `<div class="placeholder">${esc(cp('tabMissing'))}</div>`;
+    } else if (typeof t.renderStage === 'function') {
+      try {
+        t.renderStage(body, Object.assign({}, curC, { why: why || 'render', view: sec }));
+      } catch (e) {
+        console.error(e);
+        body.innerHTML = `<div class="placeholder">${esc(cp('tabErrorPrefix') + e.message)}</div>`;
+      }
+      t._dirty = false;
+      t._drawn = true;
     } else if (typeof t.renderZones === 'function') {
       try {
-        t.renderZones({ left: $('#z-left'), center: body, ctx: Object.assign({}, curC, { why: why || 'render', view: sec }) });
+        t.renderZones({ left: zl, center: body, ctx: Object.assign({}, curC, { why: why || 'render', view: sec }) });
       } catch (e) {
         console.error(e);
         body.innerHTML = `<div class="placeholder">${esc(cp('tabErrorPrefix') + e.message)}</div>`;
@@ -1471,7 +1674,7 @@
         t._dirty = false;
         t._drawn = true;
       }
-      renderLegacyLeft(id, sec);
+      if (lay === 'three') renderLegacyLeft(id, sec);
     }
 
     if (why === 'tab' && t && t.enter) {
@@ -1483,7 +1686,7 @@
     placeGuides();
   }
 
-  // ---------- 오른쪽 상세와 근거 구역(#z-right) 및 선택 처리 ----------
+  // ---------- 읽기 영역(.z-right)과 1px 연결선(#sel-link) ----------
   const EV = { open: false };
   function syncRightScrollCue() {
     const body = $('#ev-body'), more = $('#zr-more');
@@ -1492,21 +1695,115 @@
     more.hidden = !over;
   }
 
-  function setEvBox(spec, animate) {
+  function clearSelLink() {
+    const p = $('#sel-link-p'), dot = $('#sel-link-dot');
+    if (p) p.setAttribute('d', '');
+    if (dot) dot.hidden = true;
+  }
+
+  function updateSelLink() {
+    const p = $('#sel-link-p'), dot = $('#sel-link-dot'), board = $('#board'), zr = $('#z-right');
+    if (!p || !board || board.hidden || !zr || !zr.classList.contains('is-picked') || mode() === 'sheet') {
+      clearSelLink();
+      return;
+    }
+    const root = viewOf(st.tab) || $('#z-center');
+    const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
+    if (!selEl) { clearSelLink(); return; }
+    const anchor = selEl.querySelector('[data-link-pt]') || selEl;
+    const bBox = board.getBoundingClientRect();
+    const sBox = anchor.getBoundingClientRect();
+    const rBox = zr.getBoundingClientRect();
+    if (!sBox.width || !sBox.height || !rBox.width || !rBox.height) { clearSelLink(); return; }
+    const lay = board.dataset.layout || 'side';
+    let d = '', dx = 0, dy = 0;
+    if (lay === 'band') {
+      const sx = Math.round(sBox.left + sBox.width / 2 - bBox.left);
+      const sy = Math.round(sBox.bottom - bBox.top);
+      const ey = Math.round(rBox.top - bBox.top);
+      if (ey > sy - 4) {
+        d = `M${sx} ${sy}V${ey}`;
+        dx = sx; dy = sy;
+      }
+    } else {
+      const sx = Math.round(sBox.right - bBox.left);
+      const sy = Math.round(sBox.top + sBox.height / 2 - bBox.top);
+      const ex = Math.round(rBox.left - bBox.left);
+      const ey = Math.round(Math.max(rBox.top + 22, Math.min(rBox.bottom - 22, sBox.top + sBox.height / 2)) - bBox.top);
+      if (ex > sx + 2) {
+        const mx = Math.round(sx + (ex - sx) * 0.55);
+        d = Math.abs(ey - sy) <= 3 ? `M${sx} ${sy}H${ex}` : `M${sx} ${sy}H${mx}V${ey}H${ex}`;
+        dx = sx; dy = sy;
+      }
+    }
+    p.setAttribute('d', d);
+    if (dot) {
+      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; }
+      else dot.hidden = true;
+    }
+  }
+
+  function setEvPicked(spec, animate) {
+    const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
-    if (!k || !body) return;
+    if (!zr || !zrIn || !k || !body) return;
+    zr.classList.add('is-picked');
+    if (unsel) unsel.hidden = true;
+    zrIn.hidden = false;
     k.textContent = spec.kicker || cp('evKickerPick');
     t.textContent = spec.title || '';
     b.innerHTML = (spec.badges || []).join('');
     body.innerHTML = typeof spec.body === 'string' ? spec.body : '';
     if (spec.body && typeof spec.body !== 'string') body.appendChild(spec.body);
     body.scrollTop = 0;
-    if (animate && motionOn()) { const box = $('.zr-in'); if (box) { box.classList.remove('ev-anim'); void box.offsetWidth; box.classList.add('ev-anim'); } }
+    if (animate && motionOn()) { zrIn.classList.remove('ev-anim'); void zrIn.offsetWidth; zrIn.classList.add('ev-anim'); }
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
-    requestAnimationFrame(syncRightScrollCue);
+    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(); });
   }
+
+  function unselectedConclusion(c) {
+    const curC = c || ctx();
+    const tb = tabs[st.tab];
+    if (tb && typeof tb.conclusion === 'function') {
+      try {
+        const custom = tb.conclusion(curC);
+        if (custom) return custom;
+      } catch (e) { console.error(e); }
+    }
+    const base = curC.base || S['기준별'][st.base];
+    if (st.tab === 'graph') {
+      const spec = tb && tb.defaultEv ? tb.defaultEv(curC) : null;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = (spec && spec.body) || '';
+      return { text: firstSentence(tmp.textContent), flag: '' };
+    }
+    const bk = TAB_BRIEF_KEY[st.tab];
+    if (base && bk) {
+      const row = lineOf(base, bk);
+      if (row) {
+        return {
+          text: firstSentence(row['문장']),
+          flag: row['원문대조'] ? (row['원문대조글'] || cp('flagDefault')) : '',
+        };
+      }
+    }
+    const fb = base && base['범위'] ? firstSentence(base['범위']['문장']) : '';
+    return { text: fb, flag: '' };
+  }
+
+  function showUnselectedEv(c) {
+    const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
+    if (!zr || !unsel) return;
+    zr.classList.remove('is-picked');
+    if (zrIn) zrIn.hidden = true;
+    unsel.hidden = false;
+    const info = unselectedConclusion(c);
+    unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}</p>` : '';
+    clearSelLink();
+  }
+
   function showEv(spec, o = {}) {
-    setEvBox(spec, o.animate !== false);
+    setEvPicked(spec, o.animate !== false);
     if (o.open !== false && mode() === 'sheet') openEv();
   }
   function openEv() {
@@ -1524,36 +1821,6 @@
     const h = EV.open && mode() === 'sheet' && zr ? zr.offsetHeight : 0;
     document.documentElement.style.setProperty('--sheet-h', h + 'px');
   }
-
-  function defaultEvSpec(c) {
-    const curC = c || ctx();
-    const t = tabs[st.tab];
-    if (t && typeof t.defaultEv === 'function') {
-      try { const spec = t.defaultEv(curC); if (spec) return spec; } catch (e) { console.error(e); }
-    }
-    return coreDefaultEv(curC);
-  }
-  function coreDefaultEv(c) {
-    const curC = c || ctx();
-    const base = curC.base || S['기준별'][st.base];
-    const bk = TAB_BRIEF_KEY[st.tab];
-    let sent = '';
-    let sc = 'base';
-    if (base) {
-      if (bk) {
-        const row = lineOf(base, bk);
-        if (row) { sent = row['문장']; sc = row['범위'] === '전체 고객군' ? 'all' : 'base'; }
-      }
-      if (!sent && base['범위']) sent = String(base['범위']['문장'] || '').split(/(?<=\.)\s+/)[0] || base['범위']['문장'];
-    }
-    return {
-      kicker: cp('evKickerDefault'),
-      title: TAB_NAME[st.tab] || '',
-      badges: [scope(sc), fullScopeTag()].filter(Boolean),
-      body: `<div class="ev-sec"><p>${esc(sent)}</p></div>`,
-    };
-  }
-  function showDefaultEv(animate, c) { setEvBox(defaultEvSpec(c), animate); }
 
   function legendHTML() {
     return `<dl class="legend">
@@ -1598,30 +1865,10 @@
       if (hit) hit.setAttribute('aria-pressed', String(on));
     }
     syncRovingTabindex();
-    fitSel(v);
   }
 
-  const SEL_SHARE = { wide: 0.021, push: 0.017, sheet: 0.016 };
-  const SEL_EXTRA = 76;
-  function fitSel(root) {
-    root = root || viewOf(st.tab) || $('#z-center');
-    if (!root) return;
-    const budget = SEL_SHARE[mode()] * innerWidth * innerHeight;
-    for (const el of $$('.is-sel', root)) {
-      let bars;
-      if (el.matches('tr')) {
-        const blk = getComputedStyle(el).display === 'block';
-        bars = blk ? [el.querySelector('td') || el] : [el];
-      } else if (el.matches('.selbar')) bars = [el];
-      else bars = $$('.selbar', el);
-      for (const b of bars) {
-        const r = b.getBoundingClientRect();
-        if (!r.height) continue;
-        const w = r.width + 20;
-        const L = Math.max(8, Math.min(w + 120, Math.floor(budget / r.height - SEL_EXTRA)));
-        b.style.setProperty('--sel-red', L >= w ? `${Math.ceil(w + 120)}px` : `${L}px`);
-      }
-    }
+  function fitSel() {
+    updateSelLink();
   }
 
   function applySelectionState(animate, c) {
@@ -1635,16 +1882,16 @@
       let spec = null;
       try { spec = t.pick(String(key), curC); } catch (e) { console.error(e); }
       if (spec) {
-        setEvBox(spec, animate);
+        setEvPicked(spec, animate);
       } else {
         delete st.sel[id];
         remark(id);
-        showDefaultEv(animate, curC);
+        showUnselectedEv(curC);
         hideEv();
       }
     } else {
-      showDefaultEv(animate, curC);
-      if (mode() === 'sheet') hideEv();
+      showUnselectedEv(curC);
+      hideEv();
     }
     syncHeaderAndPath(curC);
   }
@@ -1653,6 +1900,7 @@
     if (st.tab === 'brief') return;
     if (key == null) return unselect(o);
     const same = st.sel[st.tab] === String(key);
+    if (same && o.toggleOff) return unselect(o);
     st.sel[st.tab] = String(key);
     if (o.push !== false && booted && !same) pushHistory(new Set(['pick']));
     const curC = ctx();
@@ -1666,6 +1914,7 @@
     }
     if (el && o.reveal !== false && mode() === 'sheet') setTimeout(() => reveal(el), 240);
     placeGuides();
+    requestAnimationFrame(updateSelLink);
     emit('select', st.tab, String(key));
   }
 
@@ -1676,7 +1925,7 @@
     delete st.sub[st.tab];
     if (o.push !== false && booted && had) pushHistory(new Set(['pick']));
     const curC = ctx();
-    applySelectionState(o.animate !== false, curC);
+    applySelectionState(false, curC);
     hideEv();
     if (o.restoreFocus !== false && prevKey != null) {
       const root = viewOf(st.tab) || $('#z-center');
@@ -1709,8 +1958,64 @@
     }
   }
 
+  function returnToHome(fromTab) {
+    const prev = fromTab && fromTab !== 'brief' ? fromTab : 'market';
+    set({ tab: 'brief' });
+    const target = $('#tab-' + prev) || $(`#home-panel [data-rtab="${prev}"]`);
+    if (target) { try { target.focus({ preventScroll: true }); } catch (e) { /* */ } }
+  }
+
+  // ---------- 눌러서 여는 전체 표 및 문장 창(#data-modal) ----------
+  let modalTrigger = null;
+  let modalRefreshFn = null;
+  function openModal(spec) {
+    const m = $('#data-modal');
+    if (!m || !spec) return;
+    closeHelp(false);
+    modalTrigger = spec.trigger || document.activeElement || null;
+    modalRefreshFn = typeof spec.render === 'function' ? spec.render : null;
+    const content = modalRefreshFn ? modalRefreshFn(ctx()) : spec;
+    fillModal(content);
+    m.hidden = false;
+    const closeBtn = $('#dm-x', m);
+    if (closeBtn) { try { closeBtn.focus({ preventScroll: true }); } catch (e) { /* */ } }
+  }
+  function fillModal(content) {
+    const m = $('#data-modal');
+    if (!m || !content) return;
+    $('#dm-k', m).textContent = content.kicker || '';
+    $('#dm-title', m).textContent = content.title || '';
+    $('#dm-b', m).innerHTML = (content.badges || []).join('');
+    $('#dm-acts', m).innerHTML = content.actions || '';
+    const body = $('#dm-body', m);
+    body.innerHTML = typeof content.html === 'string' ? content.html : '';
+    if (content.html && typeof content.html !== 'string') body.appendChild(content.html);
+    if (typeof content.after === 'function') {
+      try { content.after(body, ctx()); } catch (e) { console.error(e); }
+    }
+  }
+  function refreshModalIfOpen() {
+    const m = $('#data-modal');
+    if (!m || m.hidden || !modalRefreshFn) return;
+    fillModal(modalRefreshFn(ctx()));
+  }
+  function closeModal(restoreFocus) {
+    const m = $('#data-modal');
+    if (!m || m.hidden) return false;
+    m.hidden = true;
+    $('#dm-body', m).innerHTML = '';
+    modalRefreshFn = null;
+    const prev = modalTrigger;
+    modalTrigger = null;
+    if (restoreFocus && prev && document.contains(prev)) {
+      try { prev.focus({ preventScroll: true }); } catch (e) { /* */ }
+    }
+    return true;
+  }
+
   function stepUp() {
     if (closeHelp(true)) return true;
+    if (closeModal(true)) return true;
     if (condOpen) { setCondOpen(false); const b = $('#cond-sum'); if (b) b.focus(); return true; }
     if (scopeOpen) { setScopeOpen(false); const b = $('#scope-tgl'); if (b) b.focus(); return true; }
     if (EV.open && mode() === 'sheet') { unselect({ restoreFocus: true }); return true; }
@@ -1723,16 +2028,14 @@
       return true;
     }
     if (st.tab !== 'brief') {
-      const prevTab = st.tab;
-      set({ tab: 'brief' });
-      const tb = $('#tab-' + prevTab);
-      if (tb) { try { tb.focus({ preventScroll: true }); } catch (e) { /* */ } }
+      returnToHome(st.tab);
       return true;
     }
     return false;
   }
 
   function showTab(id, opts = {}) {
+    closeModal(false);
     renderActiveScreen(ctx(new Set(['tab'])), 'tab');
     if (opts.scroll !== false && booted) scrollTo({ top: 0, behavior: 'auto' });
     emit('tab', id);
@@ -1745,6 +2048,7 @@
       if (id !== st.tab && tabs[id]) tabs[id]._dirty = true;
     }
     renderActiveScreen(ctx(changed), 'change');
+    refreshModalIfOpen();
     emit('change', ctx(changed), opts);
   }
 
@@ -1760,8 +2064,11 @@
   function go(tabId, o = {}) {
     if (!TAB_IDS.includes(tabId)) tabId = TAB_BY_NAME[tabId] || tabId;
     if (!TAB_IDS.includes(tabId)) return;
+    closeModal(false);
     if (o.grp != null) st.grp[tabId] = o.grp;
     set({ tab: tabId });
+    const nextBtn = $('#tab-' + tabId);
+    if (nextBtn && !o.focus) { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* */ } }
     const t = tabs[tabId];
     if (o.focus != null && t && t.focus) {
       setTimeout(() => {
@@ -1847,24 +2154,19 @@
   function placeGuides() {
     const g = $('#guides'); if (!g) return;
     const W = innerWidth, H = innerHeight;
-    const rt = $('#rtabs');
-    if (!rt) return;
-    const rtBox = rt.getBoundingClientRect();
+    const anchorEl = st.tab === 'brief' ? $('#home-panel') : $('#rtabs');
+    if (!anchorEl) return;
+    const rtBox = anchorEl.getBoundingClientRect();
     const topY = Math.round(rtBox.top);
     const botY = H - 72;
     const centers = [Math.round(rtBox.left), Math.round(rtBox.right)];
-    if (st.tab !== 'brief' && mode() !== 'sheet') {
-      const zl = $('#z-left'), zr = $('#z-right');
-      if (zl) centers.push(Math.round(zl.getBoundingClientRect().right));
-      if (zr) centers.push(Math.round(zr.getBoundingClientRect().left));
-    }
     let html = `<i class="hl" style="top:${topY}px"></i><i class="hl" style="top:${botY}px"></i>`;
     for (const c of centers) {
       if (c < 0 || c > W) continue;
       html += `<i class="gl c" style="left:${c}px"></i>`;
       html += `<i class="tk" style="left:${c}px;top:${topY}px"></i><i class="tk" style="left:${c}px;top:${botY}px"></i>`;
     }
-    const activeTab = $('#tab-' + st.tab) || $('#tab-market');
+    const activeTab = st.tab !== 'brief' ? $('#rtabs #tab-' + st.tab) : null;
     if (activeTab) {
       const ab = activeTab.getBoundingClientRect();
       html += `<i class="tk red" style="left:${Math.round(ab.left + 14)}px;top:${topY}px"></i>`;
@@ -1903,9 +2205,9 @@
   function positionPop(pop, anchor) {
     const r = anchor.getBoundingClientRect();
     const pw = pop.offsetWidth || 380, ph = pop.offsetHeight || 180;
-    const left = Math.max(12, Math.min(innerWidth - pw - 12, Math.round(r.left)));
-    const below = r.bottom + 8 + ph <= innerHeight - 12;
-    const top = below ? Math.round(r.bottom + 8) : Math.max(12, Math.round(r.top - ph - 8));
+    const left = Math.max(8, Math.min(innerWidth - pw - 8, Math.round(r.left)));
+    const below = r.bottom + 8 + ph <= innerHeight - 8;
+    const top = below ? Math.round(r.bottom + 8) : Math.max(8, Math.round(r.top - ph - 8));
     pop.style.left = left + 'px';
     pop.style.top = top + 'px';
   }
@@ -2022,9 +2324,11 @@
   on('tab', () => { closeHelp(false); hideHudTip(); });
   on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideHudTip(); });
 
-  // ---------- 위임 클릭과 키보드(화살표 구역 내 이동, Tab 구역 간 이동, Esc 왼쪽/위 복귀) ----------
+  // ---------- 위임 클릭과 키보드 ----------
   document.addEventListener('click', e => {
     hideHudTip();
+    const mc = e.target.closest('[data-modal-close]');
+    if (mc) { e.stopPropagation(); closeModal(true); return; }
     const hc = e.target.closest('[data-help-close]');
     if (hc) { e.stopPropagation(); closeHelp(true); return; }
     const pb = e.target.closest('[data-peer-pop]');
@@ -2061,8 +2365,15 @@
     if (rt) {
       e.stopPropagation();
       const id = rt.dataset.rtab;
-      if (st.tab === id && st.sel[id] == null && !st.grp[id]) set({ tab: 'brief' });
-      else set({ tab: id });
+      if (id === 'brief') {
+        returnToHome(st.tab);
+        return;
+      }
+      if (st.tab === id && st.sel[id] == null && !st.grp[id]) {
+        returnToHome(id);
+        return;
+      }
+      set({ tab: id });
       const nextBtn = $('#tab-' + st.tab) || $('#tab-' + id);
       if (nextBtn) { try { nextBtn.focus({ preventScroll: true }); } catch (ex) { /* */ } }
       return;
@@ -2072,10 +2383,11 @@
     if (pi) {
       e.stopPropagation();
       const idx = +pi.dataset.pathIdx;
-      if (idx === 0) set({ tab: 'brief' });
-      else if (idx === 1) {
-        if (st.sel[st.tab] != null) unselect();
-        else if (st.grp[st.tab]) setGroup('');
+      if (idx === 0) {
+        returnToHome(st.tab);
+      } else if (idx === 1) {
+        if (st.sel[st.tab] != null) unselect({ restoreFocus: true });
+        else if (st.grp[st.tab]) setGroup('', { focusKey: '' });
       }
       return;
     }
@@ -2109,25 +2421,36 @@
       if (a.dataset.act) return;
     }
 
+    const mp = e.target.closest('#dm-body [data-pick]');
+    if (mp && !e.target.closest('.live')) {
+      const pickKey = mp.dataset.pick;
+      closeModal(false);
+      select(pickKey, { focus: true });
+      return;
+    }
+
     const p = e.target.closest('#z-center [data-pick]');
     if (p && !e.target.closest('.live')) {
-      select(p.dataset.pick, { focus: true });
+      select(p.dataset.pick, { focus: true, toggleOff: p.dataset.toggle === '1' });
     }
   });
 
   document.addEventListener('keydown', e => {
-    // 1. 고리 탭 줄 화살표 이동
-    const inRtab = e.target.closest && e.target.closest('#rtabs [data-rtab]');
+    // 1. 고리 탭 줄 및 첫 화면 다섯 묶음 좌우 화살표 이동
+    const inRtab = e.target.closest && e.target.closest('[data-rtab]');
     if (inRtab && ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
-      const items = $$('#rtabs [data-rtab]');
+      const scopeRoot = st.tab === 'brief' ? $('#home-panel') : $('#rtabs');
+      const items = scopeRoot ? $$('[data-rtab]', scopeRoot) : [];
+      if (!items.length) return;
       const i = items.indexOf(inRtab);
+      if (i < 0) return;
       let j = i;
       if (e.key === 'ArrowRight') j = (i + 1) % items.length;
       if (e.key === 'ArrowLeft') j = (i + items.length - 1) % items.length;
       if (e.key === 'Home') j = 0;
       if (e.key === 'End') j = items.length - 1;
       e.preventDefault();
-      if (st.tab === 'brief') {
+      if (st.tab === 'brief' || items[j].dataset.rtab === 'brief') {
         items.forEach((b, k) => { b.tabIndex = k === j ? 0 : -1; });
         items[j].focus();
       } else {
@@ -2156,7 +2479,7 @@
       return;
     }
 
-    // 3. 가운데 단위 도형 2차원 격자 화살표 이동(고객군 고리 격자 등 [data-grid-r][data-grid-c])
+    // 3. 무대 단위 도형 격자 화살표 이동([data-grid-r][data-grid-c])
     const cellBtn = e.target.closest && e.target.closest('#z-center [data-grid-r][data-grid-c]');
     if (cellBtn && ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
       const r = +cellBtn.dataset.gridR, c = +cellBtn.dataset.gridC;
@@ -2171,8 +2494,18 @@
       return;
     }
 
-    const trPick = e.target.closest && e.target.closest('#z-center tr[data-pick]');
-    if (trPick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(trPick.dataset.pick, { focus: true }); return; }
+    const trPick = e.target.closest && e.target.closest('tr[data-pick]');
+    if (trPick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      if (trPick.closest('#dm-body')) {
+        const pk = trPick.dataset.pick;
+        closeModal(false);
+        select(pk, { focus: true });
+      } else {
+        select(trPick.dataset.pick, { focus: true });
+      }
+      return;
+    }
 
     if (e.key === 'Escape') {
       if (stepUp()) { e.preventDefault(); return; }
@@ -2201,6 +2534,7 @@
     else if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) st.motion = 'off';
     const initHash = decodeHash(location.hash);
     Object.assign(st, initHash.patch);
+    lastRenderedTab = st.tab;
     if (initHash.grp != null) st.grp[st.tab] = initHash.grp;
     if (initHash.pick != null) st.sel[st.tab] = initHash.pick;
     if (st.since == null) st.surg = false;
@@ -2214,6 +2548,8 @@
     if ($('#z-right')) $('#z-right').setAttribute('aria-label', cp('evAria'));
     if ($('#ev-pnm-t')) $('#ev-pnm-t').textContent = cp('evPanelName');
     if ($('#ev-x')) $('#ev-x').setAttribute('aria-label', cp('evCloseAria'));
+    if ($('#dm-x')) $('#dm-x').setAttribute('aria-label', cp('legendCloseAria'));
+    if ($('#dm-x-t')) $('#dm-x-t').textContent = cp('modalCloseBtn');
     if ($('#zr-more')) $('#zr-more').innerHTML = `<span>${esc(cp('evMoreBtn'))}</span> ${IC.chevD}`;
     if ($('#foot-notice-h')) $('#foot-notice-h').textContent = cp('footNoticeHead');
     if ($('#foot-disclaimer')) $('#foot-disclaimer').textContent = cp('footDisclaimer');
@@ -2232,6 +2568,8 @@
     $('#skin').addEventListener('click', () => set({ skin: st.skin === 'dark' ? 'light' : 'dark' }));
     $('#motion').addEventListener('click', () => set({ motion: st.motion === 'on' ? 'off' : 'on' }));
     $('#ev-x').addEventListener('click', () => unselect({ restoreFocus: true }));
+    const zc = $('#z-center');
+    if (zc) zc.addEventListener('scroll', () => requestAnimationFrame(updateSelLink), { passive: true });
     const evBody = $('#ev-body'), zrMore = $('#zr-more');
     if (evBody) {
       evBody.addEventListener('scroll', syncRightScrollCue, { passive: true });
@@ -2248,24 +2586,26 @@
         const m = mode();
         if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
         closeHelp(false); hideHudTip();
-        sheetPad(); placeGuides(); fitSel(); syncRightScrollCue(); emit('resize', m);
+        sheetPad(); placeGuides(); updateSelLink(); syncRightScrollCue(); emit('resize', m);
       }, 80);
     });
 
     booted = true;
     try { history.replaceState({ c4: 1 }, '', encodeHash()); } catch (e) { /* */ }
     renderActiveScreen(ctx(), 'tab');
-    setTimeout(() => { placeGuides(); syncRightScrollCue(); }, 50);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); fitSel(); });
+    setTimeout(() => { placeGuides(); updateSelLink(); syncRightScrollCue(); }, 50);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(); });
   }
 
   window.App = {
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
-    set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, reveal,
-    ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showDefaultEv(true), legend: legendHTML },
+    set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal,
+    openModal, closeModal, updateSelLink,
+    ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
     ui: UI, txt: TXT, mode, motionOn,
-    cellOf, segPatch, segPatchText, samePatch, activePeerOrgs, activeOrgs, orgSector, inScope, filterScopeCodes, ringTabMetrics,
+    cellOf, cellCounts, gateFlowRows, coverStageStacks, firstSentence,
+    segPatch, segPatchText, samePatch, activePeerOrgs, activeOrgs, orgSector, inScope, filterScopeCodes, ringTabMetrics,
     limitOf, mapOf, condSummary, condSegOnly, scopeLine, asofText,
     copyText, copyRows, copyTable, print, toast, fitSel,
     boot,

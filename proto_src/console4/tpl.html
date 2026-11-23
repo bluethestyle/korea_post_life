@@ -12,6 +12,18 @@
 <body>
 <a class="sr" href="#work-anchor">본문으로 건너뛰기</a>
 
+<!-- 기둥과 고리에 공통으로 쓰는 빗금 무늬 정의 -->
+<svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="pat-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="6" stroke="var(--ink-2)" stroke-width="1.5" stroke-opacity=".55"/>
+    </pattern>
+    <pattern id="pat-hatch-pale" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="6" stroke="var(--ink-2)" stroke-width="1.1" stroke-opacity=".32"/>
+    </pattern>
+  </defs>
+</svg>
+
 <!-- 층 1~3: 안개(body 바탕), 기울어진 기둥과 사선 면, 원근 격자선과 도시 지평선 바닥, 안내선 -->
 <div class="bg" aria-hidden="true">
   <svg class="bg-geo" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" focusable="false">
@@ -116,26 +128,31 @@
       <h1 class="th-title" id="th-title">영업 분석 요약</h1>
     </div>
     <div class="th-mid" id="th-mid"></div>
-    <div class="th-total" id="th-total"></div>
+    <div class="th-total" id="th-total" hidden></div>
   </section>
 
   <section class="cond" id="cond" aria-label="조건 줄" hidden></section>
   <section class="scope" id="scope" aria-label="범위 띠" aria-live="polite" hidden></section>
 
-  <!-- 하나로 합친 고리 탭 줄: 처음 상태에서는 큰 메달 다섯, 탭을 열면 위로 줄어들어 세 구역 판과 이어진다 -->
-  <nav class="rtabs is-home" id="rtabs" role="tablist" aria-label="분석 화면"></nav>
+  <!-- 열린 화면 상단 고리 탭 줄: 맨 왼쪽 [전체 요약] + 다섯 고리 탭(고른 탭 하나에만 짙은 면) -->
+  <nav class="rtabs is-compact" id="rtabs" role="tablist" aria-label="분석 화면" hidden></nav>
 
   <div id="work-anchor" tabindex="-1"></div>
 
-  <!-- 처음 여는 상태(브리핑): 큰 고리 탭 다섯 아래에 놓이는 번호 달린 결론 다섯 줄 -->
+  <!-- 첫 화면(전체 요약): 안개 바탕 위 가로 기준축(62% 지점)과 다섯 기둥 묶음, 아래 결론 한 문장 -->
   <section class="home-panel" id="home-panel" aria-label="전체 결론 요약"></section>
 
-  <!-- 고리를 골랐을 때 열리는 한 장의 세 구역 판: 왼쪽 분류(22%) + 가운데 단위 도형(44%) + 오른쪽 상세와 근거(34%) -->
-  <div class="board" id="board" hidden>
-    <aside class="z-left" id="z-left" aria-label="분류"></aside>
+  <!-- 탭 화면 본문 무대: 사각 면 없이 안개 바탕 위에 기준축과 도형이 놓이고, 고른 도형에서 읽기 영역으로 1px 선이 이어진다 -->
+  <div class="board" id="board" data-layout="side" hidden>
+    <svg class="sel-link-svg" id="sel-link" aria-hidden="true" focusable="false">
+      <path class="sel-link-p" id="sel-link-p" fill="none"/>
+      <circle class="sel-link-dot" id="sel-link-dot" r="2.5" hidden/>
+    </svg>
+    <aside class="z-left" id="z-left" aria-label="분류" hidden></aside>
     <main class="z-center" id="z-center" tabindex="-1"></main>
     <aside class="z-right ev" id="z-right" aria-label="고른 것의 상세">
-      <div class="zr-in ev-in">
+      <div class="ev-unselected" id="ev-unselected"></div>
+      <div class="zr-in ev-in" id="zr-in" hidden>
         <i class="ev-handle" aria-hidden="true"></i>
         <div class="ev-top">
           <div class="ev-krow"><span class="k" id="ev-k">요약</span><span class="ev-pnm"><span id="ev-pnm-t">상세와 근거</span><span id="ev-help"></span></span></div>
@@ -149,7 +166,7 @@
     </aside>
   </div>
 
-  <!-- 판 아래 기능 단추 줄: 왼쪽 [뒤로] [문장으로 보기] [요약 복사] [범례], 오른쪽 스킨 및 움직임 전환 -->
+  <!-- 무대 아래 기능 단추 줄: 왼쪽 [뒤로] [표로 보기 / 문장으로 보기] [요약 복사] [범례], 오른쪽 스킨 및 움직임 전환 -->
   <div class="actbar" id="actbar" role="toolbar" aria-label="화면 조작">
     <div class="actbar-l" id="actbar-l"></div>
     <div class="actbar-r" id="actbar-r">
@@ -162,6 +179,28 @@
     <p><b id="foot-notice-h">고지.</b> <span id="foot-notice">공모전 시연용 화면이며 영업 자료가 아닙니다</span>. <span id="foot-disclaimer"></span> <span class="asof"><span id="asof-label">자료 기준</span> <span class="num" id="asof"></span></span></p>
     <p><b id="foot-font-h">글꼴.</b> /*__FONT_NOTICE__*/</p>
   </footer>
+</div>
+
+<!-- 눌러서 여는 전체 표 및 문장 창(표로 보기, 문장으로 보기) -->
+<div class="data-modal" id="data-modal" role="dialog" aria-modal="true" aria-labelledby="dm-title" hidden>
+  <div class="dm-scrim" data-modal-close="1"></div>
+  <div class="dm-box" role="document">
+    <header class="dm-head">
+      <div class="dm-hl">
+        <span class="dm-k" id="dm-k"></span>
+        <h2 class="dm-t" id="dm-title"></h2>
+        <div class="dm-b" id="dm-b"></div>
+      </div>
+      <div class="dm-hr">
+        <div class="dm-acts" id="dm-acts"></div>
+        <button class="btn sm ghost dm-x" id="dm-x" type="button" data-modal-close="1" aria-label="창 닫기">
+          <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg>
+          <span id="dm-x-t">닫기</span>
+        </button>
+      </div>
+    </header>
+    <div class="dm-body" id="dm-body"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
