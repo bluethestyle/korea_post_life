@@ -19,6 +19,7 @@
     skinLight: '밝은 화면',
     motionWord: '움직임',
     motionOn: '켬',
+    motionCalm: '절제',
     motionOff: '끔',
     condAria: '조건 줄',
     condOpenBtn: '조건 바꾸기',
@@ -762,7 +763,33 @@
   function on(ev, fn) { (listeners[ev] || (listeners[ev] = [])).push(fn); }
   function emit(ev, ...args) { for (const fn of (listeners[ev] || [])) { try { fn(...args); } catch (e) { console.error(e); } } }
   const mode = () => (innerWidth >= 1600 ? 'wide' : innerWidth >= 1000 ? 'push' : 'sheet');
-  const motionOn = () => st.motion === 'on';
+  const motionOn = () => st.motion !== 'off';
+  const motionRich = () => st.motion === 'on';
+  const motionScale = () => (st.motion === 'on' ? 1 : st.motion === 'calm' ? 0.55 : 0);
+
+  function countUp(root) {
+    if (!motionRich()) return;
+    const els = $$('[data-count-to]', root || document);
+    if (!els.length) return;
+    const dur = 480;
+    const t0 = performance.now();
+    const targets = els.map(el => ({
+      el,
+      to: +el.dataset.countTo || 0,
+      suffix: el.dataset.countSuffix || '',
+    }));
+    targets.forEach(x => { x.el.textContent = fmt(0) + x.suffix; });
+    function tick(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      for (const x of targets) {
+        if (!x.el.isConnected) continue;
+        x.el.textContent = fmt(Math.round(x.to * eased)) + x.suffix;
+      }
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
 
   // ---------- 주소(#)와 뒤로 가기 ----------
   function encodeHash() {
@@ -947,8 +974,8 @@
     }
   }
   function hbar(v, max, cls) {
-    const p = max > 0 ? Math.max(0, Math.min(100, (v / max) * 100)) : 0;
-    return `<span class="hbar" aria-hidden="true"><i class="${cls || ''}" style="width:${p.toFixed(1)}%"></i></span>`;
+    const p = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
+    return `<span class="hbar" aria-hidden="true"><i class="${cls || ''}" style="width:100%;transform:scaleX(${p.toFixed(4)})"></i></span>`;
   }
   function btn(text, o = {}) {
     const cls = ['btn', o.main ? 'btn-main' : '', o.sm ? 'sm' : '', o.ghost ? 'ghost' : '', o.cls || ''].filter(Boolean).join(' ');
@@ -1104,7 +1131,7 @@
   const pageText = (doc, page) => (page != null && page !== '' ? `${doc || cp('docFallback')} ${page}${cp('pageSuffix')}` : `${doc || cp('docFallback')}${cp('pageMissingSuffix')}`);
   const PAGE_WHY = cp('pageWhy');
 
-  const UI = { esc, fmt, firstSentence, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
+  const UI = { esc, fmt, firstSentence, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, countUp, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
   const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, orgSector, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, PEER_ORGS, ORG_SHORT, firstSentence };
 
   // ---------- 진행 추적기 머리와 접히는 조건 편집 판 ----------
@@ -1417,7 +1444,7 @@
     const arcs = (m.segs || []).filter(s => s.v > 0).map(s => {
       sum += s.v;
       const len = +(C * Math.min(1, s.v / max)).toFixed(2);
-      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
+      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" data-dash="${len} ${C}" data-c="${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
       off += len;
       return el;
     }).join('');
@@ -1457,13 +1484,154 @@
   UI.miniRingSVG = miniRingSVG;
   UI.graphGlyphSVG = graphGlyphSVG;
 
-  function renderRingTabs(c) {
+  // ---------- 화면 간 연속 전환(기준축 다리, 작은 고리 <-> 머리 큰 고리, 고른 탭 면 미끄러짐) ----------
+  let axisBridgeToken = 0;
+  let ringFlyEl = null;
+
+  function findVisibleMainAxis(tabId) {
+    const scopeRoot = tabId === 'brief' ? $('#home-panel') : (viewOf(tabId) || $('#z-center'));
+    if (!scopeRoot || scopeRoot.hidden) return null;
+    const el = $('[data-main-axis]', scopeRoot)
+      || $('.hm-axis-wrap, .cv-stage-axis, .cv-axis-line, .gtf-axis-head, .mk-thead, .gr-head-bar, .ins-jump', scopeRoot);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 10) return null;
+    return { el, left: Math.round(r.left), width: Math.round(r.width), y: Math.round(r.bottom - 2) };
+  }
+
+  function snapScreenTransition(fromTab, toTab) {
+    const out = { fromTab, toTab, axis: null, pill: null, bigRing: null, bigRingHTML: '', srcRing: null };
+    out.axis = findVisibleMainAxis(fromTab);
+    const nav = $('#rtabs');
+    if (nav && !nav.hidden) {
+      const act = $('.rtab[aria-selected="true"]', nav);
+      if (act) out.pill = { left: act.offsetLeft, width: act.offsetWidth };
+      if (toTab !== 'brief') {
+        const nextBtn = $('#tab-' + toTab + ' .rt-ring', nav);
+        if (nextBtn) {
+          const r = nextBtn.getBoundingClientRect();
+          if (r.width > 4) out.srcRing = r;
+        }
+      }
+    } else if (fromTab === 'brief' && toTab !== 'brief') {
+      const hm = $(`#home-panel #tab-${toTab} .hm-head`) || $(`#home-panel #tab-${toTab}`);
+      if (hm) {
+        const r = hm.getBoundingClientRect();
+        if (r.width > 4) out.srcRing = { left: r.left, top: r.top, width: Math.min(84, r.width), height: Math.min(84, r.height) };
+      }
+    }
+    const thRing = $('#th-total .tht-ring');
+    if (thRing && !$('#th-total').hidden) {
+      const r = thRing.getBoundingClientRect();
+      if (r.width > 4) {
+        out.bigRing = r;
+        out.bigRingHTML = thRing.outerHTML;
+      }
+    }
+    return out;
+  }
+
+  function playAxisBridge(prevAxis, nextAxis) {
+    const bridge = $('#axis-bridge');
+    if (!bridge) return;
+    if (!motionOn()) {
+      document.body.classList.remove('axis-bridging');
+      bridge.hidden = true;
+      return;
+    }
+    if (prevAxis && nextAxis && Math.abs(prevAxis.y - nextAxis.y) >= 1) {
+      const token = ++axisBridgeToken;
+      const vw = Math.max(1, innerWidth);
+      const dur = Math.round(380 * motionScale());
+      bridge.hidden = false;
+      document.body.classList.add('axis-bridging');
+      if (bridge._anim) bridge._anim.cancel();
+      const t0 = `translate3d(${prevAxis.left}px,${prevAxis.y}px,0) scaleX(${(prevAxis.width / vw).toFixed(4)})`;
+      const t1 = `translate3d(${nextAxis.left}px,${nextAxis.y}px,0) scaleX(${(nextAxis.width / vw).toFixed(4)})`;
+      bridge.style.transform = t1;
+      bridge._anim = bridge.animate([{ transform: t0 }, { transform: t1 }], {
+        duration: dur,
+        easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+      });
+      bridge._anim.onfinish = () => {
+        if (token !== axisBridgeToken) return;
+        document.body.classList.remove('axis-bridging');
+        bridge.hidden = true;
+      };
+    } else if (nextAxis && nextAxis.el) {
+      document.body.classList.remove('axis-bridging');
+      bridge.hidden = true;
+      nextAxis.el.classList.remove('axis-draw');
+      void nextAxis.el.offsetWidth;
+      nextAxis.el.classList.add('axis-draw');
+    }
+  }
+
+  function flipElement(el, fromRect, durMs, easing) {
+    if (!el || !fromRect || !motionOn() || typeof el.animate !== 'function') return;
+    const toRect = el.getBoundingClientRect();
+    if (toRect.width < 2 || toRect.height < 2) return;
+    const dx = (fromRect.left + fromRect.width / 2) - (toRect.left + toRect.width / 2);
+    const dy = (fromRect.top + fromRect.height / 2) - (toRect.top + toRect.height / 2);
+    const sx = Math.max(0.35, Math.min(2.4, fromRect.width / toRect.width));
+    const sy = Math.max(0.35, Math.min(2.4, fromRect.height / toRect.height));
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.03) return;
+    if (el._flipAnim) el._flipAnim.cancel();
+    el._flipAnim = el.animate([
+      { transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(${sx.toFixed(3)},${sy.toFixed(3)})` },
+      { transform: 'translate3d(0,0,0) scale(1,1)' },
+    ], {
+      duration: Math.max(80, Math.round(durMs * motionScale())),
+      easing: easing || 'cubic-bezier(0.16, 1, 0.3, 1)',
+    });
+  }
+
+  function drawHeaderRingArcs(root) {
+    if (!motionOn()) return;
+    for (const c of $$('.rt-arc[data-c][data-dash]', root)) {
+      const C = c.dataset.c, d = c.dataset.dash;
+      c.style.transition = 'none';
+      c.setAttribute('stroke-dasharray', `0 ${C}`);
+      void c.getBoundingClientRect();
+      c.style.transition = '';
+      c.setAttribute('stroke-dasharray', d);
+    }
+  }
+
+  function playReturnRingToHome(snap) {
+    if (!motionOn() || !snap || !snap.bigRing || !snap.bigRingHTML) return;
+    const target = $(`#home-panel #tab-${snap.fromTab} .hm-head`) || $(`#home-panel #tab-${snap.fromTab}`);
+    if (!target) return;
+    const tr = target.getBoundingClientRect();
+    if (tr.width < 4) return;
+    if (!ringFlyEl) {
+      ringFlyEl = document.createElement('div');
+      ringFlyEl.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;z-index:29;transform-origin:top left';
+      document.body.appendChild(ringFlyEl);
+    }
+    ringFlyEl.innerHTML = snap.bigRingHTML;
+    ringFlyEl.hidden = false;
+    const br = snap.bigRing;
+    const sc = Math.max(0.45, Math.min(1, 52 / Math.max(1, br.height)));
+    if (ringFlyEl._anim) ringFlyEl._anim.cancel();
+    ringFlyEl._anim = ringFlyEl.animate([
+      { transform: `translate3d(${br.left.toFixed(1)}px,${br.top.toFixed(1)}px,0) scale(1)`, opacity: 0.95 },
+      { transform: `translate3d(${tr.left.toFixed(1)}px,${tr.top.toFixed(1)}px,0) scale(${sc.toFixed(3)})`, opacity: 0 },
+    ], {
+      duration: Math.max(90, Math.round(320 * motionScale())),
+      easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+    });
+    ringFlyEl._anim.onfinish = () => { if (ringFlyEl) { ringFlyEl.hidden = true; ringFlyEl.innerHTML = ''; } };
+  }
+
+  function renderRingTabs(c, snap) {
     const nav = $('#rtabs');
     const thTotal = $('#th-total');
     if (!nav) return;
     const isHome = st.tab === 'brief';
     if (isHome) {
       nav.hidden = true;
+      nav.classList.remove('has-pill');
       nav.innerHTML = '';
       if (thTotal) { thTotal.hidden = true; thTotal.innerHTML = ''; }
       lastRenderedTab = 'brief';
@@ -1478,6 +1646,7 @@
       nav.classList.add('from-home');
     }
     const metrics = ringTabMetrics(c || ctx());
+    const pillHTML = '<i class="rtab-bg" id="rtab-bg" aria-hidden="true"></i>';
     const homeBtn = `<button class="rtab rtab-home" type="button" role="tab" id="tab-brief" data-rtab="brief" aria-selected="false" tabindex="-1">${IC.chevL}<span>${esc(cp('homePathRoot'))}</span></button>`;
     const tabsHTML = SCREEN_IDS.map(id => {
       const m = metrics[id];
@@ -1489,17 +1658,42 @@
         <span class="rt-txt"><span class="rt-name"><span>${esc(m.name)}</span>${badge}</span>${sub}</span>
       </button>`;
     }).join('');
-    nav.innerHTML = homeBtn + tabsHTML;
+    nav.classList.add('has-pill');
+    nav.innerHTML = pillHTML + homeBtn + tabsHTML;
 
     const act = $('.rtab[aria-selected="true"]', nav);
     if (act && nav.scrollWidth > nav.clientWidth + 4) {
       nav.scrollLeft = Math.max(0, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2));
+    }
+    const pill = $('#rtab-bg', nav);
+    if (pill && act) {
+      const toX = act.offsetLeft, toS = Math.max(0.1, act.offsetWidth / 100);
+      pill.style.transform = `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})`;
+      if (snap && snap.pill && motionOn() && typeof pill.animate === 'function' && (Math.abs(snap.pill.left - toX) > 1 || Math.abs(snap.pill.width - act.offsetWidth) > 1)) {
+        const fromS = Math.max(0.1, snap.pill.width / 100);
+        pill.animate([
+          { transform: `translate3d(${snap.pill.left}px,0,0) scaleX(${fromS.toFixed(4)})` },
+          { transform: `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})` },
+        ], {
+          duration: Math.max(90, Math.round(280 * motionScale())),
+          easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+        });
+      }
     }
 
     if (thTotal) {
       const curM = metrics[st.tab] || metrics.market;
       thTotal.hidden = false;
       thTotal.innerHTML = `<div class="tht-ring">${rtabRingSVG(curM, true)}${curM.numHTML ? `<span class="tht-val num">${curM.numHTML}</span>` : ''}</div>`;
+      if (snap && motionOn()) {
+        const thRing = $('.tht-ring', thTotal);
+        if (thRing && snap.srcRing) flipElement(thRing, snap.srcRing, 420, 'cubic-bezier(0.16, 1, 0.3, 1)');
+        drawHeaderRingArcs(thTotal);
+        if (snap.fromTab && snap.fromTab !== 'brief' && snap.fromTab !== st.tab && snap.bigRing) {
+          const prevSmall = $(`#tab-${snap.fromTab} .rt-ring`, nav);
+          if (prevSmall) flipElement(prevSmall, snap.bigRing, 320, 'cubic-bezier(0.65, 0, 0.35, 1)');
+        }
+      }
     }
   }
 
@@ -1604,9 +1798,24 @@
     return 'three';
   }
 
+  let activeRenderedTab = 'brief';
+
+  function applyBgParallax(tabId) {
+    if (!motionRich()) {
+      document.documentElement.style.setProperty('--bg-px', '0px');
+      return;
+    }
+    const idx = Math.max(0, TAB_IDS.indexOf(tabId));
+    document.documentElement.style.setProperty('--bg-px', `${(idx - 1) * -12}px`);
+  }
+
   function renderActiveScreen(c, why) {
     const curC = c || ctx();
-    renderRingTabs(curC);
+    const isTabSwitch = why === 'tab' && booted && activeRenderedTab !== st.tab;
+    const snap = isTabSwitch ? snapScreenTransition(activeRenderedTab, st.tab) : null;
+    activeRenderedTab = st.tab;
+    applyBgParallax(st.tab);
+    renderRingTabs(curC, snap);
     const isHome = st.tab === 'brief';
     const homePanel = $('#home-panel');
     const board = $('#board');
@@ -1616,11 +1825,17 @@
     if (isHome) {
       hideEv();
       clearSelLink();
+      hideSelGlide();
+      board.classList.remove('has-sel');
       const tb = tabs.brief;
-      if (tb && tb.renderHome) tb.renderHome(homePanel, curC);
+      if (tb && tb.renderHome) tb.renderHome(homePanel, curC, why || 'render');
       syncHeaderAndPath(curC);
       renderActBar(curC);
       placeGuides();
+      if (snap) {
+        playAxisBridge(snap.axis, findVisibleMainAxis('brief'));
+        playReturnRingToHome(snap);
+      }
       return;
     }
 
@@ -1684,10 +1899,13 @@
     applySelectionState(false, curC);
     renderActBar(curC);
     placeGuides();
+    if (snap) playAxisBridge(snap.axis, findVisibleMainAxis(id));
   }
 
-  // ---------- 읽기 영역(.z-right)과 1px 연결선(#sel-link) ----------
+  // ---------- 읽기 영역(.z-right), 고른 표지 미끄러짐(#sel-glide), 1px 연결선(#sel-link) ----------
   const EV = { open: false };
+  let selGlideToken = 0;
+
   function syncRightScrollCue() {
     const body = $('#ev-body'), more = $('#zr-more');
     if (!body || !more) return;
@@ -1695,13 +1913,76 @@
     more.hidden = !over;
   }
 
+  function hideSelGlide() {
+    const g = $('#sel-glide');
+    if (!g) return;
+    selGlideToken++;
+    if (g._anim) g._anim.cancel();
+    g.hidden = true;
+  }
+
+  function measureSelBox(tabId) {
+    const id = tabId || st.tab;
+    if (id === 'brief' || st.sel[id] == null) return null;
+    const root = viewOf(id) || $('#z-center');
+    const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
+    if (!selEl) return null;
+    const target = selEl.querySelector('[data-aim-box]') || selEl.querySelector('[data-link-pt]') || selEl;
+    const r = target.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    return {
+      key: String(st.sel[id]),
+      left: r.left,
+      top: r.top,
+      width: r.width,
+      height: r.height,
+      shape: selEl.dataset.aim === 'circle' ? 'circle' : 'rect',
+    };
+  }
+
+  function playSelGlide(prevBox, nextBox) {
+    const g = $('#sel-glide'), board = $('#board');
+    if (!g || !board || board.hidden || !prevBox || !nextBox || !motionOn() || typeof g.animate !== 'function') {
+      hideSelGlide();
+      return;
+    }
+    if (prevBox.key === nextBox.key) return;
+    const bBox = board.getBoundingClientRect();
+    const token = ++selGlideToken;
+    const w1 = Math.max(6, Math.round(nextBox.width));
+    const h1 = Math.max(6, Math.round(nextBox.height));
+    const sx0 = Math.max(0.25, prevBox.width / w1);
+    const sy0 = Math.max(0.25, prevBox.height / h1);
+    const x0 = prevBox.left - bBox.left;
+    const y0 = prevBox.top - bBox.top;
+    const x1 = nextBox.left - bBox.left;
+    const y1 = nextBox.top - bBox.top;
+    g.dataset.shape = nextBox.shape;
+    g.style.width = w1 + 'px';
+    g.style.height = h1 + 'px';
+    g.style.transform = `translate3d(${x1.toFixed(1)}px,${y1.toFixed(1)}px,0)`;
+    g.hidden = false;
+    if (g._anim) g._anim.cancel();
+    g._anim = g.animate([
+      { transform: `translate3d(${x0.toFixed(1)}px,${y0.toFixed(1)}px,0) scale(${sx0.toFixed(3)},${sy0.toFixed(3)})`, opacity: 0.96 },
+      { transform: `translate3d(${x1.toFixed(1)}px,${y1.toFixed(1)}px,0) scale(1,1)`, opacity: 0.96 },
+    ], {
+      duration: Math.max(80, Math.round(220 * motionScale())),
+      easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+    });
+    g._anim.onfinish = () => {
+      if (token !== selGlideToken) return;
+      g.hidden = true;
+    };
+  }
+
   function clearSelLink() {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot');
-    if (p) p.setAttribute('d', '');
+    if (p) { if (p._anim) p._anim.cancel(); p.setAttribute('d', ''); }
     if (dot) dot.hidden = true;
   }
 
-  function updateSelLink() {
+  function updateSelLink(drawLine) {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot'), board = $('#board'), zr = $('#z-right');
     if (!p || !board || board.hidden || !zr || !zr.classList.contains('is-picked') || mode() === 'sheet') {
       clearSelLink();
@@ -1710,7 +1991,7 @@
     const root = viewOf(st.tab) || $('#z-center');
     const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
     if (!selEl) { clearSelLink(); return; }
-    const anchor = selEl.querySelector('[data-link-pt]') || selEl;
+    const anchor = selEl.querySelector('[data-link-pt]') || selEl.querySelector('[data-aim-box]') || selEl;
     const bBox = board.getBoundingClientRect();
     const sBox = anchor.getBoundingClientRect();
     const rBox = zr.getBoundingClientRect();
@@ -1737,16 +2018,48 @@
       }
     }
     p.setAttribute('d', d);
+    if (d && drawLine === true && motionOn() && typeof p.animate === 'function') {
+      if (p._anim) p._anim.cancel();
+      p._anim = p.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], {
+        duration: Math.max(90, Math.round(240 * motionScale())),
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      });
+    }
     if (dot) {
       if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; }
       else dot.hidden = true;
     }
   }
 
+  function staggerEvLines(zrIn) {
+    const targets = [];
+    const h2 = $('#ev-t', zrIn);
+    if (h2) targets.push(h2);
+    const b = $('#ev-b', zrIn);
+    if (b && b.children.length) targets.push(b);
+    const body = $('#ev-body', zrIn);
+    if (body) {
+      for (const child of Array.from(body.children)) {
+        if (child.classList.contains('ev-sec')) {
+          for (const sub of Array.from(child.children)) targets.push(sub);
+        } else {
+          targets.push(child);
+        }
+      }
+    }
+    targets.forEach((el, idx) => {
+      el.classList.remove('ev-line-in');
+      el.style.setProperty('--ld', `${Math.round(Math.min(idx, 5) * 30 * motionScale())}ms`);
+    });
+    void zrIn.offsetWidth;
+    targets.forEach(el => el.classList.add('ev-line-in'));
+  }
+
   function setEvPicked(spec, animate) {
     const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
     if (!zr || !zrIn || !k || !body) return;
+    const wasPicked = zr.classList.contains('is-picked') && !zrIn.hidden;
     zr.classList.add('is-picked');
     if (unsel) unsel.hidden = true;
     zrIn.hidden = false;
@@ -1756,9 +2069,16 @@
     body.innerHTML = typeof spec.body === 'string' ? spec.body : '';
     if (spec.body && typeof spec.body !== 'string') body.appendChild(spec.body);
     body.scrollTop = 0;
-    if (animate && motionOn()) { zrIn.classList.remove('ev-anim'); void zrIn.offsetWidth; zrIn.classList.add('ev-anim'); }
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
-    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(); });
+    if (animate && motionOn()) {
+      if (!wasPicked) {
+        zrIn.classList.remove('ev-anim');
+        void zrIn.offsetWidth;
+        zrIn.classList.add('ev-anim');
+      }
+      staggerEvLines(zrIn);
+    }
+    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(animate === true); });
   }
 
   function unselectedConclusion(c) {
@@ -1856,8 +2176,10 @@
 
   function remark(id) {
     const v = viewOf(id) || $('#z-center');
-    if (!v) return;
+    const board = $('#board');
     const key = st.sel[id];
+    if (board) board.classList.toggle('has-sel', id !== 'brief' && key != null);
+    if (!v) return;
     for (const el of $$('[data-pick]', v)) {
       const on = key != null && el.dataset.pick === String(key);
       el.classList.toggle('is-sel', on);
@@ -1886,10 +2208,12 @@
       } else {
         delete st.sel[id];
         remark(id);
+        hideSelGlide();
         showUnselectedEv(curC);
         hideEv();
       }
     } else {
+      hideSelGlide();
       showUnselectedEv(curC);
       hideEv();
     }
@@ -1901,10 +2225,13 @@
     if (key == null) return unselect(o);
     const same = st.sel[st.tab] === String(key);
     if (same && o.toggleOff) return unselect(o);
+    const prevBox = (!same && o.animate !== false) ? measureSelBox(st.tab) : null;
     st.sel[st.tab] = String(key);
     if (o.push !== false && booted && !same) pushHistory(new Set(['pick']));
     const curC = ctx();
     applySelectionState(o.animate !== false, curC);
+    const nextBox = (!same && o.animate !== false && prevBox) ? measureSelBox(st.tab) : null;
+    if (prevBox && nextBox) playSelGlide(prevBox, nextBox);
     if (st.sel[st.tab] != null && mode() === 'sheet' && o.open !== false) openEv();
     const root = viewOf(st.tab) || $('#z-center');
     const el = root && $(`[data-pick="${CSS.escape(String(key))}"]`, root);
@@ -1912,9 +2239,10 @@
       const hit = el.matches('button,tr,[tabindex]') ? el : ($('.lrow-hit', el) || el);
       try { hit.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
+    if (curAimEl && el) refreshAimReticle();
     if (el && o.reveal !== false && mode() === 'sheet') setTimeout(() => reveal(el), 240);
     placeGuides();
-    requestAnimationFrame(updateSelLink);
+    requestAnimationFrame(() => updateSelLink(o.animate !== false && !same));
     emit('select', st.tab, String(key));
   }
 
@@ -1923,6 +2251,7 @@
     const had = prevKey != null;
     delete st.sel[st.tab];
     delete st.sub[st.tab];
+    hideSelGlide();
     if (o.push !== false && booted && had) pushHistory(new Set(['pick']));
     const curC = ctx();
     applySelectionState(false, curC);
@@ -2160,18 +2489,35 @@
     const topY = Math.round(rtBox.top);
     const botY = H - 72;
     const centers = [Math.round(rtBox.left), Math.round(rtBox.right)];
+    let staticBox = $('.gl-static', g);
+    let redTk = $('.tk.red', g);
+    if (!staticBox) {
+      g.innerHTML = '<div class="gl-static"></div><i class="tk red" hidden></i>';
+      staticBox = $('.gl-static', g);
+      redTk = $('.tk.red', g);
+    }
     let html = `<i class="hl" style="top:${topY}px"></i><i class="hl" style="top:${botY}px"></i>`;
     for (const c of centers) {
       if (c < 0 || c > W) continue;
       html += `<i class="gl c" style="left:${c}px"></i>`;
       html += `<i class="tk" style="left:${c}px;top:${topY}px"></i><i class="tk" style="left:${c}px;top:${botY}px"></i>`;
     }
+    staticBox.innerHTML = html;
     const activeTab = st.tab !== 'brief' ? $('#rtabs #tab-' + st.tab) : null;
-    if (activeTab) {
-      const ab = activeTab.getBoundingClientRect();
-      html += `<i class="tk red" style="left:${Math.round(ab.left + 14)}px;top:${topY}px"></i>`;
+    if (redTk) {
+      if (activeTab) {
+        const ab = activeTab.getBoundingClientRect();
+        const tx = Math.round(ab.left + 14);
+        const wasHidden = redTk.hidden;
+        if (wasHidden) redTk.style.transition = 'none';
+        redTk.style.top = topY + 'px';
+        redTk.style.setProperty('--tx', tx + 'px');
+        redTk.hidden = false;
+        if (wasHidden) { void redTk.offsetWidth; redTk.style.transition = ''; }
+      } else {
+        redTk.hidden = true;
+      }
     }
-    g.innerHTML = html;
   }
 
   function applySkin() {
@@ -2181,7 +2527,14 @@
   }
   function applyMotion() {
     document.documentElement.dataset.motion = st.motion;
-    const b = $('#motion'); if (b) { b.innerHTML = `${esc(cp('motionWord'))} <b>${esc(st.motion === 'on' ? cp('motionOn') : cp('motionOff'))}</b>`; b.setAttribute('aria-pressed', String(st.motion === 'on')); }
+    applyBgParallax(st.tab);
+    const b = $('#motion');
+    if (b) {
+      const label = st.motion === 'on' ? cp('motionOn') : st.motion === 'calm' ? cp('motionCalm') : cp('motionOff');
+      b.innerHTML = `${esc(cp('motionWord'))} <b>${esc(label)}</b>`;
+      b.dataset.motionMode = st.motion;
+      b.setAttribute('aria-pressed', String(st.motion !== 'off'));
+    }
     store.set(LS_MOTION, st.motion);
   }
   const asofText = () => String(S['자료시각'] || '').replace('T', ' ').slice(0, 16);
@@ -2275,57 +2628,232 @@
     positionPop(pop, btnEl);
   }
 
-  let tipAnchor = null, touchTimer = 0, scrollMuteUntil = 0;
+  // ---------- 이름표(#hud-tip), 조준 표식(#aim-reticle), 문지르기([data-scrub-row]) ----------
+  let tipAnchor = null, curAimEl = null, scrollMuteUntil = 0, suppressClickUntil = 0;
+  let touchScrub = null;
+
+  function buildTipHTML(el) {
+    if (!el || !el.dataset) return '';
+    const ttl = el.dataset.tipTitle;
+    const sub = el.dataset.tipSub;
+    const chip = el.dataset.tipChip;
+    const badge = el.dataset.tipBadge;
+    if (ttl || sub || chip || badge) {
+      const chips = [];
+      if (chip) chips.push(verdict(chip));
+      if (badge) chips.push(tag(badge));
+      return `${ttl ? `<span class="ht-t">${esc(ttl)}</span>` : ''}${sub ? `<span class="ht-s">${esc(sub)}</span>` : ''}${chips.length ? `<span class="ht-b">${chips.join('')}</span>` : ''}`;
+    }
+    const text = el.dataset.tip;
+    return text ? esc(text) : '';
+  }
+
   function showHudTip(el) {
     const tip = $('#hud-tip');
-    const text = el && el.dataset && el.dataset.tip;
-    if (!tip || !text) return;
-    const r = el.getBoundingClientRect();
+    if (!tip || !el || !el.isConnected) return;
+    const html = buildTipHTML(el);
+    if (!html) { hideHudTip(); return; }
+    const boxEl = el.querySelector('[data-aim-box]') || el;
+    const r = boxEl.getBoundingClientRect();
     const minTop = 30;
     if (r.width < 1 || r.bottom <= minTop || r.top >= innerHeight) { hideHudTip(); return; }
+    const wasHidden = tip.hidden;
     tipAnchor = el;
-    tip.textContent = text;
+    tip.innerHTML = html;
+    if (wasHidden) tip.style.transition = 'none';
     tip.hidden = false;
     const tw = tip.offsetWidth || 220, th = tip.offsetHeight || 36;
     const left = Math.max(10, Math.min(innerWidth - tw - 10, Math.round(r.left + r.width / 2 - tw / 2)));
-    const top = r.top - th - 8 >= minTop ? Math.round(r.top - th - 8) : Math.min(innerHeight - th - 8, Math.max(minTop, Math.round(r.bottom + 8)));
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
+    const top = r.top - th - 10 >= minTop ? Math.round(r.top - th - 10) : Math.min(innerHeight - th - 8, Math.max(minTop, Math.round(r.bottom + 10)));
+    tip.style.setProperty('--tip-x', left + 'px');
+    tip.style.setProperty('--tip-y', top + 'px');
+    if (wasHidden) {
+      void tip.offsetWidth;
+      tip.style.transition = '';
+    }
   }
+
   function hideHudTip() {
-    clearTimeout(touchTimer);
     tipAnchor = null;
     const tip = $('#hud-tip');
     if (tip) tip.hidden = true;
   }
+
+  function refreshAimReticle() {
+    if (!curAimEl || !curAimEl.isConnected) { hideAimReticle(); return; }
+    const ret = $('#aim-reticle');
+    if (!ret) return;
+    if (curAimEl.dataset.nodata === '1' || curAimEl.getAttribute('aria-disabled') === 'true') {
+      ret.hidden = true;
+      return;
+    }
+    const boxEl = curAimEl.querySelector('[data-aim-box]') || curAimEl;
+    const r = boxEl.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2 || r.bottom < 24 || r.top > innerHeight) {
+      ret.hidden = true;
+      return;
+    }
+    const wasHidden = ret.hidden;
+    ret.dataset.shape = curAimEl.dataset.aim === 'circle' ? 'circle' : 'rect';
+    ret.classList.toggle('is-sel-aim', curAimEl.classList.contains('is-sel'));
+    ret.style.width = Math.round(r.width) + 'px';
+    ret.style.height = Math.round(r.height) + 'px';
+    if (wasHidden) {
+      ret.style.transition = 'none';
+      ret.classList.remove('is-tight', 'is-press');
+    }
+    ret.style.setProperty('--ar-x', Math.round(r.left) + 'px');
+    ret.style.setProperty('--ar-y', Math.round(r.top) + 'px');
+    ret.hidden = false;
+    if (wasHidden) {
+      void ret.offsetWidth;
+      ret.style.transition = '';
+      requestAnimationFrame(() => { if (!ret.hidden) ret.classList.add('is-tight'); });
+    } else {
+      ret.classList.add('is-tight');
+    }
+  }
+
+  function setAimTarget(el) {
+    if (el === curAimEl) {
+      if (el) refreshAimReticle();
+      return;
+    }
+    const prev = curAimEl;
+    if (prev) prev.classList.remove('is-aim');
+    curAimEl = el || null;
+    if (curAimEl) {
+      curAimEl.classList.add('is-aim');
+      refreshAimReticle();
+    } else {
+      const ret = $('#aim-reticle');
+      if (ret) { ret.hidden = true; ret.classList.remove('is-tight', 'is-press'); }
+    }
+    emit('aim', curAimEl, prev);
+  }
+
+  function hideAimReticle() {
+    if (curAimEl) setAimTarget(null);
+    else {
+      const ret = $('#aim-reticle');
+      if (ret) { ret.hidden = true; ret.classList.remove('is-tight', 'is-press'); }
+    }
+  }
+
+  function findScrubCandidate(rowEl, clientX) {
+    const items = $$('[data-aim],[data-pick]', rowEl).filter(el => el.offsetParent !== null);
+    if (!items.length) return null;
+    let best = null, bestDist = Infinity;
+    for (const it of items) {
+      const r = it.getBoundingClientRect();
+      if (r.width < 1) continue;
+      if (clientX >= r.left && clientX <= r.right) return it;
+      const dist = clientX < r.left ? (r.left - clientX) : (clientX - r.right);
+      if (dist < bestDist) { bestDist = dist; best = it; }
+    }
+    return bestDist <= 42 ? best : null;
+  }
+
   document.addEventListener('pointerover', e => {
     if (e.pointerType === 'touch' || performance.now() < scrollMuteUntil) return;
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    if (el) showHudTip(el); else if (tipAnchor) hideHudTip();
+    const aimEl = e.target.closest && e.target.closest('[data-aim]');
+    if (aimEl) setAimTarget(aimEl);
+    else if (curAimEl && !e.target.closest('[data-scrub-row]')) hideAimReticle();
+    const tipEl = e.target.closest && e.target.closest('[data-tip],[data-tip-title]');
+    if (tipEl) showHudTip(tipEl);
+    else if (aimEl && (aimEl.dataset.tip || aimEl.dataset.tipTitle)) showHudTip(aimEl);
+    else if (tipAnchor && !e.target.closest('[data-scrub-row]')) hideHudTip();
   });
+
+  document.addEventListener('pointermove', e => {
+    if (performance.now() < scrollMuteUntil) return;
+    if (e.pointerType === 'touch') {
+      if (!touchScrub || touchScrub.id !== e.pointerId) return;
+      const dx = e.clientX - touchScrub.x0, dy = e.clientY - touchScrub.y0;
+      if (!touchScrub.active) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { touchScrub = null; return; }
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) touchScrub.active = true;
+      }
+      if (touchScrub && touchScrub.active) {
+        const cand = findScrubCandidate(touchScrub.row, e.clientX);
+        if (cand) { setAimTarget(cand); showHudTip(cand); }
+      }
+      return;
+    }
+    const scrubRow = e.target.closest && e.target.closest('[data-scrub-row]');
+    if (scrubRow) {
+      const direct = e.target.closest && e.target.closest('[data-aim],[data-pick]');
+      const cand = direct || findScrubCandidate(scrubRow, e.clientX);
+      if (cand) {
+        if (cand.dataset.aim) setAimTarget(cand);
+        if (cand.dataset.tip || cand.dataset.tipTitle) showHudTip(cand);
+      }
+    }
+  }, { passive: true });
+
   document.addEventListener('pointerout', e => {
-    if (tipAnchor && (!e.relatedTarget || !tipAnchor.contains(e.relatedTarget))) hideHudTip();
+    if (e.pointerType === 'touch') return;
+    const rel = e.relatedTarget;
+    if (curAimEl && (!rel || (!curAimEl.contains(rel) && !(rel.closest && rel.closest('[data-scrub-row]'))))) {
+      const nextAim = rel && rel.closest && rel.closest('[data-aim]');
+      if (!nextAim) hideAimReticle();
+    }
+    if (tipAnchor && (!rel || (!tipAnchor.contains(rel) && !(rel.closest && rel.closest('[data-scrub-row]'))))) {
+      const nextTip = rel && rel.closest && rel.closest('[data-tip],[data-tip-title]');
+      if (!nextTip) hideHudTip();
+    }
   });
+
+  document.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') {
+      const scrubRow = e.target.closest && e.target.closest('[data-scrub-row]');
+      if (scrubRow) {
+        touchScrub = { id: e.pointerId, row: scrubRow, x0: e.clientX, y0: e.clientY, active: false };
+      } else {
+        touchScrub = null;
+      }
+      return;
+    }
+    const ret = $('#aim-reticle');
+    if (ret && !ret.hidden && curAimEl && curAimEl.dataset.nodata !== '1') ret.classList.add('is-press');
+  }, { passive: true });
+
+  function finishPointerPress(e) {
+    const ret = $('#aim-reticle');
+    if (ret) ret.classList.remove('is-press');
+    if (e && e.pointerType === 'touch' && touchScrub && touchScrub.id === e.pointerId) {
+      const wasActive = touchScrub.active;
+      const picked = curAimEl;
+      touchScrub = null;
+      if (wasActive) {
+        suppressClickUntil = performance.now() + 380;
+        hideAimReticle();
+        hideHudTip();
+        if (picked && picked.dataset.pick && picked.dataset.nodata !== '1') {
+          select(picked.dataset.pick, { focus: true });
+        }
+      }
+    }
+  }
+  document.addEventListener('pointerup', finishPointerPress, { passive: true });
+  document.addEventListener('pointercancel', finishPointerPress, { passive: true });
+
   document.addEventListener('focusin', e => {
     if (e.target.matches && !e.target.matches(':focus-visible')) return;
-    const el = e.target.closest && e.target.closest('[data-tip]');
+    const aimEl = e.target.closest && e.target.closest('[data-aim]');
+    if (aimEl) setAimTarget(aimEl);
+    const el = e.target.closest && e.target.closest('[data-tip],[data-tip-title]');
     if (el) showHudTip(el);
   });
-  document.addEventListener('focusout', () => hideHudTip());
-  document.addEventListener('touchstart', e => {
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    clearTimeout(touchTimer);
-    if (el) touchTimer = setTimeout(() => showHudTip(el), 320);
-  }, { passive: true });
-  document.addEventListener('touchmove', () => clearTimeout(touchTimer), { passive: true });
-  document.addEventListener('touchend', () => clearTimeout(touchTimer), { passive: true });
+  document.addEventListener('focusout', () => { hideAimReticle(); hideHudTip(); });
 
-  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 250; closeHelp(false); hideHudTip(); }, { passive: true });
-  on('tab', () => { closeHelp(false); hideHudTip(); });
-  on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideHudTip(); });
+  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 220; closeHelp(false); hideAimReticle(); hideHudTip(); }, { passive: true });
+  on('tab', () => { closeHelp(false); hideAimReticle(); hideHudTip(); });
+  on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideAimReticle(); hideHudTip(); });
 
   // ---------- 위임 클릭과 키보드 ----------
   document.addEventListener('click', e => {
+    if (performance.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); return; }
     hideHudTip();
     const mc = e.target.closest('[data-modal-close]');
     if (mc) { e.stopPropagation(); closeModal(true); return; }
@@ -2431,7 +2959,17 @@
 
     const p = e.target.closest('#z-center [data-pick]');
     if (p && !e.target.closest('.live')) {
+      if (p.dataset.nodata === '1') { showHudTip(p); return; }
       select(p.dataset.pick, { focus: true, toggleOff: p.dataset.toggle === '1' });
+      return;
+    }
+    const sr = e.target.closest('#z-center [data-scrub-row]');
+    if (sr && !e.target.closest('button,a,input,select,.live')) {
+      const cand = findScrubCandidate(sr, e.clientX);
+      if (cand && cand.dataset.pick) {
+        if (cand.dataset.nodata === '1') { showHudTip(cand); return; }
+        select(cand.dataset.pick, { focus: true, toggleOff: cand.dataset.toggle === '1' });
+      }
     }
   });
 
@@ -2530,11 +3068,13 @@
   function boot() {
     const saved = { skin: store.get(LS_SKIN), motion: store.get(LS_MOTION) };
     if (saved.skin === 'dark' || saved.skin === 'light') st.skin = saved.skin;
-    if (saved.motion === 'on' || saved.motion === 'off') st.motion = saved.motion;
-    else if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) st.motion = 'off';
+    if (saved.motion === 'on' || saved.motion === 'calm' || saved.motion === 'off') st.motion = saved.motion;
+    else if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) st.motion = 'calm';
+    else st.motion = 'on';
     const initHash = decodeHash(location.hash);
     Object.assign(st, initHash.patch);
     lastRenderedTab = st.tab;
+    activeRenderedTab = st.tab;
     if (initHash.grp != null) st.grp[st.tab] = initHash.grp;
     if (initHash.pick != null) st.sel[st.tab] = initHash.pick;
     if (st.since == null) st.surg = false;
@@ -2566,10 +3106,13 @@
     ensureLegacySections();
 
     $('#skin').addEventListener('click', () => set({ skin: st.skin === 'dark' ? 'light' : 'dark' }));
-    $('#motion').addEventListener('click', () => set({ motion: st.motion === 'on' ? 'off' : 'on' }));
+    $('#motion').addEventListener('click', () => {
+      const next = st.motion === 'on' ? 'calm' : st.motion === 'calm' ? 'off' : 'on';
+      set({ motion: next });
+    });
     $('#ev-x').addEventListener('click', () => unselect({ restoreFocus: true }));
     const zc = $('#z-center');
-    if (zc) zc.addEventListener('scroll', () => requestAnimationFrame(updateSelLink), { passive: true });
+    if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
     const evBody = $('#ev-body'), zrMore = $('#zr-more');
     if (evBody) {
       evBody.addEventListener('scroll', syncRightScrollCue, { passive: true });
@@ -2585,25 +3128,26 @@
       rz = setTimeout(() => {
         const m = mode();
         if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
-        closeHelp(false); hideHudTip();
-        sheetPad(); placeGuides(); updateSelLink(); syncRightScrollCue(); emit('resize', m);
+        closeHelp(false); hideAimReticle(); hideHudTip();
+        sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);
     });
 
     booted = true;
     try { history.replaceState({ c4: 1 }, '', encodeHash()); } catch (e) { /* */ }
     renderActiveScreen(ctx(), 'tab');
-    setTimeout(() => { placeGuides(); updateSelLink(); syncRightScrollCue(); }, 50);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(); });
+    setTimeout(() => { placeGuides(); updateSelLink(false); syncRightScrollCue(); }, 50);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(false); });
   }
 
   window.App = {
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
     set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal,
-    openModal, closeModal, updateSelLink,
+    openModal, closeModal, updateSelLink, flipElement, countUp,
+    aim: { set: setAimTarget, hide: hideAimReticle, showTip: showHudTip, hideTip: hideHudTip },
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
-    ui: UI, txt: TXT, mode, motionOn,
+    ui: UI, txt: TXT, mode, motionOn, motionRich, motionScale,
     cellOf, cellCounts, gateFlowRows, coverStageStacks, firstSentence,
     segPatch, segPatchText, samePatch, activePeerOrgs, activeOrgs, orgSector, inScope, filterScopeCodes, ringTabMetrics,
     limitOf, mapOf, condSummary, condSegOnly, scopeLine, asofText,

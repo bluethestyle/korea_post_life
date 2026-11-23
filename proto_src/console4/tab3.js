@@ -113,7 +113,7 @@ App.registerTab((function () {
   }
 
   // ---------- 새 무대: 관문 차례 가로축(5개) x 고지 유형 줄 x 통과 기둥(44x44px) ----------
-  function pillarCellSVG(passN, totalN, isPremise) {
+  function pillarCellSVG(passN, totalN, isPremise, delayMs) {
     const S0 = 44;
     const stoppedAll = totalN <= 0 || passN <= 0;
     const ratio = totalN > 0 ? Math.max(0, Math.min(1, passN / totalN)) : 0;
@@ -124,11 +124,39 @@ App.registerTab((function () {
     const meniscus = (!stoppedAll && fillH > 0 && fillH < S0)
       ? `<line x1="1" y1="${fy}" x2="${S0 - 1}" y2="${fy}" stroke="var(--ink-0)" stroke-width="1.3"/>`
       : '';
+    const fillGroup = fillH > 0
+      ? `<g class="gtf-fill-g" style="--gd:${delayMs || 0}ms"><rect class="${fillCls}" x="1" y="${fy}" width="${S0 - 2}" height="${fillH - 1}"/>${meniscus}</g>`
+      : '';
     return `<svg class="gtf-svg" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
-      ${fillH > 0 ? `<rect class="${fillCls}" x="1" y="${fy}" width="${S0 - 2}" height="${fillH - 1}"/>` : ''}
+      ${fillGroup}
       <rect class="${outCls}" x="0.5" y="0.5" width="${S0 - 1}" height="${S0 - 1}"/>
-      ${meniscus}
     </svg>`;
+  }
+
+  let lastGateSelRowKey = null;
+  function syncGateHot(aimEl, redrawSel) {
+    const root = document.getElementById('gt-flow-stage');
+    if (!root) return;
+    const hotR = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridR != null ? +aimEl.dataset.gridR : -1;
+    const hotC = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridC != null ? +aimEl.dataset.gridC : -1;
+    const sel = App.state.sel.gate || '';
+    const selRowKey = sel.startsWith('gf:') ? sel.slice(3, sel.lastIndexOf('|')) : '';
+    root.querySelectorAll('.gtf-acol[data-col]').forEach(el => {
+      el.classList.toggle('is-hot', +el.dataset.col === hotC);
+    });
+    root.querySelectorAll('.gtf-row[data-row]').forEach(el => {
+      const r = +el.dataset.row;
+      const rk = el.dataset.typeKey || '';
+      const hasSel = !!(selRowKey && rk === selRowKey);
+      el.classList.toggle('is-hot', r === hotR);
+      el.classList.toggle('has-row-sel', hasSel);
+      if (redrawSel && hasSel && App.motionOn() && rk !== lastGateSelRowKey) {
+        el.classList.remove('gtf-row-redraw');
+        void el.offsetWidth;
+        el.classList.add('gtf-row-redraw');
+      }
+    });
+    lastGateSelRowKey = selRowKey || null;
   }
 
   function renderStage(center, c) {
@@ -142,7 +170,7 @@ App.registerTab((function () {
 
     const axisCols = steps.map((stNm, k) => {
       const prem = premiseSet.has(stNm);
-      return `<div class="gtf-acol${prem ? ' is-prem' : ''}">
+      return `<div class="gtf-acol${prem ? ' is-prem' : ''}" data-col="${k}">
         <span class="gtf-anm">${esc(stNm)}</span>
         <i class="gtf-atk" aria-hidden="true"></i>
       </div>`;
@@ -164,35 +192,49 @@ App.registerTab((function () {
         const passN = row.pass[k] != null ? row.pass[k] : 0;
         const prevPass = k === 0 ? row.total : (row.pass[k - 1] != null ? row.pass[k - 1] : 0);
         const isPrem = premiseSet.has(stNm);
+        const isNoData = row.total <= 0;
         const pk = `gf:${row.key}|${k}`;
         const connBefore = k > 0
-          ? `<span class="gtf-conn${prevPass > 0 ? (passN > 0 ? ' is-on' : ' is-cut') : ' is-off'}" aria-hidden="true"></span>`
+          ? `<span class="gtf-conn${prevPass > 0 ? (passN > 0 ? ' is-on' : ' is-cut') : ' is-off'}" style="--cd:${k * 45}ms" aria-hidden="true"></span>`
           : '';
         const ratioTxt = `${fmt(passN)}/${fmt(row.total)}`;
+        const tipTitle = `${row.key}, ${stNm}`;
+        const tipSub = isNoData
+          ? App.t('peerEmptyHint')
+          : `통과 ${ratioTxt}곳${ours ? `, ${txt.orgShort('EPOST')} ${ours.state}` : ''}${isPrem ? ' (전제 관문)' : ''}`;
+        const chipKind = isNoData
+          ? 'unknown'
+          : (ours && ours.state === '열림' && row.finalPass === 0)
+            ? 'only'
+            : (ours && ours.state === '닫힘' && row.finalPass > 0)
+              ? 'worse'
+              : passN === 0 ? 'none' : 'same';
         const tip = `${row.key}, ${stNm}: 통과 ${ratioTxt}곳${isPrem ? ' (전제 관문)' : ''}`;
-        return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
-          <span class="gtf-pil" data-link-pt="1">${pillarCellSVG(passN, row.total, isPrem)}</span>
+        const delayMs = Math.min(340, rIdx * 24 + k * 42);
+        return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-aim="rect"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}">
+          <span class="gtf-pil" data-link-pt="1" data-aim-box="1">${pillarCellSVG(passN, row.total, isPrem, delayMs)}</span>
           <span class="gtf-cnt num">${esc(ratioTxt)}</span>
         </button>`;
       }).join('');
 
       const rowHeadTxt = `${row.key} (${fmt(row.total)})`;
-      return `<div class="gtf-row${ours && ours.isBase ? ' is-base' : ''}">
+      return `<div class="gtf-row${ours && ours.isBase ? ' is-base' : ''}" data-row="${rIdx}" data-type-key="${esc(row.key)}">
         <div class="gtf-rh">
           <span class="gtf-rkey num">${esc(rowHeadTxt)}</span>
           ${oursChip}
         </div>
-        <div class="gtf-track">${nodesHTML}</div>
+        <div class="gtf-track" data-scrub-row="1">${nodesHTML}</div>
       </div>`;
     }).join('');
 
     center.innerHTML = `<div class="gtf-stage" id="gt-flow-stage">
-      <div class="gtf-axis-head">
+      <div class="gtf-axis-head" data-main-axis="1">
         <span class="gtf-corner"></span>
         <div class="gtf-acols">${axisCols}</div>
       </div>
       <div class="gtf-rows" id="gt-flow-rows">${rowsHTML}</div>
     </div>`;
+    syncGateHot(null, false);
   }
 
   // ---------- 구성 예시 자료 찾기 ----------
@@ -851,6 +893,8 @@ App.registerTab((function () {
     }
   });
 
+  App.on('aim', aimEl => { if (App.state.tab === 'gate') syncGateHot(aimEl, false); });
+  App.on('select', tab => { if (tab === 'gate') syncGateHot(null, true); });
   App.on('change', () => publish());
   publish();
 

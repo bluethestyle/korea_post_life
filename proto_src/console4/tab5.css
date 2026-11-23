@@ -14,8 +14,11 @@
 #view-insight .ins-pn{font:400 13px/1.45 var(--f-body);color:var(--ink-1);word-break:keep-all}
 
 /* 분류 바로가기 메뉴(번호 13px 이상, 사각 면 대신 가로 축 선) */
-#view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-#view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 6px;background:transparent;border-bottom:2px solid var(--axis);color:var(--ink-0);text-decoration:none}
+#view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;border-bottom:2px solid var(--axis);padding-bottom:2px}
+#view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 6px;background:transparent;border-bottom:0;color:var(--ink-0);text-decoration:none}
+#view-insight .vbody.ins-enter .ins-cat{animation:insCatIn 360ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
+:root[data-motion="calm"] #view-insight .vbody.ins-enter .ins-cat{animation-duration:200ms}
+@keyframes insCatIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 #view-insight .ins-jump a:hover{background:var(--hover)}
 :root[data-theme="dark"] #view-insight .ins-jump a{background:transparent}
 :root[data-theme="dark"] #view-insight .ins-jump a:hover{background:var(--hover)}

@@ -64,9 +64,15 @@
   --f-ko:"PLKo","SUIT","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   --f-num:"PLNum","Saira Semi Condensed","PLKo","Malgun Gothic",sans-serif;
   --pad:48px; --gap:24px; --ev-w:424px; --head-h:24px; --sheet-h:0px;
-  --t-ring:600ms; --t-map:400ms; --t-tree:400ms; --t-bar:300ms; --t-sel:180ms; --t-ev:240ms;
-  --ease:cubic-bezier(.2,.7,.2,1);
+  --t-ring:480ms; --t-map:360ms; --t-tree:360ms; --t-bar:320ms; --t-sel:220ms; --t-ev:320ms;
+  --ease-in:cubic-bezier(0.16,1,0.3,1);
+  --ease-out:cubic-bezier(0.7,0,0.84,0);
+  --ease-move:cubic-bezier(0.65,0,0.35,1);
+  --ease:var(--ease-in);
+  --m-scale:1;
 }
+:root[data-motion="calm"]{ --m-scale:.55; --t-ring:260ms; --t-map:200ms; --t-tree:200ms; --t-bar:180ms; --t-sel:130ms; --t-ev:180ms }
+:root[data-motion="off"]{ --m-scale:0 }
 :root[data-theme="dark"]{
   color-scheme: dark;
   --fog-0:#0B1016; --fog-1:#18212B;
@@ -124,15 +130,22 @@ button{cursor:pointer}
 .svg-defs{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 
-.bg{position:fixed;inset:0;pointer-events:none;z-index:0}
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0;transform:translate3d(var(--bg-px,0px),0,0);transition:transform 480ms var(--ease-in)}
+:root[data-motion="calm"] .bg,:root[data-motion="off"] .bg{transform:none!important;transition:none!important}
 .bg-geo{position:absolute;inset:0;width:100%;height:100%;display:block}
+:root[data-motion="on"] .bg-geo{animation:fogDrift 90s linear infinite;will-change:transform}
+@keyframes fogDrift{
+  0%{transform:translate3d(-10px,0,0) scale(1.015)}
+  50%{transform:translate3d(10px,-4px,0) scale(1.015)}
+  100%{transform:translate3d(-10px,0,0) scale(1.015)}
+}
 .floor{position:absolute;left:0;right:0;bottom:0;width:100%;height:20vh;display:block}
 .guides{position:absolute;inset:0}
 .gl{position:absolute;top:0;bottom:0;width:1px;background:var(--guide-lo)}
 .gl.c{background:var(--guide)}
 .hl{position:absolute;left:0;right:0;height:1px;background:var(--guide)}
 .tk{position:absolute;width:14px;height:3px;background:var(--tick);transform:translate(-7px,-1px)}
-.tk.red{background:var(--red);transition:left var(--t-ev) var(--ease)}
+.tk.red{left:0;background:var(--red);transform:translate3d(calc(var(--tx,0px) - 7px),-1px,0);transition:transform 260ms var(--ease-move)}
 .dots{position:absolute;left:0;top:-4px;width:320px;height:120px;pointer-events:none;z-index:0;
   background:
     radial-gradient(circle,var(--dot-a) 0 1px,transparent 1.6px) 0 0/38px 19px,
@@ -236,9 +249,9 @@ button{cursor:pointer}
 .sw{display:inline-flex;align-items:center;gap:10px;min-height:38px;border:0;background:transparent;padding:0;
   font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
 .sw i{position:relative;width:40px;height:22px;border:1px solid var(--ink-2);background:var(--white);flex:none}
-.sw i::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;background:var(--ink-2);transition:left var(--t-sel) var(--ease)}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;background:var(--ink-2);transform:translateX(0);transition:transform 180ms var(--ease-move),background-color 180ms var(--ease-in)}
 .sw[aria-checked="true"] i{background:var(--slate)}
-.sw[aria-checked="true"] i::after{left:21px;background:#fff}
+.sw[aria-checked="true"] i::after{transform:translateX(18px);background:#fff}
 .sw:disabled{cursor:default;color:var(--ink-3)}
 .sw:disabled i{opacity:.55}
 
@@ -279,8 +292,12 @@ button{cursor:pointer}
 .rt-name{font:600 14.5px/1.25 var(--f-ko);color:var(--ink-0);word-break:keep-all;display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .rt-sub{font:600 13px/1.15 var(--f-ko);color:var(--ink-2);white-space:nowrap}
 
-/* 고른 탭 하나에만 남기는 짙은 슬레이트 면 */
-.rtabs .rtab[aria-selected="true"]{background:var(--slate);color:#fff;z-index:2;box-shadow:inset 0 3px 0 var(--top-line)}
+/* 고른 탭 하나에만 남기는 짙은 슬레이트 면(미끄러져 옮겨 가는 #rtab-bg 와 결합) */
+.rtab-bg{position:absolute;left:0;top:0;bottom:0;width:100px;background:var(--slate);box-shadow:inset 0 3px 0 var(--top-line);pointer-events:none;z-index:1;transform-origin:left center}
+.rtabs.has-pill .rtab[aria-selected="true"]{background:transparent;box-shadow:none}
+.rtabs:not(.has-pill) .rtab[aria-selected="true"]{background:var(--slate);box-shadow:inset 0 3px 0 var(--top-line)}
+.rtabs .rtab{z-index:2}
+.rtabs .rtab[aria-selected="true"]{color:#fff}
 .rtabs .rtab[aria-selected="true"] .rt-name,
 .rtabs .rtab[aria-selected="true"] .rt-sub,
 .rtabs .rtab[aria-selected="true"] .rt-num,
@@ -348,9 +365,85 @@ button{cursor:pointer}
 .z-center{position:relative;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
   scrollbar-width:thin;background:transparent;container-type:inline-size;container-name:zcenter}
 
-/* 고른 도형에서 읽기 영역으로 이어지는 1px 선 */
+/* 화면 전환 시 가로 기준축 높이를 이어 주는 다리 */
+.axis-bridge{position:fixed;left:0;top:0;width:100vw;height:2px;background:var(--axis);pointer-events:none;z-index:28;transform-origin:left top}
+.axis-bridge[hidden]{display:none!important}
+body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
+.axis-draw{transform-origin:left center;animation:axisDrawIn 420ms var(--ease-in) both}
+:root[data-motion="calm"] .axis-draw{animation-duration:220ms}
+@keyframes axisDrawIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* 고른 표지(빨강) 미끄러짐 틀(#sel-glide)과 읽기 영역으로 이어지는 1px 선 */
+.sel-glide{position:absolute;left:0;top:0;width:24px;height:24px;pointer-events:none;z-index:5;background:transparent;
+  border:2.5px solid var(--red);box-shadow:inset 0 0 0 1.5px #fff;transform-origin:top left}
+.sel-glide[data-shape="circle"]{border-radius:50%}
+.sel-glide[hidden]{display:none!important}
+.sel-glide .sg-c{position:absolute;width:6px;height:6px;border-color:var(--red);border-style:solid;border-width:0}
+.sel-glide[data-shape="circle"] .sg-c{display:none}
+.sel-glide .sg-c.tl{left:-5px;top:-5px;border-left-width:1.5px;border-top-width:1.5px}
+.sel-glide .sg-c.tr{right:-5px;top:-5px;border-right-width:1.5px;border-top-width:1.5px}
+.sel-glide .sg-c.bl{left:-5px;bottom:-5px;border-left-width:1.5px;border-bottom-width:1.5px}
+.sel-glide .sg-c.br{right:-5px;bottom:-5px;border-right-width:1.5px;border-bottom-width:1.5px}
+
+/* 가리킴 및 포커스 조준 표식(#aim-reticle: 네모 L자 꺾쇠 8px/1.5px, 원 45도 사선 15px/1.5px) */
+.aim-reticle{position:fixed;left:0;top:0;width:40px;height:40px;pointer-events:none;z-index:66;background:transparent;
+  transform:translate3d(var(--ar-x,0px),var(--ar-y,0px),0);
+  transition:transform 90ms var(--ease-in),opacity 90ms var(--ease-in)}
+.aim-reticle[hidden]{display:none!important}
+.aim-reticle .ar-c{position:absolute;border-color:var(--ink-0);border-style:solid;border-width:0;
+  transition:transform 120ms var(--ease-in),border-color 120ms var(--ease-in)}
+.aim-reticle.is-sel-aim .ar-c{border-color:var(--red)}
+/* 네모꼴: 바깥 6px 에서 2px 로 조여 들고, 누르면 2px 더 조인다(80ms) */
+.aim-reticle[data-shape="rect"] .ar-c{width:8px;height:8px}
+.aim-reticle[data-shape="rect"] .ar-c.tl{left:0;top:0;border-left-width:1.5px;border-top-width:1.5px;transform:translate(-6px,-6px)}
+.aim-reticle[data-shape="rect"] .ar-c.tr{right:0;top:0;border-right-width:1.5px;border-top-width:1.5px;transform:translate(6px,-6px)}
+.aim-reticle[data-shape="rect"] .ar-c.bl{left:0;bottom:0;border-left-width:1.5px;border-bottom-width:1.5px;transform:translate(-6px,6px)}
+.aim-reticle[data-shape="rect"] .ar-c.br{right:0;bottom:0;border-right-width:1.5px;border-bottom-width:1.5px;transform:translate(6px,6px)}
+.aim-reticle[data-shape="rect"].is-tight .ar-c.tl{transform:translate(-2px,-2px)}
+.aim-reticle[data-shape="rect"].is-tight .ar-c.tr{transform:translate(2px,-2px)}
+.aim-reticle[data-shape="rect"].is-tight .ar-c.bl{transform:translate(-2px,2px)}
+.aim-reticle[data-shape="rect"].is-tight .ar-c.br{transform:translate(2px,2px)}
+.aim-reticle[data-shape="rect"].is-press .ar-c{transition-duration:80ms}
+.aim-reticle[data-shape="rect"].is-press .ar-c.tl,
+.aim-reticle[data-shape="rect"].is-press .ar-c.tr,
+.aim-reticle[data-shape="rect"].is-press .ar-c.bl,
+.aim-reticle[data-shape="rect"].is-press .ar-c.br{transform:translate(0,0)}
+
+/* 원형: 네 귀 45도 사선(길이 15px, 선 1.5px)이 조여 든다 */
+.aim-reticle[data-shape="circle"] .ar-c{width:15px;height:0;border-top-width:1.5px;transform-origin:center center}
+.aim-reticle[data-shape="circle"] .ar-c.tl{left:-7px;top:-2px;transform:translate(-5px,-5px) rotate(45deg)}
+.aim-reticle[data-shape="circle"] .ar-c.tr{right:-7px;top:-2px;transform:translate(5px,-5px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"] .ar-c.bl{left:-7px;bottom:-2px;transform:translate(-5px,5px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"] .ar-c.br{right:-7px;bottom:-2px;transform:translate(5px,5px) rotate(45deg)}
+.aim-reticle[data-shape="circle"].is-tight .ar-c.tl{transform:translate(-1px,-1px) rotate(45deg)}
+.aim-reticle[data-shape="circle"].is-tight .ar-c.tr{transform:translate(1px,-1px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"].is-tight .ar-c.bl{transform:translate(-1px,1px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"].is-tight .ar-c.br{transform:translate(1px,1px) rotate(45deg)}
+.aim-reticle[data-shape="circle"].is-press .ar-c{transition-duration:80ms}
+.aim-reticle[data-shape="circle"].is-press .ar-c.tl{transform:translate(1px,1px) rotate(45deg)}
+.aim-reticle[data-shape="circle"].is-press .ar-c.tr{transform:translate(-1px,1px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"].is-press .ar-c.bl{transform:translate(1px,-1px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"].is-press .ar-c.br{transform:translate(-1px,-1px) rotate(45deg)}
+
+/* 누름(80ms 1px 내려앉음), 자료 없음 점선, 문지르기 가로 터치 허용, 고른 뒤 나머지 단위 물러남(불투명도 .45) */
+[data-scrub-row]{touch-action:pan-y}
+[data-nodata="1"]{cursor:default}
+[data-pick]:not([data-nodata="1"]):active,[data-aim]:not([data-nodata="1"]):active,.is-press-el{transform:translateY(1px)!important;transition-duration:80ms!important}
+.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-slot,.cvp-btn,.cv-tick,.gr-node):not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim){
+  opacity:.45;transition:opacity 220ms var(--ease-in),transform 120ms var(--ease-in)}
+.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-slot,.cvp-btn,.cv-tick,.gr-node):is(.is-sel,:hover,:focus-visible,.is-aim){
+  opacity:1;transition:opacity 120ms var(--ease-in),transform 120ms var(--ease-in)}
+
+/* 왼쪽 0, 50, 100% 눈금자와 기둥 꼭대기 수평 기준선 */
+.ax-ruler{position:absolute;left:0;bottom:0;width:28px;pointer-events:none;z-index:2;display:flex;flex-direction:column;justify-content:space-between}
+.ax-ruler span{position:relative;font:600 13px/1 var(--f-num);color:var(--ink-2);padding-left:6px}
+.ax-ruler span::before{content:"";position:absolute;left:0;top:50%;width:4px;height:1px;background:var(--ink-2)}
+.ax-hairline{position:absolute;left:0;right:0;top:0;height:1px;border-top:1px dashed var(--line-2);pointer-events:none;z-index:2;
+  transform:translateY(var(--hy,0px));transition:transform 90ms var(--ease-in),opacity 90ms var(--ease-in)}
+.ax-hairline[hidden]{display:none!important}
+
 .sel-link-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;overflow:visible}
-.sel-link-p{stroke:var(--red);stroke-width:1;vector-effect:non-scaling-stroke}
+.sel-link-p{stroke:var(--red);stroke-width:1;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:0}
 .sel-link-dot{fill:var(--red)}
 
 /* 읽기 영역(.z-right): 아무것도 고르지 않았을 때는 면 없이 결론 한 문장만, 고르면 면이 생긴다 */
@@ -395,8 +488,10 @@ button{cursor:pointer}
 .ev-sec p{margin:0 0 8px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);word-break:keep-all}
 .ev-sec p:last-child{margin-bottom:0}
 .ev-sec .btn{margin-top:4px}
-.ev-anim{animation:evIn var(--t-ev) var(--ease)}
-@keyframes evIn{from{opacity:.45}to{opacity:1}}
+.ev-anim{animation:evIn var(--t-ev) var(--ease-in)}
+@keyframes evIn{from{opacity:.55}to{opacity:1}}
+.ev-line-in{animation:evLineUp var(--t-ev) var(--ease-in) both;animation-delay:var(--ld,0ms)}
+@keyframes evLineUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .ev-handle{display:none;position:absolute;left:50%;top:7px;width:40px;height:4px;margin-left:-20px;background:var(--ink-3);opacity:.6}
 
 /* 왼쪽 구역 묶음 단추(사각 상자 면 없이 선과 고리로만 표시) */
@@ -568,7 +663,7 @@ button{cursor:pointer}
 .ring.sel .pct{fill:#fff}
 .ring.sel .diag{stroke:#fff}
 .hbar{position:relative;display:block;height:6px;background:var(--line-2);min-width:40px}
-.hbar > i{position:absolute;left:0;top:0;bottom:0;background:var(--ink-0);transition:width var(--t-bar) var(--ease)}
+.hbar > i{position:absolute;left:0;top:0;bottom:0;background:var(--ink-0);transform-origin:left center;transition:transform var(--t-bar) var(--ease-in)}
 .hbar > i.gold{background:var(--gold-line)}
 .hbar > i.other{background:var(--ink-2)}
 
@@ -689,9 +784,9 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 .lpath .lp-sep{color:var(--ink-2);font-weight:400}
 .lpath .lp-cur{color:var(--ink-0)}
 
-.qhelp{position:relative;display:inline-grid;place-items:center;width:19px;height:19px;margin-left:4px;padding:0;border:1px solid var(--ink-1);
-  background:transparent;color:var(--ink-0);font:600 13px/1 var(--f-num);vertical-align:1px;flex:none}
-.qhelp::before{content:"";position:absolute;inset:-8px}
+.qhelp{position:relative;display:inline-grid;place-items:center;width:24px;height:24px;margin-left:3px;padding:0;border:1px solid var(--ink-1);
+  background:transparent;color:var(--ink-0);font:600 13px/1 var(--f-num);vertical-align:middle;flex:none}
+.qhelp::before{content:"";position:absolute;inset:-4px}
 .qhelp:hover,.qhelp:focus-visible,.qhelp[aria-expanded="true"]{background:var(--slate-solid);border-color:var(--slate-solid);color:#fff}
 :root[data-theme="dark"] .qhelp:hover,:root[data-theme="dark"] .qhelp:focus-visible,:root[data-theme="dark"] .qhelp[aria-expanded="true"]{background:var(--ink-0);border-color:var(--ink-0);color:#151D24}
 .slate .qhelp{border-color:rgba(255,255,255,.65);color:#fff}
@@ -730,10 +825,17 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
   .peer-chk{min-height:26px;padding:2px 6px}
 }
 
-.hud-tip{position:fixed;z-index:68;max-width:min(340px,calc(100vw - 24px));padding:7px 11px;pointer-events:none;
+.hud-tip{position:fixed;left:0;top:0;z-index:68;max-width:min(360px,calc(100vw - 24px));padding:7px 11px;pointer-events:none;
   background:var(--slate-solid);color:#fff;border-top:2px solid #fff;font:400 13px/1.45 var(--f-body);word-break:keep-all;
-  box-shadow:0 6px 18px rgba(21,29,36,.22)}
+  box-shadow:0 6px 18px rgba(21,29,36,.22);
+  transform:translate3d(var(--tip-x,12px),var(--tip-y,12px),0);
+  transition:transform 90ms var(--ease-in),opacity 90ms var(--ease-in)}
 .hud-tip[hidden]{display:none!important}
+.hud-tip .ht-t{display:block;font:600 13.5px/1.3 var(--f-ko);color:#fff}
+.hud-tip .ht-s{display:block;margin-top:2px;font:400 13px/1.4 var(--f-body);color:rgba(255,255,255,.88)}
+.hud-tip .ht-b{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.hud-tip .vd{border-color:rgba(255,255,255,.45)}
+.hud-tip .vd-same,.hud-tip .vd-diff,.hud-tip .vd-none,.hud-tip .vd-unknown{color:#fff;background:transparent}
 
 .boot-loader{position:fixed;inset:0;z-index:75;display:grid;place-items:center;
   background:radial-gradient(56% 48% at 50% 46%,rgba(236,240,244,.86),rgba(196,204,213,.54) 72%,transparent 100%)}
@@ -771,14 +873,15 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 
 .hm-stage{display:grid;grid-template-rows:62% 38%;min-height:clamp(540px,calc(100vh - 216px),700px)}
 .hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.38fr 1.02fr 1.04fr 1fr 0.80fr;
-  align-items:stretch;border-bottom:2px solid var(--axis)}
+  align-items:stretch;border-bottom:2px solid var(--axis);padding-left:28px}
+.hm-ruler{height:124px;left:0;bottom:0}
 .hm-grp{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;
   min-width:0;padding:18px 18px 0;border:0;border-left:1px solid var(--line-2);background:transparent;
   color:var(--ink-0);text-align:left;transition:color 180ms var(--ease)}
-.hm-grp:first-child{border-left:0;padding-left:4px}
-.hm-grp:last-child{padding-right:4px}
+.hm-grp:first-of-type{border-left:0;padding-left:4px}
+.hm-grp:last-of-type{padding-right:4px}
 .hm-grp > .flag{left:18px;top:2px}
-.hm-grp:first-child > .flag{left:4px}
+.hm-grp:first-of-type > .flag{left:4px}
 
 .hm-head{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .hm-big{display:inline-flex;align-items:baseline;font:400 56px/1 var(--f-num);font-variant-numeric:tabular-nums;
@@ -788,16 +891,21 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .hm-name{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:600 16px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
 .hm-sub{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
 
-/* DNA 기록 화면의 마름모 + 세로 눈금선(올리거나 포커스하면 빨강으로 올라온다) */
-.hm-stem{position:relative;display:block;width:1px;height:28px;margin:8px 0 6px 12px;background:var(--line-2);
-  transition:height 180ms var(--ease),background 180ms var(--ease)}
+/* DNA 기록 화면의 마름모 + 세로 눈금선(높이 대신 transform:scaleY 로 자라게 하여 레이아웃 유발 0) */
+.hm-stem{position:relative;display:block;width:1px;height:36px;margin:4px 0 6px 12px;background:var(--line-2);
+  transform-origin:bottom center;transform:scaleY(.78);
+  transition:transform 120ms var(--ease-in),background-color 120ms var(--ease-in)}
 .hm-dia{position:absolute;left:-3.5px;top:-8px;width:8px;height:8px;border:1px solid var(--ink-2);background:transparent;
-  transform:rotate(45deg);transition:background 180ms var(--ease),border-color 180ms var(--ease),transform 180ms var(--ease)}
-.hm-grp:hover .hm-stem,.hm-grp:focus-visible .hm-stem{height:36px;background:var(--red)}
-.hm-grp:hover .hm-dia,.hm-grp:focus-visible .hm-dia{background:var(--red);border-color:var(--red);transform:translateY(-2px) rotate(45deg)}
+  transform:rotate(45deg);transition:background-color 120ms var(--ease-in),border-color 120ms var(--ease-in),transform 120ms var(--ease-in)}
+.hm-grp:hover .hm-stem,.hm-grp:focus-visible .hm-stem,.hm-grp.is-aim .hm-stem{transform:scaleY(1);background:var(--red)}
+.hm-grp:hover .hm-dia,.hm-grp:focus-visible .hm-dia,.hm-grp.is-aim .hm-dia{background:var(--red);border-color:var(--red);transform:translateY(-2px) rotate(45deg)}
 
-.hm-pils{width:100%;display:flex;align-items:flex-end;min-height:132px;overflow:visible}
+.hm-pils{position:relative;width:100%;display:flex;align-items:flex-end;min-height:132px;overflow:visible}
 .hm-svg{display:block;max-width:100%;height:auto;overflow:visible}
+.hm-bar-g{transform-box:fill-box;transform-origin:center bottom}
+.hm-enter .hm-bar-g{animation:hmPilRise 360ms var(--ease-in) both;animation-delay:var(--pd,0ms)}
+:root[data-motion="calm"] .hm-enter .hm-bar-g{animation-duration:200ms}
+@keyframes hmPilRise{from{opacity:0;transform:scaleY(0.08)}to{opacity:1;transform:none}}
 
 .hm-read{display:flex;flex-direction:column;justify-content:flex-start;gap:6px;padding:20px 4px 8px;background:transparent}
 .hm-read-main{margin:0;max-width:1280px;font:400 15.5px/1.62 var(--f-body);color:var(--ink-0);word-break:keep-all}
@@ -812,7 +920,8 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 }
 @media (max-width:999px){
   .hm-stage{display:flex;flex-direction:column;min-height:0;gap:12px}
-  .hm-axis-wrap{display:flex;flex-direction:column;border-bottom:0;gap:14px}
+  .hm-axis-wrap{display:flex;flex-direction:column;border-bottom:0;gap:14px;padding-left:0}
+  .hm-ruler{display:none}
   .hm-grp{border-left:0;border-bottom:2px solid var(--axis);padding:20px 0 0}
   .hm-grp > .flag{left:0;top:2px}
   .hm-big{font-size:42px}
@@ -866,43 +975,51 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 
 /* 시간축 판: 줄 머리 146px + 여섯 마디를 균등 배치하는 시간축 트랙 */
 .mk-axis-board{display:flex;flex-direction:column;gap:14px}
-.mk-thead{display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:end;padding-bottom:2px}
+.mk-thead{display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:end;padding-bottom:6px;border-bottom:2px solid var(--axis)}
 .mk-basis{font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
 .mk-tcols{display:flex;justify-content:space-between;align-items:end}
-.mk-tch{width:64px;text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
+.mk-tch{position:relative;width:64px;text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap;transition:color 120ms var(--ease-in)}
+.mk-tch::after{content:"";position:absolute;left:50%;bottom:-7px;width:1px;height:6px;background:var(--axis)}
+.mk-tch.is-hot{color:var(--ink-0);font-weight:700}
+.mk-tch.is-hot::after{width:2px;height:9px;background:var(--ink-0)}
 
 /* 네 줄 시간축: 1920x1080 에서 줄 간격(행 피치) 약 128~132px, 고리 지름 64px */
 .mk-trows{display:flex;flex-direction:column;gap:64px}
 .mk-trow{position:relative;display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:center}
 .mk-trow.is-break::before{content:"";position:absolute;left:0;right:0;top:-32px;height:1px;background:var(--line)}
 
-.mk-rh{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.mk-rh{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;transition:opacity 120ms var(--ease-in)}
 .mk-rh-nm{font:600 14px/1.28 var(--f-ko);color:var(--ink-0);word-break:keep-all}
 .mk-rh-cnt{font:600 13px/1.2 var(--f-num);color:var(--ink-1)}
+.mk-trow.is-hot .mk-rh-nm,.mk-trow.has-row-sel .mk-rh-nm{box-shadow:inset 3px 0 0 var(--ink-0);padding-left:6px}
 
 .mk-track{display:flex;align-items:center;justify-content:space-between;min-width:0;width:100%}
-.mk-seg{position:relative;flex:1 1 auto;min-width:4px;height:0}
+.mk-seg{position:relative;flex:1 1 auto;min-width:4px;height:0;transform-origin:left center}
 .mk-seg.is-solid{border-top:2px solid var(--axis)}
 .mk-seg.is-dash{border-top:1px dashed var(--ink-2)}
+.mk-trow.is-hot .mk-seg.is-solid,.mk-trow.has-row-sel .mk-seg.is-solid{border-top-width:2.5px}
+.mk-trow.is-hot .mk-seg.is-dash,.mk-trow.has-row-sel .mk-seg.is-dash{border-top-color:var(--ink-0)}
 /* 닫힘에서 열림으로 전환되는 자리의 12px 세로 눈금 */
 .mk-trans-tk{position:absolute;right:4px;top:-7px;width:2px;height:12px;background:var(--axis)}
 .mk-seg.is-solid .mk-trans-tk{top:-7px}
 
 /* 고리 마디(64px): 다섯 상태가 색과 꼴 둘 다로 갈린다 */
 .mk-ring{position:relative;flex:none;width:64px;height:64px;padding:0;border:0;background:transparent;
-  display:grid;place-items:center;color:var(--ink-0);transition:transform 150ms var(--ease)}
-.mk-ring:hover{transform:scale(1.06)}
+  display:grid;place-items:center;color:var(--ink-0);transition:transform 120ms var(--ease-in),opacity 180ms var(--ease-in)}
+.mk-ring:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim) .mkr-trk{stroke:var(--ink-0);stroke-opacity:.88;stroke-width:2.2}
 .mk-ring svg{width:100%;height:100%;display:block;overflow:visible}
 .mk-ring > .flag{left:0;top:0}
 .mk-rn{position:absolute;inset:0;display:grid;place-items:center;font:600 19px/1 var(--f-num);
   font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none}
 
-.mkr-disc{fill:transparent;transition:fill 150ms var(--ease)}
+.mkr-disc{fill:transparent;transition:fill 150ms var(--ease-in)}
 .mkr-sel-ring{stroke:transparent}
-.mkr-diag{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease)}
+.mkr-diag-bg{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease-in)}
+.mkr-diag{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease-in)}
 .mkr-trk{stroke:var(--ink-2);stroke-opacity:.28}
 .mkr-unk line{stroke:var(--ink-2);stroke-opacity:.58}
 .mkr-arc{stroke:var(--ink-0)}
+.mkr-arc-conf,.mkr-arc-part{stroke-dasharray:1;stroke-dashoffset:0}
 .mkr-part-mk{fill:var(--ink-0)}
 
 /* 1. 우리 간편은 닫히고 열린 상대가 있음(가장 먼저 보이는 먹색 채움 원 + 흰 숫자) */
@@ -928,17 +1045,25 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .mk-ring.st-unknown .mkr-trk{stroke:var(--dash);stroke-dasharray:3 3;stroke-opacity:.75}
 .mk-ring.st-unknown .mk-rn{color:var(--ink-1)}
 
-/* 6. 고른 것(빨강 원 + 흰 고리 + 네 귀 45도 사선) */
+/* 6. 고른 것(빨강 원 + 흰 고리 + 네 귀 흰 45도 사선) */
 .mk-ring.is-sel .mkr-disc{fill:var(--red)}
 .mk-ring.is-sel .mkr-sel-ring{stroke:#fff}
 .mk-ring.is-sel .mkr-dbl{stroke:#fff}
-.mk-ring.is-sel .mkr-diag{stroke:var(--ink-0);opacity:1}
-:root[data-theme="dark"] .mk-ring.is-sel .mkr-diag{stroke:#fff}
+.mk-ring.is-sel .mkr-diag-bg{stroke:var(--ink-0);opacity:.72}
+.mk-ring.is-sel .mkr-diag{stroke:#fff;opacity:1}
 .mk-ring.is-sel .mk-rn{color:#fff}
 .mk-ring.is-sel .mkr-part-mk{fill:#fff}
 
-.mk-anim .mk-ring{animation:mkPop 240ms var(--ease) both;animation-delay:var(--d,0ms)}
-@keyframes mkPop{from{opacity:.25;transform:scale(.9)}to{opacity:1;transform:none}}
+.mk-anim .mk-seg{animation:mkSegDraw 360ms var(--ease-in) both;animation-delay:var(--sd,0ms)}
+.mk-anim .mk-ring{animation:mkPop 320ms var(--ease-in) both;animation-delay:var(--d,0ms)}
+.mk-anim .mkr-arc-conf,.mk-anim .mkr-arc-part{animation:mkArcDraw 460ms var(--ease-in) both;animation-delay:calc(var(--d,0ms) + 80ms)}
+:root[data-motion="calm"] .mk-anim .mk-seg,
+:root[data-motion="calm"] .mk-anim .mk-ring,
+:root[data-motion="calm"] .mk-anim .mkr-arc-conf,
+:root[data-motion="calm"] .mk-anim .mkr-arc-part{animation-duration:180ms}
+@keyframes mkSegDraw{from{transform:scaleX(0);opacity:.2}to{transform:scaleX(1);opacity:1}}
+@keyframes mkPop{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+@keyframes mkArcDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 
 /* 해상도별 치수: 1600px, 1280px, 380px 모두 안쪽 가로 스크롤 0 */
 @media (max-width:1599px) and (min-width:1280px){
@@ -1001,15 +1126,19 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   padding-bottom:8px;border-bottom:2px solid var(--axis)}
 .gtf-acols{display:flex;justify-content:space-between;align-items:end;width:100%}
 .gtf-acol{position:relative;flex:none;width:86px;display:flex;flex-direction:column;align-items:flex-start;padding-left:2px}
-.gtf-anm{font:600 13.5px/1.25 var(--f-ko);color:var(--ink-0);white-space:nowrap}
+.gtf-anm{font:600 13.5px/1.25 var(--f-ko);color:var(--ink-0);white-space:nowrap;transition:color 120ms var(--ease-in)}
 .gtf-acol.is-prem .gtf-anm{color:var(--ink-1)}
+.gtf-acol.is-hot .gtf-anm{color:var(--ink-0);font-weight:700}
 .gtf-atk{position:absolute;left:24px;bottom:-9px;width:1px;height:8px;background:var(--axis)}
+.gtf-acol.is-hot .gtf-atk{width:2px;height:11px;background:var(--ink-0)}
 
 /* 고지 유형 줄: 줄 높이 56px, 사이 8px(여덟 줄이면 504px) */
 .gtf-rows{display:flex;flex-direction:column;gap:8px}
 .gtf-row{display:grid;grid-template-columns:168px minmax(0,1fr);column-gap:12px;align-items:center;
-  min-height:56px;border-bottom:1px solid var(--line)}
-.gtf-row.is-base .gtf-rkey{font-weight:600;box-shadow:inset 3px 0 0 var(--ink-0);padding-left:8px}
+  min-height:56px;border-bottom:1px solid var(--line);transition:border-color 140ms var(--ease-in)}
+.gtf-row.is-base .gtf-rkey,.gtf-row.is-hot .gtf-rkey,.gtf-row.has-row-sel .gtf-rkey{font-weight:600;box-shadow:inset 3px 0 0 var(--ink-0);padding-left:8px}
+.gtf-row.has-row-sel{border-bottom-color:var(--line-2)}
+.board.has-sel .gtf-row.has-row-sel .gtf-cell:not(.is-sel){opacity:.84}
 
 .gtf-rh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
 .gtf-rkey{font:600 14px/1.25 var(--f-num);color:var(--ink-0);white-space:nowrap}
@@ -1019,24 +1148,35 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .gtf-ours.is-dash{border-style:dashed;color:var(--ink-1)}
 
 .gtf-track{display:flex;align-items:center;justify-content:space-between;min-width:0;width:100%}
-.gtf-conn{flex:1 1 auto;min-width:4px;height:0}
+.gtf-conn{flex:1 1 auto;min-width:4px;height:0;transform-origin:left center}
 .gtf-conn.is-on{border-top:2px solid var(--axis)}
 .gtf-conn.is-cut{border-top:1px dashed var(--ink-2)}
 .gtf-conn.is-off{border-top:0}
+.gtf-row.is-hot .gtf-conn.is-on,.gtf-row.has-row-sel .gtf-conn.is-on{border-top-width:2.5px}
+.gtf-row.is-hot .gtf-conn.is-cut,.gtf-row.has-row-sel .gtf-conn.is-cut{border-top-width:1.5px;border-top-color:var(--ink-0)}
+.gtf-row-redraw .gtf-conn{animation:gtConnDraw 280ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
 
 /* 줄과 관문이 만나는 자리의 44x44px 기둥 + 오른쪽 통과수/상대수 */
-.gtf-cell{position:relative;flex:none;width:86px;display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 2px;
-  border:0;background:transparent;color:var(--ink-0);transition:transform 140ms var(--ease)}
-.gtf-cell:hover{transform:translateY(-1px)}
+.gtf-cell{position:relative;flex:none;width:86px;min-width:44px;display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 2px;
+  border:0;background:transparent;color:var(--ink-0);transition:transform 120ms var(--ease-in),opacity 180ms var(--ease-in)}
+.gtf-cell:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim) .pil-outline,
+.gtf-cell:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim) .pil-empty{stroke-width:2}
 .gtf-pil{position:relative;width:44px;height:44px;display:block;flex:none}
 .gtf-svg{width:100%;height:100%;display:block}
+.gtf-fill-g{transform-box:fill-box;transform-origin:center bottom}
 .gtf-cnt{font:600 13.5px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);white-space:nowrap;min-width:30px;text-align:left}
 .gtf-cell.is-zero .gtf-cnt{color:var(--ink-2);font-weight:400}
 
-.gtf-cell.is-sel .gtf-pil{outline:2.5px solid var(--red);outline-offset:1px}
+.gtf-cell.is-sel .gtf-pil{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff}
 .gtf-cell.is-sel .gtf-cnt{color:var(--red-ink);font-weight:600}
 
-.gtf-anim .gtf-pil{animation:gtSq 220ms var(--ease) both}
+.gtf-anim .gtf-conn{animation:gtConnDraw 320ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
+.gtf-anim .gtf-fill-g{animation:gtFillRise 360ms var(--ease-in) both;animation-delay:var(--gd,0ms)}
+:root[data-motion="calm"] .gtf-anim .gtf-conn,
+:root[data-motion="calm"] .gtf-anim .gtf-fill-g,
+:root[data-motion="calm"] .gtf-row-redraw .gtf-conn{animation-duration:180ms}
+@keyframes gtConnDraw{from{transform:scaleX(0);opacity:.2}to{transform:scaleX(1);opacity:1}}
+@keyframes gtFillRise{from{transform:scaleY(0.06);opacity:.25}to{transform:none;opacity:1}}
 
 @media (max-width:1599px) and (min-width:1280px){
   .gtf-axis-head,.gtf-row{grid-template-columns:150px minmax(0,1fr);column-gap:10px}
@@ -1192,16 +1332,19 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .cvp-row{display:flex;align-items:flex-end;gap:8px;min-height:224px}
 .cvp-btn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
   width:14px;min-height:224px;padding:0;border:0;background:transparent;color:var(--ink-0)}
-.cvp-stem{position:relative;width:1px;height:14px;margin-bottom:4px;background:transparent;transition:height 140ms var(--ease),background 140ms var(--ease)}
-.cvp-dia{position:absolute;left:-3px;top:-7px;width:7px;height:7px;border:1px solid transparent;background:transparent;transform:rotate(45deg)}
+.cvp-stem{position:relative;width:1px;height:24px;margin-bottom:4px;background:transparent;
+  transform-origin:bottom center;transform:scaleY(.58);
+  transition:transform 120ms var(--ease-in),background-color 120ms var(--ease-in)}
+.cvp-dia{position:absolute;left:-3px;top:-7px;width:7px;height:7px;border:1px solid transparent;background:transparent;transform:rotate(45deg);
+  transition:transform 120ms var(--ease-in),background-color 120ms var(--ease-in),border-color 120ms var(--ease-in)}
 .cvp-flg{position:absolute;top:0;left:50%;width:5px;height:5px;margin-left:-2.5px;background:var(--red);clip-path:polygon(50% 0,100% 100%,0 100%)}
 .cvp-bar{display:flex;align-items:flex-end;width:14px;height:var(--ph,14px)}
 .cvp-svg{width:100%;height:100%;display:block;overflow:visible}
 .cvp-svg.is-dia{height:16px}
 
-.cvp-btn:hover .cvp-stem,.cvp-btn:focus-visible .cvp-stem{height:20px;background:var(--ink-0)}
+.cvp-btn:hover .cvp-stem,.cvp-btn:focus-visible .cvp-stem{transform:scaleY(.84);background:var(--ink-0)}
 .cvp-btn:hover .cvp-dia,.cvp-btn:focus-visible .cvp-dia{border-color:var(--ink-0);background:var(--ink-0)}
-.cvp-btn.is-sel .cvp-stem{height:24px;background:var(--red)}
+.cvp-btn.is-sel .cvp-stem{transform:scaleY(1);background:var(--red)}
 .cvp-btn.is-sel .cvp-dia{border-color:var(--red);background:var(--red)}
 .cvp-btn.is-sel .cvp-bar{outline:2px solid var(--red);outline-offset:1px}
 
@@ -1419,8 +1562,11 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 #view-insight .ins-pn{font:400 13px/1.45 var(--f-body);color:var(--ink-1);word-break:keep-all}
 
 /* 분류 바로가기 메뉴(번호 13px 이상, 사각 면 대신 가로 축 선) */
-#view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-#view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 6px;background:transparent;border-bottom:2px solid var(--axis);color:var(--ink-0);text-decoration:none}
+#view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;border-bottom:2px solid var(--axis);padding-bottom:2px}
+#view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 6px;background:transparent;border-bottom:0;color:var(--ink-0);text-decoration:none}
+#view-insight .vbody.ins-enter .ins-cat{animation:insCatIn 360ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
+:root[data-motion="calm"] #view-insight .vbody.ins-enter .ins-cat{animation-duration:200ms}
+@keyframes insCatIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 #view-insight .ins-jump a:hover{background:var(--hover)}
 :root[data-theme="dark"] #view-insight .ins-jump a{background:transparent}
 :root[data-theme="dark"] #view-insight .ins-jump a:hover{background:var(--hover)}
@@ -1726,18 +1872,24 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   <section class="cond" id="cond" aria-label="조건 줄" hidden></section>
   <section class="scope" id="scope" aria-label="범위 띠" aria-live="polite" hidden></section>
 
-  <!-- 열린 화면 상단 고리 탭 줄: 맨 왼쪽 [전체 요약] + 다섯 고리 탭(고른 탭 하나에만 짙은 면) -->
+  <!-- 열린 화면 상단 고리 탭 줄: 맨 왼쪽 [전체 요약] + 다섯 고리 탭(고른 탭의 슬레이트 면이 미끄러져 이동) -->
   <nav class="rtabs is-compact" id="rtabs" role="tablist" aria-label="분석 화면" hidden></nav>
 
   <div id="work-anchor" tabindex="-1"></div>
+
+  <!-- 화면 전환 시 높이를 이어 주는 가로 기준축 다리 -->
+  <div class="axis-bridge" id="axis-bridge" aria-hidden="true" hidden></div>
 
   <!-- 첫 화면(전체 요약): 안개 바탕 위 가로 기준축(62% 지점)과 다섯 기둥 묶음, 아래 결론 한 문장 -->
   <section class="home-panel" id="home-panel" aria-label="전체 결론 요약"></section>
 
   <!-- 탭 화면 본문 무대: 사각 면 없이 안개 바탕 위에 기준축과 도형이 놓이고, 고른 도형에서 읽기 영역으로 1px 선이 이어진다 -->
   <div class="board" id="board" data-layout="side" hidden>
+    <div class="sel-glide" id="sel-glide" aria-hidden="true" hidden>
+      <i class="sg-c tl"></i><i class="sg-c tr"></i><i class="sg-c bl"></i><i class="sg-c br"></i>
+    </div>
     <svg class="sel-link-svg" id="sel-link" aria-hidden="true" focusable="false">
-      <path class="sel-link-p" id="sel-link-p" fill="none"/>
+      <path class="sel-link-p" id="sel-link-p" fill="none" pathLength="1"/>
       <circle class="sel-link-dot" id="sel-link-dot" r="2.5" hidden/>
     </svg>
     <aside class="z-left" id="z-left" aria-label="분류" hidden></aside>
@@ -1798,6 +1950,9 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   </div>
 </div>
 
+<div class="aim-reticle" id="aim-reticle" data-shape="rect" aria-hidden="true" hidden>
+  <i class="ar-c tl"></i><i class="ar-c tr"></i><i class="ar-c bl"></i><i class="ar-c br"></i>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="help-pop" id="help-pop" role="region" aria-label="풀이 및 범례" hidden></div>
 <div class="hud-tip" id="hud-tip" role="tooltip" hidden></div>
@@ -1826,6 +1981,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     skinLight: '밝은 화면',
     motionWord: '움직임',
     motionOn: '켬',
+    motionCalm: '절제',
     motionOff: '끔',
     condAria: '조건 줄',
     condOpenBtn: '조건 바꾸기',
@@ -2569,7 +2725,33 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   function on(ev, fn) { (listeners[ev] || (listeners[ev] = [])).push(fn); }
   function emit(ev, ...args) { for (const fn of (listeners[ev] || [])) { try { fn(...args); } catch (e) { console.error(e); } } }
   const mode = () => (innerWidth >= 1600 ? 'wide' : innerWidth >= 1000 ? 'push' : 'sheet');
-  const motionOn = () => st.motion === 'on';
+  const motionOn = () => st.motion !== 'off';
+  const motionRich = () => st.motion === 'on';
+  const motionScale = () => (st.motion === 'on' ? 1 : st.motion === 'calm' ? 0.55 : 0);
+
+  function countUp(root) {
+    if (!motionRich()) return;
+    const els = $$('[data-count-to]', root || document);
+    if (!els.length) return;
+    const dur = 480;
+    const t0 = performance.now();
+    const targets = els.map(el => ({
+      el,
+      to: +el.dataset.countTo || 0,
+      suffix: el.dataset.countSuffix || '',
+    }));
+    targets.forEach(x => { x.el.textContent = fmt(0) + x.suffix; });
+    function tick(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      for (const x of targets) {
+        if (!x.el.isConnected) continue;
+        x.el.textContent = fmt(Math.round(x.to * eased)) + x.suffix;
+      }
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
 
   // ---------- 주소(#)와 뒤로 가기 ----------
   function encodeHash() {
@@ -2754,8 +2936,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }
   }
   function hbar(v, max, cls) {
-    const p = max > 0 ? Math.max(0, Math.min(100, (v / max) * 100)) : 0;
-    return `<span class="hbar" aria-hidden="true"><i class="${cls || ''}" style="width:${p.toFixed(1)}%"></i></span>`;
+    const p = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
+    return `<span class="hbar" aria-hidden="true"><i class="${cls || ''}" style="width:100%;transform:scaleX(${p.toFixed(4)})"></i></span>`;
   }
   function btn(text, o = {}) {
     const cls = ['btn', o.main ? 'btn-main' : '', o.sm ? 'sm' : '', o.ghost ? 'ghost' : '', o.cls || ''].filter(Boolean).join(' ');
@@ -2911,7 +3093,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   const pageText = (doc, page) => (page != null && page !== '' ? `${doc || cp('docFallback')} ${page}${cp('pageSuffix')}` : `${doc || cp('docFallback')}${cp('pageMissingSuffix')}`);
   const PAGE_WHY = cp('pageWhy');
 
-  const UI = { esc, fmt, firstSentence, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
+  const UI = { esc, fmt, firstSentence, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, countUp, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
   const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, orgSector, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, PEER_ORGS, ORG_SHORT, firstSentence };
 
   // ---------- 진행 추적기 머리와 접히는 조건 편집 판 ----------
@@ -3224,7 +3406,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const arcs = (m.segs || []).filter(s => s.v > 0).map(s => {
       sum += s.v;
       const len = +(C * Math.min(1, s.v / max)).toFixed(2);
-      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
+      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" data-dash="${len} ${C}" data-c="${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
       off += len;
       return el;
     }).join('');
@@ -3264,13 +3446,154 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   UI.miniRingSVG = miniRingSVG;
   UI.graphGlyphSVG = graphGlyphSVG;
 
-  function renderRingTabs(c) {
+  // ---------- 화면 간 연속 전환(기준축 다리, 작은 고리 <-> 머리 큰 고리, 고른 탭 면 미끄러짐) ----------
+  let axisBridgeToken = 0;
+  let ringFlyEl = null;
+
+  function findVisibleMainAxis(tabId) {
+    const scopeRoot = tabId === 'brief' ? $('#home-panel') : (viewOf(tabId) || $('#z-center'));
+    if (!scopeRoot || scopeRoot.hidden) return null;
+    const el = $('[data-main-axis]', scopeRoot)
+      || $('.hm-axis-wrap, .cv-stage-axis, .cv-axis-line, .gtf-axis-head, .mk-thead, .gr-head-bar, .ins-jump', scopeRoot);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 10) return null;
+    return { el, left: Math.round(r.left), width: Math.round(r.width), y: Math.round(r.bottom - 2) };
+  }
+
+  function snapScreenTransition(fromTab, toTab) {
+    const out = { fromTab, toTab, axis: null, pill: null, bigRing: null, bigRingHTML: '', srcRing: null };
+    out.axis = findVisibleMainAxis(fromTab);
+    const nav = $('#rtabs');
+    if (nav && !nav.hidden) {
+      const act = $('.rtab[aria-selected="true"]', nav);
+      if (act) out.pill = { left: act.offsetLeft, width: act.offsetWidth };
+      if (toTab !== 'brief') {
+        const nextBtn = $('#tab-' + toTab + ' .rt-ring', nav);
+        if (nextBtn) {
+          const r = nextBtn.getBoundingClientRect();
+          if (r.width > 4) out.srcRing = r;
+        }
+      }
+    } else if (fromTab === 'brief' && toTab !== 'brief') {
+      const hm = $(`#home-panel #tab-${toTab} .hm-head`) || $(`#home-panel #tab-${toTab}`);
+      if (hm) {
+        const r = hm.getBoundingClientRect();
+        if (r.width > 4) out.srcRing = { left: r.left, top: r.top, width: Math.min(84, r.width), height: Math.min(84, r.height) };
+      }
+    }
+    const thRing = $('#th-total .tht-ring');
+    if (thRing && !$('#th-total').hidden) {
+      const r = thRing.getBoundingClientRect();
+      if (r.width > 4) {
+        out.bigRing = r;
+        out.bigRingHTML = thRing.outerHTML;
+      }
+    }
+    return out;
+  }
+
+  function playAxisBridge(prevAxis, nextAxis) {
+    const bridge = $('#axis-bridge');
+    if (!bridge) return;
+    if (!motionOn()) {
+      document.body.classList.remove('axis-bridging');
+      bridge.hidden = true;
+      return;
+    }
+    if (prevAxis && nextAxis && Math.abs(prevAxis.y - nextAxis.y) >= 1) {
+      const token = ++axisBridgeToken;
+      const vw = Math.max(1, innerWidth);
+      const dur = Math.round(380 * motionScale());
+      bridge.hidden = false;
+      document.body.classList.add('axis-bridging');
+      if (bridge._anim) bridge._anim.cancel();
+      const t0 = `translate3d(${prevAxis.left}px,${prevAxis.y}px,0) scaleX(${(prevAxis.width / vw).toFixed(4)})`;
+      const t1 = `translate3d(${nextAxis.left}px,${nextAxis.y}px,0) scaleX(${(nextAxis.width / vw).toFixed(4)})`;
+      bridge.style.transform = t1;
+      bridge._anim = bridge.animate([{ transform: t0 }, { transform: t1 }], {
+        duration: dur,
+        easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+      });
+      bridge._anim.onfinish = () => {
+        if (token !== axisBridgeToken) return;
+        document.body.classList.remove('axis-bridging');
+        bridge.hidden = true;
+      };
+    } else if (nextAxis && nextAxis.el) {
+      document.body.classList.remove('axis-bridging');
+      bridge.hidden = true;
+      nextAxis.el.classList.remove('axis-draw');
+      void nextAxis.el.offsetWidth;
+      nextAxis.el.classList.add('axis-draw');
+    }
+  }
+
+  function flipElement(el, fromRect, durMs, easing) {
+    if (!el || !fromRect || !motionOn() || typeof el.animate !== 'function') return;
+    const toRect = el.getBoundingClientRect();
+    if (toRect.width < 2 || toRect.height < 2) return;
+    const dx = (fromRect.left + fromRect.width / 2) - (toRect.left + toRect.width / 2);
+    const dy = (fromRect.top + fromRect.height / 2) - (toRect.top + toRect.height / 2);
+    const sx = Math.max(0.35, Math.min(2.4, fromRect.width / toRect.width));
+    const sy = Math.max(0.35, Math.min(2.4, fromRect.height / toRect.height));
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.03) return;
+    if (el._flipAnim) el._flipAnim.cancel();
+    el._flipAnim = el.animate([
+      { transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(${sx.toFixed(3)},${sy.toFixed(3)})` },
+      { transform: 'translate3d(0,0,0) scale(1,1)' },
+    ], {
+      duration: Math.max(80, Math.round(durMs * motionScale())),
+      easing: easing || 'cubic-bezier(0.16, 1, 0.3, 1)',
+    });
+  }
+
+  function drawHeaderRingArcs(root) {
+    if (!motionOn()) return;
+    for (const c of $$('.rt-arc[data-c][data-dash]', root)) {
+      const C = c.dataset.c, d = c.dataset.dash;
+      c.style.transition = 'none';
+      c.setAttribute('stroke-dasharray', `0 ${C}`);
+      void c.getBoundingClientRect();
+      c.style.transition = '';
+      c.setAttribute('stroke-dasharray', d);
+    }
+  }
+
+  function playReturnRingToHome(snap) {
+    if (!motionOn() || !snap || !snap.bigRing || !snap.bigRingHTML) return;
+    const target = $(`#home-panel #tab-${snap.fromTab} .hm-head`) || $(`#home-panel #tab-${snap.fromTab}`);
+    if (!target) return;
+    const tr = target.getBoundingClientRect();
+    if (tr.width < 4) return;
+    if (!ringFlyEl) {
+      ringFlyEl = document.createElement('div');
+      ringFlyEl.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;z-index:29;transform-origin:top left';
+      document.body.appendChild(ringFlyEl);
+    }
+    ringFlyEl.innerHTML = snap.bigRingHTML;
+    ringFlyEl.hidden = false;
+    const br = snap.bigRing;
+    const sc = Math.max(0.45, Math.min(1, 52 / Math.max(1, br.height)));
+    if (ringFlyEl._anim) ringFlyEl._anim.cancel();
+    ringFlyEl._anim = ringFlyEl.animate([
+      { transform: `translate3d(${br.left.toFixed(1)}px,${br.top.toFixed(1)}px,0) scale(1)`, opacity: 0.95 },
+      { transform: `translate3d(${tr.left.toFixed(1)}px,${tr.top.toFixed(1)}px,0) scale(${sc.toFixed(3)})`, opacity: 0 },
+    ], {
+      duration: Math.max(90, Math.round(320 * motionScale())),
+      easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+    });
+    ringFlyEl._anim.onfinish = () => { if (ringFlyEl) { ringFlyEl.hidden = true; ringFlyEl.innerHTML = ''; } };
+  }
+
+  function renderRingTabs(c, snap) {
     const nav = $('#rtabs');
     const thTotal = $('#th-total');
     if (!nav) return;
     const isHome = st.tab === 'brief';
     if (isHome) {
       nav.hidden = true;
+      nav.classList.remove('has-pill');
       nav.innerHTML = '';
       if (thTotal) { thTotal.hidden = true; thTotal.innerHTML = ''; }
       lastRenderedTab = 'brief';
@@ -3285,6 +3608,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       nav.classList.add('from-home');
     }
     const metrics = ringTabMetrics(c || ctx());
+    const pillHTML = '<i class="rtab-bg" id="rtab-bg" aria-hidden="true"></i>';
     const homeBtn = `<button class="rtab rtab-home" type="button" role="tab" id="tab-brief" data-rtab="brief" aria-selected="false" tabindex="-1">${IC.chevL}<span>${esc(cp('homePathRoot'))}</span></button>`;
     const tabsHTML = SCREEN_IDS.map(id => {
       const m = metrics[id];
@@ -3296,17 +3620,42 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         <span class="rt-txt"><span class="rt-name"><span>${esc(m.name)}</span>${badge}</span>${sub}</span>
       </button>`;
     }).join('');
-    nav.innerHTML = homeBtn + tabsHTML;
+    nav.classList.add('has-pill');
+    nav.innerHTML = pillHTML + homeBtn + tabsHTML;
 
     const act = $('.rtab[aria-selected="true"]', nav);
     if (act && nav.scrollWidth > nav.clientWidth + 4) {
       nav.scrollLeft = Math.max(0, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2));
+    }
+    const pill = $('#rtab-bg', nav);
+    if (pill && act) {
+      const toX = act.offsetLeft, toS = Math.max(0.1, act.offsetWidth / 100);
+      pill.style.transform = `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})`;
+      if (snap && snap.pill && motionOn() && typeof pill.animate === 'function' && (Math.abs(snap.pill.left - toX) > 1 || Math.abs(snap.pill.width - act.offsetWidth) > 1)) {
+        const fromS = Math.max(0.1, snap.pill.width / 100);
+        pill.animate([
+          { transform: `translate3d(${snap.pill.left}px,0,0) scaleX(${fromS.toFixed(4)})` },
+          { transform: `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})` },
+        ], {
+          duration: Math.max(90, Math.round(280 * motionScale())),
+          easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+        });
+      }
     }
 
     if (thTotal) {
       const curM = metrics[st.tab] || metrics.market;
       thTotal.hidden = false;
       thTotal.innerHTML = `<div class="tht-ring">${rtabRingSVG(curM, true)}${curM.numHTML ? `<span class="tht-val num">${curM.numHTML}</span>` : ''}</div>`;
+      if (snap && motionOn()) {
+        const thRing = $('.tht-ring', thTotal);
+        if (thRing && snap.srcRing) flipElement(thRing, snap.srcRing, 420, 'cubic-bezier(0.16, 1, 0.3, 1)');
+        drawHeaderRingArcs(thTotal);
+        if (snap.fromTab && snap.fromTab !== 'brief' && snap.fromTab !== st.tab && snap.bigRing) {
+          const prevSmall = $(`#tab-${snap.fromTab} .rt-ring`, nav);
+          if (prevSmall) flipElement(prevSmall, snap.bigRing, 320, 'cubic-bezier(0.65, 0, 0.35, 1)');
+        }
+      }
     }
   }
 
@@ -3411,9 +3760,24 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     return 'three';
   }
 
+  let activeRenderedTab = 'brief';
+
+  function applyBgParallax(tabId) {
+    if (!motionRich()) {
+      document.documentElement.style.setProperty('--bg-px', '0px');
+      return;
+    }
+    const idx = Math.max(0, TAB_IDS.indexOf(tabId));
+    document.documentElement.style.setProperty('--bg-px', `${(idx - 1) * -12}px`);
+  }
+
   function renderActiveScreen(c, why) {
     const curC = c || ctx();
-    renderRingTabs(curC);
+    const isTabSwitch = why === 'tab' && booted && activeRenderedTab !== st.tab;
+    const snap = isTabSwitch ? snapScreenTransition(activeRenderedTab, st.tab) : null;
+    activeRenderedTab = st.tab;
+    applyBgParallax(st.tab);
+    renderRingTabs(curC, snap);
     const isHome = st.tab === 'brief';
     const homePanel = $('#home-panel');
     const board = $('#board');
@@ -3423,11 +3787,17 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (isHome) {
       hideEv();
       clearSelLink();
+      hideSelGlide();
+      board.classList.remove('has-sel');
       const tb = tabs.brief;
-      if (tb && tb.renderHome) tb.renderHome(homePanel, curC);
+      if (tb && tb.renderHome) tb.renderHome(homePanel, curC, why || 'render');
       syncHeaderAndPath(curC);
       renderActBar(curC);
       placeGuides();
+      if (snap) {
+        playAxisBridge(snap.axis, findVisibleMainAxis('brief'));
+        playReturnRingToHome(snap);
+      }
       return;
     }
 
@@ -3491,10 +3861,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     applySelectionState(false, curC);
     renderActBar(curC);
     placeGuides();
+    if (snap) playAxisBridge(snap.axis, findVisibleMainAxis(id));
   }
 
-  // ---------- 읽기 영역(.z-right)과 1px 연결선(#sel-link) ----------
+  // ---------- 읽기 영역(.z-right), 고른 표지 미끄러짐(#sel-glide), 1px 연결선(#sel-link) ----------
   const EV = { open: false };
+  let selGlideToken = 0;
+
   function syncRightScrollCue() {
     const body = $('#ev-body'), more = $('#zr-more');
     if (!body || !more) return;
@@ -3502,13 +3875,76 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     more.hidden = !over;
   }
 
+  function hideSelGlide() {
+    const g = $('#sel-glide');
+    if (!g) return;
+    selGlideToken++;
+    if (g._anim) g._anim.cancel();
+    g.hidden = true;
+  }
+
+  function measureSelBox(tabId) {
+    const id = tabId || st.tab;
+    if (id === 'brief' || st.sel[id] == null) return null;
+    const root = viewOf(id) || $('#z-center');
+    const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
+    if (!selEl) return null;
+    const target = selEl.querySelector('[data-aim-box]') || selEl.querySelector('[data-link-pt]') || selEl;
+    const r = target.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    return {
+      key: String(st.sel[id]),
+      left: r.left,
+      top: r.top,
+      width: r.width,
+      height: r.height,
+      shape: selEl.dataset.aim === 'circle' ? 'circle' : 'rect',
+    };
+  }
+
+  function playSelGlide(prevBox, nextBox) {
+    const g = $('#sel-glide'), board = $('#board');
+    if (!g || !board || board.hidden || !prevBox || !nextBox || !motionOn() || typeof g.animate !== 'function') {
+      hideSelGlide();
+      return;
+    }
+    if (prevBox.key === nextBox.key) return;
+    const bBox = board.getBoundingClientRect();
+    const token = ++selGlideToken;
+    const w1 = Math.max(6, Math.round(nextBox.width));
+    const h1 = Math.max(6, Math.round(nextBox.height));
+    const sx0 = Math.max(0.25, prevBox.width / w1);
+    const sy0 = Math.max(0.25, prevBox.height / h1);
+    const x0 = prevBox.left - bBox.left;
+    const y0 = prevBox.top - bBox.top;
+    const x1 = nextBox.left - bBox.left;
+    const y1 = nextBox.top - bBox.top;
+    g.dataset.shape = nextBox.shape;
+    g.style.width = w1 + 'px';
+    g.style.height = h1 + 'px';
+    g.style.transform = `translate3d(${x1.toFixed(1)}px,${y1.toFixed(1)}px,0)`;
+    g.hidden = false;
+    if (g._anim) g._anim.cancel();
+    g._anim = g.animate([
+      { transform: `translate3d(${x0.toFixed(1)}px,${y0.toFixed(1)}px,0) scale(${sx0.toFixed(3)},${sy0.toFixed(3)})`, opacity: 0.96 },
+      { transform: `translate3d(${x1.toFixed(1)}px,${y1.toFixed(1)}px,0) scale(1,1)`, opacity: 0.96 },
+    ], {
+      duration: Math.max(80, Math.round(220 * motionScale())),
+      easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+    });
+    g._anim.onfinish = () => {
+      if (token !== selGlideToken) return;
+      g.hidden = true;
+    };
+  }
+
   function clearSelLink() {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot');
-    if (p) p.setAttribute('d', '');
+    if (p) { if (p._anim) p._anim.cancel(); p.setAttribute('d', ''); }
     if (dot) dot.hidden = true;
   }
 
-  function updateSelLink() {
+  function updateSelLink(drawLine) {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot'), board = $('#board'), zr = $('#z-right');
     if (!p || !board || board.hidden || !zr || !zr.classList.contains('is-picked') || mode() === 'sheet') {
       clearSelLink();
@@ -3517,7 +3953,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const root = viewOf(st.tab) || $('#z-center');
     const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
     if (!selEl) { clearSelLink(); return; }
-    const anchor = selEl.querySelector('[data-link-pt]') || selEl;
+    const anchor = selEl.querySelector('[data-link-pt]') || selEl.querySelector('[data-aim-box]') || selEl;
     const bBox = board.getBoundingClientRect();
     const sBox = anchor.getBoundingClientRect();
     const rBox = zr.getBoundingClientRect();
@@ -3544,16 +3980,48 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       }
     }
     p.setAttribute('d', d);
+    if (d && drawLine === true && motionOn() && typeof p.animate === 'function') {
+      if (p._anim) p._anim.cancel();
+      p._anim = p.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], {
+        duration: Math.max(90, Math.round(240 * motionScale())),
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      });
+    }
     if (dot) {
       if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; }
       else dot.hidden = true;
     }
   }
 
+  function staggerEvLines(zrIn) {
+    const targets = [];
+    const h2 = $('#ev-t', zrIn);
+    if (h2) targets.push(h2);
+    const b = $('#ev-b', zrIn);
+    if (b && b.children.length) targets.push(b);
+    const body = $('#ev-body', zrIn);
+    if (body) {
+      for (const child of Array.from(body.children)) {
+        if (child.classList.contains('ev-sec')) {
+          for (const sub of Array.from(child.children)) targets.push(sub);
+        } else {
+          targets.push(child);
+        }
+      }
+    }
+    targets.forEach((el, idx) => {
+      el.classList.remove('ev-line-in');
+      el.style.setProperty('--ld', `${Math.round(Math.min(idx, 5) * 30 * motionScale())}ms`);
+    });
+    void zrIn.offsetWidth;
+    targets.forEach(el => el.classList.add('ev-line-in'));
+  }
+
   function setEvPicked(spec, animate) {
     const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
     if (!zr || !zrIn || !k || !body) return;
+    const wasPicked = zr.classList.contains('is-picked') && !zrIn.hidden;
     zr.classList.add('is-picked');
     if (unsel) unsel.hidden = true;
     zrIn.hidden = false;
@@ -3563,9 +4031,16 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     body.innerHTML = typeof spec.body === 'string' ? spec.body : '';
     if (spec.body && typeof spec.body !== 'string') body.appendChild(spec.body);
     body.scrollTop = 0;
-    if (animate && motionOn()) { zrIn.classList.remove('ev-anim'); void zrIn.offsetWidth; zrIn.classList.add('ev-anim'); }
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
-    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(); });
+    if (animate && motionOn()) {
+      if (!wasPicked) {
+        zrIn.classList.remove('ev-anim');
+        void zrIn.offsetWidth;
+        zrIn.classList.add('ev-anim');
+      }
+      staggerEvLines(zrIn);
+    }
+    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(animate === true); });
   }
 
   function unselectedConclusion(c) {
@@ -3663,8 +4138,10 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
   function remark(id) {
     const v = viewOf(id) || $('#z-center');
-    if (!v) return;
+    const board = $('#board');
     const key = st.sel[id];
+    if (board) board.classList.toggle('has-sel', id !== 'brief' && key != null);
+    if (!v) return;
     for (const el of $$('[data-pick]', v)) {
       const on = key != null && el.dataset.pick === String(key);
       el.classList.toggle('is-sel', on);
@@ -3693,10 +4170,12 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       } else {
         delete st.sel[id];
         remark(id);
+        hideSelGlide();
         showUnselectedEv(curC);
         hideEv();
       }
     } else {
+      hideSelGlide();
       showUnselectedEv(curC);
       hideEv();
     }
@@ -3708,10 +4187,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (key == null) return unselect(o);
     const same = st.sel[st.tab] === String(key);
     if (same && o.toggleOff) return unselect(o);
+    const prevBox = (!same && o.animate !== false) ? measureSelBox(st.tab) : null;
     st.sel[st.tab] = String(key);
     if (o.push !== false && booted && !same) pushHistory(new Set(['pick']));
     const curC = ctx();
     applySelectionState(o.animate !== false, curC);
+    const nextBox = (!same && o.animate !== false && prevBox) ? measureSelBox(st.tab) : null;
+    if (prevBox && nextBox) playSelGlide(prevBox, nextBox);
     if (st.sel[st.tab] != null && mode() === 'sheet' && o.open !== false) openEv();
     const root = viewOf(st.tab) || $('#z-center');
     const el = root && $(`[data-pick="${CSS.escape(String(key))}"]`, root);
@@ -3719,9 +4201,10 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       const hit = el.matches('button,tr,[tabindex]') ? el : ($('.lrow-hit', el) || el);
       try { hit.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
+    if (curAimEl && el) refreshAimReticle();
     if (el && o.reveal !== false && mode() === 'sheet') setTimeout(() => reveal(el), 240);
     placeGuides();
-    requestAnimationFrame(updateSelLink);
+    requestAnimationFrame(() => updateSelLink(o.animate !== false && !same));
     emit('select', st.tab, String(key));
   }
 
@@ -3730,6 +4213,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const had = prevKey != null;
     delete st.sel[st.tab];
     delete st.sub[st.tab];
+    hideSelGlide();
     if (o.push !== false && booted && had) pushHistory(new Set(['pick']));
     const curC = ctx();
     applySelectionState(false, curC);
@@ -3967,18 +4451,35 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const topY = Math.round(rtBox.top);
     const botY = H - 72;
     const centers = [Math.round(rtBox.left), Math.round(rtBox.right)];
+    let staticBox = $('.gl-static', g);
+    let redTk = $('.tk.red', g);
+    if (!staticBox) {
+      g.innerHTML = '<div class="gl-static"></div><i class="tk red" hidden></i>';
+      staticBox = $('.gl-static', g);
+      redTk = $('.tk.red', g);
+    }
     let html = `<i class="hl" style="top:${topY}px"></i><i class="hl" style="top:${botY}px"></i>`;
     for (const c of centers) {
       if (c < 0 || c > W) continue;
       html += `<i class="gl c" style="left:${c}px"></i>`;
       html += `<i class="tk" style="left:${c}px;top:${topY}px"></i><i class="tk" style="left:${c}px;top:${botY}px"></i>`;
     }
+    staticBox.innerHTML = html;
     const activeTab = st.tab !== 'brief' ? $('#rtabs #tab-' + st.tab) : null;
-    if (activeTab) {
-      const ab = activeTab.getBoundingClientRect();
-      html += `<i class="tk red" style="left:${Math.round(ab.left + 14)}px;top:${topY}px"></i>`;
+    if (redTk) {
+      if (activeTab) {
+        const ab = activeTab.getBoundingClientRect();
+        const tx = Math.round(ab.left + 14);
+        const wasHidden = redTk.hidden;
+        if (wasHidden) redTk.style.transition = 'none';
+        redTk.style.top = topY + 'px';
+        redTk.style.setProperty('--tx', tx + 'px');
+        redTk.hidden = false;
+        if (wasHidden) { void redTk.offsetWidth; redTk.style.transition = ''; }
+      } else {
+        redTk.hidden = true;
+      }
     }
-    g.innerHTML = html;
   }
 
   function applySkin() {
@@ -3988,7 +4489,14 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   }
   function applyMotion() {
     document.documentElement.dataset.motion = st.motion;
-    const b = $('#motion'); if (b) { b.innerHTML = `${esc(cp('motionWord'))} <b>${esc(st.motion === 'on' ? cp('motionOn') : cp('motionOff'))}</b>`; b.setAttribute('aria-pressed', String(st.motion === 'on')); }
+    applyBgParallax(st.tab);
+    const b = $('#motion');
+    if (b) {
+      const label = st.motion === 'on' ? cp('motionOn') : st.motion === 'calm' ? cp('motionCalm') : cp('motionOff');
+      b.innerHTML = `${esc(cp('motionWord'))} <b>${esc(label)}</b>`;
+      b.dataset.motionMode = st.motion;
+      b.setAttribute('aria-pressed', String(st.motion !== 'off'));
+    }
     store.set(LS_MOTION, st.motion);
   }
   const asofText = () => String(S['자료시각'] || '').replace('T', ' ').slice(0, 16);
@@ -4082,57 +4590,232 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     positionPop(pop, btnEl);
   }
 
-  let tipAnchor = null, touchTimer = 0, scrollMuteUntil = 0;
+  // ---------- 이름표(#hud-tip), 조준 표식(#aim-reticle), 문지르기([data-scrub-row]) ----------
+  let tipAnchor = null, curAimEl = null, scrollMuteUntil = 0, suppressClickUntil = 0;
+  let touchScrub = null;
+
+  function buildTipHTML(el) {
+    if (!el || !el.dataset) return '';
+    const ttl = el.dataset.tipTitle;
+    const sub = el.dataset.tipSub;
+    const chip = el.dataset.tipChip;
+    const badge = el.dataset.tipBadge;
+    if (ttl || sub || chip || badge) {
+      const chips = [];
+      if (chip) chips.push(verdict(chip));
+      if (badge) chips.push(tag(badge));
+      return `${ttl ? `<span class="ht-t">${esc(ttl)}</span>` : ''}${sub ? `<span class="ht-s">${esc(sub)}</span>` : ''}${chips.length ? `<span class="ht-b">${chips.join('')}</span>` : ''}`;
+    }
+    const text = el.dataset.tip;
+    return text ? esc(text) : '';
+  }
+
   function showHudTip(el) {
     const tip = $('#hud-tip');
-    const text = el && el.dataset && el.dataset.tip;
-    if (!tip || !text) return;
-    const r = el.getBoundingClientRect();
+    if (!tip || !el || !el.isConnected) return;
+    const html = buildTipHTML(el);
+    if (!html) { hideHudTip(); return; }
+    const boxEl = el.querySelector('[data-aim-box]') || el;
+    const r = boxEl.getBoundingClientRect();
     const minTop = 30;
     if (r.width < 1 || r.bottom <= minTop || r.top >= innerHeight) { hideHudTip(); return; }
+    const wasHidden = tip.hidden;
     tipAnchor = el;
-    tip.textContent = text;
+    tip.innerHTML = html;
+    if (wasHidden) tip.style.transition = 'none';
     tip.hidden = false;
     const tw = tip.offsetWidth || 220, th = tip.offsetHeight || 36;
     const left = Math.max(10, Math.min(innerWidth - tw - 10, Math.round(r.left + r.width / 2 - tw / 2)));
-    const top = r.top - th - 8 >= minTop ? Math.round(r.top - th - 8) : Math.min(innerHeight - th - 8, Math.max(minTop, Math.round(r.bottom + 8)));
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
+    const top = r.top - th - 10 >= minTop ? Math.round(r.top - th - 10) : Math.min(innerHeight - th - 8, Math.max(minTop, Math.round(r.bottom + 10)));
+    tip.style.setProperty('--tip-x', left + 'px');
+    tip.style.setProperty('--tip-y', top + 'px');
+    if (wasHidden) {
+      void tip.offsetWidth;
+      tip.style.transition = '';
+    }
   }
+
   function hideHudTip() {
-    clearTimeout(touchTimer);
     tipAnchor = null;
     const tip = $('#hud-tip');
     if (tip) tip.hidden = true;
   }
+
+  function refreshAimReticle() {
+    if (!curAimEl || !curAimEl.isConnected) { hideAimReticle(); return; }
+    const ret = $('#aim-reticle');
+    if (!ret) return;
+    if (curAimEl.dataset.nodata === '1' || curAimEl.getAttribute('aria-disabled') === 'true') {
+      ret.hidden = true;
+      return;
+    }
+    const boxEl = curAimEl.querySelector('[data-aim-box]') || curAimEl;
+    const r = boxEl.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2 || r.bottom < 24 || r.top > innerHeight) {
+      ret.hidden = true;
+      return;
+    }
+    const wasHidden = ret.hidden;
+    ret.dataset.shape = curAimEl.dataset.aim === 'circle' ? 'circle' : 'rect';
+    ret.classList.toggle('is-sel-aim', curAimEl.classList.contains('is-sel'));
+    ret.style.width = Math.round(r.width) + 'px';
+    ret.style.height = Math.round(r.height) + 'px';
+    if (wasHidden) {
+      ret.style.transition = 'none';
+      ret.classList.remove('is-tight', 'is-press');
+    }
+    ret.style.setProperty('--ar-x', Math.round(r.left) + 'px');
+    ret.style.setProperty('--ar-y', Math.round(r.top) + 'px');
+    ret.hidden = false;
+    if (wasHidden) {
+      void ret.offsetWidth;
+      ret.style.transition = '';
+      requestAnimationFrame(() => { if (!ret.hidden) ret.classList.add('is-tight'); });
+    } else {
+      ret.classList.add('is-tight');
+    }
+  }
+
+  function setAimTarget(el) {
+    if (el === curAimEl) {
+      if (el) refreshAimReticle();
+      return;
+    }
+    const prev = curAimEl;
+    if (prev) prev.classList.remove('is-aim');
+    curAimEl = el || null;
+    if (curAimEl) {
+      curAimEl.classList.add('is-aim');
+      refreshAimReticle();
+    } else {
+      const ret = $('#aim-reticle');
+      if (ret) { ret.hidden = true; ret.classList.remove('is-tight', 'is-press'); }
+    }
+    emit('aim', curAimEl, prev);
+  }
+
+  function hideAimReticle() {
+    if (curAimEl) setAimTarget(null);
+    else {
+      const ret = $('#aim-reticle');
+      if (ret) { ret.hidden = true; ret.classList.remove('is-tight', 'is-press'); }
+    }
+  }
+
+  function findScrubCandidate(rowEl, clientX) {
+    const items = $$('[data-aim],[data-pick]', rowEl).filter(el => el.offsetParent !== null);
+    if (!items.length) return null;
+    let best = null, bestDist = Infinity;
+    for (const it of items) {
+      const r = it.getBoundingClientRect();
+      if (r.width < 1) continue;
+      if (clientX >= r.left && clientX <= r.right) return it;
+      const dist = clientX < r.left ? (r.left - clientX) : (clientX - r.right);
+      if (dist < bestDist) { bestDist = dist; best = it; }
+    }
+    return bestDist <= 42 ? best : null;
+  }
+
   document.addEventListener('pointerover', e => {
     if (e.pointerType === 'touch' || performance.now() < scrollMuteUntil) return;
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    if (el) showHudTip(el); else if (tipAnchor) hideHudTip();
+    const aimEl = e.target.closest && e.target.closest('[data-aim]');
+    if (aimEl) setAimTarget(aimEl);
+    else if (curAimEl && !e.target.closest('[data-scrub-row]')) hideAimReticle();
+    const tipEl = e.target.closest && e.target.closest('[data-tip],[data-tip-title]');
+    if (tipEl) showHudTip(tipEl);
+    else if (aimEl && (aimEl.dataset.tip || aimEl.dataset.tipTitle)) showHudTip(aimEl);
+    else if (tipAnchor && !e.target.closest('[data-scrub-row]')) hideHudTip();
   });
+
+  document.addEventListener('pointermove', e => {
+    if (performance.now() < scrollMuteUntil) return;
+    if (e.pointerType === 'touch') {
+      if (!touchScrub || touchScrub.id !== e.pointerId) return;
+      const dx = e.clientX - touchScrub.x0, dy = e.clientY - touchScrub.y0;
+      if (!touchScrub.active) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { touchScrub = null; return; }
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) touchScrub.active = true;
+      }
+      if (touchScrub && touchScrub.active) {
+        const cand = findScrubCandidate(touchScrub.row, e.clientX);
+        if (cand) { setAimTarget(cand); showHudTip(cand); }
+      }
+      return;
+    }
+    const scrubRow = e.target.closest && e.target.closest('[data-scrub-row]');
+    if (scrubRow) {
+      const direct = e.target.closest && e.target.closest('[data-aim],[data-pick]');
+      const cand = direct || findScrubCandidate(scrubRow, e.clientX);
+      if (cand) {
+        if (cand.dataset.aim) setAimTarget(cand);
+        if (cand.dataset.tip || cand.dataset.tipTitle) showHudTip(cand);
+      }
+    }
+  }, { passive: true });
+
   document.addEventListener('pointerout', e => {
-    if (tipAnchor && (!e.relatedTarget || !tipAnchor.contains(e.relatedTarget))) hideHudTip();
+    if (e.pointerType === 'touch') return;
+    const rel = e.relatedTarget;
+    if (curAimEl && (!rel || (!curAimEl.contains(rel) && !(rel.closest && rel.closest('[data-scrub-row]'))))) {
+      const nextAim = rel && rel.closest && rel.closest('[data-aim]');
+      if (!nextAim) hideAimReticle();
+    }
+    if (tipAnchor && (!rel || (!tipAnchor.contains(rel) && !(rel.closest && rel.closest('[data-scrub-row]'))))) {
+      const nextTip = rel && rel.closest && rel.closest('[data-tip],[data-tip-title]');
+      if (!nextTip) hideHudTip();
+    }
   });
+
+  document.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') {
+      const scrubRow = e.target.closest && e.target.closest('[data-scrub-row]');
+      if (scrubRow) {
+        touchScrub = { id: e.pointerId, row: scrubRow, x0: e.clientX, y0: e.clientY, active: false };
+      } else {
+        touchScrub = null;
+      }
+      return;
+    }
+    const ret = $('#aim-reticle');
+    if (ret && !ret.hidden && curAimEl && curAimEl.dataset.nodata !== '1') ret.classList.add('is-press');
+  }, { passive: true });
+
+  function finishPointerPress(e) {
+    const ret = $('#aim-reticle');
+    if (ret) ret.classList.remove('is-press');
+    if (e && e.pointerType === 'touch' && touchScrub && touchScrub.id === e.pointerId) {
+      const wasActive = touchScrub.active;
+      const picked = curAimEl;
+      touchScrub = null;
+      if (wasActive) {
+        suppressClickUntil = performance.now() + 380;
+        hideAimReticle();
+        hideHudTip();
+        if (picked && picked.dataset.pick && picked.dataset.nodata !== '1') {
+          select(picked.dataset.pick, { focus: true });
+        }
+      }
+    }
+  }
+  document.addEventListener('pointerup', finishPointerPress, { passive: true });
+  document.addEventListener('pointercancel', finishPointerPress, { passive: true });
+
   document.addEventListener('focusin', e => {
     if (e.target.matches && !e.target.matches(':focus-visible')) return;
-    const el = e.target.closest && e.target.closest('[data-tip]');
+    const aimEl = e.target.closest && e.target.closest('[data-aim]');
+    if (aimEl) setAimTarget(aimEl);
+    const el = e.target.closest && e.target.closest('[data-tip],[data-tip-title]');
     if (el) showHudTip(el);
   });
-  document.addEventListener('focusout', () => hideHudTip());
-  document.addEventListener('touchstart', e => {
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    clearTimeout(touchTimer);
-    if (el) touchTimer = setTimeout(() => showHudTip(el), 320);
-  }, { passive: true });
-  document.addEventListener('touchmove', () => clearTimeout(touchTimer), { passive: true });
-  document.addEventListener('touchend', () => clearTimeout(touchTimer), { passive: true });
+  document.addEventListener('focusout', () => { hideAimReticle(); hideHudTip(); });
 
-  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 250; closeHelp(false); hideHudTip(); }, { passive: true });
-  on('tab', () => { closeHelp(false); hideHudTip(); });
-  on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideHudTip(); });
+  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 220; closeHelp(false); hideAimReticle(); hideHudTip(); }, { passive: true });
+  on('tab', () => { closeHelp(false); hideAimReticle(); hideHudTip(); });
+  on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideAimReticle(); hideHudTip(); });
 
   // ---------- 위임 클릭과 키보드 ----------
   document.addEventListener('click', e => {
+    if (performance.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); return; }
     hideHudTip();
     const mc = e.target.closest('[data-modal-close]');
     if (mc) { e.stopPropagation(); closeModal(true); return; }
@@ -4238,7 +4921,17 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
     const p = e.target.closest('#z-center [data-pick]');
     if (p && !e.target.closest('.live')) {
+      if (p.dataset.nodata === '1') { showHudTip(p); return; }
       select(p.dataset.pick, { focus: true, toggleOff: p.dataset.toggle === '1' });
+      return;
+    }
+    const sr = e.target.closest('#z-center [data-scrub-row]');
+    if (sr && !e.target.closest('button,a,input,select,.live')) {
+      const cand = findScrubCandidate(sr, e.clientX);
+      if (cand && cand.dataset.pick) {
+        if (cand.dataset.nodata === '1') { showHudTip(cand); return; }
+        select(cand.dataset.pick, { focus: true, toggleOff: cand.dataset.toggle === '1' });
+      }
     }
   });
 
@@ -4337,11 +5030,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   function boot() {
     const saved = { skin: store.get(LS_SKIN), motion: store.get(LS_MOTION) };
     if (saved.skin === 'dark' || saved.skin === 'light') st.skin = saved.skin;
-    if (saved.motion === 'on' || saved.motion === 'off') st.motion = saved.motion;
-    else if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) st.motion = 'off';
+    if (saved.motion === 'on' || saved.motion === 'calm' || saved.motion === 'off') st.motion = saved.motion;
+    else if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) st.motion = 'calm';
+    else st.motion = 'on';
     const initHash = decodeHash(location.hash);
     Object.assign(st, initHash.patch);
     lastRenderedTab = st.tab;
+    activeRenderedTab = st.tab;
     if (initHash.grp != null) st.grp[st.tab] = initHash.grp;
     if (initHash.pick != null) st.sel[st.tab] = initHash.pick;
     if (st.since == null) st.surg = false;
@@ -4373,10 +5068,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     ensureLegacySections();
 
     $('#skin').addEventListener('click', () => set({ skin: st.skin === 'dark' ? 'light' : 'dark' }));
-    $('#motion').addEventListener('click', () => set({ motion: st.motion === 'on' ? 'off' : 'on' }));
+    $('#motion').addEventListener('click', () => {
+      const next = st.motion === 'on' ? 'calm' : st.motion === 'calm' ? 'off' : 'on';
+      set({ motion: next });
+    });
     $('#ev-x').addEventListener('click', () => unselect({ restoreFocus: true }));
     const zc = $('#z-center');
-    if (zc) zc.addEventListener('scroll', () => requestAnimationFrame(updateSelLink), { passive: true });
+    if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
     const evBody = $('#ev-body'), zrMore = $('#zr-more');
     if (evBody) {
       evBody.addEventListener('scroll', syncRightScrollCue, { passive: true });
@@ -4392,25 +5090,26 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       rz = setTimeout(() => {
         const m = mode();
         if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
-        closeHelp(false); hideHudTip();
-        sheetPad(); placeGuides(); updateSelLink(); syncRightScrollCue(); emit('resize', m);
+        closeHelp(false); hideAimReticle(); hideHudTip();
+        sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);
     });
 
     booted = true;
     try { history.replaceState({ c4: 1 }, '', encodeHash()); } catch (e) { /* */ }
     renderActiveScreen(ctx(), 'tab');
-    setTimeout(() => { placeGuides(); updateSelLink(); syncRightScrollCue(); }, 50);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(); });
+    setTimeout(() => { placeGuides(); updateSelLink(false); syncRightScrollCue(); }, 50);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(false); });
   }
 
   window.App = {
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
     set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal,
-    openModal, closeModal, updateSelLink,
+    openModal, closeModal, updateSelLink, flipElement, countUp,
+    aim: { set: setAimTarget, hide: hideAimReticle, showTip: showHudTip, hideTip: hideHudTip },
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
-    ui: UI, txt: TXT, mode, motionOn,
+    ui: UI, txt: TXT, mode, motionOn, motionRich, motionScale,
     cellOf, cellCounts, gateFlowRows, coverStageStacks, firstSentence,
     segPatch, segPatchText, samePatch, activePeerOrgs, activeOrgs, orgSector, inScope, filterScopeCodes, ringTabMetrics,
     limitOf, mapOf, condSummary, condSegOnly, scopeLine, asofText,
@@ -4476,7 +5175,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       });
     });
     const pw = 8, gap = 4, gGap = 10, H = 124;
-    let x = 0;
+    let x = 0, barIdx = 0;
     const rects = [];
     const ticks = [];
     groups.forEach((cells, gi) => {
@@ -4495,7 +5194,9 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
           extra = `<line x1="${x + 1}" y1="${y + 3}" x2="${x + pw - 1}" y2="${y + 3}" stroke="var(--gold-edge)" stroke-width="1.2"/>`;
         } else if (cc.state === 'both') cls = 'pil-fill-neutral';
         else if (cc.state === 'unknown') cls = 'pil-hatch';
-        rects.push(`<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(5, h - 1)}"/>${extra}`);
+        const dMs = Math.min(320, barIdx * 6);
+        barIdx++;
+        rects.push(`<g class="hm-bar-g" style="--pd:${dMs}ms"><rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(5, h - 1)}"/>${extra}</g>`);
         if (ci === 0 || ci === cells.length - 1) {
           ticks.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 6}" stroke="var(--axis)" stroke-width="1"/>`);
         }
@@ -4520,13 +5221,15 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       const outH = r.total > 0 ? Math.max(14, Math.round((r.total / maxP) * 120)) : 8;
       const fillH = r.total > 0 && r.finalPass > 0 ? Math.max(5, Math.round((r.finalPass / maxP) * 120)) : 0;
       const oy = H - outH;
+      const dMs = Math.min(320, 70 + idx * 14);
+      let bar = '';
       if (r.total === 0 || r.finalPass === 0) {
-        els.push(`<rect class="pil-empty" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/>`);
+        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/>`;
       } else {
-        els.push(`<rect class="pil-outline" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/>`);
         const fy = H - fillH;
-        els.push(`<rect class="pil-fill-neutral" x="${x + 1}" y="${fy}" width="${pw - 2}" height="${fillH}"/>`);
+        bar = `<rect class="pil-outline" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/><rect class="pil-fill-neutral" x="${x + 1}" y="${fy}" width="${pw - 2}" height="${fillH}"/>`;
       }
+      els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${bar}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
     });
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
@@ -4541,12 +5244,14 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const els = [];
     stages.forEach((s, idx) => {
       const x = idx * (pw + gap);
+      const dMs = Math.min(320, 130 + idx * 16);
+      const segEls = [];
       if (s.sum <= 0) {
         if (s.oursCnt > 0) {
           const cx = x + pw / 2, cy = H - 8;
-          els.push(`<polygon class="pil-fill-gold" points="${cx},${cy - 7} ${cx + 7},${cy} ${cx},${cy + 7} ${cx - 7},${cy}"/>`);
+          segEls.push(`<polygon class="pil-fill-gold" points="${cx},${cy - 7} ${cx + 7},${cy} ${cx},${cy + 7} ${cx - 7},${cy}"/>`);
         } else {
-          els.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 8.5}" width="${pw - 1}" height="8"/>`);
+          segEls.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 8.5}" width="${pw - 1}" height="8"/>`);
         }
       } else {
         const totH = Math.max(14, Math.round((s.sum / maxS) * 120));
@@ -4563,15 +5268,16 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         parts.forEach((p, pi) => {
           const h = pi === parts.length - 1 ? remH : Math.max(2, Math.round((p.v / remV) * remH));
           const y = curY - h;
-          els.push(`<rect class="${p.cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(1.5, h - 0.5)}"/>`);
+          segEls.push(`<rect class="${p.cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(1.5, h - 0.5)}"/>`);
           if (p.goldCap && h >= 5) {
-            els.push(`<line x1="${x + 2}" y1="${y + 3}" x2="${x + pw - 2}" y2="${y + 3}" stroke="var(--gold-edge)" stroke-width="1.2"/>`);
+            segEls.push(`<line x1="${x + 2}" y1="${y + 3}" x2="${x + pw - 2}" y2="${y + 3}" stroke="var(--gold-edge)" stroke-width="1.2"/>`);
           }
           curY = y;
           remV -= p.v;
           remH = Math.max(0, remH - h);
         });
       }
+      els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${segEls.join('')}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
     });
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
@@ -4601,8 +5307,10 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     cats.forEach((nm, idx) => {
       const v = vals[idx];
       const x = idx * (pw + gap);
+      const dMs = Math.min(320, 190 + idx * 16);
+      let bar = '';
       if (v <= 0) {
-        els.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 6.5}" width="${pw - 1}" height="6"/>`);
+        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${H - 6.5}" width="${pw - 1}" height="6"/>`;
       } else {
         const h = Math.max(10, Math.round((v / maxV) * 120));
         const y = H - h;
@@ -4616,8 +5324,9 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         } else if (nm === '개정 검토 후보') {
           cls = 'pil-hatch-pale';
         }
-        els.push(`<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${h - 1}"/>${extra}`);
+        bar = `<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${h - 1}"/>${extra}`;
       }
+      els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${bar}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
     });
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
@@ -4637,7 +5346,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const lines = edges.map(([a, b]) => `<line x1="${pts[a].x}" y1="${pts[a].y}" x2="${pts[b].x}" y2="${pts[b].y}" stroke="var(--ink-1)" stroke-width="1.3"/>`).join('');
     const stems = pts.map(p => `<line x1="${p.x}" y1="${p.y + p.s / 2}" x2="${p.x}" y2="${H + 6}" stroke="var(--line-2)" stroke-width="1"/>`).join('');
     const nodes = pts.map((p, i) => `<rect class="${i === 2 ? 'pil-fill-neutral' : 'pil-outline'}" fill="${i === 2 ? 'var(--neutral-pil)' : 'var(--fog-1)'}" x="${p.x - p.s / 2}" y="${p.y - p.s / 2}" width="${p.s}" height="${p.s}"/>`).join('');
-    return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${stems}${lines}${nodes}</svg>`;
+    return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false"><g class="hm-bar-g" style="--pd:260ms">${stems}${lines}${nodes}</g></svg>`;
   }
 
   function groupReadHTML(id, base, c) {
@@ -4665,7 +5374,17 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     return `<p class="hm-read-main">${esc(App.firstSentence(bMa ? bMa['문장'] : ''))}</p>`;
   }
 
-  function renderHome(panel, c) {
+  function groupPlainSummary(id, base) {
+    if (!base) return '';
+    if (id === 'market') { const b = lineOf(base, '가'); return App.firstSentence(b ? b['문장'] : ''); }
+    if (id === 'gate') { const b = lineOf(base, '다'); return App.firstSentence(b ? b['문장'] : ''); }
+    if (id === 'cover') { const b = lineOf(base, '라'); return App.firstSentence(b ? b['문장'] : ''); }
+    if (id === 'insight') { const b = lineOf(base, '마'); return App.firstSentence(b ? b['문장'] : ''); }
+    if (id === 'graph') return App.firstSentence(t('grCenterDesc'));
+    return '';
+  }
+
+  function renderHome(panel, c, why) {
     const base = c.base || S['기준별'][c.baseId];
     if (!base) { panel.innerHTML = ''; return; }
     const metrics = App.ringTabMetrics(c);
@@ -4681,12 +5400,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       let bigHTML = '<span class="hm-big hm-big-empty" aria-hidden="true"></span>';
       if (!m.isGraph && m.val != null) {
         const den = m.denom != null ? `<small>/${esc(fmt(m.denom))}</small>` : '';
-        bigHTML = `<span class="hm-big num">${esc(fmt(m.val))}${den}</span>`;
+        bigHTML = `<span class="hm-big num"><span class="hm-val" data-count-to="${esc(m.val)}">${esc(fmt(m.val))}</span>${den}</span>`;
       }
       const extraTag = id === 'market' && m.subText
         ? `<span class="hm-sub">${esc(m.subText)}</span>`
         : (m.fullBadge ? `<span class="tag" title="${esc(t('fullScopeHint'))}">${esc(t('fullScopeBadge'))}</span>` : '');
-      return `<button type="button" class="hm-grp" id="tab-${id}" data-rtab="${id}" tabindex="${idx === 0 ? 0 : -1}">
+      const sumSub = groupPlainSummary(id, base);
+      return `<button type="button" class="hm-grp" id="tab-${id}" data-rtab="${id}" data-aim="rect" data-tip-title="${esc(m.name)}" data-tip-sub="${esc(sumSub)}" tabindex="${idx === 0 ? 0 : -1}">
         ${m.flag ? ui.flag(m.flag) : ''}
         <div class="hm-head">
           ${bigHTML}
@@ -4698,17 +5418,31 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }).join('');
 
     const defaultRead = groupReadHTML(null, base, c);
-    panel.innerHTML = `<div class="hm-stage">
-      <div class="hm-axis-wrap" role="group" aria-label="${esc(t('tabsAria'))}">
+    panel.innerHTML = `<div class="hm-stage${why === 'tab' && App.motionOn() ? ' hm-enter' : ''}">
+      <div class="hm-axis-wrap" data-main-axis="1" data-scrub-row="1" role="group" aria-label="${esc(t('tabsAria'))}">
+        <div class="ax-ruler hm-ruler" aria-hidden="true"><span>100</span><span>50</span><span>0</span></div>
         ${groupsHTML}
       </div>
       <div class="hm-read" id="home-read" aria-live="polite">${defaultRead}</div>
     </div>`;
 
+    if (why === 'tab') App.countUp(panel);
+
     const axisWrap = panel.querySelector('.hm-axis-wrap');
     const readEl = panel.querySelector('#home-read');
     if (axisWrap && readEl) {
-      const showFor = id => { readEl.innerHTML = groupReadHTML(id, base, c); };
+      let curId = null;
+      const showFor = id => {
+        if (id === curId) return;
+        curId = id;
+        readEl.innerHTML = groupReadHTML(id, base, c);
+        if (App.motionOn()) {
+          Array.from(readEl.children).forEach((el, k) => {
+            el.style.setProperty('--ld', `${k * 30}ms`);
+            el.classList.add('ev-line-in');
+          });
+        }
+      };
       axisWrap.addEventListener('pointerover', e => {
         const g = e.target.closest && e.target.closest('.hm-grp[data-rtab]');
         if (g) showFor(g.dataset.rtab);
@@ -5015,17 +5749,36 @@ App.registerTab((function () {
       : '';
 
     return `<svg viewBox="-34 -34 68 68" aria-hidden="true" focusable="false">
-      <g class="mkr-diag" stroke-width="1.3"><line x1="-31" y1="-31" x2="-24" y2="-24"/><line x1="31" y1="-31" x2="24" y2="-24"/><line x1="-31" y1="31" x2="-24" y2="24"/><line x1="31" y1="31" x2="24" y2="24"/></g>
+      <g class="mkr-diag-bg" stroke-width="2.8"><line x1="-31" y1="-31" x2="-24" y2="-24"/><line x1="31" y1="-31" x2="24" y2="-24"/><line x1="-31" y1="31" x2="-24" y2="24"/><line x1="31" y1="31" x2="24" y2="24"/></g>
+      <g class="mkr-diag" stroke-width="1.4"><line x1="-31" y1="-31" x2="-24" y2="-24"/><line x1="31" y1="-31" x2="24" y2="-24"/><line x1="-31" y1="31" x2="-24" y2="24"/><line x1="31" y1="31" x2="24" y2="24"/></g>
       <circle class="mkr-disc" r="22.5"/>
-      <circle class="mkr-sel-ring" r="22.5" fill="none" stroke-width="1.8"/>
+      <circle class="mkr-sel-ring" r="22.5" fill="none" stroke-width="2"/>
       ${innerDouble}
       <circle class="mkr-trk" r="${r}" fill="none" stroke-width="1.3"/>
       ${unkTicks}
-      ${pConf ? `<path class="mkr-arc mkr-arc-conf" d="${pConf}" fill="none" stroke-width="4.2"/>` : ''}
-      ${pPart ? `<path class="mkr-arc mkr-arc-part" d="${pPart}" fill="none" stroke-width="2.1"/>` : ''}
+      ${pConf ? `<path class="mkr-arc mkr-arc-conf" d="${pConf}" fill="none" stroke-width="4.2" pathLength="1"/>` : ''}
+      ${pPart ? `<path class="mkr-arc mkr-arc-part" d="${pPart}" fill="none" stroke-width="2.1" pathLength="1"/>` : ''}
       ${pGate ? `<path class="mkr-arc mkr-arc-gate" d="${pGate}" fill="none" stroke-width="3.6" stroke-dasharray="3.2 2.4"/>` : ''}
       ${partialBadge}
     </svg>`;
+  }
+
+  function syncMarketHot(aimEl) {
+    const board = document.getElementById('mk-grid');
+    if (!board) return;
+    const hotR = aimEl && aimEl.closest && aimEl.closest('#mk-grid') && aimEl.dataset.gridR != null ? +aimEl.dataset.gridR : -1;
+    const hotC = aimEl && aimEl.closest && aimEl.closest('#mk-grid') && aimEl.dataset.gridC != null ? +aimEl.dataset.gridC : -1;
+    const selKey = App.state.sel.market;
+    const selParsed = selKey != null ? parseKey(selKey) : null;
+    board.querySelectorAll('.mk-tch[data-col]').forEach(el => {
+      el.classList.toggle('is-hot', +el.dataset.col === hotC);
+    });
+    board.querySelectorAll('.mk-trow[data-row]').forEach(el => {
+      const r = +el.dataset.row;
+      el.classList.toggle('is-hot', r === hotR);
+      const hasSel = !!(selParsed && el.querySelector(`[data-pick="${CSS.escape(selKey)}"]`));
+      el.classList.toggle('has-row-sel', hasSel);
+    });
   }
 
   function renderStage(center, c) {
@@ -5033,10 +5786,10 @@ App.registerTab((function () {
     const gm = buildRowsModel(map);
     const basisTxt = c.seg && c.seg.sexNote ? c.seg.sexNote : t('mkMaleBasis');
 
-    const timeHeads = `<div class="mk-thead">
+    const timeHeads = `<div class="mk-thead" data-main-axis="1">
       <span class="mk-basis">${esc(basisTxt)}</span>
       <div class="mk-tcols" aria-hidden="true">
-        ${gm.hospPeriods.map(p => `<span class="mk-tch">${esc(timeShort(p.r))}</span>`).join('')}
+        ${gm.hospPeriods.map((p, cIdx) => `<span class="mk-tch" data-col="${cIdx}">${esc(timeShort(p.r))}</span>`).join('')}
       </div>
     </div>`;
 
@@ -5053,27 +5806,36 @@ App.registerTab((function () {
           const curOpen = cc.oursOpen;
           const bothOpen = prevOpen && curOpen;
           const openTransition = !prevOpen && curOpen;
-          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
+          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" style="--sd:${rIdx * 65 + cIdx * 24}ms" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
         }
         const stateCls = 'st-' + cc.state;
-        const numStr = (cc.state === 'unknown' && cc.total > 0 && cc.unknown === cc.total) ? t('mkUnknownSym') : fmt(cc.openAny);
+        const isNoData = cc.state === 'unknown';
+        const numStr = (isNoData && cc.total > 0 && cc.unknown === cc.total) ? t('mkUnknownSym') : fmt(cc.openAny);
         const needFlag = cell && cell['라벨'] === '우리 간편만 열림';
         const partNote = cc.partialOnly ? ` (${t('mkPartialOnlyMark')})` : '';
-        const tip = `${it.period['이름']}, ${colText(it.col)}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
+        const noDataWhy = isNoData
+          ? c.activeOrgs.map(o => txt.stateWhy(o, cell && cell['회사'] && cell['회사'][o])).filter(Boolean)[0] || t('scopeNoData')
+          : '';
+        const tipTitle = `${it.period['이름']}, ${colText(it.col)}`;
+        const tipSub = isNoData
+          ? noDataWhy
+          : `${txt.orgShort('EPOST')} ${cc.oursState}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
+        const chipKind = cc.state === 'only' ? 'only' : cc.state === 'worse' ? 'worse' : cc.state === 'both' ? 'same' : cc.state === 'unknown' ? 'unknown' : 'none';
+        const tip = `${tipTitle}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
         const pk = keyOf(it.ri, it.ci);
-        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 3 + cIdx) * 16}ms">
+        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-aim="circle"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 4 + cIdx) * 18}ms">
           ${needFlag ? ui.flag() : ''}
           ${cellRingSVG(cc)}
           <span class="mk-rn num">${esc(numStr)}</span>
         </button>`);
       });
 
-      return `<div class="mk-trow${kindBreak ? ' is-break' : ''}">
+      return `<div class="mk-trow${kindBreak ? ' is-break' : ''}" data-row="${rIdx}">
         <div class="mk-rh">
           <span class="mk-rh-nm">${esc(rowObj.label)}</span>
           <span class="mk-rh-cnt num">${esc(`${fmt(rowObj.oursOpenCnt)}/${fmt(rowObj.items.length)}`)}</span>
         </div>
-        <div class="mk-track">${trackParts.join('')}</div>
+        <div class="mk-track" data-scrub-row="1">${trackParts.join('')}</div>
       </div>`;
     }).join('');
 
@@ -5105,6 +5867,7 @@ App.registerTab((function () {
         onChange: v => App.set({ renewal: v }),
       }));
     }
+    syncMarketHot(null);
   }
 
   function enter(center) {
@@ -5524,6 +6287,9 @@ App.registerTab((function () {
     }
   });
 
+  App.on('aim', aimEl => { if (App.state.tab === 'market') syncMarketHot(aimEl); });
+  App.on('select', tab => { if (tab === 'market') syncMarketHot(null); });
+
   return {
     id: 'market',
     layout: 'side',
@@ -5657,7 +6423,7 @@ App.registerTab((function () {
   }
 
   // ---------- 새 무대: 관문 차례 가로축(5개) x 고지 유형 줄 x 통과 기둥(44x44px) ----------
-  function pillarCellSVG(passN, totalN, isPremise) {
+  function pillarCellSVG(passN, totalN, isPremise, delayMs) {
     const S0 = 44;
     const stoppedAll = totalN <= 0 || passN <= 0;
     const ratio = totalN > 0 ? Math.max(0, Math.min(1, passN / totalN)) : 0;
@@ -5668,11 +6434,39 @@ App.registerTab((function () {
     const meniscus = (!stoppedAll && fillH > 0 && fillH < S0)
       ? `<line x1="1" y1="${fy}" x2="${S0 - 1}" y2="${fy}" stroke="var(--ink-0)" stroke-width="1.3"/>`
       : '';
+    const fillGroup = fillH > 0
+      ? `<g class="gtf-fill-g" style="--gd:${delayMs || 0}ms"><rect class="${fillCls}" x="1" y="${fy}" width="${S0 - 2}" height="${fillH - 1}"/>${meniscus}</g>`
+      : '';
     return `<svg class="gtf-svg" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
-      ${fillH > 0 ? `<rect class="${fillCls}" x="1" y="${fy}" width="${S0 - 2}" height="${fillH - 1}"/>` : ''}
+      ${fillGroup}
       <rect class="${outCls}" x="0.5" y="0.5" width="${S0 - 1}" height="${S0 - 1}"/>
-      ${meniscus}
     </svg>`;
+  }
+
+  let lastGateSelRowKey = null;
+  function syncGateHot(aimEl, redrawSel) {
+    const root = document.getElementById('gt-flow-stage');
+    if (!root) return;
+    const hotR = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridR != null ? +aimEl.dataset.gridR : -1;
+    const hotC = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridC != null ? +aimEl.dataset.gridC : -1;
+    const sel = App.state.sel.gate || '';
+    const selRowKey = sel.startsWith('gf:') ? sel.slice(3, sel.lastIndexOf('|')) : '';
+    root.querySelectorAll('.gtf-acol[data-col]').forEach(el => {
+      el.classList.toggle('is-hot', +el.dataset.col === hotC);
+    });
+    root.querySelectorAll('.gtf-row[data-row]').forEach(el => {
+      const r = +el.dataset.row;
+      const rk = el.dataset.typeKey || '';
+      const hasSel = !!(selRowKey && rk === selRowKey);
+      el.classList.toggle('is-hot', r === hotR);
+      el.classList.toggle('has-row-sel', hasSel);
+      if (redrawSel && hasSel && App.motionOn() && rk !== lastGateSelRowKey) {
+        el.classList.remove('gtf-row-redraw');
+        void el.offsetWidth;
+        el.classList.add('gtf-row-redraw');
+      }
+    });
+    lastGateSelRowKey = selRowKey || null;
   }
 
   function renderStage(center, c) {
@@ -5686,7 +6480,7 @@ App.registerTab((function () {
 
     const axisCols = steps.map((stNm, k) => {
       const prem = premiseSet.has(stNm);
-      return `<div class="gtf-acol${prem ? ' is-prem' : ''}">
+      return `<div class="gtf-acol${prem ? ' is-prem' : ''}" data-col="${k}">
         <span class="gtf-anm">${esc(stNm)}</span>
         <i class="gtf-atk" aria-hidden="true"></i>
       </div>`;
@@ -5708,35 +6502,49 @@ App.registerTab((function () {
         const passN = row.pass[k] != null ? row.pass[k] : 0;
         const prevPass = k === 0 ? row.total : (row.pass[k - 1] != null ? row.pass[k - 1] : 0);
         const isPrem = premiseSet.has(stNm);
+        const isNoData = row.total <= 0;
         const pk = `gf:${row.key}|${k}`;
         const connBefore = k > 0
-          ? `<span class="gtf-conn${prevPass > 0 ? (passN > 0 ? ' is-on' : ' is-cut') : ' is-off'}" aria-hidden="true"></span>`
+          ? `<span class="gtf-conn${prevPass > 0 ? (passN > 0 ? ' is-on' : ' is-cut') : ' is-off'}" style="--cd:${k * 45}ms" aria-hidden="true"></span>`
           : '';
         const ratioTxt = `${fmt(passN)}/${fmt(row.total)}`;
+        const tipTitle = `${row.key}, ${stNm}`;
+        const tipSub = isNoData
+          ? App.t('peerEmptyHint')
+          : `통과 ${ratioTxt}곳${ours ? `, ${txt.orgShort('EPOST')} ${ours.state}` : ''}${isPrem ? ' (전제 관문)' : ''}`;
+        const chipKind = isNoData
+          ? 'unknown'
+          : (ours && ours.state === '열림' && row.finalPass === 0)
+            ? 'only'
+            : (ours && ours.state === '닫힘' && row.finalPass > 0)
+              ? 'worse'
+              : passN === 0 ? 'none' : 'same';
         const tip = `${row.key}, ${stNm}: 통과 ${ratioTxt}곳${isPrem ? ' (전제 관문)' : ''}`;
-        return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
-          <span class="gtf-pil" data-link-pt="1">${pillarCellSVG(passN, row.total, isPrem)}</span>
+        const delayMs = Math.min(340, rIdx * 24 + k * 42);
+        return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-aim="rect"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}">
+          <span class="gtf-pil" data-link-pt="1" data-aim-box="1">${pillarCellSVG(passN, row.total, isPrem, delayMs)}</span>
           <span class="gtf-cnt num">${esc(ratioTxt)}</span>
         </button>`;
       }).join('');
 
       const rowHeadTxt = `${row.key} (${fmt(row.total)})`;
-      return `<div class="gtf-row${ours && ours.isBase ? ' is-base' : ''}">
+      return `<div class="gtf-row${ours && ours.isBase ? ' is-base' : ''}" data-row="${rIdx}" data-type-key="${esc(row.key)}">
         <div class="gtf-rh">
           <span class="gtf-rkey num">${esc(rowHeadTxt)}</span>
           ${oursChip}
         </div>
-        <div class="gtf-track">${nodesHTML}</div>
+        <div class="gtf-track" data-scrub-row="1">${nodesHTML}</div>
       </div>`;
     }).join('');
 
     center.innerHTML = `<div class="gtf-stage" id="gt-flow-stage">
-      <div class="gtf-axis-head">
+      <div class="gtf-axis-head" data-main-axis="1">
         <span class="gtf-corner"></span>
         <div class="gtf-acols">${axisCols}</div>
       </div>
       <div class="gtf-rows" id="gt-flow-rows">${rowsHTML}</div>
     </div>`;
+    syncGateHot(null, false);
   }
 
   // ---------- 구성 예시 자료 찾기 ----------
@@ -6395,6 +7203,8 @@ App.registerTab((function () {
     }
   });
 
+  App.on('aim', aimEl => { if (App.state.tab === 'gate') syncGateHot(aimEl, false); });
+  App.on('select', tab => { if (tab === 'gate') syncGateHot(null, true); });
   App.on('change', () => publish());
   publish();
 
@@ -7431,7 +8241,7 @@ App.registerTab((function () {
     const cau = cautionOf(c, p);
     const flag = p['원문대조'] ? ui.flag(p['원문대조글'] || ui.FLAG_TEXT) : '';
     const peerNames = txt.peerNamesEtc((p['비교종형ID'] || []).map(fullN), 3);
-    return `<li class="lrow ins-it" data-pick="p:${esc(p['포인트ID'])}">
+    return `<li class="lrow ins-it" data-pick="p:${esc(p['포인트ID'])}" data-aim="rect">
       <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${p['분류']}, ${titleLong(p)}. 근거 보기`)}"></button>${flag}
       <div class="ins-ih selbar">
         <span class="live ins-ckw"><label class="ins-ck"><input type="checkbox" data-act="ins-pick" data-id="${esc(p['포인트ID'])}"${sel.has(p['포인트ID']) ? ' checked' : ''} aria-label="${esc(titleLong(p))} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span><span class="lb">카드에 싣기</span><span class="lb2" aria-hidden="true">싣기</span></label></span>
@@ -7474,7 +8284,7 @@ App.registerTab((function () {
       ds: g['담보'].filter(d => revInScope(d, c, allowedIds)),
     })).filter(x => x.ds.length);
     if (!groups.length) return '<p class="ins-empty">조건과 비교 범위에 드는 개정 검토 후보가 없습니다.</p>';
-    return `<ul class="lrows ins-rev" id="ins-rev">${groups.map(({ g, gi, ds }) => `<li class="lrow ins-rg" data-pick="r:${gi}">
+    return `<ul class="lrows ins-rev" id="ins-rev">${groups.map(({ g, gi, ds }) => `<li class="lrow ins-rg" data-pick="r:${gi}" data-aim="rect">
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${g['중분류']}, 개정 검토 후보 ${ds.length}건. 근거 보기`)}"></button>
         <div class="ins-ih selbar"><span class="ins-t">${esc(g['중분류'])}</span><span class="sub">${esc(g['대분류'])}</span>${ui.tag(`담보 ${ds.length}`)}${g['좁은담보만수'] ? ui.tag(`좁은 담보만 ${g['좁은담보만수']}`) : ''}${c.peerScope !== 'all' ? ui.fullScopeTag() : ''}</div>
         <ul class="ins-rl">${ds.map(d => {
@@ -7513,7 +8323,7 @@ App.registerTab((function () {
     else if (!all.length) list = `<p class="ins-empty">${esc(emptyWhy(c, cat))}</p>`;
     else if (!shown.length) list = '<p class="ins-empty">이 목적에 드는 항목이 없습니다.</p>';
     else list = `<ul class="lrows">${shown.map(p => itemHTML(p, sel, groupHead, c)).join('')}</ul>`;
-    return `<section class="panel ins-cat" id="ins-cat-${i}" aria-labelledby="ins-cat-${i}-h">
+    return `<section class="panel ins-cat" id="ins-cat-${i}" style="--cd:${i * 55}ms" aria-labelledby="ins-cat-${i}-h">
       <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(subT)}${cat === '개정 검토 후보' && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</span>
         <h2 id="ins-cat-${i}-h"><span class="ins-no num">0${i + 1}</span>${esc(cat)} <b class="num">${n}</b>건${purpose && shown.length !== all.length && cat !== '개정 검토 후보' ? ` <span class="note">(목적에 맞는 ${shown.length}건)</span>` : ''}</h2></div>
         <div class="r"><span>카드에 실은 것 <b class="num">${inCard}</b>건</span>${cat === '개정 검토 후보' ? `<span class="live">${ui.btn('개정 검토 목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-rev"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="ins-cat-${i}" data-title="개정 검토 목록"` })}</span>` : ''}</div></div>
@@ -7660,7 +8470,7 @@ App.registerTab((function () {
   }
   function jumpHTML(c) {
     const cnt = catCounts(c);
-    return `<nav class="ins-jump" aria-label="분류 바로가기">${CATS.map((k, i) => `<a href="#ins-cat-${i}" data-act="ins-jump" data-i="${i}"><span class="num">0${i + 1}</span><span class="t">${esc(k)}</span><b class="num">${cnt[k] || 0}</b></a>`).join('')}</nav>`;
+    return `<nav class="ins-jump" data-main-axis="1" aria-label="분류 바로가기">${CATS.map((k, i) => `<a href="#ins-cat-${i}" data-act="ins-jump" data-aim="rect" data-i="${i}"><span class="num">0${i + 1}</span><span class="t">${esc(k)}</span><b class="num">${cnt[k] || 0}</b></a>`).join('')}</nav>`;
   }
   function render(body, c) {
     if (!c.base) { body.innerHTML = '<div class="panel placeholder">자료 없음: 이 기준 종형의 영업 인사이트 자료가 없습니다.</div>'; return; }
@@ -7856,6 +8666,13 @@ App.registerTab((function () {
   });
   function enter(body) {
     if (body.querySelector('.ins-cw')) refreshCard(body);
+    if (App.motionOn()) {
+      body.classList.remove('ins-enter');
+      void body.offsetWidth;
+      body.classList.add('ins-enter');
+      clearTimeout(body._insT);
+      body._insT = setTimeout(() => body.classList.remove('ins-enter'), 680);
+    }
     const card = body.querySelector('#insight-card');
     if (card && App.motionOn()) { card.classList.remove('icd-in'); void card.offsetWidth; card.classList.add('icd-in'); }
     checkPages(body);
@@ -7882,8 +8699,8 @@ App.boot();
   var skin = null, motion = null;
   try { skin = localStorage.getItem('postlife-c4-skin'); motion = localStorage.getItem('postlife-c4-motion'); } catch (e) {}
   if (skin === 'dark' || skin === 'light') document.documentElement.dataset.theme = skin;
-  if (motion !== 'on' && motion !== 'off') {
-    motion = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'off' : 'on';
+  if (motion !== 'on' && motion !== 'calm' && motion !== 'off') {
+    motion = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'calm' : 'on';
   }
   document.documentElement.dataset.motion = motion;
   function runBundle() {
@@ -7895,6 +8712,7 @@ App.boot();
     runBundle();
     return;
   }
+  var minWait = motion === 'calm' ? 240 : 600;
   var loader = document.getElementById('boot-loader');
   var arc = document.getElementById('boot-arc');
   var dia = document.getElementById('boot-dia');
@@ -7919,7 +8737,7 @@ App.boot();
       afterPaint(function () {
         runBundle();
         setProg(100);
-        var wait = Math.max(0, 600 - (performance.now() - t0));
+        var wait = Math.max(0, minWait - (performance.now() - t0));
         setTimeout(function () {
           loader.classList.add('is-out');
           document.body.classList.remove('is-booting');

@@ -134,18 +134,24 @@
   <section class="cond" id="cond" aria-label="조건 줄" hidden></section>
   <section class="scope" id="scope" aria-label="범위 띠" aria-live="polite" hidden></section>
 
-  <!-- 열린 화면 상단 고리 탭 줄: 맨 왼쪽 [전체 요약] + 다섯 고리 탭(고른 탭 하나에만 짙은 면) -->
+  <!-- 열린 화면 상단 고리 탭 줄: 맨 왼쪽 [전체 요약] + 다섯 고리 탭(고른 탭의 슬레이트 면이 미끄러져 이동) -->
   <nav class="rtabs is-compact" id="rtabs" role="tablist" aria-label="분석 화면" hidden></nav>
 
   <div id="work-anchor" tabindex="-1"></div>
+
+  <!-- 화면 전환 시 높이를 이어 주는 가로 기준축 다리 -->
+  <div class="axis-bridge" id="axis-bridge" aria-hidden="true" hidden></div>
 
   <!-- 첫 화면(전체 요약): 안개 바탕 위 가로 기준축(62% 지점)과 다섯 기둥 묶음, 아래 결론 한 문장 -->
   <section class="home-panel" id="home-panel" aria-label="전체 결론 요약"></section>
 
   <!-- 탭 화면 본문 무대: 사각 면 없이 안개 바탕 위에 기준축과 도형이 놓이고, 고른 도형에서 읽기 영역으로 1px 선이 이어진다 -->
   <div class="board" id="board" data-layout="side" hidden>
+    <div class="sel-glide" id="sel-glide" aria-hidden="true" hidden>
+      <i class="sg-c tl"></i><i class="sg-c tr"></i><i class="sg-c bl"></i><i class="sg-c br"></i>
+    </div>
     <svg class="sel-link-svg" id="sel-link" aria-hidden="true" focusable="false">
-      <path class="sel-link-p" id="sel-link-p" fill="none"/>
+      <path class="sel-link-p" id="sel-link-p" fill="none" pathLength="1"/>
       <circle class="sel-link-dot" id="sel-link-dot" r="2.5" hidden/>
     </svg>
     <aside class="z-left" id="z-left" aria-label="분류" hidden></aside>
@@ -203,6 +209,9 @@
   </div>
 </div>
 
+<div class="aim-reticle" id="aim-reticle" data-shape="rect" aria-hidden="true" hidden>
+  <i class="ar-c tl"></i><i class="ar-c tr"></i><i class="ar-c bl"></i><i class="ar-c br"></i>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="help-pop" id="help-pop" role="region" aria-label="풀이 및 범례" hidden></div>
 <div class="hud-tip" id="hud-tip" role="tooltip" hidden></div>
@@ -216,8 +225,8 @@
   var skin = null, motion = null;
   try { skin = localStorage.getItem('postlife-c4-skin'); motion = localStorage.getItem('postlife-c4-motion'); } catch (e) {}
   if (skin === 'dark' || skin === 'light') document.documentElement.dataset.theme = skin;
-  if (motion !== 'on' && motion !== 'off') {
-    motion = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'off' : 'on';
+  if (motion !== 'on' && motion !== 'calm' && motion !== 'off') {
+    motion = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'calm' : 'on';
   }
   document.documentElement.dataset.motion = motion;
   function runBundle() {
@@ -229,6 +238,7 @@
     runBundle();
     return;
   }
+  var minWait = motion === 'calm' ? 240 : 600;
   var loader = document.getElementById('boot-loader');
   var arc = document.getElementById('boot-arc');
   var dia = document.getElementById('boot-dia');
@@ -253,7 +263,7 @@
       afterPaint(function () {
         runBundle();
         setProg(100);
-        var wait = Math.max(0, 600 - (performance.now() - t0));
+        var wait = Math.max(0, minWait - (performance.now() - t0));
         setTimeout(function () {
           loader.classList.add('is-out');
           document.body.classList.remove('is-booting');

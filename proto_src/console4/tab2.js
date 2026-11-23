@@ -151,17 +151,36 @@ App.registerTab((function () {
       : '';
 
     return `<svg viewBox="-34 -34 68 68" aria-hidden="true" focusable="false">
-      <g class="mkr-diag" stroke-width="1.3"><line x1="-31" y1="-31" x2="-24" y2="-24"/><line x1="31" y1="-31" x2="24" y2="-24"/><line x1="-31" y1="31" x2="-24" y2="24"/><line x1="31" y1="31" x2="24" y2="24"/></g>
+      <g class="mkr-diag-bg" stroke-width="2.8"><line x1="-31" y1="-31" x2="-24" y2="-24"/><line x1="31" y1="-31" x2="24" y2="-24"/><line x1="-31" y1="31" x2="-24" y2="24"/><line x1="31" y1="31" x2="24" y2="24"/></g>
+      <g class="mkr-diag" stroke-width="1.4"><line x1="-31" y1="-31" x2="-24" y2="-24"/><line x1="31" y1="-31" x2="24" y2="-24"/><line x1="-31" y1="31" x2="-24" y2="24"/><line x1="31" y1="31" x2="24" y2="24"/></g>
       <circle class="mkr-disc" r="22.5"/>
-      <circle class="mkr-sel-ring" r="22.5" fill="none" stroke-width="1.8"/>
+      <circle class="mkr-sel-ring" r="22.5" fill="none" stroke-width="2"/>
       ${innerDouble}
       <circle class="mkr-trk" r="${r}" fill="none" stroke-width="1.3"/>
       ${unkTicks}
-      ${pConf ? `<path class="mkr-arc mkr-arc-conf" d="${pConf}" fill="none" stroke-width="4.2"/>` : ''}
-      ${pPart ? `<path class="mkr-arc mkr-arc-part" d="${pPart}" fill="none" stroke-width="2.1"/>` : ''}
+      ${pConf ? `<path class="mkr-arc mkr-arc-conf" d="${pConf}" fill="none" stroke-width="4.2" pathLength="1"/>` : ''}
+      ${pPart ? `<path class="mkr-arc mkr-arc-part" d="${pPart}" fill="none" stroke-width="2.1" pathLength="1"/>` : ''}
       ${pGate ? `<path class="mkr-arc mkr-arc-gate" d="${pGate}" fill="none" stroke-width="3.6" stroke-dasharray="3.2 2.4"/>` : ''}
       ${partialBadge}
     </svg>`;
+  }
+
+  function syncMarketHot(aimEl) {
+    const board = document.getElementById('mk-grid');
+    if (!board) return;
+    const hotR = aimEl && aimEl.closest && aimEl.closest('#mk-grid') && aimEl.dataset.gridR != null ? +aimEl.dataset.gridR : -1;
+    const hotC = aimEl && aimEl.closest && aimEl.closest('#mk-grid') && aimEl.dataset.gridC != null ? +aimEl.dataset.gridC : -1;
+    const selKey = App.state.sel.market;
+    const selParsed = selKey != null ? parseKey(selKey) : null;
+    board.querySelectorAll('.mk-tch[data-col]').forEach(el => {
+      el.classList.toggle('is-hot', +el.dataset.col === hotC);
+    });
+    board.querySelectorAll('.mk-trow[data-row]').forEach(el => {
+      const r = +el.dataset.row;
+      el.classList.toggle('is-hot', r === hotR);
+      const hasSel = !!(selParsed && el.querySelector(`[data-pick="${CSS.escape(selKey)}"]`));
+      el.classList.toggle('has-row-sel', hasSel);
+    });
   }
 
   function renderStage(center, c) {
@@ -169,10 +188,10 @@ App.registerTab((function () {
     const gm = buildRowsModel(map);
     const basisTxt = c.seg && c.seg.sexNote ? c.seg.sexNote : t('mkMaleBasis');
 
-    const timeHeads = `<div class="mk-thead">
+    const timeHeads = `<div class="mk-thead" data-main-axis="1">
       <span class="mk-basis">${esc(basisTxt)}</span>
       <div class="mk-tcols" aria-hidden="true">
-        ${gm.hospPeriods.map(p => `<span class="mk-tch">${esc(timeShort(p.r))}</span>`).join('')}
+        ${gm.hospPeriods.map((p, cIdx) => `<span class="mk-tch" data-col="${cIdx}">${esc(timeShort(p.r))}</span>`).join('')}
       </div>
     </div>`;
 
@@ -189,27 +208,36 @@ App.registerTab((function () {
           const curOpen = cc.oursOpen;
           const bothOpen = prevOpen && curOpen;
           const openTransition = !prevOpen && curOpen;
-          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
+          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" style="--sd:${rIdx * 65 + cIdx * 24}ms" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
         }
         const stateCls = 'st-' + cc.state;
-        const numStr = (cc.state === 'unknown' && cc.total > 0 && cc.unknown === cc.total) ? t('mkUnknownSym') : fmt(cc.openAny);
+        const isNoData = cc.state === 'unknown';
+        const numStr = (isNoData && cc.total > 0 && cc.unknown === cc.total) ? t('mkUnknownSym') : fmt(cc.openAny);
         const needFlag = cell && cell['라벨'] === '우리 간편만 열림';
         const partNote = cc.partialOnly ? ` (${t('mkPartialOnlyMark')})` : '';
-        const tip = `${it.period['이름']}, ${colText(it.col)}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
+        const noDataWhy = isNoData
+          ? c.activeOrgs.map(o => txt.stateWhy(o, cell && cell['회사'] && cell['회사'][o])).filter(Boolean)[0] || t('scopeNoData')
+          : '';
+        const tipTitle = `${it.period['이름']}, ${colText(it.col)}`;
+        const tipSub = isNoData
+          ? noDataWhy
+          : `${txt.orgShort('EPOST')} ${cc.oursState}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
+        const chipKind = cc.state === 'only' ? 'only' : cc.state === 'worse' ? 'worse' : cc.state === 'both' ? 'same' : cc.state === 'unknown' ? 'unknown' : 'none';
+        const tip = `${tipTitle}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
         const pk = keyOf(it.ri, it.ci);
-        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 3 + cIdx) * 16}ms">
+        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-aim="circle"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 4 + cIdx) * 18}ms">
           ${needFlag ? ui.flag() : ''}
           ${cellRingSVG(cc)}
           <span class="mk-rn num">${esc(numStr)}</span>
         </button>`);
       });
 
-      return `<div class="mk-trow${kindBreak ? ' is-break' : ''}">
+      return `<div class="mk-trow${kindBreak ? ' is-break' : ''}" data-row="${rIdx}">
         <div class="mk-rh">
           <span class="mk-rh-nm">${esc(rowObj.label)}</span>
           <span class="mk-rh-cnt num">${esc(`${fmt(rowObj.oursOpenCnt)}/${fmt(rowObj.items.length)}`)}</span>
         </div>
-        <div class="mk-track">${trackParts.join('')}</div>
+        <div class="mk-track" data-scrub-row="1">${trackParts.join('')}</div>
       </div>`;
     }).join('');
 
@@ -241,6 +269,7 @@ App.registerTab((function () {
         onChange: v => App.set({ renewal: v }),
       }));
     }
+    syncMarketHot(null);
   }
 
   function enter(center) {
@@ -659,6 +688,9 @@ App.registerTab((function () {
       }
     }
   });
+
+  App.on('aim', aimEl => { if (App.state.tab === 'market') syncMarketHot(aimEl); });
+  App.on('select', tab => { if (tab === 'market') syncMarketHot(null); });
 
   return {
     id: 'market',

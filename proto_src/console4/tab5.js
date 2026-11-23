@@ -81,7 +81,7 @@ App.registerTab((function () {
     const cau = cautionOf(c, p);
     const flag = p['원문대조'] ? ui.flag(p['원문대조글'] || ui.FLAG_TEXT) : '';
     const peerNames = txt.peerNamesEtc((p['비교종형ID'] || []).map(fullN), 3);
-    return `<li class="lrow ins-it" data-pick="p:${esc(p['포인트ID'])}">
+    return `<li class="lrow ins-it" data-pick="p:${esc(p['포인트ID'])}" data-aim="rect">
       <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${p['분류']}, ${titleLong(p)}. 근거 보기`)}"></button>${flag}
       <div class="ins-ih selbar">
         <span class="live ins-ckw"><label class="ins-ck"><input type="checkbox" data-act="ins-pick" data-id="${esc(p['포인트ID'])}"${sel.has(p['포인트ID']) ? ' checked' : ''} aria-label="${esc(titleLong(p))} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span><span class="lb">카드에 싣기</span><span class="lb2" aria-hidden="true">싣기</span></label></span>
@@ -124,7 +124,7 @@ App.registerTab((function () {
       ds: g['담보'].filter(d => revInScope(d, c, allowedIds)),
     })).filter(x => x.ds.length);
     if (!groups.length) return '<p class="ins-empty">조건과 비교 범위에 드는 개정 검토 후보가 없습니다.</p>';
-    return `<ul class="lrows ins-rev" id="ins-rev">${groups.map(({ g, gi, ds }) => `<li class="lrow ins-rg" data-pick="r:${gi}">
+    return `<ul class="lrows ins-rev" id="ins-rev">${groups.map(({ g, gi, ds }) => `<li class="lrow ins-rg" data-pick="r:${gi}" data-aim="rect">
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${g['중분류']}, 개정 검토 후보 ${ds.length}건. 근거 보기`)}"></button>
         <div class="ins-ih selbar"><span class="ins-t">${esc(g['중분류'])}</span><span class="sub">${esc(g['대분류'])}</span>${ui.tag(`담보 ${ds.length}`)}${g['좁은담보만수'] ? ui.tag(`좁은 담보만 ${g['좁은담보만수']}`) : ''}${c.peerScope !== 'all' ? ui.fullScopeTag() : ''}</div>
         <ul class="ins-rl">${ds.map(d => {
@@ -163,7 +163,7 @@ App.registerTab((function () {
     else if (!all.length) list = `<p class="ins-empty">${esc(emptyWhy(c, cat))}</p>`;
     else if (!shown.length) list = '<p class="ins-empty">이 목적에 드는 항목이 없습니다.</p>';
     else list = `<ul class="lrows">${shown.map(p => itemHTML(p, sel, groupHead, c)).join('')}</ul>`;
-    return `<section class="panel ins-cat" id="ins-cat-${i}" aria-labelledby="ins-cat-${i}-h">
+    return `<section class="panel ins-cat" id="ins-cat-${i}" style="--cd:${i * 55}ms" aria-labelledby="ins-cat-${i}-h">
       <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(subT)}${cat === '개정 검토 후보' && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</span>
         <h2 id="ins-cat-${i}-h"><span class="ins-no num">0${i + 1}</span>${esc(cat)} <b class="num">${n}</b>건${purpose && shown.length !== all.length && cat !== '개정 검토 후보' ? ` <span class="note">(목적에 맞는 ${shown.length}건)</span>` : ''}</h2></div>
         <div class="r"><span>카드에 실은 것 <b class="num">${inCard}</b>건</span>${cat === '개정 검토 후보' ? `<span class="live">${ui.btn('개정 검토 목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-rev"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="ins-cat-${i}" data-title="개정 검토 목록"` })}</span>` : ''}</div></div>
@@ -310,7 +310,7 @@ App.registerTab((function () {
   }
   function jumpHTML(c) {
     const cnt = catCounts(c);
-    return `<nav class="ins-jump" aria-label="분류 바로가기">${CATS.map((k, i) => `<a href="#ins-cat-${i}" data-act="ins-jump" data-i="${i}"><span class="num">0${i + 1}</span><span class="t">${esc(k)}</span><b class="num">${cnt[k] || 0}</b></a>`).join('')}</nav>`;
+    return `<nav class="ins-jump" data-main-axis="1" aria-label="분류 바로가기">${CATS.map((k, i) => `<a href="#ins-cat-${i}" data-act="ins-jump" data-aim="rect" data-i="${i}"><span class="num">0${i + 1}</span><span class="t">${esc(k)}</span><b class="num">${cnt[k] || 0}</b></a>`).join('')}</nav>`;
   }
   function render(body, c) {
     if (!c.base) { body.innerHTML = '<div class="panel placeholder">자료 없음: 이 기준 종형의 영업 인사이트 자료가 없습니다.</div>'; return; }
@@ -506,6 +506,13 @@ App.registerTab((function () {
   });
   function enter(body) {
     if (body.querySelector('.ins-cw')) refreshCard(body);
+    if (App.motionOn()) {
+      body.classList.remove('ins-enter');
+      void body.offsetWidth;
+      body.classList.add('ins-enter');
+      clearTimeout(body._insT);
+      body._insT = setTimeout(() => body.classList.remove('ins-enter'), 680);
+    }
     const card = body.querySelector('#insight-card');
     if (card && App.motionOn()) { card.classList.remove('icd-in'); void card.offsetWidth; card.classList.add('icd-in'); }
     checkPages(body);

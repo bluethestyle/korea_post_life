@@ -52,7 +52,7 @@
       });
     });
     const pw = 8, gap = 4, gGap = 10, H = 124;
-    let x = 0;
+    let x = 0, barIdx = 0;
     const rects = [];
     const ticks = [];
     groups.forEach((cells, gi) => {
@@ -71,7 +71,9 @@
           extra = `<line x1="${x + 1}" y1="${y + 3}" x2="${x + pw - 1}" y2="${y + 3}" stroke="var(--gold-edge)" stroke-width="1.2"/>`;
         } else if (cc.state === 'both') cls = 'pil-fill-neutral';
         else if (cc.state === 'unknown') cls = 'pil-hatch';
-        rects.push(`<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(5, h - 1)}"/>${extra}`);
+        const dMs = Math.min(320, barIdx * 6);
+        barIdx++;
+        rects.push(`<g class="hm-bar-g" style="--pd:${dMs}ms"><rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(5, h - 1)}"/>${extra}</g>`);
         if (ci === 0 || ci === cells.length - 1) {
           ticks.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 6}" stroke="var(--axis)" stroke-width="1"/>`);
         }
@@ -96,13 +98,15 @@
       const outH = r.total > 0 ? Math.max(14, Math.round((r.total / maxP) * 120)) : 8;
       const fillH = r.total > 0 && r.finalPass > 0 ? Math.max(5, Math.round((r.finalPass / maxP) * 120)) : 0;
       const oy = H - outH;
+      const dMs = Math.min(320, 70 + idx * 14);
+      let bar = '';
       if (r.total === 0 || r.finalPass === 0) {
-        els.push(`<rect class="pil-empty" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/>`);
+        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/>`;
       } else {
-        els.push(`<rect class="pil-outline" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/>`);
         const fy = H - fillH;
-        els.push(`<rect class="pil-fill-neutral" x="${x + 1}" y="${fy}" width="${pw - 2}" height="${fillH}"/>`);
+        bar = `<rect class="pil-outline" x="${x + 0.5}" y="${oy + 0.5}" width="${pw - 1}" height="${outH - 1}"/><rect class="pil-fill-neutral" x="${x + 1}" y="${fy}" width="${pw - 2}" height="${fillH}"/>`;
       }
+      els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${bar}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
     });
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
@@ -117,12 +121,14 @@
     const els = [];
     stages.forEach((s, idx) => {
       const x = idx * (pw + gap);
+      const dMs = Math.min(320, 130 + idx * 16);
+      const segEls = [];
       if (s.sum <= 0) {
         if (s.oursCnt > 0) {
           const cx = x + pw / 2, cy = H - 8;
-          els.push(`<polygon class="pil-fill-gold" points="${cx},${cy - 7} ${cx + 7},${cy} ${cx},${cy + 7} ${cx - 7},${cy}"/>`);
+          segEls.push(`<polygon class="pil-fill-gold" points="${cx},${cy - 7} ${cx + 7},${cy} ${cx},${cy + 7} ${cx - 7},${cy}"/>`);
         } else {
-          els.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 8.5}" width="${pw - 1}" height="8"/>`);
+          segEls.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 8.5}" width="${pw - 1}" height="8"/>`);
         }
       } else {
         const totH = Math.max(14, Math.round((s.sum / maxS) * 120));
@@ -139,15 +145,16 @@
         parts.forEach((p, pi) => {
           const h = pi === parts.length - 1 ? remH : Math.max(2, Math.round((p.v / remV) * remH));
           const y = curY - h;
-          els.push(`<rect class="${p.cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(1.5, h - 0.5)}"/>`);
+          segEls.push(`<rect class="${p.cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${Math.max(1.5, h - 0.5)}"/>`);
           if (p.goldCap && h >= 5) {
-            els.push(`<line x1="${x + 2}" y1="${y + 3}" x2="${x + pw - 2}" y2="${y + 3}" stroke="var(--gold-edge)" stroke-width="1.2"/>`);
+            segEls.push(`<line x1="${x + 2}" y1="${y + 3}" x2="${x + pw - 2}" y2="${y + 3}" stroke="var(--gold-edge)" stroke-width="1.2"/>`);
           }
           curY = y;
           remV -= p.v;
           remH = Math.max(0, remH - h);
         });
       }
+      els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${segEls.join('')}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
     });
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
@@ -177,8 +184,10 @@
     cats.forEach((nm, idx) => {
       const v = vals[idx];
       const x = idx * (pw + gap);
+      const dMs = Math.min(320, 190 + idx * 16);
+      let bar = '';
       if (v <= 0) {
-        els.push(`<rect class="pil-empty" x="${x + 0.5}" y="${H - 6.5}" width="${pw - 1}" height="6"/>`);
+        bar = `<rect class="pil-empty" x="${x + 0.5}" y="${H - 6.5}" width="${pw - 1}" height="6"/>`;
       } else {
         const h = Math.max(10, Math.round((v / maxV) * 120));
         const y = H - h;
@@ -192,8 +201,9 @@
         } else if (nm === '개정 검토 후보') {
           cls = 'pil-hatch-pale';
         }
-        els.push(`<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${h - 1}"/>${extra}`);
+        bar = `<rect class="${cls}" x="${x + 0.5}" y="${y + 0.5}" width="${pw - 1}" height="${h - 1}"/>${extra}`;
       }
+      els.push(`<g class="hm-bar-g" style="--pd:${dMs}ms">${bar}</g>`);
       els.push(`<line x1="${x + pw / 2}" y1="${H}" x2="${x + pw / 2}" y2="${H + 8}" stroke="var(--axis)" stroke-width="1"/>`);
     });
     return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${els.join('')}</svg>`;
@@ -213,7 +223,7 @@
     const lines = edges.map(([a, b]) => `<line x1="${pts[a].x}" y1="${pts[a].y}" x2="${pts[b].x}" y2="${pts[b].y}" stroke="var(--ink-1)" stroke-width="1.3"/>`).join('');
     const stems = pts.map(p => `<line x1="${p.x}" y1="${p.y + p.s / 2}" x2="${p.x}" y2="${H + 6}" stroke="var(--line-2)" stroke-width="1"/>`).join('');
     const nodes = pts.map((p, i) => `<rect class="${i === 2 ? 'pil-fill-neutral' : 'pil-outline'}" fill="${i === 2 ? 'var(--neutral-pil)' : 'var(--fog-1)'}" x="${p.x - p.s / 2}" y="${p.y - p.s / 2}" width="${p.s}" height="${p.s}"/>`).join('');
-    return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false">${stems}${lines}${nodes}</svg>`;
+    return `<svg class="hm-svg" width="${W}" height="${H + 8}" viewBox="0 0 ${W} ${H + 8}" aria-hidden="true" focusable="false"><g class="hm-bar-g" style="--pd:260ms">${stems}${lines}${nodes}</g></svg>`;
   }
 
   function groupReadHTML(id, base, c) {
@@ -241,7 +251,17 @@
     return `<p class="hm-read-main">${esc(App.firstSentence(bMa ? bMa['문장'] : ''))}</p>`;
   }
 
-  function renderHome(panel, c) {
+  function groupPlainSummary(id, base) {
+    if (!base) return '';
+    if (id === 'market') { const b = lineOf(base, '가'); return App.firstSentence(b ? b['문장'] : ''); }
+    if (id === 'gate') { const b = lineOf(base, '다'); return App.firstSentence(b ? b['문장'] : ''); }
+    if (id === 'cover') { const b = lineOf(base, '라'); return App.firstSentence(b ? b['문장'] : ''); }
+    if (id === 'insight') { const b = lineOf(base, '마'); return App.firstSentence(b ? b['문장'] : ''); }
+    if (id === 'graph') return App.firstSentence(t('grCenterDesc'));
+    return '';
+  }
+
+  function renderHome(panel, c, why) {
     const base = c.base || S['기준별'][c.baseId];
     if (!base) { panel.innerHTML = ''; return; }
     const metrics = App.ringTabMetrics(c);
@@ -257,12 +277,13 @@
       let bigHTML = '<span class="hm-big hm-big-empty" aria-hidden="true"></span>';
       if (!m.isGraph && m.val != null) {
         const den = m.denom != null ? `<small>/${esc(fmt(m.denom))}</small>` : '';
-        bigHTML = `<span class="hm-big num">${esc(fmt(m.val))}${den}</span>`;
+        bigHTML = `<span class="hm-big num"><span class="hm-val" data-count-to="${esc(m.val)}">${esc(fmt(m.val))}</span>${den}</span>`;
       }
       const extraTag = id === 'market' && m.subText
         ? `<span class="hm-sub">${esc(m.subText)}</span>`
         : (m.fullBadge ? `<span class="tag" title="${esc(t('fullScopeHint'))}">${esc(t('fullScopeBadge'))}</span>` : '');
-      return `<button type="button" class="hm-grp" id="tab-${id}" data-rtab="${id}" tabindex="${idx === 0 ? 0 : -1}">
+      const sumSub = groupPlainSummary(id, base);
+      return `<button type="button" class="hm-grp" id="tab-${id}" data-rtab="${id}" data-aim="rect" data-tip-title="${esc(m.name)}" data-tip-sub="${esc(sumSub)}" tabindex="${idx === 0 ? 0 : -1}">
         ${m.flag ? ui.flag(m.flag) : ''}
         <div class="hm-head">
           ${bigHTML}
@@ -274,17 +295,31 @@
     }).join('');
 
     const defaultRead = groupReadHTML(null, base, c);
-    panel.innerHTML = `<div class="hm-stage">
-      <div class="hm-axis-wrap" role="group" aria-label="${esc(t('tabsAria'))}">
+    panel.innerHTML = `<div class="hm-stage${why === 'tab' && App.motionOn() ? ' hm-enter' : ''}">
+      <div class="hm-axis-wrap" data-main-axis="1" data-scrub-row="1" role="group" aria-label="${esc(t('tabsAria'))}">
+        <div class="ax-ruler hm-ruler" aria-hidden="true"><span>100</span><span>50</span><span>0</span></div>
         ${groupsHTML}
       </div>
       <div class="hm-read" id="home-read" aria-live="polite">${defaultRead}</div>
     </div>`;
 
+    if (why === 'tab') App.countUp(panel);
+
     const axisWrap = panel.querySelector('.hm-axis-wrap');
     const readEl = panel.querySelector('#home-read');
     if (axisWrap && readEl) {
-      const showFor = id => { readEl.innerHTML = groupReadHTML(id, base, c); };
+      let curId = null;
+      const showFor = id => {
+        if (id === curId) return;
+        curId = id;
+        readEl.innerHTML = groupReadHTML(id, base, c);
+        if (App.motionOn()) {
+          Array.from(readEl.children).forEach((el, k) => {
+            el.style.setProperty('--ld', `${k * 30}ms`);
+            el.classList.add('ev-line-in');
+          });
+        }
+      };
       axisWrap.addEventListener('pointerover', e => {
         const g = e.target.closest && e.target.closest('.hm-grp[data-rtab]');
         if (g) showFor(g.dataset.rtab);

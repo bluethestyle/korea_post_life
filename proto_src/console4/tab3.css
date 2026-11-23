@@ -6,15 +6,19 @@
   padding-bottom:8px;border-bottom:2px solid var(--axis)}
 .gtf-acols{display:flex;justify-content:space-between;align-items:end;width:100%}
 .gtf-acol{position:relative;flex:none;width:86px;display:flex;flex-direction:column;align-items:flex-start;padding-left:2px}
-.gtf-anm{font:600 13.5px/1.25 var(--f-ko);color:var(--ink-0);white-space:nowrap}
+.gtf-anm{font:600 13.5px/1.25 var(--f-ko);color:var(--ink-0);white-space:nowrap;transition:color 120ms var(--ease-in)}
 .gtf-acol.is-prem .gtf-anm{color:var(--ink-1)}
+.gtf-acol.is-hot .gtf-anm{color:var(--ink-0);font-weight:700}
 .gtf-atk{position:absolute;left:24px;bottom:-9px;width:1px;height:8px;background:var(--axis)}
+.gtf-acol.is-hot .gtf-atk{width:2px;height:11px;background:var(--ink-0)}
 
 /* 고지 유형 줄: 줄 높이 56px, 사이 8px(여덟 줄이면 504px) */
 .gtf-rows{display:flex;flex-direction:column;gap:8px}
 .gtf-row{display:grid;grid-template-columns:168px minmax(0,1fr);column-gap:12px;align-items:center;
-  min-height:56px;border-bottom:1px solid var(--line)}
-.gtf-row.is-base .gtf-rkey{font-weight:600;box-shadow:inset 3px 0 0 var(--ink-0);padding-left:8px}
+  min-height:56px;border-bottom:1px solid var(--line);transition:border-color 140ms var(--ease-in)}
+.gtf-row.is-base .gtf-rkey,.gtf-row.is-hot .gtf-rkey,.gtf-row.has-row-sel .gtf-rkey{font-weight:600;box-shadow:inset 3px 0 0 var(--ink-0);padding-left:8px}
+.gtf-row.has-row-sel{border-bottom-color:var(--line-2)}
+.board.has-sel .gtf-row.has-row-sel .gtf-cell:not(.is-sel){opacity:.84}
 
 .gtf-rh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
 .gtf-rkey{font:600 14px/1.25 var(--f-num);color:var(--ink-0);white-space:nowrap}
@@ -24,24 +28,35 @@
 .gtf-ours.is-dash{border-style:dashed;color:var(--ink-1)}
 
 .gtf-track{display:flex;align-items:center;justify-content:space-between;min-width:0;width:100%}
-.gtf-conn{flex:1 1 auto;min-width:4px;height:0}
+.gtf-conn{flex:1 1 auto;min-width:4px;height:0;transform-origin:left center}
 .gtf-conn.is-on{border-top:2px solid var(--axis)}
 .gtf-conn.is-cut{border-top:1px dashed var(--ink-2)}
 .gtf-conn.is-off{border-top:0}
+.gtf-row.is-hot .gtf-conn.is-on,.gtf-row.has-row-sel .gtf-conn.is-on{border-top-width:2.5px}
+.gtf-row.is-hot .gtf-conn.is-cut,.gtf-row.has-row-sel .gtf-conn.is-cut{border-top-width:1.5px;border-top-color:var(--ink-0)}
+.gtf-row-redraw .gtf-conn{animation:gtConnDraw 280ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
 
 /* 줄과 관문이 만나는 자리의 44x44px 기둥 + 오른쪽 통과수/상대수 */
-.gtf-cell{position:relative;flex:none;width:86px;display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 2px;
-  border:0;background:transparent;color:var(--ink-0);transition:transform 140ms var(--ease)}
-.gtf-cell:hover{transform:translateY(-1px)}
+.gtf-cell{position:relative;flex:none;width:86px;min-width:44px;display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 2px;
+  border:0;background:transparent;color:var(--ink-0);transition:transform 120ms var(--ease-in),opacity 180ms var(--ease-in)}
+.gtf-cell:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim) .pil-outline,
+.gtf-cell:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim) .pil-empty{stroke-width:2}
 .gtf-pil{position:relative;width:44px;height:44px;display:block;flex:none}
 .gtf-svg{width:100%;height:100%;display:block}
+.gtf-fill-g{transform-box:fill-box;transform-origin:center bottom}
 .gtf-cnt{font:600 13.5px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);white-space:nowrap;min-width:30px;text-align:left}
 .gtf-cell.is-zero .gtf-cnt{color:var(--ink-2);font-weight:400}
 
-.gtf-cell.is-sel .gtf-pil{outline:2.5px solid var(--red);outline-offset:1px}
+.gtf-cell.is-sel .gtf-pil{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff}
 .gtf-cell.is-sel .gtf-cnt{color:var(--red-ink);font-weight:600}
 
-.gtf-anim .gtf-pil{animation:gtSq 220ms var(--ease) both}
+.gtf-anim .gtf-conn{animation:gtConnDraw 320ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
+.gtf-anim .gtf-fill-g{animation:gtFillRise 360ms var(--ease-in) both;animation-delay:var(--gd,0ms)}
+:root[data-motion="calm"] .gtf-anim .gtf-conn,
+:root[data-motion="calm"] .gtf-anim .gtf-fill-g,
+:root[data-motion="calm"] .gtf-row-redraw .gtf-conn{animation-duration:180ms}
+@keyframes gtConnDraw{from{transform:scaleX(0);opacity:.2}to{transform:scaleX(1);opacity:1}}
+@keyframes gtFillRise{from{transform:scaleY(0.06);opacity:.25}to{transform:none;opacity:1}}
 
 @media (max-width:1599px) and (min-width:1280px){
   .gtf-axis-head,.gtf-row{grid-template-columns:150px minmax(0,1fr);column-gap:10px}
