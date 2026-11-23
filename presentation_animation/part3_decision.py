@@ -36,31 +36,36 @@ class Part3DecisionScene(PostLifeBaseScene):
         self.init_cinema_canvas()
 
         # ===================================================================
-        # 5장 [~35s]: 기술 배경 — 2026.09 'Jev' 줌인 투어 & 2026.11 'decision-1' 3D 코어
+        # 5장 [~36s]: 기술 배경 — 지연 시계 vs 즉시 판정 패닝 & 3D 코어 · 보정 곡선 주행
         # ===================================================================
         hl, hr, hb = self.make_hud(
             5,
             "판정 전용 AI의 등장 — Jev가 연 패러다임과 Google decision-1 출시",
-            "문장을 한 글자씩 생성하는 비효율을 없애고 선택지 확률만 산출하는 '판정 전용 AI' 분야가 열렸습니다",
+            "문장을 한 글자씩 생성하는 비효율을 없애고 선택지 확률만 즉시 산출하는 '판정 전용 AI' 분야가 열렸습니다",
         )
 
         # -------------------------------------------------------------------
-        # Beat 5A: Generative Wobble Wave Close-up -> Pan Right to Jev Engine -> Pull Back
+        # Beat 5A: Ticking Generative Stopwatch & Wobble Wave -> Whip-Pan to Instant Jev Stamp!
         # -------------------------------------------------------------------
         gen_card = RoundedRectangle(
             corner_radius=0.09, width=4.16, height=4.52, fill_color=C_PANEL, fill_opacity=0.94, stroke_color=C_CORAL, stroke_width=2.0
         ).move_to([-4.02, 0.05, 0]).set_z_index(3)
         gen_hdr = fit(pill("기존 생성형 AI (대화 · 작성 모델)", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=11.2), max_w=3.80).move_to([-4.02, 1.86, 0]).set_z_index(6)
 
+        # Animated Latency Stopwatch inside Left Card!
+        sw_c = np.array([-5.38, 1.14, 0.0])
+        sw_ring = Circle(radius=0.26, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_AMBER, stroke_width=2.0).move_to(sw_c).set_z_index(7)
+        sw_hand = Line(sw_c, sw_c + UP * 0.21, color=C_CORAL, stroke_width=2.4).set_z_index(8)
+
         gen_tok_row = fit(
             VGroup(
-                pill('"이"', fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=11.0, px=0.09, py=0.04),
-                pill('"특약은"', fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=11.0, px=0.09, py=0.04),
-                pill('"아마..."', fg=C_AMBER, bg=C_PANEL_HI, border=C_AMBER, size=11.0, px=0.09, py=0.04),
-                pill('"면책이?"', fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=11.0, px=0.09, py=0.04),
-            ).arrange(RIGHT, buff=0.08),
-            max_w=3.80,
-        ).move_to([-4.02, 1.04, 0]).set_z_index(6)
+                pill('"이"', fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=10.6, px=0.08, py=0.04),
+                pill('"특약은"', fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=10.6, px=0.08, py=0.04),
+                pill('"아마..."', fg=C_AMBER, bg=C_PANEL_HI, border=C_AMBER, size=10.6, px=0.08, py=0.04),
+                pill('"면책?"', fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=10.6, px=0.08, py=0.04),
+            ).arrange(RIGHT, buff=0.07),
+            max_w=3.05,
+        ).move_to([-3.52, 1.14, 0]).set_z_index(6)
 
         wob_fn = ParametricFunction(
             lambda u: np.array([-5.65 + u * 3.26, 0.28 + 0.24 * math.sin(10.0 * u) * math.sin(3.2 * u + 0.4), 0.0]),
@@ -68,7 +73,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             color=C_CORAL,
             stroke_width=2.8,
         ).set_z_index(6)
-        wob_lbl = txt("토큰 순차 생성 → 지연 · 출력 비용 증가", size=9.8, color=C_CORAL, bold=True, z=6).move_to([-4.02, -0.22, 0])
+        wob_lbl = txt("토큰 순차 생성 → 지연 3.8초 ↑ · 출력 과금", size=9.8, color=C_CORAL, bold=True, z=6).move_to([-4.02, -0.22, 0])
 
         gen_gauges = fit(
             VGroup(
@@ -79,7 +84,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             max_w=3.82,
         ).move_to([-4.02, -0.92, 0]).set_z_index(6)
         gen_foot = pill("진위 판별 · 분류 · 검수에는 비효율", fg=C_INK_1, bg=C_PANEL_HI, border=C_SLATE, size=10.0, z=6).move_to([-4.02, -1.64, 0])
-        gen_grp = VGroup(gen_card, gen_hdr, gen_gauges, gen_foot)
+        gen_grp = VGroup(gen_card, gen_hdr, sw_ring, sw_hand, gen_gauges, gen_foot)
 
         shift_arrow = arrow_2d([-1.82, 0.05, 0], [-0.96, 0.05, 0], color=C_GOLD, sw=2.8, tip=0.15, z=8)
         shift_lbl = pill("생성 제거", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.0, px=0.10, py=0.04, z=9).move_to([-1.39, 0.48, 0])
@@ -97,14 +102,14 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         jev_in = pill("원문 1회 입력", fg=C_INK_0, bg=C_PANEL_HI, border=C_CYAN, size=10.6, px=0.11, py=0.06, z=7).move_to([0.22, 0.84, 0])
         jev_core = RoundedRectangle(
-            corner_radius=0.08, width=1.82, height=0.94, fill_color="#1D2736", fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=2.2
+            corner_radius=0.08, width=1.88, height=0.98, fill_color="#1D2736", fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=2.2
         ).move_to([2.26, 0.84, 0]).set_z_index(6)
         jev_core_t = fit(
             VGroup(
-                txt("Jev 판정 엔진", size=11.8, color=C_GOLD, bold=True, z=7),
-                txt("출력 토큰 = 0", size=10.0, color=C_MINT, bold=True, z=7),
+                txt("Jev 즉시 판정", size=11.8, color=C_GOLD, bold=True, z=7),
+                txt("0.05초 · 출력 토큰 0", size=9.8, color=C_MINT, bold=True, z=7),
             ).arrange(DOWN, buff=0.05),
-            max_w=1.64,
+            max_w=1.72,
         ).move_to(jev_core)
         jev_in_arr = arrow_2d(jev_in.get_right(), jev_core.get_left(), color=C_CYAN, sw=2.0, tip=0.10, z=7)
 
@@ -152,23 +157,24 @@ class Part3DecisionScene(PostLifeBaseScene):
             app_tile(4.24, -1.62, C_VIOLET, ic_u4, "④ 추출 정합성 자동 채점"),
         )
 
-        # Open zoomed onto the Left Generative AI Wobble Wave!
+        # Open zoomed onto Left Generative AI: Stopwatch spins 2 full turns while tokens print sequentially!
         self.set_camera_orientation(phi=0 * DEGREES, theta=-90 * DEGREES, zoom=1.30, frame_center=[-4.02, 0.05, 0])
+        self.add(sw_hand)
         self.show_initial_hud(
             hl,
             hr,
             hb,
             extra_anims=[
-                FadeIn(gen_grp, shift=RIGHT * 0.12),
-                LaggedStart(*[FadeIn(tk, shift=RIGHT * 0.08) for tk in gen_tok_row], lag_ratio=0.16),
+                FadeIn(VGroup(gen_card, gen_hdr, sw_ring, gen_gauges, gen_foot), shift=RIGHT * 0.12),
+                Rotate(sw_hand, angle=-2 * TAU, about_point=sw_c),
+                LaggedStart(*[FadeIn(tk, shift=RIGHT * 0.08) for tk in gen_tok_row], lag_ratio=0.24),
                 Create(wob_fn),
                 FadeIn(wob_lbl),
             ],
-            rt=1.15,
+            rt=1.25,
         )
-        self.wait(0.35)
 
-        # Documentary Pan Right across '생성 제거' straight into Jev's Zero-Token Engine!
+        # Whip-Pan Right to Jev: Instant Golden Flash stamps 0.94 probability bar with zero output tokens!
         self.cam_move(
             zoom=1.28,
             center=[2.45, 0.65, 0],
@@ -177,16 +183,16 @@ class Part3DecisionScene(PostLifeBaseScene):
                 FadeIn(shift_lbl, scale=0.85),
                 FadeIn(VGroup(jev_card, jev_top_row, jev_in, jev_core, jev_core_t, jev_div, jev_use_hdr), shift=LEFT * 0.12),
                 GrowArrow(jev_in_arr),
-                LaggedStart(*[GrowArrow(oa) for oa in jev_out_arrs], lag_ratio=0.05),
-                FadeIn(jev_bars, shift=RIGHT * 0.08),
+                Flash([2.26, 0.84, 0], color=C_GOLD, line_length=0.28, num_lines=10),
+                LaggedStart(*[GrowArrow(oa) for oa in jev_out_arrs], lag_ratio=0.04),
+                GrowFromEdge(jev_bars[0][1], LEFT),
+                FadeIn(VGroup(jev_bars[0][0], jev_bars[0][2], jev_bars[1], jev_bars[2])),
             ],
-            rt=1.25,
+            rt=1.15,
         )
-        self.wait(0.35)
 
-        # Pull back to wide 2D comparison as the 4 application tiles emerge
         self.reset_cam_2d(
-            anims=[LaggedStart(*[FadeIn(u, shift=UP * 0.06) for u in jev_uses], lag_ratio=0.08)],
+            anims=[LaggedStart(*[FadeIn(u, shift=UP * 0.06, scale=0.95) for u in jev_uses], lag_ratio=0.08)],
             rt=0.95,
         )
 
@@ -210,10 +216,10 @@ class Part3DecisionScene(PostLifeBaseScene):
             jev_uses,
         )
         self.check_bounds(beat5a_all, "CH5A JEV INFOGRAPHIC")
-        self.wait(1.85)
+        self.wait(1.45)
 
         # -------------------------------------------------------------------
-        # Beat 5B: 3D Orbital 'gemini-decision-1' Core -> Zoom Tour onto 1,000 Qs & Calibration
+        # Beat 5B: 3D Gyroscopic 'decision-1' Core -> Live 1,000-Q Burst & y=x Calibration Trace!
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
@@ -243,7 +249,6 @@ class Part3DecisionScene(PostLifeBaseScene):
         ).move_to(d1_c)
         d1_hub_grp = VGroup(d1_ring, d1_core, d1_txt)
 
-        # True 3D Gyroscopic Orbital Rings + Translucent 3D Crystal Core!
         orb_3d_a = (
             Circle(radius=1.24, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=1.8, stroke_opacity=0.72)
             .rotate(58 * DEGREES, axis=RIGHT)
@@ -315,7 +320,6 @@ class Part3DecisionScene(PostLifeBaseScene):
             arrow_2d(d1_c + np.array([0.82, -0.55, 0]), [1.78, -1.20, 0], color=C_MINT, sw=2.0, tip=0.10, z=6),
         )
 
-        # Tilt into 3D orbital view around the 'decision-1' core!
         self.cam_move(
             phi=44 * DEGREES,
             theta=-62 * DEGREES,
@@ -328,16 +332,18 @@ class Part3DecisionScene(PostLifeBaseScene):
                 LaggedStart(*[GrowArrow(sp) for sp in spokes_5b], lag_ratio=0.07),
                 LaggedStart(*[FadeIn(tq, scale=0.94) for tq in [tq1, tq2, tq3, tq4]], lag_ratio=0.09),
             ],
-            rt=1.20,
+            rt=1.15,
         )
         self.remove(beat5a_all)
         self.cam_move(
             theta=-50 * DEGREES,
             anims=[Rotate(orb_3d_a, angle=PI / 3, axis=OUT), Rotate(orb_3d_b, angle=-PI / 3, axis=OUT)],
-            rt=0.80,
+            rt=0.75,
         )
 
-        # Level to 2D while zooming into Right-side 1,000-Question Matrix & y=x Calibration Curve!
+        # Zoom into Right Quadrants: Ripple across 1,000-Q Dot Matrix & Trace y=x Calibration Line!
+        cal_runner = glow_dot(cal_diag.get_start(), color=C_GOLD, r=0.06, z=14)
+        self.add(cal_runner)
         self.cam_move(
             phi=0 * DEGREES,
             theta=-90 * DEGREES,
@@ -345,22 +351,23 @@ class Part3DecisionScene(PostLifeBaseScene):
             center=[3.85, -0.18, 0],
             anims=[
                 FadeOut(d1_3d_fx),
+                LaggedStart(*[Indicate(d, color=WHITE, scale_factor=1.6) for d in q_dots], lag_ratio=0.02),
+                MoveAlongPath(cal_runner, Line(cal_diag.get_start(), cal_diag.get_end())),
                 Circumscribe(tq2[0], color=C_GOLD, stroke_width=2.0, buff=0.03),
                 Circumscribe(tq4[0], color=C_MINT, stroke_width=2.0, buff=0.03),
             ],
-            rt=1.10,
+            rt=1.15,
         )
-        self.remove(d1_3d_fx)
+        self.remove(d1_3d_fx, cal_runner)
 
-        # Pull back to reveal full radial 4-quadrant infographic + timeline header
-        self.reset_cam_2d(anims=[FadeIn(tl_bar, shift=DOWN * 0.08)], rt=0.85)
+        self.reset_cam_2d(anims=[FadeIn(tl_bar, shift=DOWN * 0.08)], rt=0.80)
 
         ch5_stage = VGroup(tl_bar, d1_hub_grp, spokes_5b, tq1, tq2, tq3, tq4)
         self.check_bounds(ch5_stage, "CH5B RADIAL TRAITS")
-        self.wait(1.90)
+        self.wait(1.50)
 
         # ===================================================================
-        # 6장 [~38s]: 검증·분류 프로세스 — 병목 줌인 · 3D 24기둥 확률 첨탑 · 게이트 추적
+        # 6장 [~39s]: 검증·분류 프로세스 — 분포 충돌·은폐·온도계 폭발 · 3D 황금 첨탑 · 슬라이딩 토큰 창
         # ===================================================================
         hl, hr, hb = self.switch_hud(
             ch5_stage,
@@ -374,7 +381,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         print(f"[TIMING] Ch5 end: {self.renderer.time:.2f}s")
 
         # -------------------------------------------------------------------
-        # Beat 6A: 3-Column Visual Bottlenecks + Microscope Zoom onto 79.98K/min Burst
+        # Beat 6A: Kinetic 3-Stop Camera Pan across Colliding Curves, Sneaking Bundle, & Bursting Thermometer!
         # -------------------------------------------------------------------
         top_res_6 = fit(
             pill("가용 자원 · 제약 : 호출 횟수는 일 10,000회로 넉넉하지만, 입력량은 '분당 50,000토큰' 상한 존재", fg=C_VIOLET, bg=C_PANEL_HI, border=C_VIOLET, size=11.0, z=9),
@@ -391,7 +398,7 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         c6_1 = col_diag_card(-4.02, C_AMBER, "문제 ① 참/거짓 질문 시 확률 뭉개짐", "정답 줄도 0.50~0.80에 머물러 경계 모호")
         ax_c1 = Line([-5.55, -0.95, 0], [-2.50, -0.95, 0], color=C_SLATE, stroke_width=1.8).set_z_index(5)
-        zone_mush = Rectangle(width=1.55, height=1.85, fill_color=C_AMBER, fill_opacity=0.16, stroke_color=C_AMBER, stroke_width=1.2).move_to([-3.85, -0.02, 0]).set_z_index(5)
+        zone_mush = Rectangle(width=1.55, height=1.85, fill_color=C_AMBER, fill_opacity=0.18, stroke_color=C_AMBER, stroke_width=1.3).move_to([-3.85, -0.02, 0]).set_z_index(5)
         curve_t = ParametricFunction(
             lambda u: np.array([-5.40 + u * 2.75, -0.95 + 1.45 * math.exp(-(((u - 0.58) / 0.22) ** 2)), 0]),
             t_range=[0, 1, 0.02],
@@ -420,38 +427,44 @@ class Part3DecisionScene(PostLifeBaseScene):
         therm_bg = RoundedRectangle(
             corner_radius=0.06, width=0.68, height=2.28, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_SLATE, stroke_width=1.6
         ).move_to([3.28, 0.02, 0]).set_z_index(5)
-        therm_fill = RoundedRectangle(corner_radius=0.05, width=0.56, height=2.14, fill_color=C_CORAL, fill_opacity=0.92, stroke_width=0).move_to([3.28, -0.05, 0]).set_z_index(6)
+        therm_fill = RoundedRectangle(corner_radius=0.05, width=0.56, height=2.14, fill_color=C_CORAL, fill_opacity=0.95, stroke_width=0).move_to([3.28, -0.05, 0]).set_z_index(6)
         lim_50k = DashedLine([2.62, 0.28, 0], [5.42, 0.28, 0], dash_length=0.07, color=WHITE, stroke_width=2.2).set_z_index(8)
         lim_lbl = txt("분당 50K 상한", size=9.2, color=WHITE, bold=True, z=8).move_to([4.68, 0.50, 0])
         spike_tag = pill("최고 79.98K / 분 ×", fg=WHITE, bg=C_CORAL, border=WHITE, size=9.4, px=0.09, py=0.04, z=8).move_to([4.65, 1.02, 0])
         delay_tag = pill("203분 지연 !", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=9.4, px=0.09, py=0.04, z=8).move_to([4.65, -0.48, 0])
 
-        self.play(
-            FadeIn(top_res_6, shift=DOWN * 0.08),
-            FadeIn(VGroup(c6_1, ax_c1, zone_mush, lbl_ax_c1)),
-            Create(curve_t),
-            Create(curve_f),
-            FadeIn(lbl_mush),
-            FadeIn(VGroup(c6_2, bundle_loop, b_d1, b_d2, b_d3, b_d4)),
-            FadeIn(VGroup(c6_3, therm_bg, lim_50k, lim_lbl)),
-            run_time=1.05,
-        )
-
-        # Zoom in onto Bundled Leak + 79.98K/min Thermometer Burst!
+        # Stop 1: Zoom onto Overlapping Curves in Column 1!
         self.cam_move(
-            zoom=1.46,
-            center=[2.25, -0.05, 0],
+            zoom=1.36,
+            center=[-3.80, -0.08, 0],
             anims=[
-                GrowArrow(leak_arr),
-                FadeIn(leak_stamp, scale=1.2),
-                GrowFromEdge(therm_fill, DOWN),
-                FadeIn(spike_tag, shift=UP * 0.06),
-                FadeIn(delay_tag),
+                FadeIn(top_res_6, shift=DOWN * 0.08),
+                FadeIn(VGroup(c6_1, ax_c1, zone_mush, lbl_ax_c1)),
+                Create(curve_t),
+                Create(curve_f),
+                FadeIn(lbl_mush, scale=1.15),
+                FadeIn(VGroup(c6_2, bundle_loop, b_d1, b_d2, b_d3, b_d4)),
+                FadeIn(VGroup(c6_3, therm_bg, lim_50k, lim_lbl)),
             ],
             rt=1.05,
         )
-        self.wait(0.35)
-        self.reset_cam_2d(rt=0.80)
+
+        # Stop 2: Pan Right across Sneaking Bundle -> Bursting 79.98K/min Thermometer!
+        self.cam_move(
+            zoom=1.38,
+            center=[2.15, -0.08, 0],
+            anims=[
+                Rotate(bundle_loop, angle=PI / 2),
+                GrowArrow(leak_arr),
+                FadeIn(leak_stamp, scale=1.35),
+                GrowFromEdge(therm_fill, DOWN),
+                Flash([3.28, 0.95, 0], color=C_CORAL, line_length=0.25, num_lines=10),
+                FadeIn(spike_tag, shift=UP * 0.08),
+                FadeIn(delay_tag),
+            ],
+            rt=1.15,
+        )
+        self.reset_cam_2d(rt=0.75)
 
         beat6a_all = VGroup(
             top_res_6,
@@ -479,7 +492,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             delay_tag,
         )
         self.check_bounds(beat6a_all, "CH6A VISUAL BOTTLENECKS")
-        self.wait(1.65)
+        self.wait(1.30)
 
         # -------------------------------------------------------------------
         # Beat 6B: 3Blue1Brown 3D Probability Column Landscape -> Golden 3D Spire!
@@ -565,7 +578,6 @@ class Part3DecisionScene(PostLifeBaseScene):
             max_w=6.85,
         ).move_to([2.48, -2.35, 0])
 
-        # Tilt into dramatic 3D perspective overlooking the 24-column mushy probability ridge!
         self.cam_move(
             phi=48 * DEGREES,
             theta=-58 * DEGREES,
@@ -582,12 +594,11 @@ class Part3DecisionScene(PostLifeBaseScene):
                 FadeIn(prisms_mushy, lag_ratio=0.02),
                 FadeIn(mushy_callout, shift=DOWN * 0.08),
             ],
-            rt=1.20,
+            rt=1.15,
         )
         self.remove(beat6a_all)
-        self.wait(0.55)
+        self.wait(0.45)
 
-        # Morph the 3D mushy hill into a towering Golden 3D Spire while orbiting camera!
         self.cam_move(
             phi=42 * DEGREES,
             theta=-74 * DEGREES,
@@ -598,32 +609,31 @@ class Part3DecisionScene(PostLifeBaseScene):
                 FadeIn(peak_callout),
                 ReplacementTransform(prisms_mushy, prisms_sharp),
             ],
-            rt=1.15,
+            rt=1.10,
         )
         self.remove(mushy_callout)
-        self.wait(0.55)
+        self.wait(0.45)
 
-        # Smoothly glide back to razor-sharp orthographic 2D chart!
         self.reset_cam_2d(
             anims=[
                 FadeOut(prisms_sharp),
                 FadeIn(bars_sharp),
                 FadeIn(calib_chip, shift=UP * 0.08),
             ],
-            rt=0.85,
+            rt=0.80,
         )
         self.remove(prisms_sharp)
 
         beat6b_all = VGroup(batch_grp, spec_axis, spec_y_axis, spec_y_1, spec_y_0, spec_x_lbl, bars_sharp, peak_callout, calib_chip)
         self.check_bounds(beat6b_all, "CH6B POLARIZATION")
-        self.wait(1.80)
+        self.wait(1.50)
 
         # -------------------------------------------------------------------
-        # Beat 6C: 3-Tier Particle Gate + Camera Tracking Retry Loop & 60s Token Gauge
+        # Beat 6C: 3-Tier Particle Gate + Live Sliding [60s Window] Bracket over Token Pulses!
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
-            "해결 ③·④ 3단계 확률 분기로 오확정을 막고, 최근 60초 토큰 창 제어와 주간 증분 집중 운용으로 한도를 지킵니다",
+            "해결 ③·④ 3단계 확률 분기로 오확정을 막고, 최근 60초 슬라이딩 토큰 창 제어로 분당 한도를 안전하게 지킵니다",
             rt=0.38,
         )
 
@@ -662,29 +672,37 @@ class Part3DecisionScene(PostLifeBaseScene):
         retry_lbl = pill("다른 모델 재추출", fg=C_VIOLET, bg=C_PANEL, border=C_VIOLET, size=10.4, px=0.10, py=0.04).move_to([-2.95, -1.96, 0]).set_z_index(7)
 
         mkt_card = RoundedRectangle(
-            corner_radius=0.09, width=3.96, height=4.18, fill_color=C_PANEL, fill_opacity=0.94, stroke_color=C_VIOLET, stroke_width=2.2
+            corner_radius=0.09, width=3.96, height=4.34, fill_color=C_PANEL, fill_opacity=0.94, stroke_color=C_VIOLET, stroke_width=2.2
         ).move_to([3.92, 0.25, 0]).set_z_index(4)
-        mkt_title = txt("주간 시장동향 3유형 분류 & 토큰 제어", size=12.6, color=C_VIOLET, bold=True, z=7).move_to([3.92, 1.94, 0])
+        mkt_title = txt("주간 시장동향 3유형 & 60초 토큰 창", size=12.2, color=C_VIOLET, bold=True, z=7).move_to([3.92, 2.04, 0])
 
-        safe_bg = RoundedRectangle(corner_radius=0.04, width=3.48, height=0.30, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_MINT, stroke_width=1.5).move_to([3.92, 1.46, 0]).set_z_index(6)
-        safe_fg = RoundedRectangle(corner_radius=0.03, width=2.68, height=0.22, fill_color="#1A5642", fill_opacity=0.95, stroke_width=0).move_to([3.54, 1.46, 0]).set_z_index(7)
-        safe_txt = fit(txt("60초 토큰 창 제어 : 42K / 50K 안전 유지 ✓", size=9.0, color=WHITE, bold=True, z=8), max_w=3.32).move_to([3.92, 1.46, 0])
+        # Live Sliding [60초 창] Bracket over 12 Token Request Bars!
+        tok_bars_60 = VGroup(
+            *[
+                Rectangle(width=0.18, height=0.14 + (k % 3) * 0.08, fill_color=C_MINT if k % 2 == 0 else C_CYAN, fill_opacity=0.85, stroke_width=0)
+                .move_to([2.35 + k * 0.28, 1.54, 0])
+                .set_z_index(6)
+                for k in range(12)
+            ]
+        )
+        win_bracket = RoundedRectangle(corner_radius=0.04, width=1.62, height=0.40, fill_color="#1A5642", fill_opacity=0.45, stroke_color=C_GOLD, stroke_width=2.0).move_to([3.05, 1.54, 0]).set_z_index(8)
+        safe_txt = fit(txt("슬라이딩 60초 창 : 42K / 50K 안전 유지 ✓", size=9.0, color=C_MINT, bold=True, z=8), max_w=3.48).move_to([3.92, 1.16, 0])
 
         sig_rows = VGroup()
         for sy, s_col, s_head, s_desc in [
-            (0.72, C_GOLD, "◆ 배타적사용권 획득 · 신청", "독점 판매 기간 · 만료 시점 추적"),
-            (-0.10, C_CORAL, "▲ 주력 담보 경쟁 심화", "가입한도 상향 · 고지 요건 완화 포착"),
+            (0.60, C_GOLD, "◆ 배타적사용권 획득 · 신청", "독점 판매 기간 · 만료 시점 추적"),
+            (-0.16, C_CORAL, "▲ 주력 담보 경쟁 심화", "가입한도 상향 · 고지 요건 완화 포착"),
             (-0.92, C_MINT, "★ 미보유 신담보 출시", "당사 미운영 보장 → 개정 검토 등록"),
         ]:
-            sb = RoundedRectangle(corner_radius=0.06, width=3.54, height=0.66, fill_color=C_PANEL_HI, fill_opacity=0.96, stroke_color=s_col, stroke_width=1.7).move_to([3.92, sy, 0]).set_z_index(6)
+            sb = RoundedRectangle(corner_radius=0.06, width=3.54, height=0.62, fill_color=C_PANEL_HI, fill_opacity=0.96, stroke_color=s_col, stroke_width=1.7).move_to([3.92, sy, 0]).set_z_index(6)
             stg = fit(
-                VGroup(txt(s_head, size=11.2, color=s_col, bold=True, z=7), txt(s_desc, size=9.8, color=C_INK_1, z=7)).arrange(DOWN, aligned_edge=LEFT, buff=0.03),
+                VGroup(txt(s_head, size=11.0, color=s_col, bold=True, z=7), txt(s_desc, size=9.6, color=C_INK_1, z=7)).arrange(DOWN, aligned_edge=LEFT, buff=0.03),
                 max_w=3.28,
             ).move_to(sb)
             sig_rows.add(VGroup(sb, stg))
 
-        mkt_foot = txt("초기 대량분은 교차판독 · 주간 증분에 집중 투입", size=9.8, color=C_GOLD, bold=True, z=7).move_to([3.92, -1.56, 0])
-        mkt_group = VGroup(mkt_card, mkt_title, safe_bg, safe_fg, safe_txt, sig_rows, mkt_foot)
+        mkt_foot = txt("초기 대량분은 교차판독 · 주간 증분에 집중 투입", size=9.6, color=C_GOLD, bold=True, z=7).move_to([3.92, -1.56, 0])
+        mkt_group = VGroup(mkt_card, mkt_title, tok_bars_60, win_bracket, safe_txt, sig_rows, mkt_foot)
 
         quota_bar = fit(
             pill("검증·분류 완결 : 오확정 0건 정밀 분기 + 60초 토큰 창 자동 조절로 분당 5만 한도 안에서 무중단 운영 ✓", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.0),
@@ -704,7 +722,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             FadeIn(retry_lbl),
             FadeIn(mkt_group, shift=LEFT * 0.14),
             FadeIn(quota_bar, shift=UP * 0.08),
-            run_time=1.05,
+            run_time=1.00,
         )
         self.remove(beat6b_all)
 
@@ -725,7 +743,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             stream_anims.append(
                 Succession(Wait(0.10 + k * 0.11), MoveAlongPath(pt, CubicBezier(p_start, p_start + RIGHT * 1.1, np.array([-2.2, end_y, 0]), np.array([-1.28, end_y, 0])), run_time=0.98))
             )
-        for k, sy in enumerate([0.72, -0.10, -0.92]):
+        for k, sy in enumerate([0.60, -0.16, -0.92]):
             mp = glow_dot([0.12, 1.85, 0], color=C_VIOLET, r=0.060, z=13)
             mkt_pulses.add(mp)
             stream_anims.append(
@@ -739,29 +757,30 @@ class Part3DecisionScene(PostLifeBaseScene):
         rescue_pt = glow_dot(p_start, color=C_VIOLET, r=0.060, z=13)
         self.add(particles, mkt_pulses, blocked_pt, rescue_pt)
 
-        # Zoom in onto the 3-Tier Gate & Retry Loop while particles sort in real time!
+        # Zoom in onto the 3-Tier Gate & Retry Loop while particles sort!
         self.cam_move(
-            zoom=1.28,
+            zoom=1.30,
             center=[-1.65, -0.12, 0],
             anims=[
                 *stream_anims,
                 MoveAlongPath(blocked_pt, CubicBezier(p_start, p_start + RIGHT * 1.0, np.array([-2.2, -1.08, 0]), np.array([-1.12, -1.08, 0])), run_time=0.90),
                 MoveAlongPath(rescue_pt, CubicBezier(p_start, p_start + RIGHT * 0.9, np.array([-2.3, -1.08, 0]), np.array([-1.55, -1.08, 0])), run_time=0.80),
             ],
-            rt=1.45,
+            rt=1.40,
         )
 
-        # Follow the retry particle curving back & pan right toward the 60s Safe Token Window!
+        # Pan Right as the [60초 창] Bracket glides smoothly across the token bars!
         self.cam_move(
-            zoom=1.24,
-            center=[1.85, 0.22, 0],
+            zoom=1.34,
+            center=[2.65, 0.32, 0],
             anims=[
                 FadeOut(blocked_pt, scale=0.3),
                 FadeOut(mkt_pulses, scale=0.4),
-                MoveAlongPath(rescue_pt, retry_arc, run_time=0.75),
+                MoveAlongPath(rescue_pt, retry_arc, run_time=0.80),
+                win_bracket.animate.move_to([4.78, 1.54, 0]),
                 LaggedStart(*[Circumscribe(sr[0], color=C_GOLD, stroke_width=2.0, buff=0.03) for sr in sig_rows], lag_ratio=0.14),
             ],
-            rt=0.95,
+            rt=1.00,
         )
         self.remove(blocked_pt, mkt_pulses, *mkt_pulses)
 
@@ -797,7 +816,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             quota_bar,
         )
         self.check_bounds(ch6_stage, "CH6C ROUTING & QUOTA")
-        self.wait(1.90)
+        self.wait(1.60)
         print(f"[TIMING] Part 3 end: {self.renderer.time:.2f}s")
 
         self.fade_out_part(ch6_stage, hl, hr, hb)

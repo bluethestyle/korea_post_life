@@ -38,15 +38,17 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         self.init_cinema_canvas()
 
         # ===================================================================
-        # 3장 [~38s]: 수집 프로세스 — 현미경 장애 진단 → 3D 16개사 입체 파동 & 물리 게이트
+        # 3장 [~42s]: 수집 프로세스 — 장애 액션 투어 → 4단계 기구형 분업 컨베이어 → 3D 레이저 스캔
         # ===================================================================
         hl, hr, hb = self.make_hud(
             3,
             "수집 프로세스 — 한정된 호출 한도와 19개사 공시 장벽을 넘은 방법",
-            "최상위 모델 한도 소모, 접속 차단, 27건 중 23건의 기간 경과 기사 유입 등 네 가지 문제를 직면했습니다",
+            "최상위 모델 한도 급감, 접속 차단 패킷 충돌, 27건 중 23건의 기간 경과 기사 유입 등 네 가지 문제를 직면했습니다",
         )
 
-        # Beat 3A: Resource Gauges + 2x2 Obstacles + Deep Microscope Zoom Tour
+        # -------------------------------------------------------------------
+        # Beat 3A: Kinetic 3-Stop Obstacle Camera Tour (Draining Battery, Packet Ricochet, Blade Cut)
+        # -------------------------------------------------------------------
         res_box_3 = RoundedRectangle(corner_radius=0.09, width=3.36, height=4.68, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=C_CYAN, stroke_width=2.0).move_to([-4.38, 0.02, 0]).set_z_index(4)
         res_hdr_3 = pill("가용 자원 · 한도", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=11.0, z=7).move_to([-4.38, 1.92, 0])
         rg_1 = capacity_ring([-5.15, 0.72, 0], 0.58, 0.84, C_AMBER, "최상위 AI", "주간 한도 빠듯", z=6)
@@ -70,7 +72,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         q3_1 = diag_frame(-0.10, 1.18, C_AMBER, "문제 ① 모델 미지정 시 최상위 한도 급감")
         bat_bg = RoundedRectangle(corner_radius=0.04, width=2.10, height=0.34, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_SLATE, stroke_width=1.5).move_to([-0.68, 1.14, 0]).set_z_index(6)
         bat_full = Rectangle(width=1.96, height=0.22, fill_color=C_GOLD, fill_opacity=0.9, stroke_width=0).move_to([-0.68, 1.14, 0]).set_z_index(7)
-        bat_low = Rectangle(width=0.32, height=0.22, fill_color=C_CORAL, fill_opacity=0.95, stroke_width=0).move_to([-1.50, 1.14, 0]).set_z_index(7)
+        bat_low = Rectangle(width=0.28, height=0.22, fill_color=C_CORAL, fill_opacity=0.95, stroke_width=0).move_to([-1.52, 1.14, 0]).set_z_index(7)
         q3_1_chip = pill("완료보고 ? 미검증", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=8.8, px=0.08, py=0.03, z=7).move_to([1.02, 1.14, 0])
         q3_1_cap = txt("최상위 모델 자동 호출 소모 · 구두 보고 불신", size=9.2, color=C_INK_1, z=7).move_to([-0.10, 0.50, 0])
 
@@ -78,9 +80,9 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         sk1 = RegularPolygon(n=3, fill_color=C_CYAN_DIM, fill_opacity=0.9, stroke_color=C_CYAN, stroke_width=1.5).scale(0.18).move_to([2.48, 1.24, 0]).set_z_index(6)
         sk2 = RegularPolygon(n=6, fill_color=C_PANEL_HI, fill_opacity=0.9, stroke_color=C_GOLD, stroke_width=1.5).scale(0.18).move_to([2.95, 1.24, 0]).set_z_index(6)
         sk3 = Square(side_length=0.28, fill_color=C_PANEL_HI, fill_opacity=0.9, stroke_color=C_VIOLET, stroke_width=1.5).move_to([3.42, 1.24, 0]).set_z_index(6)
-        blk_arr = arrow_2d([3.78, 1.24, 0], [4.38, 1.24, 0], color=C_CORAL, sw=2.2, tip=0.10, z=7)
-        blk_wall = Rectangle(width=0.14, height=0.62, fill_color=C_CORAL, fill_opacity=0.95, stroke_width=0).move_to([4.50, 1.24, 0]).set_z_index(8)
-        blk_tag = pill("400 차단 ×", fg=WHITE, bg=C_CORAL, border=WHITE, size=8.8, px=0.07, py=0.03, z=8).move_to([5.15, 1.24, 0])
+        blk_arr = arrow_2d([3.68, 1.24, 0], [4.38, 1.24, 0], color=C_CORAL, sw=2.2, tip=0.10, z=7)
+        blk_wall = Rectangle(width=0.16, height=0.68, fill_color=C_CORAL, fill_opacity=0.98, stroke_color=WHITE, stroke_width=1.0).move_to([4.50, 1.24, 0]).set_z_index(8)
+        blk_tag = pill("400 차단 ×", fg=WHITE, bg=C_CORAL, border=WHITE, size=8.8, px=0.07, py=0.03, z=8).move_to([5.16, 1.24, 0])
         q3_2_cap = txt("폼·문자코드 제각각 · 한화손보 자동접속 차단", size=9.2, color=C_INK_1, z=7).move_to([3.88, 0.50, 0])
 
         q3_3 = diag_frame(-0.10, -1.14, C_VIOLET, "문제 ③ 검색 후보 실패 · 뉴스 API 약관 제약")
@@ -91,138 +93,280 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         lock_lbl = txt("포털 API 보관제한", size=8.8, color=C_VIOLET, bold=True, z=7).move_to([0.92, -1.62, 0])
 
         q3_4 = diag_frame(3.88, -1.14, C_CORAL, "문제 ④ 기간 조건 무시 (27건 중 23건 기간 경과)")
-        dots_27 = VGroup()
+        dots_27_cyan, dots_27_final = VGroup(), VGroup()
         for k in range(27):
             rr, cc = divmod(k, 9)
+            pt_d = [2.60 + cc * 0.32, -0.82 - rr * 0.28, 0]
             is_valid = k >= 23
+            dots_27_cyan.add(Circle(radius=0.085, fill_color=C_CYAN, fill_opacity=0.85, stroke_color=C_CYAN, stroke_width=1.0).move_to(pt_d).set_z_index(7))
             dcol = C_GOLD if is_valid else C_CORAL
-            dots_27.add(Circle(radius=0.085, fill_color=dcol, fill_opacity=0.92, stroke_color=WHITE if is_valid else dcol, stroke_width=1.0).move_to([2.60 + cc * 0.32, -0.82 - rr * 0.28, 0]).set_z_index(7))
+            dots_27_final.add(Circle(radius=0.085, fill_color=dcol, fill_opacity=0.95, stroke_color=WHITE if is_valid else dcol, stroke_width=1.2).move_to(pt_d).set_z_index(7))
         q3_4_cap = txt("붉은 점 23건 기간 밖 기사 · 유효 기사 단 4건", size=9.2, color=C_CORAL, bold=True, z=7).move_to([3.88, -1.84, 0])
 
         self.show_initial_hud(
-            hl, hr, hb,
+            hl,
+            hr,
+            hb,
             extra_anims=[
                 FadeIn(VGroup(res_box_3, res_hdr_3, rg_1[0], rg_1[2], rg_2[0], rg_2[2], res_bars_3), shift=RIGHT * 0.12),
-                Create(rg_1[1]), Create(rg_2[1]), GrowArrow(vs_arr_3),
+                Create(rg_1[1]),
+                Create(rg_2[1]),
+                GrowArrow(vs_arr_3),
                 FadeIn(VGroup(q3_1, bat_bg, bat_full, q3_1_chip, q3_1_cap)),
                 FadeIn(VGroup(q3_2, sk1, sk2, sk3, blk_wall, blk_tag, q3_2_cap)),
                 FadeIn(VGroup(q3_3, m_fail1, m_fail2, lock_body, lock_shackle, lock_lbl)),
-                FadeIn(q3_4),
+                FadeIn(VGroup(q3_4, dots_27_cyan)),
             ],
-            rt=1.10,
+            rt=1.05,
         )
 
-        # Microscope Zoom-In onto the 27-dot Out-of-Date News Matrix -> Pan Up to 400 Block -> Zoom Out!
+        # Stop 1: Zoom onto Top-Left Quota Drain (100% -> Critical Red!)
         self.cam_move(
-            zoom=1.68,
-            center=[3.88, -1.14, 0],
+            zoom=1.55,
+            center=[-0.10, 1.18, 0],
             anims=[
                 ReplacementTransform(bat_full, bat_low),
-                LaggedStart(*[FadeIn(d, scale=0.3) for d in dots_27], lag_ratio=0.025),
-                FadeIn(q3_4_cap),
+                Wiggle(q3_1_chip, scale_value=1.12, rotation_angle=0.05 * TAU),
             ],
-            rt=1.20,
+            rt=0.90,
         )
-        self.wait(0.45)
-        self.cam_move(zoom=1.62, center=[3.88, 1.18, 0], anims=[GrowArrow(blk_arr)], rt=0.95)
-        self.wait(0.40)
-        self.reset_cam_2d(rt=0.85)
+
+        # Stop 2: Whip-Pan Right as Request Packets Smash & Ricochet off the 400 Block Wall!
+        pkt_hit = glow_dot([3.58, 1.24, 0], color=C_CYAN, r=0.06, z=12)
+        self.add(pkt_hit)
+        self.cam_move(
+            zoom=1.55,
+            center=[3.88, 1.18, 0],
+            anims=[
+                GrowArrow(blk_arr),
+                MoveAlongPath(pkt_hit, CubicBezier([3.58, 1.24, 0], [4.42, 1.24, 0], [4.42, 1.24, 0], [3.85, 1.62, 0])),
+                Flash([4.45, 1.24, 0], color=C_CORAL, line_length=0.22, num_lines=8),
+                Indicate(blk_tag, color=WHITE, scale_factor=1.18),
+            ],
+            rt=0.95,
+        )
+        self.remove(pkt_hit)
+
+        # Stop 3: Pan Down as a Red Date-Cutoff Blade Sweeps the 27 Dots (23 turn red!)
+        date_blade = Line([2.42, -0.62, 0], [2.42, -1.58, 0], color=C_CORAL, stroke_width=4.0).set_z_index(12)
+        self.add(date_blade)
+        self.cam_move(
+            zoom=1.60,
+            center=[3.88, -1.14, 0],
+            anims=[
+                date_blade.animate.move_to([5.28, -1.10, 0]),
+                ReplacementTransform(dots_27_cyan, dots_27_final),
+                FadeIn(q3_4_cap, shift=UP * 0.06),
+            ],
+            rt=1.05,
+        )
+        self.remove(date_blade)
+        self.reset_cam_2d(rt=0.80)
 
         beat3a_all = VGroup(
-            res_grp_3, vs_arr_3,
-            q3_1, bat_bg, bat_low, q3_1_chip, q3_1_cap,
-            q3_2, sk1, sk2, sk3, blk_arr, blk_wall, blk_tag, q3_2_cap,
-            q3_3, m_fail1, m_fail2, lock_body, lock_shackle, lock_lbl,
-            q3_4, dots_27, q3_4_cap,
+            res_grp_3,
+            vs_arr_3,
+            q3_1,
+            bat_bg,
+            bat_low,
+            q3_1_chip,
+            q3_1_cap,
+            q3_2,
+            sk1,
+            sk2,
+            sk3,
+            blk_arr,
+            blk_wall,
+            blk_tag,
+            q3_2_cap,
+            q3_3,
+            m_fail1,
+            m_fail2,
+            lock_body,
+            lock_shackle,
+            lock_lbl,
+            q3_4,
+            dots_27_final,
+            q3_4_cap,
         )
-        self.check_bounds(beat3a_all, "CH3A VISUAL DIAGNOSTIC")
-        self.wait(1.10)
+        self.check_bounds(beat3a_all, "CH3A RESOURCE & OBSTACLES")
+        self.wait(0.85)
 
-        # Beat 3B: 4-Stage Agent Role Division Blueprint
+        # -------------------------------------------------------------------
+        # Beat 3B: Animated 4-Station Geometric Relay Machine + Camera Tracking Shot!
+        # (Scout Radar -> Golden Mold & Prism Splitter -> 16-Channel Array -> Twin-PDF Hash Lock)
+        # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
-            "해결 ① 조사 · 총괄 시범 표준화 · 수집 구현 · 독립 재호출 검증으로 역할을 나누고 모델을 분리 지정했습니다",
+            "해결 ① 조사 레이더 · 총괄 표준 주형 · 16채널 병렬 수집 · 쌍둥이 PDF 해시 맞물림 검증으로 역할을 분리했습니다",
             rt=0.38,
         )
 
-        prin_3b = fit(pill("해결 설계 ① 4단계 에이전트 분업 : 작업별 모델 명시로 한도 절감 · 구현과 검증 에이전트 분리(재호출 검증만 인정)", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.2), max_w=11.85).move_to([0.0, 2.58, 0]).set_z_index(9)
+        role_banner = fit(
+            pill("해결 설계 ① 4단계 에이전트 분업 기구 : 작업별 모델 고정으로 한도 절감 · 구현과 독립 재호출 해시 검증 완전 분리", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.0, z=9),
+            max_w=11.85,
+        ).move_to([0.0, 2.58, 0])
 
-        def role_vis_card(rx: float, r_col: str, r_title: str, r_model: str, vis_grp: VGroup, r_foot: str) -> VGroup:
-            rc = RoundedRectangle(corner_radius=0.08, width=2.62, height=3.42, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=r_col, stroke_width=2.1).move_to([rx, 0.25, 0]).set_z_index(4)
-            rt = fit(txt(r_title, size=13.2, color=r_col, bold=True, z=7), max_w=2.36).move_to([rx, 1.56, 0])
-            rm = fit(pill(r_model, fg=C_INK_0, bg=C_PANEL_HI, border=r_col, size=9.8, px=0.10, py=0.035, z=7), max_w=2.34).move_to([rx, 1.10, 0])
-            vis_grp.move_to([rx, 0.10, 0]).set_z_index(7)
-            rf = fit(txt(r_foot, size=9.8, color=C_INK_1, bold=True, z=7), max_w=2.36).move_to([rx, -1.06, 0])
-            return VGroup(rc, rt, rm, vis_grp, rf)
-
-        rv1 = VGroup(
-            Circle(radius=0.52, fill_opacity=0.0, stroke_color=C_VIOLET, stroke_width=1.5),
-            VGroup(*[Dot([0.52 * math.cos(k * 2 * PI / 10), 0.52 * math.sin(k * 2 * PI / 10), 0], radius=0.045, color=C_VIOLET if k < 5 else C_CYAN) for k in range(10)]),
-            pill("19개사 선정", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=9.2, px=0.08, py=0.03),
+        # Station ① (-4.55): Rotating Scout Radar Dome + 19 Insurer Beacons
+        s1_c = np.array([-4.55, 0.25, 0.0])
+        s1_hdr = pill("① 사전 조사 AI", fg=C_VIOLET, bg=C_PANEL_HI, border=C_VIOLET, size=10.8, z=8).move_to([-4.55, 1.82, 0])
+        s1_dome = Circle(radius=1.08, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=C_VIOLET, stroke_width=2.2).move_to(s1_c).set_z_index(4)
+        s1_inner = Circle(radius=0.62, fill_opacity=0.0, stroke_color=C_SLATE, stroke_width=1.1).move_to(s1_c).set_z_index(5)
+        s1_arm = Line(s1_c, s1_c + UP * 1.04, color=C_GOLD, stroke_width=2.8).set_z_index(8)
+        s1_beacons = VGroup(
+            *[
+                Dot(
+                    s1_c + np.array([0.86 * math.cos(k * TAU / 19), 0.86 * math.sin(k * TAU / 19), 0.0]),
+                    radius=0.052,
+                    color=C_CYAN if k < 10 else C_GOLD,
+                ).set_z_index(7)
+                for k in range(19)
+            ]
         )
-        rv2 = VGroup(
-            pill("DB손보\n시범표준", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=9.0, px=0.09, py=0.05).move_to([-0.42, 0, 0]),
-            VGroup(*[arrow_2d([0.12, 0.24 - k * 0.16, 0], [0.72, 0.36 - k * 0.24, 0], color=C_GOLD, sw=1.6, tip=0.07) for k in range(4)]),
+        s1_cap = fit(txt("생보 10 · 손보 9곳 대상 확정", size=9.6, color=C_INK_1, bold=True, z=7), max_w=2.45).move_to([-4.55, -1.16, 0])
+        st1_grp = VGroup(s1_hdr, s1_dome, s1_inner, s1_arm, s1_beacons, s1_cap)
+
+        # Station ② (-1.55): Golden Blueprint Mold + Optical Prism Splitter (1 -> 16)
+        s2_hdr = pill("② 총괄 에이전트", fg=C_GOLD, bg="#383016", border=C_GOLD, size=10.8, z=8).move_to([-1.55, 1.82, 0])
+        s2_mold = RegularPolygon(n=6, fill_color="#2A2312", fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=2.4).scale(0.62).move_to([-2.12, 0.25, 0]).set_z_index(6)
+        s2_mold_t = fit(VGroup(txt("DB손보", size=10.0, color=C_GOLD, bold=True, z=8), txt("시범 주형", size=9.2, color=WHITE, bold=True, z=8)).arrange(DOWN, buff=0.03), max_w=0.95).move_to(s2_mold)
+        s2_prism = RegularPolygon(n=3, fill_color=C_CYAN_DIM, fill_opacity=0.85, stroke_color=C_CYAN, stroke_width=2.0).scale(0.46).rotate(-PI / 6).move_to([-1.08, 0.25, 0]).set_z_index(6)
+        s2_rays = VGroup(
+            *[Line([-0.82, 0.25, 0], [-0.28, -0.52 + k * 0.22, 0], color=C_GOLD if k % 2 == 0 else C_CYAN, stroke_width=1.8).set_z_index(5) for k in range(8)]
         )
-        rv3_grid = VGroup(*[RoundedRectangle(corner_radius=0.03, width=0.28, height=0.20, fill_color=C_CORAL_DIM if k == 11 else C_CYAN_DIM, fill_opacity=0.95, stroke_color=C_CORAL if k == 11 else C_CYAN, stroke_width=1.4).move_to([-0.54 + (k % 4) * 0.36, 0.36 - (k // 4) * 0.24, 0]) for k in range(16)])
-        rv4 = VGroup(
-            pill("수집본 PDF", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=8.8, px=0.07, py=0.03).move_to([-0.62, 0.22, 0]),
-            pill("재호출 PDF", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=8.8, px=0.07, py=0.03).move_to([0.62, 0.22, 0]),
-            pill("해시 일치 ✓", fg=C_DARK_INK, bg=C_MINT, border=WHITE, size=9.4, px=0.10, py=0.04).move_to([0.0, -0.26, 0]),
+        s2_cap = fit(txt("표준 확립 · 충돌 없는 16분할", size=9.6, color=C_INK_1, bold=True, z=7), max_w=2.55).move_to([-1.55, -1.16, 0])
+        st2_grp = VGroup(s2_hdr, s2_mold, s2_mold_t, s2_prism, s2_rays, s2_cap)
+
+        # Station ③ (+1.55): 16-Channel Parallel Pipeline Array + Manual Bypass Track
+        s3_hdr = pill("③ 수집 구현 ×16", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=10.8, z=8).move_to([1.55, 1.82, 0])
+        s3_tag = pill("구현 전용 모델 명시", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=8.8, px=0.08, py=0.03, z=8).move_to([1.55, 1.28, 0])
+        s3_lanes = VGroup()
+        for k in range(8):
+            ly = 0.86 - k * 0.21
+            is_blk = k == 6
+            ln_c = C_CORAL if is_blk else C_CYAN
+            s3_lanes.add(
+                VGroup(
+                    Line([0.52, ly, 0], [2.42, ly, 0], color=ln_c, stroke_width=2.2, stroke_opacity=0.85),
+                    Dot([2.46, ly, 0], radius=0.048, color=ln_c),
+                ).set_z_index(6)
+            )
+        s3_cap = fit(txt("15곳 자동수집 · 차단 1곳 분리", size=9.6, color=C_INK_1, bold=True, z=7), max_w=2.55).move_to([1.55, -1.16, 0])
+        st3_grp = VGroup(s3_hdr, s3_tag, s3_lanes, s3_cap)
+
+        # Station ④ (+4.55): Twin-PDF SHA-256 Interlocking Comparator
+        s4_hdr = pill("④ 독립 검증 ×16", fg=C_MINT, bg="#16382C", border=C_MINT, size=10.8, z=8).move_to([4.55, 1.82, 0])
+        s4_tag = pill("검증 전용 경량 모델", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=8.8, px=0.08, py=0.03, z=8).move_to([4.55, 1.28, 0])
+        pdf_a = VGroup(
+            RoundedRectangle(corner_radius=0.05, width=0.92, height=0.58, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_CYAN, stroke_width=2.0),
+            txt("수집본\nPDF", size=8.6, color=C_CYAN, bold=True),
+        ).move_to([3.82, 0.42, 0]).set_z_index(7)
+        pdf_b = VGroup(
+            RoundedRectangle(corner_radius=0.05, width=0.92, height=0.58, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=2.0),
+            txt("재호출\nPDF", size=8.6, color=C_GOLD, bold=True),
+        ).move_to([5.28, 0.42, 0]).set_z_index(7)
+        hash_seal = VGroup(
+            RegularPolygon(n=6, fill_color="#16382C", fill_opacity=1.0, stroke_color=C_MINT, stroke_width=2.4).scale(0.38),
+            txt("해시 일치\n100% ✓", size=8.4, color=C_MINT, bold=True),
+        ).move_to([4.55, -0.34, 0]).set_z_index(9)
+        s4_cap = fit(txt("실제 재호출 대조 · 구두보고 불신", size=9.6, color=C_INK_1, bold=True, z=7), max_w=2.55).move_to([4.55, -1.16, 0])
+        st4_grp = VGroup(s4_hdr, s4_tag, pdf_a, pdf_b, hash_seal, s4_cap)
+
+        relay_links = VGroup(
+            arrow_2d([-3.40, 0.25, 0], [-2.78, 0.25, 0], color=C_VIOLET, sw=2.4, tip=0.11, z=7),
+            arrow_2d([-0.22, 0.25, 0], [0.42, 0.25, 0], color=C_GOLD, sw=2.4, tip=0.11, z=7),
+            arrow_2d([2.58, 0.25, 0], [3.28, 0.25, 0], color=C_CYAN, sw=2.4, tip=0.11, z=7),
         )
 
-        rc_1 = role_vis_card(-4.68, C_VIOLET, "① 사전 조사 AI", "웹 탐색 · 주력상품 단서", rv1, "생보 10 · 손보 9곳 확정")
-        rc_2 = role_vis_card(-1.56, C_GOLD, "② 총괄 에이전트", "표준 확립 · 분할 지시", rv2, "파일 충돌 0건 · 16개사 배분")
-        rc_3 = role_vis_card(1.56, C_CYAN, "③ 수집 구현 ×16", "구현 전용 모델 명시", rv3_grid, "15곳 자동 · 차단 1곳 수동분리")
-        rc_4 = role_vis_card(4.68, C_MINT, "④ 독립 검증 ×16", "검증 전용 경량 모델", rv4, "실제 재호출 · 완료보고 불신")
-        role_cards = VGroup(rc_1, rc_2, rc_3, rc_4)
+        ret_path = VMobject(color=C_GOLD, stroke_width=2.4).set_z_index(5)
+        ret_path.set_points_as_corners([[4.55, -1.48, 0], [4.55, -2.18, 0], [-1.55, -2.18, 0], [-1.55, -1.52, 0]])
+        ret_tip = Arrow([-1.55, -1.78, 0], [-1.55, -1.46, 0], buff=0, color=C_GOLD, stroke_width=2.4, tip_length=0.12).set_z_index(6)
+        ret_lbl = fit(
+            pill("총괄 최종 검수 승인 : 전체 시험 579건 통과 · 공시 문서 58종 PDF 진본·쪽수 직접 확인 ✓", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.2, z=8),
+            max_w=8.60,
+        ).move_to([1.50, -2.18, 0])
 
-        handoff_arrs = VGroup(
-            arrow_2d([-3.34, 0.25, 0], [-2.90, 0.25, 0], color=C_VIOLET, sw=2.4, tip=0.12, z=8),
-            arrow_2d([-0.22, 0.25, 0], [0.22, 0.25, 0], color=C_GOLD, sw=2.4, tip=0.12, z=8),
-            arrow_2d([2.90, 0.25, 0], [3.34, 0.25, 0], color=C_CYAN, sw=2.4, tip=0.12, z=8),
-        )
-        ret_line_1 = Line([4.68, -1.46, 0], [4.68, -2.38, 0], color=C_GOLD, stroke_width=2.2).set_z_index(5)
-        ret_line_2 = Line([4.68, -2.38, 0], [-1.56, -2.38, 0], color=C_GOLD, stroke_width=2.2).set_z_index(5)
-        ret_arr_up = arrow_2d([-1.56, -2.38, 0], [-1.56, -1.48, 0], color=C_GOLD, sw=2.2, tip=0.12, z=6)
-        ret_badge = fit(pill("총괄 최종 검수 승인 : 전체 시험 579건 통과 · 공시 문서 58종 PDF 진본·쪽수 직접 확인 ✓", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.2, z=9), max_w=8.60).move_to([1.56, -2.38, 0])
-
-        self.play(
-            FadeOut(beat3a_all, shift=UP * 0.10),
-            FadeIn(prin_3b, shift=DOWN * 0.08),
-            LaggedStart(*[FadeIn(rc, shift=UP * 0.10) for rc in role_cards], lag_ratio=0.09),
-            LaggedStart(*[GrowArrow(ha) for ha in handoff_arrs], lag_ratio=0.10),
-            run_time=1.15,
+        # Camera Ride from Station ① -> ② -> ③ -> ④ -> Wide Return!
+        self.add(s1_arm)
+        self.cam_move(
+            zoom=1.42,
+            center=[-3.15, 0.25, 0],
+            anims=[
+                FadeOut(beat3a_all, shift=UP * 0.10),
+                FadeIn(VGroup(s1_hdr, s1_dome, s1_inner, s1_beacons, s1_cap)),
+                Rotate(s1_arm, angle=-TAU, about_point=s1_c),
+                GrowArrow(relay_links[0]),
+                FadeIn(VGroup(s2_hdr, s2_mold, s2_mold_t, s2_prism, s2_cap)),
+                Create(s2_rays, lag_ratio=0.05),
+            ],
+            rt=1.15,
         )
         self.remove(beat3a_all)
-        self.play(
-            Create(ret_line_1), Create(ret_line_2), GrowArrow(ret_arr_up),
-            FadeIn(ret_badge, shift=UP * 0.06),
-            Circumscribe(rc_2[0], color=C_GOLD, stroke_width=2.2, buff=0.03),
-            run_time=0.85,
-        )
-        beat3b_roles = VGroup(prin_3b, role_cards, handoff_arrs, ret_line_1, ret_line_2, ret_arr_up, ret_badge)
-        self.wait(1.75)
 
-        # Beat 3C: TRUE 3D 16-Insurer Terrain Swept by Dual 3D Scan Waves!
+        self.cam_move(
+            zoom=1.42,
+            center=[2.95, 0.25, 0],
+            anims=[
+                GrowArrow(relay_links[1]),
+                FadeIn(VGroup(s3_hdr, s3_tag, s3_cap)),
+                LaggedStart(*[Create(ln[0]) for ln in s3_lanes], lag_ratio=0.04),
+                LaggedStart(*[FadeIn(ln[1], scale=0.4) for ln in s3_lanes], lag_ratio=0.04),
+                GrowArrow(relay_links[2]),
+                FadeIn(VGroup(s4_hdr, s4_tag, pdf_a, pdf_b, s4_cap)),
+            ],
+            rt=1.15,
+        )
+        # Interlock Twin PDFs into the Emerald Hash Seal!
+        self.play(
+            pdf_a.animate.shift(RIGHT * 0.22 + DOWN * 0.18),
+            pdf_b.animate.shift(LEFT * 0.22 + DOWN * 0.18),
+            FadeIn(hash_seal, scale=1.35),
+            Flash([4.55, -0.34, 0], color=C_MINT, line_length=0.25, num_lines=10),
+            run_time=0.65,
+        )
+
+        # Pull back as the Golden Approval Pulse shoots back along the return rail!
+        ret_pulse = glow_dot([4.55, -1.48, 0], color=C_GOLD, r=0.07, z=14)
+        self.add(ret_pulse)
+        self.reset_cam_2d(
+            anims=[
+                FadeIn(role_banner, shift=DOWN * 0.08),
+                Create(ret_path),
+                FadeIn(ret_tip),
+                MoveAlongPath(ret_pulse, ret_path),
+                FadeIn(ret_lbl, shift=UP * 0.06),
+            ],
+            rt=0.95,
+        )
+        self.remove(ret_pulse)
+
+        beat3b_roles = VGroup(role_banner, st1_grp, st2_grp, st3_grp, st4_grp, relay_links, ret_path, ret_tip, ret_lbl)
+        self.check_bounds(beat3b_roles, "CH3B AGENT ROLES")
+        self.wait(1.15)
+
+        # -------------------------------------------------------------------
+        # Beat 3C: True 3D 16-Insurer Terrain + Dual Vertical Laser Scan Curtains
+        # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
             "3차원 공시 지형 위에서 16개 보험사에 수집 파동과 독립 재호출 검증 파동이 차례로 지나갑니다",
-            rt=0.38,
+            rt=0.35,
         )
 
-        def make_disp_box(yc: float, col: str, t_top: str, t_bot: str) -> VGroup:
-            bx = RoundedRectangle(corner_radius=0.08, width=2.76, height=1.02, fill_color=C_PANEL_HI, fill_opacity=0.97, stroke_color=col, stroke_width=2.2).move_to([-4.62, yc, 0]).set_z_index(6)
-            tt = fit(VGroup(txt(t_top, size=12.6, color=col, bold=True, z=8), txt(t_bot, size=10.4, color=C_INK_1, z=8)).arrange(DOWN, buff=0.05), max_w=2.48).move_to(bx)
-            return VGroup(bx, tt)
+        def mini_disp_box(lbl: str, sub: str, col: str, y_pos: float) -> VGroup:
+            b = RoundedRectangle(corner_radius=0.07, width=2.48, height=1.02, fill_color=C_PANEL_HI, fill_opacity=0.96, stroke_color=col, stroke_width=2.0).move_to([-4.62, y_pos, 0]).set_z_index(6)
+            tg = fit(VGroup(txt(lbl, size=11.8, color=col, bold=True, z=8), txt(sub, size=9.8, color=C_INK_1, z=8)).arrange(DOWN, buff=0.05), max_w=2.24).move_to(b)
+            return VGroup(b, tg)
 
-        ag_lead = make_disp_box(1.62, C_GOLD, "② 총괄 에이전트", "표준 배포 · 최종 검수 승인")
-        ag_fetch = make_disp_box(0.12, C_CYAN, "③ 수집 에이전트 ×16", "사별 모듈 구축 · 문서 수령")
-        ag_ver = make_disp_box(-1.38, C_MINT, "④ 검증 에이전트 ×16", "독립 재호출 · 해시 대조")
+        ag_lead = mini_disp_box("② 총괄 에이전트", "표준 배포 · 최종 검수 승인", C_GOLD, 1.62)
+        ag_fetch = mini_disp_box("③ 수집 에이전트 ×16", "사별 모듈 구축 · 문서 수령", C_CYAN, 0.12)
+        ag_ver = mini_disp_box("④ 검증 에이전트 ×16", "독립 재호출 · 해시 대조", C_MINT, -1.38)
         disp_stack = VGroup(
-            ag_lead, ag_fetch, ag_ver,
-            arrow_2d(ag_lead[0].get_bottom(), ag_fetch[0].get_top(), color=C_GOLD, sw=2.0, tip=0.10, z=7),
-            arrow_2d(ag_fetch[0].get_bottom(), ag_ver[0].get_top(), color=C_CYAN, sw=2.0, tip=0.10, z=7),
+            ag_lead,
+            ag_fetch,
+            ag_ver,
+            arrow_2d(ag_lead[0].get_bottom(), ag_fetch[0].get_top(), color=C_GOLD, sw=1.8, tip=0.09, z=7),
+            arrow_2d(ag_fetch[0].get_bottom(), ag_ver[0].get_top(), color=C_CYAN, sw=1.8, tip=0.09, z=7),
         )
 
         org_names = [
@@ -231,7 +375,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             "메리츠", "NH생명", "NH손보", "한화손보",
             "동양생명", "흥국생명", "롯데손보", "미래에셋",
         ]
-        board_x = [-0.88, 0.98, 2.84, 4.70]
+        board_x = [-0.95, 0.90, 2.75, 4.60]
         board_y = [1.68, 0.68, -0.32, -1.32]
         ins_rects: list[RoundedRectangle] = []
         ins_statuses: list[Text] = []
@@ -253,7 +397,6 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             ins_statuses.append(t_st)
             ins_board.add(VGroup(rect, t_nm, t_st))
 
-            # 3D Extruded Pillar above each tile!
             zh = 0.72 if is_pilot else (0.18 if is_blocked else 0.12)
             pr = Prism(dimensions=[1.52, 0.64, zh], fill_color=init_col, fill_opacity=0.22, stroke_color=init_col, stroke_width=1.0).move_to([cx, cy, zh / 2])
             ins_prisms.append(pr)
@@ -263,12 +406,10 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         ver_beam = arrow_2d(ag_ver[0].get_right(), [-1.80, -1.10, 0], color=C_MINT, sw=2.8, tip=0.14, z=8)
         lead_ret_beam = arrow_2d([-1.80, 1.62, 0], ag_lead[0].get_right(), color=C_GOLD, sw=2.8, tip=0.14, z=8)
 
-        # 3D Vertical Laser Curtain Planes!
         curtain_1 = Prism(dimensions=[0.08, 4.10, 1.15], fill_color=C_CYAN, fill_opacity=0.35, stroke_color=C_CYAN, stroke_width=1.8).move_to([-1.82, 0.18, 0.58])
         curtain_2 = Prism(dimensions=[0.08, 4.10, 1.35], fill_color=C_MINT, fill_opacity=0.35, stroke_color=C_MINT, stroke_width=1.8).move_to([-1.82, 0.18, 0.68])
         done_3c_pill = fit(pill("실행 결과 : 15개사 무인증 자동수집·해시검증 완료 · 1개사(한화손보) 수동 분리 · 문서 58종 진본 확정 ✓", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.3, z=9), max_w=11.85).move_to([0.0, -2.48, 0])
 
-        # Tilt camera into dramatic 3D terrain angle!
         self.cam_move(
             phi=50 * DEGREES,
             theta=-56 * DEGREES,
@@ -280,11 +421,10 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                 FadeIn(ins_board),
                 FadeIn(prisms_grp),
             ],
-            rt=1.10,
+            rt=1.05,
         )
         self.remove(beat3b_roles)
 
-        # Wave 1 in 3D: Cyan Laser Curtain elevates 14 insurer pillars!
         fetch_status_targets = []
         fetch_anims = []
         for idx in range(16):
@@ -311,13 +451,12 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                 curtain_1.animate.move_to([5.65, 0.18, 0.58]),
                 LaggedStart(*fetch_anims, lag_ratio=0.035),
             ],
-            rt=1.15,
+            rt=1.10,
         )
         self.remove(curtain_1)
         for idx, nt in fetch_status_targets:
             ins_statuses[idx] = nt
 
-        # Wave 2 in 3D + Smooth Return to Crisp Orthographic View!
         ver_anims = []
         for idx in range(16):
             if idx in (0, 11):
@@ -343,7 +482,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                 curtain_2.animate.move_to([5.65, 0.18, 0.68]),
                 LaggedStart(*ver_anims, lag_ratio=0.035),
             ],
-            rt=1.10,
+            rt=1.05,
         )
         self.remove(curtain_2)
         self.reset_cam_2d(
@@ -353,16 +492,18 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                 Circumscribe(ag_lead[0], color=C_GOLD, stroke_width=2.2, buff=0.03),
                 FadeIn(done_3c_pill, shift=UP * 0.06),
             ],
-            rt=0.85,
+            rt=0.80,
         )
         self.remove(prisms_grp, *ins_prisms)
 
         ver_status_grp = VGroup(*ins_statuses)
         beat3c_all = VGroup(disp_stack, ins_board, ver_status_grp, fetch_beam, ver_beam, lead_ret_beam, done_3c_pill)
         self.check_bounds(beat3c_all, "CH3C DUAL WAVE")
-        self.wait(1.45)
+        self.wait(1.25)
 
-        # Beat 3D: 7-Day Rotating Radar + Gate Zoom-In
+        # -------------------------------------------------------------------
+        # Beat 3D: 7-Day Rotating Radar + Physical 3-Gate Particle Deflection Zoom
+        # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
             "해결 ② 하루 20회 검색 한도에 맞춰 요일별로 기관을 나누고, 코드 날짜 검증으로 기간 밖 23건을 걸러냈습니다",
@@ -391,20 +532,24 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         rad_caption = pill("일 20회 무료 한도 안에서 19개 기관 순환 점검", fg=C_CYAN, bg=C_PANEL, border=C_CYAN, size=10.8).move_to([-3.38, -2.52, 0])
 
         sweep_ang = ValueTracker(math.pi / 2)
-        sweep_beam = always_redraw(lambda: VGroup(
-            Sector(radius=rad_r - 0.02, start_angle=sweep_ang.get_value() - 0.48, angle=0.48, fill_color=C_CYAN, fill_opacity=0.22, stroke_width=0).shift(rad_c),
-            Line(rad_c, rad_c + np.array([rad_r * math.cos(sweep_ang.get_value()), rad_r * math.sin(sweep_ang.get_value()), 0.0]), color=C_GOLD, stroke_width=2.8),
-        ).set_z_index(6))
+        sweep_beam = always_redraw(
+            lambda: VGroup(
+                Sector(radius=rad_r - 0.02, start_angle=sweep_ang.get_value() - 0.48, angle=0.48, fill_color=C_CYAN, fill_opacity=0.22, stroke_width=0).shift(rad_c),
+                Line(rad_c, rad_c + np.array([rad_r * math.cos(sweep_ang.get_value()), rad_r * math.sin(sweep_ang.get_value()), 0.0]), color=C_GOLD, stroke_width=2.8),
+            ).set_z_index(6)
+        )
 
         g1_x, g2_x, g3_x = 0.25, 2.10, 3.95
         sieve_gates = VGroup()
         for gx, g_col, g_top in [(g1_x, C_CYAN, "① 발행일 선기재 확인"), (g2_x, C_CORAL, "② 코드 날짜 대조 절단"), (g3_x, C_MINT, "③ 비대상 종목 제외")]:
-            sieve_gates.add(VGroup(
-                Line([gx, 0.55, 0], [gx, 1.38, 0], color=g_col, stroke_width=4.2).set_z_index(6),
-                Line([gx, -1.38, 0], [gx, -0.45, 0], color=g_col, stroke_width=4.2).set_z_index(6),
-                DashedLine([gx, -0.45, 0], [gx, 0.55, 0], dash_length=0.07, color=g_col, stroke_width=1.6).set_z_index(5),
-                fit(pill(g_top, fg=g_col, bg=C_PANEL_HI, border=g_col, size=10.6, px=0.10, py=0.05, z=8), max_w=1.74).move_to([gx, 1.78, 0]),
-            ))
+            sieve_gates.add(
+                VGroup(
+                    Line([gx, 0.55, 0], [gx, 1.38, 0], color=g_col, stroke_width=4.2).set_z_index(6),
+                    Line([gx, -1.38, 0], [gx, -0.45, 0], color=g_col, stroke_width=4.2).set_z_index(6),
+                    DashedLine([gx, -0.45, 0], [gx, 0.55, 0], dash_length=0.07, color=g_col, stroke_width=1.6).set_z_index(5),
+                    fit(pill(g_top, fg=g_col, bg=C_PANEL_HI, border=g_col, size=10.6, px=0.10, py=0.05, z=8), max_w=1.74).move_to([gx, 1.78, 0]),
+                )
+            )
         cut_note = pill("27건 중 기간 밖 23건 차단 ×", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=10.6, z=8).move_to([g2_x - 0.24, -2.02, 0])
         noise_note = txt("반려동물·운전자·단순 홍보 제외", size=10.2, color=C_INK_2, z=7).move_to([g3_x + 0.14, -1.66, 0])
         clean_pool = RoundedRectangle(corner_radius=0.08, width=1.42, height=1.98, fill_color="#182B24", fill_opacity=0.94, stroke_color=C_GOLD, stroke_width=2.2).move_to([5.40, 0.05, 0]).set_z_index(4)
@@ -412,9 +557,14 @@ class Part2CollectExtractScene(PostLifeBaseScene):
 
         self.play(
             FadeOut(beat3c_all, shift=UP * 0.10),
-            FadeIn(rad_rings), FadeIn(rad_core_t), FadeIn(day_dots, lag_ratio=0.05), FadeIn(day_lbls), FadeIn(rad_caption, shift=UP * 0.08),
-            FadeIn(sieve_gates, lag_ratio=0.10), FadeIn(VGroup(clean_pool, pool_lbl), shift=LEFT * 0.10),
-            run_time=0.90,
+            FadeIn(rad_rings),
+            FadeIn(rad_core_t),
+            FadeIn(day_dots, lag_ratio=0.05),
+            FadeIn(day_lbls),
+            FadeIn(rad_caption, shift=UP * 0.08),
+            FadeIn(sieve_gates, lag_ratio=0.10),
+            FadeIn(VGroup(clean_pool, pool_lbl), shift=LEFT * 0.10),
+            run_time=0.85,
         )
         self.remove(beat3c_all, *ins_statuses)
 
@@ -436,17 +586,17 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             sieve_anims.append(Succession(Wait(0.20 + k * 0.18), MoveAlongPath(pt_n, CubicBezier(emit_pt, np.array([1.8, 0.2, 0]), np.array([g3_x - 0.05, -0.2, 0]), np.array([g3_x, -1.45, 0])), run_time=1.05)))
 
         self.add(good_news_pts, bad_date_pts, bad_noise_pts)
-        # Zoom slightly into the 3 physical gates while particles deflect!
         self.cam_move(
-            zoom=1.26,
-            center=[1.85, -0.05, 0],
+            zoom=1.28,
+            center=[2.05, -0.05, 0],
             anims=[
                 sweep_ang.animate.set_value(math.pi / 2 - 2 * math.pi),
                 *sieve_anims,
-                FadeIn(cut_note, shift=UP * 0.08), FadeIn(noise_note),
+                FadeIn(cut_note, shift=UP * 0.08),
+                FadeIn(noise_note),
                 *[d.animate.set_fill(C_CYAN_DIM, opacity=0.95) for d in day_dots],
             ],
-            rt=1.80,
+            rt=1.75,
             rate_func=linear,
         )
         self.reset_cam_2d(
@@ -458,10 +608,10 @@ class Part2CollectExtractScene(PostLifeBaseScene):
 
         ch3_stage = VGroup(rad_rings, rad_core_t, day_dots, day_lbls, rad_caption, sweep_beam, sieve_gates, cut_note, noise_note, clean_pool, pool_lbl, good_news_pts)
         self.check_bounds(ch3_stage, "CH3D RADAR SIEVE")
-        self.wait(1.35)
+        self.wait(1.25)
 
         # ===================================================================
-        # 4장 [~36s]: 추출 프로세스 — 3D 계단 지급액 블록과 3D 직교 레이저 교차 판독 다이브
+        # 4장 [~38s]: 추출 프로세스 — 한도 돌파·조각 분리·한도 증발 액션 & 3D 계단·직교 스캔
         # ===================================================================
         hl, hr, hb = self.switch_hud(
             ch3_stage,
@@ -470,16 +620,25 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             hb,
             4,
             "추출 프로세스 — 대용량·이미지 문서 난제를 원문 전사와 코드 계산으로 해결",
-            "567쪽 한도 초과, 숫자 오독, 308쪽 조각 그림 문서, 재추출 한도 유실의 네 가지 난관을 만났습니다",
+            "567쪽 상한 돌파, 숫자 오독, 308쪽 조각 그림 분리, 재추출 한도 증발의 네 가지 난관을 만났습니다",
         )
         print(f"[TIMING] Ch3 end: {self.renderer.time:.2f}s")
 
-        # Beat 4A: Extraction Diagnostic + Zoom into 308p Mosaic & 567p Ceiling
+        # -------------------------------------------------------------------
+        # Beat 4A: Kinetic 4-Stop Failure Animations (Ceiling Burst, Scramble, Shatter, Evaporate!)
+        # -------------------------------------------------------------------
         res_box_4 = RoundedRectangle(corner_radius=0.09, width=3.36, height=4.68, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=C_CYAN, stroke_width=2.0).move_to([-4.38, 0.02, 0]).set_z_index(4)
         res_hdr_4 = pill("추출 자원 · 한도", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=11.0, z=7).move_to([-4.38, 1.92, 0])
         rg4_1 = capacity_ring([-5.15, 0.72, 0], 0.58, 0.55, C_CYAN, "경량 추출 AI", "일 500회 무료", z=6)
         rg4_2 = capacity_ring([-3.62, 0.72, 0], 0.58, 0.16, C_CORAL, "상위 재추출", "일 20회 상한", z=6)
-        res_notes_4 = fit(VGroup(pill("제미나이 구독 패널 병행", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD_DEEP, size=9.8, z=7), pill("표·문구 규칙 파서 자체 구현", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=9.8, z=7), txt("정형 표 + 비정형 약관 혼재 환경", size=9.6, color=C_INK_2, z=7)).arrange(DOWN, buff=0.14), max_w=3.04).move_to([-4.38, -1.14, 0])
+        res_notes_4 = fit(
+            VGroup(
+                pill("제미나이 구독 패널 병행", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD_DEEP, size=9.8, z=7),
+                pill("표·문구 규칙 파서 자체 구현", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=9.8, z=7),
+                txt("정형 표 + 비정형 약관 혼재 환경", size=9.6, color=C_INK_2, z=7),
+            ).arrange(DOWN, buff=0.14),
+            max_w=3.04,
+        ).move_to([-4.38, -1.14, 0])
         res_grp_4 = VGroup(res_box_4, res_hdr_4, rg4_1, rg4_2, res_notes_4)
         vs_arr_4 = arrow_2d([-2.62, 0.02, 0], [-2.06, 0.02, 0], color=C_CORAL, sw=2.6, tip=0.12, z=8)
 
@@ -487,56 +646,114 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         ceil_ln = DashedLine([-1.65, 1.26, 0], [1.45, 1.26, 0], dash_length=0.07, color=C_CORAL, stroke_width=1.8).set_z_index(7)
         ceil_lbl = txt("일 500회 상한", size=8.6, color=C_CORAL, bold=True, z=8).move_to([-1.18, 1.44, 0])
         b_1doc = Rectangle(width=0.46, height=0.62, fill_color=C_AMBER, fill_opacity=0.9, stroke_width=0).move_to([-0.22, 0.88, 0]).set_z_index(6)
-        b_all = Rectangle(width=0.46, height=1.12, fill_color=C_CORAL, fill_opacity=0.95, stroke_width=0).move_to([0.65, 1.13, 0]).set_z_index(6)
+        b_all = Rectangle(width=0.46, height=1.18, fill_color=C_CORAL, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.0).move_to([0.65, 1.16, 0]).set_z_index(6)
         q4_1_t1 = txt("1권 341회", size=8.4, color=C_AMBER, bold=True, z=7).move_to([-0.22, 0.42, 0])
-        q4_1_t2 = txt("19개사 초과!", size=8.6, color=C_CORAL, bold=True, z=7).move_to([0.65, 0.42, 0])
+        q4_1_t2 = txt("19개사 돌파!", size=8.6, color=C_CORAL, bold=True, z=7).move_to([0.65, 0.42, 0])
 
         q4_2 = diag_frame(3.88, 1.18, C_CORAL, "문제 ② 숫자 직접 추출 오독 (확정 22/49줄)")
-        mis_calc = VGroup(pill("원문 2천만·50%", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD_DEEP, size=8.4, px=0.07, py=0.03).move_to([2.85, 1.30, 0]), arrow_2d([3.52, 1.30, 0], [3.86, 1.30, 0], color=C_CORAL, sw=1.6, tip=0.07), pill("1천만·1천만 ×", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=8.4, px=0.07, py=0.03).move_to([4.68, 1.30, 0])).set_z_index(7)
+        mis_calc = VGroup(
+            pill("원문 2천만·50%", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD_DEEP, size=8.4, px=0.07, py=0.03).move_to([2.85, 1.30, 0]),
+            arrow_2d([3.52, 1.30, 0], [3.86, 1.30, 0], color=C_CORAL, sw=1.6, tip=0.07),
+            pill("1천만·1천만 ×", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=8.4, px=0.07, py=0.03).move_to([4.68, 1.30, 0]),
+        ).set_z_index(7)
         prog_bg = RoundedRectangle(corner_radius=0.04, width=2.90, height=0.22, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_SLATE, stroke_width=1.2).move_to([3.88, 0.78, 0]).set_z_index(6)
         prog_22 = Rectangle(width=1.30, height=0.16, fill_color=C_AMBER, fill_opacity=0.9, stroke_width=0).move_to([3.08, 0.78, 0]).set_z_index(7)
         q4_2_cap = txt("초기 확정 줄 45% 정체 (22 / 49줄)", size=9.0, color=C_AMBER, bold=True, z=7).move_to([3.88, 0.46, 0])
 
         q4_3 = diag_frame(-0.10, -1.14, C_VIOLET, "문제 ③ 미래에셋 308쪽 조각 그림 문서")
-        mosaic = VGroup(*[RoundedRectangle(corner_radius=0.02, width=0.34, height=0.28, fill_color=C_CORAL_DIM if k in (2, 5, 7, 10) else C_PANEL_HI, fill_opacity=0.95, stroke_color=C_CORAL if k in (2, 5, 7, 10) else C_VIOLET, stroke_width=1.4).move_to([-1.15 + (k % 6) * 0.42, -0.92 - (k // 6) * 0.36, 0]).set_z_index(7) for k in range(12)])
+        mosaic_compact = VGroup()
+        mosaic = VGroup()
+        for k in range(12):
+            rr, cc = divmod(k, 6)
+            is_bad = k in (2, 5, 7, 10)
+            c0 = RoundedRectangle(corner_radius=0.01, width=0.30, height=0.26, fill_color=C_PANEL_HI, fill_opacity=0.95, stroke_color=C_VIOLET, stroke_width=1.0).move_to([-0.85 + cc * 0.31, -0.98 - rr * 0.27, 0]).set_z_index(7)
+            c1 = RoundedRectangle(corner_radius=0.02, width=0.34, height=0.28, fill_color=C_CORAL_DIM if is_bad else C_PANEL_HI, fill_opacity=0.95, stroke_color=C_CORAL if is_bad else C_VIOLET, stroke_width=1.5).move_to([-1.15 + cc * 0.42, -0.90 - rr * 0.38, 0]).set_z_index(7)
+            mosaic_compact.add(c0)
+            mosaic.add(c1)
         q4_3_cap = txt("텍스트 분리 불가 · 자체 문자판독 210자 오류 ×", size=9.0, color=C_CORAL, bold=True, z=7).move_to([-0.10, -1.82, 0])
 
         q4_4 = diag_frame(3.88, -1.14, C_CORAL, "문제 ④ 부분 재추출 시 특약 한도 유실 버그")
-        wipe_l = pill("특약 한도 166줄", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=9.0, px=0.09, py=0.04, z=7).move_to([2.90, -1.10, 0])
-        wipe_arr = arrow_2d([3.68, -1.10, 0], [4.12, -1.10, 0], color=C_CORAL, sw=2.0, tip=0.09, z=7)
-        wipe_r = pill("0줄 초기화 ×", fg=WHITE, bg=C_CORAL, border=WHITE, size=9.0, px=0.09, py=0.04, z=7).move_to([4.85, -1.10, 0])
-        q4_4_cap = txt("급부만 재추출할 때 한도 증발 · 급부ID 흔들림", size=9.0, color=C_INK_1, z=7).move_to([3.88, -1.78, 0])
+        lim_bars_before = VGroup(
+            *[Rectangle(width=0.92, height=0.11, fill_color=C_CYAN, fill_opacity=0.92, stroke_width=0).move_to([2.88, -0.82 - k * 0.17, 0]).set_z_index(7) for k in range(4)]
+        )
+        wipe_l_lbl = txt("한도 166줄", size=8.4, color=C_CYAN, bold=True, z=7).move_to([2.88, -1.52, 0])
+        wipe_arr = arrow_2d([3.52, -1.08, 0], [4.08, -1.08, 0], color=C_CORAL, sw=2.2, tip=0.09, z=7)
+        wipe_r = pill("0줄 증발 ×", fg=WHITE, bg=C_CORAL, border=WHITE, size=9.2, px=0.10, py=0.04, z=8).move_to([4.82, -1.08, 0])
+        q4_4_cap = txt("급부만 재추출할 때 한도 증발 · 급부ID 흔들림", size=9.0, color=C_INK_1, z=7).move_to([3.88, -1.82, 0])
 
         self.play(
             FadeIn(VGroup(res_box_4, res_hdr_4, rg4_1[0], rg4_1[2], rg4_2[0], rg4_2[2], res_notes_4), shift=RIGHT * 0.12),
-            Create(rg4_1[1]), Create(rg4_2[1]), GrowArrow(vs_arr_4),
-            FadeIn(VGroup(q4_1, ceil_ln, ceil_lbl, q4_1_t1, q4_1_t2)), GrowFromEdge(b_1doc, DOWN), GrowFromEdge(b_all, DOWN),
-            FadeIn(VGroup(q4_2, mis_calc, prog_bg, q4_2_cap)), GrowFromEdge(prog_22, LEFT),
-            FadeIn(q4_3), FadeIn(q4_3_cap),
-            FadeIn(VGroup(q4_4, wipe_l, wipe_r, q4_4_cap)), GrowArrow(wipe_arr),
-            run_time=1.05,
+            Create(rg4_1[1]),
+            Create(rg4_2[1]),
+            GrowArrow(vs_arr_4),
+            FadeIn(VGroup(q4_1, ceil_ln, ceil_lbl, q4_1_t1)),
+            GrowFromEdge(b_1doc, DOWN),
+            FadeIn(VGroup(q4_2, prog_bg, q4_2_cap)),
+            FadeIn(VGroup(q4_3, mosaic_compact)),
+            FadeIn(VGroup(q4_4, lim_bars_before, wipe_l_lbl, q4_4_cap)),
+            run_time=1.00,
         )
-        # Microscope zoom onto the 308p shattered mosaic tiles!
+
+        # Stop 1: Zoom Top Row — 19-insurer bar bursts through 500 ceiling & numbers scramble!
         self.cam_move(
-            zoom=1.65,
-            center=[-0.10, -1.14, 0],
-            anims=[LaggedStart(*[FadeIn(tl, scale=0.5) for tl in mosaic], lag_ratio=0.03)],
+            zoom=1.38,
+            center=[1.88, 1.18, 0],
+            anims=[
+                GrowFromEdge(b_all, DOWN),
+                FadeIn(q4_1_t2),
+                Flash([0.65, 1.26, 0], color=C_CORAL, line_length=0.22, num_lines=8),
+                FadeIn(mis_calc, shift=RIGHT * 0.10),
+                GrowFromEdge(prog_22, LEFT),
+            ],
+            rt=1.00,
+        )
+
+        # Stop 2: Pan Bottom Row — PDF shatters into 12 mosaic tiles & 166 limit bars evaporate!
+        self.cam_move(
+            zoom=1.38,
+            center=[1.88, -1.14, 0],
+            anims=[
+                ReplacementTransform(mosaic_compact, mosaic),
+                FadeIn(q4_3_cap, shift=UP * 0.05),
+                GrowArrow(wipe_arr),
+                lim_bars_before.animate.set_opacity(0.14),
+                FadeIn(wipe_r, scale=1.25),
+            ],
             rt=1.05,
         )
-        self.wait(0.45)
         self.reset_cam_2d(rt=0.80)
 
         beat4a_all = VGroup(
-            res_grp_4, vs_arr_4,
-            q4_1, ceil_ln, ceil_lbl, b_1doc, b_all, q4_1_t1, q4_1_t2,
-            q4_2, mis_calc, prog_bg, prog_22, q4_2_cap,
-            q4_3, mosaic, q4_3_cap,
-            q4_4, wipe_l, wipe_arr, wipe_r, q4_4_cap,
+            res_grp_4,
+            vs_arr_4,
+            q4_1,
+            ceil_ln,
+            ceil_lbl,
+            b_1doc,
+            b_all,
+            q4_1_t1,
+            q4_1_t2,
+            q4_2,
+            mis_calc,
+            prog_bg,
+            prog_22,
+            q4_2_cap,
+            q4_3,
+            mosaic,
+            q4_3_cap,
+            q4_4,
+            lim_bars_before,
+            wipe_l_lbl,
+            wipe_arr,
+            wipe_r,
+            q4_4_cap,
         )
         self.check_bounds(beat4a_all, "CH4A EXTRACT DIAGNOSTIC")
-        self.wait(1.10)
+        self.wait(0.95)
 
+        # -------------------------------------------------------------------
         # Beat 4B: 3D Extruded Terraced Payout Blocks + Verbatim Stencil
+        # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
             "해결 ① 초기 대량 적재와 주간 운영 경로를 나누고, AI는 원문 문구만 옮기며 숫자 환산은 전량 코드가 맡습니다",
@@ -579,7 +796,6 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         step_curve = VMobject(color=C_GOLD, stroke_width=3.6).set_z_index(7)
         step_curve.set_points_as_corners([[ax_origin[0], ax_origin[1], 0], [x_90d, ax_origin[1], 0], [x_90d, y_1000, 0], [x_1yr, y_1000, 0], [x_1yr, y_2000, 0], [x_end, y_2000, 0]])
 
-        # 3D Payout Terraces that rise briefly during 3D camera tilt!
         terrace_half = Prism(dimensions=[x_1yr - x_90d, 0.90, 0.42], fill_color=C_CYAN, fill_opacity=0.26, stroke_color=C_CYAN, stroke_width=1.2).move_to([(x_90d + x_1yr) / 2, ax_origin[1] + 0.45, 0.21])
         terrace_full = Prism(dimensions=[x_end - x_1yr, 1.80, 0.84], fill_color=C_GOLD, fill_opacity=0.30, stroke_color=C_GOLD, stroke_width=1.4).move_to([(x_1yr + x_end) / 2, ax_origin[1] + 0.90, 0.42])
 
@@ -590,26 +806,36 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             center=[0.35, -0.25, 0.15],
             anims=[
                 FadeOut(beat4a_all, shift=UP * 0.10),
-                FadeIn(dual_path_bar), FadeIn(src_hdr),
+                FadeIn(dual_path_bar),
+                FadeIn(src_hdr),
                 LaggedStart(*[FadeIn(t, shift=RIGHT * 0.12) for t in src_tokens], lag_ratio=0.08),
                 FadeIn(VGroup(stencil_frame, stencil_title, stencil_sub)),
-                GrowArrow(arr_up_in), Create(x_axis), Create(y_axis), FadeIn(code_badge), GrowArrow(arr_dn_in),
+                GrowArrow(arr_up_in),
+                Create(x_axis),
+                Create(y_axis),
+                FadeIn(code_badge),
+                GrowArrow(arr_dn_in),
                 Create(step_curve),
-                FadeIn(terrace_half, shift=OUT * 0.2), FadeIn(terrace_full, shift=OUT * 0.35),
+                FadeIn(terrace_half, shift=OUT * 0.2),
+                FadeIn(terrace_full, shift=OUT * 0.35),
             ],
             rt=1.20,
         )
         self.remove(beat4a_all)
-        self.wait(0.65)
+        self.wait(0.60)
         self.reset_cam_2d(
             anims=[
-                FadeOut(terrace_half), FadeOut(terrace_full),
-                GrowArrow(arr_up_out), FadeIn(stencil_out, shift=RIGHT * 0.12),
-                Create(dash_1000), Create(dash_2000),
+                FadeOut(terrace_half),
+                FadeOut(terrace_full),
+                GrowArrow(arr_up_out),
+                FadeIn(stencil_out, shift=RIGHT * 0.12),
+                Create(dash_1000),
+                Create(dash_2000),
                 FadeIn(VGroup(lbl_y1, lbl_y2, lbl_x0, lbl_x1, lbl_x2)),
-                FadeIn(area_half), FadeIn(area_full),
+                FadeIn(area_half),
+                FadeIn(area_full),
             ],
-            rt=1.00,
+            rt=0.95,
         )
         self.remove(terrace_half, terrace_full)
 
@@ -618,9 +844,11 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             x_axis, y_axis, code_badge, dash_1000, dash_2000, lbl_y1, lbl_y2, lbl_x0, lbl_x1, lbl_x2, area_half, area_full, step_curve, arr_dn_in,
         )
         self.check_bounds(beat4b_all, "CH4B STENCIL & CODE")
-        self.wait(1.65)
+        self.wait(1.45)
 
+        # -------------------------------------------------------------------
         # Beat 4C: 3D Orthogonal Laser Scan + Discrepant 3D Spike Dive!
+        # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
             "해결 ② 그림으로 된 308쪽 요약서는 두 모델이 3차원 교차 스캔으로 읽고, 어긋난 칸만 확대 대조합니다",
@@ -646,14 +874,13 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         laser_x = Prism(dimensions=[0.07, 3.20, 0.85], fill_color=C_CYAN, fill_opacity=0.35, stroke_color=C_CYAN, stroke_width=1.8).move_to([-3.55, 0.08, 0.42])
         laser_y = Prism(dimensions=[5.55, 0.07, 0.85], fill_color=C_GOLD, fill_opacity=0.35, stroke_color=C_GOLD, stroke_width=1.8).move_to([-0.80, 1.62, 0.42])
 
-        # Tilt into 3D to watch the orthogonal laser planes cross!
         self.cam_move(
             phi=48 * DEGREES,
             theta=-58 * DEGREES,
             zoom=0.98,
             center=[-0.80, 0.0, 0.1],
             anims=[FadeOut(beat4b_all, shift=UP * 0.10), FadeIn(cells), FadeIn(emit_left), FadeIn(emit_top)],
-            rt=0.95,
+            rt=0.90,
         )
         self.remove(beat4b_all)
 
@@ -661,7 +888,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         self.play(
             laser_x.animate.move_to([1.95, 0.08, 0.42]),
             LaggedStart(*[AnimationGroup(*[cell_grid[r][c].animate.set_fill(C_CYAN_DIM, opacity=0.85).set_stroke(C_CYAN, width=1.6) for r in range(rows_n)]) for c in range(cols_n)], lag_ratio=0.07),
-            run_time=0.90,
+            run_time=0.85,
         )
         self.remove(laser_x)
 
@@ -679,10 +906,9 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                     r_group.append(cell_grid[r][c].animate.set_fill("#1D332B", opacity=0.92).set_stroke(C_MINT, width=1.5))
             row_anims.append(AnimationGroup(*r_group))
 
-        self.play(laser_y.animate.move_to([-0.80, -1.45, 0.42]), LaggedStart(*row_anims, lag_ratio=0.09), FadeIn(err_spike, shift=OUT * 0.35), run_time=0.95)
+        self.play(laser_y.animate.move_to([-0.80, -1.45, 0.42]), LaggedStart(*row_anims, lag_ratio=0.09), FadeIn(err_spike, shift=OUT * 0.35), run_time=0.90)
         self.remove(laser_y)
 
-        # Camera Dives from 3D onto the Discrepant Cell & Magnifier Lens!
         lens_center = np.array([4.18, 0.15, 0.0])
         lens_circle = Circle(radius=1.36, fill_color=C_PANEL_HI, fill_opacity=0.97, stroke_color=C_GOLD, stroke_width=2.8).move_to(lens_center).set_z_index(8)
         lens_title = fit(txt("불일치 줄 원문 확대 대조", size=12.0, color=C_GOLD, bold=True, z=9), max_w=2.15).move_to(lens_center + UP * 0.76)
@@ -699,17 +925,17 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             zoom=1.36,
             center=[2.45, 0.12, 0],
             anims=[FadeOut(err_spike), Create(callout_1), Create(callout_2), FadeIn(lens_circle, scale=0.85), FadeIn(lens_title), FadeIn(wrong_val)],
-            rt=0.95,
+            rt=0.90,
         )
         self.remove(err_spike)
         self.reset_cam_2d(
             anims=[Create(strike_ln), FadeIn(fixed_val, shift=UP * 0.10), err_cell.animate.set_fill(C_GOLD, opacity=0.95).set_stroke(WHITE, width=2.4), FadeIn(safeguard_bar, shift=UP * 0.10)],
-            rt=0.95,
+            rt=0.90,
         )
 
         ch4_stage = VGroup(cells, emit_left, emit_top, lens_circle, lens_title, wrong_val, strike_ln, fixed_val, callout_1, callout_2, safeguard_bar)
         self.check_bounds(ch4_stage, "CH4C CROSS READ & SAFEGUARD")
-        self.wait(1.85)
+        self.wait(1.60)
         print(f"[TIMING] Part 2 end: {self.renderer.time:.2f}s")
 
         self.fade_out_part(ch4_stage, hl, hr, hb)
