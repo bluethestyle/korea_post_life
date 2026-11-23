@@ -1,85 +1,127 @@
-/* 탭 2 고객군과 시장 전용: 진행 추적기 3구역 구성(왼쪽 이력/나이 묶음 + 가운데 4x6 고리 격자 + 오른쪽 고객군 상세). */
+/* 탭 2 고객군과 시장 전용: 안개 위 네 줄 시간축(2px 선, 12px 전환 눈금) + 고리 마디(64px) + 오른쪽 28% 읽기 영역.
+   어느 창 크기에서도 도형 영역의 안쪽 가로 스크롤이 0이 되게 유연한 트랙 폭을 쓴다. */
 
-.mk-zl-ren{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 10px;margin-bottom:10px;border-bottom:1px solid var(--line)}
-.mk-zl-ren .zl-k{white-space:nowrap}
-.mk-zl-ren .chev-sel{height:32px}
-.mk-zl-ren .chev-sel button{width:30px}
-.mk-zl-ren .chev-sel .v{min-width:50px;font-size:13px}
-.mk-zl-sep{height:1px;margin:8px 0;background:var(--line-2)}
+.mkc-stage{display:flex;flex-direction:column;justify-content:flex-start;min-height:100%;gap:8px;padding-right:6px}
+.mk-top-ctrl{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.mk-ren-box{display:inline-flex;align-items:center;gap:8px}
+.mk-ren-lb{font:600 13px/1 var(--f-ko);color:var(--ink-1);white-space:nowrap}
+.mk-ren-box .chev-sel{height:30px;background:transparent}
+.mk-ren-box .chev-sel button{width:28px}
+.mk-ren-box .chev-sel .v{min-width:48px;font-size:13px}
+.mk-miss-note{margin:0;padding:4px 0 4px 10px;font:400 13px/1.45 var(--f-body);color:var(--ink-0);box-shadow:inset 3px 0 0 var(--ink-1)}
 
-/* 가운데 구역: 고리 격자 무대(1920x1080에서 24개 고리가 스크롤 없이 한 화면에 들어온다) */
-.mkc-stage{display:flex;flex-direction:column;justify-content:space-between;min-height:100%;gap:8px}
-.mkc-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-.mkc-head h2{margin:0;font:600 17px/1.3 var(--f-ko);color:var(--ink-0)}
-.mkc-cue{font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
-.mkc-banner{margin:0;padding:6px 10px;font:400 13px/1.45 var(--f-body);color:var(--ink-0);background:var(--panel-lo);border-left:3px solid var(--ink-1)}
+/* 시간축 판: 줄 머리 146px + 여섯 마디를 균등 배치하는 시간축 트랙 */
+.mk-axis-board{display:flex;flex-direction:column;gap:14px}
+.mk-thead{display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:end;padding-bottom:2px}
+.mk-basis{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
+.mk-tcols{display:flex;justify-content:space-between;align-items:end}
+.mk-tch{width:64px;text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
 
-/* 4행 x 6열 고리 격자: 1920x1080 기준 지름 76px(>=72px), 가로 간격 42px(>=38px), 세로 간격 42px(>=38px) */
-.mk-rgrid-wrap{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:4px 0}
-.mk-rcols{display:grid;grid-template-columns:86px repeat(6,76px);column-gap:42px;align-items:end;justify-content:center}
-.mk-rch{text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
-.mk-rrows{display:flex;flex-direction:column;gap:42px;align-items:center}
-.mk-rrow{display:grid;grid-template-columns:86px repeat(6,76px);column-gap:42px;align-items:center;justify-content:center;
-  transition:opacity 180ms var(--ease)}
-.mk-rrow.surg-sep{position:relative}
-.mk-rrow.surg-sep::before{content:"";position:absolute;left:0;right:0;top:-21px;height:1px;background:var(--line-2)}
-.mk-rrows.has-hl .mk-rrow:not(.is-hl){opacity:.42}
-.mk-rrh{font:600 13px/1.28 var(--f-ko);color:var(--ink-0);text-align:right;padding-right:6px;word-break:keep-all}
+/* 네 줄 시간축: 1920x1080 에서 줄 간격(행 피치) 약 128~132px, 고리 지름 64px */
+.mk-trows{display:flex;flex-direction:column;gap:64px}
+.mk-trow{position:relative;display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:center}
+.mk-trow.is-break::before{content:"";position:absolute;left:0;right:0;top:-32px;height:1px;background:var(--line)}
 
-/* 고리 하나(색과 선의 뜻 4가지: 금색=우리 간편 열림, 회색=우리 간편 닫힘/일반심사, 점선=자료 없음, 빨강 원=고른 것) */
-.mk-ring{position:relative;width:76px;height:76px;padding:0;border:0;background:transparent;display:grid;place-items:center;
-  color:var(--ink-0);transition:transform 160ms var(--ease)}
-.mk-ring:hover{transform:scale(1.05)}
+.mk-rh{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.mk-rh-nm{font:600 14px/1.28 var(--f-ko);color:var(--ink-0);word-break:keep-all}
+.mk-rh-cnt{font:600 13px/1.2 var(--f-num);color:var(--ink-2)}
+
+.mk-track{display:flex;align-items:center;justify-content:space-between;min-width:0;width:100%}
+.mk-seg{position:relative;flex:1 1 auto;min-width:4px;height:0}
+.mk-seg.is-solid{border-top:2px solid var(--axis)}
+.mk-seg.is-dash{border-top:1px dashed var(--ink-2)}
+/* 닫힘에서 열림으로 전환되는 자리의 12px 세로 눈금 */
+.mk-trans-tk{position:absolute;right:4px;top:-7px;width:2px;height:12px;background:var(--axis)}
+.mk-seg.is-solid .mk-trans-tk{top:-7px}
+
+/* 고리 마디(64px): 다섯 상태가 색과 꼴 둘 다로 갈린다 */
+.mk-ring{position:relative;flex:none;width:64px;height:64px;padding:0;border:0;background:transparent;
+  display:grid;place-items:center;color:var(--ink-0);transition:transform 150ms var(--ease)}
+.mk-ring:hover{transform:scale(1.06)}
 .mk-ring svg{width:100%;height:100%;display:block;overflow:visible}
-.mk-ring > .flag{left:2px;top:2px}
-.mk-rn{position:absolute;inset:0;display:grid;place-items:center;font:600 22px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none}
+.mk-ring > .flag{left:0;top:0}
+.mk-rn{position:absolute;inset:0;display:grid;place-items:center;font:600 19px/1 var(--f-num);
+  font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none}
 
-/* 1. 금색 고리: 우리 간편도 열림 */
-.mk-ring.is-gold .mkr-bg{fill:var(--gold-soft)}
-.mk-ring.is-gold .mkr-out{stroke:var(--gold-line);stroke-opacity:.72}
-.mk-ring.is-gold .mkr-trk{stroke:var(--gold-line);stroke-opacity:.36}
-.mk-ring.is-gold .mkr-tks line{stroke:var(--gold-line);stroke-opacity:.58}
-.mk-ring.is-gold .mkr-arc{stroke:var(--gold-line)}
-:root[data-theme="dark"] .mk-ring.is-gold .mkr-out,
-:root[data-theme="dark"] .mk-ring.is-gold .mkr-arc{stroke:var(--gold)}
+.mkr-disc{fill:transparent;transition:fill 150ms var(--ease)}
+.mkr-sel-ring{stroke:transparent}
+.mkr-diag{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease)}
+.mkr-trk{stroke:var(--ink-2);stroke-opacity:.28}
+.mkr-unk line{stroke:var(--ink-2);stroke-opacity:.58}
+.mkr-arc{stroke:var(--ink-0)}
+.mkr-part-mk{fill:var(--ink-0)}
 
-/* 2. 회색 고리: 우리 간편 닫힘(일반심사로 확인) */
-.mk-ring.is-grey .mkr-bg{fill:rgba(255,255,255,.18)}
-:root[data-theme="dark"] .mk-ring.is-grey .mkr-bg{fill:rgba(255,255,255,.03)}
-.mk-ring.is-grey .mkr-out{stroke:var(--ink-2);stroke-opacity:.28}
-.mk-ring.is-grey .mkr-trk{stroke:var(--ink-2);stroke-opacity:.26}
-.mk-ring.is-grey .mkr-tks line{stroke:var(--ink-2);stroke-opacity:.52}
-.mk-ring.is-grey .mkr-arc{stroke:var(--ink-1)}
+/* 1. 우리 간편은 닫히고 열린 상대가 있음(가장 먼저 보이는 먹색 채움 원 + 흰 숫자) */
+.mk-ring.st-worse .mkr-disc{fill:var(--worse)}
+.mk-ring.st-worse .mk-rn{color:var(--on-worse)}
+.mk-ring.st-worse .mkr-part-mk{fill:var(--on-worse)}
 
-/* 3. 점선 고리: 자료 없음 */
-.mk-ring.is-dash .mkr-bg{fill:transparent}
-.mk-ring.is-dash .mkr-out{stroke:var(--dash);stroke-dasharray:4 3.5;stroke-opacity:.85}
-.mk-ring.is-dash .mkr-trk{stroke:var(--dash);stroke-dasharray:3 3;stroke-opacity:.65}
-.mk-ring.is-dash .mkr-tks{display:none}
-.mk-ring.is-dash .mkr-arc{stroke:var(--ink-2)}
+/* 2. 우리 간편만 열림(금색 면 + 안쪽 2px 이중 고리) */
+.mk-ring.st-only .mkr-disc{fill:var(--gold)}
+.mk-ring.st-only .mkr-dbl{stroke:var(--gold-edge)}
+.mk-ring.st-only .mkr-trk{stroke:var(--gold-line);stroke-opacity:.85;stroke-width:2.2}
+.mk-ring.st-only .mk-rn{color:#151D24}
 
-/* 4. 빨강 원: 고른 고객군 */
+/* 3. 함께 열림(중립: 채움 면 없음, 짙은 선 고리) */
+.mk-ring.st-both .mkr-disc{fill:transparent}
+.mk-ring.st-both .mkr-trk{stroke:var(--ink-0);stroke-opacity:.38;stroke-width:1.5}
+
+/* 4. 모두 닫힘(옅은 회색 고리) */
+.mk-ring.st-none .mkr-trk{stroke:var(--ink-2);stroke-opacity:.30}
+.mk-ring.st-none .mk-rn{color:var(--ink-2)}
+
+/* 5. 자료 없음(점선 고리) */
+.mk-ring.st-unknown .mkr-trk{stroke:var(--dash);stroke-dasharray:3 3;stroke-opacity:.75}
+.mk-ring.st-unknown .mk-rn{color:var(--ink-1)}
+
+/* 6. 고른 것(빨강 원 + 흰 고리 + 네 귀 45도 사선) */
 .mk-ring.is-sel .mkr-disc{fill:var(--red)}
-.mk-ring.is-sel .mkr-out{stroke:var(--red);stroke-opacity:.9}
-.mk-ring.is-sel .mkr-trk{stroke:#fff;stroke-opacity:.36}
-.mk-ring.is-sel .mkr-tks line{stroke:#fff;stroke-opacity:.62}
-.mk-ring.is-sel .mkr-arc{stroke:#fff}
+.mk-ring.is-sel .mkr-sel-ring{stroke:#fff}
+.mk-ring.is-sel .mkr-dbl{stroke:#fff}
 .mk-ring.is-sel .mkr-diag{stroke:var(--ink-0);opacity:1}
 :root[data-theme="dark"] .mk-ring.is-sel .mkr-diag{stroke:#fff}
 .mk-ring.is-sel .mk-rn{color:#fff}
+.mk-ring.is-sel .mkr-part-mk{fill:#fff}
 
-.mkr-disc{fill:transparent;transition:fill 160ms var(--ease)}
-.mkr-diag{stroke:transparent;opacity:0;transition:opacity 160ms var(--ease)}
-.mkr-arc{transition:stroke-dasharray 380ms var(--ease)}
+.mk-anim .mk-ring{animation:mkPop 240ms var(--ease) both;animation-delay:var(--d,0ms)}
+@keyframes mkPop{from{opacity:.25;transform:scale(.9)}to{opacity:1;transform:none}}
 
-/* 진입 시 차오름 */
-.mk-anim .mk-ring{animation:mkPop 260ms var(--ease) both;animation-delay:var(--d,0ms)}
-@keyframes mkPop{from{opacity:.25;transform:scale(.88)}to{opacity:1;transform:none}}
+/* 해상도별 치수: 1600px, 1280px, 380px 모두 안쪽 가로 스크롤 0 */
+@media (max-width:1599px) and (min-width:1280px){
+  .mk-thead,.mk-trow{grid-template-columns:128px minmax(0,1fr);column-gap:12px}
+  .mk-tch{width:54px}
+  .mk-trows{gap:40px}
+  .mk-trow.is-break::before{top:-20px}
+  .mk-ring{width:54px;height:54px}
+  .mk-rn{font-size:17px}
+}
+@media (max-width:1279px) and (min-width:1000px){
+  .mk-thead,.mk-trow{grid-template-columns:114px minmax(0,1fr);column-gap:10px}
+  .mk-tch{width:48px}
+  .mk-trows{gap:30px}
+  .mk-trow.is-break::before{top:-15px}
+  .mk-rh-nm{font-size:13px}
+  .mk-ring{width:48px;height:48px}
+  .mk-rn{font-size:15px}
+}
+@media (max-width:999px){
+  .mkc-stage{padding-right:0}
+  .mk-top-ctrl{justify-content:space-between}
+  .mk-thead{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+  .mk-tch{width:44px;font-size:13px;white-space:normal;line-height:1.15;word-break:keep-all}
+  .mk-trows{gap:18px}
+  .mk-trow{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+  .mk-trow.is-break::before{top:-9px}
+  .mk-rh{flex-direction:row;align-items:baseline;justify-content:space-between}
+  .mk-ring{width:44px;height:44px}
+  .mk-rn{font-size:14px}
+}
 
-/* 가운데 구역: 개정과 시장 / 집계와 일러두기 / 문장 보기 모드 */
+/* [개정과 시장] / [표로 보기] 창 내부 부품 */
+.mkc-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.mkc-head h2{margin:0;font:600 17px/1.3 var(--f-ko);color:var(--ink-0)}
 .mk-subtabs{display:inline-flex;gap:6px}
-.mk-subtab{height:28px;padding:0 12px;border:1px solid var(--line-2);background:rgba(255,255,255,.32);font:600 13px/1 var(--f-ko);color:var(--ink-1)}
-:root[data-theme="dark"] .mk-subtab{background:rgba(255,255,255,.05)}
+.mk-subtab{height:30px;padding:0 12px;border:1px solid var(--line-2);background:transparent;font:600 13px/1 var(--f-ko);color:var(--ink-1)}
 .mk-subtab.is-on{background:var(--slate);color:#fff;border-color:transparent}
 .mk-pane-scroll{display:flex;flex-direction:column;gap:12px}
 .mk-pairs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
@@ -95,30 +137,3 @@
 .mk-gap li{display:flex;gap:8px;align-items:flex-start}
 .mk-url{word-break:break-all;font-family:var(--f-num)}
 .mk-est{display:inline-flex;align-items:center;gap:6px}
-
-/* 해상도별 고리 격자 치수 */
-@media (max-width:1599px) and (min-width:1280px){
-  .mk-rcols,.mk-rrow{grid-template-columns:80px repeat(6,60px);column-gap:28px}
-  .mk-rrows{gap:26px}
-  .mk-rrow.surg-sep::before{top:-13px}
-  .mk-ring{width:60px;height:60px}
-  .mk-rn{font-size:18px}
-}
-@media (max-width:1279px) and (min-width:1000px){
-  .mk-rcols,.mk-rrow{grid-template-columns:72px repeat(6,50px);column-gap:18px}
-  .mk-rrows{gap:20px}
-  .mk-rrow.surg-sep::before{top:-10px}
-  .mk-ring{width:50px;height:50px}
-  .mk-rn{font-size:16px}
-}
-@media (max-width:999px){
-  .mk-rcols{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:8px}
-  .mk-rcols > span:first-child{display:none}
-  .mk-rch{white-space:normal;font-size:13px;line-height:1.18;word-break:keep-all}
-  .mk-rrows{gap:14px;align-items:stretch}
-  .mk-rrow{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:8px;row-gap:6px;justify-items:center}
-  .mk-rrow.surg-sep::before{top:-7px}
-  .mk-rrh{grid-column:1/-1;justify-self:start;text-align:left;padding:2px 0 0}
-  .mk-ring{width:46px;height:46px}
-  .mk-rn{font-size:15px}
-}

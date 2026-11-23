@@ -852,88 +852,130 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .gr-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
 
 /* tab2.css */
-/* 탭 2 고객군과 시장 전용: 진행 추적기 3구역 구성(왼쪽 이력/나이 묶음 + 가운데 4x6 고리 격자 + 오른쪽 고객군 상세). */
+/* 탭 2 고객군과 시장 전용: 안개 위 네 줄 시간축(2px 선, 12px 전환 눈금) + 고리 마디(64px) + 오른쪽 28% 읽기 영역.
+   어느 창 크기에서도 도형 영역의 안쪽 가로 스크롤이 0이 되게 유연한 트랙 폭을 쓴다. */
 
-.mk-zl-ren{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 10px;margin-bottom:10px;border-bottom:1px solid var(--line)}
-.mk-zl-ren .zl-k{white-space:nowrap}
-.mk-zl-ren .chev-sel{height:32px}
-.mk-zl-ren .chev-sel button{width:30px}
-.mk-zl-ren .chev-sel .v{min-width:50px;font-size:13px}
-.mk-zl-sep{height:1px;margin:8px 0;background:var(--line-2)}
+.mkc-stage{display:flex;flex-direction:column;justify-content:flex-start;min-height:100%;gap:8px;padding-right:6px}
+.mk-top-ctrl{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.mk-ren-box{display:inline-flex;align-items:center;gap:8px}
+.mk-ren-lb{font:600 13px/1 var(--f-ko);color:var(--ink-1);white-space:nowrap}
+.mk-ren-box .chev-sel{height:30px;background:transparent}
+.mk-ren-box .chev-sel button{width:28px}
+.mk-ren-box .chev-sel .v{min-width:48px;font-size:13px}
+.mk-miss-note{margin:0;padding:4px 0 4px 10px;font:400 13px/1.45 var(--f-body);color:var(--ink-0);box-shadow:inset 3px 0 0 var(--ink-1)}
 
-/* 가운데 구역: 고리 격자 무대(1920x1080에서 24개 고리가 스크롤 없이 한 화면에 들어온다) */
-.mkc-stage{display:flex;flex-direction:column;justify-content:space-between;min-height:100%;gap:8px}
-.mkc-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-.mkc-head h2{margin:0;font:600 17px/1.3 var(--f-ko);color:var(--ink-0)}
-.mkc-cue{font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
-.mkc-banner{margin:0;padding:6px 10px;font:400 13px/1.45 var(--f-body);color:var(--ink-0);background:var(--panel-lo);border-left:3px solid var(--ink-1)}
+/* 시간축 판: 줄 머리 146px + 여섯 마디를 균등 배치하는 시간축 트랙 */
+.mk-axis-board{display:flex;flex-direction:column;gap:14px}
+.mk-thead{display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:end;padding-bottom:2px}
+.mk-basis{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
+.mk-tcols{display:flex;justify-content:space-between;align-items:end}
+.mk-tch{width:64px;text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
 
-/* 4행 x 6열 고리 격자: 1920x1080 기준 지름 76px(>=72px), 가로 간격 42px(>=38px), 세로 간격 42px(>=38px) */
-.mk-rgrid-wrap{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:4px 0}
-.mk-rcols{display:grid;grid-template-columns:86px repeat(6,76px);column-gap:42px;align-items:end;justify-content:center}
-.mk-rch{text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
-.mk-rrows{display:flex;flex-direction:column;gap:42px;align-items:center}
-.mk-rrow{display:grid;grid-template-columns:86px repeat(6,76px);column-gap:42px;align-items:center;justify-content:center;
-  transition:opacity 180ms var(--ease)}
-.mk-rrow.surg-sep{position:relative}
-.mk-rrow.surg-sep::before{content:"";position:absolute;left:0;right:0;top:-21px;height:1px;background:var(--line-2)}
-.mk-rrows.has-hl .mk-rrow:not(.is-hl){opacity:.42}
-.mk-rrh{font:600 13px/1.28 var(--f-ko);color:var(--ink-0);text-align:right;padding-right:6px;word-break:keep-all}
+/* 네 줄 시간축: 1920x1080 에서 줄 간격(행 피치) 약 128~132px, 고리 지름 64px */
+.mk-trows{display:flex;flex-direction:column;gap:64px}
+.mk-trow{position:relative;display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:center}
+.mk-trow.is-break::before{content:"";position:absolute;left:0;right:0;top:-32px;height:1px;background:var(--line)}
 
-/* 고리 하나(색과 선의 뜻 4가지: 금색=우리 간편 열림, 회색=우리 간편 닫힘/일반심사, 점선=자료 없음, 빨강 원=고른 것) */
-.mk-ring{position:relative;width:76px;height:76px;padding:0;border:0;background:transparent;display:grid;place-items:center;
-  color:var(--ink-0);transition:transform 160ms var(--ease)}
-.mk-ring:hover{transform:scale(1.05)}
+.mk-rh{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.mk-rh-nm{font:600 14px/1.28 var(--f-ko);color:var(--ink-0);word-break:keep-all}
+.mk-rh-cnt{font:600 13px/1.2 var(--f-num);color:var(--ink-2)}
+
+.mk-track{display:flex;align-items:center;justify-content:space-between;min-width:0;width:100%}
+.mk-seg{position:relative;flex:1 1 auto;min-width:4px;height:0}
+.mk-seg.is-solid{border-top:2px solid var(--axis)}
+.mk-seg.is-dash{border-top:1px dashed var(--ink-2)}
+/* 닫힘에서 열림으로 전환되는 자리의 12px 세로 눈금 */
+.mk-trans-tk{position:absolute;right:4px;top:-7px;width:2px;height:12px;background:var(--axis)}
+.mk-seg.is-solid .mk-trans-tk{top:-7px}
+
+/* 고리 마디(64px): 다섯 상태가 색과 꼴 둘 다로 갈린다 */
+.mk-ring{position:relative;flex:none;width:64px;height:64px;padding:0;border:0;background:transparent;
+  display:grid;place-items:center;color:var(--ink-0);transition:transform 150ms var(--ease)}
+.mk-ring:hover{transform:scale(1.06)}
 .mk-ring svg{width:100%;height:100%;display:block;overflow:visible}
-.mk-ring > .flag{left:2px;top:2px}
-.mk-rn{position:absolute;inset:0;display:grid;place-items:center;font:600 22px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none}
+.mk-ring > .flag{left:0;top:0}
+.mk-rn{position:absolute;inset:0;display:grid;place-items:center;font:600 19px/1 var(--f-num);
+  font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none}
 
-/* 1. 금색 고리: 우리 간편도 열림 */
-.mk-ring.is-gold .mkr-bg{fill:var(--gold-soft)}
-.mk-ring.is-gold .mkr-out{stroke:var(--gold-line);stroke-opacity:.72}
-.mk-ring.is-gold .mkr-trk{stroke:var(--gold-line);stroke-opacity:.36}
-.mk-ring.is-gold .mkr-tks line{stroke:var(--gold-line);stroke-opacity:.58}
-.mk-ring.is-gold .mkr-arc{stroke:var(--gold-line)}
-:root[data-theme="dark"] .mk-ring.is-gold .mkr-out,
-:root[data-theme="dark"] .mk-ring.is-gold .mkr-arc{stroke:var(--gold)}
+.mkr-disc{fill:transparent;transition:fill 150ms var(--ease)}
+.mkr-sel-ring{stroke:transparent}
+.mkr-diag{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease)}
+.mkr-trk{stroke:var(--ink-2);stroke-opacity:.28}
+.mkr-unk line{stroke:var(--ink-2);stroke-opacity:.58}
+.mkr-arc{stroke:var(--ink-0)}
+.mkr-part-mk{fill:var(--ink-0)}
 
-/* 2. 회색 고리: 우리 간편 닫힘(일반심사로 확인) */
-.mk-ring.is-grey .mkr-bg{fill:rgba(255,255,255,.18)}
-:root[data-theme="dark"] .mk-ring.is-grey .mkr-bg{fill:rgba(255,255,255,.03)}
-.mk-ring.is-grey .mkr-out{stroke:var(--ink-2);stroke-opacity:.28}
-.mk-ring.is-grey .mkr-trk{stroke:var(--ink-2);stroke-opacity:.26}
-.mk-ring.is-grey .mkr-tks line{stroke:var(--ink-2);stroke-opacity:.52}
-.mk-ring.is-grey .mkr-arc{stroke:var(--ink-1)}
+/* 1. 우리 간편은 닫히고 열린 상대가 있음(가장 먼저 보이는 먹색 채움 원 + 흰 숫자) */
+.mk-ring.st-worse .mkr-disc{fill:var(--worse)}
+.mk-ring.st-worse .mk-rn{color:var(--on-worse)}
+.mk-ring.st-worse .mkr-part-mk{fill:var(--on-worse)}
 
-/* 3. 점선 고리: 자료 없음 */
-.mk-ring.is-dash .mkr-bg{fill:transparent}
-.mk-ring.is-dash .mkr-out{stroke:var(--dash);stroke-dasharray:4 3.5;stroke-opacity:.85}
-.mk-ring.is-dash .mkr-trk{stroke:var(--dash);stroke-dasharray:3 3;stroke-opacity:.65}
-.mk-ring.is-dash .mkr-tks{display:none}
-.mk-ring.is-dash .mkr-arc{stroke:var(--ink-2)}
+/* 2. 우리 간편만 열림(금색 면 + 안쪽 2px 이중 고리) */
+.mk-ring.st-only .mkr-disc{fill:var(--gold)}
+.mk-ring.st-only .mkr-dbl{stroke:var(--gold-edge)}
+.mk-ring.st-only .mkr-trk{stroke:var(--gold-line);stroke-opacity:.85;stroke-width:2.2}
+.mk-ring.st-only .mk-rn{color:#151D24}
 
-/* 4. 빨강 원: 고른 고객군 */
+/* 3. 함께 열림(중립: 채움 면 없음, 짙은 선 고리) */
+.mk-ring.st-both .mkr-disc{fill:transparent}
+.mk-ring.st-both .mkr-trk{stroke:var(--ink-0);stroke-opacity:.38;stroke-width:1.5}
+
+/* 4. 모두 닫힘(옅은 회색 고리) */
+.mk-ring.st-none .mkr-trk{stroke:var(--ink-2);stroke-opacity:.30}
+.mk-ring.st-none .mk-rn{color:var(--ink-2)}
+
+/* 5. 자료 없음(점선 고리) */
+.mk-ring.st-unknown .mkr-trk{stroke:var(--dash);stroke-dasharray:3 3;stroke-opacity:.75}
+.mk-ring.st-unknown .mk-rn{color:var(--ink-1)}
+
+/* 6. 고른 것(빨강 원 + 흰 고리 + 네 귀 45도 사선) */
 .mk-ring.is-sel .mkr-disc{fill:var(--red)}
-.mk-ring.is-sel .mkr-out{stroke:var(--red);stroke-opacity:.9}
-.mk-ring.is-sel .mkr-trk{stroke:#fff;stroke-opacity:.36}
-.mk-ring.is-sel .mkr-tks line{stroke:#fff;stroke-opacity:.62}
-.mk-ring.is-sel .mkr-arc{stroke:#fff}
+.mk-ring.is-sel .mkr-sel-ring{stroke:#fff}
+.mk-ring.is-sel .mkr-dbl{stroke:#fff}
 .mk-ring.is-sel .mkr-diag{stroke:var(--ink-0);opacity:1}
 :root[data-theme="dark"] .mk-ring.is-sel .mkr-diag{stroke:#fff}
 .mk-ring.is-sel .mk-rn{color:#fff}
+.mk-ring.is-sel .mkr-part-mk{fill:#fff}
 
-.mkr-disc{fill:transparent;transition:fill 160ms var(--ease)}
-.mkr-diag{stroke:transparent;opacity:0;transition:opacity 160ms var(--ease)}
-.mkr-arc{transition:stroke-dasharray 380ms var(--ease)}
+.mk-anim .mk-ring{animation:mkPop 240ms var(--ease) both;animation-delay:var(--d,0ms)}
+@keyframes mkPop{from{opacity:.25;transform:scale(.9)}to{opacity:1;transform:none}}
 
-/* 진입 시 차오름 */
-.mk-anim .mk-ring{animation:mkPop 260ms var(--ease) both;animation-delay:var(--d,0ms)}
-@keyframes mkPop{from{opacity:.25;transform:scale(.88)}to{opacity:1;transform:none}}
+/* 해상도별 치수: 1600px, 1280px, 380px 모두 안쪽 가로 스크롤 0 */
+@media (max-width:1599px) and (min-width:1280px){
+  .mk-thead,.mk-trow{grid-template-columns:128px minmax(0,1fr);column-gap:12px}
+  .mk-tch{width:54px}
+  .mk-trows{gap:40px}
+  .mk-trow.is-break::before{top:-20px}
+  .mk-ring{width:54px;height:54px}
+  .mk-rn{font-size:17px}
+}
+@media (max-width:1279px) and (min-width:1000px){
+  .mk-thead,.mk-trow{grid-template-columns:114px minmax(0,1fr);column-gap:10px}
+  .mk-tch{width:48px}
+  .mk-trows{gap:30px}
+  .mk-trow.is-break::before{top:-15px}
+  .mk-rh-nm{font-size:13px}
+  .mk-ring{width:48px;height:48px}
+  .mk-rn{font-size:15px}
+}
+@media (max-width:999px){
+  .mkc-stage{padding-right:0}
+  .mk-top-ctrl{justify-content:space-between}
+  .mk-thead{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+  .mk-tch{width:44px;font-size:13px;white-space:normal;line-height:1.15;word-break:keep-all}
+  .mk-trows{gap:18px}
+  .mk-trow{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+  .mk-trow.is-break::before{top:-9px}
+  .mk-rh{flex-direction:row;align-items:baseline;justify-content:space-between}
+  .mk-ring{width:44px;height:44px}
+  .mk-rn{font-size:14px}
+}
 
-/* 가운데 구역: 개정과 시장 / 집계와 일러두기 / 문장 보기 모드 */
+/* [개정과 시장] / [표로 보기] 창 내부 부품 */
+.mkc-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.mkc-head h2{margin:0;font:600 17px/1.3 var(--f-ko);color:var(--ink-0)}
 .mk-subtabs{display:inline-flex;gap:6px}
-.mk-subtab{height:28px;padding:0 12px;border:1px solid var(--line-2);background:rgba(255,255,255,.32);font:600 13px/1 var(--f-ko);color:var(--ink-1)}
-:root[data-theme="dark"] .mk-subtab{background:rgba(255,255,255,.05)}
+.mk-subtab{height:30px;padding:0 12px;border:1px solid var(--line-2);background:transparent;font:600 13px/1 var(--f-ko);color:var(--ink-1)}
 .mk-subtab.is-on{background:var(--slate);color:#fff;border-color:transparent}
 .mk-pane-scroll{display:flex;flex-direction:column;gap:12px}
 .mk-pairs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
@@ -949,33 +991,6 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .mk-gap li{display:flex;gap:8px;align-items:flex-start}
 .mk-url{word-break:break-all;font-family:var(--f-num)}
 .mk-est{display:inline-flex;align-items:center;gap:6px}
-
-/* 해상도별 고리 격자 치수 */
-@media (max-width:1599px) and (min-width:1280px){
-  .mk-rcols,.mk-rrow{grid-template-columns:80px repeat(6,60px);column-gap:28px}
-  .mk-rrows{gap:26px}
-  .mk-rrow.surg-sep::before{top:-13px}
-  .mk-ring{width:60px;height:60px}
-  .mk-rn{font-size:18px}
-}
-@media (max-width:1279px) and (min-width:1000px){
-  .mk-rcols,.mk-rrow{grid-template-columns:72px repeat(6,50px);column-gap:18px}
-  .mk-rrows{gap:20px}
-  .mk-rrow.surg-sep::before{top:-10px}
-  .mk-ring{width:50px;height:50px}
-  .mk-rn{font-size:16px}
-}
-@media (max-width:999px){
-  .mk-rcols{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:8px}
-  .mk-rcols > span:first-child{display:none}
-  .mk-rch{white-space:normal;font-size:13px;line-height:1.18;word-break:keep-all}
-  .mk-rrows{gap:14px;align-items:stretch}
-  .mk-rrow{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:8px;row-gap:6px;justify-items:center}
-  .mk-rrow.surg-sep::before{top:-7px}
-  .mk-rrh{grid-column:1/-1;justify-self:start;text-align:left;padding:2px 0 0}
-  .mk-ring{width:46px;height:46px}
-  .mk-rn{font-size:15px}
-}
 
 /* tab3.css */
 /* 탭 3 가입 관문 전용. 공통 부품은 style.css. 주인공 도형은 기술 나무(acs_11 기술, acs_16 갱 강화의 세 갈래와 56px 칸) */
@@ -4888,7 +4903,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 ;(function () {
 'use strict';
 /* tab2.js */
-/* 탭 2 고객군과 시장: 신디케이트 진행 추적기 3구역 구성(왼쪽 이력/나이 묶음 + 가운데 4x6 고리 격자 + 오른쪽 고객군 상세).
+/* 탭 2 고객군과 시장: 안개 위 네 줄 시간축(2px 선, 12px 열림 전환 눈금) + 24개 고리 마디(64px) + 오른쪽 28% 읽기 영역.
    모든 화면 문구는 core.js 의 COPY(App.t)에서 읽고, 수와 문장은 sales.json 에서 읽으며 비교 범위 교집합만 센다. */
 App.registerTab((function () {
   'use strict';
@@ -4901,9 +4916,15 @@ App.registerTab((function () {
   const CATS = S['분류'];
   const NEWS = S['시장소식'];
   const REV = S['개정변동'];
-  const ST_IC = { '열림': ui.IC.open, '닫힘': ui.IC.lock, '심사로 확인': ui.IC.check, '나이 자료 없음': ui.IC.hatch, '질문 자료 없음': ui.IC.hatch };
+  const ST_IC = {
+    '열림': ui.IC.open,
+    '일부 나이만 열림': ui.IC.open,
+    '닫힘': ui.IC.lock,
+    '심사로 확인': ui.IC.check,
+    '나이 자료 없음': ui.IC.hatch,
+    '질문 자료 없음': ui.IC.hatch,
+  };
 
-  let textMode = false;
   let revSub = 'rev';
 
   const REN_KEY = r => (r == null ? 'a' : r === '갱신' ? 'g' : 'n');
@@ -4918,11 +4939,14 @@ App.registerTab((function () {
   const cellAt = (map, ri, ci) => (map['칸'][ri] || [])[ci] || null;
 
   ui.registerLegend('market', 'mkLegendTitle', () => `<dl class="legend">
+      <dt><i class="cq m-ours" aria-hidden="true"></i></dt><dd>${esc(t('mkLgWorse'))}</dd>
       <dt><i class="cq m-only" aria-hidden="true"></i></dt><dd>${esc(t('mkLgGold'))}</dd>
-      <dt><i class="cq m-ours" aria-hidden="true"></i></dt><dd>${esc(t('mkLgGrey'))}</dd>
+      <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>${esc(t('mkLgBoth'))}</dd>
+      <dt><i class="cq m-all" aria-hidden="true"></i></dt><dd>${esc(t('mkLgAllClosed'))}</dd>
       <dt>${ui.IC.hatch}</dt><dd>${esc(t('mkLgDash'))}</dd>
+      <dt>${ui.IC.open}</dt><dd>${esc(t('mkLgArc'))}</dd>
+      <dt>${ui.IC.arrow}</dt><dd>${esc(t('mkLgAxis'))}</dd>
       <dt>${ui.IC.pin}</dt><dd>${esc(t('mkLgRed'))}</dd>
-      <dt>${ui.IC.open}</dt><dd>${esc(t('mkLgNum'))}</dd>
       <dt>${ui.flagText(t('flagShort'))}</dt><dd>${esc(t('lgFlag'))}</dd>
     </dl>`);
 
@@ -4951,12 +4975,12 @@ App.registerTab((function () {
     return { lab, total, gap, closed, closedCells };
   }
 
-  /** 지도의 (이력 종류 x 나이 열) 행 목록과 4행 단위 묶음을 만든다(어느 자료에서나 한 화면 고리 24개 유지) */
-  function buildGridModel(map, c) {
+  /** 지도의 (이력 종류 x 나이 열) 네 줄과 여섯 마디 모형을 만든다(나이 열이 우체국 경계 2개로 고정이라 늘 4줄 x 6마디 = 24개) */
+  function buildRowsModel(map) {
     const hospPeriods = map['행'].map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
     const surgPeriods = map['행'].map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
     const cols = map['열'] || [];
-    const allRows = [];
+    const rows = [];
     [
       { kind: '입원', kindLabel: t('mkGroupHosp'), periods: hospPeriods },
       { kind: '수술만', kindLabel: t('mkGroupSurg'), periods: surgPeriods },
@@ -4964,303 +4988,164 @@ App.registerTab((function () {
       cols.forEach((col, ci) => {
         const items = g.periods.map(p => ({ ri: p.i, ci, period: p.r, col, cell: cellAt(map, p.i, ci) }));
         const oursOpenCnt = items.filter(x => x.cell && x.cell['회사'] && x.cell['회사'].EPOST === '열림').length;
-        allRows.push({
-          rowIdx: allRows.length,
+        rows.push({
+          rowIdx: rows.length,
           kind: g.kind,
           kindLabel: g.kindLabel,
           ci,
           col,
           label: `${g.kindLabel} ${col.lo}~${col.hi}${t('condAgeUnit')}`,
-          shortLabel: `${g.kindLabel} ${col.lo}~${col.hi}${t('condAgeUnit')}`,
           items,
           oursOpenCnt,
         });
       });
     });
-
-    const paged = allRows.length > 4;
-    const bundles = [];
-    if (!paged) {
-      allRows.forEach((r, idx) => {
-        bundles.push({
-          id: 'b' + idx,
-          label: r.label,
-          rows: [r],
-          openCnt: r.oursOpenCnt,
-          totalCnt: r.items.length,
-        });
-      });
-    } else {
-      for (let i = 0; i < allRows.length; i += 4) {
-        const slice = allRows.slice(i, i + 4);
-        const first = slice[0], last = slice[slice.length - 1];
-        const sameKind = first.kind === last.kind;
-        const lbl = sameKind
-          ? `${first.kindLabel} ${first.col.lo}~${last.col.hi}${t('condAgeUnit')}`
-          : `${first.label}..`;
-        const openCnt = slice.reduce((a, r) => a + r.oursOpenCnt, 0);
-        const totalCnt = slice.reduce((a, r) => a + r.items.length, 0);
-        bundles.push({
-          id: 'b' + bundles.length,
-          label: lbl,
-          rows: slice,
-          openCnt,
-          totalCnt,
-        });
-      }
-    }
-
-    // 현재 조건이 속한 기본 묶음
-    let defBundleIdx = 0;
-    if (paged && c.seg && c.seg.cell) {
-      const hitKind = c.seg.row ? c.seg.row['종류'] : '입원';
-      const idx = bundles.findIndex(b => b.rows.some(r => r.kind === hitKind && r.ci === c.seg.ci));
-      if (idx >= 0) defBundleIdx = idx;
-    }
-
-    return { hospPeriods, cols, allRows, paged, bundles, defBundleIdx };
+    return { hospPeriods, cols, rows };
   }
 
-  function cellRingSVG(arcRatio, stateCls, fullGoldRing) {
-    const r = 30, C = +(2 * Math.PI * r).toFixed(2);
-    const f = Math.max(0, Math.min(1, arcRatio));
-    const len = +(C * f).toFixed(2);
-    let ticks = '';
-    if (f < 0.999 && stateCls !== 'is-dash') {
-      const N = 28, r1 = r - 2.3, r2 = r + 2.3;
+  // 원호 구간 [f0, f1] 의 SVG 경로(0=12시 방향, 시계방향)
+  function arcSegPath(r, f0, f1) {
+    const span = Math.max(0, Math.min(1, f1) - Math.max(0, f0));
+    if (span <= 0.0005) return '';
+    if (span >= 0.999) {
+      return `M 0 ${-r} A ${r} ${r} 0 1 1 0 ${r} A ${r} ${r} 0 1 1 0 ${-r}`;
+    }
+    const a0 = f0 * 2 * Math.PI - Math.PI / 2;
+    const a1 = f1 * 2 * Math.PI - Math.PI / 2;
+    const x0 = +(r * Math.cos(a0)).toFixed(2), y0 = +(r * Math.sin(a0)).toFixed(2);
+    const x1 = +(r * Math.cos(a1)).toFixed(2), y1 = +(r * Math.sin(a1)).toFixed(2);
+    const large = span > 0.5 ? 1 : 0;
+    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+  }
+
+  function cellRingSVG(cc) {
+    const r = 28;
+    const tot = Math.max(1, cc.total);
+    const fConf = cc.total > 0 ? cc.openConfirmed / tot : 0;
+    const fPart = cc.total > 0 ? cc.partial / tot : 0;
+    const fGate = cc.total > 0 ? cc.gateOnly / tot : 0;
+    const fUnk = cc.total > 0 ? cc.unknown / tot : 0;
+
+    const pConf = arcSegPath(r, 0, fConf);
+    const pPart = arcSegPath(r, fConf, fConf + fPart);
+    const pGate = arcSegPath(r, fConf + fPart, fConf + fPart + fGate);
+
+    // 모르는 상대 비율은 바깥 트랙 끝 구간에 빗금 눈금으로 표시
+    let unkTicks = '';
+    if (fUnk > 0.001) {
+      const N = 32;
+      const startF = 1 - fUnk;
       const ls = [];
       for (let i = 0; i < N; i++) {
-        if (i / N < f - 0.004) continue;
-        const a = (i / N) * 2 * Math.PI - Math.PI / 2;
-        ls.push(`<line x1="${(r1 * Math.cos(a)).toFixed(1)}" y1="${(r1 * Math.sin(a)).toFixed(1)}" x2="${(r2 * Math.cos(a)).toFixed(1)}" y2="${(r2 * Math.sin(a)).toFixed(1)}" stroke-width="1"/>`);
+        const fi = (i + 0.5) / N;
+        if (fi < startF - 0.005) continue;
+        const a = fi * 2 * Math.PI - Math.PI / 2;
+        const a2 = a + 0.07;
+        ls.push(`<line x1="${((r - 3) * Math.cos(a)).toFixed(1)}" y1="${((r - 3) * Math.sin(a)).toFixed(1)}" x2="${((r + 3) * Math.cos(a2)).toFixed(1)}" y2="${((r + 3) * Math.sin(a2)).toFixed(1)}" stroke-width="1.1"/>`);
       }
-      ticks = `<g class="mkr-tks">${ls.join('')}</g>`;
+      if (ls.length) unkTicks = `<g class="mkr-unk">${ls.join('')}</g>`;
     }
-    const arcEl = f > 0
-      ? `<circle class="mkr-arc" r="${r}" fill="none" stroke-width="4.2" stroke-dasharray="${len} ${C}" transform="rotate(-90)"/>`
-      : (fullGoldRing ? `<circle class="mkr-arc" r="${r}" fill="none" stroke-width="2.6"/>` : '');
-    return `<svg viewBox="-38 -38 76 76" aria-hidden="true" focusable="false">
-      <g class="mkr-diag" stroke-width="1.3"><line x1="-33" y1="-33" x2="-26" y2="-26"/><line x1="33" y1="-33" x2="26" y2="-26"/><line x1="-33" y1="33" x2="-26" y2="26"/><line x1="33" y1="33" x2="26" y2="26"/></g>
-      <circle class="mkr-bg" r="25"/>
-      <circle class="mkr-disc" r="25"/>
-      <circle class="mkr-out" r="35" fill="none" stroke-width="1.2"/>
-      <circle class="mkr-trk" r="${r}" fill="none" stroke-width="1.2"/>
-      ${ticks}${arcEl}
+
+    // 우리만 열림일 때 색과 독립된 안쪽 2px 이중 고리
+    const innerDouble = cc.state === 'only'
+      ? '<circle class="mkr-dbl" r="17.5" fill="none" stroke-width="2"/>'
+      : '';
+    // 일부 나이로만 열린 칸 표지(위쪽 작은 반원 점)
+    const partialBadge = cc.partialOnly
+      ? '<path class="mkr-part-mk" d="M-4 -22 L0 -17 L4 -22 Z"/>'
+      : '';
+
+    return `<svg viewBox="-34 -34 68 68" aria-hidden="true" focusable="false">
+      <g class="mkr-diag" stroke-width="1.3"><line x1="-31" y1="-31" x2="-24" y2="-24"/><line x1="31" y1="-31" x2="24" y2="-24"/><line x1="-31" y1="31" x2="-24" y2="24"/><line x1="31" y1="31" x2="24" y2="24"/></g>
+      <circle class="mkr-disc" r="22.5"/>
+      <circle class="mkr-sel-ring" r="22.5" fill="none" stroke-width="1.8"/>
+      ${innerDouble}
+      <circle class="mkr-trk" r="${r}" fill="none" stroke-width="1.3"/>
+      ${unkTicks}
+      ${pConf ? `<path class="mkr-arc mkr-arc-conf" d="${pConf}" fill="none" stroke-width="4.2"/>` : ''}
+      ${pPart ? `<path class="mkr-arc mkr-arc-part" d="${pPart}" fill="none" stroke-width="2.1"/>` : ''}
+      ${pGate ? `<path class="mkr-arc mkr-arc-gate" d="${pGate}" fill="none" stroke-width="3.6" stroke-dasharray="3.2 2.4"/>` : ''}
+      ${partialBadge}
     </svg>`;
   }
 
-  function renderRingGrid(map, gm, activeGrp, c) {
-    let visibleRows = gm.allRows;
-    let hlRowIdx = -1;
-    if (gm.paged) {
-      const bIdx = /^b(\d+)$/.test(activeGrp) ? Math.min(gm.bundles.length - 1, +activeGrp.slice(1)) : gm.defBundleIdx;
-      visibleRows = gm.bundles[bIdx] ? gm.bundles[bIdx].rows : gm.allRows.slice(0, 4);
-    } else if (/^b(\d+)$/.test(activeGrp)) {
-      hlRowIdx = +activeGrp.slice(1);
-    }
-
-    const colHeads = `<div class="mk-rcols" aria-hidden="true"><span></span>${gm.hospPeriods.map(p => `<span class="mk-rch">${esc(timeShort(p.r))}</span>`).join('')}</div>`;
-    const rowsHTML = visibleRows.map((rowObj, rVisIdx) => {
-      const prev = visibleRows[rVisIdx - 1];
-      const surgSep = prev && prev.kind !== rowObj.kind;
-      const isHl = hlRowIdx === rowObj.rowIdx;
-      const rings = rowObj.items.map((it, cIdx) => {
-        const cell = it.cell;
-        const openCodes = c.filterScopeCodes(cell['열린상대코드']);
-        const closedCodes = c.filterScopeCodes(cell['닫힌상대코드']);
-        const unknownCodes = c.filterScopeCodes(cell['모르는상대코드']);
-        const totPeers = openCodes.length + closedCodes.length + unknownCodes.length;
-        const oursOpen = !!(cell['회사'] && cell['회사'].EPOST === '열림');
-        const allUnknown = totPeers > 0 && unknownCodes.length === totPeers && !oursOpen;
-        const noData = cell['라벨'] === '자료 없음' || allUnknown;
-        const stateCls = noData ? 'is-dash' : oursOpen ? 'is-gold' : 'is-grey';
-        const ratio = totPeers > 0 ? openCodes.length / totPeers : 0;
-        const numStr = allUnknown ? t('mkUnknownSym') : fmt(openCodes.length);
-        const needFlag = cell['라벨'] === '우리 간편만 열림';
-        const tip = `${it.period['이름']}, ${colText(it.col)}: ${cell['라벨']} (${t('mkEvOpenPeersHeadTpl', { open: fmt(openCodes.length), total: fmt(totPeers) })})`;
-        const pk = keyOf(it.ri, it.ci);
-        return `<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-grid-r="${rVisIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rVisIdx * 3 + cIdx) * 18}ms">
-          ${needFlag ? ui.flag() : ''}
-          ${cellRingSVG(ratio, stateCls, oursOpen && openCodes.length === 0)}
-          <span class="mk-rn num">${esc(numStr)}</span>
-        </button>`;
-      }).join('');
-      return `<div class="mk-rrow${surgSep ? ' surg-sep' : ''}${isHl ? ' is-hl' : ''}">
-        <span class="mk-rrh">${esc(rowObj.shortLabel)}</span>${rings}
-      </div>`;
-    }).join('');
-
-    const sexBanner = c.seg && c.seg.sexNote ? `<p class="mkc-banner">${esc(c.seg.sexNote)}</p>` : '';
-    const missBanner = c.seg && !c.seg.cell && c.seg.reason ? `<p class="mkc-banner">${esc(t('mkMissingSegWhyTpl', { why: c.seg.reason }))}</p>` : '';
-
-    return `<div class="mkc-stage" id="mk-map">
-      <div class="mkc-head">
-        <h2>${esc(t('mkCenterTitle'))}</h2>
-        <span class="mkc-cue">${esc(t('mkCenterCue'))}</span>
-      </div>
-      ${sexBanner}${missBanner}
-      <div class="mk-rgrid-wrap" id="mk-grid">
-        ${colHeads}
-        <div class="mk-rrows${hlRowIdx >= 0 ? ' has-hl' : ''}">${rowsHTML}</div>
-      </div>
-    </div>`;
-  }
-
-  function renderRevCenter() {
-    const n = REV['수'];
-    const pairSum = REV['짝'].reduce((a, p) => a + p['신설'] + p['변경'] + p['종료'], 0);
-    const pairs = REV['짝'].map(p => `<li><b>${esc(vk(p['후']))}</b><span class="num">${esc(t('mkRevNew'))} ${fmt(p['신설'])}, ${esc(t('mkRevChg'))} ${fmt(p['변경'])}, ${esc(t('mkRevEnd'))} ${fmt(p['종료'])}</span></li>`).join('');
-    const ages = (REV['가입나이변경'] || []).map(vk);
-    const gates = (REV['관문변경'] || []).map(vk);
-    const cols = t('mkRevCols').split(',');
-    const rows = REV['담보'].map(d => {
-      const full = d['종형ID'].map(vk);
-      const short = full.map(nm => txt.shortName(nm).short);
-      return [
-        esc(d['담보']),
-        { h: ui.tag(d['종류']), cp: d['종류'] },
-        esc(d['항목'].join(', ')),
-        { h: `<span title="${esc(full.join(', '))}">${esc(short.join(', '))}</span>`, cp: full.join(', ') },
-      ];
-    });
-
-    const newsItems = (NEWS['소식'] || []).map((x, i) => {
-      const warn = (x['주의표현'] || []).length ? ui.tag(t('mkNewsWarnTpl', { w: x['주의표현'].join(', ') }), t('mkNewsWarnHint')) : '';
-      const linked = (x['표준담보ID'] || []).length ? t('mkNewsLinkedTpl', { n: fmt(x['표준담보ID'].length) }) : t('mkNewsUnlinked');
-      return `<li class="lrow mk-nw" data-pick="nw${i}">
-        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${x['회사']} ${x['분류']}`)}"></button>
-        <div class="selbar mk-nwh"><span class="num mk-d">${esc(x['발표일자'])}</span><b>${esc(x['회사'])}</b>${ui.tag(x['분류'])}${x['인용'] ? ui.tag(t('mkNewsQuoteTag')) : ''}${warn}</div>
-        <p class="mk-q">${esc(x['요약'])}</p>
-        <p class="mk-src">${esc((x['출처표시'] || x['매체'] || '') + linked)}</p>
-        <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span>
-      </li>`;
-    }).join('');
-
-    const revBody = `<div class="mk-pane-scroll">
-      <div class="mkc-head">
-        <h2>${esc(t('mkRevHead'))}</h2>
-        ${ui.btn(t('mkRevCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="mk-rev-tbl" data-title="' + esc(t('mkRevHead')) + '"' })}
-      </div>
-      <ul class="mk-pairs">${pairs}</ul>
-      ${REV['짝'].length > 1 ? `<div class="nadd">${esc(t('mkRevNonAddTpl', { c: REV['짝'].length, sum: fmt(pairSum), total: fmt(n['전체']) }))}</div>` : ''}
-      <dl class="kv"><dt>${esc(t('mkRevGateChg'))}</dt><dd>${gates.length ? esc(gates.join(', ')) : esc(t('mkRevNone'))}</dd>
-        <dt>${esc(t('mkRevAgeChg'))}</dt><dd>${ages.length ? esc(ages.join(', ')) : esc(t('mkRevNone'))}</dd></dl>
-      <p class="note">${esc(t('mkRevNote'))}</p>
-      ${ui.table({ id: 'mk-rev-tbl', head: cols, rows, pick: i => 'rv' + i })}
-    </div>`;
-
-    const cls = Object.entries(NEWS['분류별'] || {});
-    const newsBody = `<div class="mk-pane-scroll">
-      <div class="mkc-head">
-        <h2>${esc(t('mkNewsHead'))} <span class="num">${esc(NEWS['주차'])}</span></h2>
-        ${ui.tag(t('mkNewsQuoteTag'))}
-      </div>
-      <p class="mk-quote">${esc(NEWS['인용안내'])}</p>
-      ${ui.eq({ total: { t: t('mkRevTabNews'), n: NEWS['건수'] }, parts: cls.map(([a, cnt]) => ({ t: a, n: cnt })) })}
-      <p class="note">${esc(t('mkNewsConnTpl', { n: fmt(NEWS['연결'] || 0) }) + (NEWS['연결'] ? '' : t('mkNewsNoConn')))}</p>
-      <ul class="lrows">${newsItems}</ul>
-    </div>`;
-
-    return `<div class="mk-pane-scroll" id="mk-news">
-      <div class="mkc-head">
-        <div class="mk-subtabs" role="tablist">
-          <button type="button" class="mk-subtab${revSub === 'rev' ? ' is-on' : ''}" data-mk-sub="rev">${esc(t('mkRevTabVar'))} <span class="num">${fmt(n['전체'])}</span></button>
-          <button type="button" class="mk-subtab${revSub === 'news' ? ' is-on' : ''}" data-mk-sub="news">${esc(t('mkRevTabNews'))} <span class="num">${fmt(NEWS['건수'])}</span></button>
-        </div>
-        ${ui.scope('all')}
-      </div>
-      ${revSub === 'rev' ? revBody : newsBody}
-    </div>`;
-  }
-
-  function renderTallyCenter(map, c) {
-    const tl = tally(map);
-    const rows = LABELS.map(l => [`${ui.swatch(l)} ${esc(l)}`, fmt(tl.lab[l] || 0)]);
-    const closedT = Object.entries(tl.closed).map(([k, n]) => `${k} ${fmt(n)}`).join(', ');
-    const closedSum = Object.values(tl.closed).reduce((a, b) => a + b, 0);
-    const gaps = Object.entries(tl.gap).map(([o, x]) => `<li>${ui.IC.hatch}<span>${esc(t('mkGapItemTpl', { org: txt.orgShort(o), n: fmt(x.n), why: txt.stateWhy(o, x.state) || '' }))}</span></li>`).join('');
-    return `<div class="mk-pane-scroll" id="mk-tally-wrap">
-      <div class="mkc-head">
-        <h2>${esc(t('mkTallyHead'))}</h2>
-        <div style="display:flex;gap:6px">
-          ${ui.btn(t('mkTallyCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="mk-tally" data-title="' + esc(t('mkTallyHead')) + '"' })}
-          ${ui.btn(t('mkCellsCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="mk-copy-cells"' })}
-        </div>
-      </div>
-      ${ui.eq({ total: { t: t('mkGroupAll'), n: tl.total }, parts: LABELS.map(l => ({ t: l, n: tl.lab[l] || 0 })) })}
-      ${ui.table({ id: 'mk-tally', head: [t('mkTallyCol1'), t('mkTallyCol2')], rows, num: [1] })}
-      ${tl.closedCells
-        ? `<p class="note">${esc(t('mkClosedNoteTpl', { cells: fmt(tl.closedCells), why: closedT }))}</p>${closedSum > tl.closedCells ? `<div class="nadd">${esc(t('mkClosedNonAddTpl', { sum: fmt(closedSum), cells: fmt(tl.closedCells) }))}</div>` : ''}`
-        : `<p class="note">${esc(t('mkClosedZero'))}</p>`}
-      ${gaps ? `<ul class="mk-gap">${gaps}</ul>` : ''}
-      <p class="note">${esc(t('mkStaticNote'))}</p>
-      ${ui.notes(App.TAB_NAME.market)}
-    </div>`;
-  }
-
-  function renderZones({ left, center, ctx: c }) {
+  function renderStage(center, c) {
     const map = App.mapOf(c.st.renewal);
-    const gm = buildGridModel(map, c);
-    const rawGrp = c.st.grp.market || '';
-    const activeGrp = rawGrp || (gm.paged ? ('b' + gm.defBundleIdx) : '');
-    const notesCnt = (S['주석'] || []).filter(n => (n['탭'] || []).includes(App.TAB_NAME.market)).length;
+    const gm = buildRowsModel(map);
+    const basisTxt = c.seg && c.seg.sexNote ? c.seg.sexNote : t('mkMaleBasis');
 
-    left.innerHTML = `<div class="mk-zl-ren"><span class="zl-k">${esc(t('mkRenLabel'))}</span><span data-slot="mk-ren"></span></div>
-      <div class="zl-list" role="listbox" aria-label="${esc(App.TAB_NAME.market)}">
-        ${gm.bundles.map(b => {
-          const on = !textMode && activeGrp === b.id;
-          const toggle = gm.paged ? '0' : '1';
-          return `<button type="button" class="zl-item${on ? ' is-on' : ''}" role="option" aria-selected="${on}" data-zl="${b.id}" data-zl-toggle="${toggle}">
-            <span class="zl-ring">${ui.miniRingSVG(b.openCnt, b.totalCnt, b.openCnt > 0 ? 'gold' : '')}<span class="zl-n num">${esc(fmt(b.openCnt))}</span></span>
-            <span class="zl-t">${esc(b.label)}</span>
-          </button>`;
-        }).join('')}
-        <div class="mk-zl-sep" role="separator"></div>
-        <button type="button" class="zl-item${!textMode && activeGrp === 'rev' ? ' is-on' : ''}" role="option" aria-selected="${!textMode && activeGrp === 'rev'}" data-zl="rev" data-zl-toggle="1">
-          <span class="zl-ring">${ui.miniRingSVG(REV['수']['신설'] || 0, REV['수']['전체'] || 1, 'gold')}<span class="zl-n num">${esc(fmt(REV['수']['전체']))}</span></span>
-          <span class="zl-t">${esc(t('mkGroupRev'))}</span>
-        </button>
-        <button type="button" class="zl-item${textMode || activeGrp === 'tally' ? ' is-on' : ''}" role="option" aria-selected="${textMode || activeGrp === 'tally'}" data-zl="tally" data-zl-toggle="1">
-          <span class="zl-ring">${ui.miniRingSVG(notesCnt, Math.max(1, notesCnt), '')}<span class="zl-n num">${esc(fmt(notesCnt))}</span></span>
-          <span class="zl-t">${esc(t('mkGroupTally'))}</span>
-        </button>
+    const timeHeads = `<div class="mk-thead">
+      <span class="mk-basis">${esc(basisTxt)}</span>
+      <div class="mk-tcols" aria-hidden="true">
+        ${gm.hospPeriods.map(p => `<span class="mk-tch">${esc(timeShort(p.r))}</span>`).join('')}
+      </div>
+    </div>`;
+
+    const rowsHTML = gm.rows.map((rowObj, rIdx) => {
+      const prevRow = gm.rows[rIdx - 1];
+      const kindBreak = prevRow && prevRow.kind !== rowObj.kind;
+      const trackParts = [];
+      rowObj.items.forEach((it, cIdx) => {
+        const cell = it.cell;
+        const cc = c.cellCounts(cell);
+        if (cIdx > 0) {
+          const prevCell = rowObj.items[cIdx - 1].cell;
+          const prevOpen = !!(prevCell && prevCell['회사'] && prevCell['회사'].EPOST === '열림');
+          const curOpen = cc.oursOpen;
+          const bothOpen = prevOpen && curOpen;
+          const openTransition = !prevOpen && curOpen;
+          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
+        }
+        const stateCls = 'st-' + cc.state;
+        const numStr = (cc.state === 'unknown' && cc.total > 0 && cc.unknown === cc.total) ? t('mkUnknownSym') : fmt(cc.openAny);
+        const needFlag = cell && cell['라벨'] === '우리 간편만 열림';
+        const partNote = cc.partialOnly ? ` (${t('mkPartialOnlyMark')})` : '';
+        const tip = `${it.period['이름']}, ${colText(it.col)}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
+        const pk = keyOf(it.ri, it.ci);
+        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 3 + cIdx) * 16}ms">
+          ${needFlag ? ui.flag() : ''}
+          ${cellRingSVG(cc)}
+          <span class="mk-rn num">${esc(numStr)}</span>
+        </button>`);
+      });
+
+      return `<div class="mk-trow${kindBreak ? ' is-break' : ''}">
+        <div class="mk-rh">
+          <span class="mk-rh-nm">${esc(rowObj.label)}</span>
+          <span class="mk-rh-cnt num">${esc(`${fmt(rowObj.oursOpenCnt)}/${fmt(rowObj.items.length)}`)}</span>
+        </div>
+        <div class="mk-track">${trackParts.join('')}</div>
       </div>`;
+    }).join('');
 
-    const slot = left.querySelector('[data-slot="mk-ren"]');
+    const missBanner = c.seg && !c.seg.cell && c.seg.reason
+      ? `<p class="mk-miss-note">${esc(t('mkMissingSegWhyTpl', { why: c.seg.reason }))}</p>`
+      : '';
+
+    center.innerHTML = `<div class="mkc-stage" id="mk-map">
+      <div class="mk-top-ctrl">
+        <div class="mk-ren-box">
+          <span class="mk-ren-lb">${esc(t('mkRenLabel'))}</span>
+          <span data-slot="mk-ren"></span>
+        </div>
+      </div>
+      ${missBanner}
+      <div class="mk-axis-board" id="mk-grid">
+        ${timeHeads}
+        <div class="mk-trows">${rowsHTML}</div>
+      </div>
+    </div>`;
+
+    const slot = center.querySelector('[data-slot="mk-ren"]');
     if (slot) {
       slot.replaceWith(ui.chevSel({
         label: t('mkRenAria'),
         options: renOpts(),
         value: c.st.renewal,
-        w: '52px',
+        w: '54px',
         onChange: v => App.set({ renewal: v }),
       }));
     }
-
-    if (textMode || activeGrp === 'tally') center.innerHTML = renderTallyCenter(map, c);
-    else if (activeGrp === 'rev') center.innerHTML = renderRevCenter();
-    else center.innerHTML = renderRingGrid(map, gm, activeGrp, c);
-
-    bindCenter(center);
-  }
-
-  function bindCenter(center) {
-    if (center._mkBound) return;
-    center._mkBound = true;
-    center.addEventListener('click', e => {
-      const sub = e.target.closest('[data-mk-sub]');
-      if (sub) {
-        e.stopPropagation();
-        revSub = sub.dataset.mkSub === 'news' ? 'news' : 'rev';
-        App.unselect({ push: false, restoreFocus: false });
-        center.innerHTML = renderRevCenter();
-        return;
-      }
-      if (e.target.closest('[data-act="mk-copy-cells"]')) {
-        e.stopPropagation();
-        copyCells();
-      }
-    });
   }
 
   function enter(center) {
@@ -5270,39 +5155,24 @@ App.registerTab((function () {
     clearTimeout(g._t); g._t = setTimeout(() => g.classList.remove('mk-anim'), 700);
   }
 
-  // ---------- 오른쪽 구역: 기본 결론과 고른 고객군/개정/소식 상세 ----------
+  // ---------- 읽기 영역과 [표로 보기] / [개정과 시장] / [문장으로 보기] 창 ----------
   function sec(title, html, lo) { return `<div class="ev-sec${lo ? ' lo' : ''}">${title ? `<h3>${title}</h3>` : ''}${html}</div>`; }
   function det(summary, html, open) {
     return `<details class="zr-det"${open ? ' open' : ''}><summary><span>${esc(summary)}</span>${ui.IC.chevD}</summary><div class="zr-det-b">${html}</div></details>`;
   }
 
-  function conclText(c) {
+  function conclFullText(c) {
     const map = App.mapOf(c.st.renewal);
     if (c.st.renewal == null) {
       const b = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '가');
       if (b) return b['문장'];
     }
     const tl = tally(map);
-    return `${renLabel(c.st.renewal)}: ${LABELS.filter(l => tl.lab[l]).map(l => `${l} ${fmt(tl.lab[l])}`).join(', ')}.`;
+    return `${renLabel(c.st.renewal)}: ${LABELS.filter(l => tl.lab[l]).map(l => `${l} ${fmt(tl.lab[l])}${t('mkClosedUnit')}`).join(', ')}.`;
   }
 
-  function defaultEv(c) {
-    const grp = c.st.grp.market || '';
-    if (grp === 'rev') {
-      const b = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '나');
-      return {
-        kicker: t('evKickerDefault'),
-        title: t('mkGroupRev'),
-        badges: [ui.scope('all')],
-        body: sec('', `<p>${esc(b ? b['문장'] : '')}</p>`),
-      };
-    }
-    return {
-      kicker: t('evKickerDefault'),
-      title: App.TAB_NAME.market,
-      badges: [ui.scope('all'), ui.fullScopeTag()].filter(Boolean),
-      body: sec('', `<p>${esc(conclText(c))}</p>`),
-    };
+  function conclusion(c) {
+    return { text: App.firstSentence(conclFullText(c)), flag: '' };
   }
 
   function pointLi(id) {
@@ -5312,6 +5182,11 @@ App.registerTab((function () {
     return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p>${docs ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${docs}</div>` : ''}${hd ? `<p class="note">${esc(hd)}</p>` : ''}</li>`;
   }
 
+  function formatSpans(spans) {
+    if (!Array.isArray(spans) || !spans.length) return '';
+    return spans.map(([lo, hi]) => (lo === hi ? `${lo}` : `${lo}~${hi}`)).join(', ');
+  }
+
   function cellSpec(c, ri, ci) {
     const map = App.mapOf(c.st.renewal);
     const cell = cellAt(map, ri, ci);
@@ -5319,21 +5194,24 @@ App.registerTab((function () {
     const row = map['행'][ri], col = map['열'][ci];
     const now = !!(c.seg && c.seg.cell && c.seg.ri === ri && c.seg.ci === ci);
     const pSet = new Set(c.activePeerOrgs);
+    const cc = c.cellCounts(cell);
 
     const openCodes = c.filterScopeCodes(cell['열린상대코드']);
-    const closedCodes = c.filterScopeCodes(cell['닫힌상대코드']);
-    const unknownCodes = c.filterScopeCodes(cell['모르는상대코드']);
-    const totPeers = openCodes.length + closedCodes.length + unknownCodes.length;
+    const partialCodes = c.filterScopeCodes(cell['일부열린상대코드']);
     const gateOnly = (cell['관문만수집'] || []).filter(x => c.peerScope === 'all' || pSet.has(x['기관코드']));
 
-    const oursState = (cell['회사'] && cell['회사'].EPOST) || '';
+    const oursState = cc.oursState;
     const oursOpenIds = (cell['열린종형'] && cell['열린종형'].EPOST) || [];
     const subNotes = [];
     if (cell['보조']) subNotes.push(cell['보조']);
     if (cell['닫힌사유'] && cell['닫힌사유'].length) subNotes.push(`${t('scopeClosedWhy')}: ${cell['닫힌사유'].join(', ')}`);
 
-    const openNames = openCodes.map(txt.orgShort);
-    const openSummary = openCodes.length ? txt.peerNamesEtc(openNames, 3) : t('mkRevNone');
+    const openAllNames = openCodes.concat(partialCodes).map(txt.orgShort);
+    const openSummary = openAllNames.length ? txt.peerNamesEtc(openAllNames, 3) : t('mkRevNone');
+
+    const partialSpansHTML = partialCodes.length
+      ? `<p class="note" style="margin-top:4px"><b>${esc(t('mkPartialHeadTpl', { n: fmt(partialCodes.length) }))}:</b> ${esc(partialCodes.map(code => t('mkPartialSpanTpl', { org: txt.orgShort(code), spans: formatSpans((cell['일부열린나이'] || {})[code]) })).join(', '))}</p>`
+      : '';
 
     const scopedPts = (cell['관문포인트'] || []).filter(id => {
       const p = S['포인트'][id];
@@ -5344,15 +5222,14 @@ App.registerTab((function () {
     const patch = App.segPatch(map, ri, ci, c.st);
     const same = App.samePatch(patch, c.st);
     const patchT = App.segPatchText(patch);
-
     const willChangeTip = t('mkEvWillChangeTpl', { target: txt.josa(patchT, '으로') });
 
-    // 1. 첫눈에 보이는 핵심 요약(300자 이내 유지)
-    let topHTML = `<p><b>${esc(cell['라벨'])}</b>${subNotes.length ? ` (${esc(subNotes.join(', '))})` : ''}. ${ui.fullScopeTag()}</p>
+    const topHTML = `<p><b>${esc(cell['라벨'])}</b>${subNotes.length ? ` (${esc(subNotes.join(', '))})` : ''}. ${ui.fullScopeTag()}</p>
       <dl class="kv" style="margin-top:6px">
         <dt>${esc(txt.orgShort('EPOST'))}</dt><dd>${esc(oursState)}${cell['대표'] ? ` (${esc(vk(cell['대표']))})` : ''}</dd>
-        <dt>${esc(t('mkEvOpenPeersHeadTpl', { open: fmt(openCodes.length), total: fmt(totPeers) }))}</dt><dd>${esc(openSummary)}</dd>
+        <dt>${esc(t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) }))}</dt><dd>${esc(openSummary)}</dd>
       </dl>
+      ${partialSpansHTML}
       ${oursOpenIds.length ? `<p class="note" style="margin-top:6px">${esc(t('mkEvOpenVarCntTpl', { n: fmt(oursOpenIds.length), list: oursOpenIds.map(vk).join(', ') }))}</p>` : ''}
       ${gateOnly.length ? `<p class="note" style="margin-top:4px">${esc(txt.peerNamesEtc(gateOnly.map(x => `${x['이름']}(${x['안내']})`), 2))}</p>` : ''}
       ${anyFlag ? `<p style="margin-top:6px">${ui.flagText()}</p>` : ''}
@@ -5363,27 +5240,25 @@ App.registerTab((function () {
 
     let body = sec('', topHTML);
 
-    // 2. 상대 회사 전체 목록(셋 초과이거나 닫힘/모름 상세 확인용)
     const shownOrgs = c.activeOrgs.filter(o => cell['회사'] && (o in cell['회사']));
     const orgRows = shownOrgs.map(o => {
       const s = cell['회사'][o];
       const open = (cell['열린종형'] && cell['열린종형'][o]) || [];
       const why = txt.stateWhy(o, s);
+      const pSpan = (cell['일부열린나이'] && cell['일부열린나이'][o]) ? formatSpans(cell['일부열린나이'][o]) : '';
       const go = gateOnly.filter(x => x['기관코드'] === o);
-      return `<li><span class="mk-est">${ST_IC[s] || ''}<b>${esc(txt.orgShort(o))}</b> ${esc(s)}</span>
+      return `<li><span class="mk-est">${ST_IC[s] || ''}<b>${esc(txt.orgShort(o))}</b> ${esc(s)}${pSpan ? ` (${esc(pSpan + t('condAgeUnit'))})` : ''}</span>
         <p class="note">${open.length ? esc(t('mkEvOpenVarCntTpl', { n: fmt(open.length), list: open.map(vk).join(', ') })) : esc(t('mkEvOpenVarNone'))}${why ? `. ${esc(why)}` : ''}</p>
         ${go.map(x => `<p class="note">${ui.tag(x['안내'])} ${esc(x['이름'])}</p>`).join('')}</li>`;
     }).join('');
     body += det(t('mkEvOrgsSummaryTpl', { n: fmt(shownOrgs.length) }), `<ul class="evl">${orgRows}</ul>`, false);
 
-    // 3. 관문 포인트와 근거 문서
     body += det(
       t('mkEvGatePtsTpl', { n: fmt(scopedPts.length) }),
       scopedPts.length ? `<ul class="evl">${scopedPts.map(pointLi).join('')}</ul>` : `<p class="note">${esc(t('mkEvGatePtsNone'))}</p>`,
       false
     );
 
-    // 4. 대표 종형과 분류별 인사이트 수
     const nMap = cell['분류수'] || {};
     const allCats = CATS.concat([t('mkCatWait')]);
     const counted = allCats.filter(k => nMap[k] != null);
@@ -5398,6 +5273,7 @@ App.registerTab((function () {
     const badges = [
       ui.scope('all'),
       `<span class="tag">${ui.swatch(cell['라벨'])}${esc(cell['라벨'])}</span>`,
+      cc.partialOnly ? ui.tag(t('mkPartialOnlyMark')) : '',
       now ? ui.tag(t('mkEvNowTag')) : '',
     ].filter(Boolean);
 
@@ -5441,18 +5317,157 @@ App.registerTab((function () {
     return null;
   }
 
+  // ---------- [개정과 시장] 모달과 [표로 보기(집계와 일러두기)] 모달 ----------
+  function renderRevModalHTML() {
+    const n = REV['수'];
+    const pairSum = REV['짝'].reduce((a, p) => a + p['신설'] + p['변경'] + p['종료'], 0);
+    const pairs = REV['짝'].map(p => `<li><b>${esc(vk(p['후']))}</b><span class="num">${esc(t('mkRevNew'))} ${fmt(p['신설'])}, ${esc(t('mkRevChg'))} ${fmt(p['변경'])}, ${esc(t('mkRevEnd'))} ${fmt(p['종료'])}</span></li>`).join('');
+    const ages = (REV['가입나이변경'] || []).map(vk);
+    const gates = (REV['관문변경'] || []).map(vk);
+    const cols = t('mkRevCols').split(',');
+    const rows = REV['담보'].map(d => {
+      const full = d['종형ID'].map(vk);
+      const short = full.map(nm => txt.shortName(nm).short);
+      return [
+        esc(d['담보']),
+        { h: ui.tag(d['종류']), cp: d['종류'] },
+        esc(d['항목'].join(', ')),
+        { h: `<span title="${esc(full.join(', '))}">${esc(short.join(', '))}</span>`, cp: full.join(', ') },
+      ];
+    });
+
+    const newsItems = (NEWS['소식'] || []).map((x, i) => {
+      const warn = (x['주의표현'] || []).length ? ui.tag(t('mkNewsWarnTpl', { w: x['주의표현'].join(', ') }), t('mkNewsWarnHint')) : '';
+      const linked = (x['표준담보ID'] || []).length ? t('mkNewsLinkedTpl', { n: fmt(x['표준담보ID'].length) }) : t('mkNewsUnlinked');
+      return `<li class="lrow mk-nw" data-pick="nw${i}">
+        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${x['회사']} ${x['분류']}`)}"></button>
+        <div class="selbar mk-nwh"><span class="num mk-d">${esc(x['발표일자'])}</span><b>${esc(x['회사'])}</b>${ui.tag(x['분류'])}${x['인용'] ? ui.tag(t('mkNewsQuoteTag')) : ''}${warn}</div>
+        <p class="mk-q">${esc(x['요약'])}</p>
+        <p class="mk-src">${esc((x['출처표시'] || x['매체'] || '') + linked)}</p>
+        <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span>
+      </li>`;
+    }).join('');
+
+    const revBody = `<div class="mk-pane-scroll">
+      <div class="mkc-head">
+        <h2>${esc(t('mkRevHead'))}</h2>
+        ${ui.btn(t('mkRevCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="mk-rev-tbl" data-title="' + esc(t('mkRevHead')) + '"' })}
+      </div>
+      <ul class="mk-pairs">${pairs}</ul>
+      ${REV['짝'].length > 1 ? `<div class="nadd">${esc(t('mkRevNonAddTpl', { c: REV['짝'].length, sum: fmt(pairSum), total: fmt(n['전체']) }))}</div>` : ''}
+      <dl class="kv"><dt>${esc(t('mkRevGateChg'))}</dt><dd>${gates.length ? esc(gates.join(', ')) : esc(t('mkRevNone'))}</dd>
+        <dt>${esc(t('mkRevAgeChg'))}</dt><dd>${ages.length ? esc(ages.join(', ')) : esc(t('mkRevNone'))}</dd></dl>
+      <p class="note">${esc(t('mkRevNote'))}</p>
+      <div class="nadd">${esc(t('mkNewsNonAddNote'))}</div>
+      ${ui.table({ id: 'mk-rev-tbl', head: cols, rows, pick: i => 'rv' + i })}
+    </div>`;
+
+    const cls = Object.entries(NEWS['분류별'] || {});
+    const newsBody = `<div class="mk-pane-scroll">
+      <div class="mkc-head">
+        <h2>${esc(t('mkNewsHead'))} <span class="num">${esc(NEWS['주차'])}</span></h2>
+        ${ui.tag(t('mkNewsQuoteTag'))}
+      </div>
+      <p class="mk-quote">${esc(NEWS['인용안내'])}</p>
+      ${ui.eq({ total: { t: t('mkRevTabNews'), n: NEWS['건수'] }, parts: cls.map(([a, cnt]) => ({ t: a, n: cnt })), nonAdd: t('mkNewsNonAddNote') })}
+      <p class="note">${esc(t('mkNewsConnTpl', { n: fmt(NEWS['연결'] || 0) }) + (NEWS['연결'] ? '' : t('mkNewsNoConn')))}</p>
+      <ul class="lrows">${newsItems}</ul>
+    </div>`;
+
+    return `<div class="mk-pane-scroll" id="mk-news">
+      <div class="mkc-head">
+        <div class="mk-subtabs" role="tablist">
+          <button type="button" class="mk-subtab${revSub === 'rev' ? ' is-on' : ''}" data-mk-sub="rev">${esc(t('mkRevTabVar'))} <span class="num">${fmt(n['전체'])}</span></button>
+          <button type="button" class="mk-subtab${revSub === 'news' ? ' is-on' : ''}" data-mk-sub="news">${esc(t('mkRevTabNews'))} <span class="num">${fmt(NEWS['건수'])}</span></button>
+        </div>
+      </div>
+      ${revSub === 'rev' ? revBody : newsBody}
+    </div>`;
+  }
+
+  function renderRevModal(c) {
+    const bNa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '나');
+    const lead = bNa ? `<p class="concl">${esc(bNa['문장'])}</p>` : '';
+    return {
+      kicker: App.TAB_NAME.market,
+      title: t('mkGroupRev'),
+      badges: [ui.scope('all')],
+      html: lead + renderRevModalHTML(),
+    };
+  }
+
+  function renderTallyModal(c) {
+    const map = App.mapOf(c.st.renewal);
+    const tl = tally(map);
+    const bGa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '가');
+    const rows = LABELS.map(l => [`${ui.swatch(l)} ${esc(l)}`, fmt(tl.lab[l] || 0)]);
+    // 닫힌 사유 단위("칸") 복원: "나이 12칸, 고지 질문 6칸"
+    const closedT = Object.entries(tl.closed).map(([k, n]) => `${k} ${fmt(n)}${t('mkClosedUnit')}`).join(', ');
+    const closedSum = Object.values(tl.closed).reduce((a, b) => a + b, 0);
+    const gaps = Object.entries(tl.gap).map(([o, x]) => `<li>${ui.IC.hatch}<span>${esc(t('mkGapItemTpl', { org: txt.orgShort(o), n: fmt(x.n), why: txt.stateWhy(o, x.state) || '' }))}</span></li>`).join('');
+
+    const cellRows = [];
+    map['행'].forEach((row, ri) => map['열'].forEach((col, ci) => {
+      const cell = cellAt(map, ri, ci);
+      const cc = c.cellCounts(cell);
+      cellRows.push({
+        pk: keyOf(ri, ci),
+        cells: [
+          esc(row['이름']),
+          esc(colText(col)),
+          `${ui.swatch(cell['라벨'])} <b>${esc(cell['라벨'])}</b>${cell['보조'] ? ` <span class="note">(${esc(cell['보조'])})</span>` : ''}`,
+          esc(cc.oursState + (cell['대표'] ? ` (${vk(cell['대표'])})` : '')),
+          { h: `<span class="num">${esc(`${fmt(cc.openAny)}/${fmt(cc.total)}`)}</span>`, cp: `${cc.openAny}/${cc.total}` },
+          esc((cell['닫힌사유'] || []).join(', ')),
+        ],
+      });
+    }));
+
+    const html = `<div class="mk-pane-scroll" id="mk-tally-wrap">
+      ${bGa && c.st.renewal == null ? `<p class="concl">${esc(bGa['문장'])}</p>` : `<p class="concl">${esc(conclFullText(c))}</p>`}
+      <div class="dm-sec">
+        <div class="mkc-head">
+          <h2>${esc(t('mkTallyHead'))} (${esc(txt.sexText(map['성별']))}, ${esc(renLabel(c.st.renewal))})</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${ui.btn(t('mkTallyCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="mk-tally" data-title="' + esc(t('mkTallyHead')) + '"' })}
+            ${ui.btn(t('mkCellsCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="mk-copy-cells"' })}
+          </div>
+        </div>
+        ${ui.eq({ total: { t: t('mkGroupAll'), n: tl.total }, parts: LABELS.map(l => ({ t: l, n: tl.lab[l] || 0 })) })}
+        ${ui.table({ id: 'mk-tally', head: [t('mkTallyCol1'), t('mkTallyCol2')], rows, num: [1] })}
+        ${tl.closedCells
+          ? `<p class="note">${esc(t('mkClosedNoteTpl', { cells: fmt(tl.closedCells), why: closedT }))}</p>${closedSum > tl.closedCells ? `<div class="nadd">${esc(t('mkClosedNonAddTpl', { sum: fmt(closedSum), cells: fmt(tl.closedCells) }))}</div>` : ''}`
+          : `<p class="note">${esc(t('mkClosedZero'))}</p>`}
+        ${gaps ? `<ul class="mk-gap">${gaps}</ul>` : ''}
+        <p class="note">${esc(t('mkStaticNote'))}</p>
+      </div>
+      <div class="dm-sec">
+        ${ui.table({
+          id: 'mk-cells-tbl',
+          caption: `${App.TAB_NAME.market} 24${t('mkClosedUnit')} (${txt.sexText(map['성별'])})`,
+          head: ['이력', t('condAge'), t('mkTallyCol1'), txt.orgShort('EPOST'), '열린 상대', t('scopeClosedWhy')],
+          rows: cellRows.map(r => r.cells),
+          num: [4],
+          pick: i => cellRows[i].pk,
+        })}
+      </div>
+      <div class="dm-sec">
+        ${ui.notes(App.TAB_NAME.market)}
+      </div>
+    </div>`;
+
+    return {
+      kicker: App.TAB_NAME.market,
+      title: t('mkGroupTally'),
+      badges: [ui.scope('all'), ui.fullScopeTag()].filter(Boolean),
+      html,
+    };
+  }
+
   function path(c) {
     const out = [App.TAB_NAME.market];
-    const grp = c.st.grp.market || '';
     const sel = c.st.sel.market;
     const m = sel != null ? parseKey(sel) : null;
-    if (grp === 'rev') out.push(t('mkGroupRev'));
-    else if (grp === 'tally' || textMode) out.push(t('mkGroupTally'));
-    else if (!m && /^b\d+$/.test(grp)) {
-      const gm = buildGridModel(App.mapOf(c.st.renewal), c);
-      const b = gm.bundles[+grp.slice(1)];
-      if (b) out.push(b.label);
-    }
     if (sel != null) {
       if (m) {
         const map = App.mapOf(c.st.renewal);
@@ -5470,8 +5485,10 @@ App.registerTab((function () {
   }
 
   function actions() {
-    const lbl = textMode ? t('actModeShape') : t('actModeText');
-    return ui.btn(lbl, { sm: true, ghost: true, attrs: 'data-act="mk-toggle-mode"' });
+    return [
+      ui.btn(t('actModeTable'), { sm: true, ghost: true, icon: 'table', attrs: 'id="mk-btn-tally" data-mk-modal="tally"' }),
+      ui.btn(t('mkGroupRev'), { sm: true, ghost: true, attrs: 'id="mk-btn-rev" data-mk-modal="rev"' }),
+    ].join('');
   }
 
   function copyCells() {
@@ -5500,18 +5517,40 @@ App.registerTab((function () {
   }
 
   function focus(key) {
-    if (key === 'news') App.setGroup('rev');
-    else App.setGroup('');
+    if (key === 'news' || key === 'rev') {
+      revSub = key === 'news' ? 'news' : 'rev';
+      App.openModal({ trigger: document.getElementById('mk-btn-rev'), render: renderRevModal });
+    } else if (key === 'tally') {
+      App.openModal({ trigger: document.getElementById('mk-btn-tally'), render: renderTallyModal });
+    }
   }
 
   document.addEventListener('click', e => {
-    if (e.target.closest('[data-act="mk-toggle-mode"]')) {
+    const mm = e.target.closest && e.target.closest('[data-mk-modal]');
+    if (mm) {
       e.stopPropagation();
-      textMode = !textMode;
-      App.set({ grp: Object.assign({}, App.state.grp, { market: textMode ? 'tally' : '' }) });
+      const kind = mm.dataset.mkModal;
+      if (kind === 'rev') App.openModal({ trigger: mm, render: renderRevModal });
+      else App.openModal({ trigger: mm, render: renderTallyModal });
       return;
     }
-    const applyBtn = e.target.closest('[data-act="mk-apply"]');
+    const sub = e.target.closest && e.target.closest('[data-mk-sub]');
+    if (sub) {
+      e.stopPropagation();
+      revSub = sub.dataset.mkSub === 'news' ? 'news' : 'rev';
+      const dmBody = document.getElementById('dm-body');
+      if (dmBody) {
+        const spec = renderRevModal(App.ctx());
+        dmBody.innerHTML = spec.html;
+      }
+      return;
+    }
+    if (e.target.closest && e.target.closest('[data-act="mk-copy-cells"]')) {
+      e.stopPropagation();
+      copyCells();
+      return;
+    }
+    const applyBtn = e.target.closest && e.target.closest('[data-act="mk-apply"]');
     if (applyBtn) {
       e.stopPropagation();
       const m = parseKey(applyBtn.dataset.k || '');
@@ -5526,7 +5565,18 @@ App.registerTab((function () {
     }
   });
 
-  return { id: 'market', renderZones, pick, defaultEv, path, actions, copySummary: copyCells, focus, enter };
+  return {
+    id: 'market',
+    layout: 'side',
+    renderStage,
+    conclusion,
+    pick,
+    path,
+    actions,
+    copySummary: copyCells,
+    focus,
+    enter,
+  };
 })());
 
 })();
