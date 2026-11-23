@@ -18,6 +18,11 @@
 - 지급 형태: 지급횟수제한 문구에 붙인 꼬리표(pay_tags)로 견준다. 꼬리표의 종류와 숫자가 모두 같으면 같음이다.
   한쪽이 최초 1회뿐이고 다른 쪽이 되풀이 지급(연간 N회, 회당)이면서 최초 1회가 없으면 되풀이 쪽이 낫다.
   나머지 짝은 다름으로만 두고 우열에 넣지 않는다. 문구가 비었거나 꼬리표를 읽지 못한 쪽이 있으면 견주지 않고 판정 보류로 둔다.
+- 금액 없는 급부(model.benefit_view의 form. 지급기준구분이 차등지급, 실손보상, 분할지급, 현물급부)가 낀 짝(2026-11-23):
+  보유로는 세지만 금액 하나로 견주지 않는다. 지급 형태는 한쪽만 금액 없는 값이거나 두 쪽 값이 다르면 다름(설계 차이), 두 쪽이 같은
+  금액 없는 값이면 판정 보류다. 양쪽 글은 꼬리표 대신 지급 기준으로 적는다(금액 쪽 "정액 지급", 꼬리표가 있으면 "정액 지급(최초 1회)",
+  금액 없는 쪽은 값 이름). 감액은 두 판독이 읽지 않은 칸이라 판정 보류다. 면책은 그대로 견주지만 감액이 보류라 종합은 판정 보류이고,
+  조건 격차는 나오지 않는다. 지급액은 비교표 부호 x(금액 자료 없음)를 그대로 쓰고 사유만 "지급 형태가 달라 금액을 견주지 않음"이다.
 - 모으기(combine): 모두 같음이면 같음, 나음만 있으면 나음, 못함만 있으면 못함, 섞이면(감액 엇갈림 포함) 엇갈림.
   판정 보류가 하나라도 있으면 판정 보류다. 나머지가 같음일 때는 물론이고, 나머지에 나음이나 못함이 있어도 보류한 항목이 판정을
   뒤집을 수 있으므로 보류로 둔다. 이때 보류한 항목을 뺀 나머지만 모은 판정은 보류밖판정에 적는다. 다름은 우열에 넣지 않는다.
@@ -72,6 +77,12 @@ HOLD_EXCEPTION = "감액이 일부 경우에만 걸림"
 HOLD_NO_TEXT = "지급횟수제한 문구가 없어 견주지 않음"
 HOLD_UNREAD = "지급 형태 문구를 읽지 못해 견주지 않음"
 HOLD_NO_REP = "대표 급부를 고르지 못함"
+HOLD_FORM_CUT = "지급 형태가 달라 감액을 견주지 않음"
+HOLD_SAME_FORM_CUT = "금액 하나로 담기지 않는 지급 형태라 감액을 견주지 않음"
+HOLD_SAME_FORM = "두 쪽이 같은 지급 형태(금액 하나로 담기지 않음)라 견주지 않음"
+AMOUNT_FORM = "지급 형태가 달라 금액을 견주지 않음"
+FLAT_PAY = "정액 지급"                    # 금액 없는 급부와 견줄 때 금액 급부 쪽의 지급 형태 글
+CUT_IN_SOURCE = "원문 확인"               # 금액 없는 급부의 감액 글(감액을 읽지 않았다)
 
 GAP_MIN = 2
 FOCUS_MAJORS = {"암보장", "뇌혈관보장", "심장보장", "뇌심장보장"}
@@ -234,8 +245,26 @@ def compare_reduction(base: list, other: list) -> str:
     return signs.pop() if len(signs) == 1 else MIXED
 
 
-def compare_pay(base_text: Any, other_text: Any) -> dict[str, Any]:
-    """지급 형태. 판정은 기준 쪽(같음, 나음, 못함, 다름, 판정 보류)."""
+def form_text(form: str | None, limit_text: Any) -> str:
+    """금액 없는 급부와 견줄 때 한쪽의 지급 형태 글. 금액 없는 쪽은 값 이름, 금액 쪽은 "정액 지급"(꼬리표가 있으면 괄호에)."""
+    if form:
+        return form
+    tags = [t for t in pay_tags(limit_text) if t.kind != UNREAD]
+    return f"{FLAT_PAY}({tag_text(tags)})" if tags else FLAT_PAY
+
+
+def compare_pay(base_text: Any, other_text: Any, base_form: str | None = None,
+                other_form: str | None = None) -> dict[str, Any]:
+    """지급 형태. 판정은 기준 쪽(같음, 나음, 못함, 다름, 판정 보류).
+
+    base_form, other_form은 금액 없는 급부의 지급기준구분(model.benefit_view의 form)이다. 어느 한쪽에 있으면 꼬리표로 견주지
+    않는다: 두 쪽 값이 다르면(한쪽만 있는 경우 포함) 다름, 같으면 판정 보류다.
+    """
+    if base_form or other_form:
+        out = {"항목": PAY, "기준": form_text(base_form, base_text), "상대": form_text(other_form, other_text), "사유": None}
+        if base_form == other_form:
+            return {**out, "판정": HOLD, "사유": HOLD_SAME_FORM}
+        return {**out, "판정": DIFF}
     tb, to = pay_tags(base_text), pay_tags(other_text)
     out = {"항목": PAY, "기준": tag_text(tb), "상대": tag_text(to), "사유": None}
     if not tb or not to:
@@ -266,21 +295,29 @@ def combine(results: Iterable[str]) -> str:
 
 
 def condition_signature(view: dict[str, Any]) -> tuple:
-    """조건 우열에 쓰는 값을 모은 열쇠. 두 줄의 열쇠가 같으면 면책, 감액, 감액예외 유무, 지급 형태 꼬리표가 모두 같다."""
+    """조건 우열에 쓰는 값을 모은 열쇠. 두 줄의 열쇠가 같으면 면책, 감액, 감액예외 유무, 지급 형태 꼬리표, 금액 없는 꼴이 모두 같다.
+
+    금액 없는 꼴(form)을 넣어, 한 칸에 금액 급부와 금액 없는 급부가 함께 있으면 금액 없는 급부가 "대표 밖에 조건이 다른 줄"로 세어진다.
+    금액 급부에는 form이 없어 열쇠의 끝은 None이다.
+    """
     return (float(view.get("wait") or 0), tuple(sorted((float(m), float(r)) for m, r in view.get("red") or [])),
-            bool(view.get("exc")), frozenset(t.key for t in pay_tags(view.get("limit"))))
+            bool(view.get("exc")), frozenset(t.key for t in pay_tags(view.get("limit"))), view.get("form"))
 
 
 def compare_conditions(base: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
     """두 대표 급부(model.benefit_view의 꼴)의 조건 우열. 판정은 기준(base) 쪽."""
     wait = {"항목": WAIT, "기준": f"{_num_text(base['wait'] or 0)}일", "상대": f"{_num_text(other['wait'] or 0)}일",
             "판정": compare_wait(base["wait"], other["wait"]), "사유": None}
-    red = {"항목": REDUCTION, "기준": reduction_text(base["red"]), "상대": reduction_text(other["red"]), "사유": None}
-    if base.get("exc") or other.get("exc"):
+    bf, of = base.get("form"), other.get("form")
+    red = {"항목": REDUCTION, "기준": CUT_IN_SOURCE if bf else reduction_text(base["red"]),
+           "상대": CUT_IN_SOURCE if of else reduction_text(other["red"]), "사유": None}
+    if bf or of:              # 금액 없는 급부의 감액 칸은 비어 있지만 "감액 없음"이 아니다(읽지 않았다)
+        red.update({"판정": HOLD, "사유": HOLD_SAME_FORM_CUT if bf == of else HOLD_FORM_CUT})
+    elif base.get("exc") or other.get("exc"):
         red.update({"판정": HOLD, "사유": HOLD_EXCEPTION})
     else:
         red["판정"] = compare_reduction(base["red"], other["red"])
-    pay = compare_pay(base.get("limit"), other.get("limit"))
+    pay = compare_pay(base.get("limit"), other.get("limit"), bf, of)
     items = [wait, red, pay]
     overall = combine(i["판정"] for i in items)
     rest = combine(i["판정"] for i in items if i["판정"] != HOLD) if overall == HOLD else None
@@ -509,6 +546,8 @@ class _Base:
             else:
                 res = compare_conditions(rb, ro)
             amount = amount_verdict(C.verdict(h.core(sid), B.core(sid)))
+            if amount["비교표부호"] == "x" and ((rb and rb.get("form")) or (ro and ro.get("form"))):
+                amount = {**amount, "사유": AMOUNT_FORM}
             blocked = B.blockers(sid) + h.blockers(sid)
             row = {"종형ID": h.vid, "res": res, "amount": amount, "blocked": blocked,
                    "ids": (rb["id"] if rb else None, ro["id"] if ro else None),

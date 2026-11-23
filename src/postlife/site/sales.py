@@ -63,7 +63,9 @@
 다섯 분류와 문장 둘(합의안 4번. 이용자는 본부의 영업 기획과 분석 담당자다)
 - 분류는 세부에서 정해지고 서로 겹치지 않는다(CATEGORY): 관문 차이(G1, G2, G3), 앞세울 강점(A1, A2), 관련 담보 안내(Q1),
   조건 열위 방어(Q3), 개정 검토 후보(Q2. 좁은 담보만 가진 것 포함). 지급 형태가 달라 우열을 매기지 않은 것은 조건 열위에 넣지 않고
-  단정 주의 목록(caution)에 둔다.
+  단정 주의 목록(caution)에 둔다. 금액 하나로 담기지 않는 급부(지급기준구분 차등지급, 실손보상, 분할지급, 현물급부)가 낀 짝도
+  지급 형태 다름으로 여기에 들고("{담보}는 지급 형태가 달라 우열을 매기지 않았습니다. 우체국 …은 정액 지급, …은 차등지급입니다."),
+  감액이 판정 보류라 조건 나음이나 조건 못함 포인트가 되지 않는다(insights.compare_conditions).
 - "문장"은 분석 문장(사실을 적는 평서문)이고, "카드질문"과 "카드답"은 응대 카드 미리 보기에서만 쓰는 창구 말투다. 관문(G2, G3)과
   앞세울 강점은 분석 문장을 카드에도 그대로 쓴다(카드질문 없음). 원문 대조가 필요한 포인트는 "원문대조글"을 단다.
   꼬리 문장(Q2_좁은, Q3_경과)은 분석 문장과 카드 답에 함께 붙는다. 입원 담보의 A1에는 주의(A1_주의)를 "주의"에 싣고 문장 끝에도 붙인다.
@@ -2159,11 +2161,15 @@ def pay_difference(data: Data, ins: dict[str, Any]) -> str:
     양쪽 대표 급부의 꼬리표가 1일당 하나씩이고 1일당 밖의 꼬리표가 같으면 1일당의 시작일과 일수 한도를 견준다. 상대가 여럿이면
     다른 것을 모두 모은다. 한도 일수만 다르면 PAY_DIFF_DAYS, 시작일만 다르면 PAY_DIFF_START, 둘 다면 PAY_DIFF_BOTH, 그 밖은
     PAY_DIFF_FORM이다. 꼬리표는 "1일째부터"를 시작일 없음과 같게 보므로(pay_tags) 시작일이 없는 쪽을 첫날부터라고 적지 않는다.
+    어느 한쪽이라도 금액 없는 급부(model.benefit_view의 form)이면 꼬리표를 보지 않고 PAY_DIFF_FORM이다.
     """
     def split(bid: str | None) -> tuple[list, set] | None:
         if not bid:
             return None
-        tags = I.pay_tags(data.benefit_view(bid).get("limit"))
+        view = data.benefit_view(bid)
+        if view.get("form"):
+            return None
+        tags = I.pay_tags(view.get("limit"))
         return [t for t in tags if t.kind == I.PER_DAY], {t.key for t in tags if t.kind != I.PER_DAY}
 
     base = split((ins["근거"].get("기준") or [None])[0])

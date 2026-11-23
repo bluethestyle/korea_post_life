@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import load_reader_product as L  # noqa: E402
 from postlife import ids  # noqa: E402
 from postlife.extract import reader_rows as RR  # noqa: E402
+from postlife.extract import rerun as R  # noqa: E402
 from postlife.schema import TABS  # noqa: E402
 from postlife.sheets_io import MemoryBackend, SheetStore, rows_to_values  # noqa: E402
 from postlife.snapshot import KST  # noqa: E402
@@ -47,7 +48,7 @@ PIECES = {"형식": RR.PIECES_FORMAT, "출처": {"문서": "test_Z1_상품요약
                                                   "가입금액의 20%")], "가형", names=["다라 수술비", "갱신형 다라 수술비"]),  # R002 opus
     piece(BANNED, [cover("다라 배상책임", "다라 사고로 배상책임을 진 경우")], "공통"),                         # R003 갱신형특약제외
     piece("마바 입원일당", [cover("마바 입원일당", "마바병으로 입원한 경우", "1일당 가입금액")], "가형"),          # R004 검토 대기
-    piece("사아 치료비", [cover("사아 치료비", "사아병 치료 항목별로 지급", "항목별 금액")], "가형"),             # R005 행없음
+    piece("사아 치료비", [cover("사아 치료비", "사아병 치료 항목별로 지급", "항목별 금액")], "가형"),             # R005 행없음(금액 없는 급부)
     piece("자차 치료비", [cover("가가암(체증형)나나암(체증형)", "암구분별로 지급")], "가형"),                    # R006 보류
     piece("카타 진단비", [cover("카타 진단비", "카타병으로 진단확정시")], "가형"),                              # R007 지문 다름
     piece("파하 진단비", [cover("파하 진단비", "파하병으로 진단확정시")], "나형"),                              # R008 정밀비교 종형 밖
@@ -145,13 +146,16 @@ def test_rows_are_made_for_precise_variants_and_lines_left_out_are_counted(docs,
     assert riders["갱신형 다라 수술비"]["갱신여부"] is True and riders["갱신형 다라 수술비"]["갱신주기년"] == 20
     assert riders["가나 진단비"]["담보구분"] == "주계약"
     benefits = {r["원시급부명"]: r for r in sheet["sys_급부"]}
-    assert set(benefits) == {"가나 진단비", "다라 수술비", "갱신형 다라 수술비", "가나 통원비"}
+    assert set(benefits) == {"가나 진단비", "다라 수술비", "갱신형 다라 수술비", "가나 통원비", "사아 치료비"}
+    # 행없음 줄은 금액과 감액이 빈 급부가 되고, 지급기준구분은 판독 사유를 묶은 값이다
+    assert benefits["사아 치료비"]["지급기준구분"] == "차등지급"
+    assert benefits["사아 치료비"]["기준가입금액만원"] is None and benefits["사아 치료비"]["기준지급금액만원"] is None
     assert benefits["다라 수술비"]["기준지급금액만원"] == 20.0                     # 판정한 판독(opus)의 값
     assert benefits["가나 통원비"]["기준지급금액만원"] == 10.0                     # 수정한 판정값
     assert benefits["가나 통원비"]["지급횟수제한"] == "1회당 / 연간 30회한"        # 원문 구절은 조각에서 잘라 쓴다
     reasons = L.reason_counts(report.groups[0])
-    assert reasons == {L.WAITING: 1, L.NO_ROW: 1, RR.HOLD: 1, L.CHANGED: 1, L.EXCLUDED: 1}
-    assert numbers_of(report) == {"R001-1", "R002-1", "R009-1"}
+    assert reasons == {L.WAITING: 1, RR.HOLD: 1, L.CHANGED: 1, L.EXCLUDED: 1}
+    assert numbers_of(report) == {"R001-1", "R002-1", "R005-1", "R009-1"}
     assert report.excluded == {"Z1": [BANNED]}
     assert "Z1 R005-1" in report.no_rows and report.no_rows["Z1 R005-1"]["행없음사유"] == "항목별금액표"
     logs = sheet["sys_작업로그"]
@@ -162,7 +166,7 @@ def test_rows_are_made_for_precise_variants_and_lines_left_out_are_counted(docs,
 def test_dry_run_writes_nothing(docs, values):
     store = store_with()
     report = L.load(store, targets(), INDEX, docs, values, NOW, dry_run=True)
-    assert not report.written and len(report.rows["sys_급부"]) == 4
+    assert not report.written and len(report.rows["sys_급부"]) == 5
     assert [c for c in store.backend.calls if c[0] != "get"] == []
 
 
@@ -212,10 +216,43 @@ def test_main_runs_a_dry_run_without_sheet_access(docs, values, tmp_path, monkey
     assert summary["쓰지 않은 줄 번호"]["Z1"]["R006-1"] == RR.HOLD
     assert SENTENCE not in result.read_text(encoding="utf-8")
     made = json.loads(rows.read_text(encoding="utf-8"))
-    assert len(made["행"]["sys_급부"]) == 4 and "Z1 R005-1" in made["행없음"]
+    assert len(made["행"]["sys_급부"]) == 5 and "Z1 R005-1" in made["행없음"]
 
 
 def test_renewal_years_leave_out_banned_and_non_renewal_names():
     years = L.renewal_years(views(), 20, [BANNED.replace(" ", "")])
     assert years == {"갱신형 다라 수술비": 20}
     assert L.renewal_years(views(), None, []) == {}
+
+
+def test_each_benefit_without_amount_leaves_one_extraction_log(docs, values):
+    store = store_with()
+    report = L.load(store, targets(), INDEX, docs, values, NOW)
+    sheet = store.read(["sys_급부", "sys_작업로그"])
+    target = next(r for r in sheet["sys_급부"] if r["원시급부명"] == "사아 치료비")
+    logs = [r for r in sheet["sys_작업로그"] if r["작업단계"] == "추출" and r["대상열"] == "지급기준구분"]
+    assert len(logs) == 1 and logs[0]["대상행ID"] == target["급부ID"]
+    log = logs[0]
+    assert (log["대상탭"], log["대상열"], log["변경후값"], log["결과"], log["호출모델"]) == \
+        ("sys_급부", "지급기준구분", "차등지급", "통과", L.MODEL)
+    p, c = RR.covers_by_number(views())["R005-1"]
+    assert log["사유"] == f"판독 사유 항목별금액표, 번호 R005-1, 내용 지문 {RR.content_fingerprint(c)}"
+    assert "항목별 금액" not in log["사유"]                    # 원문 글자는 싣지 않는다
+    # 판정과 사람검토이관 기록이 아니므로 검토 대기로 잡히지 않는다. 종형마다 남기는 기록(rerun.coverage_logs)과도 섞이지 않는다
+    assert not [r for r in sheet["sys_작업로그"] if r["대상행ID"] == target["급부ID"] and r["작업단계"] != "추출"]
+    assert R.COVERED not in log["사유"]
+    assert report.no_amount == {target["급부ID"]: log["사유"]}
+    assert "금액 없는 급부(행없음 줄이 된 행): 1행 (차등지급 1)" in L.markdown(report)
+    assert L.result_of(report)["금액 없는 급부"] == {"차등지급": 1}
+
+
+def test_other_no_row_lines_are_still_left_out(docs, tmp_path):
+    lines = [x if x["번호"] != "R005-1" else {**x, "sonnet": reading(꼴=RR.NO_ROW, 지급률=None, 행없음사유="그밖"),
+                                              "opus": reading(꼴=RR.NO_ROW, 지급률=None, 행없음사유="그밖")}
+             for x in VALUES]
+    path = tmp_path / "other.jsonl"
+    path.write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in lines), encoding="utf-8")
+    report = L.load(store_with(), targets(), INDEX, docs, {"Z1": path}, NOW, dry_run=True)
+    assert L.reason_counts(report.groups[0])[L.NO_ROW] == 1
+    assert "사아 치료비" not in {r["원시급부명"] for r in report.rows["sys_급부"]}
+    assert not [r for r in report.logs if r["대상열"] == "지급기준구분"]

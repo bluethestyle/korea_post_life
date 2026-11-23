@@ -26,7 +26,8 @@
     한도                   [{앞말, 수, 단위(회|일)}] 지급 횟수나 일수 한도
     주의                   NOTICE_KINDS. 행은 만들지만 스키마가 담지 못하는 정보
     모름                   [{칸, 이유}] 읽지 못한 칸
-    행없음 줄도 면책일수, 보장개시일, 한도를 채우고 견준다(행은 만들지 않아도 정보는 남긴다).
+    행없음 줄도 면책일수, 보장개시일, 한도를 채우고 견준다. 행없음사유가 "그밖"이 아니면 이 셋으로 금액 없는 급부 행
+    (지급기준구분 차등지급, 실손보상, 분할지급, 현물급부)을 만들고, "그밖"이면 행은 만들지 않고 정보만 남긴다.
 
 원문 구절이 들어가는 시트 열(지급횟수제한, 감액예외)은 판독 값이 아니라 조각 글자에서 코드가 잘라 쓴다.
 판독 값은 앞말, 횟수, 단위, 낱말만 주고, 코드는 그 구조에 맞는 구절을 그 세부보장의 글자(지급사유, 지급금액,
@@ -56,7 +57,8 @@ PIECES_FORMAT = "급부표조각/1"
 
 RATIO, AMOUNT, NO_ROW, UNKNOWN = "가입금액비율", "금액", "행없음", "모름"
 FORMS = (RATIO, AMOUNT, NO_ROW, UNKNOWN)
-# 스키마의 급부 행(지급률 하나, 감액 둘, 면책 하나)으로 담을 수 없는 꼴. 행을 만들지 않고 사유를 남긴다
+# 스키마의 급부 행(지급률 하나, 감액 둘, 면책 하나)으로 담을 수 없는 꼴. "그밖"을 뺀 사유는 금액 없는 급부 행
+# (NO_AMOUNT_BASIS의 지급기준구분, 두 금액과 감액은 비움)이 되고, "그밖"은 행을 만들지 않고 사유를 남긴다
 NO_ROW_KINDS = (
     "가입금액구간별금액표",   # 칸 안의 표가 가입금액 구간마다 다른 금액을 적는다(항목 행과 구간 열이 겹친 표도)
     "항목별금액표",           # 치료 항목마다 금액이나 지급률이 다르다(통합치료비, 통합일당)
@@ -74,6 +76,24 @@ NO_ROW_KINDS = (
     "현물급부",               # 간병인 지원, 변호사 선임처럼 돈이 아닌 급부
     "그밖",
 )
+# 행없음사유 → sys_급부 지급기준구분(금액 하나로 담기지 않는 꼴 넷. validate.NO_AMOUNT_BASES). 2026-11-23 사용자 승인.
+# 세부 사유는 값으로 쓰지 않고 작업 로그의 사유(scripts/load_reader_product.py)에 남긴다. "그밖"은 넣지 않는다
+NO_AMOUNT_BASIS: dict[str, str] = {
+    "가입금액구간별금액표": "차등지급",
+    "항목별금액표": "차등지급",
+    "회차별지급률": "차등지급",
+    "경과기간별지급률": "차등지급",
+    "단위당단가": "차등지급",
+    "등급별지급률": "차등지급",
+    "조건별지급률": "차등지급",
+    "치료차수별지급률": "차등지급",
+    "약물종류개수별": "차등지급",
+    "종구분별가입금액": "차등지급",
+    "실제손해액": "실손보상",
+    "조문별한도": "실손보상",
+    "정기분할지급": "분할지급",
+    "현물급부": "현물급부",
+}
 UNITS = ("", "1일당", "1회당", "1사고당")
 CUT_UNITS = ("일", "개월", "년")
 CUT_BASES = ("가입금액", "보험금", "만원")
@@ -215,6 +235,15 @@ def cover_fingerprint(piece: PieceView, cover: CoverView) -> str:
     parts = (piece.title, "/".join(names), piece.label, piece.segment, cover.name, cover.reason, cover.amount,
              str(cover.page), cover.only, "\n".join(piece.notes))
     return ids.short_hash(*(_squash(p) for p in parts), length=FINGERPRINT_LENGTH)
+
+
+def content_fingerprint(cover: CoverView) -> str:
+    """세부보장 한 줄의 내용 지문. 세부보장명, 지급사유, 지급금액만 빈칸을 떼고 해시한다(원문 글자는 남기지 않는다).
+
+    cover_fingerprint와 달리 쪽과 형 이름을 넣지 않아, 개정 때 쪽만 옮겨도 같다. 금액 없는 급부(지급기준구분이 차등지급
+    따위)는 개정 전후에 값이 같아 보여도 지급률 표가 바뀌었을 수 있어, 그 확인에 쓰려고 작업 로그의 사유에 남긴다.
+    """
+    return ids.short_hash(*(_squash(p) for p in (cover.name, cover.reason, cover.amount)), length=FINGERPRINT_LENGTH)
 
 
 # ---------------------------------------------------------------------------
@@ -1213,7 +1242,7 @@ def row_problem(v: Mapping[str, Any] | None, cover: CoverView, piece: PieceView,
     if v is None:
         return "판독 값 없음"
     form = v.get("꼴")
-    if form == NO_ROW:
+    if form == NO_ROW and v.get("행없음사유") not in NO_AMOUNT_BASIS:
         return f"스키마가 담지 못하는 꼴: {v.get('행없음사유')}"
     if form == UNKNOWN:
         return "모름"
@@ -1263,10 +1292,13 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
       남기고 notes에 수를 센다. 이름은 ID를 만들 이름 목록(id_name)에 그대로 넣어, 나중에 주기를 주어 다시 만들어도
       다른 특약의 ID가 바뀌지 않는다.
     - 급부 행: 가입금액비율은 table_rules.benefit_row(가입금액 100만원당 지급률), 금액은 그 행의 기준가입금액,
-      기준지급금액, 지급기준구분을 판독 값으로 바꾼다. 급부ID 규칙은 table_rules와 같다(ids.benefit_id).
+      기준지급금액, 지급기준구분을 판독 값으로 바꾼다. 행없음 줄은 행없음사유가 NO_AMOUNT_BASIS에 있으면 금액 없는 급부
+      행이 된다: 지급기준구분은 묶은 값(차등지급, 실손보상, 분할지급, 현물급부), 두 금액과 감액 네 칸, 감액예외는 비우고
+      (두 판독이 행없음 줄의 감액을 읽지 않았다), 면책기간일수, 지급횟수제한(한도 구절), 근거 쪽은 읽은 대로 채운다.
+      급부ID 규칙은 table_rules와 같다(ids.benefit_id).
       이름이 여럿인 조각에 세부보장이 하나면 급부 이름을 특약 이름으로 바꿔 적는다(table_rules와 같다).
-    - 행을 만들 수 없는 줄(행없음, 모름, 기계 검사에 걸린 줄)은 skipped에 사유를 남긴다. 행없음 줄은 no_rows에
-      면책일수, 보장개시일, 한도 구절을 남긴다. 표 읽기가 이름을 잘못 낸 줄(name_problem)은 판독 값과 상관없이 "보류"로 남긴다.
+    - 행을 만들 수 없는 줄(행없음사유가 "그밖"인 줄, 모름, 기계 검사에 걸린 줄)은 skipped에 사유를 남긴다. 행없음 줄은
+      행이 되든 안 되든 no_rows에 사유, 면책일수, 보장개시일, 한도 구절을 남긴다. 표 읽기가 이름을 잘못 낸 줄(name_problem)은 판독 값과 상관없이 "보류"로 남긴다.
     - 한 조각 안에 이름이 같은 세부보장이 여럿이면, 대상이 모두 있고 서로 다를 때 줄마다 "세부보장명(대상)"으로 급부
       행을 만든다(table_rules의 원시급부명 규칙). 대상으로 가려지지 않으면 삼성화재 적재(job._drop_repeats)처럼 행이
       글자까지 같을 때만 하나를 남기고 번호를 모두 단다. 값이 다르거나 그중 하나라도 행을 만들 수 없으면 그 이름의
@@ -1348,7 +1380,15 @@ def _row(rider: Mapping[str, Any], v: Mapping[str, Any], cover: CoverView, piece
     if v["꼴"] == AMOUNT:
         row.update({"기준가입금액만원": float(v["기준가입금액만원"]), "기준지급금액만원": float(v["지급액만원"]),
                     "지급기준구분": AMOUNT})
+    elif v["꼴"] == NO_ROW:
+        # benefit_row가 채운 가입금액비율 100%를 남기면 그럴듯한 가짜 값이 된다. 빠뜨리면 형식 검사(validate)가 잡는다
+        row.update({"기준가입금액만원": None, "기준지급금액만원": None, "지급기준구분": NO_AMOUNT_BASIS[v["행없음사유"]],
+                    **{name: None for name in NO_AMOUNT_EMPTY}})
     return row
+
+
+# 금액 없는 급부 행에서 비우는 감액 칸. 두 판독이 행없음 줄의 감액을 읽지 않는다(docs/backfill_reader_guide.md)
+NO_AMOUNT_EMPTY = ("감액개월1", "감액지급률1", "감액개월2", "감액지급률2", "감액예외")
 
 
 def _add(out: Built, rider: Mapping[str, Any], v: Mapping[str, Any], cover: CoverView, piece: PieceView, role: str,

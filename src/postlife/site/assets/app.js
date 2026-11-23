@@ -249,7 +249,15 @@
   /* 급부표의 지급 기준. 금액 급부는 head + "1,000만원에 500만원", 가입금액 대비 비율로 적힌 급부(b.ratio)는 "가입금액의 50%".
      비율 급부의 기준가입금액(관례로 100만원)은 지급률을 적으려고 둔 값이라 금액처럼 보이게 적지 않는다. */
   function rateText(b) { return b.rate === null || b.rate === undefined ? '가입금액 대비 비율(지급률 자료 없음)' : '가입금액의 ' + C.percent(b.rate); }
-  function basisText(b, head) { return b.ratio ? rateText(b) : head + money(b.base) + '에 ' + money(b.pay); }
+  function basisText(b, head) { return b.form ? b.form : b.ratio ? rateText(b) : head + money(b.base) + '에 ' + money(b.pay); }
+  /* 금액 하나로 담기지 않는 급부(b.form: 차등지급, 실손보상, 분할지급, 현물급부). 두 금액과 감액이 비어 있어 금액 자리에는 값 이름을,
+     감액 자리에는 "원문 확인"을 적는다(감액을 읽지 않은 꼴이라 "감액 없음"이 아니다). 값별 설명 글은 Python(model.FORM_TEXT)이
+     D.formText에 싣는다. 그런 급부가 없는 자료에는 form도 formText도 없다 */
+  function formDesc(f) { return (D.formText && D.formText[f]) || ''; }
+  function benRedText(b) { return b.form ? '감액은 원문 확인' : redText(b.red); }
+  function formPlace(b) {
+    return '금액 하나로 적을 수 없는 급부' + (b.page !== null && b.page !== undefined ? ', ' + orNone(b.doc) + ' ' + b.page + '쪽' : '');
+  }
   /* 특약에 딸린 비율 급부의 지급 기준을 한 줄로: "지급 기준 가입금액의 100%, 20%". 비율 급부가 없으면 null */
   function ratioBasis(bids) {
     const lines = bids.map(function (bid) { return D.benefits[bid]; }).filter(function (b) { return b.ratio; });
@@ -451,11 +459,11 @@
     marks.push(tag('plain', '', b.role));
     if (b.state === '대기') marks.push(pendTag('매핑 검토 대기'));
     if (b.pend.length) marks.push(pendTag('검토 대기'));
-    if (opt.noCap) marks.push(tag('plain', '', '가입 한도 자료 없음'));
+    if (opt.noCap && !b.form) marks.push(tag('plain', '', '가입 한도 자료 없음'));
     const link = v.url ? h('a', {href: v.url, target: '_blank', rel: 'noopener noreferrer', text: v.url}) : '자료 없음';
     const amountText = opt.unavailable ? '이 나이에는 가입할 수 없음' : opt.noCap ? '공시 문서에 가입 한도가 없음'
       : money(opt.amount) + (opt.example ? ' (계산용 예시 금액이며 권장 금액이 아님)' : '');
-    const valText = opt.unavailable ? '해당 없음'
+    const valText = opt.unavailable ? '해당 없음' : b.form ? '금액 하나로 적을 수 없는 급부(아래 지급 기준을 봅니다)'
       : opt.noCap ? '계산할 수 없음(아래 ' + (b.ratio ? '지급 기준' : '기준 가입금액 기준 지급액') + '을 봅니다)' : money(opt.val);
     return h('div', {class: 'ev'},
       h('h4', null, b.name, marks),
@@ -465,12 +473,13 @@
         ['원시급부명', b.name],
         opt.amount !== undefined ? [opt.amountLabel || '가입금액', amountText] : null,
         opt.val !== undefined ? [opt.valLabel || '지급액', valText] : null,
-        b.ratio ? ['지급 기준', rateText(b) + ' (공시 문서에 금액 대신 가입금액 대비 비율로 적힌 급부)']
+        b.form ? ['지급 기준', b.form + ': ' + formDesc(b.form)]
+          : b.ratio ? ['지급 기준', rateText(b) + ' (공시 문서에 금액 대신 가입금액 대비 비율로 적힌 급부)']
           : ['기준 가입금액 기준', basisText(b, '가입금액 ')],
         opt.unit && opt.val !== null && opt.val !== undefined && !opt.unavailable && !opt.noCap && !opt.example
           ? ['기준 단위 대비', '기준 단위 ' + money(opt.unit) + '의 ' + (Math.round(opt.val / opt.unit * 100) / 100) + '배'] : null,
         ['면책기간', b.wait ? '계약일부터 ' + C.comma(b.wait) + '일' : '없음'],
-        ['감액', b.red.length ? '계약일부터 ' + redText(b.red) + ' 지급' : '없음'],
+        ['감액', b.form ? '원문에서 확인(지급 형태 안에 들어 있을 수 있음)' : b.red.length ? '계약일부터 ' + redText(b.red) + ' 지급' : '없음'],
         b.exc ? ['감액 예외', b.exc] : null,
         ['지급 한도', orNone(b.limit)],
         ['갱신', renewText(rider)],
@@ -785,8 +794,9 @@
   function capMissing(st) { return !!st && st.kind === 'ok' && st.caps[st.rep] === null; }
   /* 금액이 없어 판정하지 않은 칸은 무엇이 없는지 밝힌다: 이 종형의 가입 한도인지, 금액 자체인지, 기준 종형 쪽인지.
      baseSt는 같은 조건의 기준 종형 칸 값이다 */
-  function cellVerdictTag(code, st, baseSt) {
+  function cellVerdictTag(code, st, baseSt, form) {
     if (code.charAt(0) !== 'x' || st.kind !== 'ok') return verdictTag(code);
+    if (form) return tag('plain', '', '지급 형태가 달라 금액 비교 안 함');
     if (st.vals[st.rep] !== null) return tag('plain', '', capMissing(baseSt) ? '기준 종형 가입 한도 자료 없음' : '기준 종형 금액 자료 없음');
     return tag('plain', '', st.caps[st.rep] === null ? '가입 한도 자료 없음' : '금액 자료 없음');
   }
@@ -798,6 +808,12 @@
     }
     return out.join(', ');
   }
+  /* 그 칸이나 같은 조건의 기준 종형 칸의 대표 급부가 금액 없는 급부인지(지급액을 견주지 않은 까닭) */
+  function repForm(row, vid, k) {
+    const cell = row.cells[vid], st = stAt(row, vid, k);
+    return !!(cell && st && st.kind === 'ok' && D.benefits[cell.lines[st.rep]].form);
+  }
+  function pairForm(row, vid, k) { return repForm(row, vid, k) || repForm(row, state.s3.base, k); }
   /* 가입은 되는데 가입 한도 자료가 없어 최대 가입 기준 금액을 내지 못한 줄인지 */
   function lineBlocked(st, i) { return st.kind !== 'ok' || (st.no ? st.no.indexOf(i) >= 0 : false); }
   function lineNoCap(st, i) { return !lineBlocked(st, i) && st.caps[i] === null; }
@@ -813,12 +829,13 @@
   /* 기준 대비 판정의 분포. none은 두 종형 모두 확정 급부가 없는 담보, noCap은 x(판정하지 않음) 가운데
      이 종형이나 기준 종형의 가입 한도 자료가 없어 최대 가입 기준 금액을 내지 못한 담보다 */
   function tally(rows, vid, k, bi) {
-    const sum = {b: 0, w: 0, s: 0, m: 0, n: 0, o: 0, p: 0, q: 0, x: 0, u: 0, v: 0, none: 0, noCap: 0};
+    const sum = {b: 0, w: 0, s: 0, m: 0, n: 0, o: 0, p: 0, q: 0, x: 0, u: 0, v: 0, none: 0, noCap: 0, form: 0};
     rows.forEach(function (r) {
       const head = headOf(r, vid, k, bi);
       if (head === '') sum.none++;
       else if (sum[head] !== undefined) sum[head]++;
-      if (head === 'x' && (capMissing(stAt(r, vid, k)) || capMissing(stAt(r, state.s3.base, k)))) sum.noCap++;
+      if (head === 'x' && pairForm(r, vid, k)) sum.form++;
+      else if (head === 'x' && (capMissing(stAt(r, vid, k)) || capMissing(stAt(r, state.s3.base, k)))) sum.noCap++;
     });
     return sum;
   }
@@ -829,11 +846,15 @@
     const body = [kv([
       ['조건', condText()],
       ['기준 종형', vLabel(state.s3.base)],
-      ['기준 대비', code === 'B' ? '이 종형이 기준입니다.' : [cellVerdictTag(code, st, stAt(row, state.s3.base, k)), partsText(code) ? ' ' + partsText(code) : '',
+      ['기준 대비', code === 'B' ? '이 종형이 기준입니다.' : [cellVerdictTag(code, st, stAt(row, state.s3.base, k), pairForm(row, vid, k)), partsText(code) ? ' ' + partsText(code) : '',
         code.charAt(4) === 'L' ? ' · 지급 한도 문구가 기준과 다름(판정에는 넣지 않음)' : '']],
       ['표준담보', row.name + ' (' + row.major + ' · ' + row.mid + ', 기준 단위 ' + money(row.unit) + ')']
     ])];
-    if (st.kind === 'ok' && st.caps[st.rep] === null) {
+    const repBen = st.kind === 'ok' ? D.benefits[cell.lines[st.rep]] : null;
+    if (repBen && repBen.form) {
+      body.push(h('p', {class: 'notice', text: '대표 급부는 ' + repBen.form + '입니다. ' + formDesc(repBen.form)
+        + '. 이 담보를 가진 것으로 세지만, 지급액과 감액은 금액 하나로 견줄 수 없어 우열 판정을 하지 않았습니다. 근거 쪽의 원문을 봅니다.'}));
+    } else if (st.kind === 'ok' && st.caps[st.rep] === null) {
       body.push(h('p', {class: 'notice', text: '이 종형은 공시 문서에 특약 가입 한도가 없어 "최대로 가입했을 때 지급액"을 계산하지 못합니다. '
         + (D.benefits[cell.lines[st.rep]].ratio
           ? '대표 급부는 금액 대신 가입금액 대비 비율로 적혀 있어 지급률과 면책, 감액 조건만 견줄 수 있고, 우열 판정은 하지 않았습니다.'
@@ -870,14 +891,17 @@
     const cls = code === 'B' ? 'base' : (head === 'b' || head === 'w' || head === 'm' ? head : (head === 'p' || head === 'q' ? 'p' : ''));
     const btn = h('button', {type: 'button', class: 'cellbtn ' + cls, 'data-key': 'c-' + row.id + '-' + vid,
       onclick: function () { cmpDetail(row, vid, k, bi); }});
-    const tags = [cellVerdictTag(code, st, stAt(row, state.s3.base, k))];
+    const tags = [cellVerdictTag(code, st, stAt(row, state.s3.base, k), pairForm(row, vid, k))];
     if (st.kind === 'ok') {
       const b = D.benefits[cell.lines[st.rep]];
       const rider = D.riders[b.tid];
       const noCap = st.caps[st.rep] === null;
       /* 가입 한도 자료가 없는 종형: 최대 가입 기준 금액 대신 문서에 적힌 기준 가입금액과 그 지급액을 그대로 적는다.
          비율로 적힌 급부는 "가입금액의 50%"처럼 지급률만 적는다(기준가입금액 100만원은 실제 금액이 아니다) */
-      add(btn, noCap ? (b.ratio ? h('span', {class: 'main soft num', text: rateText(b)}) : [
+      add(btn, b.form ? [
+        h('span', {class: 'main soft noamt', text: b.form}),
+        h('span', {class: 'aux', text: formPlace(b)})
+      ] : noCap ? (b.ratio ? h('span', {class: 'main soft num', text: rateText(b)}) : [
         h('span', {class: 'aux', text: '기준 가입 ' + money(b.base) + '에'}),
         h('span', {class: 'main soft num', text: money(b.pay)})
       ]) : [
@@ -885,13 +909,13 @@
         h('span', {class: 'aux', text: basisText(b, '가입 ') + ' · 최대 가입 ' + money(st.caps[st.rep])})
       ]);
       add(btn, [
-        h('span', {class: 'terms', text: [waitText(b.wait), redText(b.red), renewText(rider)].join(' · ')}),
+        h('span', {class: 'terms', text: [waitText(b.wait), benRedText(b), renewText(rider)].join(' · ')}),
         b.limit ? h('span', {class: 'terms', text: b.limit}) : null
       ]);
       const why = code.length > 1 ? partsText(code) : '';
       if (why) tags.push(tag('plain', '', why));
       if (code.charAt(4) === 'L') tags.push(tag('plain', '', '지급 한도 문구 다름'));
-      if (noCap && head !== 'x') tags.push(tag('plain', '', '가입 한도 자료 없음'));
+      if (noCap && head !== 'x' && !b.form) tags.push(tag('plain', '', '가입 한도 자료 없음'));
       if (b.pend.length || st.capPend) tags.push(pendTag(st.capPend && !b.pend.length ? '한도 검토 대기' : '검토 대기'));
       if (cell.lines.length > 1) tags.push(tag('plain', '', '급부 ' + cell.lines.length + '줄'));
     } else if (st.kind === 'unavail') {
@@ -1041,7 +1065,8 @@
         if (s.p) held.push('판정 보류(검토 대기) ' + s.p);
         if (s.q) held.push('매핑 검토 대기 ' + s.q);
         if (s.noCap) held.push('가입 한도 자료 없음 ' + s.noCap);
-        if (s.x - s.noCap) held.push('금액 자료 없음 ' + (s.x - s.noCap));
+        if (s.form) held.push('지급 형태가 달라 금액 비교 안 함 ' + s.form);
+        if (s.x - s.noCap - s.form) held.push('금액 자료 없음 ' + (s.x - s.noCap - s.form));
         if (s.u + s.v) held.push('이 나이 가입 불가 ' + (s.u + s.v));
         add(sumList, h('div', {class: 'sumrow'},
           h('label', {class: 'check'},
@@ -1286,8 +1311,9 @@
       if (st.kind === 'unavail') return '이 나이 가입 불가';
       if (st.kind !== 'ok') return h('span', {class: 'sub', text: '확정 급부 없음'});
       const b = D.benefits[r.cells[v].lines[st.rep]];
-      const terms = waitText(b.wait) + ', ' + redText(b.red);
+      const terms = waitText(b.wait) + ', ' + benRedText(b);
       /* 가입 한도 자료가 없는 종형: 최대 가입 지급액 대신 문서의 기준 가입금액과 그 지급액(비율 급부는 지급률)을 적는다 */
+      if (b.form) return [h('b', {text: b.form}), h('br'), h('span', {class: 'sub', text: '금액 하나로 적을 수 없는 급부, ' + terms})];
       if (st.caps[st.rep] === null) return [h('b', {text: basisText(b, '기준 가입 ')}), h('br'), h('span', {class: 'sub', text: '특약 한도 미공시, ' + terms})];
       return [h('b', {text: money(st.vals[st.rep])}), ' (최대 가입 ' + money(st.caps[st.rep]) + ')', h('br'), h('span', {class: 'sub', text: terms})];
     };
@@ -1543,7 +1569,13 @@
       const head = h('h4', null, t.type,
         h('span', {class: 'sub', text: ' 표준담보 ' + list.length + '개' + (shown.length < list.length ? ' 가운데 앞의 ' + shown.length + '개' : '')}));
       return h('div', {class: 'bargroup'}, head, shown.map(function (g) {
-        const l = lineOf(g), red = l.reduced[0];
+        const l = lineOf(g), red = l.reduced[0], fb = D.benefits[l.bid];
+        if (fb.form) {          // 금액 없는 급부는 막대를 그리지 않는다
+          return h('div', {class: 'barrow'},
+            h('div', {class: 'barlabel', text: D.std[g.std].name}),
+            h('div', {class: 'bartrack'}, h('div', {class: 'barline', title: D.std[g.std].name + ' ' + fb.form},
+              h('span', {class: 'barval soft', text: fb.form + '(원문 확인)'}))));
+        }
         const width = function (v) { return 'calc((100% - 132px) * ' + (top > 0 && v ? v / top : 0) + ')'; };
         return h('div', {class: 'barrow'},
           h('div', {class: 'barlabel', text: D.std[g.std].name}),
@@ -1564,8 +1596,8 @@
         h('td', null, b.name, h('br'), h('span', {class: 'sub', text: D.riders[b.tid].name}),
           b.ratio ? [h('br'), h('span', {class: 'sub', text: '지급 기준 ' + rateText(b) + (atExample(rowOf[b.tid]) ? ', 예시 금액으로 계산' : '')})] : null,
           b.pend.length ? [' ', pendTag()] : null),
-        h('td', {class: 'r num', text: money(l.val)}),
-        h('td', {class: 'r num red'}, l.reduced.length ? l.reduced.map(function (s, i) {      // 구간 하나는 한 덩어리로 줄을 바꾼다
+        h('td', {class: 'r num', text: b.form ? b.form + '(원문 확인)' : money(l.val)}),
+        h('td', {class: 'r num red'}, b.form ? '원문 확인' : l.reduced.length ? l.reduced.map(function (s, i) {      // 구간 하나는 한 덩어리로 줄을 바꾼다
           return [i ? ' ' : '', h('span', {class: 'redseg', text: months(s[0]) + ' 미만 ' + money(s[1]) + (i < l.reduced.length - 1 ? ',' : '')})];
         }) : '감액 없음',
           b.exc && l.reduced.length ? [h('br'), h('span', {class: 'sub', text: '예외: ' + b.exc})] : null),
@@ -1678,9 +1710,9 @@
     range: '가입금액 범위', renew: '갱신 주기'};
   /* b는 그 값이 나온 급부. 비율로 적힌 급부의 지급액은 "가입금액의 N%"로 적는다 */
   function fieldValue(field, v, b) {
-    if (field === 'pay') return b && b.ratio ? rateText(b) : '가입 ' + money(v[0]) + '에 ' + money(v[1]);
+    if (field === 'pay') return b && b.form ? b.form : b && b.ratio ? rateText(b) : '가입 ' + money(v[0]) + '에 ' + money(v[1]);
     if (field === 'top') return money(v);
-    if (field === 'red') return v && v.length ? redText(v) : '감액 없음';
+    if (field === 'red') return b && b.form ? '원문 확인' : v && v.length ? redText(v) : '감액 없음';
     if (field === 'wait') return v ? C.comma(v) + '일' : '없음';
     if (field === 'limit') return orNone(v);
     if (field === 'std') return v && D.std[v] ? D.std[v].name : '없음';
@@ -1779,7 +1811,7 @@
         const r = D.riders[tid];
         const vm = Object.keys(D.benefits).filter(function (bid) { return D.benefits[bid].tid === tid; });
         return h('li', null, r.name, h('span', {class: 'sub', text: ' — 가입금액 ' + fieldValue('range', [r.min, r.max]) + ' · 급부 ' + vm.length + '줄: '
-          + vm.map(function (bid) { const b = D.benefits[bid]; return b.name + ' ' + (b.ratio ? rateText(b) : money(b.pay)); }).join(', ')}));
+          + vm.map(function (bid) { const b = D.benefits[bid]; return b.name + ' ' + (b.form ? b.form : b.ratio ? rateText(b) : money(b.pay)); }).join(', ')}));
       }));
     };
 

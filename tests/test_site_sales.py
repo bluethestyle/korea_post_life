@@ -656,6 +656,32 @@ def test_condition_gap_and_pay_form_on_the_same_pair_do_not_contradict():
     assert pay[0]["같은상대조건포인트"] == [q3["포인트ID"]]
 
 
+def test_benefit_without_amount_gets_a_caution_sentence_and_no_condition_point():
+    """상대가 금액 하나로 담기지 않는 급부(차등지급)로만 가진 담보. 우리 쪽은 감액이 있고 면책이 짧다.
+
+    감액 칸이 빈 상대를 "감액 없음"으로 견주면 조건 열위(Q3)가 나온다. 감액은 판정 보류라 조건 우열 포인트가 없고,
+    지급 형태가 다름이라 단정 주의 목록에 "정액 지급"과 값 이름으로 적힌다.
+    """
+    b = Book()
+    fill(b)
+    b.t["hum_표준담보사전"].append(std("STD_CM_FORM", "공통보장", "시험 수술비", "수술"))
+    b.ben(E1, "STD_CM_FORM", red=(12, 0.5), limit="수술 1회당")
+    bid = b.ben(H1, "STD_CM_FORM", wait=90, limit="연간 3회한")
+    for r in b.t["sys_급부"]:
+        if r["급부ID"] == bid:
+            r.update({"지급기준구분": "차등지급", "기준가입금액만원": None, "기준지급금액만원": None})
+    data = Data(b.t)
+    r = S.points(data, E1, P(age=30), None, REL)
+    assert "STD_CM_FORM" not in {x["표준담보ID"] for x in r["포인트"]}
+    dropped = [x for x in r["뺀포인트"] if x["표준담보ID"] == "STD_CM_FORM"]
+    assert dropped and all(x["사유"].startswith("조건 판정 보류: ") for x in dropped)
+    pay = [x for x in S.caution(data, E1, None, REL, pts=r) if x["종류"] == S.CAUTION_PAY and x["표준담보ID"] == "STD_CM_FORM"]
+    assert len(pay) == 1
+    assert pay[0]["문장"] == ("시험 수술비는 지급 형태가 달라 우열을 매기지 않았습니다. 우체국 1종(간편가입315)은 "
+                             "정액 지급(수술 1회당), 한화생명 간편가입형(1년)은 차등지급입니다.")
+    assert pay[0]["우리지급형태"] == "정액 지급(수술 1회당)" and pay[0]["상대지급형태"] == {H1: "차등지급"}
+
+
 # ---------- 개정 검토 목록 ----------
 def test_revision_candidates_fold_by_middle_class(pts, data):
     groups = S.revision_candidates(data, pts)

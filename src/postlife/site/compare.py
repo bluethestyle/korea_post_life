@@ -106,7 +106,8 @@ def verdict(other: dict[str, Any], base: dict[str, Any]) -> str:
 
     "" 둘 다 없음 / n 이 종형에 없음(빈자리) / o 기준 종형에 없음 / q 매핑 검토 대기 급부만 있어 비교에서 뺌 /
     u 이 나이에 가입할 수 없음 / v 기준 종형이 이 나이에 가입할 수 없음 /
-    p 검토 대기 값이 있어 판정을 미룸 / x 금액 자료 없음 / 그 밖에는 compare_terms의 부호
+    p 검토 대기 값이 있어 판정을 미룸 / x 금액 자료 없음(금액 하나로 담기지 않는 급부도 금액이 없어 x다) /
+    그 밖에는 compare_terms의 부호
     """
     if other["kind"] == "none":
         if other.get("waiting"):

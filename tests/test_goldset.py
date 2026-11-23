@@ -205,3 +205,13 @@ def test_pick_types_without_scope_mark():
     assert [t["종형ID"] for t in sg.pick_types("가상보험 2600 3종(일반가입)", types)] == ["T3"]
     assert [t["종형ID"] for t in sg.pick_types("가상보험 2600 1~2종 공통", types)] == ["T1", "T2"]
     assert [t["종형ID"] for t in sg.pick_types("가상보험 2600 (단일종)", types)] == ["T1"]
+
+
+def test_benefit_without_amount_does_not_stop_scoring():
+    """금액 하나로 담기지 않는 급부(지급기준구분 차등지급 따위)는 두 금액이 비어 있다. 채점이 멈추지 않고 금액 모음에서 건너뛴다."""
+    rider = {"특약ID": "T1", "원시특약명": "가나특약"}
+    plain = _benefit("T1", "가나보험금", 1000.0)
+    empty = {**_benefit("T1", "가나보험금(차등)", None), "기준가입금액만원": None, "지급기준구분": "차등지급"}
+    item = _item(1, "보장금액·면책·감액", "단일", "가나특약 · 가나보험금", "1,000만원")
+    assert sg.score(item, [rider], [plain, empty])[0] == "일치"
+    assert sg.score(item, [rider], [empty])[0] == "불일치"

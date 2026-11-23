@@ -45,8 +45,13 @@ def jl(p: Path) -> list[dict]:
         return [json.loads(ln) for ln in f if ln.strip()]
 
 
+NO_AMOUNT = ('차등지급', '실손보상', '분할지급', '현물급부')   # 금액 하나로 담기지 않는 지급기준구분(두 금액이 비어 있다)
+
+
 def amount(b: dict) -> str | None:
     a, base = b.get('기준지급금액만원'), b.get('기준가입금액만원')
+    if b.get('지급기준구분') in NO_AMOUNT:
+        return b['지급기준구분']
     if b.get('지급기준구분') == '가입금액비율':
         if a is not None and base:
             return f'가입금액의 {a / base * 100:g}%'
@@ -55,6 +60,8 @@ def amount(b: dict) -> str | None:
 
 
 def reduce_txt(b: dict) -> str:
+    if b.get('지급기준구분') in NO_AMOUNT:          # 감액을 읽지 않은 꼴이라 "없음"이 아니다
+        return '원문 확인'
     out = []
     for m, r in (('감액개월1', '감액지급률1'), ('감액개월2', '감액지급률2')):
         if b.get(m) is not None and b.get(r) is not None:

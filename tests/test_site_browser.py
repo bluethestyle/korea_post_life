@@ -12,7 +12,7 @@ import pytest
 from postlife.site import build
 from postlife.site.model import BASIS_COLUMN, RATIO_BASIS, Data, load
 from test_site import (NEW_A, NEW_B, PRIV, ROOT, SF, SF_OLD, SNAPSHOT, benefit, condition, fake_tables, mapped,
-                       no_limit_tables, ratio_revision_tables, ratio_tables, rider, variant)
+                       no_amount_tables, no_limit_tables, ratio_revision_tables, ratio_tables, rider, variant)
 from test_site_weekly import PREV, pending_private, rep_tables
 
 sync_api = pytest.importorskip("playwright.sync_api")
@@ -187,6 +187,26 @@ def test_화면3_해설은_판정할_수_있는_담보가_있는_열과_견주�
     page.click(f'[data-key="s3-col-{PRIV}"]')
     found = heads(page)
     assert len(found) == 1 and "비교할 종형" in found[0], found
+
+
+@pytest.mark.parametrize("width", [1280, 380])
+def test_금액_없는_급부의_칸은_값_이름과_원문_확인을_적는다(site, width):
+    """지급기준구분이 차등지급인 급부(두 금액과 감액이 비어 있음): 금액 자리에 값 이름, 감액 자리에 원문 확인을 적는다."""
+    page = site(no_amount_tables(), width=width)
+    page.click("#tab-s3")
+    page.click(f'[data-key="s3-base-{NEW_B}"]')
+    if not page.locator(f'[data-key="c-STD_CA_DX_GENERAL-{SF}"]').count():
+        page.click(f'[data-key="s3-col-{SF}"]')
+    cell = page.inner_text(f'[data-key="c-STD_CA_DX_GENERAL-{SF}"]')
+    assert "차등지급" in cell and "금액 하나로 적을 수 없는 급부" in cell and "감액은 원문 확인" in cell, cell
+    assert "지급 형태가 달라 금액 비교 안 함" in cell and "자료 없음" not in cell and "감액 없음" not in cell, cell
+    assert "지급 형태가 달라 금액 비교 안 함 1" in page.locator(".sumrow", has_text="시험화재").inner_text()
+    page.click(f'[data-key="c-STD_CA_DX_GENERAL-{SF}"]')
+    page.wait_for_selector("dialog[open]")
+    body = page.inner_text("#detail-body")
+    assert "차등지급:" in body and "원문에서 확인" in body and "가입 한도 자료 없음" not in body, body
+    wide = page.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+    assert wide <= 1, wide
 
 
 # ---------- 화면 1 ----------
