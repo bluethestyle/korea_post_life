@@ -82,12 +82,3 @@
   .hp-row{grid-template-columns:34px minmax(0,1fr) 18px;padding:10px 12px;gap:4px 10px}
   .hp-sent{grid-column:1/-1;padding-left:44px;font-size:13.5px}
 }
-
-/* 관계 지도 탭(사각 면 없이 선과 윤곽 노드로 표시) */
-.gr-stage{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:22px;min-height:100%;padding:20px 12px;text-align:center}
-.gr-svg{width:100%;max-width:540px;height:auto;display:block}
-.gr-svg .gr-ln{stroke:var(--ink-1);stroke-opacity:.75;stroke-width:1.4}
-.gr-svg .gr-box{fill:transparent;stroke:var(--ink-0);stroke-width:1.4}
-.gr-svg .gr-tx{fill:var(--ink-0);font:600 14px/1 var(--f-ko)}
-.gr-svg .gr-sub{fill:var(--ink-1);font:600 13px/1 var(--f-num)}
-.gr-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}

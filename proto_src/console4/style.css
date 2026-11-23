@@ -408,9 +408,9 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 [data-scrub-row]{touch-action:pan-y}
 [data-nodata="1"]{cursor:default}
 [data-pick]:not([data-nodata="1"]):active,[data-aim]:not([data-nodata="1"]):active,.is-press-el{transform:translateY(1px)!important;transition-duration:80ms!important}
-.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn,.gr-node):not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim){
+.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn):not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim){
   opacity:.45;transition:opacity 220ms var(--ease-in),transform 120ms var(--ease-in)}
-.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn,.gr-node):is(.is-sel,:hover,:focus-visible,.is-aim){
+.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn):is(.is-sel,:hover,:focus-visible,.is-aim){
   opacity:1;transition:opacity 120ms var(--ease-in),transform 120ms var(--ease-in)}
 .board.has-sel .z-center .cvp-slot:not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim) :is(.cvp-bar,.cvp-lbl){
   opacity:.45;transition:opacity 180ms var(--ease-in)}

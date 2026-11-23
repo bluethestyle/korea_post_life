@@ -34,13 +34,14 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT_DEFAULT = ROOT / 'site/proto/console4.html'
 FONTS = ROOT / 'proto_src/fonts/fonts_v4.css'
 FONT_NOTICE = ROOT / 'proto_src/fonts/fonts_v4_notice.txt'
+GRAPH_DEFAULT = ROOT / 'proto_src/graph/graph.json'
 SRC = HERE                             # 원본과 자료를 읽는 폴더(--src 로 바꾼다)
 D_JSON = SRC / 'd.json'                # const D. scripts/export_app_data.py 가 만든다(src/postlife/site/lineup.py)
 NOTICE_SPAN = '<span id="notice-t">'   # tpl.html 의 맨 위 고지 자리. --banner 의 글은 이 span 바로 앞에 끼운다
 # --banner 때 고지 글에 붙이는 꼴: 끼운 글에 밀려 좁은 화면에서 넘치면 줄임표로 줄어든다(.nt 는 flex 라 고지 글에 직접 준다)
 NOTICE_FIT = ' style="min-width:0;overflow:hidden;text-overflow:ellipsis"'
 EXPORT_CMD = 'python scripts/export_app_data.py'
-TABS = [1, 2, 3, 4, 5]
+TABS = [1, 2, 3, 4, 5, 6]
 ALLOWED_DOT = ['교육·비교']           # 기획 확정본의 표식 문구 "내부 교육·비교 참고용(대외 배포 금지)"
 PLACEHOLDER = '이 탭은 다음 단계에서 채운다'
 
@@ -195,10 +196,18 @@ def main() -> int:
         warns.append(f'글꼴 파일이 없다({FONTS}). 기기 글꼴로 둔다. 마지막 build 전에 다시 본다')
     notice = html.escape(read(FONT_NOTICE).strip()) if FONT_NOTICE.exists() else 'SUIT, Saira Semi Condensed (SIL Open Font License 1.1)'
 
+    graph_file = (SRC / 'graph.json') if (SRC / 'graph.json').exists() else GRAPH_DEFAULT
+    if graph_file.exists():
+        graph_raw = read(graph_file)
+    else:
+        graph_raw = '{"snapshot_at":"","kinds":[],"ekinds":[],"nodes":[],"edges":[],"keys":[]}'
+        warns.append(f'관계망 자료 파일이 없다({graph_file}). 빈 자료로 둔다')
+
     js = core + '\n' + '\n'.join(f';(function () {{\n\'use strict\';\n/* {n} */\n{t}\n}})();' for n, t in tab_js) + '\nApp.boot();\n'
     css = style + '\n' + '\n'.join(f'/* {n} */\n{t}' for n, t in tab_css)
     sales_safe = sales.replace('</', '<\\/').replace('<!--', '<\\!--')
-    for key in ['/*__FONTS__*/', '/*__STYLE__*/', '/*__SALES__*/', '/*__D__*/', '/*__SCRIPTS__*/', '/*__FONT_NOTICE__*/']:
+    graph_safe = graph_raw.replace('</', '<\\/').replace('<!--', '<\\!--')
+    for key in ['/*__FONTS__*/', '/*__STYLE__*/', '/*__SALES__*/', '/*__GRAPH__*/', '/*__D__*/', '/*__SCRIPTS__*/', '/*__FONT_NOTICE__*/']:
         if tpl.count(key) != 1:
             errors.append(f'tpl.html 에 {key} 가 {tpl.count(key)}번 있다')
     if args.banner:
@@ -206,6 +215,7 @@ def main() -> int:
     page = (tpl.replace('/*__FONTS__*/', fonts.strip())
                .replace('/*__STYLE__*/', css)
                .replace('/*__SALES__*/', sales_safe)
+               .replace('/*__GRAPH__*/', graph_safe)
                .replace('/*__D__*/', d_line())
                .replace('/*__SCRIPTS__*/', js.replace('</script', '<\\/script'))
                .replace('/*__FONT_NOTICE__*/', notice))
@@ -236,7 +246,7 @@ def main() -> int:
         print(f'오류 {len(errors)}건. 쓰지 않았다.')
         return 1
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(page, encoding='utf-8')
+    out.write_text(page, encoding='utf-8', newline='\n')
     size = len(page.encode('utf-8'))
     print(f'썼다: {out} ({size:,}바이트, {size / 1024:.0f}KB). 글꼴 {"심음" if fonts else "없음"}, 탭 파일 {len(tab_js)}개, 탭 css {len(tab_css)}개')
     return 0

@@ -304,19 +304,18 @@
     mkMissingSegWhyTpl: '지금 조건의 칸이 이 지도에 없습니다. {why}',
 
     // 관계 지도(graph) 문구
-    grLeftHead: '노드 종류',
+    grLeftHead: '보는 틀',
     grKindOrg: '회사',
-    grKindVar: '상품 종형',
+    grKindVar: '종형',
     grKindStd: '표준담보',
     grKindPt: '영업 포인트',
-    grKindNews: '시장 소식',
-    grCenterDesc: '회사, 상품 종형, 특약, 급부, 표준담보의 연결 구조를 한 홉씩 펼쳐 탐색하는 관계 지도입니다.',
-    grOpenProtoBtn: '관계 지도 시안(graph2.html) 열기',
-    grEvTitle: '지식그래프 관계 지도',
-    grEvBodyTpl: '수집 회사 {orgs}곳, 종형 {vars}개, 표준담보 {stds}개, 영업 포인트 {pts}건, 시장 소식 {news}건이 노드와 엣지로 이어집니다.',
-    grLegendTitle: '관계 지도 안내',
-    grLgNode: '사각 노드: 회사, 종형, 특약, 급부, 표준담보 단위',
-    grLgEdge: '연결선: 판매, 포함, 매핑 해당, 상위 담보 관계',
+    grKindNews: '소식',
+    grCenterDesc: '소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야의 일곱 열을 한 홉씩 펼쳐 비교합니다.',
+    grEvTitle: '관계 지도',
+    grEvBodyTpl: '노드를 눌러 옆 열의 이웃을 펼치거나, 연결선을 눌러 검토상태와 급부역할 같은 관계 속성을 확인합니다.',
+    grLegendTitle: '관계 지도 도형과 선 안내',
+    grLgNode: '직각 칸: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽), 보장분야(넓은 띠), 소식(날짜). 우체국은 왼쪽 3px 변',
+    grLgEdge: '연결선: 판매와 포함(실선), 해당(승인 및 수정은 굵은 실선), 속함(가는 선), 관계(이중선), 일으킴(점선)',
   };
 
   function cp(key, vars) {

@@ -442,8 +442,9 @@ App.registerTab((function () {
     const tableV = tv ? tv.map((v, i) => (v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(peers[i]), '과'))}</span>${ui.verdict(v.kind, v.text, v.why)}</span>` : '')).join(' ') : '';
     const omit = sid ? (c.base['뺀포인트'] || []).filter(o => o['표준담보ID'] === sid) : [];
     const cau = cautionOf(c, p);
+    const grJump = sid ? `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>` : '';
     let body = sec('', `<p>${esc(p['문장'])}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}${cau ? `<p>${ui.verdict('diff')}</p><p class="note">${esc(cautionNote(cau))} ${esc(cau['문장'])}</p>` : ''}${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}</p>` : ''}
-      ${tableV ? `<p class="note" style="margin-top:8px">담보 비교표의 판정: </p><div class="cv-bds">${tableV}</div>` : ''}`);
+      ${tableV ? `<p class="note" style="margin-top:8px">담보 비교표의 판정: </p><div class="cv-bds">${tableV}</div>` : ''}${grJump}`);
     if (relOk) body += sec('관계도', `<div class="ins-rel"></div>${App.cover.relLegend()}`);
     body += sec('근거 문서와 쪽', `<ul class="cv-evl">${(p['근거'] || []).map(g => `<li><b>${esc(fullN(g['종형ID']))}</b> ${evChip(g)}${g['급부명'] ? `<br><span class="note">${esc(g['급부명'])}</span>` : ''}</li>`).join('')}</ul>${(p['근거'] || []).some(g => g['쪽'] == null) ? `<p class="note">${esc(txt.PAGE_WHY)}.</p>` : ''}`, true);
     body += sec('범위 머리말', `<p class="note">${esc(head(p))}</p><p class="note">견준 ${c.base['범위']['회사수']}개 회사 가운데 ${p['회사수']}곳에 대한 문장입니다.</p>`, true);

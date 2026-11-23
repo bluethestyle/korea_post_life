@@ -789,7 +789,8 @@ App.registerTab((function () {
     body += sec('구조', `<dl class="kv"><dt>갱신</dt><dd>${esc(f['갱신'] || '')}${f['갱신주기'] ? ` ${esc(f['갱신주기'])}년` : ''}</dd><dt>환급</dt><dd>${esc(f['환급'] || '')}</dd></dl>${structDiff ? `<p class="note">${esc(txt.josa(`기준 종형 ${vk(c.baseId)}의 구조(${bi['갱신']}, ${bi['환급']})`, '와'))} 다릅니다.</p>` : ''}`);
     let act = '';
     if (f['회사'] === 'EPOST' && vid !== c.baseId && BASE_IDS.includes(vid)) act = ui.btn(`기준 종형을 ${txt.josa(vk(vid), '으로')} 바꾸기`, { main: true, chev: true, attrs: `data-act="base-to" data-v="${esc(vid)}"` });
-    body += sec('근거 문서와 쪽', `<p class="note">${esc(full)}${startT}. 사업방법서: 쪽 번호 자료 없음.</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}`, true);
+    const grBtn = `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="var:${esc(vid)}"` })}</div>`;
+    body += sec('근거 문서와 쪽', `<p class="note">${esc(full)}${startT}. 사업방법서: 쪽 번호 자료 없음.</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}${grBtn}`, true);
     return { kicker: `${txt.orgShort(f['회사'])} 종형`, title: vk(vid), badges: [ui.scope('now'), `<span class="tag gt-k k-${k}">${esc(stT)}</span>`].concat(vid === c.baseId ? [ui.tag('기준')] : []).concat(f['관문전용'] ? [ui.tag('관문만 수집(담보 미수집)')] : []), body };
   }
 

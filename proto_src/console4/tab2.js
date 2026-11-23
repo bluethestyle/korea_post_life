@@ -359,7 +359,7 @@ App.registerTab((function () {
       ${anyFlag ? `<p style="margin-top:6px">${ui.flagText()}</p>` : ''}
       <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
         ${same ? `<span class="note">${esc(t('mkEvSameCond'))}</span>` : ui.btn(t('mkEvApplyBtn'), { main: true, sm: true, chev: true, attrs: `data-act="mk-apply" data-k="${esc(keyOf(ri, ci))}" title="${esc(willChangeTip)}"` })}
-        ${ui.btn(t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: 'data-go="graph"' })}
+        ${ui.btn(t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="var:${esc(cell['대표'] || c.baseId)}"` })}
       </div>`;
 
     let body = sec('', topHTML);
@@ -410,7 +410,7 @@ App.registerTab((function () {
     const stdObj = isStd ? S['표준담보'][d['열쇠']] : null;
     const stName = stdObj ? `${stdObj['이름']}(${[stdObj['대분류'], stdObj['급부유형']].filter(Boolean).join(', ')})` : d['담보'];
     let body = sec('', `<p><b>${esc(d['담보'])}</b>: <b>${esc(d['종류'])}</b> (${esc(d['항목'].join(', '))}).</p>
-      <div style="margin-top:8px">${ui.btn(t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: 'data-go="graph"' })}</div>`);
+      <div style="margin-top:8px">${ui.btn(t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="${esc(isStd ? 'std:' + d['열쇠'] : 'var:' + (d['종형ID'][0] || ''))}"` })}</div>`);
     body += det(t('mkEvRevVars'), `<ul class="evl">${d['종형ID'].map(v => `<li><b>${esc(vk(v))}</b><br><span class="note">${esc((txt.vinfo(v) || {})['전체이름'] || '')}</span></li>`).join('')}</ul>`, true);
     body += sec('', `<p class="note">${esc(isStd ? t('mkEvRevStdNoteTpl', { target: txt.josa(stName, '으로') }) : t('mkEvRevRawNote'))}</p>`, true);
     return { kicker: t('mkEvRevKicker'), title: d['담보'], badges: [ui.scope('all'), ui.tag(d['종류'])], body };
