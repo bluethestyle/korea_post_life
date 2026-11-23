@@ -26,45 +26,48 @@
 /* ---------- 1. 토큰 ---------- */
 :root{
   color-scheme: light;
-  /* 바탕 */
-  --fog-0:#C9CDD2; --fog-1:#E9E9E7;
-  --cloud-a:rgba(255,255,255,.34); --cloud-b:rgba(255,255,255,.22);
-  --cloud-d:rgba(140,148,158,.16); --cloud-h:rgba(255,255,255,.55);  /* 위쪽의 짙은 구름 자국, 아래 지평선의 밝음 */
-  /* 면: 흰 면은 입력 칸과 응대 카드 미리 보기에만(화면 넓이 10% 안쪽) */
+  /* 바탕: 구름 낀 하늘에서 지평선 안개로 이어지는 명도 층(흰 면 240 한도 아래로 유지) */
+  --fog-0:#B7BFC8; --fog-1:#DBE0E5;
+  --cloud-a:rgba(238,241,244,.38); --cloud-b:rgba(232,236,240,.26);
+  --cloud-d:rgba(68,80,94,.20); --cloud-h:rgba(235,238,242,.62);  /* 위쪽의 짙은 구름 자국, 아래 지평선의 밝음 */
+  --geo-hi:#EEF1F4; --geo-lo:#C4CCD5; --geo-dark:#515E6D;
+  --geo-edge:rgba(255,255,255,.52); --geo-grid:rgba(21,29,36,.11);
+  /* 면: 흰 면은 입력 칸과 응대 카드 미리 보기에만(화면 넓이 10% 안쪽). 패널은 뒤 기하 층이 은은히 비치는 반투명 */
   --white:rgba(247,247,245,.92);
-  --panel:rgba(226,229,233,.82);          /* 목록, 패널 */
-  --panel-t:rgba(226,229,233,.90);        /* 표 */
-  --panel-hi:rgba(236,238,240,.86);       /* 한 기둥 안 첫째 층(머리) */
-  --panel-lo:rgba(210,214,219,.88);       /* 한 기둥 안 셋째 층(근거, 뺀 것) */
-  --slate:rgba(58,66,74,.88);             /* 강조 패널, 고른 탭 */
+  --panel:rgba(228,232,237,.76);          /* 목록, 패널 */
+  --panel-t:rgba(230,234,238,.86);        /* 표 */
+  --panel-hi:rgba(237,240,243,.82);       /* 한 기둥 안 첫째 층(머리) */
+  --panel-lo:rgba(210,215,222,.82);       /* 한 기둥 안 셋째 층(근거, 뺀 것) */
+  --panel-edge:rgba(255,255,255,.46);
+  --slate:rgba(52,60,68,.86);             /* 강조 패널, 고른 탭 */
   --slate-solid:#424A52;
   --pillar:rgba(255,255,255,.28);         /* 제목과 큰 숫자만 얹는 옅은 기둥 */
-  --scrim:rgba(204,208,213,.96);          /* 고정된 위 띠의 바탕(안개와 같은 색). 아래로 지나가는 내용이 비치지 않게 짙게 */
+  --scrim:rgba(194,201,209,.92);          /* 고정된 위 띠의 바탕. 아래로 지나가는 내용이 비치지 않게 */
   /* 글자: 본문 7:1 이상, 가장 흐린 글자도 4.5:1 이상 */
-  --ink-0:#151D24; --ink-1:#2D333A; --ink-2:#4A535D; --ink-3:#59636E;
+  --ink-0:#151D24; --ink-1:#2A3138; --ink-2:#3E4751; --ink-3:#59636E;
   --on-slate:#FFFFFF; --on-slate-2:rgba(255,255,255,.88);
-  --line:rgba(21,29,36,.09); --line-2:rgba(21,29,36,.18); --hover:rgba(21,29,36,.05);
+  --line:rgba(21,29,36,.10); --line-2:rgba(21,29,36,.19); --hover:rgba(21,29,36,.05);
   --top-line:#FFFFFF;
   /* 빨강: 고른 것, 작은 눈금, 원문 확인 표식에만. 화면 넓이 2.5% 이하 */
   --red:#A30D0D; --red-hi:#B01212; --red-deep:#860000; --red-ink:#A30D0D;
-  /* 금색: 우체국이 나은 것과 우리 간편만 열림 */
-  --gold:#CDBE7E; --gold-line:#8A7D45; --gold-soft:rgba(205,190,126,.22); --gold-edge:#7A6D38; --gold-map:#D8CCA0;
+  /* 금색: 우체국이 나은 것과 우체국에 있는 것, 우리 간편이 열리는 칸 */
+  --gold:#CDBE7E; --gold-line:#8A7D45; --gold-soft:rgba(205,190,126,.24); --gold-open:rgba(205,190,126,.44); --gold-edge:#7A6D38; --gold-map:#D8CCA0;
   /* 판정 */
   --worse:#1E242B; --on-worse:#FFFFFF; --worse-edge:#FFFFFF;
-  /* 모름 글자: 합의안의 #59636E 는 셋째 층(--panel-lo) 위에서 4.27 이라 4.5 를 넘는 #4A535D 로 둔다 */
-  --hatch:rgba(74,83,93,.30); --dash:#9AA2AA; --unknown-edge:#AEB5BC; --unknown-ink:#4A535D;
+  /* 모름 글자: 셋째 층(--panel-lo) 위에서도 4.5 를 넘는 #3E4751 */
+  --hatch:rgba(74,83,93,.30); --dash:#9AA2AA; --unknown-edge:#AEB5BC; --unknown-ink:#3E4751;
   /* 고른 행의 몸통(머리 줄 아래)에 까는 옅은 면. 왼쪽 3px 빨강 선과 함께 쓴다 */
   --sel-tint:rgba(255,255,255,.34); --sel-fade:#424A52;
   /* 고객군 지도의 다섯 라벨(관문 상태이지 우열이 아니다) */
   --m-only:#D8CCA0; --m-only-fg:#151D24;
-  --m-both:#F2F2F1; --m-both-fg:#151D24;
-  --m-ours:#AEB4BA; --m-ours-fg:#151D24;
+  --m-both:#ECEEEF; --m-both-fg:#151D24;
+  --m-ours:#AEB5BD; --m-ours-fg:#151D24;
   --m-all:#59636E;  --m-all-fg:#FFFFFF;
-  --m-none:transparent; --m-none-fg:#2D333A;
-  /* 안내선 */
-  --guide:rgba(255,255,255,.35); --guide-lo:rgba(255,255,255,.14); --tick:#FFFFFF;
+  --m-none:transparent; --m-none-fg:#2A3138;
+  /* 안내선과 바닥 격자 */
+  --guide:rgba(255,255,255,.50); --guide-lo:rgba(255,255,255,.22); --tick:#FFFFFF;
   --dot-a:rgba(255,255,255,.62); --dot-b:rgba(255,255,255,.24);
-  --floor:#FFFFFF;
+  --floor:rgba(255,255,255,.88); --floor-ink:rgba(21,29,36,.22); --floor-block:rgba(66,78,92,.22);
   /* 글꼴: PLNum 은 숫자와 영문(Saira Semi Condensed), PLKo 는 한글(SUIT). 숫자가 앞서므로 섞인 글에서 숫자만 Saira 로 그려진다 */
   --f-body:"PLNum","PLKo","SUIT","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   --f-ko:"PLKo","SUIT","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
@@ -77,20 +80,23 @@
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --fog-0:#0E1318; --fog-1:#1A2128;
-  --cloud-a:rgba(255,255,255,.035); --cloud-b:rgba(255,255,255,.025);
-  --cloud-d:rgba(0,0,0,.22); --cloud-h:rgba(120,140,160,.10);
+  --fog-0:#0B1016; --fog-1:#18212B;
+  --cloud-a:rgba(160,185,210,.055); --cloud-b:rgba(150,175,200,.038);
+  --cloud-d:rgba(0,0,0,.32); --cloud-h:rgba(120,148,176,.14);
+  --geo-hi:#6E8399; --geo-lo:#222E3B; --geo-dark:#05080C;
+  --geo-edge:rgba(180,202,224,.18); --geo-grid:rgba(180,202,224,.07);
   --white:rgba(8,12,16,.72);
-  --panel:rgba(26,33,40,.88); --panel-t:rgba(26,33,40,.92);
-  --panel-hi:rgba(38,46,54,.90); --panel-lo:rgba(16,21,26,.90);
-  --slate:rgba(66,76,86,.92); --slate-solid:#424C56;
-  --pillar:rgba(255,255,255,.035);
-  --scrim:rgba(14,19,24,.96);
+  --panel:rgba(22,29,37,.80); --panel-t:rgba(22,29,37,.88);
+  --panel-hi:rgba(34,43,52,.84); --panel-lo:rgba(14,19,25,.86);
+  --panel-edge:rgba(255,255,255,.07);
+  --slate:rgba(62,72,82,.90); --slate-solid:#424C56;
+  --pillar:rgba(255,255,255,.04);
+  --scrim:rgba(12,17,22,.93);
   --ink-0:#E8EAEB; --ink-1:#C3C8CD; --ink-2:#9AA2AA; --ink-3:#9AA2AA;
-  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.16); --hover:rgba(255,255,255,.05);
+  --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.17); --hover:rgba(255,255,255,.05);
   --top-line:rgba(255,255,255,.92);
   --red:#CC2222; --red-hi:#CC2222; --red-deep:#A31616; --red-ink:#FF6B66;
-  --gold:#CDC081; --gold-line:#9D905A; --gold-soft:rgba(205,192,129,.16); --gold-edge:#B3A566; --gold-map:#B7AA72;
+  --gold:#CDC081; --gold-line:#9D905A; --gold-soft:rgba(205,192,129,.18); --gold-open:rgba(205,192,129,.30); --gold-edge:#B3A566; --gold-map:#B7AA72;
   --worse:#D5D9DC; --on-worse:#151D24; --worse-edge:#151D24;
   --hatch:rgba(154,162,170,.30); --dash:#7B848D; --unknown-edge:#7B848D; --unknown-ink:#AEB5BC;
   --sel-tint:rgba(255,255,255,.05); --sel-fade:#424C56;
@@ -99,9 +105,9 @@
   --m-ours:#2E363E; --m-ours-fg:#E8EAEB;
   --m-all:#171D23;  --m-all-fg:#C3C8CD;
   --m-none:transparent; --m-none-fg:#C3C8CD;
-  --guide:rgba(255,255,255,.14); --guide-lo:rgba(255,255,255,.06); --tick:rgba(255,255,255,.7);
-  --dot-a:rgba(255,255,255,.16); --dot-b:rgba(255,255,255,.06);
-  --floor:#9FB0C0;
+  --guide:rgba(255,255,255,.18); --guide-lo:rgba(255,255,255,.07); --tick:rgba(255,255,255,.76);
+  --dot-a:rgba(255,255,255,.18); --dot-b:rgba(255,255,255,.07);
+  --floor:rgba(165,188,210,.46); --floor-ink:rgba(0,0,0,.55); --floor-block:rgba(140,165,190,.12);
 }
 @media (max-width:1599px){:root{--pad:32px;--ev-w:clamp(340px,30vw,424px)}}
 @media (max-width:999px){:root{--pad:16px;--gap:16px;--head-h:64px}}
@@ -127,14 +133,15 @@ button{cursor:pointer}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 
 .bg{position:fixed;inset:0;pointer-events:none;z-index:0}
-/* 층 2: 원근 격자선 바닥. 화면 아래 20%에만 */
-.floor{position:absolute;left:0;right:0;bottom:0;width:100%;height:20vh;display:block}
-.floor g{stroke:var(--floor)}
+/* 층 2a: 기울어진 반투명 기둥과 큰 사선 면 */
+.bg-geo{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* 층 2b: 원근 격자선 바닥. 화면 아래 22%에 깔리고 먼 쪽이 흐려진다 */
+.floor{position:absolute;left:0;right:0;bottom:0;width:100%;height:22vh;display:block}
 /* 층 3: 세로 안내선 묶음, 수평 기준선, 눈금 */
 .guides{position:absolute;inset:0}
 .gl{position:absolute;top:0;bottom:0;width:1px;background:var(--guide-lo)}
-.gl.c{background:var(--guide)}
-.hl{position:absolute;left:0;right:0;height:1px;background:var(--guide)}
+.gl.c{background:var(--guide);box-shadow:1px 0 0 rgba(21,29,36,.06)}
+.hl{position:absolute;left:0;right:0;height:1px;background:var(--guide);box-shadow:0 1px 0 rgba(21,29,36,.06)}
 .tk{position:absolute;width:14px;height:3px;background:var(--tick);transform:translate(-7px,-1px)}
 .tk.red{background:var(--red);transition:left var(--t-ev) var(--ease)}
 /* 층 3: 점 무늬 밭(제목 뒤) */
@@ -190,7 +197,8 @@ button{cursor:pointer}
 @media (max-width:999px){ .work{display:block} }
 
 /* 조건 줄: "라벨 / 값"(acs_34)을 세로로 쌓아 가로로 늘어놓는다. 입력 칸만 흰 면 */
-.cond{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--panel);position:relative}
+.cond{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--panel);position:relative;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px var(--panel-edge)}
 .cond::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--top-line)}
 .cg{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;padding:9px 20px 8px}
 .cg + .cg{border-left:1px solid var(--line-2)}
@@ -280,7 +288,8 @@ button{cursor:pointer}
 .ev{position:fixed;right:var(--pad);top:var(--ev-top,calc(var(--head-h) + 16px));width:var(--ev-w);
   max-height:calc(100vh - var(--ev-top,calc(var(--head-h) + 16px)) - 16px);min-width:0;z-index:5}
 .ev-slot{min-height:1px}
-.ev-in{position:relative;display:flex;flex-direction:column;max-height:inherit;background:var(--panel)}
+.ev-in{position:relative;display:flex;flex-direction:column;max-height:inherit;background:var(--panel);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px var(--panel-edge)}
 .ev-in::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--top-line);z-index:2}
 .ev-top{position:relative;flex:none;padding:20px 20px 16px;background:var(--panel-hi)}
 .ev-krow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px}
@@ -341,11 +350,12 @@ button{cursor:pointer}
 [id]{scroll-margin-top:calc(var(--head-h) + 16px)}
 
 /* ---------- 6. 패널 ---------- */
-.panel{position:relative;background:var(--panel)}
+.panel{position:relative;background:var(--panel);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  box-shadow:inset 0 0 0 1px var(--panel-edge)}
 .panel::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--top-line);z-index:1}
 .panel.flat::before{display:none}
 .panel.tbl-wrap{background:var(--panel-t)}
-.panel.slate{background:var(--slate);color:var(--on-slate)}
+.panel.slate{background:var(--slate);color:var(--on-slate);box-shadow:none}
 .panel.slate::before{display:none}
 .panel-h{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;padding:18px 24px 12px}
 .panel-h .k{display:block;font:600 13px/1.3 var(--f-ko);color:var(--ink-2)}
@@ -690,129 +700,273 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 /* tab1.css */
 /* 탭 1 브리핑 전용. 공통 부품은 style.css. 선택자는 #view-brief 아래로 가둔다 */
 
-/* 지표 셋: 진행 기록 화면(acs_17)의 탭 줄. 고른 지표의 슬레이트 면이 아래 풀이 패널과 틈 없이 이어진다 */
-#view-brief .vhead{align-items:stretch;min-height:92px}
-#view-brief .vhead .ttl{align-self:flex-end;padding:4px 0 10px}
-#view-brief .vhead .ttl-t{font-size:28px}
+/* ---------- 1. 큰 제목(48px 이상)과 머리 제어 줄 ---------- */
+#view-brief .vhead{align-items:flex-end;justify-content:space-between;min-height:86px;gap:16px 24px}
+#view-brief .vhead .ttl{width:auto;min-width:200px;padding:4px 0 10px}
+#view-brief .vhead .ttl-k{color:var(--ink-1)}
+#view-brief .vhead .ttl-t{font-size:50px;line-height:1.24;letter-spacing:.04em}
 #view-brief .vhead .ttl-i{margin-top:8px}
-#view-brief .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));height:100%;min-height:92px;align-items:stretch}
-#view-brief .kpis.pillar::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--top-line);opacity:.85}
-#view-brief .kpi{position:relative;display:flex;align-items:center;gap:12px;padding:10px 16px 10px;border:0;background:transparent;text-align:left;color:var(--ink-0);min-width:0}
-#view-brief .kpi:hover{background:rgba(255,255,255,.22)}
-:root[data-theme="dark"] #view-brief .kpi:hover{background:rgba(255,255,255,.04)}
-#view-brief .kpi.is-on{background:var(--slate);color:var(--on-slate)}
-#view-brief .kpi.is-on:hover{background:var(--slate)}
-#view-brief .kpi-x{display:flex;flex-direction:column;gap:2px;min-width:0}
-#view-brief .kpi-n{display:flex;align-items:baseline;gap:4px}
-#view-brief .kpi .big{font-size:38px}
-#view-brief .kpi-u{font:600 14px/1 var(--f-ko);color:var(--ink-1)}
-#view-brief .kpi.is-on .kpi-u{color:var(--on-slate-2)}
-#view-brief .kpi-l{font:600 15px/1.25 var(--f-ko);color:var(--ink-0);word-break:keep-all}
-#view-brief .kpi.is-on .kpi-l{color:#fff}
-#view-brief .kpi-s{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;margin-top:1px}
-#view-brief .kpi-s .sub{font:400 13px/1.3 var(--f-body);color:var(--ink-1)}
-#view-brief .kpi.is-on .sub{color:var(--on-slate-2)}
-#view-brief .kpi.is-on .scb{border-color:rgba(255,255,255,.7);color:#fff}
-#view-brief .kpi.is-on .scb-base{box-shadow:inset 3px 0 0 #fff}
-#view-brief .kpi .ring{width:58px;height:58px}
-/* 맨 앞 고리의 바깥 사선 자리 */
-#view-brief .kpi .ring.lead{margin:0 2px}
+#view-brief .bhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 14px;padding-bottom:10px}
+#view-brief .bhead-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
+#view-brief .bhead-meta b{font-weight:600;color:var(--ink-0)}
+#view-brief .bhead-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#view-brief .btn.is-mode-on{background:var(--slate);color:var(--on-slate);box-shadow:none}
+#view-brief .btn.is-mode-on:hover{background:var(--red);color:#fff}
 
-/* 지표 풀이: 슬레이트 강조 패널. 한 화면(1920x1080)에 다섯 줄까지 들도록 낮게 둔다 */
-#view-brief .kpi-detail{padding:10px 22px 10px}
-#view-brief .kpi-detail.kd-in .kd{animation:kdIn var(--t-ev) var(--ease)}
-@keyframes kdIn{from{opacity:.25;transform:translateY(6px)}to{opacity:1;transform:none}}
-#view-brief .kd{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) auto;gap:8px 28px;align-items:end}
-#view-brief .kd h3{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 4px;font:600 16px/1.25 var(--f-ko);color:#fff}
-#view-brief .kd .eq{color:#fff;font-size:14px}
-#view-brief .kd .eq .n{font-size:16px}
-#view-brief .kd .eq .op,#view-brief .kd .eq .nb{color:#fff}
-#view-brief .kd .note{margin:4px 0 0;color:rgba(255,255,255,.88);line-height:1.5}
-#view-brief .kd .nadd{margin-top:4px;color:rgba(255,255,255,.88)}
-#view-brief .kd .cq{width:14px;height:14px}
-#view-brief .kd .cqs{gap:3px}
-#view-brief .slate .cq.m-all{outline:1px solid rgba(255,255,255,.6);outline-offset:-1px}
-#view-brief .slate .cq.m-ours{outline:1px solid rgba(255,255,255,.25);outline-offset:-1px}
-#view-brief .kd-b{display:flex;flex-direction:column;gap:8px;min-width:0}
-#view-brief .kd-lg{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;list-style:none;font:400 13px/1.4 var(--f-body);color:rgba(255,255,255,.88)}
-#view-brief .kd-lg li{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-#view-brief .kd-lg li b{font-weight:600;color:#fff}
-#view-brief .kd-lg .cq{width:12px;height:12px}
-#view-brief .kd-go{display:flex;justify-content:flex-end;align-self:end}
-#view-brief .kd-go .btn{background:#fff;color:#151D24}
-#view-brief .kd-go .btn:hover{background:var(--red);color:#fff}
-#view-brief .kd-mj{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 20px;margin:0;padding:0;list-style:none}
-#view-brief .kd-mj li{display:grid;grid-template-columns:84px minmax(0,1fr) 44px;align-items:center;gap:10px;font:400 13px/1.3 var(--f-body);color:rgba(255,255,255,.88)}
-#view-brief .kd-mj .cq{width:12px;height:12px}
-#view-brief .kd-mj .num{text-align:right;color:#fff}
-/* 치료 여정 단계별 막대 묶음(유니티의 작은 막대) */
-#view-brief .jg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:end}
-#view-brief .jc{display:flex;flex-direction:column;align-items:center;gap:4px}
-#view-brief .jb{display:flex;align-items:flex-end;gap:4px;height:40px}
-#view-brief .jb .b{width:10px;display:block;transform-origin:bottom;transition:transform var(--t-bar) var(--ease)}
-#view-brief .b0{background:#fff}
-#view-brief .b1{background:rgba(255,255,255,.5)}
-#view-brief .b2{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
-#view-brief .kd-lg .b{display:inline-block;width:10px;height:12px}
-#view-brief .jn{display:flex;gap:4px;font:600 12px/1 var(--f-num);color:rgba(255,255,255,.88)}
-#view-brief .jn span{width:10px;text-align:center}
-#view-brief .js{font:600 13px/1.2 var(--f-ko);color:#fff}
+/* ---------- 2. 통합 도형 무대(다섯 메달 + 24칸 고객군 격자 + 치료 여정 5단계 + 공통 쌍) ---------- */
+#view-brief .bstage{padding:0;overflow:visible}
+#view-brief .brief-off{margin:0;padding:8px 20px;font:400 13px/1.5 var(--f-body);color:var(--ink-0);
+  background:var(--panel-lo);border-bottom:1px solid var(--line);box-shadow:inset 3px 0 0 var(--ink-1)}
 
-/* 분석 요약 다섯 줄 */
-#view-brief .brows{margin-top:10px}
-#view-brief .brows .panel-h{padding-top:10px;padding-bottom:6px}
+/* 상단: 다섯 큰 메달 격자 */
+#view-brief .bmedals{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line-2);
+  background:linear-gradient(180deg,rgba(212,218,226,.38) 0%,transparent 100%)}
+:root[data-theme="dark"] #view-brief .bmedals{background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%)}
+#view-brief .bmedal{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:14px 12px 16px;min-width:0;border-left:1px solid var(--line)}
+#view-brief .bmedal:first-child{border-left:0}
+#view-brief .bmedal:hover{background:var(--hover)}
+#view-brief .bmedal > *:not(.lrow-hit){position:relative;z-index:2;pointer-events:none}
+#view-brief .bmedal > .flag{position:absolute;left:0;top:0;z-index:4;pointer-events:auto}
+#view-brief .bmedal.is-sel{background:rgba(206,213,222,.42);box-shadow:inset 0 3px 0 var(--ink-0)}
+:root[data-theme="dark"] #view-brief .bmedal.is-sel{background:rgba(255,255,255,.05);box-shadow:inset 0 3px 0 #fff}
+
+#view-brief .bm-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
+#view-brief .bm-no{font:600 16px/1 var(--f-num);color:var(--ink-0);letter-spacing:.02em}
+#view-brief .bm-no .num-0{color:var(--ink-2)}
+#view-brief .bm-top .scb{height:22px;padding:0 6px;font-size:13px;gap:4px}
+
+/* 지름 108px(최소 96px 이상) 이중 고리 메달 */
+#view-brief .bm-emblem{position:relative;width:108px;height:108px;display:grid;place-items:center;margin:2px 0 10px;flex:none}
+#view-brief .bm-svg{width:100%;height:100%;display:block;overflow:visible}
+#view-brief .bm-svg .bm-outer{stroke:var(--ink-2);stroke-opacity:.32}
+#view-brief .bm-svg .bm-card{stroke:var(--ink-2);stroke-opacity:.55}
+#view-brief .bm-svg .trk{stroke:var(--ink-2);stroke-opacity:.22}
+#view-brief .bm-svg .tks line{stroke:var(--ink-2);stroke-opacity:.58}
+#view-brief .bm-svg .arc{stroke:var(--ink-0);transition:stroke-dasharray 520ms var(--ease)}
+#view-brief .bm-svg .arc.gold{stroke:var(--gold-line)}
+#view-brief .bm-svg .bm-inner{stroke:var(--ink-2);stroke-opacity:.36}
+#view-brief .bm-svg .bm-inner.gold{stroke:var(--gold);stroke-opacity:.95}
+#view-brief .bm-svg .bm-disc{fill:rgba(222,227,233,.52);stroke:var(--line-2);stroke-width:1;
+  transform-box:fill-box;transform-origin:center;transition:fill 180ms var(--ease),transform 220ms var(--ease)}
+:root[data-theme="dark"] #view-brief .bm-svg .bm-disc{fill:rgba(255,255,255,.04)}
+#view-brief .bm-svg .bm-diag{stroke:var(--ink-2);stroke-opacity:.30;transition:stroke 180ms var(--ease),stroke-opacity 180ms var(--ease)}
+
+/* 고른 메달 하나만 빨강 원과 네 귀 사선 초점 */
+#view-brief .bmedal.is-sel .bm-svg .bm-disc{fill:var(--red);stroke:#fff;stroke-width:1.6}
+#view-brief .bmedal.is-sel .bm-svg .bm-diag{stroke:var(--ink-0);stroke-opacity:.95}
+:root[data-theme="dark"] #view-brief .bmedal.is-sel .bm-svg .bm-diag{stroke:#fff;stroke-opacity:.95}
+#view-brief .bmedal.is-sel .bm-svg .bm-outer{stroke:var(--ink-0);stroke-opacity:.65}
+
+#view-brief .bm-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding-top:2px}
+#view-brief .bm-n{font:600 32px/1 var(--f-num);color:var(--ink-0);letter-spacing:-.01em;white-space:nowrap}
+#view-brief .bm-n.frac{font-size:26px}
+#view-brief .bm-d{font-size:.62em;font-weight:400;color:var(--ink-2)}
+#view-brief .bm-u{font:600 13px/1.1 var(--f-ko);color:var(--ink-1)}
+#view-brief .bmedal.is-sel .bm-n,
+#view-brief .bmedal.is-sel .bm-d,
+#view-brief .bmedal.is-sel .bm-u{color:#fff}
+
+#view-brief .bm-foot{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;width:100%}
+#view-brief .bm-name{font:600 16px/1.25 var(--f-ko);color:var(--ink-0);word-break:keep-all}
+#view-brief .bm-cap{font:400 13px/1.35 var(--f-body);color:var(--ink-1);word-break:keep-all}
+#view-brief .bm-chg{margin-top:2px}
+
+/* ---------- 3. 하단 통합 기하 격자(고객군 24칸 지도 + 치료 여정 5단계 + 공통 쌍) ---------- */
+#view-brief .bdeck{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);align-items:stretch}
+#view-brief .bdeck-side{display:flex;flex-direction:column;border-left:1px solid var(--line-2)}
+#view-brief .bsub{position:relative;padding:14px 20px 16px;min-width:0}
+#view-brief .bsub + .bsub{border-top:1px solid var(--line-2)}
+#view-brief .bsub.is-on{background:rgba(255,255,255,.22)}
+:root[data-theme="dark"] #view-brief .bsub.is-on{background:rgba(255,255,255,.03)}
+
+#view-brief .bsub-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;margin-bottom:10px}
+#view-brief .bsub-t{display:inline-flex;align-items:baseline;gap:10px;padding:2px 6px 2px 0;border:0;background:transparent;
+  color:var(--ink-0);text-align:left;min-width:0}
+#view-brief .bsub-t:hover .bsub-h{text-decoration:underline;text-underline-offset:3px}
+#view-brief .bsub-t.is-on{box-shadow:inset 0 -2px 0 var(--ink-0)}
+#view-brief .bsub-h{font:600 16px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
+#view-brief .bsub-big{font:600 28px/1 var(--f-num);color:var(--ink-0);white-space:nowrap}
+#view-brief .bsub-big small{font-size:.62em;font-weight:400;color:var(--ink-2)}
+#view-brief .bsub-big em{font:600 13px/1 var(--f-ko);font-style:normal;color:var(--ink-1);margin-left:4px}
+#view-brief .bsub-r{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#view-brief .bsub-r .scb{height:22px;padding:0 6px;font-size:13px}
+
+/* 고객군 24칸 지도 격자: 4행 x 6열 = 24칸, 모든 칸 20px 이상 */
+#view-brief .bmap-wrap{display:flex;flex-direction:column;gap:4px}
+#view-brief .bmap-cols,
+#view-brief .bmap-row{display:grid;grid-template-columns:102px repeat(6,minmax(24px,1fr));gap:4px;align-items:stretch}
+#view-brief .bmap-ch{font:600 13px/1.2 var(--f-body);color:var(--ink-1);text-align:center;padding:0 2px 3px;white-space:nowrap}
+#view-brief .bmap-ch .ch-sm{display:none}
+#view-brief .bmap-rh{display:flex;flex-wrap:wrap;align-items:center;gap:0 4px;font:600 13px/1.25 var(--f-ko);color:var(--ink-0);padding-right:4px;white-space:nowrap}
+#view-brief .bmap-rh .nw{white-space:nowrap}
+#view-brief .bmap-row.surg-start{margin-top:3px;padding-top:4px;border-top:1px dashed var(--line-2)}
+
+#view-brief .bm-cell{position:relative;min-height:44px;min-width:24px;padding:4px 4px;border:0;background:transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--ink-0)}
+#view-brief .bm-cbg{position:absolute;inset:0;z-index:0;transition:transform 260ms var(--ease)}
+#view-brief .bm-cell > *:not(.bm-cbg){position:relative;z-index:1}
+#view-brief .bm-cell.is-only .bm-cbg{background:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold-line)}
+#view-brief .bm-cell.is-only{color:#151D24}
+/* 우리 간편이 열리는 칸(함께 열림): 금빛 면과 윗선 */
+#view-brief .bm-cell.is-open .bm-cbg{background:var(--gold-open);box-shadow:inset 0 2.5px 0 var(--gold-line),inset 0 0 0 1px var(--gold-edge)}
+#view-brief .bm-cell.is-ours .bm-cbg{background:var(--m-ours);box-shadow:inset 0 0 0 1px var(--line-2)}
+#view-brief .bm-cell.is-ours{color:var(--m-ours-fg)}
+#view-brief .bm-cell.is-all .bm-cbg{background:var(--m-all)}
+#view-brief .bm-cell.is-all{color:var(--m-all-fg)}
+#view-brief .bm-cell.is-none .bm-cbg{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 6px);outline:1px dashed var(--dash);outline-offset:-1px}
+#view-brief .bm-cell:hover .bm-cbg{filter:brightness(.95)}
+#view-brief .bm-cell.is-now .bm-cbg{outline:2px solid var(--ink-0);outline-offset:-2px;box-shadow:inset 0 0 0 3.5px #fff}
+:root[data-theme="dark"] #view-brief .bm-cell.is-now .bm-cbg{outline-color:#fff;box-shadow:inset 0 0 0 3.5px #151D24}
+#view-brief .bm-cell.is-focus .bm-cbg{outline:2px solid var(--ink-0);outline-offset:1px}
+
+#view-brief .bm-cs{display:inline-flex;align-items:center;gap:4px;font:600 13px/1 var(--f-ko);white-space:nowrap}
+#view-brief .bm-cs svg{width:10px;height:10px;flex:none}
+#view-brief .bm-ctag{display:flex;align-items:center;gap:3px}
+#view-brief .bm-cgo{padding:0 3px;border:1px dashed currentColor;font:600 13px/1.15 var(--f-ko);white-space:nowrap}
+#view-brief .bm-cnow{padding:0 4px;background:var(--ink-0);color:#fff;font:600 13px/1.15 var(--f-ko);white-space:nowrap}
+:root[data-theme="dark"] #view-brief .bm-cnow{background:#E8EAEB;color:#151D24}
+
+#view-brief .bmap-lg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:10px;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
+#view-brief .bmap-lg .lg-i{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+#view-brief .bmap-lg .lg-i b{font-weight:600;color:var(--ink-0)}
+#view-brief .bmap-lg .msw{width:12px;height:12px;display:inline-block;flex:none}
+#view-brief .bmap-lg .msw.only{background:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold-line)}
+#view-brief .bmap-lg .msw.open{background:var(--gold-open);box-shadow:inset 0 2px 0 var(--gold-line),inset 0 0 0 1px var(--gold-edge)}
+#view-brief .bmap-lg .msw.ours{background:var(--m-ours);box-shadow:inset 0 0 0 1px var(--line-2)}
+#view-brief .bmap-lg .msw.go{border:1px dashed var(--ink-1)}
+#view-brief .bmap-lg .msw.now{border:2px solid var(--ink-0)}
+
+/* 치료 여정 다섯 단계 타일: 우체국에 담보가 있는 단계는 금색, 없는 단계는 빗금 */
+#view-brief .bsteps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+#view-brief .bstep{position:relative;min-height:88px;padding:8px 6px 8px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center}
+#view-brief .bs-bg{position:absolute;inset:0;z-index:0}
+#view-brief .bstep > *:not(.bs-bg){position:relative;z-index:1}
+#view-brief .bstep.is-gold .bs-bg{background:var(--gold);box-shadow:inset 0 3px 0 var(--gold-line),inset 0 0 0 1px var(--gold-edge)}
+#view-brief .bstep.is-gold{color:#151D24}
+#view-brief .bstep.is-empty .bs-bg{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 6px);outline:1px dashed var(--dash);outline-offset:-1px}
+#view-brief .bs-s{font:600 13px/1.2 var(--f-ko)}
+#view-brief .bstep.is-empty .bs-s{color:var(--ink-1)}
+#view-brief .bs-n{font:600 28px/1 var(--f-num)}
+#view-brief .bstep.is-empty .bs-n{color:var(--ink-2)}
+#view-brief .bs-bars{display:flex;align-items:flex-end;gap:3px;height:18px}
+#view-brief .bs-bars i{width:7px;display:block}
+#view-brief .bstep.is-gold .bs-bars .c0{background:#151D24}
+#view-brief .bstep.is-gold .bs-bars .c1{background:rgba(21,29,36,.52)}
+#view-brief .bstep.is-gold .bs-bars .c2{background:transparent;box-shadow:inset 0 0 0 1.3px #151D24}
+#view-brief .bstep.is-empty .bs-bars .c0{background:var(--ink-1)}
+#view-brief .bstep.is-empty .bs-bars .c1{background:var(--ink-2)}
+#view-brief .bstep.is-empty .bs-bars .c2{box-shadow:inset 0 0 0 1.2px var(--ink-2)}
+#view-brief .bstep-lg{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin-top:8px;font:400 13px/1.3 var(--f-body);color:var(--ink-1)}
+#view-brief .bstep-lg .orgs{display:inline-flex;align-items:center;gap:10px}
+#view-brief .bstep-lg .oi{display:inline-flex;align-items:center;gap:4px}
+#view-brief .bstep-lg .ob{width:9px;height:9px;display:inline-block}
+#view-brief .bstep-lg .ob.c0{background:var(--ink-0)}
+#view-brief .bstep-lg .ob.c1{background:var(--ink-2)}
+#view-brief .bstep-lg .ob.c2{box-shadow:inset 0 0 0 1.5px var(--ink-0)}
+
+/* 공통 담보 비교 막대와 대분류 격자 */
+#view-brief .bpair-bar{display:flex;height:14px;width:100%;background:var(--line);margin-bottom:10px}
+#view-brief .bp-cmp{height:100%;background:var(--gold);box-shadow:inset 0 2px 0 var(--gold-line),inset -1px 0 0 var(--gold-edge);transition:width var(--t-bar) var(--ease)}
+#view-brief .bp-wait{height:100%;background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px);outline:1px dashed var(--dash);outline-offset:-1px}
+#view-brief .bpair-cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
+#view-brief .bp-cat{display:flex;flex-direction:column;gap:4px;min-width:0}
+#view-brief .bp-ch{display:flex;align-items:baseline;justify-content:space-between;gap:6px;font:600 13px/1.2 var(--f-ko);color:var(--ink-0)}
+#view-brief .bp-ch .num{font:600 14px/1 var(--f-num);color:var(--ink-1)}
+#view-brief .bp-ch .num b{font-weight:600;color:var(--ink-0)}
+#view-brief .bp-cb{display:flex;height:6px;background:var(--line)}
+#view-brief .bp-cb .c{background:var(--gold-line)}
+#view-brief .bp-cb .w{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 4px)}
+#view-brief .bpair-lg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font:400 13px/1.3 var(--f-body);color:var(--ink-1)}
+#view-brief .bpair-lg span{display:inline-flex;align-items:center;gap:5px}
+#view-brief .bpair-lg i{width:12px;height:10px;display:inline-block}
+#view-brief .bpair-lg i.c{background:var(--gold);box-shadow:inset 0 0 0 1px var(--gold-edge)}
+#view-brief .bpair-lg i.w{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 4px);outline:1px dashed var(--dash);outline-offset:-1px}
+
+#view-brief .bstage .panel-f{padding:8px 20px 10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px}
+
+/* ---------- 4. 탭 열림 움직임(전체 600ms 안쪽, 움직이는 동안에도 글자 선명 및 클릭 가능) ---------- */
+@keyframes bmSlide{from{transform:translateY(10px)}to{transform:none}}
+@keyframes bmTile{from{transform:scale(.76)}to{transform:none}}
+#view-brief.b-enter .bmedal{animation:bmSlide 300ms var(--ease) both;animation-delay:calc(var(--mi,0) * 45ms)}
+#view-brief.b-enter .bm-cbg{animation:bmTile 240ms var(--ease) both;animation-delay:calc(var(--ci,0) * 20ms)}
+#view-brief.b-enter .bs-bg{animation:bmTile 260ms var(--ease) both;animation-delay:calc(var(--si,0) * 35ms)}
+
+/* ---------- 5. "문장으로 보기" 목록 모드 ---------- */
+#view-brief .brows{margin-top:0}
+#view-brief .brows .panel-h{padding-top:12px;padding-bottom:8px}
 #view-brief .brows .panel-f{padding:8px 24px 10px}
-#view-brief .brief-off{margin:0 24px 6px;padding:8px 14px;font:400 14px/1.5 var(--f-body);color:var(--ink-0);background:var(--panel-lo);border-left:3px solid var(--ink-1)}
-#view-brief .brow{padding:0 24px}
-#view-brief .bstrip{display:flex;align-items:center;gap:10px;min-height:30px;padding-right:0}
+#view-brief .brow.lrow{padding:0 24px}
+#view-brief .bstrip{display:flex;align-items:center;gap:10px;min-height:32px;padding-right:0}
 #view-brief .bstrip.selbar::before{right:-24px}
 #view-brief .brow .no{flex:none;width:30px;font:600 17px/1 var(--f-num);color:var(--ink-0)}
-/* 앞자리 0 은 흐리게. 가장 흐린 글자도 4.5:1 이 되도록 --ink-2 */
 #view-brief .brow .num-0{color:var(--ink-2)}
 #view-brief .brow .bn{font:600 16px/1.25 var(--f-ko);color:var(--ink-0);white-space:nowrap}
 #view-brief .brow .sp{flex:1 1 auto}
 #view-brief .brow .bchev{display:grid;place-items:center;width:20px;color:var(--ink-1)}
-#view-brief .brow .btext{margin:0;padding:1px 56px 6px 40px;font:400 15px/1.48 var(--f-body);color:var(--ink-0);word-break:keep-all}
-#view-brief .brow .bnow{margin:-2px 0 0;padding:0 56px 6px 40px;font:600 14px/1.48 var(--f-body);color:var(--ink-1);word-break:keep-all}
+#view-brief .brow .btext{margin:0;padding:2px 56px 8px 40px;font:400 15px/1.52 var(--f-body);color:var(--ink-0);word-break:keep-all}
+#view-brief .brow .bnow{margin:-2px 0 0;padding:0 56px 8px 40px;font:600 14px/1.5 var(--f-body);color:var(--ink-1);word-break:keep-all}
 #view-brief .brow .bnow::before{content:"";display:inline-block;width:8px;height:8px;margin-right:8px;border:1.5px solid var(--ink-1);vertical-align:1px}
-#view-brief .brow.just .btext{animation:justFlash 1100ms var(--ease)}
+#view-brief .brow.just .btext{animation:justFlash 900ms var(--ease)}
 @keyframes justFlash{0%{background:rgba(255,255,255,.75)}100%{background:transparent}}
 :root[data-theme="dark"] #view-brief .brow.just .btext{animation-name:justFlashD}
 @keyframes justFlashD{0%{background:rgba(255,255,255,.12)}100%{background:transparent}}
-#view-brief .brow .flag{left:0;top:0}
-#view-brief .brow.is-sel > .flag{filter:drop-shadow(1px 0 0 #fff) drop-shadow(0 1px 0 #fff)}
+#view-brief .brow.lrow .flag{left:0;top:0}
+#view-brief .brow.lrow.is-sel > .flag{filter:drop-shadow(1px 0 0 #fff) drop-shadow(0 1px 0 #fff)}
 #view-brief .brow .chg{margin-left:2px}
 #view-brief .brow .bgo{display:none}
 #view-brief .brows .lrows{padding-top:2px}
 
-/* 화면 폭에 따라 */
+/* ---------- 6. 반응형(1600x900, 1280x800, 1180x820, 380x780) ---------- */
 @media (max-width:1599px){
-  #view-brief .kpi{padding:12px 14px 10px;gap:12px}
-  #view-brief .kpi .ring{width:54px;height:54px}
-  #view-brief .kpi .big{font-size:36px}
-  #view-brief .kd{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-  #view-brief .kd-go{grid-column:1/-1}
+  #view-brief .vhead .ttl-t{font-size:48px}
+  #view-brief .bm-emblem{width:100px;height:100px}
+  #view-brief .bm-n{font-size:29px}
+  #view-brief .bm-n.frac{font-size:24px}
+  #view-brief .bdeck{grid-template-columns:minmax(0,1.22fr) minmax(0,1fr)}
 }
-@media (max-width:1279px){
-  #view-brief .kpi-s .sub{display:none}
-  #view-brief .kd{grid-template-columns:minmax(0,1fr)}
-  #view-brief .kd-mj{grid-template-columns:minmax(0,1fr)}
+@media (max-width:1360px){
+  body.ev-open #view-brief .bmedals{grid-template-columns:repeat(3,minmax(0,1fr))}
+  body.ev-open #view-brief .bmedal:nth-child(4){border-left:0;border-top:1px solid var(--line)}
+  body.ev-open #view-brief .bmedal:nth-child(5){border-top:1px solid var(--line);border-right:1px solid var(--line)}
+  body.ev-open #view-brief .bdeck{grid-template-columns:minmax(0,1fr)}
+  body.ev-open #view-brief .bdeck-side{border-left:0;border-top:1px solid var(--line-2)}
+}
+@media (max-width:1199px){
+  #view-brief .bdeck{grid-template-columns:minmax(0,1fr)}
+  #view-brief .bdeck-side{border-left:0;border-top:1px solid var(--line-2)}
 }
 @media (max-width:999px){
-  #view-brief .vhead .ttl{align-self:auto}
-  #view-brief .kpis{grid-template-columns:repeat(3,minmax(0,1fr));min-height:0}
-  #view-brief .kpi{flex-direction:column;align-items:flex-start;gap:6px;padding:12px 10px 12px}
-  #view-brief .kpi .ring{width:44px;height:44px}
-  #view-brief .kpi .ring.lead{margin:0}
-  #view-brief .kpi .big{font-size:28px}
-  #view-brief .kpi-u{font-size:13px}
-  #view-brief .kpi-l{font-size:13px}
-  #view-brief .kpi-s .sub{display:none}
-  #view-brief .kpi .scb{height:24px;padding:0 6px;font-size:13px;gap:4px}
-  #view-brief .kpi .scb svg{display:none}
-  #view-brief .kpi-detail{padding:14px 16px}
-  #view-brief .kd-mj li{grid-template-columns:72px minmax(0,1fr) 40px}
-  #view-brief .brow{padding:0 16px}
+  #view-brief .vhead{align-items:stretch;min-height:0;gap:8px}
+  #view-brief .vhead .ttl{padding:2px 0 4px}
+  #view-brief .vhead .ttl-t{font-size:36px}
+  #view-brief .bhead{justify-content:space-between;padding-bottom:4px}
+  #view-brief .bmedals{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #view-brief .bmedal{padding:12px 10px 14px;border-top:1px solid var(--line)}
+  #view-brief .bmedal:nth-child(1),
+  #view-brief .bmedal:nth-child(2){border-top:0}
+  #view-brief .bmedal:nth-child(odd){border-left:0}
+  #view-brief .bmedal:nth-child(5){grid-column:1/-1}
+  #view-brief .bm-emblem{width:96px;height:96px}
+  #view-brief .bm-n{font-size:28px}
+  #view-brief .bm-n.frac{font-size:23px}
+  #view-brief .bm-top .scb svg{display:none}
+  #view-brief .bsub{padding:12px 12px 14px}
+  #view-brief .bsub-big{font-size:24px}
+  #view-brief .bmap-cols,
+  #view-brief .bmap-row{grid-template-columns:64px repeat(6,minmax(20px,1fr));gap:3px}
+  #view-brief .bmap-ch{font-size:13px;padding:0 0 2px}
+  #view-brief .bmap-ch .ch-full{display:none}
+  #view-brief .bmap-ch .ch-sm{display:inline}
+  #view-brief .bmap-rh{font-size:13px;white-space:normal;line-height:1.2}
+  #view-brief .bm-cell{min-height:36px;min-width:20px;padding:2px}
+  #view-brief .bm-cs .bm-ct{display:none}
+  #view-brief .bm-ctag{display:none}
+  #view-brief .bsteps{gap:4px}
+  #view-brief .bstep{min-height:78px;padding:6px 2px}
+  #view-brief .bs-n{font-size:24px}
+  #view-brief .bpair-cats{grid-template-columns:minmax(0,1fr)}
+  #view-brief .brow.lrow{padding:0 16px}
   #view-brief .bstrip{gap:8px;padding:0 28px 0 0;min-height:40px}
   #view-brief .bstrip.selbar::before{left:-16px;right:-16px}
   #view-brief .brow .bstrip .live{display:none}
@@ -822,8 +976,6 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
   #view-brief .brow .btext{padding:6px 0 10px 0}
   #view-brief .brow .bnow{padding:0 0 10px 0}
   #view-brief .brow .bgo{display:block;padding:0 0 14px 0}
-  #view-brief .brief-off{margin:0 16px 8px}
-  #view-brief .jg{gap:6px}
 }
 
 /* tab2.css */
@@ -1655,20 +1807,72 @@ body.ev-open #view-gate .gt-trees{gap:0 20px}
 <body>
 <a class="sr" href="#main">본문으로 건너뛰기</a>
 
-<!-- 층 1~3: 안개(body 바탕), 원근 격자선 바닥, 세로 안내선과 수평 기준선 -->
+<!-- 층 1~3: 안개(body 바탕), 기울어진 기둥과 사선 면, 원근 격자선 바닥, 세로 안내선과 수평 기준선 -->
 <div class="bg" aria-hidden="true">
-  <svg class="floor" viewBox="0 0 1920 216" preserveAspectRatio="xMidYMax slice" focusable="false">
+  <svg class="bg-geo" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" focusable="false">
+    <defs>
+      <linearGradient id="gp-a" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="var(--geo-hi)" stop-opacity=".55"/>
+        <stop offset=".65" stop-color="var(--geo-lo)" stop-opacity=".22"/>
+        <stop offset="1" stop-color="var(--geo-lo)" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="gp-b" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--geo-dark)" stop-opacity=".38"/>
+        <stop offset=".7" stop-color="var(--geo-dark)" stop-opacity=".12"/>
+        <stop offset="1" stop-color="var(--geo-dark)" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="gp-c" x1="1" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--geo-hi)" stop-opacity=".42"/>
+        <stop offset=".6" stop-color="var(--geo-dark)" stop-opacity=".18"/>
+        <stop offset="1" stop-color="var(--geo-dark)" stop-opacity="0"/>
+      </linearGradient>
+      <!-- 글자가 놓이는 가운데 영역 뒤로는 잔무늬가 지나가지 않게 가장자리만 남긴다 -->
+      <radialGradient id="gm-r" cx=".46" cy=".50" rx=".38" ry=".38">
+        <stop offset="0" stop-color="#000"/>
+        <stop offset=".68" stop-color="#222"/>
+        <stop offset="1" stop-color="#fff"/>
+      </radialGradient>
+      <mask id="gm-edge"><rect width="1920" height="1080" fill="url(#gm-r)"/></mask>
+    </defs>
+    <!-- 큰 사선 면과 기울어진 반투명 기둥 -->
+    <polygon points="-120,0 290,0 40,1080 -320,1080" fill="url(#gp-b)"/>
+    <polygon points="110,0 410,0 170,1080 -90,1080" fill="url(#gp-a)"/>
+    <polygon points="1510,0 2040,0 1760,1080 1240,1080" fill="url(#gp-b)"/>
+    <polygon points="1690,0 1980,0 1680,1080 1410,1080" fill="url(#gp-c)"/>
+    <polygon points="560,0 1040,0 880,320 420,320" fill="url(#gp-a)" opacity=".55"/>
+    <!-- 가장자리에만 비치는 먼 격자와 사선 모서리 -->
+    <g mask="url(#gm-edge)" fill="none" vector-effect="non-scaling-stroke">
+      <path d="M290 0L40 1080M410 0L170 1080M1510 0L1240 1080M1690 0L1410 1080" stroke="var(--geo-edge)" stroke-width="1"/>
+      <path d="M0 140H360M0 260H310M0 380H260M1560 140H1920M1520 260H1920M1480 380H1920M1440 500H1920" stroke="var(--geo-grid)" stroke-width="1"/>
+      <path d="M64 0V1080M128 0V1080M1792 0V1080M1856 0V1080" stroke="var(--geo-grid)" stroke-width="1"/>
+    </g>
+  </svg>
+  <svg class="floor" viewBox="0 0 1920 240" preserveAspectRatio="xMidYMax slice" focusable="false">
     <defs>
       <linearGradient id="flg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
-        <stop offset=".55" stop-color="#fff" stop-opacity=".55"/>
-        <stop offset="1" stop-color="#fff" stop-opacity="1"/>
+        <stop offset="0" stop-color="#000"/>
+        <stop offset=".22" stop-color="#444"/>
+        <stop offset=".62" stop-color="#bbb"/>
+        <stop offset="1" stop-color="#fff"/>
       </linearGradient>
-      <mask id="flm"><rect width="1920" height="216" fill="url(#flg)"/></mask>
+      <mask id="flm"><rect width="1920" height="240" fill="url(#flg)"/></mask>
     </defs>
-    <g mask="url(#flm)" fill="none" stroke-width="1" opacity=".55" vector-effect="non-scaling-stroke">
-      <path d="M-1440 216L960 -600M-1040 216L960 -600M-640 216L960 -600M-240 216L960 -600M160 216L960 -600M560 216L960 -600M960 216L960 -600M1360 216L960 -600M1760 216L960 -600M2160 216L960 -600M2560 216L960 -600M2960 216L960 -600M3360 216L960 -600"/>
-      <path d="M0 8H1920M0 20H1920M0 36H1920M0 56H1920M0 82H1920M0 114H1920M0 154H1920M0 204H1920"/>
+    <g mask="url(#flm)">
+      <!-- 지평선 쪽에 낮게 깔리는 평면 기하 실루엣 -->
+      <g fill="var(--floor-block)" opacity=".45">
+        <rect x="40" y="28" width="150" height="36"/><rect x="210" y="18" width="110" height="46"/>
+        <rect x="350" y="34" width="190" height="30"/><rect x="1380" y="30" width="170" height="34"/>
+        <rect x="1570" y="16" width="130" height="48"/><rect x="1720" y="26" width="160" height="38"/>
+      </g>
+      <!-- 먼 쪽이 흐려지는 이중 원근 격자 -->
+      <g fill="none" stroke="var(--floor-ink)" stroke-width="1" vector-effect="non-scaling-stroke" transform="translate(0,1)">
+        <path d="M-1560 240L960 -540M-1200 240L960 -540M-840 240L960 -540M-480 240L960 -540M-120 240L960 -540M240 240L960 -540M600 240L960 -540M960 240L960 -540M1320 240L960 -540M1680 240L960 -540M2040 240L960 -540M2400 240L960 -540M2760 240L960 -540M3120 240L960 -540M3480 240L960 -540"/>
+        <path d="M0 16H1920M0 30H1920M0 48H1920M0 70H1920M0 98H1920M0 132H1920M0 174H1920M0 226H1920"/>
+      </g>
+      <g fill="none" stroke="var(--floor)" stroke-width="1" opacity=".82" vector-effect="non-scaling-stroke">
+        <path d="M-1560 240L960 -540M-1200 240L960 -540M-840 240L960 -540M-480 240L960 -540M-120 240L960 -540M240 240L960 -540M600 240L960 -540M960 240L960 -540M1320 240L960 -540M1680 240L960 -540M2040 240L960 -540M2400 240L960 -540M2760 240L960 -540M3120 240L960 -540M3480 240L960 -540"/>
+        <path d="M0 16H1920M0 30H1920M0 48H1920M0 70H1920M0 98H1920M0 132H1920M0 174H1920M0 226H1920"/>
+      </g>
     </g>
   </svg>
   <div class="guides" id="guides"></div>
@@ -1874,7 +2078,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     surg: false,
     base: BASES[0]['종형ID'],
     renewal: null,
-    sel: {},
+    sel: { brief: '가' },
     skin: 'light',
     motion: 'on',
   };
@@ -2815,8 +3019,9 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 ;(function () {
 'use strict';
 /* tab1.js */
-/* 탭 1 브리핑: 주인공 도형은 진행 고리와 "큰 숫자/분모", 번호 01~05 의 분석 요약 다섯 줄.
-   값과 문장은 sales.json 의 기준별[종형].브리핑, 지도, 범위, 치료여정, 보류요약에서 읽는다. 화면이 숫자를 지어내지 않는다. */
+/* 탭 1 브리핑: 주인공 도형은 다섯 큰 메달(지름 96~108px)과 24칸 고객군 지형 격자, 치료 여정 다섯 단계 타일, 공통 담보 막대.
+   긴 문장과 관계 식은 근거 기둥에 모으고, 한 번에 읽고 싶은 사람을 위해 "문장으로 보기" 전환을 둔다.
+   값과 문장은 sales.json 의 기준별[종형].브리핑, 지도, 범위, 치료여정, 보류요약에서 읽는다. */
 App.registerTab((function () {
   const { ui, txt } = App;
   const { esc, fmt } = ui;
@@ -2824,118 +3029,19 @@ App.registerTab((function () {
   const ROW_NAME = { '가': '고객군 지형', '나': '개정과 시장', '다': '가입 관문과 한도', '라': '담보 포지션', '마': '영업 인사이트' };
   const ROW_FOCUS = { '가': 'map', '나': 'news', '다': '', '라': 'journey', '마': '' };
   const ROW_NO = { '가': 1, '나': 2, '다': 3, '라': 4, '마': 5 };
-  let kpiSel = 0;
+  const MAP_LABELS = S['라벨'];
+
+  let viewMode = 'medal'; // 'medal' | 'list'
+  let focusSub = 0;       // 0: 고객군 24칸 격자, 1: 공통 담보 쌍, 2: 치료 여정 5단계
+  let focusSeg = null;    // { ri, ci } 지도 칸을 눌렀을 때
   let lastBase = null;
   let lastNote = { short: '', long: '' };
   const justChanged = new Set();
 
   const brief = c => (c.base ? c.base['브리핑'] : []);
   const line = (c, k) => brief(c).find(b => b['줄'] === k) || null;
-  const MAP_LABELS = S['라벨'];
+  const refText = c => `${c.ref['나이']}세 ${txt.sexText(c.ref['성별'])}, ${txt.sinceText(c.ref['이력'])}`;
 
-  // ---------- 지표 셋 ----------
-  function kpiData(c) {
-    const ga = line(c, '가'), ra = line(c, '라');
-    const gv = ga ? ga['값'] : {}, rv = ra ? ra['값'] : {};
-    const j = c.base ? c.base['치료여정'] : null;
-    const ours = j ? j['종형'].find(x => x['종형ID'] === c.baseId) || j['종형'][0] : null;
-    const steps = j ? j['열'] : [];
-    const have = ours ? steps.filter(s => (ours['합계'][s] || 0) > 0).length : 0;
-    return [
-      { key: 'seg', scope: 'all', label: '우리 간편이 열리는 고객군', unit: '칸',
-        v: (gv['우리간편만열림칸수'] || 0) + (gv['함께열림칸수'] || 0), max: gv['전체칸수'] || 0,
-        segs: [{ v: gv['우리간편만열림칸수'] || 0, cls: 'gold' }, { v: gv['함께열림칸수'] || 0, cls: '' }],
-        sub: `우리 간편만 열림 ${fmt(gv['우리간편만열림칸수'] || 0)}, 함께 열림 ${fmt(gv['함께열림칸수'] || 0)}`, lead: true },
-      { key: 'pair', scope: 'base', label: '견준 공통 담보 쌍', unit: '쌍',
-        v: rv['견준쌍'] || 0, max: rv['공통담보쌍'] || 0, sub: `검토 대기로 뺀 쌍 ${fmt(rv['뺀비교쌍'] || 0)}` },
-      { key: 'step', scope: 'base', label: '우체국 담보가 있는 치료 단계', unit: '단계',
-        v: have, max: steps.length, sub: ours ? `담보 ${fmt(ours['전체'])}개, ${steps.filter(s => !(ours['합계'][s] > 0)).map(s => s + ' 0').join(', ') || '빈 단계 없음'}` : '' },
-    ];
-  }
-  function kpiTabs(c) {
-    const ks = kpiData(c);
-    return `<div class="kpis pillar" role="tablist" aria-label="브리핑 지표">${ks.map((k, i) => {
-      const on = i === kpiSel;
-      const pct = k.max > 0 ? Math.round(k.v / k.max * 100) + '%' : '';
-      return `<button type="button" class="kpi${on ? ' is-on on-slate' : ''}" role="tab" id="kpi-${k.key}" aria-selected="${on}" aria-controls="kpi-detail" tabindex="${on ? 0 : -1}" data-act="kpi" data-i="${i}">
-        ${ui.ring({ v: k.v, max: k.max, segs: k.segs, lead: k.lead, pct, label: `${k.label} ${k.v}/${k.max}` })}
-        <span class="kpi-x"><span class="kpi-n">${ui.big(k.v, k.max)}<span class="kpi-u">${esc(k.unit)}</span></span>
-          <span class="kpi-l">${esc(k.label)}</span>
-          <span class="kpi-s">${ui.scope(k.scope)}<span class="sub">${esc(k.sub)}</span></span></span>
-      </button>`;
-    }).join('')}</div>`;
-  }
-
-  // ---------- 지표 풀이(R5: 전체와 부분의 관계) ----------
-  function segStrip(gv) {
-    const lab = gv['라벨별'] || {};
-    const list = [];
-    for (const l of MAP_LABELS) for (let i = 0; i < (lab[l] || 0); i++) list.push(ui.MAP_CLS[l]);
-    return list;
-  }
-  function kpiDetail(c) {
-    const k = kpiData(c)[kpiSel];
-    const ga = line(c, '가'), ra = line(c, '라');
-    const gv = ga ? ga['값'] : {}, rv = ra ? ra['값'] : {};
-    const m = App.mapOf(null);
-    if (k.key === 'seg') {
-      const lab = gv['라벨별'] || {};
-      return `<div class="kd">
-        <div class="kd-a">
-          <h3>고객군 ${fmt(gv['전체칸수'])}칸의 관문 ${ui.scope('all')}</h3>
-          ${ui.eq({ total: { t: '고객군', n: gv['전체칸수'] }, parts: MAP_LABELS.map(l => ({ t: l, n: lab[l] || 0 })) })}
-          <p class="note">칸 하나는 이력 ${m['행'].length}줄과 나이 ${m['열'].length}구간(${m['열'].map(x => `${x.lo}~${x.hi}세`).join(', ')})이 만나는 고객군입니다(${esc(txt.sexText(m['성별']))}, 갱신 유형 전체 지도).</p>
-        </div>
-        <div class="kd-b">
-          ${ui.cells(segStrip(gv))}
-          <ul class="kd-lg">${MAP_LABELS.map(l => `<li>${ui.swatch(l)}<span>${esc(l)}</span><b class="num">${fmt(lab[l] || 0)}</b></li>`).join('')}</ul>
-        </div>
-        <div class="kd-go live">${ui.btn('고객군 지도 보기', { sm: true, chev: true, attrs: 'data-go="market" data-focus="map"' })}</div></div>`;
-    }
-    if (k.key === 'pair') {
-      const p = c.base['보류요약'];
-      const rows = (p['대분류'] || []).map(x => `<li><span class="mj">${esc(x['대분류'])}</span>${ui.cells(Array(x['견준쌍']).fill('cmp').concat(Array(x['뺀쌍']).fill('wait')))}<span class="num">${fmt(x['견준쌍'])}+${fmt(x['뺀쌍'])}</span></li>`).join('');
-      const why = p['사유별'] || {};
-      const whyT = Object.entries(why).map(([a, b]) => `${a} ${fmt(b)}`).join(', ');
-      const whySum = Object.values(why).reduce((a, b) => a + b, 0);
-      return `<div class="kd">
-        <div class="kd-a">
-          <h3>공통 담보 ${fmt(rv['공통담보쌍'])}쌍 ${ui.scope('base')}</h3>
-          ${ui.eq({ total: { t: '공통 담보', n: rv['공통담보쌍'] }, parts: [{ t: '견줌', n: rv['견준쌍'] }, { t: '검토 대기로 뺌', n: rv['뺀비교쌍'] }], tail: '쌍' })}
-          ${whyT ? `<div class="nadd">검토 대기 사유는 ${esc(whyT)}입니다. 한 쌍에 두 사유가 함께 들 수 있어 더하면 ${txt.josa(fmt(whySum), '으로')} ${fmt(rv['뺀비교쌍'])}보다 큽니다.</div>` : ''}
-          <p class="note">맞붙는 상대 ${esc(txt.josa(c.peerIds.map(v => txt.vname(v)).join(', '), '와'))} 견준 쌍입니다.</p>
-        </div>
-        <div class="kd-b">
-          <ul class="kd-mj">${rows}</ul>
-          <ul class="kd-lg"><li><i class="cq cmp"></i><span>견준 쌍</span></li><li><i class="cq wait"></i><span>검토 대기로 뺀 쌍</span></li></ul>
-        </div>
-        <div class="kd-go live">${ui.btn('담보 비교 보기', { sm: true, chev: true, attrs: 'data-go="cover"' })}</div></div>`;
-    }
-    // 치료 여정
-    const j = c.base['치료여정'];
-    const steps = j['열'];
-    const cols = j['종형'];
-    const max = Math.max(1, ...cols.flatMap(x => steps.map(s => x['합계'][s] || 0)));
-    const ours = cols.find(x => x['종형ID'] === c.baseId) || cols[0];
-    const parts = steps.map(s => ({ t: s, n: ours['합계'][s] || 0 })).concat(ours['기타'] ? [{ t: '기타', n: ours['기타'] }] : []);
-    const bars = steps.map(s => `<div class="jc"><div class="jb">${cols.map((x, i) => {
-      const n = x['합계'][s] || 0;
-      return `<span class="b b${i}" style="height:${Math.max(n ? 3 : 0, Math.round(n / max * 40))}px" title="${esc(txt.orgShort(x['종형ID'].split('_')[0]))} ${n}"></span>`;
-    }).join('')}</div><div class="jn num">${cols.map(x => `<span>${x['합계'][s] || 0}</span>`).join('')}</div><div class="js">${esc(s)}</div></div>`).join('');
-    return `<div class="kd">
-      <div class="kd-a">
-        <h3>치료 여정 다섯 단계 ${ui.scope('base')}</h3>
-        ${ui.eq({ total: { t: '우체국 담보', n: ours['전체'] }, parts, tail: '개' })}
-        <div class="nadd">회사별 담보 수(${cols.map(x => `${esc(txt.orgShort(x['종형ID'].split('_')[0]))} ${fmt(x['전체'])}`).join(', ')})는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>
-      </div>
-      <div class="kd-b">
-        <div class="jg" role="img" aria-label="단계별 회사 담보 수">${bars}</div>
-        <ul class="kd-lg">${cols.map((x, i) => `<li><i class="b b${i}"></i><span title="${esc(x['이름'])}">${esc(txt.orgShort(x['종형ID'].split('_')[0]))}</span></li>`).join('')}</ul>
-      </div>
-      <div class="kd-go live">${ui.btn('치료 여정 격자 보기', { sm: true, chev: true, attrs: 'data-go="cover" data-focus="journey"' })}</div></div>`;
-  }
-
-  // ---------- 분석 요약 다섯 줄 ----------
   function limitLine(c) {
     const L = c.limit;
     if (!L || (c.st.age === c.ref['나이'] && c.st.sex === c.ref['성별'])) return '';
@@ -2944,6 +3050,332 @@ App.registerTab((function () {
     if (!L.hit) return `지금 조건 ${who}: ${kind}의 가입나이(${L.lo}~${L.hi}세) 밖입니다.`;
     return `지금 조건 ${who}: 주계약 최대 가입금액 ${fmt(L.hit.max)}만원(나이 구간별 한도 표의 ${L.hit.lo}~${L.hit.hi}세 구간${L.hit.pend ? ', 검토 대기' : ''}${L.table['성별같음'] ? ', 남녀 같음' : ''}).`;
   }
+
+  // ---------- 1. 머리 제어 줄 ----------
+  function headAsideHTML(c) {
+    const isList = viewMode === 'list';
+    return `<div class="bhead">
+      <div class="bhead-meta">
+        <span>대표 조건 <b class="num">${esc(refText(c))}</b></span>
+        <span>기준 종형 <b>${esc(txt.vkind(c.baseId))}</b></span>
+      </div>
+      <div class="bhead-act">
+        ${ui.btn(isList ? '도형으로 보기' : '문장으로 보기', {
+          sm: true, ghost: !isList, cls: isList ? 'is-mode-on' : '',
+          attrs: `data-act="brief-mode" aria-pressed="${isList}"`,
+        })}
+        ${ui.btn('요약 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="brief-copy"' })}
+      </div>
+    </div>`;
+  }
+
+  // ---------- 2. 다섯 메달 자료와 이중 고리 SVG ----------
+  function medalSpecs(c) {
+    return brief(c).map(b => {
+      const k = b['줄'];
+      const v = b['값'] || {};
+      const no = String(ROW_NO[k]).padStart(2, '0');
+      const name = b['구역'] || ROW_NAME[k];
+      const scope = b['범위'] === '전체 고객군' ? 'all' : 'base';
+      let num = '0', den = null, unit = '', cap = '', max = 1, segs = [], hasGold = false;
+
+      if (k === '가') {
+        num = fmt(v['함께열림칸수'] || 0);
+        den = fmt(v['전체칸수'] || 0);
+        unit = '칸';
+        cap = (v['우리간편만열림칸수'] || 0) > 0
+          ? `단독 ${fmt(v['우리간편만열림칸수'])}, 함께 열림`
+          : `함께 열림, 일반확인 ${fmt(v['우리간편닫힘칸수'] || 0)}`;
+        max = v['전체칸수'] || 1;
+        const openN = (v['우리간편만열림칸수'] || 0) + (v['함께열림칸수'] || 0);
+        segs = [{ v: openN, cls: 'gold' }];
+        hasGold = openN > 0;
+      } else if (k === '나') {
+        num = fmt(v['개정변동수'] || 0);
+        unit = '개';
+        cap = `신설 ${fmt(v['개정신설'] || 0)}, 변경 ${fmt(v['개정변경'] || 0)}, 종료 ${fmt(v['개정종료'] || 0)}`;
+        max = v['개정변동수'] || 1;
+        segs = [{ v: v['개정신설'] || 0, cls: 'gold' }, { v: v['개정변경'] || 0, cls: '' }];
+        hasGold = (v['개정신설'] || 0) > 0;
+      } else if (k === '다') {
+        num = fmt(v['관문차이수'] || 0);
+        unit = '곳';
+        if (!c.isRef && c.limit) {
+          cap = c.limit.hit ? `${c.st.age}세 한도 ${fmt(c.limit.hit.max)}만원` : `${c.st.age}세 가입나이 밖`;
+        } else {
+          cap = v['심사'] === '일반심사'
+            ? `일반심사, ${v['우리최저']}~${v['우리최고']}세`
+            : `고지 다른 상대, ${v['우리최저']}~${v['우리최고']}세`;
+        }
+        max = Math.max(1, c.peerIds.length);
+        segs = [{ v: v['관문차이수'] || 0, cls: '' }];
+      } else if (k === '라') {
+        num = fmt(v['견준쌍'] || 0);
+        den = fmt(v['공통담보쌍'] || 0);
+        unit = '쌍';
+        cap = `우체국 ${fmt(v['보유수'] || 0)}개, 대기 ${fmt(v['뺀비교쌍'] || 0)}쌍`;
+        max = v['공통담보쌍'] || 1;
+        segs = [{ v: v['견준쌍'] || 0, cls: 'gold' }];
+        hasGold = (v['견준쌍'] || 0) > 0;
+      } else if (k === '마') {
+        num = fmt(v['전체수'] || 0);
+        unit = '건';
+        cap = `강점 ${fmt(v['앞세울수'] || 0)}, 관련 ${fmt(v['관련담보수'] || 0)}, 개정 ${fmt(v['개정검토수'] || 0)}`;
+        max = v['전체수'] || 1;
+        const pos = (v['앞세울수'] || 0) + (v['관련담보수'] || 0);
+        const mid = (v['관문차이수'] || 0) + (v['조건열위수'] || 0);
+        segs = [{ v: pos, cls: 'gold' }, { v: mid, cls: '' }];
+        hasGold = pos > 0;
+      }
+
+      return {
+        key: k, no, name, scope, scopeText: b['범위'],
+        num, den, unit, numText: den != null ? `${num}/${den}${unit}` : `${num}${unit}`,
+        cap, max, segs, hasGold,
+        flag: !!b['원문대조'], flagText: b['원문대조글'],
+      };
+    });
+  }
+
+  function medalSVG(m) {
+    let acc = 0, arcs = '';
+    for (const s of m.segs) {
+      const f = m.max > 0 ? Math.max(0, Math.min(1 - acc, s.v / m.max)) : 0;
+      if (f > 0) {
+        const to = (f * 100).toFixed(2);
+        arcs += `<circle class="arc ${s.cls || ''}" r="45" fill="none" stroke-width="5.5" pathLength="100" stroke-dasharray="${to} 100" stroke-dashoffset="${(-acc * 100).toFixed(2)}" transform="rotate(-90)" data-to="${to}"/>`;
+      }
+      acc += f;
+    }
+    const frac = Math.min(1, acc);
+    let tks = '';
+    for (let i = 0; i < 72; i++) {
+      const a = i / 72;
+      if (a < frac - 1e-6) continue;
+      const t = a * Math.PI * 2 - Math.PI / 2, cs = Math.cos(t), sn = Math.sin(t);
+      tks += `<line x1="${(cs * 41.5).toFixed(2)}" y1="${(sn * 41.5).toFixed(2)}" x2="${(cs * 48.5).toFixed(2)}" y2="${(sn * 48.5).toFixed(2)}"/>`;
+    }
+    return `<svg class="ring bm-svg" width="108" height="108" viewBox="-64 -64 128 128" aria-hidden="true" focusable="false">
+      <circle class="bm-outer" r="54" fill="none" stroke-width="1"/>
+      <path class="bm-card" d="M0 -58V-53M58 0H53M0 58V53M-58 0H-53" stroke-width="1.4" fill="none"/>
+      <circle class="trk" r="45" fill="none" stroke-width="1"/>
+      <g class="tks" stroke-width="1.5">${tks}</g>
+      ${arcs}
+      <circle class="bm-inner${m.hasGold ? ' gold' : ''}" r="37.5" fill="none" stroke-width="1.5"/>
+      <circle class="bm-disc" r="34.5"/>
+      <path class="bm-diag" d="M-56 -56l10 10M56 -56l-10 10M-56 56l10 -10M56 56l-10 -10" stroke-width="2" fill="none"/>
+    </svg>`;
+  }
+
+  function medalsHTML(c) {
+    const list = medalSpecs(c);
+    return `<div class="bmedals" data-pick-group="brief">${list.map((m, i) => {
+      const flag = m.flag ? ui.flag(m.flagText || ui.FLAG_TEXT) : '';
+      const ch = justChanged.has(m.key) && lastNote.short ? `<span class="chg bm-chg">${esc(lastNote.short)}</span>` : '';
+      return `<div class="bmedal brow${justChanged.has(m.key) ? ' just' : ''}" data-pick="${esc(m.key)}" data-scope="${m.scope}" style="--mi:${i}">
+        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${m.no} ${m.name}, ${m.numText}, ${m.scopeText}. 근거 보기`)}"></button>
+        ${flag}
+        <div class="bm-top">
+          <span class="bm-no num" aria-hidden="true"><span class="num-0">${m.no[0]}</span>${m.no[1]}</span>
+          ${ui.scope(m.scope)}
+        </div>
+        <div class="bm-emblem">
+          ${medalSVG(m)}
+          <div class="bm-val">
+            <span class="bm-n num${m.den != null ? ' frac' : ''}">${esc(m.num)}${m.den != null ? `<small class="bm-d">/${esc(m.den)}</small>` : ''}</span>
+            <span class="bm-u">${esc(m.unit)}</span>
+          </div>
+        </div>
+        <div class="bm-foot">
+          <span class="bm-name">${esc(m.name)}</span>
+          <span class="bm-cap">${esc(m.cap)}</span>
+          ${ch}
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  // ---------- 3. 하단 통합 기하 격자(고객군 24칸 지도 + 치료 여정 5단계 + 공통 쌍) ----------
+  const TIME_SHORT = r => {
+    if (r.since === 5) return '5년+/없음';
+    return r['이름'].replace(/^(입원|수술만)\s*/, '').replace(/\s*전$/, '');
+  };
+  const TIME_TINY = r => {
+    if (r.since === 5) return '5년+';
+    if (r.since === 0.25) return '1년내';
+    return `${r.since}~${r.since + 1}년`;
+  };
+  const CELL_STYLE = {
+    '우리 간편만 열림': { cls: 'is-only', ic: ui.IC.only, txt: '단독' },
+    '함께 열림': { cls: 'is-open', ic: ui.IC.open, txt: '열림' },
+    '우리 간편 닫힘': { cls: 'is-ours', ic: ui.IC.check, txt: '일반' },
+    '간편 모두 닫힘': { cls: 'is-all', ic: ui.IC.lock, txt: '닫힘' },
+    '자료 없음': { cls: 'is-none', ic: ui.IC.hatch, txt: '미상' },
+  };
+
+  function map24HTML(c) {
+    const ga = line(c, '가');
+    const gv = ga ? ga['값'] : {};
+    const lab = gv['라벨별'] || {};
+    const m = App.mapOf(null);
+    const cols = m['열'] || [];
+    const hospRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
+    const surgRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
+    const openCnt = (gv['우리간편만열림칸수'] || 0) + (gv['함께열림칸수'] || 0);
+
+    const colHeads = `<div class="bmap-cols" aria-hidden="true"><span></span>${hospRows.map(x => `<span class="bmap-ch" title="${esc(x.r['이름'])}"><span class="ch-full">${esc(TIME_SHORT(x.r))}</span><span class="ch-sm">${esc(TIME_TINY(x.r))}</span></span>`).join('')}</div>`;
+    const gridRows = [];
+    [
+      { kind: '입원', rows: hospRows, surg: false },
+      { kind: '수술만', rows: surgRows, surg: true },
+    ].forEach(group => {
+      cols.forEach((col, ci) => {
+        const firstSurg = group.surg && ci === 0;
+        const cells = group.rows.map((x, bi) => {
+          const ri = x.i;
+          const cell = m['칸'][ri][ci];
+          const st = CELL_STYLE[cell['라벨']] || CELL_STYLE['자료 없음'];
+          const isNow = c.seg && c.seg.cell && c.seg.ri === ri && c.seg.ci === ci;
+          const isFocus = focusSeg && focusSeg.ri === ri && focusSeg.ci === ci;
+          const go = cell['관문만수집'] || [];
+          const goTitle = go.length ? go.map(g => `${g['이름']} ${g['안내'] || '관문만 수집'}`).join(', ') : '';
+          const aria = `${x.r['이름']}, ${col.lo}~${col.hi}세: ${cell['라벨']}${cell['보조'] ? ', ' + cell['보조'] : ''}${goTitle ? ', ' + goTitle : ''}${isNow ? ', 지금 조건' : ''}`;
+          return `<button type="button" class="bm-cell ${st.cls}${isNow ? ' is-now' : ''}${isFocus ? ' is-focus' : ''}" data-act="bmap-cell" data-ri="${ri}" data-ci="${ci}" style="--ci:${bi + (group.surg ? 2 : 0) + ci}" aria-label="${esc(aria)}" title="${esc(aria)}">
+            <i class="bm-cbg" aria-hidden="true"></i>
+            ${cell['라벨'] === '우리 간편만 열림' ? ui.flag() : ''}
+            <span class="bm-cs">${st.ic}<span class="bm-ct">${esc(st.txt)}</span></span>
+            ${(go.length || isNow) ? `<span class="bm-ctag">${go.length ? '<span class="bm-cgo">관문만</span>' : ''}${isNow ? '<span class="bm-cnow">지금</span>' : ''}</span>` : ''}
+          </button>`;
+        }).join('');
+        gridRows.push(`<div class="bmap-row${firstSurg ? ' surg-start' : ''}">
+          <span class="bmap-rh"><span>${esc(group.kind)}</span><span class="nw">${col.lo}~${col.hi}세</span></span>${cells}
+        </div>`);
+      });
+    });
+
+    return `<section class="bsub bmap-box${focusSub === 0 ? ' is-on' : ''}" data-sub="0" aria-label="고객군 24칸 관문 지형">
+      <div class="bsub-top">
+        <button type="button" class="kpi bsub-t${focusSub === 0 ? ' is-on' : ''}" data-act="kpi" data-i="0" aria-pressed="${focusSub === 0}">
+          <span class="bsub-h">고객군 ${fmt(gv['전체칸수'] || 24)}칸 관문 지형</span>
+          <span class="bsub-big num">${fmt(openCnt)}<small>/${fmt(gv['전체칸수'] || 24)}</small><em>칸 열림</em></span>
+        </button>
+        <div class="bsub-r">
+          ${ui.scope('all')}
+          ${ui.btn('지도 탭', { sm: true, ghost: true, chev: true, attrs: 'data-go="market" data-focus="map"' })}
+        </div>
+      </div>
+      <div class="bmap-wrap" role="group" aria-label="이력과 나이 구간별 24개 고객군 칸">
+        ${colHeads}
+        ${gridRows.join('')}
+      </div>
+      <div class="bmap-lg">
+        <span class="lg-i"><i class="msw open"></i>우리 간편 열림(함께 열림) <b class="num">${fmt(lab['함께 열림'] || 0)}</b></span>
+        <span class="lg-i"><i class="msw only"></i>우리 간편만 열림 <b class="num">${fmt(lab['우리 간편만 열림'] || 0)}</b></span>
+        <span class="lg-i"><i class="msw ours"></i>일반심사 확인 <b class="num">${fmt(lab['우리 간편 닫힘'] || 0)}</b></span>
+        <span class="lg-i"><i class="msw go"></i>관문만 수집 상대 <b class="num">${fmt(gv['관문만칸수'] || 0)}</b></span>
+        <span class="lg-i"><i class="msw now"></i>지금 조건</span>
+      </div>
+    </section>`;
+  }
+
+  function sideDeckHTML(c) {
+    const ra = line(c, '라');
+    const rv = ra ? ra['값'] : {};
+    const j = c.base['치료여정'];
+    const steps = j['열'] || [];
+    const cols = j['종형'] || [];
+    const ours = cols.find(x => x['종형ID'] === c.baseId) || cols[0];
+    const have = ours ? steps.filter(s => (ours['합계'][s] || 0) > 0).length : 0;
+    const maxStep = Math.max(1, ...cols.flatMap(x => steps.map(s => x['합계'][s] || 0)));
+
+    const stepTiles = steps.map((s, si) => {
+      const n = ours ? (ours['합계'][s] || 0) : 0;
+      const bars = cols.map((x, xi) => {
+        const cnt = x['합계'][s] || 0;
+        const h = cnt > 0 ? Math.max(3, Math.round(cnt / maxStep * 18)) : 0;
+        return `<i class="c${xi}" style="height:${h}px" title="${esc(txt.orgShort(x['종형ID'].split('_')[0]))} ${cnt}개"></i>`;
+      }).join('');
+      return `<div class="bstep ${n > 0 ? 'is-gold' : 'is-empty'}" style="--si:${si}" role="group" aria-label="${esc(`${s} 단계, 우체국 담보 ${n}개`)}">
+        <i class="bs-bg" aria-hidden="true"></i>
+        <span class="bs-s">${esc(s)}</span>
+        <span class="bs-n num">${fmt(n)}</span>
+        <span class="bs-bars" aria-hidden="true">${bars}</span>
+      </div>`;
+    }).join('');
+
+    const totalPairs = rv['공통담보쌍'] || 0;
+    const cmpPairs = rv['견준쌍'] || 0;
+    const waitPairs = rv['뺀비교쌍'] || 0;
+    const cmpPct = totalPairs > 0 ? (cmpPairs / totalPairs * 100).toFixed(1) : 0;
+    const waitPct = totalPairs > 0 ? (waitPairs / totalPairs * 100).toFixed(1) : 0;
+    const cats = (c.base['보류요약'] && c.base['보류요약']['대분류']) || [];
+    const catHTML = cats.map(x => {
+      const tot = (x['견준쌍'] || 0) + (x['뺀쌍'] || 0);
+      const cp = tot > 0 ? (x['견준쌍'] / tot * 100).toFixed(1) : 0;
+      const wp = tot > 0 ? (x['뺀쌍'] / tot * 100).toFixed(1) : 0;
+      return `<div class="bp-cat">
+        <div class="bp-ch"><span>${esc(x['대분류'])}</span><span class="num"><b>${fmt(x['견준쌍'])}</b>/${fmt(tot)}</span></div>
+        <div class="bp-cb" aria-hidden="true"><i class="c" style="width:${cp}%"></i><i class="w" style="width:${wp}%"></i></div>
+      </div>`;
+    }).join('');
+
+    return `<div class="bdeck-side">
+      <section class="bsub bstep-box${focusSub === 2 ? ' is-on' : ''}" data-sub="2" aria-label="우체국 담보가 있는 치료 단계">
+        <div class="bsub-top">
+          <button type="button" class="kpi bsub-t${focusSub === 2 ? ' is-on' : ''}" data-act="kpi" data-i="2" aria-pressed="${focusSub === 2}">
+            <span class="bsub-h">치료 여정 다섯 단계</span>
+            <span class="bsub-big num">${fmt(have)}<small>/${fmt(steps.length)}</small><em>단계 보유</em></span>
+          </button>
+          <div class="bsub-r">
+            ${ui.help('journey-grid', '치료 여정 격자')}
+            ${ui.scope('base')}
+            ${ui.btn('여정 격자', { sm: true, ghost: true, chev: true, attrs: 'data-go="cover" data-focus="journey"' })}
+          </div>
+        </div>
+        <div class="bsteps">${stepTiles}</div>
+        <div class="bstep-lg">
+          <span>우체국 보유 <b>${fmt(ours ? ours['전체'] : 0)}</b>개(금색 타일)</span>
+          <span class="orgs">${cols.map((x, i) => `<span class="oi"><i class="ob c${i}"></i>${esc(txt.orgShort(x['종형ID'].split('_')[0]))}</span>`).join('')}</span>
+        </div>
+      </section>
+      <section class="bsub bpair-box${focusSub === 1 ? ' is-on' : ''}" data-sub="1" aria-label="견준 공통 담보 쌍">
+        <div class="bsub-top">
+          <button type="button" class="kpi bsub-t${focusSub === 1 ? ' is-on' : ''}" data-act="kpi" data-i="1" aria-pressed="${focusSub === 1}">
+            <span class="bsub-h">견준 공통 담보 쌍</span>
+            <span class="bsub-big num">${fmt(cmpPairs)}<small>/${fmt(totalPairs)}</small><em>쌍</em></span>
+          </button>
+          <div class="bsub-r">
+            ${ui.help('caution-pending', '단정 주의와 검토 대기')}
+            ${ui.scope('base')}
+            ${ui.btn('담보 비교', { sm: true, ghost: true, chev: true, attrs: 'data-go="cover"' })}
+          </div>
+        </div>
+        <div class="bpair-bar" role="img" aria-label="${esc(`공통 담보 ${totalPairs}쌍 가운데 견준 쌍 ${cmpPairs}, 검토 대기 ${waitPairs}`)}">
+          <i class="bp-cmp" style="width:${cmpPct}%"></i><i class="bp-wait" style="width:${waitPct}%"></i>
+        </div>
+        <div class="bpair-cats">${catHTML}</div>
+        <div class="bpair-lg">
+          <span><i class="c"></i>견준 쌍 <b class="num">${fmt(cmpPairs)}</b></span>
+          <span><i class="w"></i>검토 대기로 뺀 쌍 <b class="num">${fmt(waitPairs)}</b></span>
+        </div>
+      </section>
+    </div>`;
+  }
+
+  function stageHTML(c) {
+    const off = !c.isRef;
+    return `<section class="panel bstage" id="brief-stage" aria-label="브리핑 도형 요약">
+      ${off ? `<p class="brief-off">지금 조건(${esc(App.condSummary().split(', 기준')[0])})은 대표 조건과 다릅니다. 메달 대표 값은 대표 조건 기준이고, 지도 칸의 지금 표지와 03번 메달 한도는 지금 조건을 따릅니다.</p>` : ''}
+      ${medalsHTML(c)}
+      <div class="bdeck">
+        ${map24HTML(c)}
+        ${sideDeckHTML(c)}
+      </div>
+      <div class="panel-f" id="brief-foot">${footText()}</div>
+    </section>`;
+  }
+
+  // ---------- 4. "문장으로 보기" 다섯 줄 목록 ----------
   function rowsHTML(c) {
     return brief(c).map(b => {
       const k = b['줄'];
@@ -2951,7 +3383,7 @@ App.registerTab((function () {
       const tab = App.TAB_BY_NAME[b['갈곳']] || 'brief';
       const flag = b['원문대조'] ? ui.flag(b['원문대조글'] || ui.FLAG_TEXT) : '';
       const extra = k === '다' ? limitLine(c) : '';
-      const ch = justChanged.has(k) ? `<span class="chg">${esc(lastNote.short)}</span>` : '';
+      const ch = justChanged.has(k) && lastNote.short ? `<span class="chg">${esc(lastNote.short)}</span>` : '';
       const n = String(ROW_NO[k]).padStart(2, '0');
       return `<li class="lrow brow${justChanged.has(k) ? ' just' : ''}" data-pick="${esc(k)}" data-scope="${b['범위'] === '전체 고객군' ? 'all' : 'base'}">
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${n} ${name}, ${b['범위']}. 근거 보기`)}"></button>
@@ -2970,33 +3402,77 @@ App.registerTab((function () {
       </li>`;
     }).join('');
   }
-  function refText(c) {
-    return `${c.ref['나이']}세 ${txt.sexText(c.ref['성별'])}, ${txt.sinceText(c.ref['이력'])}`;
-  }
   function rowsPanel(c) {
     const off = !c.isRef;
     return `<section class="panel brows" id="brief-rows" aria-labelledby="brief-rows-h">
       <div class="panel-h">
-        <div><span class="k">다섯 줄의 차례는 탭 차례와 같습니다</span><h2 id="brief-rows-h">분석 요약</h2></div>
-        <div class="r"><span>대표 조건 <b class="num" style="font-weight:600">${esc(refText(c))}</b></span><span>기준 종형 <b style="font-weight:600">${esc(txt.vkind(c.baseId))}</b></span>
-          <span class="live">${ui.btn('요약 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="brief-copy"' })}</span></div>
+        <div><span class="k">다섯 줄의 차례는 탭 차례와 같습니다</span><h2 id="brief-rows-h">분석 요약 전체 문장</h2></div>
       </div>
       ${off ? `<p class="brief-off">지금 조건(${esc(App.condSummary().split(', 기준')[0])})은 대표 조건과 다릅니다. 다섯 줄의 문장은 대표 조건으로 계산한 값이고, 지금 고객군의 관문은 위 범위 띠에, 지금 나이의 주계약 한도는 (다) 줄 아래에 있습니다.</p>` : ''}
       <ol class="lrows" data-pick-group="brief">${rowsHTML(c)}</ol>
-      <div class="panel-f" id="brief-foot">${footText(c)}</div>
+      <div class="panel-f" id="brief-foot">${footText()}</div>
     </section>`;
   }
-  function footText(c) {
-    const base = `${ui.scope('all')} 줄(가, 나)은 기준 종형과 조건을 바꿔도 그대로이고, ${ui.scope('base')} 줄(다, 라, 마)은 기준 종형을 따라 바뀝니다.`;
-    return (lastNote.long ? `<b style="font-weight:600">${esc(lastNote.long)}</b> ` : '') + base;
+  function footText() {
+    const base = `${ui.scope('all')} 항목(01, 02)은 기준 종형과 조건을 바꿔도 그대로이고, ${ui.scope('base')} 항목(03, 04, 05)은 기준 종형을 따라 바뀝니다.`;
+    return `<span>${(lastNote.long ? `<b style="font-weight:600">${esc(lastNote.long)}</b> ` : '') + base}</span>`;
   }
 
-  // ---------- 근거 기둥 ----------
+  // ---------- 5. 근거 기둥 ----------
   function sec(title, html, lo) { return `<div class="ev-sec${lo ? ' lo' : ''}">${title ? `<h3>${title}</h3>` : ''}${html}</div>`; }
   function pointItem(id) {
     const p = S['포인트'][id]; if (!p) return '';
     return `<li class="pt"><span class="tag">${esc(p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p></li>`;
   }
+  function segStrip(gv) {
+    const lab = gv['라벨별'] || {};
+    const list = [];
+    for (const l of MAP_LABELS) for (let i = 0; i < (lab[l] || 0); i++) list.push(ui.MAP_CLS[l]);
+    return list;
+  }
+  function pickedSegSec(c) {
+    if (!focusSeg) return '';
+    const m = App.mapOf(null);
+    const row = m['행'][focusSeg.ri], col = m['열'][focusSeg.ci];
+    const cell = (m['칸'][focusSeg.ri] || [])[focusSeg.ci];
+    if (!row || !col || !cell) return '';
+    const midAge = Math.min(80, Math.max(15, Math.round((col.lo + col.hi) / 2)));
+    const since = row.since === 5 ? null : row.since;
+    const surg = row['종류'] === '수술만' && since != null;
+    const go = cell['관문만수집'] || [];
+    const orgTxt = txt.ORG_ORDER.filter(o => o in cell['회사']).map(o => `${txt.orgShort(o)} ${cell['회사'][o]}`).join(', ');
+    return sec(`고른 격자 칸: ${esc(row['이름'])}, ${col.lo}~${col.hi}세`,
+      `<p>${ui.swatch(cell['라벨'])} <b style="font-weight:600">${esc(cell['라벨'])}</b>${cell['보조'] ? ` (${esc(cell['보조'])})` : ''}. ${esc(orgTxt)}.</p>`
+      + (go.length ? `<p class="note">${esc(go.map(g => `${g['이름']}: ${g['안내'] || '관문만 수집(담보 미수집)'}`).join(', '))}</p>` : '')
+      + ui.btn('이 고객군으로 조건 바꾸기', { sm: true, attrs: `data-act="brief-apply-seg" data-age="${midAge}" data-since="${since == null ? '' : since}" data-surg="${surg ? '1' : '0'}"` }));
+  }
+
+  function subEvSpec(i, c) {
+    if (i === 0) return pick('가', c);
+    if (i === 1) {
+      const ra = line(c, '라');
+      const rv = ra ? ra['값'] : {};
+      const p = c.base['보류요약'] || {};
+      const why = p['사유별'] || {};
+      const whyT = Object.entries(why).map(([a, b]) => `${a} ${fmt(b)}`).join(', ');
+      const whySum = Object.values(why).reduce((a, b) => a + b, 0);
+      let body = sec('', `<p>${esc(ra ? ra['문장'] : '')}</p>`);
+      body += sec('공통 담보 쌍의 구성', ui.eq({ total: { t: '공통 담보', n: rv['공통담보쌍'] }, parts: [{ t: '견줌', n: rv['견준쌍'] }, { t: '검토 대기로 뺌', n: rv['뺀비교쌍'] }], tail: '쌍' })
+        + (whyT ? `<div class="nadd">검토 대기 사유는 ${esc(whyT)}입니다. 한 쌍에 두 사유가 함께 들 수 있어 더하면 ${txt.josa(fmt(whySum), '으로')} ${fmt(rv['뺀비교쌍'])}보다 큽니다.</div>` : ''));
+      body += sec('', ui.btn('담보 비교 탭에서 자세히', { main: true, chev: true, attrs: 'data-go="cover"' }), true);
+      return { kicker: '하단 도형 02', title: '견준 공통 담보 쌍', badges: [ui.scope('base')], body };
+    }
+    const j = c.base['치료여정'];
+    const steps = j['열'] || [];
+    const cols = j['종형'] || [];
+    const ours = cols.find(x => x['종형ID'] === c.baseId) || cols[0];
+    const parts = steps.map(s => ({ t: s, n: ours['합계'][s] || 0 })).concat(ours['기타'] ? [{ t: '기타', n: ours['기타'] }] : []);
+    let body = sec('치료 여정 다섯 단계', ui.eq({ total: { t: '우체국 담보', n: ours['전체'] }, parts, tail: '개' })
+      + `<div class="nadd">회사별 담보 수(${cols.map(x => `${esc(txt.orgShort(x['종형ID'].split('_')[0]))} ${fmt(x['전체'])}`).join(', ')})는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>`);
+    body += sec('', ui.btn('치료 여정 격자 보기', { main: true, chev: true, attrs: 'data-go="cover" data-focus="journey"' }), true);
+    return { kicker: '하단 도형 03', title: '치료 여정 다섯 단계', badges: [ui.scope('base')], body };
+  }
+
   function pick(key, c) {
     const b = line(c, key); if (!b) return null;
     const v = b['값'] || {};
@@ -3005,7 +3481,7 @@ App.registerTab((function () {
     const tab = App.TAB_BY_NAME[b['갈곳']];
     const goBtn = ui.btn(`${b['갈곳']} 탭에서 자세히`, { main: true, chev: true, attrs: `data-go="${tab}"${ROW_FOCUS[key] ? ` data-focus="${ROW_FOCUS[key]}"` : ''}` });
     const head = sec('', `<p>${esc(b['문장'])}</p>${b['원문대조'] ? `<p>${ui.flagText(b['원문대조글'])}</p>` : ''}`);
-    let body = head;
+    let body = (key === '가' ? pickedSegSec(c) : '') + head;
     if (key === '가') {
       const lab = v['라벨별'] || {};
       const m = App.mapOf(null);
@@ -3056,76 +3532,111 @@ App.registerTab((function () {
     return { kicker: `${String(ROW_NO[key]).padStart(2, '0')} ${b['범위']}`, title: name, badges: [scopeB], body };
   }
 
-  // ---------- 그리기 ----------
+  // ---------- 6. 그리기와 상호작용 ----------
   function render(body, c) {
-    if (c.aside) c.aside.innerHTML = kpiTabs(c);
-    body.innerHTML = `<div class="kpi-detail panel slate" id="kpi-detail" role="tabpanel" aria-labelledby="kpi-${kpiData(c)[kpiSel].key}">${kpiDetail(c)}</div>${rowsPanel(c)}`;
+    if (c.aside) c.aside.innerHTML = headAsideHTML(c);
+    body.innerHTML = viewMode === 'medal' ? stageHTML(c) : rowsPanel(c);
     bind(body, c);
     lastBase = c.baseId;
   }
+
+  function setKpi(i) {
+    focusSub = i;
+    const view = document.getElementById('view-brief');
+    if (!view) return;
+    view.querySelectorAll('.bsub').forEach(el => el.classList.toggle('is-on', +el.dataset.sub === i));
+    view.querySelectorAll('[data-act="kpi"]').forEach(b => {
+      const on = +b.dataset.i === i;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    App.ev.show(subEvSpec(i, App.ctx()), { open: false });
+  }
+
   function bind(body, c) {
     const aside = c.aside;
     if (aside && !aside._b) {
       aside._b = true;
       aside.addEventListener('click', e => {
-        const b = e.target.closest('[data-act="kpi"]'); if (!b) return;
-        setKpi(+b.dataset.i, true);
-      });
-      aside.addEventListener('keydown', e => {
-        if (!e.target.closest('[data-act="kpi"]')) return;
-        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-        if (!d) return;
-        e.preventDefault(); setKpi((kpiSel + d + 3) % 3, true);
-        const nb = aside.querySelector(`[data-i="${kpiSel}"]`); if (nb) nb.focus();
-      });
-    }
-    if (!body._b) {
-      body._b = true;
-      body.addEventListener('click', e => {
+        if (e.target.closest('[data-act="brief-mode"]')) {
+          viewMode = viewMode === 'medal' ? 'list' : 'medal';
+          const cc = App.ctx();
+          render(body, Object.assign(cc, { aside }));
+          const curSel = App.state.sel.brief;
+          if (curSel != null) App.select(curSel, { open: false, reveal: false, animate: false });
+          if (viewMode === 'medal' && App.motionOn()) ui.drawRings(body);
+          return;
+        }
         if (e.target.closest('[data-act="brief-copy"]')) {
           const cc = App.ctx();
           App.copyRows(['줄', '구역', '범위', '문장', '갈 곳'], brief(cc).map(b => [`(${b['줄']})`, b['구역'] || ROW_NAME[b['줄']], b['범위'], b['문장'] + (b['원문대조'] ? ` [${b['원문대조글']}]` : ''), b['갈곳']]), { title: '브리핑 분석 요약' });
         }
       });
     }
+    if (!body._b) {
+      body._b = true;
+      body.addEventListener('click', e => {
+        const kb = e.target.closest('[data-act="kpi"]');
+        if (kb) { setKpi(+kb.dataset.i); return; }
+        const mc = e.target.closest('[data-act="bmap-cell"]');
+        if (mc) {
+          focusSeg = { ri: +mc.dataset.ri, ci: +mc.dataset.ci };
+          body.querySelectorAll('.bm-cell').forEach(el => el.classList.toggle('is-focus', el === mc));
+          App.select('가', { reveal: false });
+        }
+      });
+    }
+    if (!document._briefEvBound) {
+      document._briefEvBound = true;
+      document.addEventListener('click', e => {
+        const ab = e.target.closest('[data-act="brief-apply-seg"]');
+        if (!ab) return;
+        const age = parseInt(ab.dataset.age, 10);
+        const since = ab.dataset.since === '' ? null : parseFloat(ab.dataset.since);
+        const surg = ab.dataset.surg === '1';
+        App.set({ age, since, surg });
+      });
+      // 메달을 고를 때 그 메달의 고리가 채워지는 움직임
+      App.on('select', (tab, key) => {
+        if (tab !== 'brief' || !key || !App.motionOn()) return;
+        const view = document.getElementById('view-brief');
+        const el = view && view.querySelector(`.bmedal[data-pick="${CSS.escape(key)}"]`);
+        if (el) ui.drawRings(el);
+      });
+    }
   }
-  function setKpi(i, user) {
-    kpiSel = i;
-    const c = App.ctx();
-    const view = document.getElementById('view-brief');
-    const aside = view.querySelector('.vhead-aside');
-    aside.querySelectorAll('[data-act="kpi"]').forEach((b, j) => {
-      const on = j === i;
-      b.classList.toggle('is-on', on); b.classList.toggle('on-slate', on);
-      b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
-    });
-    const d = view.querySelector('#kpi-detail');
-    d.innerHTML = kpiDetail(c);
-    d.setAttribute('aria-labelledby', 'kpi-' + kpiData(c)[i].key);
-    if (App.motionOn()) { d.classList.remove('kd-in'); void d.offsetWidth; d.classList.add('kd-in'); }
-    if (user && App.mode() === 'sheet') App.reveal(d);
-  }
+
   function update(body, c) {
-    // 기준 종형이 바뀌면 선택 종형 줄(다, 라, 마)만 바뀐다는 것을 보인다(R11)
     justChanged.clear();
     if (c.changed.has('base') && lastBase && lastBase !== c.baseId) {
       brief(c).forEach(b => { if (b['범위'] !== '전체 고객군') justChanged.add(b['줄']); });
       const from = txt.vkind(lastBase), to = txt.vkind(c.baseId);
-      lastNote = { short: '다시 계산', long: `기준 종형을 ${from}에서 ${txt.josa(to, '으로')} 바꿨습니다. 선택 종형 줄 셋은 다시 셌고 전체 고객군 줄 둘은 그대로입니다.` };
+      lastNote = { short: '다시 계산', long: `기준 종형을 ${from}에서 ${txt.josa(to, '으로')} 바꿨습니다. 선택 종형 항목 셋은 다시 셌고 전체 고객군 항목 둘은 그대로입니다.` };
     } else if (['age', 'sex', 'since', 'surg'].some(k => c.changed.has(k))) {
-      lastNote = { short: '', long: '조건을 바꿔도 다섯 줄의 문장은 대표 조건 기준이라 그대로입니다. 바뀐 것은 범위 띠의 관문 한 줄과 (다) 줄 아래의 지금 나이 한도입니다.' };
-      if (!c.isRef) justChanged.add('다');
-      if (justChanged.has('다')) lastNote.short = '지금 조건 반영';
+      lastNote = { short: '', long: '조건을 바꿔도 메달의 대표 값은 대표 조건 기준이라 그대로입니다. 바뀐 것은 범위 띠, 24칸 격자의 지금 표지, 03번 메달의 지금 나이 한도입니다.' };
+      if (!c.isRef) { justChanged.add('다'); lastNote.short = '지금 조건 반영'; }
     } else if (c.changed.has('renewal')) {
-      lastNote = { short: '', long: '갱신 유형 거르개는 고객군 지도 탭에만 씁니다. 브리핑의 (가) 줄과 첫 고리는 갱신 유형 전체 기준입니다.' };
+      lastNote = { short: '', long: '갱신 유형 거르개는 고객군 지도 탭에만 씁니다. 브리핑의 01번 메달과 24칸 격자는 갱신 유형 전체 기준입니다.' };
     }
     render(body, c);
-    if (justChanged.size && App.motionOn()) App.ui.drawRings(c.aside);
+    if (justChanged.size && App.motionOn() && viewMode === 'medal') {
+      justChanged.forEach(k => {
+        const el = body.querySelector(`.bmedal[data-pick="${CSS.escape(k)}"]`);
+        if (el) ui.drawRings(el);
+      });
+    }
     return true;
   }
+
+  let enterTimer = 0;
   function enter(body, c) {
-    const d = body.querySelector('#kpi-detail');
-    if (d && App.motionOn()) { d.classList.remove('kd-in'); void d.offsetWidth; d.classList.add('kd-in'); }
+    const view = document.getElementById('view-brief');
+    if (!view || !App.motionOn()) return;
+    clearTimeout(enterTimer);
+    view.classList.remove('b-enter');
+    void view.offsetWidth;
+    view.classList.add('b-enter');
+    enterTimer = setTimeout(() => view.classList.remove('b-enter'), 580);
   }
 
   return { id: 'brief', kicker: '분석 요약', render, update, pick, enter };

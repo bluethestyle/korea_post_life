@@ -143,7 +143,7 @@
     surg: false,
     base: BASES[0]['종형ID'],
     renewal: null,
-    sel: {},
+    sel: { brief: '가' },
     skin: 'light',
     motion: 'on',
   };
