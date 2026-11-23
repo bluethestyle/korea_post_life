@@ -2526,7 +2526,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const t = (S['한도표'] || []).find(x => x['종형ID'] === s.base);
     if (!t) return null;
     const seg = (t['구간'][s.sex] || []);
-    const hit = seg.find(g => s.age >= g.lo && g.age <= g.hi);
+    const hit = seg.find(g => s.age >= g.lo && s.age <= g.hi);
     const lo = seg.length ? seg[0].lo : null, hi = seg.length ? seg[seg.length - 1].hi : null;
     return { table: t, hit: hit || null, lo, hi };
   }
@@ -5050,7 +5050,7 @@ App.registerTab((function () {
   };
   const jo = (word, p) => txt.josa(word, p).slice(String(word).length);
   const man = v => (v == null ? '' : `${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}만원`);
-  const condText = () => App.condSummary().split(', 기준')[0];
+  const condText = () => App.condSegOnly();
 
 
   // ---------- 관문 자료 찾기 ----------
@@ -6378,7 +6378,7 @@ App.registerTab((function () {
   // ---------- 응대 카드 ----------
   function gateLine(c) {
     const g = c.seg;
-    const who = App.condSummary().split(', 기준')[0];
+    const who = App.condSegOnly();
     if (!g.cell) return `${who}: ${g.reason}${g.sexNote ? ` ${g.sexNote}` : ''}`;
     const cell = g.cell;
     const st = txt.ORG_ORDER.filter(o => o in cell['회사']).map(o => `${txt.orgShort(o)} ${cell['회사'][o]}`).join(', ');
@@ -6423,7 +6423,7 @@ App.registerTab((function () {
     return `<div class="rcard ins-card" id="insight-card" aria-label="응대 카드 미리 보기">
       <div class="icd-nt no-print"><span>${esc(S['고지'])}</span><span class="icd-mk">${esc(MARK)}</span></div>
       <span class="k">응대 카드, 지금 조건과 기준 종형</span>
-      <h3>우체국 ${esc(kindN(c.baseId))}<br><span class="gold-t">${esc(App.condSummary().split(', 기준')[0])}</span></h3>
+      <h3>우체국 ${esc(kindN(c.baseId))}<br><span class="gold-t">${esc(App.condSegOnly())}</span></h3>
       <div class="sec">조건과 견준 상품</div>
       <p class="icd-sm">기준 ${esc(txt.josa(`${fullN(c.baseId)}(${vinfo(c.baseId)['적용시작일'] || '기준일 자료 없음'})`, '와'))} ${esc(txt.josa(peers, '를'))} 견줬습니다. 자료 기준 ${esc(App.asofText())}.</p>
       <div class="sec">가입 관문</div>
@@ -6487,7 +6487,7 @@ App.registerTab((function () {
   }
   function refNote(c) {
     const parts = [];
-    if (!c.isRef) parts.push(`지금 조건(${App.condSummary().split(', 기준')[0]})을 바꿔도 다섯 분류의 문장은 대표 조건(${c.ref['나이']}세 ${txt.sexText(c.ref['성별'])}, ${txt.sinceText(c.ref['이력'])}) 기준이라 그대로입니다. 응대 카드의 가입 관문과 구성 요약은 지금 조건으로 바뀝니다.`);
+    if (!c.isRef) parts.push(`지금 조건(${App.condSegOnly()})을 바꿔도 다섯 분류의 문장은 대표 조건(${c.ref['나이']}세 ${txt.sexText(c.ref['성별'])}, ${txt.sinceText(c.ref['이력'])}) 기준이라 그대로입니다. 응대 카드의 가입 관문과 구성 요약은 지금 조건으로 바뀝니다.`);
     if (c.st.renewal) parts.push('갱신 유형 거르개는 고객군 지도에만 씁니다.');
     return parts.length ? `<p class="ins-ref">${esc(parts.join(' '))}</p>` : '';
   }

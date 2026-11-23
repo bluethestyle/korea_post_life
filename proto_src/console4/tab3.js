@@ -27,7 +27,7 @@ App.registerTab((function () {
   };
   const jo = (word, p) => txt.josa(word, p).slice(String(word).length);
   const man = v => (v == null ? '' : `${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}만원`);
-  const condText = () => App.condSummary().split(', 기준')[0];
+  const condText = () => App.condSegOnly();
 
 
   // ---------- 관문 자료 찾기 ----------

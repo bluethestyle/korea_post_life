@@ -503,7 +503,7 @@
     const t = (S['한도표'] || []).find(x => x['종형ID'] === s.base);
     if (!t) return null;
     const seg = (t['구간'][s.sex] || []);
-    const hit = seg.find(g => s.age >= g.lo && g.age <= g.hi);
+    const hit = seg.find(g => s.age >= g.lo && s.age <= g.hi);
     const lo = seg.length ? seg[0].lo : null, hi = seg.length ? seg[seg.length - 1].hi : null;
     return { table: t, hit: hit || null, lo, hi };
   }
