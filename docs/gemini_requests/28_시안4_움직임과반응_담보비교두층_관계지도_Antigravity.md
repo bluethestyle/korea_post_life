@@ -16,7 +16,7 @@
 
 Antigravity에 이 한 줄을 넣습니다.
 
-> `git fetch origin` 뒤 새 가지 `antigravity/console4-motion`을 만든다. PR 6번이 `main`에 합쳐져 있으면 `origin/main`에서, 아직이면 `antigravity/console4-reframe`에 `origin/main`을 합친 자리에서 딴다. `docs/gemini_requests/28_시안4_움직임과반응_담보비교두층_관계지도_Antigravity.md`를 읽고 "하는 차례"대로, 차례마다 커밋을 나눠 진행하라.
+> PR 6번은 `main`에 합쳐졌다. `git fetch origin` 뒤 `origin/main`에서 새 가지 `antigravity/console4-motion`을 만들고, `docs/gemini_requests/28_시안4_움직임과반응_담보비교두층_관계지도_Antigravity.md`를 읽어 "하는 차례"대로, 차례마다 커밋을 나눠 진행하라.
 
 ---
 
@@ -139,7 +139,8 @@ Antigravity에 이 한 줄을 넣습니다.
 ### 4.1 자료
 
 - `proto_src/graph/graph.json`(규약 `proto_src/graph/API.md`)을 `build.py`가 `console4.html`에 함께 싣습니다(싣는 자리를 더하는 수정만. 관계 지도 탭을 처음 열 때 읽어도 됩니다). 화면 파일의 크기 기준은 없앴습니다(시험은 50MB만 봅니다).
-- 지금 `graph.json`은 견줄 종형 여섯만 싣습니다. Claude가 화면에 올린 회사의 종형 전부를 싣고, 종형마다 가진 표준담보 목록과 분야별 수 같은 요약을 함께 싣도록 넓히는 중입니다. `main`에 올라오면 API.md에 적힙니다. 그 전에는 지금 자료로 만들되, 수는 자료의 목록 길이만 쓰고 화면이 판정이나 보유를 다시 계산하지 않습니다.
+- `graph.json`은 화면에 올린 회사의 종형 전부(지금 23개)를 싣습니다(노드 9,509개, 엣지 13,802개, 약 3.06MB. 2026-11-23에 넓혔습니다). 화면이 세지 않아도 되게 `summary`가 함께 실려 있습니다: 종형마다 가진 표준담보 목록(`종형[종형ID].표준담보`)과 보장분야별 수(`보장분야별`), 표준담보로 이어지지 못한 급부 수와 사유(`미연결급부`, `미연결사유`), 표준담보마다 가진 종형(`표준담보별종형`), 기준 종형과 맞붙는 종형(`기준종형`, `맞붙는종형`. `sales.json`과 같은 값). 종형ID와 표준담보ID는 `sales.json`, `cover.json`의 열쇠와 같은 글자입니다. 뜻은 `proto_src/graph/API.md`의 요약 절에 있습니다. 수는 이 요약의 값을 그대로 쓰고 화면이 판정이나 보유를 다시 계산하지 않습니다.
+- 그래프에는 `sales.json`에 없는 종형 넷(판매를 마친 우체국의 직전 개정 종형 셋, 한화생명의 관문만 수집한 10년형)도 있습니다. 처음 상태에는 기준 종형과 맞붙는 종형만 놓고, 나머지는 회사 노드에서 펼쳤을 때 나오게 합니다(요약의 `비교역할`, `판매종료일`로 가립니다).
 - 노드 일곱 종류(소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야)와 엣지 여섯 종류(판매, 포함, 해당, 속함, 관계, 일으킴)의 속성은 API.md의 표에 있습니다.
 
 ### 4.2 구성
@@ -177,7 +178,7 @@ Antigravity에 이 한 줄을 넣습니다.
 - 고칠 수 있는 파일: `proto_src/console4/`의 화면 원본(`tpl.html`, `style.css`, `core.js`, `tab1.js`~`tab5.js`와 css, `tab4.src.js`), 관계 지도용 새 탭 파일, `shoot.py`, `build.py`(새 탭 파일과 `graph.json`을 싣는 자리를 더하는 수정만. 지금 있는 검사는 지우거나 느슨하게 하지 않습니다), `docs/antigravity_log.md`.
 - 고치면 안 되는 파일: 자료(`proto_src/console4/*.json`, `proto_src/graph/graph.json`, `tab3.js`의 자료 줄), `API.md`, `src/`, `scripts/`, `tests/`, `data/`, `site/index.html`. 시험이 새 탭 파일이나 `graph.json` 싣기 때문에 깨지면 시험을 고치지 말고 PR 글에 적어 주세요. Claude가 맞춥니다.
 - `site/proto/console4.html`은 `python proto_src/console4/build.py`로 다시 만듭니다. 손으로 합치지 않습니다.
-- 파일의 줄바꿈은 LF로 둡니다. PR 6번에서 `tab3.js`, `tab5.js`, `tab5.css`, `shoot.py`가 CRLF로 올라왔습니다. Claude가 `main`에서 LF로 바로잡습니다.
+- 파일의 줄바꿈은 LF로 둡니다. PR 6번에서 `tab3.js`, `tab5.js`, `tab5.css`, `shoot.py`가 CRLF로 올라와서 `main`에서 LF로 바로잡고 `.gitattributes`를 더했습니다.
 
 ## 6. 끝내는 기준
 
@@ -192,5 +193,5 @@ Antigravity에 이 한 줄을 넣습니다.
 
 ## 따로 올 것
 
-- PR 6번의 화면별 검수 결과(점검이 끝나는 대로 목록으로 올립니다). 이번 일과 같은 파일이라 이 가지에서 함께 고치면 됩니다.
+- PR 6번의 화면별 검수 결과는 요청 30으로 올립니다. 이번 일과 같은 파일이라 이 가지에서 함께 고치면 됩니다.
 - 발표 영상(PR 7번)의 사실 자료와 고칠 곳은 다른 문서로 올립니다.
