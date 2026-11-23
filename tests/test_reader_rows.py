@@ -269,6 +269,110 @@ def test_no_row_lines_still_check_waiting_days_and_limits():
     assert "구절없음: 한도 최초 1회" in RR.machine_checks(c, {**full, "한도": [{"앞말": "최초", "수": 1, "단위": "회"}]})[0]
 
 
+MISSED_CUT = "빠진 값: 감액을 가리키는 말이 있는데 감액이 비어 있음"
+MISSED_LIMIT = "빠진 값: 한도를 가리키는 말이 있는데 한도가 비어 있음"
+
+
+def test_cut_written_as_a_proviso_is_missed_when_left_empty():
+    # 두 판독이 함께 빠뜨린 단서의 감액은 견줌으로 잡히지 않는다. 글자에 감액을 가리키는 말이 있으면 표시
+    c = RR.CoverView("R009-1", "가나진단비", "보험기간 중 가나병으로 진단확정시. 단, 다라병은 1년미만 50% 지급", "가입금액", 3)
+    assert MISSED_CUT in RR.machine_checks(c, reading("R009-1"))[1]
+    cut = reading("R009-1", 감액=[{"기간": 1, "단위": "년", "값": 50, "값기준": "가입금액"}], 감액대상="다라병")
+    assert MISSED_CUT not in RR.machine_checks(c, cut)[1]
+    # 감액 칸을 모름으로 두면 표시하지 않는다(모름은 따로 판정필요다)
+    unknown = reading("R009-1", 모름=[{"칸": "감액", "이유": "단서가 어느 대상에 걸리는지 모름"}])
+    assert MISSED_CUT not in RR.machine_checks(c, unknown)[1]
+    amount = RR.CoverView("R009-2", "가나수술비", "가나병으로 수술시", "가입금액(가입 후 1년 경과시점 전일 이전 가입금액의 50%)", 3)
+    assert MISSED_CUT in RR.machine_checks(amount, reading("R009-2"))[1]
+
+
+def test_words_that_are_not_a_cut_are_not_marked():
+    # 진단 뒤의 기간, 나이, 사고 뒤의 날수, "감액기간 없음"은 감액이 아니다
+    for reason in ("「보험금지급기간」 이내에 가나치료를 받은 경우",
+                   "보험계약일을 기준으로 15세 미만인 경우 보험기간 중 가나병으로 진단확정시",
+                   "사고일로부터 180일 이내 치료를 목적으로 수술을 받은 경우",
+                   "가나 사고로 인한 경우 감액기간 없음"):
+        c = RR.CoverView("R009-1", "가나 치료비", reason, "가입금액", 3)
+        assert MISSED_CUT not in RR.machine_checks(c, reading("R009-1"))[1], reason
+
+
+def test_cut_words_in_the_appended_remark_are_not_the_line_evidence():
+    remark = "\n※ 가나보장개시일은 계약일부터 90일이 지난 다음날(1년 미만 50% 지급)"
+    c = RR.CoverView("R009-1", "가나 치료비", "보험기간 중 다라병으로 치료를 받은 경우" + remark, "가입금액", 3)
+    assert MISSED_CUT not in RR.machine_checks(c, reading("R009-1"))[1]
+
+
+def test_limit_words_left_empty_are_marked():
+    c = RR.CoverView("R009-1", "가나화상진단비", "가나화상 진단확정시(단, 같은 사고로 둘 이상이면 1회에 한하여 지급)", "가입금액", 3)
+    assert MISSED_LIMIT in RR.machine_checks(c, reading("R009-1"))[1]
+    d = RR.CoverView("R009-2", "가나 통원일당", "가나병으로 통원한 경우 통원 1회당 지급", "가입금액(연간 30일 한도)", 3)
+    marks = RR.machine_checks(d, reading("R009-2", 지급단위="1회당"))[1]
+    assert MISSED_LIMIT in marks
+    assert MISSED_LIMIT not in RR.machine_checks(d, reading("R009-2", 지급단위="1회당",
+                                                            한도=[{"앞말": "연간", "수": 30, "단위": "일"}]))[1]
+    # 돈의 한도에는 수가 붙지 않는다
+    e = RR.CoverView("R009-3", "가나 치료비", "가나병 치료시 항목별 금액 지급", "연간 총지급액 한도 이내", 3)
+    assert MISSED_LIMIT not in RR.machine_checks(e, reading("R009-3"))[1]
+
+
+def test_no_row_item_tables_keep_limits_per_item():
+    # 칸 안 표의 항목마다 걸린 한도는 그 줄의 한도가 아니다. 다른 행없음 줄은 한도를 본다
+    c = RR.CoverView("R009-1", "가나 통합치료비", "가나병 치료시 아래 항목별 금액 지급\n가나수술(연간 1회한)", "항목별 지급금액", 3)
+    items = {**RR.DEFAULTS, "번호": "R009-1", "쪽": 3, "꼴": RR.NO_ROW, "행없음사유": "항목별금액표"}
+    assert MISSED_LIMIT not in RR.machine_checks(c, items)[1]
+    assert MISSED_LIMIT in RR.machine_checks(c, {**items, "행없음사유": "회차별지급률"})[1]
+    # 행없음 줄은 감액을 보지 않는다
+    d = RR.CoverView("R009-2", "가나 치료비", "가나병 치료시", "회차별 금액(1년 미만 50% 지급)", 3)
+    assert MISSED_CUT not in RR.machine_checks(d, {**items, "번호": "R009-2", "행없음사유": "회차별지급률"})[1]
+
+
+def test_named_start_in_the_amount_cell_wants_waiting_days():
+    c = RR.CoverView("R009-1", "가나 진단비", "가나병으로 진단확정시", "가나보장개시일 이후 가입금액", 3)
+    assert "지급금액 칸이 이름이 붙은 보장개시일을 가리키는데 면책일수가 0" in RR.machine_checks(c, reading("R009-1"))[1]
+
+
+def test_name_marks_must_agree_with_the_values():
+    name = "가나통원일당(연간30회한)/갱신형 가나통원일당(연간30회한)"
+    c = RR.CoverView("R009-1", name, "가나병으로 통원한 경우 통원 1회당 지급(연간 30일 한도)", "가입금액", 3)
+    marks = RR.machine_checks(c, reading("R009-1", 지급단위="1회당", 한도=[{"앞말": "연간", "수": 30, "단위": "일"}]))[1]
+    # 이은 이름에서 같은 표식이 두 번 나와도 한 번만 낸다. 일당 이름의 1회당은 칸에 적힌 단위라 걸지 않는다
+    assert marks == ["이름 표식: 이름에 연간 30회 한도가 있는데 한도에 없음"]
+    named = reading("R009-1", 지급단위="1회당", 한도=[{"앞말": "연간", "수": 30, "단위": "회"}])
+    assert not [m for m in RR.machine_checks(c, named)[1] if m.startswith("이름 표식")]
+    lump = RR.CoverView("R009-2", "가나입원일당", "가나병으로 입원한 경우", "가입금액", 3)
+    assert "이름 표식: 이름에 일당이 있는데 지급단위가 비어 있음" in RR.machine_checks(lump, reading("R009-2"))[1]
+    free = RR.CoverView("R009-3", "가나진단비(감액및면책기간미적용)", "보험기간 중 가나병으로 진단확정시(최초 1회한)",
+                        "가입금액(1년 미만 가입금액의 50%)", 3)
+    v = reading("R009-3", 한도=[{"앞말": "최초", "수": 1, "단위": "회"}])
+    assert not [m for m in RR.machine_checks(free, v)[1] if m.startswith("이름 표식")]
+    cut = {**v, "감액": [{"기간": 1, "단위": "년", "값": 50, "값기준": "가입금액"}]}
+    assert "이름 표식: 이름에 감액 미적용이 있는데 감액이 있음" in RR.machine_checks(free, cut)[1]
+    waits = {**v, "면책일수": 90, "보장개시일": "가나보장개시일"}
+    assert "이름 표식: 이름에 면책기간 미적용이 있는데 면책일수가 있음" in RR.machine_checks(free, waits)[1]
+    days = RR.CoverView("R009-4", "가나입원일당(1일이상 180일한도)", "가나병으로 입원한 경우 1일당 지급", "가입금액", 3)
+    assert "이름 표식: 이름에 180일 한도가 있는데 한도에 없음" in RR.machine_checks(days, reading("R009-4", 지급단위="1일당"))[1]
+
+
+def test_name_marks_read_the_piece_title_too():
+    c = RR.CoverView("R009-1", "다라병", "보험기간 중 다라병으로 진단확정시(최초 1회한)", "가입금액", 3)
+    p = RR.PieceView(9, "가나진단비(최초1회한)", (), "", "", 3, 3, (c,))
+    assert RR.name_marks(p, c)["한도"] == [("최초", 1, "회")]
+    assert "이름 표식: 이름에 최초 1회 한도가 있는데 한도에 없음" in RR.machine_checks(c, reading("R009-1"), p)[1]
+    assert RR.machine_checks(c, reading("R009-1", 한도=[{"앞말": "최초", "수": 1, "단위": "회"}]), p) == ([], [])
+
+
+def test_compare_bundle_does_not_confirm_a_value_both_readers_missed():
+    bundle = {"형식": RR.BUNDLE_FORMAT, "묶음": "T_B01", "조각": [
+        {"조각번호": "R001", "쪽": [3, 3], "특약명": "가나진단비", "세부보장": [
+            {"번호": "R001-1", "쪽": 3, "세부보장명": "가나진단비", "지급사유": "가나병 진단확정시. 단, 다라병은 1년미만 50% 지급",
+             "지급금액": "가입금액"}]}]}
+    same = {"형식": RR.FORMAT, "값": [{"번호": "R001-1", "쪽": 3, "꼴": RR.RATIO, "지급률": 100}]}
+    result = compare_readers.compare_bundle(bundle, {"sonnet": same, "opus": same}, ["sonnet", "opus"])
+    line = result["줄"][0]
+    assert line["일치"]["감액"] == RR.SAME and line["자동판정"] == RR.NEEDS_JUDGE
+    assert MISSED_CUT in line["기계검사"]["sonnet"]["표시"]
+
+
 def test_limit_and_unit_phrases_are_cut_from_the_text():
     p = views()[2]
     c = p.covers[2]

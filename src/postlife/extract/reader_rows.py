@@ -607,7 +607,15 @@ def exception_cell(v: Mapping[str, Any], cover: CoverView, piece: PieceView | No
 _PERCENT = re.compile(r"(?<![\d.])(\d+(?:\.\d+)?)\s*%(?!\s*(?:이상|미만|초과|이하))")
 _WAIT_DAYS = (re.compile(r"보장개시일[^※\n]{0,60}?(\d+)(일|개월|년)"), re.compile(r"(\d+)(일|개월|년)이(?:지난|경과)"))
 _PAGE_REACH = 120           # 쪽 글자에서 보장개시일 이름 뒤로 날수를 찾는 거리. 표가 풀리며 옆 칸 글자가 끼어든다
-_CUT_SIGN = re.compile(r"경과(?:암진단)?시점전일이전|\d+(?:일|년)미만시|감액지급")
+# 감액을 가리키는 말(빈칸을 뗀 글에서). 계약일부터의 기간 뒤에 "이전, 미만, 이내"가 오고 30자 안에 비율이나 금액이 붙은 말,
+# "N% 감액", "감액 지급", "경과시점 전일"(표가 풀려 "전일이"에서 끊긴 꼴도). "보험금지급기간」이내"나 "사고일로부터 180일
+# 이내 치료"처럼 뒤에 비율이 붙지 않는 "이내", "15세 미만"처럼 기간이 아닌 "미만", "감액기간 없음"은 걸리지 않는다
+_CUT_HINT = re.compile(r"\d+(?:년|개월|일)(?:경과[가-힣]{0,6}?시점)?(?:전일)?(?:이전|미만|이내)[^%]{0,30}?"
+                       r"\d+(?:\.\d+)?(?:%|만원|원)|\d+(?:일|년)미만시|\d+(?:\.\d+)?%감액|감액지급|경과(?:암진단)?시점전일")
+# 한도를 가리키는 말(빈칸을 뗀 글에서). "연간 총지급액 한도"처럼 돈의 한도는 수가 붙지 않아 걸리지 않는다
+_LIMIT_HINT = re.compile(r"\d+회한|\d+회에한|\d+일(?:을)?한도|최초\d+회|(?:연간|월간)\d+(?:회|일)|\d+(?:회|일)까지")
+# 한도가 줄 전체가 아니라 칸 안 표의 항목마다 걸리는 행없음사유. 한도 표시를 보지 않는다
+_ITEM_TABLES = ("가입금액구간별금액표", "항목별금액표")
 
 
 def _fmt(x: float) -> str:
@@ -850,8 +858,6 @@ def _check_numbers(cover: CoverView, v: Mapping[str, Any], piece: PieceView | No
                     problems.append(f"범위: 감액 기간 {months}개월")
             if len(steps) == 2 and not (steps[0][0] < steps[1][0] and steps[0][1] <= steps[1][1]):
                 problems.append("범위: 두 감액 구간의 기간이 겹치거나 짧은 기간의 비율이 더 큼")
-        if not v.get("감액") and _CUT_SIGN.search(_squash(cover.amount)):
-            marks.append("감액 문구가 있는데 감액이 비어 있음")
     if form == RATIO and _num(rate) and not 0 < rate <= 1000:
         problems.append(f"범위: 지급률 {_fmt(rate)}")
 
@@ -883,6 +889,8 @@ def _check_wait(cover: CoverView, v: Mapping[str, Any], piece: PieceView | None,
             if points_to_named_start(cover) or body_days:
                 shown = f" ({', '.join(map(str, sorted(written)))}일)" if written else ""
                 marks.append(f"지급사유 본문이 보장개시일을 가리키는데 면책일수가 0{shown}")
+            elif _NAMED_START.search(cover.amount or ""):
+                marks.append("지급금액 칸이 이름이 붙은 보장개시일을 가리키는데 면책일수가 0")
     if v.get("보장개시일") and "보장개시일" not in unknown:
         here = _word("\n".join(_texts(cover, piece))) + _word(page or "")
         if _word(v["보장개시일"]) not in here:
@@ -895,6 +903,75 @@ def _check_limits(cover: CoverView, v: Mapping[str, Any], piece: PieceView | Non
         for x in v.get("한도") or []:
             if limit_phrase(x, cover, piece) is None:
                 problems.append(f"구절없음: 한도 {x['앞말']} {x['수']}{x['단위']}")
+
+
+MISSED, NAME_MARK = "빠진 값", "이름 표식"
+
+
+def _check_missed(cover: CoverView, v: Mapping[str, Any], unknown: set[str], marks: list[str]) -> None:
+    """함께 빠뜨린 값: 그 줄의 글자(지급사유 본문과 지급금액 칸)에 감액이나 한도를 가리키는 말이 있는데 그 칸이 빈 줄.
+
+    두 판독이 같은 방식으로 빠뜨리면 견줌으로는 잡히지 않는다. 지급사유 끝에 붙은 ※ 풀이(split_remarks)는 그 특약의
+    모든 줄에 붙으므로 보지 않는다. 감액은 행을 만드는 꼴(가입금액비율, 금액)만, 한도는 행없음 줄도 보되 칸 안 표의
+    항목마다 한도가 걸리는 행없음(_ITEM_TABLES)은 보지 않는다. 보장개시일을 가리키는데 면책일수가 0인 줄은 _check_wait가 낸다.
+    표시에는 원문 구절을 싣지 않는다(값 파일에 들어간다).
+    """
+    flat = _squash(split_remarks(cover.reason)[0]) + "\n" + _squash(cover.amount)
+    form = v.get("꼴")
+    if form in (RATIO, AMOUNT) and "감액" not in unknown and not v.get("감액") and _CUT_HINT.search(flat):
+        marks.append(f"{MISSED}: 감액을 가리키는 말이 있는데 감액이 비어 있음")
+    if "한도" not in unknown and not v.get("한도") and _LIMIT_HINT.search(flat) \
+            and not (form == NO_ROW and v.get("행없음사유") in _ITEM_TABLES):
+        marks.append(f"{MISSED}: 한도를 가리키는 말이 있는데 한도가 비어 있음")
+
+
+_NAME_LIMIT = re.compile(r"(연간|최초)(\d+)회한")
+_NAME_DAYS = re.compile(r"(?<!\d)(\d+)일한도")
+_NAME_NO_CUT = re.compile(r"감액(?:및면책)?기간미적용|감액없음")
+_NAME_NO_WAIT = re.compile(r"면책기간미적용")
+
+
+def name_marks(piece: PieceView | None, cover: CoverView) -> dict[str, Any]:
+    """특약명과 세부보장명(빈칸 무시)에 적힌 표식. 한도(앞말, 수, 단위), 일수 한도, 감액 없음, 면책 없음, 일당.
+
+    세부보장명과 그 조각의 특약명을 함께 본다. 본형, 갱신형 이름을 "/"로 이은 이름에서 같은 표식이 두 번 나와도 한 번만 센다.
+    """
+    text = "\n".join(dict.fromkeys(_squash(n) for n in (cover.name, *((piece.title,) if piece else ())) if n))
+    return {
+        "한도": sorted({(m.group(1), int(m.group(2)), "회") for m in _NAME_LIMIT.finditer(text)}),
+        "일수한도": sorted({int(m.group(1)) for m in _NAME_DAYS.finditer(text)}),
+        "감액없음": bool(_NAME_NO_CUT.search(text)),
+        "면책없음": bool(_NAME_NO_WAIT.search(text)),
+        "일당": "일당" in text,
+    }
+
+
+def _check_name_marks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | None, unknown: set[str],
+                      marks: list[str]) -> None:
+    """이름의 표식과 판독 값의 모순. 이름에 "연간N회한", "최초1회한", "N일한도"가 있는데 한도에 그 항목이 없거나,
+    "감액기간미적용", "감액및면책기간미적용", "감액없음"이 있는데 감액이 있거나, "면책기간미적용"이 있는데 면책일수가 있거나,
+    "일당"이 있는데 지급단위가 비어 있는(한 번에 주는 돈) 줄.
+
+    일당 이름에 1회당 같은 다른 지급단위를 적은 줄은 걸지 않는다. 통원일당이 "통원 1회당"으로 주는 것처럼 칸에 그 단위가
+    적혀 있고, 그 구절이 칸에 있는지는 지급단위 구절 검사가 본다. 감액과 지급단위는 행을 만드는 꼴만 본다.
+    """
+    marked = name_marks(piece, cover)
+    form = v.get("꼴")
+    if "한도" not in unknown:
+        limits = {(x["앞말"], x["수"], x["단위"]) for x in v.get("한도") or []}
+        for lead, n, unit in marked["한도"]:
+            if (lead, n, unit) not in limits:
+                marks.append(f"{NAME_MARK}: 이름에 {lead} {n}{unit} 한도가 있는데 한도에 없음")
+        for n in marked["일수한도"]:
+            if not any(x[1] == n and x[2] == "일" for x in limits):
+                marks.append(f"{NAME_MARK}: 이름에 {n}일 한도가 있는데 한도에 없음")
+    rows = form in (RATIO, AMOUNT)
+    if rows and marked["감액없음"] and v.get("감액") and "감액" not in unknown:
+        marks.append(f"{NAME_MARK}: 이름에 감액 미적용이 있는데 감액이 있음")
+    if marked["면책없음"] and v.get("면책일수") and "면책일수" not in unknown:
+        marks.append(f"{NAME_MARK}: 이름에 면책기간 미적용이 있는데 면책일수가 있음")
+    if rows and marked["일당"] and not v.get("지급단위") and "지급단위" not in unknown:
+        marks.append(f"{NAME_MARK}: 이름에 일당이 있는데 지급단위가 비어 있음")
 
 
 def machine_checks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | None = None,
@@ -914,10 +991,14 @@ def machine_checks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | No
     if form == NO_ROW:
         _check_wait(cover, v, piece, unknown, pages, problems, marks)
         _check_limits(cover, v, piece, unknown, problems)
+        _check_missed(cover, v, unknown, marks)
+        _check_name_marks(cover, v, piece, unknown, marks)
         return problems, marks
     _check_numbers(cover, v, piece, unknown, problems, marks)
     _check_wait(cover, v, piece, unknown, pages, problems, marks)
     _check_limits(cover, v, piece, unknown, problems)
+    _check_missed(cover, v, unknown, marks)
+    _check_name_marks(cover, v, piece, unknown, marks)
     # 대상 낱말이 그 줄의 글자에 있는가(급부ID 다듬기 기준으로)
     if v.get("대상") and "대상" not in unknown:
         here = target_key(f"{cover.reason}\n{cover.amount}\n{cover.name}")
