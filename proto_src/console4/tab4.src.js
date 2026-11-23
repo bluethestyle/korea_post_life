@@ -1,8 +1,6 @@
-/* 탭 4 담보 비교. 주인공 도형은 6px 수평 채움 막대(치료 여정 격자), 줄무늬 없는 비교표, 직각 꺾은선의 관계도(갈림 자리 9px ◇).
-   자료: sales.json 의 기준별[종형].치료여정, 단정주의, 보류요약, 포인트와, 이 파일 첫 줄의 CV(gen_cover.py 가 사본에서 뽑은 비교쌍과 급부).
-   CV 는 sales.py 와 같은 계산(insights.analyze)을 읽은 것이고, 판정은 sales.json 을 따른다. 단정 주의에 든 담보는 어디서나
-   "우열을 매기지 않음"으로 보인다(R10). 화면이 숫자와 판정을 새로 만들지 않는다.
-   이 파일은 tab4.src.js 이고, tab4.js 는 gen_cover.py 가 자료 한 줄을 앞에 붙여 쓴다. 관계도는 탭 5 도 쓰도록 App.cover 로 내보낸다. */
+/* 탭 4 담보 비교: 안개 위 전폭 가로 기준축(66% 지점, 치료 단계 다섯 구간) + 담보별 판정 적층 기둥 + 아래 읽기 띠.
+   치료 여정 격자, 단정 주의, 보류 요약, 담보 비교표와 표 복사는 모두 [표로 보기] 전체 창에 가림 없이 싣는다.
+   이 파일은 tab4.src.js 이고, tab4.js 는 gen_cover.py --assemble 이 자료 한 줄(const CV)을 앞에 붙여 만든다. */
 const { ui, txt } = App;
 const { esc, fmt } = ui;
 const S = App.S;
@@ -11,6 +9,16 @@ const ROMAN = { 'Ⅰ': 'I', 'Ⅱ': 'II', 'Ⅲ': 'III', 'Ⅳ': 'IV', 'Ⅴ': 'V' }
 const fixG = s => String(s == null ? '' : s).replace(/[ⅠⅡⅢⅣⅤ]/g, m => ROMAN[m]);
 const nf = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 });
 const N = n => nf.format(n);
+
+ui.registerLegend('cover', 'legendVerdictTitle', () => `<dl class="legend">
+    <dt>${ui.verdict('better')}</dt><dd>금색 층(이중 상단선): 같은 담보를 견줘 우체국 조건이 나은 상대</dd>
+    <dt>${ui.verdict('only')}</dt><dd>축 위 금색 마름모: 상대는 아무도 안 가졌고 우체국만 가진 담보</dd>
+    <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>중립 층: 조건이 같거나 엇갈림, 단정 주의로 우열을 매기지 않은 상대</dd>
+    <dt>${ui.verdict('worse')}</dt><dd>먹색 층: 같은 담보를 견줘 우체국 조건이 못한 상대</dd>
+    <dt>${ui.verdict('unknown')}</dt><dd>빗금 층: 검토 대기나 판정 보류로 아직 견주지 않은 상대</dd>
+    <dt>${ui.verdict('none')}</dt><dd>점선 윤곽과 옅은 빗금 기둥: 상대에게는 있고 우체국에는 없는 담보</dd>
+    <dt>${ui.flagText(App.t('flagShort'))}</dt><dd>${esc(App.t('lgFlag'))}</dd>
+  </dl>`);
 
 // ---------- 이름 ----------
 const vinfo = v => S['종형'][v] || {};
@@ -21,7 +29,6 @@ const fullN = v => vinfo(v)['이름'] || v;
 const std = sid => S['표준담보'][sid] || { '이름': sid };
 const stdN = sid => std(sid)['이름'] || sid;
 const VID_RE = /\b[A-Z0-9]+_[A-Za-z0-9]+_[A-Za-z0-9]+\b/g;
-/** 사유 글의 종형ID를 회사 이름으로 바꾼다 */
 const reasonText = list => [...new Set((Array.isArray(list) ? list : [list]).map(x => String(x).replace(VID_RE, m => fullN(m))))].join(', ');
 
 // ---------- 급부와 특약(CV 의 번호) ----------
@@ -62,7 +69,6 @@ function model(baseId) {
     const row = { sid: r[0], cells: r[1], prs: r[2] || {}, ins: r[3] || [], major: std(r[0])['대분류'] || '', type: std(r[0])['급부유형'] || '',
       cau: cau[r[0]] || [], pts: pts[r[0]] || [], omit: omit[r[0]] || [] };
     row.verd = B.cols.slice(1).map((_, i) => verdictOf(row, B.cols, i + 1));
-    // 한 상대에만 없으면 "우체국에만 있음" 대신 그 상대에 없다고 적는다(우체국에만 있음은 견준 상대 모두에 없을 때만)
     if (row.verd.some(v => !v || v.kind !== 'only')) row.verd.forEach((v, i) => { if (v && v.kind === 'only') v.text = `${orgN(B.cols[i + 1])}에 없음`; });
     row.same = row.verd.every(v => !v || v.kind === 'same');
     return row;
@@ -97,7 +103,6 @@ function verdFor(row, m, i, pIdxs) {
   const allOnly = pIdxs.length > 0 && pIdxs.every(idx => row.verd[idx] && row.verd[idx].kind === 'only');
   return Object.assign({}, v, { text: allOnly ? null : `${orgN(m.cols[i + 1])}에 없음` });
 }
-/** 우체국(기준 종형)을 k 번째 상대와 견준 판정. sales.json 의 단정 주의가 먼저다(R10). 돌려주는 값: {kind, text, why, q} 또는 null(둘 다 없음) */
 function verdictOf(row, cols, k) {
   const peer = cols[k], b = row.cells[0], c = row.cells[k];
   const bh = has(b), ch = has(c), po = orgN(peer);
@@ -105,7 +110,6 @@ function verdictOf(row, cols, k) {
   const drops = row.ins.filter(x => x.drop && (x.p || []).includes(peer));
   if (bh && ch) {
     const q = row.prs[peer] || null;
-    // 단정 주의(sales.json)에 든 담보는 어디서나 "우열을 매기지 않음"이다(R10). 면책이나 감액이 다른 항목은 까닭에 글로만 적는다
     if (cau) {
       const d = q && q.it ? q.it.filter(t => t[3] === '나음' || t[3] === '못함').map(t => `${t[0]} ${t[1]} 대 ${t[2]}`).join(', ') : '';
       return { kind: 'diff', why: `${cau['문장']}${d ? ` 대표 급부끼리 다른 항목(${d})이 있지만 우열에 넣지 않았습니다.` : ''}`, caution: cau['종류'], q };
@@ -137,7 +141,168 @@ function verdictOf(row, cols, k) {
 const chip = (v, title) => (v ? ui.verdict(v.kind, v.text, title || v.why) : '<span class="cv-both">둘 다 없음</span>');
 const chipText = v => (v ? (v.text || { better: '우체국 나음', only: '우체국에만 있음', worse: '우체국 못함', same: '같음', diff: '우열을 매기지 않음', none: '우체국에 없음', unknown: '모름' }[v.kind]) : '둘 다 없음');
 
-// ---------- 관계도(직각 꺾은선, 갈림 자리 9px ◇). 탭 5 도 쓴다 ----------
+// ---------- 새 무대: 전폭 가로 기준축 + 치료 단계 다섯 구간 + 담보별 판정 적층 기둥 ----------
+function pillarSVG(row, B, c, totPeerOrgs) {
+  const sid = row.sid;
+  const oursHas = has(row.cells[0]);
+  const isAll = c.peerScope === 'all';
+  const ownCodes = (B['보유기관코드'] && B['보유기관코드'][sid]) || [];
+  const ownN = isAll ? ownCodes.length : c.inScope(ownCodes);
+  const W = 14, MAX_H = 200;
+
+  // 1. 상대는 아무도 안 가졌고 우체국만 가진 담보: 축 위 금색 마름모
+  if (ownN <= 0 && oursHas) {
+    return {
+      h: 16,
+      ownN: 0,
+      oursHas: true,
+      svg: `<svg class="cvp-svg is-dia" width="14" height="16" viewBox="0 0 14 16" aria-hidden="true" focusable="false">
+        <polygon class="pil-fill-gold" points="7,2 13,8 7,14 1,8"/>
+      </svg>`,
+    };
+  }
+  // 2. 범위 내 누구도 갖지 않은 담보: 낮은 점선 윤곽
+  if (ownN <= 0 && !oursHas) {
+    return {
+      h: 12,
+      ownN: 0,
+      oursHas: false,
+      svg: `<svg class="cvp-svg" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true" focusable="false">
+        <rect class="pil-empty" x="0.5" y="0.5" width="13" height="11"/>
+      </svg>`,
+    };
+  }
+
+  const totH = Math.max(12, Math.round((ownN / Math.max(1, totPeerOrgs)) * MAX_H));
+
+  // 3. 우체국에 없는 담보: 기둥 전체를 1px 점선 윤곽과 옅은 빗금으로
+  if (!oursHas) {
+    return {
+      h: totH,
+      ownN,
+      oursHas: false,
+      svg: `<svg class="cvp-svg" width="${W}" height="${totH}" viewBox="0 0 ${W} ${totH}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <rect class="pil-hatch-pale" x="0.5" y="0.5" width="${W - 1}" height="${totH - 1}"/>
+      </svg>`,
+    };
+  }
+
+  // 4. 우체국과 상대가 함께 가진 담보: 판정상대수 / 판정기관코드 비율로 아래부터 쌓기
+  const perCodes = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
+  const perCnts = (B['판정상대수'] && B['판정상대수'][sid]) || {};
+  const cntOf = vdKey => (isAll ? (perCnts[vdKey] || 0) : c.inScope(perCodes[vdKey]));
+
+  const layers = [
+    { v: cntOf('나음'), cls: 'pil-fill-gold', goldCap: true },
+    { v: cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의'), cls: 'pil-fill-neutral' },
+    { v: cntOf('못함'), cls: 'pil-fill-worse' },
+    { v: cntOf('검토 대기') + cntOf('판정 보류'), cls: 'pil-hatch' },
+  ].filter(l => l.v > 0);
+
+  let curY = totH;
+  let remV = layers.reduce((a, l) => a + l.v, 0) || ownN;
+  let remH = totH;
+  const rects = [];
+  layers.forEach((l, li) => {
+    const lh = li === layers.length - 1 ? remH : Math.max(3, Math.round((l.v / remV) * remH));
+    const y = Math.max(0, curY - lh);
+    rects.push(`<rect class="${l.cls}" x="0.5" y="${y + 0.5}" width="${W - 1}" height="${Math.max(2, lh - 0.5)}"/>`);
+    if (l.goldCap && lh >= 5) {
+      rects.push(`<line x1="1.5" y1="${y + 2.5}" x2="${W - 1.5}" y2="${y + 2.5}" stroke="var(--gold-edge)" stroke-width="1.2"/>`);
+    }
+    curY = y;
+    remV = Math.max(1, remV - l.v);
+    remH = Math.max(0, remH - lh);
+  });
+
+  return {
+    h: totH,
+    ownN,
+    oursHas: true,
+    svg: `<svg class="cvp-svg" width="${W}" height="${totH}" viewBox="0 0 ${W} ${totH}" preserveAspectRatio="none" aria-hidden="true" focusable="false">${rects.join('')}</svg>`,
+  };
+}
+
+function renderStage(center, c) {
+  const m = model(c.baseId);
+  const B = CV && CV.b[c.baseId];
+  if (!m || !B) {
+    center.innerHTML = '<div class="placeholder">비교 자료 없음: 이 기준 종형의 비교쌍 자료가 없습니다.</div>';
+    return;
+  }
+  const pIdxs = peerIdxOf(m, c);
+  const totPeerOrgs = Math.max(1, new Set(pIdxs.map(i => orgOf(m.cols[i + 1]))).size);
+  const pSet = new Set(c.activePeerOrgs || []);
+
+  let gCol = 0;
+  const segsHTML = STEPS.map((stNm, sIdx) => {
+    const stRows = m.rows.filter(r => r.type === stNm);
+    const oursCnt = stRows.filter(r => has(r.cells[0])).length;
+    const totCnt = stRows.length;
+    const ratioStr = `${fmt(oursCnt)}/${fmt(totCnt)}`;
+
+    const pils = stRows.map(r => {
+      const colIdx = gCol++;
+      const pil = pillarSVG(r, B, c, totPeerOrgs);
+      const hasFlag = r.pts.some(p => p['원문대조'] && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o))));
+      const pk = `s:${r.sid}`;
+      const ownDesc = pil.oursHas
+        ? (pil.ownN > 0 ? `우체국 보유, 상대 ${fmt(pil.ownN)}/${fmt(totPeerOrgs)}곳` : '우체국 단독 보유')
+        : `우체국 없음, 상대 ${fmt(pil.ownN)}/${fmt(totPeerOrgs)}곳`;
+      const lbl = `${stdN(r.sid)} (${stNm}, ${ownDesc})`;
+      return `<button type="button" class="cvp-btn${pil.oursHas ? '' : ' is-miss'}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="0" data-grid-c="${colIdx}" data-cv-nm="${esc(stdN(r.sid))}" data-cv-sub="${esc(ownDesc)}" aria-pressed="false" aria-label="${esc(lbl)}">
+        <span class="cvp-stem" aria-hidden="true"><i class="cvp-dia"></i></span>
+        ${hasFlag ? '<i class="cvp-flg" aria-hidden="true"></i>' : ''}
+        <span class="cvp-bar" data-link-pt="1" style="--ph:${pil.h}px">${pil.svg}</span>
+      </button>`;
+    }).join('');
+
+    return `<div class="cvp-seg" data-step="${esc(stNm)}">
+      <div class="cvp-sh">
+        <span class="cvp-ring">${ui.miniRingSVG(oursCnt, Math.max(1, totCnt), '')}</span>
+        <span class="cvp-snm">${esc(stNm)}</span>
+        <span class="cvp-scnt num">${esc(ratioStr)}</span>
+      </div>
+      <div class="cvp-row">${pils}</div>
+    </div>`;
+  }).join('');
+
+  center.innerHTML = `<div class="cvp-stage" id="cv-pillar-stage">
+    <div class="cvp-hover-bar" id="cv-hover-bar" aria-live="polite"></div>
+    <div class="cvp-axis" id="cv-pillar-axis">${segsHTML}</div>
+  </div>`;
+
+  const axisEl = center.querySelector('#cv-pillar-axis');
+  const hoverBar = center.querySelector('#cv-hover-bar');
+  if (axisEl && hoverBar) {
+    const showHover = btnEl => {
+      if (!btnEl) { hoverBar.innerHTML = ''; return; }
+      const nm = btnEl.dataset.cvNm || '';
+      const sub = btnEl.dataset.cvSub || '';
+      const aBox = axisEl.getBoundingClientRect();
+      const bBox = btnEl.getBoundingClientRect();
+      const leftPx = Math.max(0, Math.min(Math.max(0, aBox.width - 240), Math.round(bBox.left - aBox.left - 8)));
+      hoverBar.innerHTML = `<span class="cvp-hlbl" style="transform:translateX(${leftPx}px)"><b>${esc(nm)}</b> <span>${esc(sub)}</span></span>`;
+    };
+    axisEl.addEventListener('pointerover', e => {
+      const b = e.target.closest && e.target.closest('.cvp-btn');
+      if (b) showHover(b);
+    });
+    axisEl.addEventListener('pointerleave', () => {
+      const f = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cv-pillar-axis .cvp-btn');
+      showHover(f || null);
+    });
+    axisEl.addEventListener('focusin', e => {
+      const b = e.target.closest && e.target.closest('.cvp-btn');
+      if (b) showHover(b);
+    });
+    axisEl.addEventListener('focusout', e => {
+      if (!axisEl.contains(e.relatedTarget)) showHover(null);
+    });
+  }
+}
+
+// ---------- 관계도(직각 꺾은선, 갈림 자리 9px 마름모). 탭 5 도 쓴다 ----------
 const GF = w => `${w} 13px PLNum, PLKo, "Malgun Gothic", sans-serif`;
 let mctx = null;
 function tw(s, font) { if (!mctx) mctx = document.createElement('canvas').getContext('2d'); mctx.font = font; return mctx.measureText(s).width; }
@@ -158,12 +323,11 @@ function wrapT(s, font, max, n) {
 }
 const f1 = v => (+v).toFixed(1);
 const dia = (x, y) => `<path class="rl-dia" d="M${f1(x)} ${f1(y - 4.5)}L${f1(x + 4.5)} ${f1(y)} ${f1(x)} ${f1(y + 4.5)} ${f1(x - 4.5)} ${f1(y)}Z"/>`;
-/** 관계도 SVG. 회사마다 한 갈래(종형 → 특약 → 급부), 급부에서 오른쪽 세로 간선으로 맨 위 표준담보에 닿는다 */
 function relSVG(baseId, sid, W) {
   const m = model(baseId); const row = m && m.byId[sid];
   if (!row) return '';
   W = Math.max(280, Math.floor(W));
-  const LH = 17, PY = 7, PX = 8, BG = 20, TX = PX + BG + 7, TRX = 11; // BG: 종, 특, 급, 표 기호 칸(글자 13px), TRX: 회사 줄기의 x
+  const LH = 17, PY = 7, PX = 8, BG = 20, TX = PX + BG + 7, TRX = 11;
   const busX = W - 6, benR = busX - 12;
   const rX = 26, rW = Math.round(Math.max(96, Math.min(150, W * .33))), bX = rX + rW + 22, bW = benR - bX;
   let s = '', y = 0;
@@ -178,7 +342,6 @@ function relSVG(baseId, sid, W) {
     return shape + `<text class="rl-gt" x="${f1(cx)}" y="${f1(cy + 4.6)}" text-anchor="middle">${kind}</text>`;
   };
   const lines = (arr, x, y0, cls = 'rl-t') => `<text class="${cls}">${arr.map((t, i) => `<tspan x="${f1(x)}" y="${f1(y0 + i * LH)}">${esc(t)}</tspan>`).join('')}</text>`;
-  // 표준담보(맨 위)
   const sl = wrapT(stdN(sid), GF(600), W - 2 - TX - PX, 2);
   const stdH = PY * 2 + LH * sl.lines.length + 2;
   s += box(0, 0, W - 2, stdH, 'std') + glyph('표', 0, (stdH - 26) / 2 + 2) + lines(sl.lines, TX, PY + 13 + 1);
@@ -192,7 +355,6 @@ function relSVG(baseId, sid, W) {
   colIdxs.forEach(k => {
     const vid = m.cols[k];
     const c = row.cells[k];
-    // 종형 머리
     const head = `${orgN(vid)} ${txt.shortName(kindN(vid)).short}`;
     const hl = wrapT(head, GF(600), benR - TX - (k ? 0 : 44), 1).lines[0] || head;
     s += glyph('종', TRX - PX - BG / 2, y - 2) + `<text class="rl-t rl-h" x="${f1(TX - 2)}" y="${f1(y + 13)}">${esc(hl)}</text>`;
@@ -216,7 +378,6 @@ function relSVG(baseId, sid, W) {
       y += h + 18;
       return;
     }
-    // 급부를 특약별로 묶는다(대표 먼저)
     const ids = [c.r != null ? c.r : c.i[0], ...c.i.filter(i => i !== c.r)];
     const groups = [];
     ids.forEach(i => { const b = ben(i); if (!b) return; let g = groups.find(x => x.rid === b.rid); if (!g) groups.push(g = { rid: b.rid, bs: [] }); g.bs.push(b); });
@@ -263,7 +424,7 @@ function relSVG(baseId, sid, W) {
     y += 12;
   });
   if (pIdxsAll.length > pIdxs.length) {
-    const restMsg = `나머지 상대 ${pIdxsAll.length - pIdxs.length}곳은 아래 조건 비교 표에서 함께 확인합니다.`;
+    const restMsg = `나머지 상대 ${pIdxsAll.length - pIdxs.length}곳은 아래 조건 비교 목록에서 함께 확인합니다.`;
     s += `<text class="rl-s" x="${f1(rX)}" y="${f1(y + 10)}">${esc(restMsg)}</text>`;
     y += 22;
   }
@@ -273,14 +434,12 @@ function relSVG(baseId, sid, W) {
     <defs><marker id="rl-ar" viewBox="0 0 10 10" refX="5" refY="8" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 9L5 1 9 9" class="rl-arh"/></marker></defs>
     <g class="rl-es">${es}</g>${dias.map(d => dia(d[0], d[1])).join('')}${s}</svg>`;
 }
-/** 관계도 범례: 그림 아래에 늘 보이는 두 줄 */
 function relLegend() {
   const ln = (dash, t) => `<span><svg width="20" height="6" aria-hidden="true"><line x1="0" y1="3" x2="20" y2="3" class="rl-e${dash ? ' dash' : ''}"/></svg>${t}</span>`;
   const bx = (ch, t) => `<span><b class="rl-lb" aria-hidden="true">${ch}</b>${t}</span>`;
   return `<div class="rl-lg"><div>${ln(false, '확정')}${ln(true, '작업 로그 검토 대기')}<span><svg width="10" height="10" viewBox="-5 -5 10 10" aria-hidden="true"><path class="rl-dia" d="M0-4.5L4.5 0 0 4.5-4.5 0Z"/></svg>갈림</span><span><b class="rl-lb rep" aria-hidden="true">급</b>굵은 테두리는 대표 급부</span></div>
     <div>${bx('종', '종형')}${bx('특', '특약')}${bx('급', '급부')}${bx('표', '표준담보')}</div></div>`;
 }
-/** 관계도를 그 자리에 그린다(넓이를 재야 하므로 넣은 뒤에 부른다) */
 function drawRel(el, baseId, sid) {
   if (!el) return;
   const w = el.clientWidth || (el.parentElement && el.parentElement.clientWidth) || 360;
@@ -288,9 +447,12 @@ function drawRel(el, baseId, sid) {
   if (App.motionOn()) { el.classList.remove('rl-in'); void el.offsetWidth; el.classList.add('rl-in'); }
 }
 
-// ---------- 조건 비교와 근거(근거 기둥) ----------
+// ---------- 조건 비교와 근거(고른 회사 셋까지 나란히, 나머지는 목록) ----------
 function condTable(m, row, c) {
-  const colIdxs = [0].concat(peerIdxOf(m, c).map(i => i + 1));
+  const allPIdxs = peerIdxOf(m, c);
+  const topPIdxs = allPIdxs.slice(0, 3);
+  const restPIdxs = allPIdxs.slice(3);
+  const colIdxs = [0].concat(topPIdxs.map(i => i + 1));
   const cols = colIdxs.map(k => m.cols[k]);
   const reps = colIdxs.map(k => repOf(row.cells[k]));
   const items = [
@@ -300,11 +462,29 @@ function condTable(m, row, c) {
   const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
   const body = items.map(([lab, f]) => {
     const vals = {};
-    cols.forEach((v, k) => { vals[orgOf(v)] = reps[k] ? f(reps[k]) : null; });
+    [0].concat(allPIdxs.map(i => i + 1)).forEach(k => {
+      const rp = repOf(row.cells[k]);
+      vals[orgOf(m.cols[k])] = rp ? f(rp) : null;
+    });
     return `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(txt.sameSummary(vals))}</td></tr>`;
   }).join('');
-  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, 지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.</p>`;
+
+  let restHTML = '';
+  if (restPIdxs.length) {
+    const lis = restPIdxs.map(i => {
+      const k = i + 1;
+      const vid = m.cols[k];
+      const rp = repOf(row.cells[k]);
+      const v = verdFor(row, m, i, allPIdxs);
+      const condStr = rp ? `지급 ${payText(rp)}, 면책 ${waitText(rp.wait)}, 감액 ${redText(rp.red)}` : '이 담보 없음';
+      return `<li><b>${esc(orgN(vid))}</b> ${chip(v)} <span class="note">${esc(condStr)}</span></li>`;
+    }).join('');
+    restHTML = `<details class="zr-det" style="margin-top:8px"><summary><span>나머지 상대 회사 ${fmt(restPIdxs.length)}곳 조건 목록</span>${ui.IC.chevD}</summary><div class="zr-det-b"><ul class="cv-evl">${lis}</ul></div></details>`;
+  }
+
+  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div>${restHTML}<p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, 지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.</p>`;
 }
+
 function evidenceList(m, row, extra, c) {
   const colIdxs = [0].concat(peerIdxOf(m, c).map(i => i + 1));
   const items = colIdxs.map(k => {
@@ -316,6 +496,7 @@ function evidenceList(m, row, extra, c) {
   }).join('');
   return `<ul class="cv-evl">${items}${extra || ''}</ul>`;
 }
+
 function rowEvidence(c, sid, mode) {
   const m = model(c.baseId); const row = m && m.byId[sid];
   if (!row) return null;
@@ -327,11 +508,10 @@ function rowEvidence(c, sid, mode) {
   if (mode === 'caution' && scopedCau.length) {
     judge += scopedCau.map(x => `<p>${ui.verdict('diff')} <span class="note">${esc(x['종류'])}</span></p><p>${esc(x['문장'])}</p>`).join('');
   }
-  judge += pIdxs.map(i => {
+  judge += pIdxs.slice(0, 3).map(i => {
     const peer = m.cols[i + 1];
     const v = verdFor(row, m, i, pIdxs);
     const q = v && v.q;
-    // 우열을 매기지 않은 짝(단정 주의, 엇갈림)은 항목 표에서도 나음과 못함을 쓰지 않고 "다름"으로 적는다(R10)
     const noRank = !v || (v.kind !== 'better' && v.kind !== 'worse');
     const word = t => (t === '나음' || t === '못함') ? (noRank ? '다름' : t === '나음' ? '우체국 나음' : '우체국 못함') : t;
     const its = q && q.it ? `<table class="cv-it"><tr><th scope="col">항목</th><th scope="col">우체국</th><th scope="col">${esc(orgN(peer))}</th><th scope="col">비교</th></tr>${q.it.map(t => `<tr><th scope="row">${esc(t[0])}</th><td>${esc(t[1])}</td><td>${esc(t[2])}</td><td>${esc(word(t[3]))}${t[4] ? `<br><span class="note">${esc(t[4])}</span>` : ''}</td></tr>`).join('')}</table>` : '';
@@ -343,21 +523,30 @@ function rowEvidence(c, sid, mode) {
   const out = [];
   pIdxs.forEach(i => { const v = row.verd[i]; if (v && v.kind === 'unknown') out.push(`${orgN(m.cols[i + 1])}: ${v.why || v.text}`); });
   row.omit.filter(o => c.peerScope === 'all' || (o['비교종형ID'] || []).some(v => pSet.has(orgOf(v)))).forEach(o => out.push(`${o['분류']}(${o['세부']}): ${reasonText(o['사유'])}`));
-  const body = `<div class="ev-sec"><h3>판정</h3>${judge || `<p class="note">${esc(App.t('peerEmptyHint'))}</p>`}${pts ? `<h3 style="margin-top:12px">영업 인사이트의 문장</h3><ul class="cv-pts">${pts}</ul>` : ''}</div>
-    <div class="ev-sec"><h3>관계도</h3><div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}</div>
-    <div class="ev-sec"><h3>조건 비교</h3>${condTable(m, row, c)}</div>
-    <div class="ev-sec lo"><h3>근거 문서와 쪽</h3>${mode === 'caution' && cauEv ? `<ul class="cv-evl">${cauEv}</ul><p class="note">"대표 밖"은 대표 급부 밖에 조건이 다른 급부입니다.</p>` : evidenceList(m, row, '', c)}</div>
-    ${out.length ? `<div class="ev-sec lo"><h3>뺀 것</h3><ul class="cv-evl">${out.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}`;
+  const body = `<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}</div>
+    <div class="ev-sec"><h3>판정과 인사이트</h3>${judge || `<p class="note">${esc(App.t('peerEmptyHint'))}</p>`}${pts ? `<ul class="cv-pts" style="margin-top:8px">${pts}</ul>` : ''}</div>
+    <details class="zr-det"><summary><span>관계도와 근거 문서 쪽 번호 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b">
+      <div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}
+      <h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">근거 문서와 쪽</h3>
+      ${mode === 'caution' && cauEv ? `<ul class="cv-evl">${cauEv}</ul><p class="note">"대표 밖"은 대표 급부 밖에 조건이 다른 급부입니다.</p>` : evidenceList(m, row, '', c)}
+      ${out.length ? `<h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">뺀 것</h3><ul class="cv-evl">${out.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    </div></details>`;
   const verdBadges = pIdxs.slice(0, 3).map(i => { const v = verdFor(row, m, i, pIdxs); return v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(v)}</span>` : ''; }).join('');
   return {
     kicker: mode === 'caution' ? '단정 주의, 선택 종형' : '담보 비교, 선택 종형', title: stdN(sid),
     badges: [ui.scope('base'), ui.tag(`${st['대분류'] || ''} ${st['급부유형'] || ''}`.trim()), verdBadges],
     body,
-    after(el) { drawRel(el.querySelector('.cv-rel'), c.baseId, sid); },
+    after(el) {
+      const detEl = el.querySelector('.zr-det');
+      const relEl = el.querySelector('.cv-rel');
+      if (detEl && relEl) {
+        detEl.addEventListener('toggle', () => { if (detEl.open && !relEl.innerHTML) drawRel(relEl, c.baseId, sid); });
+      }
+    },
   };
 }
 
-// ---------- 치료 여정 격자 ----------
+// ---------- [표로 보기] 전체 창: 치료 여정 격자, 단정 주의, 보류 요약, 담보 비교표 ----------
 let fGroup = null, diffOnly = false;
 function journeyData(c) {
   const j = c.base['치료여정'];
@@ -406,12 +595,12 @@ function journeyHTML(c) {
     <div class="cvj-w"><div class="cvj" role="group" aria-label="치료 여정 격자">${h}</div></div>
     <div class="panel-f">${ui.eq({ total: { t: `${orgN(ours['종형ID'])} 담보`, n: ours['전체'] }, parts, tail: '개' })}
       <div class="nadd">기타(주요 단계 밖의 급부유형)는 ${esc(etc)}개입니다. 칸 하나에 담보 하나만 셉니다. 회사별 수는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>
-      <p class="note" style="margin:6px 0 0">막대 길이는 칸끼리(합계 줄은 합계끼리) 견준 것입니다. 칸을 누르면 그 칸의 담보 목록이 오른쪽 상세 구역에 뜹니다. 우열은 이 격자에 매기지 않고 아래 비교표에서 봅니다.</p></div>
+      <p class="note" style="margin:6px 0 0">막대 길이는 칸끼리(합계 줄은 합계끼리) 견준 것입니다. 칸을 누르면 그 칸의 담보 목록이 아래 읽기 띠에 뜹니다. 우열은 이 격자에 매기지 않고 아래 비교표에서 봅니다.</p></div>
   </section>`;
 }
 function journeyPick(c, key) {
   const [, g, s] = key.split(':');
-  const { j, cols } = journeyData(c);
+  const { cols } = journeyData(c);
   const lists = cols.map(x => ((x['담보'][g] || {})[s] || []));
   const all = [...new Set(lists.flat())];
   const m = model(c.baseId);
@@ -420,7 +609,7 @@ function journeyPick(c, key) {
   all.sort((a, b) => (order[a] ?? 999) - (order[b] ?? 999));
   const rows = all.map(sid => {
     const row = m && m.byId[sid];
-    const marks = cols.map((x, i) => lists[i].includes(sid) ? `<td class="ok">있음</td>` : `<td class="no">없음</td>`).join('');
+    const marks = cols.slice(0, 5).map((x, i) => lists[i].includes(sid) ? '<td class="ok">있음</td>' : '<td class="no">없음</td>').join('');
     const v = row ? pIdxs.slice(0, 3).map(i => { const vv = verdFor(row, m, i, pIdxs); return vv ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(vv)}</span>` : ''; }).join('') : '';
     return `<tr><th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}<div class="cv-bds">${v}</div></th>${marks}</tr>`;
   }).join('');
@@ -428,11 +617,10 @@ function journeyPick(c, key) {
     kicker: '치료 여정 격자, 선택 종형', title: `${g} ${s}`, badges: [ui.scope('base')],
     body: `<div class="ev-sec"><h3>칸의 담보 수</h3><p>${esc(txt.peerNamesEtc(cols.map((x, i) => `${orgN(x['종형ID'])} ${lists[i].length}`), 5))}</p>
         <div class="nadd">같은 담보를 회사마다 센 수라 서로 더하지 않습니다. 이 칸에 한 회사라도 가진 담보는 ${all.length}개입니다.</div></div>
-      <div class="ev-sec"><h3>담보 목록</h3>${all.length ? `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">담보 이름을 누르면 비교표의 그 줄로 갑니다.</p>` : '<p>이 칸에는 비교 대상 회사 모두 담보가 없습니다.</p>'}</div>`,
+      <div class="ev-sec"><h3>담보 목록</h3>${all.length ? `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.slice(0, 5).map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">담보 이름을 누르면 해당 기둥과 상세로 이동합니다.</p>` : '<p>이 칸에는 비교 대상 회사 모두 담보가 없습니다.</p>'}</div>`,
   };
 }
 
-// ---------- 단정 주의와 보류 요약 ----------
 function scopedCaution(c) {
   const raw = (c.base && c.base['단정주의']) || [];
   if (c.peerScope === 'all') return raw;
@@ -468,6 +656,7 @@ function pendingHTML(c) {
   const why = p['사유별'] || {};
   const whySum = Object.values(why).reduce((a, b) => a + b, 0);
   const B = CV && CV.b[c.baseId];
+  const shownPeers = peers.slice(0, 6);
   const rows = (p['대분류'] || []).map(x => {
     let rowTot = x['공통담보쌍'], rowWait = x['뺀쌍'], rowCmp = x['견준쌍'];
     if (c.peerScope !== 'all' && B) {
@@ -481,7 +670,7 @@ function pendingHTML(c) {
       rowCmp = rowTot - rowWait;
     }
     return [`<span class="nw">${esc(x['대분류'])}</span>`, `<span class="num">${rowTot}</span>`, `<span class="num">${rowCmp}</span>`, `<span class="num">${rowWait}</span>`,
-      ...peers.map(v => `<span class="num">${(x['상대별'] || {})[v] || 0}</span>`)];
+      ...shownPeers.map(v => `<span class="num">${(x['상대별'] || {})[v] || 0}</span>`)];
   });
   const cellsBar = sp.total <= 80 ? ui.cells(Array(sp.cmp).fill('cmp').concat(Array(sp.wait).fill('wait'))) : '';
   return `<section class="panel tbl-wrap cv-pd" id="cover-pending" aria-labelledby="cover-pending-h">
@@ -490,12 +679,11 @@ function pendingHTML(c) {
     <div class="cv-pd-eq">${ui.eq({ total: { t: '공통 담보', n: sp.total }, parts: [{ t: '견줌', n: sp.cmp }, { t: '검토 대기로 뺌', n: sp.wait }], tail: '쌍' })}
       ${cellsBar}
       ${c.peerScope === 'all' && Object.keys(why).length ? `<div class="nadd">뺀 사유는 ${esc(Object.entries(why).map(([a, b]) => `${a} ${b}`).join(', '))}쌍입니다. ${whySum > p['뺀쌍'] ? `한 쌍에 두 사유가 함께 들 수 있어 더하면 ${esc(txt.josa(String(whySum), '으로'))} ${p['뺀쌍']}보다 큽니다.` : `사유를 더하면 ${whySum}쌍입니다.`}</div>` : ''}</div>
-    <div class="cv-pd-t">${ui.table({ id: 'cover-pd-tbl', head: ['보장 대분류', '공통 쌍', '견줌', '검토 대기', ...peers.map(v => `${esc(orgN(v))} 대기`)], rows, num: [1, 2, 3, ...peers.map((_, i) => i + 4)] })}</div>
+    <div class="cv-pd-t">${ui.table({ id: 'cover-pd-tbl', head: ['보장 대분류', '공통 쌍', '견줌', '검토 대기', ...shownPeers.map(v => `${esc(orgN(v))} 대기`)], rows, num: [1, 2, 3, ...shownPeers.map((_, i) => i + 4)] })}</div>
     <div class="panel-f">${cellsBar ? '띠의 칸 하나가 한 쌍입니다: <span class="kd-l"><i class="cq cmp"></i>견준 쌍</span> <span class="kd-l"><i class="cq wait"></i>검토 대기로 뺀 쌍</span>. ' : ''}상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 선택한 상대를 더하면 그 줄의 검토 대기 쌍과 같습니다.</div>
   </section>`;
 }
 
-// ---------- 구역 머리 ----------
 function midBand(c) {
   const p = c.base['보류요약'];
   const pSet = new Set(c.activePeerOrgs || []);
@@ -518,7 +706,6 @@ function tableBand(c, m, cnt, peerN) {
     note: `판정 칸 ${total}개 가운데 넷을 크게 보였습니다. 나머지(같음, 우열을 매기지 않음, 검토 대기, 둘 다 없음)는 아래 줄에 수를 적었습니다.` });
 }
 
-// ---------- 담보 비교표 ----------
 function compCell(row, k, vid) {
   const c = row.cells[k];
   if (has(c)) {
@@ -581,8 +768,7 @@ function tableHTML(c) {
         ${pIdxs.map(i => { const v = m.cols[i + 1]; return `<th scope="col" class="cv-vd" rowspan="2">${esc(txt.josa(orgN(v), '과'))} 견줌<br><span class="sub">우체국 기준</span></th>`; }).join('')}<th rowspan="2" class="cv-ch"><span class="sr">고르기</span></th></tr>
         <tr class="cv-h2">${colIdxs.map(k => `<th scope="col" class="cv-c k${k}">${head2}</th>`).join('')}</tr></thead>
       <tbody>${t.html}</tbody></table></div>
-    <p class="cv-narrow">본문이 좁아 상대 회사의 지급, 면책, 감액 칸을 접었습니다. 줄을 누르면 오른쪽 상세 구역의 조건 비교에 비교 대상 회사 값이 나옵니다.</p>
-    <div class="panel-f">대표 급부는 같은 담보의 급부 가운데 주급부, 금액이 큰 줄, 조건이 엄격한 줄 차례로 고릅니다. 줄을 누르면 오른쪽 상세 구역에 관계도, 조건 비교, 근거 문서와 쪽이 뜹니다. 지급액은 기준 가입금액에서의 금액이라 회사끼리 바로 견주지 않습니다.</div>
+    <div class="panel-f">대표 급부는 같은 담보의 급부 가운데 주급부, 금액이 큰 줄, 조건이 엄격한 줄 차례로 고릅니다. 줄을 누르면 아래 읽기 띠에 조건 비교, 관계도, 근거 문서와 쪽이 열립니다. 지급액은 기준 가입금액에서의 금액이라 회사끼리 바로 견주지 않습니다.</div>
   </section>`;
 }
 function refreshTable(body, c) {
@@ -595,10 +781,8 @@ function refreshTable(body, c) {
   const cn = body.querySelector('.cv-cnt'); if (cn) cn.textContent = t.n === t.total ? `${t.total}줄` : `${t.total}줄 가운데 ${t.n}줄`;
   const key = App.state.sel.cover;
   tb.querySelectorAll('[data-pick]').forEach(el => el.classList.toggle('is-sel', el.dataset.pick === key));
-  App.fitSel();
 }
 
-// ---------- 복사 ----------
 function copyJourney() {
   const c = App.ctx();
   const { j, cols } = journeyData(c);
@@ -639,8 +823,9 @@ function copyTable() {
   }), { title: `담보 비교표${fGroup ? ` (${fGroup})` : ''}${diffOnly ? ' (다른 것만)' : ''}` });
 }
 
-// ---------- 그리기 ----------
 function concl(c) {
+  const bRa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '라');
+  if (bRa) return `<p class="concl">${esc(bRa['문장'])}</p>`;
   const p = c.base['보류요약'];
   const pSet = new Set(c.activePeerOrgs || []);
   const sp = c.peerScope === 'all' ? { total: p['공통담보쌍'], wait: p['뺀쌍'], cmp: p['견준쌍'] } : (scopedPairs(c.baseId, pSet) || { total: 0, wait: 0, cmp: 0 });
@@ -654,82 +839,91 @@ function refNote(c) {
   if (c.st.renewal) parts.push('갱신 유형 거르개는 고객군 지도에만 씁니다.');
   return parts.length ? `<p class="cv-ref">${esc(parts.join(' '))}</p>` : '';
 }
-function render(body, c) {
-  if (!CV || !c.base) { body.innerHTML = '<div class="panel placeholder">비교 자료 없음: tab4 자료 줄(CV)이 비었습니다. gen_cover.py 를 돌립니다.</div>'; return; }
-  body.innerHTML = `${concl(c)}${refNote(c)}${journeyHTML(c)}${midBand(c)}<div class="cv-mid">${cautionHTML(c)}${pendingHTML(c)}</div>${tableHTML(c)}`;
-  bind(body);
+
+function renderFullTablesModal(c) {
+  const html = `<div id="view-cover-modal" class="cv-modal-root">
+    ${concl(c)}${refNote(c)}
+    <div class="dm-sec">${journeyHTML(c)}</div>
+    <div class="dm-sec">${midBand(c)}<div class="cv-mid">${cautionHTML(c)}${pendingHTML(c)}</div></div>
+    <div class="dm-sec">${tableHTML(c)}</div>
+  </div>`;
+  return {
+    kicker: App.TAB_NAME.cover,
+    title: '치료 여정 격자, 단정 주의, 담보 비교표',
+    badges: [ui.scope('base'), ui.fullScopeTag()].filter(Boolean),
+    actions: ui.btn('비교표 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-table"' }),
+    html,
+  };
 }
-function bind(body) {
-  if (body._b) return;
-  body._b = true;
-  body.addEventListener('click', e => {
-    const a = e.target.closest('[data-act]');
-    if (!a) return;
-    const act = a.dataset.act;
-    const c = App.ctx();
-    if (act === 'cv-group') { fGroup = a.dataset.v || null; refreshTable(body, c); }
-    else if (act === 'cv-diff') { diffOnly = !diffOnly; refreshTable(body, c); }
-    else if (act === 'cv-copy-journey') copyJourney();
-    else if (act === 'cv-copy-caution') copyCaution();
-    else if (act === 'cv-copy-table') copyTable();
-  });
+
+function conclusion(c) {
+  const bRa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '라');
+  if (bRa) return { text: App.firstSentence(bRa['문장']), flag: '' };
+  return { text: '', flag: '' };
 }
-// 근거 기둥 안의 "비교표에서 보기"(기둥은 본문 밖이라 문서에 붙인다)
+
+function actions() {
+  return [
+    ui.btn(App.t('actModeTable'), { sm: true, ghost: true, icon: 'table', attrs: 'id="cv-btn-tbl" data-cv-modal="1"' }),
+    ui.btn('비교표 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-table"' }),
+  ].join('');
+}
+
 document.addEventListener('click', e => {
-  const a = e.target.closest('[data-act="cv-goto"]');
-  if (!a) return;
-  const sid = a.dataset.sid;
-  if (App.state.tab !== 'cover') App.go('cover');
-  const view = document.getElementById('view-cover');
-  const body = view && view.querySelector('.vbody');
-  if (body && (fGroup || diffOnly)) {
-    const m = model(App.state.base); const r = m && m.byId[sid];
-    if (r && ((fGroup && r.major !== fGroup) || (diffOnly && r.same))) { fGroup = null; diffOnly = false; refreshTable(body, App.ctx()); }
+  const mb = e.target.closest && e.target.closest('[data-cv-modal]');
+  if (mb) {
+    e.stopPropagation();
+    App.openModal({ trigger: mb, render: renderFullTablesModal });
+    return;
   }
-  setTimeout(() => {
-    App.select('s:' + sid);
-    const el = view && view.querySelector(`[data-pick="s:${CSS.escape(sid)}"]`);
-    if (el) { if (App.mode() === 'sheet') App.reveal(el); else el.scrollIntoView({ block: 'center', behavior: App.motionOn() ? 'smooth' : 'auto' }); }
-  }, 40);
+  const a = e.target.closest && e.target.closest('[data-act]');
+  if (a) {
+    const act = a.dataset.act;
+    const dmBody = document.getElementById('dm-body');
+    if (act === 'cv-group' && dmBody) { e.stopPropagation(); fGroup = a.dataset.v || null; refreshTable(dmBody, App.ctx()); return; }
+    if (act === 'cv-diff' && dmBody) { e.stopPropagation(); diffOnly = !diffOnly; refreshTable(dmBody, App.ctx()); return; }
+    if (act === 'cv-copy-journey') { e.stopPropagation(); copyJourney(); return; }
+    if (act === 'cv-copy-caution') { e.stopPropagation(); copyCaution(); return; }
+    if (act === 'cv-copy-table') { e.stopPropagation(); copyTable(); return; }
+    if (act === 'cv-goto') {
+      e.stopPropagation();
+      const sid = a.dataset.sid;
+      App.closeModal(false);
+      if (App.state.tab !== 'cover') App.go('cover');
+      setTimeout(() => { App.select('s:' + sid, { focus: true }); }, 30);
+    }
+  }
 });
+
 function pick(key, c) {
   if (key.startsWith('s:')) return rowEvidence(c, key.slice(2), 'row');
   if (key.startsWith('c:')) return rowEvidence(c, key.slice(2), 'caution');
   if (key.startsWith('j:')) return journeyPick(c, key);
   return null;
 }
-function evidence(c) {
-  const r = c.base ? c.base['범위'] : null;
-  const peerNames = c.peerIds.length ? txt.peerNamesEtc(c.peerIds.map(fullN), 3) : App.t('condPeerNone');
-  return {
-    kicker: '읽는 법', title: '담보 비교의 판정', badges: [ui.scope('base')],
-    body: `<div class="ev-sec"><h3>무엇을 견주나</h3>
-        <p>우체국 ${esc(txt.josa(kindN(c.baseId), '와'))} 맞붙는 ${esc(txt.josa(peerNames, '를'))} 표준담보마다 견줍니다. 같은 담보를 둘 다 가지면 대표 급부끼리 면책, 감액, 지급 형태로 판정하고, 한쪽에만 있으면 누구에게 없는지 적습니다.</p>
-        <p class="note">상대가 조건이 다른 특약을 함께 팔거나 지급 형태가 다른 담보는 "우열을 매기지 않음"으로 둡니다(단정 주의). 검토 대기 급부가 걸린 쌍은 견주지 않았습니다.</p>
-        ${r ? `<p class="note">${esc(r['문장'])}</p>` : ''}</div>
-      <div class="ev-sec"><h3>조건을 바꿀 때</h3><p class="note">담보 비교는 나이 조건 없이 대표 급부끼리 견준 값이라 나이, 성별, 이력을 바꿔도 그대로입니다. 기준 종형을 바꾸면 짝과 판정을 다시 셉니다.</p></div>
-      <div class="ev-sec lo"><h3>판정 표지</h3>${App.ev.legend()}</div>`,
-  };
+
+function focus(key) {
+  if (key === 'journey' || key === 'caution' || key === 'table') {
+    App.openModal({
+      trigger: document.getElementById('cv-btn-tbl'),
+      render: c => {
+        const spec = renderFullTablesModal(c);
+        spec.after = body => {
+          const id = key === 'journey' ? 'cover-journey' : key === 'caution' ? 'cover-caution' : 'cover-table';
+          const el = body.querySelector('#' + id);
+          if (el) el.scrollIntoView({ block: 'start', behavior: 'auto' });
+        };
+        return spec;
+      },
+    });
+  }
 }
-function focus(key, body) {
-  const id = key === 'journey' ? 'cover-journey' : key === 'caution' ? 'cover-caution' : key === 'table' ? 'cover-table' : '';
-  const el = id && body.querySelector('#' + id);
-  if (el) el.scrollIntoView({ block: 'start', behavior: App.motionOn() ? 'smooth' : 'auto' });
-}
+
 function enter(body) {
-  if (!App.motionOn()) return;
-  const bars = body.querySelectorAll('.cvj .hbar > i');
-  bars.forEach(i => { i.dataset.w = i.style.width; i.style.transition = 'none'; i.style.width = '0%'; });
-  void body.offsetWidth;
-  requestAnimationFrame(() => requestAnimationFrame(() => bars.forEach(i => { i.style.transition = ''; i.style.width = i.dataset.w; })));
-}
-function update(body, c) {
-  if (c.changed.has('base') || c.changed.has('peerScope') || c.changed.has('peerPick')) return false;
-  const old = body.querySelector('.cv-ref');
-  const html = refNote(c);
-  if (old) { if (html) old.outerHTML = html; else old.remove(); }
-  else if (html) body.querySelector('.concl').insertAdjacentHTML('afterend', html);
-  return true;
+  const ax = body && body.querySelector('#cv-pillar-axis');
+  if (!ax || !App.motionOn()) return;
+  ax.classList.remove('cvp-anim'); void ax.offsetWidth; ax.classList.add('cvp-anim');
+  clearTimeout(ax._t); ax._t = setTimeout(() => ax.classList.remove('cvp-anim'), 500);
 }
 
 // 탭 5 와 core.js, tab1.js 가 쓰는 것
@@ -740,4 +934,4 @@ App.cover = {
   peerCols: baseId => { const m = model(baseId); return m ? m.cols : []; },
 };
 
-App.registerTab({ id: 'cover', kicker: '좁혀 확인한다, 담보', render, update, pick, evidence, focus, enter });
+App.registerTab({ id: 'cover', layout: 'band', kicker: '좁혀 확인한다, 담보', renderStage, conclusion, pick, actions, copySummary: copyTable, focus, enter });
