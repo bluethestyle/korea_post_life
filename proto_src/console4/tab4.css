@@ -1,253 +1,238 @@
-/* 탭 4 담보 비교 전용. 본문은 #view-cover 아래로, 근거 기둥 안의 내용(관계도, 조건 비교)은 #ev 아래의 cv-, rl- 이름으로 가둔다.
-   주인공 도형: 6px 수평 채움 막대(치료 여정 격자), 줄무늬 없는 표, 직각 꺾은선의 관계도(갈림 자리 9px ◇) */
-#view-cover .vbody{container-type:inline-size}
-#view-cover .cv-ref{margin:-8px 0 20px;padding:10px 20px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--ink-1);word-break:keep-all}
+/* 탭 4 담보 비교 전용: 전폭 가로 기준축(66% 지점) + 치료 단계 5구간 + 담보별 판정 적층 기둥 + 아래 읽기 띠.
+   [표로 보기] 전체 모달에서는 치료 여정 격자(통원과 합계 열 포함)와 담보 비교표(상대 회사 지급, 면책, 감액 열 포함)가 잘림 없이 열린다. */
 
-/* ---------- 치료 여정 격자: 칸마다 세 회사의 6px 수평 막대(acs_12 의 능력치 막대) ---------- */
-:is(#view-cover,#print-root) .cvj-w{overflow-x:auto;padding:2px 24px 18px}
-:is(#view-cover,#print-root) .cvj{display:grid;grid-template-columns:minmax(168px,1.15fr) repeat(5,minmax(112px,1fr)) minmax(112px,1fr);gap:4px;min-width:900px}
-:is(#view-cover,#print-root) .cvj-h{padding:6px 12px 4px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2);white-space:nowrap}
-:is(#view-cover,#print-root) .cvj-h.cvj-t{color:var(--ink-1)}
-:is(#view-cover,#print-root) .cvj-g{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 14px;background:rgba(255,255,255,.18);box-shadow:inset 3px 0 0 var(--ink-0)}
-:is(#view-cover,#print-root) .cvj-g.cvj-tt{box-shadow:inset 3px 0 0 var(--gold-line);background:transparent}
-:is(#view-cover,#print-root) .cvj-n{font:600 15px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
-:is(#view-cover,#print-root) .cvj-ls{display:flex;flex-direction:column;gap:3px;flex:none}
-:is(#view-cover,#print-root) .cvj-l{display:block;height:15px;font:400 13px/15px var(--f-body);color:var(--ink-1);text-align:right;white-space:nowrap}
-:is(#view-cover,#print-root) .cvj-c{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:stretch;place-items:initial;gap:3px;min-height:66px;padding:8px 28px 8px 12px;
-  background:rgba(255,255,255,.34);color:var(--ink-0);text-align:left}
-#view-cover button.cvj-c{border:0;cursor:pointer;transition:background-color 120ms}
-#view-cover button.cvj-c:hover{background:rgba(255,255,255,.62)}
-:root[data-theme="dark"] #view-cover .cvj-c{background:rgba(255,255,255,.05)}
-:root[data-theme="dark"] #view-cover button.cvj-c:hover{background:rgba(255,255,255,.11)}
-:is(#view-cover,#print-root) .cvj-c.cvj-t{background:transparent;box-shadow:inset 0 0 0 1px var(--line-2);padding-right:12px}
-:is(#view-cover,#print-root) .cvj-c.z0{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 7px),rgba(255,255,255,.22)}
-:is(#view-cover,#print-root) .cvj-c.a0 .cvj-b b{color:var(--ink-2)}
-:is(#view-cover,#print-root) .cvj-b{display:grid;grid-template-columns:minmax(0,1fr) 24px;align-items:center;gap:8px;height:15px}
-:is(#view-cover,#print-root) .cvj-b .hbar{min-width:0}
-:is(#view-cover,#print-root) .cvj-b b{font:600 13px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);text-align:right}
-:is(#view-cover,#print-root) .hbar > i.hollow{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-2)}
-:is(#view-cover,#print-root) .cvj-ch{position:absolute;right:9px;top:50%;width:8px;height:14px;margin-top:-7px;color:var(--ink-1)}
-:is(#view-cover,#print-root) .cvj-c.is-sel{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff;z-index:2}
-:is(#view-cover,#print-root) .cvj-all{gap:4px}
-:is(#view-cover,#print-root) .cvj-all .cvj-b{grid-template-columns:minmax(0,1fr) 30px}
-:is(#view-cover,#print-root) .cvj-l2{font:400 13px/1 var(--f-body);color:var(--ink-1)}
-:is(#view-cover,#print-root) .cvj-lg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
-:is(#view-cover,#print-root) .cvj-lg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-:is(#view-cover,#print-root) .cvj-lg i{display:inline-block;width:22px;height:6px}
-:is(#view-cover,#print-root) .cvj-lg .lg0{background:var(--ink-0)}
-:is(#view-cover,#print-root) .cvj-lg .lg1{background:var(--ink-2)}
-:is(#view-cover,#print-root) .cvj-lg .lg2{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
-:is(#view-cover,#print-root) .cvj-lg .lgz{height:12px;width:14px;background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 4px);outline:1px solid var(--line-2)}
+.cvp-stage{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:368px;padding-top:10px}
+.cvp-hover-bar{position:relative;min-height:26px;margin-bottom:4px;overflow:hidden;pointer-events:none}
+.cvp-hlbl{display:inline-flex;align-items:baseline;gap:8px;font:400 13.5px/1.3 var(--f-body);color:var(--ink-0);white-space:nowrap}
+.cvp-hlbl b{font:600 14.5px/1.3 var(--f-ko);color:var(--ink-0)}
+.cvp-hlbl span{color:var(--ink-1);font-size:13px}
 
-/* ---------- 단정 주의와 보류 요약 ---------- */
-:is(#view-cover,#print-root) .cv-mid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:var(--gap);margin:0;align-items:start}
-@container (max-width:1120px){ :is(#view-cover,#print-root) .cv-mid{grid-template-columns:minmax(0,1fr)} }
-:is(#view-cover,#print-root) .cv-kh{display:flex;align-items:center;gap:8px;padding:10px 24px 6px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2);border-top:1px solid var(--line)}
-:is(#view-cover,#print-root) .cv-kh b{font:600 13px/1 var(--f-num);color:var(--ink-0)}
-:is(#view-cover,#print-root) .cv-cr{padding:0 24px}
-:is(#view-cover,#print-root) .cv-crh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-height:36px;padding:4px 40px 4px 0}
-:is(#view-cover,#print-root) .cv-crh.selbar::before{right:-24px}
-:is(#view-cover,#print-root) .cv-cn{font:600 15px/1.3 var(--f-ko);color:var(--ink-0)}
-:is(#view-cover,#print-root) .cv-cpe{margin:0;padding:2px 40px 0 0;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
-:is(#view-cover,#print-root) .cv-ctx{margin:0;padding:2px 40px 12px 0;font:400 14px/1.6 var(--f-body);color:var(--ink-0);word-break:keep-all}
-:is(#view-cover,#print-root) .cv-pd-eq{padding:0 24px 10px}
-:is(#view-cover,#print-root) .cv-pd-eq .nadd{margin-top:6px}
-:is(#view-cover,#print-root) .cv-pd-t{padding:0 12px 4px;overflow-x:auto}
-:is(#view-cover,#print-root) .cv-pd-t .nw{white-space:nowrap}
-:is(#view-cover,#print-root) .cv-pd-eq .cqs{margin-top:8px;gap:3px}
-:is(#view-cover,#print-root) .cv-pd-eq .cq{width:14px;height:14px}
-:is(#view-cover,#print-root) .cv-pd .panel-f .kd-l{display:inline-flex;align-items:center;gap:6px}
-:is(#view-cover,#print-root) .cv-pd .panel-f .cq{width:12px;height:12px}
+/* 전폭 가로 기준축(2px 선): 치료 단계 다섯 구간이 28px 여백과 1px 세로 눈금선으로 나뉜다 */
+.cvp-axis{position:relative;display:flex;align-items:stretch;justify-content:space-between;width:100%;
+  border-bottom:2px solid var(--axis)}
+.cvp-seg{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;
+  min-width:0;padding:4px 14px 0}
+.cvp-seg:first-child{padding-left:0}
+.cvp-seg:last-child{padding-right:0}
+.cvp-seg + .cvp-seg{border-left:1px solid var(--line-2)}
+.cvp-seg + .cvp-seg::after{content:"";position:absolute;left:-1px;bottom:-5px;width:1px;height:10px;background:var(--axis)}
 
-/* ---------- 담보 비교표 ---------- */
-:is(#view-cover,#print-root) .cv-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;padding:0 24px 10px}
-:is(#view-cover,#print-root) .cv-seg{display:flex;flex-wrap:wrap;gap:2px}
-:is(#view-cover,#print-root) .cv-sb{height:40px;padding:0 14px;border:0;background:rgba(255,255,255,.4);font:600 14px/1 var(--f-ko);color:var(--ink-1);white-space:nowrap}
-:is(#view-cover,#print-root) .cv-sb:hover{background:rgba(255,255,255,.7)}
-:is(#view-cover,#print-root) .cv-sb[aria-pressed="true"]{background:var(--slate);color:var(--on-slate)}
-:root[data-theme="dark"] #view-cover .cv-sb{background:rgba(255,255,255,.06)}
-:root[data-theme="dark"] #view-cover .cv-sb[aria-pressed="true"]{background:var(--slate)}
-:is(#view-cover,#print-root) .cv-cnt{margin-left:auto;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
-:is(#view-cover,#print-root) .cv-sum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 24px 12px;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
-:is(#view-cover,#print-root) .cv-sum b{font:600 14px/1 var(--f-num);color:var(--ink-0);margin-right:8px}
-:is(#view-cover,#print-root) .cv-tw{overflow-x:auto;padding:0 12px 4px}
-:is(#view-cover,#print-root) .cv-t{min-width:1000px}
-:is(#view-cover,#print-root) .cv-t th,:is(#view-cover,#print-root) .cv-t td{padding:9px 10px;vertical-align:middle}
-:is(#view-cover,#print-root) .cv-t thead th{white-space:nowrap}
-:is(#view-cover,#print-root) .cv-t thead .sub{font:400 13px/1.2 var(--f-body);color:var(--ink-2)}
-:is(#view-cover,#print-root) .cv-t .cv-h2 th{padding-top:0}
-:is(#view-cover,#print-root) .cv-t th.cv-n,:is(#view-cover,#print-root) .cv-t td.cv-n{width:20%;min-width:168px}
-:is(#view-cover,#print-root) .cv-t td.cv-n{position:relative}
-:is(#view-cover,#print-root) .cv-t td.cv-n .nm{font:600 14px/1.35 var(--f-ko);color:var(--ink-0)}
-:is(#view-cover,#print-root) .cv-t td.cv-n .sub{margin-left:6px;font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
-:is(#view-cover,#print-root) .cv-t td.cv-n .flag{left:-10px;top:0}
-:is(#view-cover,#print-root) .cv-t td.cv-c{white-space:normal}
-:is(#view-cover,#print-root) .cv-v .pv,:is(#view-cover,#print-root) .cv-v .wv{white-space:nowrap}
-:is(#view-cover,#print-root) .cv-v .rv{word-break:keep-all;line-height:1.35}
-:is(#view-cover,#print-root) .cv-v{display:grid;grid-template-columns:minmax(64px,max-content) 40px minmax(56px,1fr);align-items:center;gap:4px 10px;font:400 14px/1.3 var(--f-body)}
-:is(#view-cover,#print-root) .cv-v .pv{text-align:right;font-weight:600}
-:is(#view-cover,#print-root) .cv-v .wv{text-align:right}
-:is(#view-cover,#print-root) .cv-v .rv{text-align:left}
-:is(#view-cover,#print-root) .cv-v.hd span{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
-:is(#view-cover,#print-root) .cv-v.has-x .pv::after{content:"";display:inline-block;width:5px;height:5px;margin-left:4px;vertical-align:2px;border:1px solid currentColor;transform:rotate(45deg)}
-:is(#view-cover,#print-root) .cv-x{display:inline-block;padding:1px 8px;font:400 13px/1.6 var(--f-body);color:var(--ink-1);border:1px dashed var(--dash);
-  background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
-:is(#view-cover,#print-root) .cv-x.wait{background:transparent;border-color:var(--unknown-edge);color:var(--unknown-ink)}
-:is(#view-cover,#print-root) .cv-t td.cv-vd{width:150px}
-:is(#view-cover,#print-root) .cv-t th.cv-vd{text-align:left;line-height:1.3}
-:is(#view-cover,#print-root) .cv-t .cv-ch{width:28px;padding-left:0;color:var(--ink-1)}
-:is(#view-cover,#print-root) .cv-t .cv-ch svg{display:block}
-:is(#view-cover,#print-root) .cv-both{font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
-:is(#view-cover,#print-root) .cv-t tr.cv-gh th{padding:9px 14px 8px;font:600 14px/1.3 var(--f-ko);color:#fff;border-bottom:0;background:var(--slate)}
-:is(#view-cover,#print-root) .cv-t tr.cv-gh .num{font:600 15px/1 var(--f-num);color:#fff}
+.cvp-sh{display:inline-flex;align-items:center;gap:7px;margin-bottom:16px}
+.cvp-ring{width:28px;height:28px;flex:none;display:block}
+.cvp-ring svg{width:100%;height:100%;display:block}
+.cvp-snm{font:600 15px/1.2 var(--f-ko);color:var(--ink-0);white-space:nowrap}
+.cvp-scnt{font:600 13.5px/1 var(--f-num);color:var(--ink-1);white-space:nowrap}
 
-:is(#view-cover,#print-root) .cv-t tr.is-sel td.cv-n .nm{color:#fff}
-:is(#view-cover,#print-root) .cv-t tr.is-sel td .sub{color:rgba(255,255,255,.88)}
-:is(#view-cover,#print-root) .cv-t tr.is-sel .cv-x{border-color:#fff;background:transparent;color:#fff}
-:is(#view-cover,#print-root) .cv-t tr.is-sel .cv-both{color:rgba(255,255,255,.88)}
-:is(#view-cover,#print-root) .cv-t tr.is-sel td.cv-vd{box-shadow:none}
-:is(#view-cover,#print-root) .cv-t tr.is-sel .flag{filter:drop-shadow(1px 0 0 #fff) drop-shadow(0 1px 0 #fff)}
-:is(#view-cover,#print-root) .cv-t tr.is-sel td:first-child{animation:cvSel var(--t-sel) var(--ease)}
-@keyframes cvSel{from{box-shadow:-24px 0 0 var(--red-hi),inset 9999px 0 0 rgba(255,255,255,.0)}to{box-shadow:-24px 0 0 var(--red-hi)}}
+/* 1920x1080 기준: 기둥 폭 14px, 사이 8px, 최대 높이 200px, 최소 12px */
+.cvp-row{display:flex;align-items:flex-end;gap:8px;min-height:224px}
+.cvp-btn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  width:14px;min-height:224px;padding:0;border:0;background:transparent;color:var(--ink-0)}
+.cvp-stem{position:relative;width:1px;height:14px;margin-bottom:4px;background:transparent;transition:height 140ms var(--ease),background 140ms var(--ease)}
+.cvp-dia{position:absolute;left:-3px;top:-7px;width:7px;height:7px;border:1px solid transparent;background:transparent;transform:rotate(45deg)}
+.cvp-flg{position:absolute;top:0;left:50%;width:5px;height:5px;margin-left:-2.5px;background:var(--red);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.cvp-bar{display:flex;align-items:flex-end;width:14px;height:var(--ph,14px)}
+.cvp-svg{width:100%;height:100%;display:block;overflow:visible}
+.cvp-svg.is-dia{height:16px}
 
-/* 본문 폭이 1060px 아래(중간 폭에서 근거 기둥이 열렸을 때 포함): 상대 회사의 값 칸을 접고 판정 칸을 남긴다 */
-#view-cover .cv-narrow{display:none;margin:0;padding:8px 24px 0;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
-/* 표 모양을 쓰는 폭(창 1000px 이상)에서만. 1000px 아래는 아래의 줄 묶음 꼴을 쓴다 */
-@media (min-width:1000px){
-  @container (max-width:1060px){
-    #view-cover .cv-t{min-width:0}
-    #view-cover .cv-t .cv-c.k1,#view-cover .cv-t .cv-c.k2{display:none}
-    #view-cover .cv-narrow{display:block}
-  }
-  /* 1300px 아래: 지급을 윗줄, 면책과 감액을 아랫줄로 쌓아 "가입금액의 100%"와 면책 값이 겹치지 않게 한다 */
-  @container (max-width:1300px){
-    #view-cover .cv-v{grid-template-columns:40px minmax(0,1fr)}
-    #view-cover .cv-v .pv{grid-column:1/-1;text-align:left}
-    #view-cover .cv-v .wv{text-align:left}
-  }
+.cvp-btn:hover .cvp-stem,.cvp-btn:focus-visible .cvp-stem{height:20px;background:var(--ink-0)}
+.cvp-btn:hover .cvp-dia,.cvp-btn:focus-visible .cvp-dia{border-color:var(--ink-0);background:var(--ink-0)}
+.cvp-btn.is-sel .cvp-stem{height:24px;background:var(--red)}
+.cvp-btn.is-sel .cvp-dia{border-color:var(--red);background:var(--red)}
+.cvp-btn.is-sel .cvp-bar{outline:2px solid var(--red);outline-offset:1px}
+
+.cvp-anim .cvp-bar{transform-origin:bottom center;animation:cvBarGrow 280ms var(--ease) both}
+@keyframes cvBarGrow{from{transform:scaleY(.15);opacity:.4}to{transform:none;opacity:1}}
+
+/* 1600px, 1280px, 380px 해상도별 기둥 폭과 간격(도형 영역 안쪽 가로 스크롤 0) */
+@media (max-width:1799px) and (min-width:1440px){
+  .cvp-seg{padding:4px 11px 0}
+  .cvp-row{gap:6px;min-height:204px}
+  .cvp-btn{width:12px;min-height:204px}
+  .cvp-bar{width:12px}
 }
-
-/* ---------- 좁은 화면: 표를 줄 묶음으로 ---------- */
+@media (max-width:1439px) and (min-width:1000px){
+  /* 1280px 기준: 기둥 폭 9px, 사이 5px */
+  .cvp-stage{min-height:310px}
+  .cvp-seg{padding:4px 9px 0}
+  .cvp-sh{gap:5px;margin-bottom:10px}
+  .cvp-ring{width:24px;height:24px}
+  .cvp-snm{font-size:14px}
+  .cvp-row{gap:5px;min-height:186px}
+  .cvp-btn{width:9px;min-height:186px}
+  .cvp-bar{width:9px;max-height:164px}
+}
 @media (max-width:999px){
-  #view-cover .cvj-w{padding:2px 16px 14px}
-  #view-cover .cv-cr{padding:0 16px}
-  #view-cover .cv-crh.selbar::before{left:-16px;right:-16px}
-  #view-cover .cv-crh,#view-cover .cv-ctx,#view-cover .cv-cpe{padding-right:28px}
-  #view-cover .cv-tools{padding:0 16px 10px}
-  #view-cover .cv-sb{padding:0 10px;font-size:13px}
-  #view-cover .cv-cnt{margin-left:0}
-  #view-cover .cv-sum{padding:0 16px 10px}
-  #view-cover .cv-tw{overflow:visible;padding:0}
-  #view-cover .cv-t{min-width:0;display:block}
-  #view-cover .cv-t thead{display:none}
-  #view-cover .cv-t tbody{display:block}
-  #view-cover .cv-t tr.cv-gh{display:block}
-  #view-cover .cv-t tr.cv-gh th{display:block;padding:14px 16px 6px}
-  #view-cover .cv-t tr.pick{position:relative;display:block;padding:6px 0 8px;border-bottom:1px solid var(--line)}
-  #view-cover .cv-t tr.pick td{display:flex;align-items:center;gap:10px;width:auto;min-width:0;border:0;padding:3px 40px 3px 16px;white-space:normal}
-  #view-cover .cv-t tr.pick td[data-l]::before{content:attr(data-l);flex:0 0 92px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2)}
-  #view-cover .cv-t td.cv-n{padding-top:6px;padding-bottom:6px}
-  #view-cover .cv-t td.cv-n .flag{left:0}
-  #view-cover .cv-t td.cv-ch{position:absolute;right:12px;top:12px;padding:0;width:10px}
-  #view-cover .cv-v{grid-template-columns:auto 36px auto;gap:8px;font-size:13px}
-  /* 고른 줄: 막대는 이름 줄 하나에만(넓이 2.5% 안쪽). 나머지 칸은 옅은 면과 왼쪽 3px 빨강 선 */
-  #view-cover .cv-t tr.pick.is-sel{background:var(--sel-tint);box-shadow:inset 3px 0 0 var(--red)}
-  #view-cover .cv-t tr.pick.is-sel td.cv-n{background:linear-gradient(90deg,var(--red-hi) 0,var(--red) calc(var(--sel-red,100%) * .45),var(--red-deep) var(--sel-red,100%),var(--sel-fade) calc(var(--sel-red,100%) + 96px))}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n){background:transparent;color:var(--ink-0)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .cv-v span,#view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .cv-both{color:var(--ink-0)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n)::before{color:var(--ink-2)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .cv-x{border-color:var(--dash);background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px);color:var(--ink-1)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd{box-shadow:none}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-better,#view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-better *{color:#151D24}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-only,#view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-only *,
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-none,#view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-none *{color:var(--ink-0)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-worse,#view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-worse *{color:var(--on-worse)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-worse{box-shadow:0 0 0 1px var(--worse-edge)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-same,#view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-same *{color:var(--ink-2)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-diff,#view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-diff *{color:var(--ink-1)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-diff{border-color:var(--ink-2)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-unknown,#view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-unknown *{color:var(--unknown-ink)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-unknown{border-color:var(--unknown-edge)}
-  #view-cover .cv-t tr.pick.is-sel td:not(.cv-n) .vd-none{border-color:var(--dash)}
-  #view-cover .cv-t tr.pick.is-sel td.cv-ch{background:transparent}
-  #view-cover .cv-t tr.pick.is-sel td.cv-ch svg{color:#fff}
-  #view-cover .cv-t tr.cv-gh th{padding:10px 16px 8px}
-  #view-cover .cv-t tr.is-sel td:first-child{box-shadow:none}
+  /* 380px: 다섯 치료 단계를 세로로 쌓고 단계마다 가로 기준축을 두어 가로 넘침과 안쪽 스크롤이 모두 0 */
+  .cvp-stage{min-height:0;padding-top:2px}
+  .cvp-hover-bar{display:none}
+  .cvp-axis{flex-direction:column;border-bottom:0;gap:14px}
+  .cvp-seg{padding:4px 0 0;border-left:0!important;border-bottom:2px solid var(--axis);width:100%}
+  .cvp-seg + .cvp-seg::after{display:none}
+  .cvp-sh{margin-bottom:6px}
+  .cvp-row{gap:4px;min-height:112px;width:100%}
+  .cvp-btn{width:11px;min-height:112px}
+  .cvp-bar{width:11px;max-height:94px}
 }
 
-/* ---------- 근거 기둥 안(탭 4, 탭 5 가 함께 쓴다) ---------- */
-#ev .cv-jd + .cv-jd{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
-#ev .cv-jd p{margin:0 0 6px}
-#ev .cv-jd .vd{margin-left:6px}
-#ev .cv-ct-w{overflow-x:auto}
-#ev .cv-ct,#ev .cv-it,#ev .cv-jt{width:100%;border-collapse:collapse;font:400 13px/1.45 var(--f-body);color:var(--ink-0)}
-#ev .cv-ct th,#ev .cv-ct td,#ev .cv-it th,#ev .cv-it td,#ev .cv-jt th,#ev .cv-jt td{padding:6px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-#ev .cv-ct thead th,#ev .cv-ct tr:first-child th,#ev .cv-it tr:first-child th,#ev .cv-jt tr:first-child th{font:600 13px/1.3 var(--f-ko);color:var(--ink-2);border-bottom-color:var(--line-2)}
-#ev .cv-ct th[scope="row"],#ev .cv-it th[scope="row"]{font:600 13px/1.45 var(--f-ko);color:var(--ink-1);white-space:nowrap}
-#ev .cv-ct td.sm{color:var(--ink-1)}
-#ev .cv-na{color:var(--ink-2)}
-#ev .cv-it{margin-top:6px}
-#ev .cv-jt td.ok{font-weight:600}
-#ev .cv-jt td.no{color:var(--ink-2)}
-#ev .cv-jt th[scope="row"]{font-weight:400}
-#ev .cv-jt tr:first-child th{white-space:nowrap}
-#ev .cv-lk{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0;border:0;background:transparent;font:600 13px/1.35 var(--f-ko);color:var(--ink-0);text-align:left;text-decoration:underline;text-underline-offset:3px}
-#ev .cv-lk:hover{color:var(--red-ink)}
-#ev .cv-bds{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px}
-#ev .cv-bd,.ev-top .cv-bd{display:inline-flex;align-items:center;gap:6px;font:400 13px/1 var(--f-body);color:var(--ink-1);white-space:nowrap}
-#ev .cv-evl,#ev .cv-pts{list-style:none;margin:0;padding:0}
-#ev .cv-evl li,#ev .cv-pts li{padding:7px 0;border-top:1px solid var(--line);font:400 13px/1.55 var(--f-body);color:var(--ink-0);word-break:keep-all}
-#ev .cv-evl li:first-child,#ev .cv-pts li:first-child{border-top:0;padding-top:0}
-#ev .cv-pts li p{margin:6px 0 0}
-#ev .cv-both{font:400 13px/1 var(--f-body);color:var(--ink-2)}
+/* ---------- [표로 보기] 전체 모달 안의 치료 여정 격자, 단정 주의, 보류 요약, 담보 비교표 ---------- */
+.cv-modal-root .cv-ref{margin:0 0 14px;padding:8px 14px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cvj-w{overflow-x:auto;padding:2px 18px 16px}
+:is(.cv-modal-root,#print-root) .cvj{display:grid;grid-template-columns:minmax(156px,1.1fr) repeat(5,minmax(108px,1fr)) minmax(112px,1fr);gap:4px;min-width:860px}
+:is(.cv-modal-root,#print-root) .cvj-h{padding:6px 10px 4px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2);white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cvj-h.cvj-t{color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cvj-g{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 12px;background:rgba(255,255,255,.18);box-shadow:inset 3px 0 0 var(--ink-0)}
+:is(.cv-modal-root,#print-root) .cvj-g.cvj-tt{box-shadow:inset 3px 0 0 var(--gold-line);background:transparent}
+:is(.cv-modal-root,#print-root) .cvj-n{font:600 15px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
+:is(.cv-modal-root,#print-root) .cvj-ls{display:flex;flex-direction:column;gap:3px;flex:none}
+:is(.cv-modal-root,#print-root) .cvj-l{display:block;height:15px;font:400 13px/15px var(--f-body);color:var(--ink-1);text-align:right;white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cvj-c{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:stretch;place-items:initial;gap:3px;min-height:64px;padding:8px 26px 8px 10px;
+  background:rgba(255,255,255,.34);color:var(--ink-0);text-align:left}
+.cv-modal-root button.cvj-c{border:0;cursor:pointer}
+.cv-modal-root button.cvj-c:hover{background:rgba(255,255,255,.62)}
+:root[data-theme="dark"] .cv-modal-root .cvj-c{background:rgba(255,255,255,.05)}
+:is(.cv-modal-root,#print-root) .cvj-c.cvj-t{background:transparent;box-shadow:inset 0 0 0 1px var(--line-2);padding-right:10px}
+:is(.cv-modal-root,#print-root) .cvj-c.z0{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 7px),rgba(255,255,255,.22)}
+:is(.cv-modal-root,#print-root) .cvj-c.a0 .cvj-b b{color:var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cvj-b{display:grid;grid-template-columns:minmax(0,1fr) 24px;align-items:center;gap:8px;height:15px}
+:is(.cv-modal-root,#print-root) .cvj-b .hbar{min-width:0}
+:is(.cv-modal-root,#print-root) .cvj-b b{font:600 13px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);text-align:right}
+:is(.cv-modal-root,#print-root) .hbar > i.hollow{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cvj-ch{position:absolute;right:8px;top:50%;width:8px;height:14px;margin-top:-7px;color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cvj-all{gap:4px}
+:is(.cv-modal-root,#print-root) .cvj-all .cvj-b{grid-template-columns:minmax(0,1fr) 30px}
+:is(.cv-modal-root,#print-root) .cvj-l2{font:400 13px/1 var(--f-body);color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cvj-lg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cvj-lg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cvj-lg i{display:inline-block;width:22px;height:6px}
+:is(.cv-modal-root,#print-root) .cvj-lg .lg0{background:var(--ink-0)}
+:is(.cv-modal-root,#print-root) .cvj-lg .lg1{background:var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cvj-lg .lg2{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cvj-lg .lgz{height:12px;width:14px;background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 4px);outline:1px solid var(--line-2)}
+
+:is(.cv-modal-root,#print-root) .cv-mid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--gap);align-items:start}
+@media (max-width:1199px){ :is(.cv-modal-root,#print-root) .cv-mid{grid-template-columns:minmax(0,1fr)} }
+:is(.cv-modal-root,#print-root) .cv-kh{display:flex;align-items:center;gap:8px;padding:10px 20px 6px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2);border-top:1px solid var(--line)}
+:is(.cv-modal-root,#print-root) .cv-kh b{font:600 13px/1 var(--f-num);color:var(--ink-0)}
+:is(.cv-modal-root,#print-root) .cv-cr{padding:0 20px}
+:is(.cv-modal-root,#print-root) .cv-crh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-height:34px;padding:4px 36px 4px 0}
+:is(.cv-modal-root,#print-root) .cv-cn{font:600 15px/1.3 var(--f-ko);color:var(--ink-0)}
+:is(.cv-modal-root,#print-root) .cv-cpe{margin:0;padding:2px 36px 0 0;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cv-ctx{margin:0;padding:2px 36px 10px 0;font:400 14px/1.6 var(--f-body);color:var(--ink-0);word-break:keep-all}
+:is(.cv-modal-root,#print-root) .cv-pd-eq{padding:0 20px 10px}
+:is(.cv-modal-root,#print-root) .cv-pd-eq .nadd{margin-top:6px}
+:is(.cv-modal-root,#print-root) .cv-pd-t{padding:0 12px 4px;overflow-x:auto}
+:is(.cv-modal-root,#print-root) .cv-pd-t .nw{white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-pd-eq .cqs{margin-top:8px;gap:3px}
+:is(.cv-modal-root,#print-root) .cv-pd-eq .cq{width:14px;height:14px}
+:is(.cv-modal-root,#print-root) .cv-pd .panel-f .kd-l{display:inline-flex;align-items:center;gap:6px}
+:is(.cv-modal-root,#print-root) .cv-pd .panel-f .cq{width:12px;height:12px}
+
+:is(.cv-modal-root,#print-root) .cv-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:0 20px 10px}
+:is(.cv-modal-root,#print-root) .cv-seg{display:flex;flex-wrap:wrap;gap:4px}
+:is(.cv-modal-root,#print-root) .cv-sb{height:34px;padding:0 12px;border:1px solid var(--line-2);background:transparent;font:600 13.5px/1 var(--f-ko);color:var(--ink-1);white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-sb:hover{background:var(--hover)}
+:is(.cv-modal-root,#print-root) .cv-sb[aria-pressed="true"]{background:var(--slate);color:var(--on-slate);border-color:transparent}
+:is(.cv-modal-root,#print-root) .cv-cnt{margin-left:auto;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cv-sum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 20px 12px;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cv-sum b{font:600 14px/1 var(--f-num);color:var(--ink-0);margin-right:8px}
+:is(.cv-modal-root,#print-root) .cv-tw{overflow-x:auto;padding:0 12px 6px}
+:is(.cv-modal-root,#print-root) .cv-t{min-width:1000px}
+:is(.cv-modal-root,#print-root) .cv-t th,:is(.cv-modal-root,#print-root) .cv-t td{padding:8px 9px;vertical-align:middle}
+:is(.cv-modal-root,#print-root) .cv-t thead th{white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-t thead .sub{font:400 13px/1.2 var(--f-body);color:var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cv-t .cv-h2 th{padding-top:0}
+:is(.cv-modal-root,#print-root) .cv-t th.cv-n,:is(.cv-modal-root,#print-root) .cv-t td.cv-n{min-width:168px}
+:is(.cv-modal-root,#print-root) .cv-t td.cv-n{position:relative}
+:is(.cv-modal-root,#print-root) .cv-t td.cv-n .nm{font:600 14px/1.35 var(--f-ko);color:var(--ink-0)}
+:is(.cv-modal-root,#print-root) .cv-t td.cv-n .sub{margin-left:6px;font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-t td.cv-n .flag{left:-8px;top:0}
+:is(.cv-modal-root,#print-root) .cv-v .pv,:is(.cv-modal-root,#print-root) .cv-v .wv{white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-v .rv{word-break:keep-all;line-height:1.35}
+:is(.cv-modal-root,#print-root) .cv-v{display:grid;grid-template-columns:minmax(64px,max-content) 40px minmax(56px,1fr);align-items:center;gap:4px 10px;font:400 13.5px/1.3 var(--f-body)}
+:is(.cv-modal-root,#print-root) .cv-v .pv{text-align:right;font-weight:600}
+:is(.cv-modal-root,#print-root) .cv-v .wv{text-align:right}
+:is(.cv-modal-root,#print-root) .cv-v .rv{text-align:left}
+:is(.cv-modal-root,#print-root) .cv-v.hd span{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cv-v.has-x .pv::after{content:"";display:inline-block;width:5px;height:5px;margin-left:4px;vertical-align:2px;border:1px solid currentColor;transform:rotate(45deg)}
+:is(.cv-modal-root,#print-root) .cv-x{display:inline-block;padding:1px 8px;font:400 13px/1.6 var(--f-body);color:var(--ink-1);border:1px dashed var(--dash);
+  background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
+:is(.cv-modal-root,#print-root) .cv-x.wait{background:transparent;border-color:var(--unknown-edge);color:var(--unknown-ink)}
+:is(.cv-modal-root,#print-root) .cv-t td.cv-vd{min-width:136px}
+:is(.cv-modal-root,#print-root) .cv-t .cv-ch{width:24px;padding-left:0;color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cv-both{font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-t tr.cv-gh th{padding:8px 14px;font:600 14px/1.3 var(--f-ko);color:#fff;border-bottom:0;background:var(--slate)}
+:is(.cv-modal-root,#print-root) .cv-t tr.cv-gh .num{font:600 15px/1 var(--f-num);color:#fff}
+
+/* ---------- 읽기 띠 및 상세 영역 안(탭 4, 탭 5 가 함께 쓴다) ---------- */
+:is(#z-right,.ev) .cv-jd + .cv-jd{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+:is(#z-right,.ev) .cv-jd p{margin:0 0 5px}
+:is(#z-right,.ev) .cv-jd .vd{margin-left:6px}
+:is(#z-right,.ev) .cv-ct-w{overflow-x:auto}
+:is(#z-right,.ev) .cv-ct,:is(#z-right,.ev) .cv-it,:is(#z-right,.ev) .cv-jt{width:100%;border-collapse:collapse;font:400 13px/1.45 var(--f-body);color:var(--ink-0)}
+:is(#z-right,.ev) .cv-ct th,:is(#z-right,.ev) .cv-ct td,:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td,:is(#z-right,.ev) .cv-jt th,:is(#z-right,.ev) .cv-jt td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+:is(#z-right,.ev) .cv-ct thead th,:is(#z-right,.ev) .cv-ct tr:first-child th,:is(#z-right,.ev) .cv-it tr:first-child th,:is(#z-right,.ev) .cv-jt tr:first-child th{font:600 13px/1.3 var(--f-ko);color:var(--ink-2);border-bottom-color:var(--line-2)}
+:is(#z-right,.ev) .cv-ct th[scope="row"],:is(#z-right,.ev) .cv-it th[scope="row"]{font:600 13px/1.45 var(--f-ko);color:var(--ink-1);white-space:nowrap}
+:is(#z-right,.ev) .cv-ct td.sm{color:var(--ink-1)}
+:is(#z-right,.ev) .cv-na{color:var(--ink-2)}
+:is(#z-right,.ev) .cv-it{margin-top:6px}
+:is(#z-right,.ev) .cv-jt td.ok{font-weight:600}
+:is(#z-right,.ev) .cv-jt td.no{color:var(--ink-2)}
+:is(#z-right,.ev) .cv-jt th[scope="row"]{font-weight:400}
+:is(#z-right,.ev) .cv-jt tr:first-child th{white-space:nowrap}
+:is(#z-right,.ev) .cv-lk{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0;border:0;background:transparent;font:600 13px/1.35 var(--f-ko);color:var(--ink-0);text-align:left;text-decoration:underline;text-underline-offset:3px}
+:is(#z-right,.ev) .cv-lk:hover{color:var(--red-ink)}
+:is(#z-right,.ev) .cv-bds{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px}
+:is(#z-right,.ev) .cv-bd,.ev-top .cv-bd{display:inline-flex;align-items:center;gap:6px;font:400 13px/1 var(--f-body);color:var(--ink-1);white-space:nowrap}
+:is(#z-right,.ev) .cv-evl,:is(#z-right,.ev) .cv-pts{list-style:none;margin:0;padding:0}
+:is(#z-right,.ev) .cv-evl li,:is(#z-right,.ev) .cv-pts li{padding:6px 0;border-top:1px solid var(--line);font:400 13px/1.55 var(--f-body);color:var(--ink-0);word-break:keep-all}
+:is(#z-right,.ev) .cv-evl li:first-child,:is(#z-right,.ev) .cv-pts li:first-child{border-top:0;padding-top:0}
+:is(#z-right,.ev) .cv-pts li p{margin:5px 0 0}
+:is(#z-right,.ev) .cv-both{font:400 13px/1 var(--f-body);color:var(--ink-2)}
 
 /* 관계도 */
-#ev .cv-rel,#ev .ins-rel{min-height:40px;margin:2px 0 8px}
-#ev .rl-svg{display:block;overflow:visible}
-#ev .rl-b{fill:var(--panel-hi);stroke:var(--line-2);stroke-width:1}
-#ev .rl-b.std{fill:var(--panel-hi);stroke:var(--ink-1);stroke-width:1.5}
-#ev .rl-b.ben.rep{stroke:var(--ink-0);stroke-width:2}
-#ev .rl-b.absent{fill:transparent;stroke:var(--dash);stroke-dasharray:4 3}
-#ev .rl-g{fill:var(--panel);stroke:var(--ink-1);stroke-width:1.2}
-#ev .rl-gt{font:600 13px/1 var(--f-ko);fill:var(--ink-0)}
-#ev .rl-t{font:600 13px/1 var(--f-body);fill:var(--ink-0)}
-#ev .rl-t.rl-h{font-size:14px}
-#ev .rl-s{font:400 13px/1 var(--f-body);fill:var(--ink-1)}
-#ev .rl-base{fill:transparent;stroke:var(--ink-2);stroke-width:1}
-#ev .rl-e{fill:none;stroke:var(--ink-1);stroke-opacity:.7;stroke-width:1.5}
-#ev .rl-e.dash{stroke-dasharray:5 4}
-#ev .rl-arh{fill:none;stroke:var(--ink-1);stroke-width:1.5}
-#ev .rl-dia{fill:var(--panel-hi);stroke:var(--ink-1);stroke-width:1.5}
-#ev .rl-tag{fill:rgba(255,255,255,.35);stroke:none}
-:root[data-theme="dark"] #ev .rl-tag{fill:rgba(255,255,255,.05)}
-#ev .rl-tag.k-better{fill:var(--gold-soft)}
-#ev .rl-tagl{fill:var(--ink-2)}
-#ev .rl-tagl.k-better{fill:var(--gold-line)}
-#ev .rl-tagl.k-worse{fill:var(--worse)}
-#ev .rl-tagl.k-none,#ev .rl-tagl.k-unknown{fill:var(--dash)}
-/* 선이 자란다(400ms). 점선(검토 대기)은 옅어졌다 짙어진다 */
-#ev .rl-in .rl-e:not(.dash){stroke-dasharray:1;animation:rlDraw var(--t-tree) var(--ease) both}
-#ev .rl-in .rl-e.dash{animation:rlFade var(--t-tree) var(--ease) both}
-#ev .rl-in .rl-b,#ev .rl-in .rl-g{animation:rlPop 260ms var(--ease) both}
+:is(#z-right,.ev) .cv-rel,:is(#z-right,.ev) .ins-rel{min-height:40px;margin:2px 0 8px}
+:is(#z-right,.ev) .rl-svg{display:block;overflow:visible}
+:is(#z-right,.ev) .rl-b{fill:var(--panel-hi);stroke:var(--line-2);stroke-width:1}
+:is(#z-right,.ev) .rl-b.std{fill:var(--panel-hi);stroke:var(--ink-1);stroke-width:1.5}
+:is(#z-right,.ev) .rl-b.ben.rep{stroke:var(--ink-0);stroke-width:2}
+:is(#z-right,.ev) .rl-b.absent{fill:transparent;stroke:var(--dash);stroke-dasharray:4 3}
+:is(#z-right,.ev) .rl-g{fill:var(--panel);stroke:var(--ink-1);stroke-width:1.2}
+:is(#z-right,.ev) .rl-gt{font:600 13px/1 var(--f-ko);fill:var(--ink-0)}
+:is(#z-right,.ev) .rl-t{font:600 13px/1 var(--f-body);fill:var(--ink-0)}
+:is(#z-right,.ev) .rl-t.rl-h{font-size:14px}
+:is(#z-right,.ev) .rl-s{font:400 13px/1 var(--f-body);fill:var(--ink-1)}
+:is(#z-right,.ev) .rl-base{fill:transparent;stroke:var(--ink-2);stroke-width:1}
+:is(#z-right,.ev) .rl-e{fill:none;stroke:var(--ink-1);stroke-opacity:.7;stroke-width:1.5}
+:is(#z-right,.ev) .rl-e.dash{stroke-dasharray:5 4}
+:is(#z-right,.ev) .rl-arh{fill:none;stroke:var(--ink-1);stroke-width:1.5}
+:is(#z-right,.ev) .rl-dia{fill:var(--panel-hi);stroke:var(--ink-1);stroke-width:1.5}
+:is(#z-right,.ev) .rl-tag{fill:rgba(255,255,255,.35);stroke:none}
+:root[data-theme="dark"] :is(#z-right,.ev) .rl-tag{fill:rgba(255,255,255,.05)}
+:is(#z-right,.ev) .rl-tag.k-better{fill:var(--gold-soft)}
+:is(#z-right,.ev) .rl-tagl{fill:var(--ink-2)}
+:is(#z-right,.ev) .rl-tagl.k-better{fill:var(--gold-line)}
+:is(#z-right,.ev) .rl-tagl.k-worse{fill:var(--worse)}
+:is(#z-right,.ev) .rl-tagl.k-none,:is(#z-right,.ev) .rl-tagl.k-unknown{fill:var(--dash)}
+:is(#z-right,.ev) .rl-in .rl-e:not(.dash){stroke-dasharray:1;animation:rlDraw var(--t-tree) var(--ease) both}
+:is(#z-right,.ev) .rl-in .rl-e.dash{animation:rlFade var(--t-tree) var(--ease) both}
+:is(#z-right,.ev) .rl-in .rl-b,:is(#z-right,.ev) .rl-in .rl-g{animation:rlPop 260ms var(--ease) both}
 @keyframes rlDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 @keyframes rlFade{from{stroke-opacity:0}to{stroke-opacity:.7}}
 @keyframes rlPop{from{opacity:.3}to{opacity:1}}
-#ev .rl-lg{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--line);font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
-#ev .rl-lg > div{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
-#ev .rl-lg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-#ev .rl-lg svg{flex:none}
-#ev .rl-lb{display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--ink-1);font:600 13px/1 var(--f-ko);color:var(--ink-0)}
-#ev .rl-lb.rep{border-width:2px;border-color:var(--ink-0)}
+:is(#z-right,.ev) .rl-lg{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--line);font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
+:is(#z-right,.ev) .rl-lg > div{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+:is(#z-right,.ev) .rl-lg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+:is(#z-right,.ev) .rl-lg svg{flex:none}
+:is(#z-right,.ev) .rl-lb{display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--ink-1);font:600 13px/1 var(--f-ko);color:var(--ink-0)}
+:is(#z-right,.ev) .rl-lb.rep{border-width:2px;border-color:var(--ink-0)}
 
-/* 표와 격자의 인쇄(흰 바탕 먹색, core.js 의 인쇄가 #print-root 에 옮긴다) */
 @media print{
   #print-root .cvj-w,#print-root .cv-tw,#print-root .cv-pd-t{overflow:visible;padding:0}
   #print-root .cvj{min-width:0;grid-template-columns:110px repeat(6,minmax(0,1fr))}
   #print-root .cvj-c{min-height:0;padding:4px 6px;background:#fff!important;box-shadow:inset 0 0 0 1px #ccc}
-  #print-root .cvj-ch,#print-root .cv-ch,#print-root .lrow-chev,#print-root .cv-tools,#print-root .cv-narrow{display:none!important}
+  #print-root .cvj-ch,#print-root .cv-ch,#print-root .lrow-chev,#print-root .cv-tools{display:none!important}
   #print-root .cv-t{min-width:0;font-size:10.5px}
   #print-root .cv-t th,#print-root .cv-t td{padding:3px 5px}
-  #print-root .cv-t .cv-c.k1,#print-root .cv-t .cv-c.k2{display:table-cell}
   #print-root .lrow-hit{display:none}
   #print-root tr,#print-root li{break-inside:avoid}
 }

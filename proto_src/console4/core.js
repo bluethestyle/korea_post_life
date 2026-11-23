@@ -1,5 +1,5 @@
-/* 시안 4 공통 실행부. 문구 표, 상태, 0~3층 탐색(조건 접기, 경로, Esc, 뒤로 가기), 범례와 말풍선, 근거 기둥, 복사와 인쇄.
-   규약은 API.md 와 요청 22에 있다. 화면 코드가 쓰는 문구는 아래 COPY 한 곳에서 읽는다. */
+/* 시안 4 공통 실행부: 안개 바탕 위 기준축과 기둥 무대, 상단 고리 탭 줄, 읽기 영역, 눌러서 여는 전체 표 창.
+   화면 문구는 아래 COPY 한 곳에서 읽고, 회사 목록과 업권, 비교 범위 교집합은 자료(sales.json, d.json)에서 읽는다. */
 (function () {
   'use strict';
 
@@ -7,11 +7,14 @@
   try { delete window.__BOOT_S; } catch (e) { /* */ }
   const DD = (typeof D !== 'undefined') ? D : null;
 
-  // ---------- 화면 문구 표(한 곳에서 관리, 나중에 실무 용어로 일괄 교체 가능) ----------
+  // ---------- 화면 문구 표(한 곳에서 관리) ----------
   const COPY = {
     appTitle: '영업 분석 콘솔',
+    homeTitle: '영업 분석 요약',
+    homePathRoot: '전체 요약',
+    tabGraph: '관계 지도',
     bootAria: '화면 열기 진행률',
-    tabsAria: '분석 단계',
+    tabsAria: '분석 화면',
     skinDark: '짙은 화면',
     skinLight: '밝은 화면',
     motionWord: '움직임',
@@ -22,6 +25,7 @@
     condCloseBtn: '조건 접기',
     condBasePrefix: '기준',
     condPeerPrefix: '상대',
+    condPeerNone: '선택 없음',
     condNoHist: '이력 없음',
     condSurgOnly: '수술만',
     condHospOrSurg: '입원이나 수술',
@@ -41,13 +45,12 @@
     condGroupBase: '기준과 비교 상대',
     condBase: '기준 종형',
     condPeers: '비교 상대',
-    condPeersHint: '기준 종형에 맞춰 정해집니다',
+    condPeersHint: '비교 범위에 맞춰 걸러집니다',
     condRenewal: '갱신 유형',
-    condRenewalHint: '고객군 지도에만 씁니다',
+    condRenewalHint: '고객군과 관문 지도에 씁니다',
     condRenAll: '전체',
     condRenRenew: '갱신',
     condRenNon: '비갱신',
-    condMiniTitle: '조건 줄로 올라가기',
 
     scopeBtn: '범위',
     peerBtnTpl: '비교: {s}',
@@ -61,6 +64,9 @@
     peerCustomShortTpl: '선택 {n}곳',
     peerEmptyHint: '선택한 비교 범위에 해당하는 상대 회사가 없습니다.',
     peerRestTpl: '{first} 외 {rest}곳',
+    peerEtcTpl: '{names} 등 {total}곳',
+    fullScopeBadge: '전체 기준',
+    fullScopeHint: '자료의 문장과 집계는 전체 비교 상대 기준으로 작성한 값입니다',
     sameCountSuffix: '개',
     scopeAria: '범위 띠',
     scopeTitle: '범위 띠',
@@ -75,11 +81,15 @@
     scopeNoData: '자료 없음',
 
     pathAria: '현재 층 경로',
-    evAria: '근거 기둥',
-    evKickerDefault: '요약',
-    evKickerPick: '근거',
-    evPanelName: '관계와 근거 패널',
-    evCloseAria: '근거 닫기',
+    zoneLeftAria: '분류',
+    zoneCenterAria: '단위 도형',
+    evAria: '고른 것의 상세',
+    evKickerDefault: '화면 결론',
+    evKickerPick: '상세와 근거',
+    evPanelName: '상세와 근거',
+    evCloseAria: '상세 닫기',
+    evMoreBtn: '아래로 스크롤해 더 보기',
+    zlSecTitle: '구역 이동',
     footNoticeHead: '고지.',
     footDisclaimer: '상품요약서와 사업방법서 같은 공시 문서에서 뽑은 값으로 계산했고, 판매 시책, 수수료, 손해율, 인수 판정은 다루지 않습니다.',
     footAsof: '자료 기준',
@@ -102,31 +112,37 @@
     flagDefault: '사업방법서 원문 확인 필요',
     flagShort: '원문 확인',
 
+    actBack: '뒤로',
+    actModeText: '문장으로 보기',
+    actModeTable: '표로 보기',
+    actModeShape: '도형으로 보기',
+    actCopySum: '요약 복사',
     legendBtn: '범례',
     legendCloseAria: '창 닫기',
+    modalCloseBtn: '닫기',
     helpSuffixAria: ' 뜻 보기',
-    legendVerdictTitle: '판정과 범위 범례',
-    lgBetter: '같은 담보를 견줘 우체국 조건이 나은 것',
-    lgOnly: '견준 상대에는 없고 우체국에만 있는 담보',
-    lgWorse: '같은 담보를 견줘 우체국 조건이 못한 것',
-    lgSame: '조건이 같은 것',
-    lgDiff: '지급 형태나 판매 구성이 달라 우열을 매기지 않은 것',
-    lgNone: '상대에는 있고 우체국에는 없는 담보',
-    lgUnknown: '검토 대기라 아직 견주지 않은 것',
+    legendVerdictTitle: '판정과 기둥 범례',
+    lgBetter: '같은 담보를 견줘 우체국 조건이 나은 것(금색)',
+    lgOnly: '견준 상대에는 없고 우체국에만 있는 담보나 우리만 열리는 고객군(금색 이중선)',
+    lgWorse: '같은 담보를 견줘 우체국 조건이 못하거나 우리만 닫힌 곳(먹색 채움)',
+    lgSame: '조건이 같은 것(중립)',
+    lgDiff: '지급 형태나 판매 구성이 달라 우열을 매기지 않은 것(중립)',
+    lgNone: '상대에는 있고 우체국에는 없는 담보나 닫힌 구간(점선 윤곽)',
+    lgUnknown: '검토 대기이거나 자료가 아직 없는 구간(빗금)',
     lgFlag: '화면에 옮긴 값이 사업방법서 원문과 같은지 사람이 확인해야 합니다',
-    lgSel: '지금 고른 항목. 그 항목의 근거가 오른쪽 기둥에 뜹니다',
+    lgSel: '지금 고른 항목. 읽기 영역으로 1px 선이 이어집니다',
     lgScopeAll: '기준 종형과 조건을 바꿔도 그대로인 값입니다.',
     lgScopeBase: '기준 종형을 바꾸면 다시 계산하는 값입니다.',
     lgScopeNow: '조건 줄의 나이, 성별, 이력을 따라 바뀌는 값입니다.',
 
     termScopeTitle: '범위 띠',
     termScopeBody: '위쪽 줄은 지금 고른 기준 종형과 맞붙는 상대 상품, 공통 담보 쌍의 수를 보여 줍니다. 아래쪽 줄은 조건 줄의 나이, 성별, 이력이 고객군 지도에서 어느 관문 칸에 해당하는지 보여 줍니다.',
-    termEvTitle: '관계와 근거 패널',
-    termEvBody: '본문에서 도형이나 칸을 고르면 그 항목의 문장, 관계 식, 원문 문서 쪽 번호를 이 영역에 보여 줍니다. 아무것도 고르지 않았을 때는 지금 탭의 결론 한 문장만 보여 줍니다.',
+    termEvTitle: '읽기 영역',
+    termEvBody: '무대에서 도형을 고르면 그 단위의 이름, 판정, 문장, 관계 식, 원문 문서 쪽 번호를 이 영역에 보여 줍니다. 아무것도 고르지 않았을 때는 면 없이 지금 화면의 결론 한 문장만 보여 줍니다.',
     termBaseTitle: '기준 종형과 선택 종형',
     termBaseBody: '기준 종형은 조건 줄에서 고른 우체국 상품 종형이며, 비교 상대는 그 종형의 심사 유형과 갱신 구조에 맞춰 정해집니다. 선택 종형 배지가 붙은 숫자와 문장은 이 기준 종형을 바꿀 때 함께 다시 계산하는 값입니다.',
     termJourneyTitle: '치료 여정 격자',
-    termJourneyBody: '암, 뇌혈관, 심장 같은 보장 대분류와 진단, 수술, 치료, 입원, 통원의 다섯 단계가 만나는 칸마다 회사별 표준담보 수를 견준 표입니다. 빈 단계나 담보 수 차이를 한눈에 살피는 용도이며, 조건의 우열은 담보 비교표에서 따집니다.',
+    termJourneyBody: '암, 뇌혈관, 심장 같은 보장 대분류와 치료 단계가 만나는 칸마다 회사별 표준담보 수를 견준 표입니다. 빈 단계나 담보 수 차이를 한눈에 살피는 용도이며, 조건의 우열은 담보 비교표에서 따집니다.',
     termCautionTitle: '단정 주의와 검토 대기',
     termCautionBody: '단정 주의는 상대가 조건이 다른 특약을 함께 팔거나 지급 형태가 달라 우열 문장을 내지 않고 사실만 적은 담보입니다. 검토 대기는 급부의 표준담보 매핑(매핑 대기)이나 추출한 급부 줄(작업 로그 대기)을 아직 사람이 확인하지 않아 비교 계산에서 뺀 쌍입니다.',
 
@@ -160,109 +176,146 @@
     copyRowsOkTpl: '복사했습니다: {n}줄. 엑셀이나 한글 문서에 붙여 넣으면 됩니다',
     scopeLineTpl: '범위: 기준 종형 {base} / 비교 상대 {peers} / 지금 고객군 {seg} / 자료 기준 {asof} / {notice}',
     printMark: '내부 교육·비교 참고용(대외 배포 금지)',
-    tabMissing: '이 탭의 파일이 아직 없습니다.',
-    tabErrorPrefix: '이 탭을 그리다 멈췄습니다: ',
+    tabMissing: '이 화면의 파일이 아직 없습니다.',
+    tabErrorPrefix: '이 화면을 그리다 멈췄습니다: ',
     chevPrevSuffix: ' 앞 값',
     chevNextSuffix: ' 다음 값',
-    tabPrevAria: '앞 분석 단계',
-    tabNextAria: '다음 분석 단계',
     stepDecSuffix: ' 하나 줄이기',
     stepIncSuffix: ' 하나 늘리기',
 
-    // 탭 1(브리핑) 전용 문구
-    briefKicker: '분석 요약',
+    // 첫 화면(전체 요약)과 상단 고리 탭 문구
+    homeListHead: '전체 결론 다섯 줄',
+    homeListHint: '줄을 누르면 해당 화면으로 들어갑니다',
+    homeRevBadgeTpl: '개정 {n}',
     briefRowGa: '고객군 지형',
     briefRowNa: '개정과 시장',
     briefRowDa: '가입 관문과 한도',
     briefRowRa: '담보 포지션',
     briefRowMa: '영업 인사이트',
-    briefConclTpl: '기준 {kind}: 고객군 {open}/{cells}칸 열림, 개정 변동 {rev}개, 관문 차이 {gate}곳, 공통 담보 {cmp}/{pairs}쌍 견줌, 인사이트 {ins}건입니다.',
-    briefEvConclKicker: '결론 요약',
-    briefModeText: '문장으로 보기',
-    briefModeShape: '도형으로 보기',
-    briefCopyBtn: '요약 복사',
     briefCopyTitle: '브리핑 분석 요약',
     briefCopyCols: '줄,구역,범위,문장,갈 곳',
-    briefLegendTitle: '브리핑 도형 범례',
-    briefLgMedalGold: '금색 이중 고리와 호: 우체국 단독 열림이나 신설, 보유 강점 몫',
-    briefLgMedalRed: '빨강 원과 네 귀 사선: 지금 고른 메달 하나',
-    briefLgMedalTick: '방사형 잔눈금: 전체 가운데 채우지 못한 몫이나 검토 대기',
-    briefLgMapOpen: '진한 금색 면(우리만 열림)과 밝은 면(함께 열림): 우체국 간편 열림',
-    briefLgMapOurs: '회색 면(점선 네모 기호): 우리 간편 닫힘, 일반심사 확인',
-    briefLgMapGo: '안쪽 점선 테두리: 상대가 관문만 수집한 종형으로 열리는 칸',
-    briefLgMapNow: '검은 이중 테두리: 지금 조건에 해당하는 고객군 칸',
-    briefLgStepGold: '금색 타일: 우체국 담보가 있는 치료 단계, 빗금은 없는 단계',
-    briefGoTabTpl: '{tab} 탭으로',
-    briefGoDetailTpl: '{tab} 탭에서 자세히',
-    briefUpBtn: '뒤로',
-    briefL2GaTitleTpl: '고객군 {n}칸 지형',
-    briefL2NaTitle: '개정 담보 나눔과 시장 소식',
-    briefL2DaTitle: '회사별 열린 종형 수',
-    briefL2RaTitle: '치료 여정 다섯 단계',
-    briefL2MaTitle: '영업 인사이트 다섯 분류',
-    briefHospShort: '입원',
-    briefSurgShort: '수술만',
-    briefTimeOver5: '5년+',
-    briefRevNew: '신설',
-    briefRevChg: '변경',
-    briefRevEnd: '종료',
-    briefNewsNode: '시장 소식',
-    briefGateUnknownSym: '?',
-    briefGateOpenUnit: '종 열림',
-    briefOursGroup: '우체국',
-    briefSegSameNote: '지금 조건이 이미 이 고객군입니다.',
-    briefSegWillChangeTpl: '누르면 조건 줄이 {target} 바뀝니다.',
-    briefSegChangedToastTpl: '조건을 바꿨습니다: {sum}',
-    briefStepUnit: '개',
-    briefInsUnit: '건',
-    briefListSub: '다섯 줄의 차례는 탭 차례와 같습니다',
-    briefListTitle: '분석 요약 전체 문장',
-    briefOffCondTpl: '지금 조건({cond})은 대표 조건({ref})과 다릅니다. 메달 숫자는 대표 조건 기준입니다.',
-    briefApplySegBtn: '이 고객군으로 조건 바꾸기',
+    briefOffCondTpl: '지금 조건({cond})은 대표 조건({ref})과 다릅니다. 요약 문장은 대표 조건 기준입니다.',
     briefLimitOutTpl: '지금 조건 {who}: {kind}의 가입나이({lo}~{hi}세) 밖입니다.',
     briefLimitInTpl: '지금 조건 {who}: 주계약 최대 가입금액 {max}만원({lo}~{hi}세 구간{extra}).',
     briefLimitPend: ', 검토 대기',
     briefLimitSameSex: ', 남녀 같음',
-    briefEvCellsTitle: '칸의 수',
-    briefEvRevTitle: '개정 변동',
-    briefEvNewsTitleTpl: '시장 소식 {week}',
-    briefEvGateValTitle: '기준 종형 값',
-    briefEvLimitTblTpl: '나이 구간별 한도({sex})',
-    briefEvNoLimit: '한도 자료 없음: 이 종형의 한도 표가 아직 없습니다.',
-    briefEvNoSimpQ: '일반심사 종형이라 간편 고지 질문을 견주지 않았습니다.',
-    briefEvPairTitle: '쌍과 담보의 수',
-    briefEvCautionTpl: '단정 주의 {n}건',
-    briefEvInsTitle: '다섯 분류',
-    briefEvFirstTpl: '먼저 볼 것 {n}건',
-    briefEvEmpty: '해당 항목이 없습니다.',
-    briefEvGateOpenList: '열린 간편 종형',
-    briefEvRevPairTpl: '{kind}: 신설 {n1}, 변경 {n2}, 종료 {n3}',
-    briefEvNonAddPairTpl: '개정 짝 {c}개의 합은 {sum}건입니다(중복 포함).',
-    briefEvNonAddStep: '쌍은 상대와 함께 가진 짝이고 담보 수는 우체국 단독 수라 서로 더하지 않습니다.',
-    briefEqCellsTotal: '고객군',
-    briefEqRevTotal: '달라진 담보',
-    briefEqNewsTotal: '소식',
-    briefEqPairTotal: '공통 담보',
-    briefEqCmp: '견줌',
-    briefEqWait: '검토 대기',
-    briefEqPairUnit: '쌍',
-    briefEqOurCov: '우체국 담보',
-    briefEqOther: '기타',
-    briefEqInsTotal: '인사이트',
-    briefWonUnit: '만원',
-    briefEvOnlyTitle: '우리 간편만 열리는 칸',
-    briefEvOnlyRepTpl: '우리 대표 종형 {rep}. {peers}',
-    briefEvNoneWord: '없음',
-    briefEvMapScopeTpl: '고객군 지도({sex}, 갱신 유형 전체)로 셉니다.',
-    briefEvHoldTitle: '검토 대기 요약',
-    briefEvHoldWhyTpl: '사유별: {why}(중복 합 {sum}쌍).',
-    briefEvAgeRange: '가입나이',
-    briefEvRefLimitTpl: '대표 조건 {age}세 한도',
-    briefEvGateDiff: '고지 질문 차이',
-    briefEvDiffStruct: '구조 다름 상대',
-    briefEvPlaceUnit: '곳',
-    briefEvPendSuffix: ' (검토 대기)',
-    briefEvInsSkipTpl: '검토 대기 등으로 뺀 포인트 {n}건은 세지 않았습니다.',
+    homeLegendTitle: '첫 화면 기준축과 기둥 읽는 법',
+    homeLgGold: '금색 기둥(이중 상단선): 우체국 조건이 나은 담보이거나 우리 간편만 열리는 고객군',
+    homeLgWorse: '먹색 채움 기둥: 우체국 조건이 못하거나 우리 간편은 닫히고 상대는 열리는 고객군',
+    homeLgNeutral: '중립 기둥: 함께 열리는 고객군, 조건이 같거나 우열을 매기지 않은 담보',
+    homeLgOutline: '일부 채움 기둥: 바깥 윤곽은 전체 상대 수, 안쪽 채움은 통과한 상대 수',
+    homeLgEmpty: '점선 윤곽과 빗금: 닫힌 구간, 우체국 미보유 담보, 검토 대기 및 자료 없음',
+    homeLgRed: '빨강 마름모와 세로선: 지금 올리거나 고른 묶음',
+
+    // 고객군과 시장(tab2) 문구
+    mkRenLabel: '갱신',
+    mkRenAria: '고객군 지도의 갱신 유형',
+    mkMaleBasis: '남성 기준',
+    mkGroupAll: '고객군 전체',
+    mkGroupHosp: '입원',
+    mkGroupSurg: '수술만',
+    mkGroupRev: '개정과 시장',
+    mkGroupTally: '집계와 일러두기',
+    mkCenterTitle: '고객군 시간축과 고리',
+    mkTimeOver5: '5년+',
+    mkUnknownSym: '?',
+    mkOursOpenRatioTpl: '우리 열림 {open}/6',
+    mkPartialOnlyMark: '일부 나이만',
+    mkPartialHeadTpl: '일부 나이에서만 열리는 상대 {n}곳',
+    mkPartialSpanTpl: '{org} {spans}세만 열림',
+    mkRevTabVar: '개정 변동',
+    mkRevTabNews: '시장 소식',
+    mkRevHead: '우체국 직전 개정과 견준 변동',
+    mkRevCopyBtn: '표 복사',
+    mkRevNonAddTpl: '개정 짝 {c}개의 수를 더하면 {sum}건입니다. 같은 담보가 여러 짝에서 바뀌면 짝마다 세므로 전체 {total}건보다 큽니다.',
+    mkRevGateChg: '고지 질문이 바뀐 종형',
+    mkRevAgeChg: '가입나이가 바뀐 종형',
+    mkRevNone: '없음',
+    mkRevNote: '짝마다 직전 개정 종형과 같은 담보를 견줘 신설, 변경, 종료로 셉니다. 직전 개정 종형은 판매를 마쳐 견준 상품 목록에 이름이 없습니다.',
+    mkRevCols: '담보,종류,달라진 항목,종형',
+    mkRevNew: '신설',
+    mkRevChg: '변경',
+    mkRevEnd: '종료',
+    mkNewsHead: '시장 소식',
+    mkNewsQuoteTag: '인용',
+    mkNewsConnTpl: '표준담보에 이어진 소식 {n}건.',
+    mkNewsNoConn: ' 이어진 담보가 없어 대응 문장을 달지 않습니다.',
+    mkNewsNonAddNote: '시장 소식 건수는 개정 변동 담보 수와 단위가 달라 더하지 않습니다.',
+    mkNewsLinkedTpl: ', 표준담보 {n}개에 이어짐',
+    mkNewsUnlinked: ', 표준담보에 이어지지 않음',
+    mkNewsWarnTpl: '주의 표현 {w}',
+    mkNewsWarnHint: '화면 문장에 쓰지 않는 말이 보도 요약에 들어 있습니다',
+    mkTallyHead: '라벨별 칸 수와 자료 점검',
+    mkTallyCol1: '주 라벨',
+    mkTallyCol2: '칸 수',
+    mkTallyCopyBtn: '집계 복사',
+    mkCellsCopyBtn: '칸 목록 복사',
+    mkClosedUnit: '칸',
+    mkClosedNoteTpl: '우리 간편이 닫힌 칸 {cells}칸의 사유는 {why}입니다.',
+    mkClosedNonAddTpl: '한 칸에 사유 둘이 함께 들 수 있어 사유별 칸 수를 더하면 {sum}칸으로 {cells}칸보다 큽니다.',
+    mkClosedZero: '우리 간편이 닫힌 칸이 없습니다.',
+    mkGapItemTpl: '{org} 자료 없음 표지 {n}칸. {why}',
+    mkStaticNote: '칸의 수는 기준 종형과 조건을 바꿔도 그대로입니다. 갱신 유형 거르개를 바꾸면 그 유형의 종형만으로 다시 센 지도로 바뀝니다.',
+    mkLegendTitle: '고객군 시간축과 고리 읽는 법',
+    mkLgWorse: '먹색 채움 원(흰 숫자): 우리 간편은 닫히고 열린 상대가 있는 고객군',
+    mkLgGold: '금색 이중 고리: 우리 간편만 열리는 고객군(열린 상대 0곳)',
+    mkLgBoth: '짙은 선 고리: 우리 간편과 상대가 함께 열리는 고객군',
+    mkLgAllClosed: '옅은 회색 고리: 우리와 상대 모두 간편심사가 닫힌 고객군',
+    mkLgDash: '점선 고리와 빗금 트랙: 가입나이나 고지 질문 자료가 아직 없는 구간',
+    mkLgArc: '바깥 호: 실선은 확정 열림, 반굵기 실선은 일부 나이만 열림, 점선은 관문만 열림',
+    mkLgAxis: '마디 사이 선분: 우리 간편이 이어서 열리면 2px 실선, 닫히면 1px 점선(전환 자리에 12px 눈금)',
+    mkLgRed: '빨강 원과 네 귀 사선: 지금 고른 고객군. 오른쪽 읽기 영역으로 1px 선이 이어집니다',
+    mkEvKickerCell: '고객군 상세',
+    mkEvNowTag: '지금 조건',
+    mkEvOursHead: '우리 종형 상태',
+    mkEvOursRep: '우리 대표 종형',
+    mkEvOpenPeersHeadTpl: '열린 상대 {open}/{total}곳',
+    mkEvOpenAllSummaryTpl: '열린 상대 {n}곳 모두 보기',
+    mkEvOrgsSummaryTpl: '회사별 상태 {n}곳 모두 보기',
+    mkEvClosedSummaryTpl: '닫힘 및 심사 확인 상대 {n}곳 보기',
+    mkCatWait: '검토 대기',
+    mkEvOpenVarCntTpl: '열린 종형 {n}개: {list}',
+    mkEvOpenVarNone: '열린 종형 없음',
+    mkEvGatePtsTpl: '관문 포인트와 근거 ({n}건)',
+    mkEvGatePtsNone: '이 고객군에서 나온 관문 차이가 없습니다.',
+    mkEvRepAndCnts: '대표 종형과 분류별 인사이트 수',
+    mkEvPeerRep: '상대 대표 종형',
+    mkEvSameCond: '지금 조건이 이미 이 고객군입니다.',
+    mkEvWillChangeTpl: '누르면 조건 줄이 {target} 바뀝니다.',
+    mkEvApplyBtn: '이 고객군으로 조건 바꾸기',
+    mkEvChangedToastTpl: '조건을 바꿨습니다: {sum}',
+    mkEvRuleNote: '관문 상태는 사업방법서의 고지 질문과 가입나이로 계산했습니다. 칸에 우열을 매기지 않습니다.',
+    mkEvGraphBtn: '관계 지도에서 보기',
+    mkEvRevKicker: '개정 변동 상세',
+    mkEvRevVars: '해당 종형',
+    mkEvRevStdNoteTpl: '{target} 이어 견줬습니다. 공시 문서(상품요약서와 사업방법서)의 개정 전후를 견준 값입니다.',
+    mkEvRevRawNote: '표준담보에 이어지지 않은 급부라 급부 이름으로 견줬습니다. 공시 문서의 개정 전후를 견준 값입니다.',
+    mkEvNewsKickerTpl: '시장 소식 {week}',
+    mkEvNewsSrcHead: '출처',
+    mkEvNewsOrg: '회사',
+    mkEvNewsCat: '분류',
+    mkEvNewsDate: '발표일',
+    mkEvNewsMedia: '매체',
+    mkEvNewsUrlNote: '주소는 글자로만 둡니다. 이 화면은 바깥으로 요청하지 않습니다.',
+    mkEvNewsStdHead: '표준담보와 주의 표현',
+    mkEvNewsStdLinkedTpl: '표준담보 {list}에 이어졌습니다.',
+    mkEvNewsWarnBodyTpl: '보도 요약에 "{list}" 같은 말이 들어 있습니다. 화면 문장에는 쓰지 않는 말이라 인용한 그대로 두고 표지만 붙였습니다.',
+    mkMissingSegWhyTpl: '지금 조건의 칸이 이 지도에 없습니다. {why}',
+
+    // 관계 지도(graph) 문구
+    grLeftHead: '노드 종류',
+    grKindOrg: '회사',
+    grKindVar: '상품 종형',
+    grKindStd: '표준담보',
+    grKindPt: '영업 포인트',
+    grKindNews: '시장 소식',
+    grCenterDesc: '회사, 상품 종형, 특약, 급부, 표준담보의 연결 구조를 한 홉씩 펼쳐 탐색하는 관계 지도입니다.',
+    grOpenProtoBtn: '관계 지도 시안(graph2.html) 열기',
+    grEvTitle: '지식그래프 관계 지도',
+    grEvBodyTpl: '수집 회사 {orgs}곳, 종형 {vars}개, 표준담보 {stds}개, 영업 포인트 {pts}건, 시장 소식 {news}건이 노드와 엣지로 이어집니다.',
+    grLegendTitle: '관계 지도 안내',
+    grLgNode: '사각 노드: 회사, 종형, 특약, 급부, 표준담보 단위',
+    grLgEdge: '연결선: 판매, 포함, 매핑 해당, 상위 담보 관계',
   };
 
   function cp(key, vars) {
@@ -271,11 +324,29 @@
     return s;
   }
 
-  const TAB_IDS = ['brief', 'market', 'gate', 'cover', 'insight'];
-  const TAB_NAME = Object.fromEntries(TAB_IDS.map((id, i) => [id, S['탭'][i]]));
-  const TAB_BY_NAME = Object.fromEntries(TAB_IDS.map((id, i) => [S['탭'][i], id]));
+  const SCREEN_IDS = ['market', 'gate', 'cover', 'insight', 'graph'];
+  const TAB_IDS = ['brief'].concat(SCREEN_IDS);
+  const TAB_NAME = {
+    brief: cp('homeTitle'),
+    market: S['탭'][1],
+    gate: S['탭'][2],
+    cover: S['탭'][3],
+    insight: S['탭'][4],
+    graph: cp('tabGraph'),
+  };
+  const TAB_BY_NAME = {
+    [S['탭'][0]]: 'brief',
+    [cp('homeTitle')]: 'brief',
+    [cp('homePathRoot')]: 'brief',
+    [S['탭'][1]]: 'market',
+    [S['탭'][2]]: 'gate',
+    [S['탭'][3]]: 'cover',
+    [S['탭'][4]]: 'insight',
+    [cp('tabGraph')]: 'graph',
+  };
   const TAB_BRIEF_KEY = { market: '가', gate: '다', cover: '라', insight: '마' };
-  // 회사 목록과 업권은 코드에 박지 않고 자료(S.회사, S.종형, D.orgs, S.지도)에서 읽는다
+
+  // ---------- 회사 목록과 업권 동적 수집 ----------
   const ORG_NAME = {}, ORG_SECTOR = {};
   const orgSeen = new Set(['EPOST']);
   const ORG_ORDER = ['EPOST'];
@@ -290,7 +361,8 @@
   function registerOrg(code, nm, sec) {
     if (!code) return;
     if (nm && !ORG_NAME[code]) ORG_NAME[code] = nm;
-    if (sec || nm || !ORG_SECTOR[code]) ORG_SECTOR[code] = inferSector(code, nm || ORG_NAME[code], sec);
+    if (sec) ORG_SECTOR[code] = inferSector(code, nm || ORG_NAME[code], sec);
+    else if (!ORG_SECTOR[code] && code !== 'EPOST') ORG_SECTOR[code] = inferSector(code, nm || ORG_NAME[code], '');
     if (!orgSeen.has(code)) { orgSeen.add(code); ORG_ORDER.push(code); }
   }
   if (S['회사'] && typeof S['회사'] === 'object') {
@@ -302,7 +374,7 @@
     registerOrg(v['기관코드'], v['회사'], v['업권'] || v['기관분류']);
   }
   if (DD && Array.isArray(DD.orgs)) {
-    for (const o of DD.orgs) registerOrg(o.code, o.name || o.short, o.sector || o['업권']);
+    for (const o of DD.orgs) registerOrg(o.code, o.name || o.short, o['업권'] || o.sector);
   }
   for (const m of Object.values(S['지도'] || {})) {
     for (const row of (m && m['칸']) || []) {
@@ -334,13 +406,14 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
   const fmt = n => (n == null || n === '' ? '' : (typeof n === 'number' ? n.toLocaleString('ko-KR') : String(n)));
+  const firstSentence = s => (String(s == null ? '' : s).trim().split(/(?<=\.)\s+/)[0] || '');
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* */ } },
   };
   const LS_SKIN = 'postlife-c4-skin', LS_MOTION = 'postlife-c4-motion';
 
-  // ---------- 글 도우미 (R1 이름 줄이기, R2 조사, R3 요약) ----------
+  // ---------- 글 도우미 ----------
   const CLOSE = { ')': '(', ']': '[', '}': '{' };
   function stemOf(word) {
     let s = String(word == null ? '' : word).trimEnd();
@@ -435,7 +508,7 @@
     return '';
   }
 
-  // ---------- 상태(sel = 2층 선택, sub = 3층 세부 선택, peerScope = 비교 범위) ----------
+  // ---------- 상태 ----------
   const PEER_SCOPES = ['all', 'life', 'nonlife', 'custom'];
   const st = {
     tab: 'brief',
@@ -447,16 +520,18 @@
     renewal: null,
     peerScope: 'all',
     peerPick: PEER_ORGS.slice(),
+    grp: {},
     sel: {},
     sub: {},
     skin: 'light',
     motion: 'on',
   };
-  const listeners = { change: [], tab: [], select: [], sub: [] };
+  const listeners = { change: [], tab: [], select: [], sub: [], resize: [] };
   const tabs = {};
   let booted = false;
   let condOpen = false;
   let scopeOpen = false;
+  let lastRenderedTab = 'brief';
 
   function activePeerOrgs(s = st) {
     const sc = s.peerScope || 'all';
@@ -469,6 +544,139 @@
     return PEER_ORGS.slice();
   }
   function activeOrgs(s = st) { return ['EPOST'].concat(activePeerOrgs(s)); }
+  function inScope(codes, s = st) {
+    if (!Array.isArray(codes) || !codes.length) return 0;
+    if ((s.peerScope || 'all') === 'all') return codes.length;
+    const setP = new Set(activePeerOrgs(s));
+    let n = 0;
+    for (let i = 0; i < codes.length; i++) if (setP.has(codes[i])) n++;
+    return n;
+  }
+  function filterScopeCodes(codes, s = st) {
+    if (!Array.isArray(codes) || !codes.length) return [];
+    if ((s.peerScope || 'all') === 'all') return codes.slice();
+    const setP = new Set(activePeerOrgs(s));
+    return codes.filter(c => setP.has(c));
+  }
+
+  // ---------- 공통 자료 집계(판정을 새로 만들지 않고 기관코드 교집합 크기만 센다) ----------
+  function cellCounts(cell, s = st) {
+    if (!cell) {
+      return {
+        open: 0, partial: 0, gateOnly: 0, openConfirmed: 0, closed: 0, unknown: 0,
+        total: 0, openAny: 0, oursOpen: false, oursState: '', partialOnly: false, state: 'unknown',
+      };
+    }
+    const open = inScope(cell['열린상대코드'], s);
+    const partial = inScope(cell['일부열린상대코드'], s);
+    const gateOnly = inScope(cell['관문만열린상대코드'], s);
+    const openConfirmed = Math.max(0, open - gateOnly);
+    const closed = inScope(cell['닫힌상대코드'], s);
+    const unknown = inScope(cell['모르는상대코드'], s);
+    const total = open + partial + closed + unknown;
+    const openAny = open + partial;
+    const oursState = (cell['회사'] && cell['회사'].EPOST) || '';
+    const oursOpen = oursState === '열림';
+    const partialOnly = open === 0 && partial > 0;
+    let state = 'none';
+    if (!oursOpen && openAny > 0) state = 'worse';
+    else if (oursOpen && openAny === 0) state = 'only';
+    else if (oursOpen && openAny > 0) state = 'both';
+    else if ((!oursOpen && total > 0 && unknown === total) || cell['라벨'] === '자료 없음') state = 'unknown';
+    return {
+      open, partial, gateOnly, openConfirmed, closed, unknown,
+      total, openAny, oursOpen, oursState, partialOnly, state,
+    };
+  }
+
+  function gateFlowRows(map, cell, s = st) {
+    const gm = S['관문마디'] || { '차례': [], '전제': [], '멈춘값': [] };
+    const steps = gm['차례'] || [];
+    const premiseSet = new Set(gm['전제'] || []);
+    const types = (map && map['고지유형']) || [];
+    const flowTypes = (cell && cell['관문흐름'] && cell['관문흐름']['유형']) || [];
+    const flowByKey = {};
+    flowTypes.forEach(f => { flowByKey[f['열쇠']] = f; });
+    return types.map(meta => {
+      const key = meta['열쇠'];
+      const total = inScope(meta['상대코드'], s);
+      const fl = flowByKey[key] || null;
+      const pass = [];
+      const stops = [];
+      let stoppedSoFar = 0;
+      for (let k = 0; k < steps.length; k++) {
+        const rawStop = (fl && fl['멈춤'] && fl['멈춤'][String(k)]) || {};
+        const scopedStop = {};
+        let stoppedHere = 0;
+        for (const [reason, codes] of Object.entries(rawStop)) {
+          const fc = filterScopeCodes(codes, s);
+          if (fc.length) {
+            scopedStop[reason] = fc;
+            stoppedHere += fc.length;
+          }
+        }
+        stoppedSoFar += stoppedHere;
+        stops.push(scopedStop);
+        if (!cell || !fl) pass.push(0);
+        else if ((s.peerScope || 'all') === 'all') pass.push(fl['통과수'][k] != null ? fl['통과수'][k] : Math.max(0, total - stoppedSoFar));
+        else pass.push(Math.max(0, total - stoppedSoFar));
+      }
+      return {
+        key,
+        total,
+        codes: filterScopeCodes(meta['상대코드'], s),
+        pass,
+        finalPass: pass.length ? pass[pass.length - 1] : 0,
+        stops,
+        steps,
+        premiseSet,
+      };
+    });
+  }
+
+  const STAGE_ORDER = ['진단', '수술', '치료', '입원', '통원'];
+  function coverStageStacks(baseId, s = st) {
+    const B = window.App && App.cover && typeof App.cover.rawB === 'function' ? App.cover.rawB(baseId) : null;
+    const stages = STAGE_ORDER.map(nm => ({
+      name: nm,
+      oursCnt: 0,
+      totalCnt: 0,
+      better: 0,
+      neutral: 0,
+      worse: 0,
+      wait: 0,
+      miss: 0,
+      sum: 0,
+    }));
+    const byStage = Object.fromEntries(stages.map(stObj => [stObj.name, stObj]));
+    if (!B || !Array.isArray(B.rows)) return stages;
+    const isAll = (s.peerScope || 'all') === 'all';
+    B.rows.forEach(r => {
+      const sid = r[0];
+      const info = S['표준담보'][sid] || {};
+      const stg = byStage[info['급부유형']];
+      if (!stg) return;
+      stg.totalCnt++;
+      const mine = r[1] && r[1][0];
+      const oursHas = !!(mine && typeof mine === 'object' && Array.isArray(mine.i) && mine.i.length);
+      if (oursHas) stg.oursCnt++;
+      const perCodes = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
+      const perCounts = (B['판정상대수'] && B['판정상대수'][sid]) || {};
+      const cntOf = vdKey => (isAll ? (perCounts[vdKey] || 0) : inScope(perCodes[vdKey], s));
+      const bCnt = cntOf('나음');
+      const nCnt = cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의');
+      const wCnt = cntOf('못함');
+      const wtCnt = cntOf('검토 대기') + cntOf('판정 보류');
+      const mCnt = cntOf('우체국에 없음');
+      stg.better += bCnt;
+      stg.neutral += nCnt;
+      stg.worse += wCnt;
+      stg.wait += wtCnt;
+      stg.miss += mCnt;
+      stg.sum += bCnt + nCnt + wCnt + wtCnt + mCnt;
+    });
+    return stages;
+  }
 
   function mapOf(renewal) { return S['지도'][MAP_KEY[renewal]] || S['지도']['전체']; }
   function cellOf(s = st) {
@@ -485,7 +693,6 @@
     if (s.sex !== m['성별']) out.sexNote = cp('whySegSexTpl', { sex: sexText(s.sex), mapSex: sexText(m['성별']) });
     return out;
   }
-  /** cellOf 의 반대: 지도 m 의 칸(ri, ci)을 가리키게 하는 조건 줄 값(고객군 탭과 브리핑이 함께 쓴다) */
   function segPatch(m, ri, ci, s = st) {
     const row = m['행'][ri], col = m['열'][ci], cell = (m['칸'][ri] || [])[ci] || null;
     if (!row || !col) return null;
@@ -507,6 +714,8 @@
     const lo = seg.length ? seg[0].lo : null, hi = seg.length ? seg[seg.length - 1].hi : null;
     return { table: t, hit: hit || null, lo, hi };
   }
+  const isRefCond = () => st.age === REF['나이'] && st.sex === REF['성별'] && st.since === REF['이력'] && !st.surg;
+
   function ctx(changed) {
     const base = S['기준별'][st.base];
     const pOrgs = activePeerOrgs();
@@ -515,211 +724,240 @@
     const filteredPeerIds = st.peerScope === 'all' ? rawPeerIds : rawPeerIds.filter(id => pSet.has((vinfo(id) || {})['기관코드']));
     return {
       S, D: DD,
-      st: { ...st, peerPick: st.peerPick.slice(), sel: { ...st.sel }, sub: { ...st.sub } },
+      st: { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } },
       changed: changed || new Set(),
       baseId: st.base, base, baseInfo: vinfo(st.base),
       peerIds: filteredPeerIds, peers: filteredPeerIds.map(vinfo),
       allPeerIds: rawPeerIds,
       peerScope: st.peerScope, activePeerOrgs: pOrgs, activeOrgs: ['EPOST'].concat(pOrgs),
+      inScope: codes => inScope(codes, st),
+      filterScopeCodes: codes => filterScopeCodes(codes, st),
+      cellCounts: cell => cellCounts(cell, st),
+      gateFlowRows: (m, cell) => gateFlowRows(m, cell, st),
+      coverStageStacks: bid => coverStageStacks(bid || st.base, st),
       seg: cellOf(), limit: limitOf(), ref: REF, isRef: isRefCond(),
       ui: UI, txt: TXT, t: cp,
     };
   }
-  const isRefCond = () => st.age === REF['나이'] && st.sex === REF['성별'] && st.since === REF['이력'] && !st.surg;
 
   function set(patch, opts = {}) {
     const changed = new Set();
     for (const [k, v] of Object.entries(patch)) {
       if (!(k in st)) continue;
-      if ((k === 'sel' || k === 'sub') && (!v || typeof v !== 'object')) continue;
+      if ((k === 'sel' || k === 'sub' || k === 'grp') && (!v || typeof v !== 'object')) continue;
       if (JSON.stringify(st[k]) !== JSON.stringify(v)) { st[k] = v; changed.add(k); }
     }
     if (!changed.size) return;
     if (changed.has('since') && st.since == null && st.surg) { st.surg = false; changed.add('surg'); }
     if (changed.has('skin')) applySkin();
     if (changed.has('motion')) applyMotion();
-    const group = groupOf(changed);
-    // 조건을 바꾸면 펼쳐진 조건 줄을 다시 접는다(나이 입력 타이핑 도중과 비교 범위 팝오버 조작은 제외)
-    if ((group.cond || group.base || group.renewal) && condOpen && !opts.keepCond) setCondOpen(false);
-    if (opts.push !== false && booted && (group.cond || group.base || group.renewal || group.peer || changed.has('tab'))) pushHistory(changed);
-    if (changed.has('tab')) showTab(st.tab, opts);
-    if (group.cond || group.base || group.renewal || group.peer) notify(changed, opts);
-  }
-  function groupOf(c) {
-    return {
-      cond: ['age', 'sex', 'since', 'surg'].some(k => c.has(k)),
-      base: c.has('base'),
-      renewal: c.has('renewal'),
-      peer: c.has('peerScope') || c.has('peerPick'),
-    };
-  }
-  function on(ev, fn) { (listeners[ev] = listeners[ev] || []).push(fn); }
-  function emit(ev, ...a) { for (const fn of (listeners[ev] || [])) { try { fn(...a); } catch (e) { console.error(e); } } }
-
-  // ---------- 브라우저 기록(#t=...&p=2층&u=3층 포함, 뒤로 가기로 한 층씩 올라간다) ----------
-  function encodeHash() {
-    const p = new URLSearchParams();
-    p.set('t', st.tab); p.set('a', String(st.age)); p.set('s', st.sex);
-    p.set('h', st.since == null ? '-' : String(st.since)); p.set('o', st.surg ? '1' : '0');
-    p.set('b', st.base); p.set('r', st.renewal || '-');
-    if (st.peerScope && st.peerScope !== 'all') {
-      p.set('ps', st.peerScope);
-      if (st.peerScope === 'custom') p.set('pp', (st.peerPick || []).join('.'));
+    if (['age', 'sex', 'since', 'surg', 'base', 'renewal'].some(k => changed.has(k)) && !opts.keepCond && condOpen) {
+      setCondOpen(false);
     }
-    if (st.sel[st.tab] != null) p.set('p', String(st.sel[st.tab]));
-    if (st.sub[st.tab] != null) p.set('u', String(st.sub[st.tab]));
-    return '#' + p.toString();
+    if (opts.push !== false && booted) pushHistory(changed);
+    if (changed.has('tab') && changed.size === 1) { showTab(st.tab, opts); return; }
+    if (changed.has('tab')) showTab(st.tab, { scroll: false });
+    notify(changed, opts);
   }
-  function decodeHash(h) {
-    const p = new URLSearchParams(String(h || '').replace(/^#/, ''));
-    const out = {};
-    if (TAB_IDS.includes(p.get('t'))) out.tab = p.get('t');
-    const a = parseInt(p.get('a'), 10); if (a >= 1 && a <= 100) out.age = a;
-    if (p.get('s') === 'M' || p.get('s') === 'F') out.sex = p.get('s');
-    if (p.has('h')) { const hv = p.get('h'); if (hv === '-') out.since = null; else { const n = parseFloat(hv); if (SINCE_OPTS.some(o => o.v === n)) out.since = n; } }
-    if (p.has('o')) out.surg = p.get('o') === '1';
-    if (BASES.some(b => b['종형ID'] === p.get('b'))) out.base = p.get('b');
-    if (p.has('r')) { const r = p.get('r'); out.renewal = r === '-' ? null : (r === '갱신' || r === '비갱신' ? r : null); }
-    if (PEER_SCOPES.includes(p.get('ps'))) {
-      out.peerScope = p.get('ps');
-      if (out.peerScope === 'custom' && p.has('pp')) {
-        const raw = p.get('pp') ? p.get('pp').split('.') : [];
-        out.peerPick = PEER_ORGS.filter(o => raw.includes(o));
-      }
-    } else if (p.has('ps')) {
-      out.peerScope = 'all';
-    }
-    const pick = p.has('p') ? p.get('p') : null;
-    const sub = p.has('u') ? p.get('u') : null;
-    return { patch: out, pick, sub };
-  }
-  let lastPush = { t: 0, k: '' };
-  function pushHistory(changed) {
-    const kind = [...changed].sort().join(',');
-    const now = Date.now();
-    const url = encodeHash();
-    const isLayer = changed.has('pick') || changed.has('sub') || changed.has('tab');
-    const rapid = !isLayer && now - lastPush.t < 900 && lastPush.k === kind;
-    try {
-      if (rapid) history.replaceState({ c4: 1 }, '', url); else history.pushState({ c4: 1 }, '', url);
-    } catch (e) { /* */ }
-    lastPush = { t: now, k: kind };
-  }
-  window.addEventListener('popstate', () => {
-    closeHelp(false); hideHudTip();
-    const d = decodeHash(location.hash);
-    const targetTab = d.patch.tab || st.tab;
-    if (d.pick != null) st.sel[targetTab] = d.pick; else delete st.sel[targetTab];
-    if (d.sub != null && d.pick != null) st.sub[targetTab] = d.sub; else delete st.sub[targetTab];
-    const prevTab = st.tab;
-    set(d.patch, { push: false, keepCond: false });
-    if (st.tab === prevTab) applyLayerView(false);
-  });
-
-  // ---------- 화면 모드 ----------
+  function on(ev, fn) { (listeners[ev] || (listeners[ev] = [])).push(fn); }
+  function emit(ev, ...args) { for (const fn of (listeners[ev] || [])) { try { fn(...args); } catch (e) { console.error(e); } } }
   const mode = () => (innerWidth >= 1600 ? 'wide' : innerWidth >= 1000 ? 'push' : 'sheet');
   const motionOn = () => st.motion === 'on';
 
-  // ---------- 그림 부품 ----------
+  // ---------- 주소(#)와 뒤로 가기 ----------
+  function encodeHash() {
+    const p = new URLSearchParams();
+    if (st.tab !== 'brief') p.set('t', st.tab);
+    if (st.age !== REF['나이']) p.set('a', st.age);
+    if (st.sex !== REF['성별']) p.set('s', st.sex);
+    if (st.since !== REF['이력']) p.set('h', st.since == null ? 'none' : st.since);
+    if (st.surg) p.set('u', '1');
+    if (st.base !== BASES[0]['종형ID']) p.set('b', st.base);
+    if (st.renewal) p.set('r', st.renewal);
+    if (st.peerScope && st.peerScope !== 'all') {
+      p.set('ps', st.peerScope);
+      if (st.peerScope === 'custom') p.set('pp', (st.peerPick || []).join(','));
+    }
+    const g = st.grp[st.tab];
+    if (g != null && g !== '') p.set('g', g);
+    const pick = st.sel[st.tab];
+    if (pick != null) p.set('k', pick);
+    const q = p.toString();
+    return q ? '#' + q : location.pathname + location.search;
+  }
+  function decodeHash(hash) {
+    const p = new URLSearchParams((hash || '').replace(/^#/, ''));
+    const out = {};
+    const t = p.get('t');
+    out.tab = TAB_IDS.includes(t) ? t : 'brief';
+    const a = p.get('a'); out.age = a != null && !isNaN(+a) ? Math.min(100, Math.max(1, Math.round(+a))) : REF['나이'];
+    const s = p.get('s'); out.sex = (s === 'F' || s === 'M') ? s : REF['성별'];
+    const h = p.get('h'); out.since = h === 'none' ? null : (h != null && [0.25, 1, 2, 3, 4, 5].includes(+h) ? +h : REF['이력']);
+    out.surg = p.get('u') === '1' && out.since != null;
+    const b = p.get('b'); out.base = BASES.some(x => x['종형ID'] === b) ? b : BASES[0]['종형ID'];
+    const r = p.get('r'); out.renewal = (r === '갱신' || r === '비갱신') ? r : null;
+    const ps = p.get('ps'); out.peerScope = PEER_SCOPES.includes(ps) ? ps : 'all';
+    const pp = p.get('pp');
+    out.peerPick = out.peerScope === 'custom' && pp != null
+      ? pp.split(',').filter(c => PEER_ORGS.includes(c))
+      : PEER_ORGS.slice();
+    return { patch: out, grp: p.get('g'), pick: p.get('k') };
+  }
+  let inPop = false;
+  function pushHistory(changed) {
+    if (inPop) return;
+    const url = encodeHash();
+    const onlyAge = changed.size === 1 && changed.has('age');
+    try {
+      if (onlyAge) history.replaceState({ c4: 1 }, '', url);
+      else history.pushState({ c4: 1 }, '', url);
+    } catch (e) { /* */ }
+  }
+  addEventListener('popstate', () => {
+    inPop = true;
+    closeModal(false);
+    const { patch, grp, pick } = decodeHash(location.hash);
+    st.grp = {};
+    if (grp != null) st.grp[patch.tab] = grp;
+    st.sel = {};
+    st.sub = {};
+    if (pick != null) st.sel[patch.tab] = pick;
+    set(patch, { push: false, keepCond: true });
+    applySelectionState(false);
+    inPop = false;
+  });
+
+  // ---------- 아이콘과 공통 UI 부품 ----------
   const IC = {
-    chevR: '<svg width="8" height="14" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.2 1.2L6.8 7l-5.6 5.8" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
-    chevL: '<svg width="8" height="14" viewBox="0 0 8 14" aria-hidden="true"><path d="M6.8 1.2L1.2 7l5.6 5.8" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
-    chevD: '<svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.2l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
-    better: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .8L9.6 9.2H.4Z" fill="currentColor"/></svg>',
-    only: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .4L9.6 5 5 9.6.4 5Z" fill="currentColor"/></svg>',
-    worse: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M.4 .8H9.6L5 9.2Z" fill="currentColor"/></svg>',
-    same: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3.4h8M1 6.6h8" stroke="currentColor" stroke-width="1.6"/></svg>',
-    diff: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3h7.2M6 1l2.2 2L6 5M9 7H1.8M4 5 1.8 7 4 9" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
-    none: '<svg viewBox="0 0 10 10" aria-hidden="true"><rect x=".8" y=".8" width="8.4" height="8.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="1.6 1.4"/><path d="M2.4 5h5.2" stroke="currentColor" stroke-width="1.4"/></svg>',
-    unknown: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 3.4C3 2 4 1.2 5.1 1.2 6.3 1.2 7.1 2 7.1 3c0 1.6-2.1 1.6-2.1 3.3" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="4.3" y="7.6" width="1.4" height="1.4" fill="currentColor"/></svg>',
-    lock: '<svg width="12" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M3 6V4a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="6" width="10" height="7.2" fill="currentColor"/></svg>',
-    copy: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="4" y="4" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1 10V1h9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
-    print: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5V1h7v4M3.5 10.5H1V5h12v5.5h-2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3.5" y="8" width="7" height="5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
-    grid: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><path d="M0 0h3v3H0zM4 0h3v3H4zM8 0h3v3H8zM0 4h3v3H0zM4 4h3v3H4zM8 4h3v3H8zM0 8h3v3H0zM4 8h3v3H4zM8 8h3v3H8z" fill="currentColor"/></svg>',
-    pin: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><rect x=".75" y=".75" width="9.5" height="9.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3.5" y="3.5" width="4" height="4" fill="currentColor"/></svg>',
-    open: '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x=".75" y=".75" width="8.5" height="8.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
-    check: '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x=".75" y=".75" width="8.5" height="8.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="1.6 1.3"/></svg>',
-    hatch: '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x=".5" y=".5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="1.6 1.3"/><path d="M0 7 7 0M3 10 10 3" stroke="currentColor" stroke-width="1"/></svg>',
-    arrow: '<svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M0 5h12M8.5 1.2 12.3 5 8.5 8.8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
-    now: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="5.5" cy="5.5" r="1.9" fill="currentColor"/></svg>',
-    legend: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1.5" width="3" height="3" fill="currentColor"/><path d="M6 3h5M6 9h5" stroke="currentColor" stroke-width="1.4"/><circle cx="2.5" cy="9" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
+    chevR: '<svg width="8" height="14" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+    chevL: '<svg width="8" height="14" viewBox="0 0 8 14" aria-hidden="true"><path d="M7 1L1 7l6 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+    chevD: '<svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+    better: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.5L9 8.5H1Z" fill="currentColor"/></svg>',
+    only: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1L9 5 5 9 1 5Z" fill="currentColor"/></svg>',
+    worse: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1.5h8L5 8.5Z" fill="currentColor"/></svg>',
+    same: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5h7M1.5 6.5h7" stroke="currentColor" stroke-width="1.6"/></svg>',
+    diff: '<svg viewBox="0 0 12 10" aria-hidden="true"><path d="M1 3h9M7.5 1L10 3 7.5 5M11 7H2M4.5 5L2 7l2.5 2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+    none: '<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="1.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1.5"/></svg>',
+    unknown: '<svg viewBox="0 0 10 10" aria-hidden="true"><text x="5" y="8.2" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor">?</text></svg>',
+    lock: '<svg width="12" height="13" viewBox="0 0 12 13" aria-hidden="true"><rect x="1.5" y="5.5" width="9" height="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 5.5V4a2.5 2.5 0 0 1 5 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+    copy: '<svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><rect x="4" y="4" width="7.5" height="7.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 4V1.5H1.5V9H4" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
+    print: '<svg width="14" height="13" viewBox="0 0 14 13" aria-hidden="true"><path d="M3.5 4V1.5h7V4M3.5 9.5H1.5V5h11v4.5h-2M3.5 7.5h7v4h-7Z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
+    grid: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><path d="M1 1h2v2H1ZM4.5 1h2v2h-2ZM8 1h2v2H8ZM1 4.5h2v2H1ZM4.5 4.5h2v2h-2ZM8 4.5h2v2H8ZM1 8h2v2H1ZM4.5 8h2v2h-2ZM8 8h2v2H8Z" fill="currentColor"/></svg>',
+    pin: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><rect x="1.2" y="1.2" width="8.6" height="8.6" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="3.8" y="3.8" width="3.4" height="3.4" fill="currentColor"/></svg>',
+    open: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><rect x="1.5" y="1.5" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    check: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><rect x="1.5" y="1.5" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 1.5"/></svg>',
+    hatch: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="2 1.5"/><path d="M2 9L9 2" stroke="currentColor" stroke-width="1.1"/></svg>',
+    arrow: '<svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 5h11M8.5 1.5L12 5 8.5 8.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+    table: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1.5" width="10" height="9" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1 4.5h10M4.5 4.5v6" stroke="currentColor" stroke-width="1.1"/></svg>',
+    legend: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1.5" width="2.5" height="2.5" fill="currentColor"/><path d="M5 2.8h6M5 6h6M5 9.2h6" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="4.8" width="2.5" height="2.5" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M2.2 8l1.3 2.3H1Z" fill="currentColor"/></svg>',
   };
 
-  const VD = {
-    better: ['vd-better', 'vdBetter'],
-    only: ['vd-only', 'vdOnly'],
-    worse: ['vd-worse', 'vdWorse'],
-    same: ['vd-same', 'vdSame'],
-    diff: ['vd-diff', 'vdDiff'],
-    none: ['vd-none', 'vdNone'],
-    unknown: ['vd-unknown', 'vdUnknown'],
+  const VERDICT = {
+    better: { cls: 'vd-better', ic: IC.better, t: () => cp('vdBetter') },
+    only: { cls: 'vd-only', ic: IC.only, t: () => cp('vdOnly') },
+    worse: { cls: 'vd-worse', ic: IC.worse, t: () => cp('vdWorse') },
+    same: { cls: 'vd-same', ic: IC.same, t: () => cp('vdSame') },
+    diff: { cls: 'vd-diff', ic: IC.diff, t: () => cp('vdDiff') },
+    none: { cls: 'vd-none', ic: '', t: () => cp('vdNone') },
+    unknown: { cls: 'vd-unknown', ic: IC.unknown, t: () => cp('vdUnknown') },
   };
-  function verdict(kind, text, title) {
-    const v = VD[kind] || VD.unknown;
-    return `<span class="vd ${v[0]}"${title ? ` title="${esc(title)}"` : ''}>${IC[kind] || ''}<span>${esc(text || cp(v[1]))}</span></span>`;
+  function verdict(kind, text, titleText) {
+    const v = VERDICT[kind] || VERDICT.unknown;
+    const ttl = titleText ? ` title="${esc(titleText)}"` : '';
+    return `<span class="vd ${v.cls}"${ttl}>${v.ic}<span>${esc(text != null ? text : v.t())}</span></span>`;
   }
-  const FLAG_TEXT = cp('flagDefault');
-  const flag = (text = FLAG_TEXT) => `<span class="flag" role="img" aria-label="${esc(text)}" title="${esc(text)}"><i></i></span>`;
-  const flagText = (text = FLAG_TEXT) => `<span class="flag-t"><span class="tri" aria-hidden="true"><i></i></span>${esc(text)}</span>`;
-  const scope = (kind, title) => kind === 'all'
-    ? `<span class="scb scb-all" title="${esc(title || cp('scopeAllHint'))}">${IC.grid}${esc(cp('scopeAll'))}</span>`
-    : kind === 'now'
-      ? `<span class="scb scb-now" title="${esc(title || cp('scopeNowHint'))}">${IC.now}${esc(cp('scopeNow'))}</span>`
-      : `<span class="scb scb-base" title="${esc(title || cp('scopeBaseHint'))}">${IC.pin}${esc(cp('scopeBase'))}</span>`;
-  const tag = (t, title, cls = '') => `<span class="tag ${cls}"${title ? ` title="${esc(title)}"` : ''}>${esc(t)}</span>`;
-  function name(full, opts = {}) {
+  const FLAG_TEXT = COPY.flagDefault;
+  function flag(text) {
+    const t = text || cp('flagDefault');
+    return `<span class="flag" role="img" aria-label="${esc(t)}" data-tip="${esc(t)}" title="${esc(t)}"><i></i></span>`;
+  }
+  function flagText(text) {
+    const t = text || cp('flagDefault');
+    return `<span class="flag-t"><span class="tri" aria-hidden="true"><i></i></span><span>${esc(t)}</span></span>`;
+  }
+  function scope(kind) {
+    if (kind === 'all' || kind === cp('scopeAll')) return `<span class="scb scb-all" title="${esc(cp('scopeAllHint'))}">${IC.grid}<span>${esc(cp('scopeAll'))}</span></span>`;
+    if (kind === 'now' || kind === cp('scopeNow')) return `<span class="scb scb-now" title="${esc(cp('scopeNowHint'))}">${IC.pin}<span>${esc(cp('scopeNow'))}</span></span>`;
+    return `<span class="scb scb-base" title="${esc(cp('scopeBaseHint'))}">${IC.pin}<span>${esc(cp('scopeBase'))}</span></span>`;
+  }
+  function fullScopeTag() {
+    return st.peerScope === 'all' ? '' : `<span class="tag" title="${esc(cp('fullScopeHint'))}">${esc(cp('fullScopeBadge'))}</span>`;
+  }
+  function tag(text, titleText, cls) {
+    return `<span class="tag${cls ? ' ' + cls : ''}"${titleText ? ` title="${esc(titleText)}"` : ''}>${esc(text)}</span>`;
+  }
+  function name(full, opts) {
     const r = shortName(full, opts);
-    return r.changed ? `<span class="nm" title="${esc(r.full)}">${esc(r.short)}</span>` : `<span class="nm">${esc(r.full)}</span>`;
+    return r.changed ? `<span title="${esc(r.full)}">${esc(r.short)}</span>` : esc(r.short);
   }
-  /** 제목 묶음: 한 줄 층 경로(.lpath), 큰 제목, 좌우 꺾쇠 달린 탭 자리 표시(< · ━ · >) */
-  function title(tabId, kicker, text) {
-    const i = TAB_IDS.indexOf(tabId);
-    const dots = TAB_IDS.map((_, j) => `<i${j === i ? ' class="on"' : ''}></i>`).join('');
-    return `<div class="ttl"><nav class="lpath" aria-label="${esc(cp('pathAria'))}"><span class="lp-cur">${esc(TAB_NAME[tabId])}</span></nav><h1 class="ttl-t">${esc(text || TAB_NAME[tabId])}</h1>
-      <div class="ttl-i" role="group" aria-label="${esc(TAB_NAME[tabId])}"><button type="button" class="ttl-step" data-tab-step="-1" aria-label="${esc(cp('tabPrevAria'))}">${IC.chevL}</button>${dots}<button type="button" class="ttl-step" data-tab-step="1" aria-label="${esc(cp('tabNextAria'))}">${IC.chevR}</button></div></div>`;
+  function title(id, kicker, text) {
+    return `<div class="ttl"><nav class="lpath" aria-label="${esc(cp('pathAria'))}"></nav><h2 class="ttl-t">${esc(text)}</h2></div>`;
   }
-  const big = (n, d, unit) => `<span class="big"><span class="n">${esc(fmt(n))}</span>${d != null ? `<span class="d">/${esc(fmt(d))}</span>` : ''}${unit ? `<span class="u">${esc(unit)}</span>` : ''}</span>`;
-  function ring({ v = 0, max = 1, size = 72, lead = false, segs = null, pct = null, sel = false, label = '' } = {}) {
-    const frac = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
-    const parts = segs || [{ v, cls: '' }];
-    let acc = 0, arcs = '';
-    for (const s of parts) {
-      const f = max > 0 ? Math.max(0, s.v / max) : 0;
-      if (f > 0) arcs += `<circle class="arc ${s.cls || ''}" r="40" fill="none" stroke-width="4.5" pathLength="100" stroke-dasharray="${(f * 100).toFixed(2)} 100" stroke-dashoffset="${(-acc * 100).toFixed(2)}" transform="rotate(-90)" data-to="${(f * 100).toFixed(2)}"/>`;
-      acc += f;
+  function big(n, denom, unit) {
+    const d = denom != null ? `<span class="d">/${esc(fmt(denom))}</span>` : '';
+    const u = unit ? `<span class="u">${esc(unit)}</span>` : '';
+    return `<span class="big num"><span class="n">${esc(fmt(n))}</span>${d}${u}</span>`;
+  }
+
+  function ring(opts) {
+    const size = opts.size || 72, r = 28, sw = opts.stroke || 3.4;
+    const max = Math.max(0.0001, +opts.max || 1);
+    const segs = opts.segs || [{ v: +opts.v || 0, cls: opts.gold ? 'gold' : '' }];
+    const sum = Math.min(max, segs.reduce((a, s) => a + (+s.v || 0), 0));
+    const f = sum / max;
+    const C = +(2 * Math.PI * r).toFixed(2);
+    let off = 0;
+    const arcs = segs.filter(s => s.v > 0).map(s => {
+      const len = +(C * Math.min(1, s.v / max)).toFixed(2);
+      const dash = `${len} ${C}`;
+      const el = `<circle class="arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="${sw}" stroke-dasharray="${dash}" data-dash="${dash}" data-c="${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
+      off += len;
+      return el;
+    }).join('');
+    let ticks = '';
+    if (f < 0.999) {
+      const N = 36, r1 = r - 2.4, r2 = r + 2.4;
+      const lines = [];
+      for (let i = 0; i < N; i++) {
+        if (i / N < f - 0.004) continue;
+        const a = (i / N) * 2 * Math.PI - Math.PI / 2;
+        lines.push(`<line x1="${(r1 * Math.cos(a)).toFixed(1)}" y1="${(r1 * Math.sin(a)).toFixed(1)}" x2="${(r2 * Math.cos(a)).toFixed(1)}" y2="${(r2 * Math.sin(a)).toFixed(1)}" stroke-width="1"/>`);
+      }
+      ticks = `<g class="tks">${lines.join('')}</g>`;
     }
-    let tks = '';
-    for (let i = 0; i < 72; i++) {
-      const a = i / 72; if (a < frac - 1e-6) continue;
-      const t = a * Math.PI * 2 - Math.PI / 2, c = Math.cos(t), s = Math.sin(t);
-      tks += `<line x1="${(c * 37).toFixed(2)}" y1="${(s * 37).toFixed(2)}" x2="${(c * 43).toFixed(2)}" y2="${(s * 43).toFixed(2)}"/>`;
-    }
-    const diag = lead || sel ? '<path class="diag" d="M-55-55l11 11M55-55l-11 11M-55 55l11-11M55 55l-11-11" stroke-width="2.2" fill="none"/>' : '';
-    const disc = sel ? '<circle class="disc" r="35"/>' : '';
-    const txt = pct != null ? `<text class="pct" text-anchor="middle" dominant-baseline="central" y="1">${esc(pct)}</text>` : '';
-    return `<svg class="ring${sel ? ' sel' : ''}${lead ? ' lead' : ''}" width="${size}" height="${size}" viewBox="-60 -60 120 120" role="img" aria-label="${esc(label)}">
-      <circle class="trk" r="40" fill="none" stroke-width="1"/>${disc}<g class="tks" stroke-width="1.6">${tks}</g>${arcs}${diag}${txt}</svg>`;
+    const diag = (opts.lead || opts.sel)
+      ? '<g class="diag" stroke-width="1.2"><line x1="-30" y1="-30" x2="-23" y2="-23"/><line x1="30" y1="-30" x2="23" y2="-30"/><line x1="-30" y1="30" x2="-23" y2="23"/><line x1="30" y1="30" x2="23" y2="23"/></g>'
+      : '';
+    const disc = opts.sel ? `<circle class="disc" r="${r - 3}"/>` : '';
+    const txtEl = opts.pct != null ? `<text class="pct" y="8" text-anchor="middle">${esc(opts.pct)}</text>` : '';
+    const aria = opts.label ? ` role="img" aria-label="${esc(opts.label)}"` : ' aria-hidden="true"';
+    return `<svg class="ring${opts.sel ? ' sel' : ''}" width="${size}" height="${size}" viewBox="-36 -36 72 72"${aria}>
+      ${diag}${disc}<circle class="trk" r="${r}" fill="none" stroke-width="1"/>${ticks}${arcs}${txtEl}</svg>`;
   }
   function drawRings(root) {
-    if (!motionOn() || !root) return;
-    const arcs = $$('.ring .arc', root);
-    arcs.forEach(a => { a.style.transition = 'none'; a.style.strokeDasharray = '0 100'; });
-    void root.getBoundingClientRect();
-    requestAnimationFrame(() => requestAnimationFrame(() => arcs.forEach(a => { a.style.transition = ''; a.style.strokeDasharray = `${a.dataset.to} 100`; })));
+    if (!motionOn()) return;
+    for (const c of $$('.ring .arc', root || document)) {
+      const C = c.dataset.c, d = c.dataset.dash;
+      if (!C || !d) continue;
+      c.style.transition = 'none';
+      c.setAttribute('stroke-dasharray', `0 ${C}`);
+      void c.getBoundingClientRect();
+      c.style.transition = '';
+      c.setAttribute('stroke-dasharray', d);
+    }
   }
-  const hbar = (v, max, cls = '') => `<span class="hbar" role="img" aria-label="${esc(fmt(v))}/${esc(fmt(max))}"><i class="${cls}" style="width:${max > 0 ? Math.max(0, Math.min(100, v / max * 100)).toFixed(1) : 0}%"></i></span>`;
-  const btn = (text, o = {}) => `<button type="button" class="btn${o.main ? ' btn-main' : ''}${o.sm ? ' sm' : ''}${o.ghost ? ' ghost' : ''}${o.cls ? ' ' + o.cls : ''}" ${o.attrs || ''}>${o.icon ? IC[o.icon] || '' : ''}<span>${esc(text)}</span>${o.chev ? IC.chevR : ''}</button>`;
-  function table({ id = '', head = [], rows = [], num = [], caption = '', pick = null } = {}) {
-    const th = head.map((h, i) => `<th scope="col"${num.includes(i) ? ' class="v"' : ''}>${h}</th>`).join('');
-    const tr = rows.map((r, ri) => {
-      const k = pick ? pick(ri) : null;
-      return `<tr${k != null ? ` class="pick" data-pick="${esc(k)}" tabindex="0"` : ''}>${r.map((c, i) => `<td${num.includes(i) ? ' class="v"' : ''}>${c}${k != null && i === r.length - 1 ? RCHEV : ''}</td>`).join('')}</tr>`;
-    }).join('');
-    return `<table class="tbl"${id ? ` id="${esc(id)}"` : ''}>${caption ? `<caption>${caption}</caption>` : ''}<thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+  function hbar(v, max, cls) {
+    const p = max > 0 ? Math.max(0, Math.min(100, (v / max) * 100)) : 0;
+    return `<span class="hbar" aria-hidden="true"><i class="${cls || ''}" style="width:${p.toFixed(1)}%"></i></span>`;
   }
-  const RCHEV = `<span class="rchev" aria-hidden="true">${IC.chevR}</span>`;
+  function btn(text, o = {}) {
+    const cls = ['btn', o.main ? 'btn-main' : '', o.sm ? 'sm' : '', o.ghost ? 'ghost' : '', o.cls || ''].filter(Boolean).join(' ');
+    const ic = o.icon ? (IC[o.icon] || o.icon) : '';
+    const ch = o.chev ? IC.chevR : '';
+    const at = o.attrs || '';
+    return `<button type="button" class="${cls}" ${at}>${ic}<span>${esc(text)}</span>${ch}</button>`;
+  }
 
-  // ---------- 용어 물음표와 범례 팝오버 ----------
   const TERMS = {
     'scope-band': { titleKey: 'termScopeTitle', bodyKey: 'termScopeBody' },
     'ev-panel': { titleKey: 'termEvTitle', bodyKey: 'termEvBody' },
@@ -727,104 +965,149 @@
     'journey-grid': { titleKey: 'termJourneyTitle', bodyKey: 'termJourneyBody' },
     'caution-pending': { titleKey: 'termCautionTitle', bodyKey: 'termCautionBody' },
   };
+  function help(termKey, label) {
+    const item = TERMS[termKey];
+    if (!item) return '';
+    const nm = label || cp(item.titleKey);
+    return `<button type="button" class="qhelp" data-help="${esc(termKey)}" aria-controls="help-pop" aria-label="${esc(nm + cp('helpSuffixAria'))}" aria-expanded="false">?</button>`;
+  }
+
   const LEGENDS = {};
   function registerLegend(key, titleKey, htmlFn) {
     LEGENDS[key] = { titleKey, htmlFn };
   }
-  const help = (key, label) => {
-    const t = TERMS[key];
-    if (!t) return '';
-    return `<button type="button" class="qhelp live no-print" data-help="${esc(key)}" aria-expanded="false" aria-controls="help-pop" aria-label="${esc((label || cp(t.titleKey)) + cp('helpSuffixAria'))}">?</button>`;
+  function legendBtn(key, labelText) {
+    return `<button type="button" class="btn sm ghost leg-btn" data-legend="${esc(key || 'verdict')}" aria-controls="help-pop" aria-expanded="false">${IC.legend}<span>${esc(labelText || cp('legendBtn'))}</span></button>`;
+  }
+
+  const NOTE_HEAD = {
+    '지도전제': 'noteHeadMap',
+    '간편청약제한': 'noteHeadSimp',
+    '수술만행': 'noteHeadSurg',
+    '일반심사': 'noteHeadGen',
   };
-  const legendBtn = (key = 'verdict', label) =>
-    `<button type="button" class="btn sm ghost leg-btn live no-print" data-legend="${esc(key)}" aria-expanded="false" aria-controls="help-pop">${IC.legend}<span>${esc(label || cp('legendBtn'))}</span></button>`;
-
-  const NOTE_HEAD = { '지도전제': 'noteHeadMap', '간편청약제한': 'noteHeadSimp', '수술만행': 'noteHeadSurg', '일반심사': 'noteHeadGen' };
   function notes(tabName) {
-    const list = (S['주석'] || []).filter(n => Array.isArray(n['탭']) && n['탭'].includes(tabName));
+    const list = (S['주석'] || []).filter(n => !tabName || (n['탭'] || []).includes(tabName));
     if (!list.length) return '';
-    return `<div class="snotes" role="note" aria-label="${esc(tabName + cp('notesAriaSuffix'))}"><div class="snotes-h">${esc(cp('notesTitle'))}</div><ul class="snotes-l">${list.map(n => {
-      const hk = NOTE_HEAD[n['열쇠']];
-      return `<li>${hk ? `<b>${esc(cp(hk))}.</b>` : ''}${esc(n['글'])}${n['출처'] ? `<span class="snotes-src">(${esc(cp('notesSrcPrefix') + n['출처'])})</span>` : ''}</li>`;
-    }).join('')}</ul></div>`;
+    return `<aside class="snotes" aria-label="${esc((tabName || '') + cp('notesAriaSuffix'))}">
+      <h3 class="snotes-h">${esc(cp('notesTitle'))}</h3>
+      <ul class="snotes-l">${list.map(n => {
+        const hk = NOTE_HEAD[n['열쇠']];
+        const hd = hk ? cp(hk) : n['열쇠'];
+        return `<li><b>${esc(hd)}</b><span>${esc(n['글'])}</span>${n['출처'] ? `<span class="snotes-src">${esc(cp('notesSrcPrefix') + n['출처'])}</span>` : ''}</li>`;
+      }).join('')}</ul></aside>`;
   }
 
-  function band({ id = '', kicker = '', title: t = '', help: hKey = '', sc = '', stats = [], eq: eqHtml = '', note = '' } = {}) {
-    const stHtml = stats.map(s => `<div class="sb-st"${s.title ? ` title="${esc(s.title)}"` : ''}>
-        <span class="big"><span class="n">${esc(fmt(s.n))}</span>${s.d != null ? `<span class="d">/${esc(fmt(s.d))}</span>` : ''}${s.u ? `<span class="u">${esc(s.u)}</span>` : ''}</span>
-        <span class="sb-l">${esc(s.l)}</span>${s.bar ? hbar(s.bar[0], s.bar[1], s.bar[2] || '') : ''}</div>`).join('');
-    return `<div class="sband"${id ? ` id="${esc(id)}"` : ''}>
-      <div class="sb-t pillar tl"><i class="sb-tk" aria-hidden="true"></i><span class="k">${(Array.isArray(sc) ? sc : [sc]).filter(Boolean).map(x => scope(x)).join('')}${kicker ? `<span>${esc(kicker)}</span>` : ''}</span><h2><span>${esc(t)}</span>${hKey ? help(hKey, t) : ''}</h2></div>
-      <div class="sb-s">${stHtml}</div>
-      ${eqHtml || note ? `<div class="sb-f">${eqHtml}${note ? `<p class="note">${esc(note)}</p>` : ''}</div>` : ''}
-    </div>`;
+  const RCHEV = `<span class="rchev" aria-hidden="true">${IC.chevR}</span>`;
+  function table(o) {
+    const numSet = new Set(o.num || []);
+    const cap = o.caption ? `<caption>${esc(o.caption)}</caption>` : '';
+    const th = o.head.map((h, i) => `<th scope="col"${numSet.has(i) ? ' class="v"' : ''}>${h}</th>`).join('');
+    const last = o.head.length - 1;
+    const tr = o.rows.map((cells, r) => {
+      const pk = o.pick ? o.pick(r) : null;
+      const tds = cells.map((c, i) => {
+        const obj = c && typeof c === 'object' && !Array.isArray(c);
+        const html = obj ? c.h : c;
+        const cpAttr = obj && c.cp != null ? ` data-cp="${esc(c.cp)}"` : '';
+        const cls = [numSet.has(i) ? 'v' : '', obj && c.cls ? c.cls : ''].filter(Boolean).join(' ');
+        const tail = pk != null && i === last ? RCHEV : '';
+        return `<td${cls ? ` class="${cls}"` : ''}${cpAttr}>${html}${tail}</td>`;
+      }).join('');
+      return pk != null
+        ? `<tr class="pick" data-pick="${esc(pk)}" tabindex="0">${tds}</tr>`
+        : `<tr${cells._cls ? ` class="${cells._cls}"` : ''}>${tds}</tr>`;
+    }).join('');
+    return `<table class="tbl"${o.id ? ` id="${esc(o.id)}"` : ''}>${cap}<thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
   }
-  function eq({ total, parts = [], tail = '', nonAdd = '' }) {
-    const p = parts.map(x => `<span class="nb">${esc(x.t)}</span> <span class="n">${esc(fmt(x.n))}</span>`).join(' <span class="op">+</span> ');
-    return `<div class="eq">${total ? `<span class="nb">${esc(total.t)}</span> <span class="n">${esc(fmt(total.n))}</span> <span class="op">=</span> ` : ''}${p}${tail ? ` <span class="nb">${esc(tail)}</span>` : ''}</div>${nonAdd ? `<div class="nadd">${esc(nonAdd)}</div>` : ''}`;
+  function band(o) {
+    const scs = (Array.isArray(o.sc) ? o.sc : o.sc ? [o.sc] : []).map(scope).join(' ');
+    const stats = (o.stats || []).map(s => `<div class="sb-st"${s.title ? ` title="${esc(s.title)}"` : ''}>
+      ${big(s.n, s.d, s.u)}<span class="sb-l">${esc(s.l)}</span>${s.bar ? hbar(s.bar[0], s.bar[1], s.bar[2]) : ''}</div>`).join('');
+    const noteHTML = o.noteHTML ? o.noteHTML : (o.note ? esc(o.note) : '');
+    const foot = (o.eq || noteHTML) ? `<div class="sb-f">${o.eq || ''}${noteHTML ? `<p class="note">${noteHTML}</p>` : ''}</div>` : '';
+    const hlp = o.help ? help(o.help, o.title) : '';
+    return `<div class="sband"><div class="sb-t pillar"><i class="sb-tk" aria-hidden="true"></i>
+      <span class="k">${scs}${o.kicker ? `<span>${esc(o.kicker)}</span>` : ''}</span><h2><span>${esc(o.title)}</span>${hlp}</h2></div>
+      <div class="sb-s">${stats}</div>${foot}</div>`;
   }
-  const fadeBand = (html, o = {}) => `<div class="fade-band${o.slate ? ' slate' : ''}">${html}</div>`;
-  const cells = list => `<div class="cqs" aria-hidden="true">${list.map(c => `<i class="cq ${c}"></i>`).join('')}</div>`;
+  function eq(o) {
+    const head = o.total ? `<span>${esc(o.total.t)}</span> <span class="n">${esc(fmt(o.total.n))}</span> <span class="op">=</span> ` : '';
+    const body = o.parts.map((p, i) => `${i ? '<span class="op">+</span> ' : ''}<span>${esc(p.t)}</span> <span class="n">${esc(fmt(p.n))}</span>`).join(' ');
+    const tail = o.tail ? ` <span class="nb">${esc(o.tail)}</span>` : '';
+    const na = o.nonAdd ? `<div class="nadd">${esc(o.nonAdd)}</div>` : '';
+    return `<div class="eq">${head}${body}${tail}</div>${na}`;
+  }
+  function fadeBand(html, o = {}) { return `<div class="fade-band${o.slate ? ' slate' : ''}">${html}</div>`; }
+  function cells(kinds) { return `<div class="cqs" aria-hidden="true">${kinds.map(k => `<i class="cq ${k}"></i>`).join('')}</div>`; }
   const MAP_CLS = { '우리 간편만 열림': 'm-only', '함께 열림': 'm-both', '우리 간편 닫힘': 'm-ours', '간편 모두 닫힘': 'm-all', '자료 없음': 'm-none' };
-  const swatch = label => `<i class="cq ${MAP_CLS[label] || 'm-none'}" style="width:12px;height:12px;display:inline-block;vertical-align:-1px"></i>`;
+  const swatch = label => `<i class="cq ${MAP_CLS[label] || 'm-none'}" aria-hidden="true"></i>`;
 
-  function chevSel({ label, options, value, onChange, w = '72px', num = false, id = '' }) {
+  function chevSel(o) {
     const el = document.createElement('div');
-    el.className = 'chev-sel' + (num ? ' num' : '');
-    el.style.setProperty('--w', w);
-    el.setAttribute('role', 'group'); el.setAttribute('aria-label', label);
-    if (id) el.id = id;
-    el.innerHTML = `<button type="button" class="p" aria-label="${esc(label + cp('chevPrevSuffix'))}">${IC.chevL}</button><span class="v" aria-live="polite"></span><button type="button" class="n" aria-label="${esc(label + cp('chevNextSuffix'))}">${IC.chevR}</button>`;
+    el.className = 'chev-sel' + (o.num ? ' num' : '');
+    if (o.w) el.style.setProperty('--w', o.w);
+    el.innerHTML = `<button type="button" class="p" aria-label="${esc(o.label + cp('chevPrevSuffix'))}">${IC.chevL}</button><span class="v" aria-live="polite"></span><button type="button" class="n" aria-label="${esc(o.label + cp('chevNextSuffix'))}">${IC.chevR}</button>`;
+    const opts = o.options;
+    let idx = Math.max(0, opts.findIndex(x => x.v === o.value));
     const vEl = $('.v', el), pB = $('.p', el), nB = $('.n', el);
-    let cur = value;
-    const idx = () => options.findIndex(o => JSON.stringify(o.v) === JSON.stringify(cur));
-    el.set = v => {
-      cur = v; const i = idx(); const o = options[i];
-      vEl.textContent = o ? o.t : String(v);
-      if (o && o.title) vEl.title = o.title; else vEl.removeAttribute('title');
-      pB.disabled = i <= 0; nB.disabled = i < 0 || i >= options.length - 1;
-    };
-    const move = d => { const i = idx() + d; if (i < 0 || i >= options.length) return; el.set(options[i].v); onChange && onChange(options[i].v); };
-    pB.addEventListener('click', () => move(-1));
-    nB.addEventListener('click', () => move(1));
-    el.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { move(-1); e.preventDefault(); } if (e.key === 'ArrowRight') { move(1); e.preventDefault(); } });
-    el.set(value);
+    function sync() {
+      const cur = opts[idx];
+      vEl.textContent = cur.t;
+      vEl.title = cur.title || '';
+      if (!o.wrap) { pB.disabled = idx <= 0; nB.disabled = idx >= opts.length - 1; }
+    }
+    function step(d) {
+      const next = o.wrap ? (idx + d + opts.length) % opts.length : Math.max(0, Math.min(opts.length - 1, idx + d));
+      if (next === idx) return;
+      idx = next; sync(); o.onChange(opts[idx].v);
+    }
+    pB.addEventListener('click', () => step(-1));
+    nB.addEventListener('click', () => step(1));
+    el.tabIndex = 0;
+    el.setAttribute('role', 'spinbutton');
+    el.setAttribute('aria-label', o.label);
+    el.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); step(-1); }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); step(1); }
+    });
+    el.set = val => { const i = opts.findIndex(x => x.v === val); if (i >= 0) { idx = i; sync(); } };
+    sync();
     return el;
   }
-  function stepper({ label, value, min, max, unit = '', onChange, w = '44px' }) {
+  function stepper(o) {
     const el = document.createElement('div');
-    el.className = 'chev-sel num'; el.style.setProperty('--w', w);
-    el.setAttribute('role', 'group'); el.setAttribute('aria-label', label);
-    el.innerHTML = `<button type="button" class="p" aria-label="${esc(label + cp('stepDecSuffix'))}">${IC.chevL}</button><input type="text" inputmode="numeric" maxlength="3" aria-label="${esc(label)}" autocomplete="off"><span class="v" style="min-width:0;padding:0 6px 0 0;font:600 14px/1 var(--f-ko)">${esc(unit)}</span><button type="button" class="n" aria-label="${esc(label + cp('stepIncSuffix'))}">${IC.chevR}</button>`;
-    const inp = $('input', el);
-    let cur = value, timer = 0;
-    el.set = v => { cur = v; inp.value = String(v); $('.p', el).disabled = v <= min; $('.n', el).disabled = v >= max; };
-    const commit = (v, keepCond) => { v = Math.max(min, Math.min(max, v)); el.set(v); onChange && onChange(v, keepCond); };
-    $('.p', el).addEventListener('click', () => commit(cur - 1, false));
-    $('.n', el).addEventListener('click', () => commit(cur + 1, false));
-    inp.addEventListener('input', () => {
-      inp.value = inp.value.replace(/[^0-9]/g, '');
-      clearTimeout(timer);
-      const n = parseInt(inp.value, 10);
-      if (n >= min && n <= max) timer = setTimeout(() => commit(n, true), 450);
-    });
-    inp.addEventListener('blur', () => { const n = parseInt(inp.value, 10); if (isNaN(n)) el.set(cur); else commit(n, false); if (condOpen) setCondOpen(false); });
+    el.className = 'chev-sel num';
+    el.style.setProperty('--w', o.w || '60px');
+    el.innerHTML = `<button type="button" class="p" aria-label="${esc(o.label + cp('stepDecSuffix'))}">${IC.chevL}</button><input type="text" inputmode="numeric" aria-label="${esc(o.label)}"><button type="button" class="n" aria-label="${esc(o.label + cp('stepIncSuffix'))}">${IC.chevR}</button>`;
+    const inp = $('input', el), pB = $('.p', el), nB = $('.n', el);
+    let cur = o.value;
+    const clamp = v => Math.max(o.min, Math.min(o.max, Math.round(v)));
+    function commit(v, keepCond) {
+      if (isNaN(v)) { el.set(cur); return; }
+      cur = clamp(v); el.set(cur); o.onChange(cur, keepCond);
+    }
+    el.set = v => { cur = v; inp.value = v + (o.unit || ''); pB.disabled = cur <= o.min; nB.disabled = cur >= o.max; };
+    pB.addEventListener('click', () => commit(cur - 1, true));
+    nB.addEventListener('click', () => commit(cur + 1, true));
+    inp.addEventListener('focus', () => { inp.value = String(cur); inp.select(); });
+    inp.addEventListener('blur', () => commit(parseInt(inp.value, 10), false));
     inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { inp.blur(); }
+      if (e.key === 'Enter') { inp.blur(); e.preventDefault(); }
       if (e.key === 'ArrowUp') { commit(cur + 1, true); e.preventDefault(); }
       if (e.key === 'ArrowDown') { commit(cur - 1, true); e.preventDefault(); }
     });
-    el.set(value);
+    el.set(o.value);
     return el;
   }
 
   const pageText = (doc, page) => (page != null && page !== '' ? `${doc || cp('docFallback')} ${page}${cp('pageSuffix')}` : `${doc || cp('docFallback')}${cp('pageMissingSuffix')}`);
   const PAGE_WHY = cp('pageWhy');
 
-  const UI = { esc, fmt, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
-  const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, orgSector, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, PEER_ORGS, ORG_SHORT };
+  const UI = { esc, fmt, firstSentence, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
+  const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, orgSector, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, PEER_ORGS, ORG_SHORT, firstSentence };
 
-  // ---------- 0층: 접히는 조건 줄, 비교 범위 선택, 범위 띠 ----------
+  // ---------- 진행 추적기 머리와 접히는 조건 편집 판 ----------
   const SINCE_OPTS = [{ v: null, t: cp('condNoHist') }].concat(
     S['지도']['전체']['행'].filter(r => r['종류'] === '입원').map(r => ({ v: r.since, t: r.since === 5 ? cp('condSince5') : r['이름'].replace(/^입원\s*/, '') })));
   const C = {};
@@ -835,43 +1118,68 @@
     if (st.peerScope === 'custom') return cp('peerCustomShortTpl', { n: activePeerOrgs().length });
     return cp('peerAll');
   }
+  function peerNamesShort(list) {
+    if (!list.length) return cp('condPeerNone');
+    if (list.length <= 2) return list.join(', ');
+    return cp('peerRestTpl', { first: list[0], rest: list.length - 1 });
+  }
+  function peerNamesEtc(list, cap = 3) {
+    if (!list.length) return cp('mkRevNone');
+    if (list.length <= cap) return list.join(', ');
+    return cp('peerEtcTpl', { names: list.slice(0, cap).join(', '), total: fmt(list.length) });
+  }
+  TXT.peerNamesShort = peerNamesShort;
+  TXT.peerNamesEtc = peerNamesEtc;
+
+  function condSummary() {
+    const hist = st.since == null ? cp('condNoHist') : `${st.surg ? cp('condSurgOnly') : cp('condHospOrSurg')} ${sinceText(st.since)}`;
+    const base = S['기준별'][st.base];
+    const pSet = new Set(activePeerOrgs());
+    const rawOrgs = base
+      ? [...new Set(base['맞붙는종형'].map(v => (vinfo(v) || {})['기관코드']).filter(Boolean))]
+      : [];
+    const shownOrgs = st.peerScope === 'all' ? rawOrgs : rawOrgs.filter(o => pSet.has(o));
+    const peers = peerNamesShort(shownOrgs.map(orgShort));
+    return `${st.age}${cp('condAgeUnit')} ${sexText(st.sex)}, ${hist} / ${cp('condBasePrefix')} ${vkind(st.base)} / ${cp('condPeerPrefix')} ${peers}`;
+  }
+  function condSegOnly() {
+    const hist = st.since == null ? cp('condNoHist') : `${st.surg ? cp('condSurgOnly') : cp('condHospOrSurg')} ${sinceText(st.since)}`;
+    return `${st.age}${cp('condAgeUnit')} ${sexText(st.sex)}, ${hist}`;
+  }
 
   function setCondOpen(open) {
     condOpen = !!open;
-    const el = $('#cond');
-    if (!el) return;
-    el.classList.toggle('open', condOpen);
-    const b = $('#cond-sum', el);
+    const el = $('#cond'), b = $('#cond-sum');
+    if (el) el.hidden = !condOpen;
     if (b) {
       b.setAttribute('aria-expanded', String(condOpen));
       const act = $('.act-t', b);
       if (act) act.textContent = cp(condOpen ? 'condCloseBtn' : 'condOpenBtn');
     }
-    placeEv(); placeGuides();
+    placeGuides();
+    requestAnimationFrame(updateSelLink);
   }
   function setScopeOpen(open) {
     scopeOpen = !!open;
     const el = $('#scope'), b = $('#scope-tgl');
     if (el) el.hidden = !scopeOpen;
     if (b) b.setAttribute('aria-expanded', String(scopeOpen));
-    placeEv(); placeGuides();
+    placeGuides();
+    requestAnimationFrame(updateSelLink);
   }
 
   function renderCond() {
+    const mid = $('#th-mid');
+    mid.innerHTML = `<div class="th-cond-line" id="cond-sum-t"></div>
+      <div class="th-cond-btns">
+        <button class="scope-tgl" id="cond-sum" type="button" aria-expanded="false" aria-controls="cond"><span class="act-t">${esc(cp('condOpenBtn'))}</span> ${IC.chevD}</button>
+        <button class="scope-tgl peer-tgl" id="peer-tgl" type="button" data-peer-pop="1" aria-controls="help-pop" aria-expanded="false"><span id="peer-tgl-t"></span> ${IC.chevD}</button>
+        <button class="scope-tgl" id="scope-tgl" type="button" aria-expanded="false" aria-controls="scope">${esc(cp('scopeBtn'))} ${IC.chevD}</button>${help('scope-band', cp('scopeTitle'))}
+      </div>`;
+
     const el = $('#cond');
     el.setAttribute('aria-label', cp('condAria'));
-    el.innerHTML = `
-      <div class="cond-bar">
-        <button class="cond-sum" id="cond-sum" type="button" aria-expanded="false" aria-controls="cond-body">
-          <span class="t"></span>
-          <span class="act"><span class="act-t">${esc(cp('condOpenBtn'))}</span> ${IC.chevD}</span>
-        </button>
-        <span class="scope-chip">
-          <button type="button" class="scope-tgl peer-tgl" id="peer-tgl" data-peer-pop="1" aria-expanded="false"><span id="peer-tgl-t"></span> ${IC.chevD}</button>
-          <button type="button" class="scope-tgl" id="scope-tgl" aria-expanded="false" aria-controls="scope">${esc(cp('scopeBtn'))} ${IC.chevD}</button>${help('scope-band', cp('scopeTitle'))}
-        </span>
-      </div>
-      <div class="cond-body" id="cond-body">
+    el.innerHTML = `<div class="cond-body" id="cond-body">
         <div class="cg" data-g="seg">
           <div class="cg-h">${esc(cp('condGroupSeg'))}</div>
           <div class="cf"><span class="lb">${esc(cp('condAge'))}</span><span data-slot="age"></span></div>
@@ -898,32 +1206,11 @@
     sel.innerHTML = SINCE_OPTS.map((o, i) => `<option value="${i}">${esc(o.t)}</option>`).join('');
     sel.addEventListener('change', () => set({ since: SINCE_OPTS[+sel.value].v }));
     $('#c-surg', el).addEventListener('click', () => { if (st.since != null) set({ surg: !st.surg }); });
-    $('#cond-sum', el).addEventListener('click', () => setCondOpen(!condOpen));
-    $('#scope-tgl', el).addEventListener('click', () => setScopeOpen(!scopeOpen));
+    $('#cond-sum').addEventListener('click', () => setCondOpen(!condOpen));
+    $('#scope-tgl').addEventListener('click', () => setScopeOpen(!scopeOpen));
     syncCond();
   }
 
-  function peerNamesShort(list) {
-    if (!list.length) return '';
-    if (list.length <= 2) return list.join(', ');
-    return cp('peerRestTpl', { first: list[0], rest: list.length - 1 });
-  }
-
-  function condSummary() {
-    const hist = st.since == null ? cp('condNoHist') : `${st.surg ? cp('condSurgOnly') : cp('condHospOrSurg')} ${sinceText(st.since)}`;
-    const base = S['기준별'][st.base];
-    const pSet = new Set(activePeerOrgs());
-    const rawOrgs = base
-      ? [...new Set(base['맞붙는종형'].map(v => (vinfo(v) || {})['기관코드']).filter(Boolean))]
-      : [];
-    const shownOrgs = st.peerScope === 'all' ? rawOrgs : rawOrgs.filter(o => pSet.has(o));
-    const peers = peerNamesShort(shownOrgs.map(orgShort));
-    return `${st.age}${cp('condAgeUnit')} ${sexText(st.sex)}, ${hist} / ${cp('condBasePrefix')} ${vkind(st.base)}${peers ? ` / ${cp('condPeerPrefix')} ${peers}` : ''}`;
-  }
-  function condSegOnly() {
-    const hist = st.since == null ? cp('condNoHist') : `${st.surg ? cp('condSurgOnly') : cp('condHospOrSurg')} ${sinceText(st.since)}`;
-    return `${st.age}${cp('condAgeUnit')} ${sexText(st.sex)}, ${hist}`;
-  }
   function syncCond() {
     if (!C.age) return;
     C.age.set(st.age); C.sex.set(st.sex); C.base.set(st.base); C.ren.set(st.renewal);
@@ -931,16 +1218,17 @@
     const sw = $('#c-surg'); sw.setAttribute('aria-checked', String(!!st.surg)); sw.disabled = st.since == null;
     sw.title = st.since == null ? cp('condSurgDisHint') : cp('condSurgHint');
     const base = S['기준별'][st.base];
-    const allNames = base ? [...new Set(base['맞붙는종형'].map(v => orgShort((vinfo(v) || {})['기관코드'])))] : [];
-    $('#c-peers').innerHTML = base ? `<span title="${esc(base['맞붙는종형'].map(vname).join(', '))}">${esc(peerNamesShort(allNames))}</span><span class="hint" style="margin-left:8px">${esc(cp('condPeersHint'))}</span>` : '';
+    const pSet = new Set(activePeerOrgs());
+    const peerVids = base ? (st.peerScope === 'all' ? base['맞붙는종형'] : base['맞붙는종형'].filter(v => pSet.has((vinfo(v) || {})['기관코드']))) : [];
+    const peerOrgNames = [...new Set(peerVids.map(v => orgShort((vinfo(v) || {})['기관코드'])).filter(Boolean))];
+    $('#c-peers').innerHTML = base ? `<span title="${esc(peerVids.map(vname).join(', '))}">${esc(peerNamesShort(peerOrgNames))}</span><span class="hint" style="margin-left:8px">${esc(cp('condPeersHint'))}</span>` : '';
     const pt = $('#peer-tgl-t');
     if (pt) pt.textContent = cp('peerBtnTpl', { s: peerScopeLabel() });
-    $('#cond-sum .t').textContent = condSummary();
-    $('#condmini').textContent = condSummary();
+    const cs = $('#cond-sum-t');
+    if (cs) cs.textContent = condSummary();
   }
 
-  // ---------- 범위 띠(펼쳤을 때 두 줄 전체 표시) ----------
-  const STATE_IC = { '열림': IC.open, '닫힘': IC.lock, '심사로 확인': IC.check, '나이 자료 없음': IC.hatch, '질문 자료 없음': IC.hatch };
+  const STATE_IC = { '열림': IC.open, '일부 나이만 열림': IC.open, '닫힘': IC.lock, '심사로 확인': IC.check, '나이 자료 없음': IC.hatch, '질문 자료 없음': IC.hatch };
   function renderScope() {
     const el = $('#scope');
     el.setAttribute('aria-label', cp('scopeAria'));
@@ -955,11 +1243,19 @@
       const why = p['머리말'] != null ? S['글'][p['머리말']] : '';
       const sd = (why.split(` / ${cp('scopeDiffStruct')}: `)[1] || '');
       return `<span class="it"><span title="${esc(v ? v['전체이름'] : '')}">${esc(vname(p['종형ID']))}</span> <span class="d">${esc(v ? v['적용시작일'] : '')}</span>${p['구조다름'] ? ' ' + tag(cp('scopeDiffStruct'), sd ? cp('scopeDiffStruct') + ': ' + sd : cp('scopeDiffStructHint')) : ''}</span>`;
-    }).join('') + (relPeers.length > 3 ? `<span class="it">+${fmt(relPeers.length - 3)}</span>` : '');
+    }).join('') + (relPeers.length > 3 ? `<span class="it">+${fmt(relPeers.length - 3)}</span>` : '') + (!relPeers.length ? `<span class="it">${esc(cp('condPeerNone'))}</span>` : '');
+    let pairTot = r['비교쌍'], pairWait = r['뺀비교쌍'], pairScoped = true;
+    if (st.peerScope !== 'all') {
+      if (window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
+        const sp = App.cover.scopedPairs(st.base, pSet);
+        if (sp) { pairTot = sp.total; pairWait = sp.wait; }
+        else pairScoped = false;
+      } else pairScoped = false;
+    }
     const line1 = `<div class="scope-l"><span class="k">${esc(cp('scopeTitle'))}</span>
       <span class="it"><b style="font-weight:600" title="${esc(bi ? bi['전체이름'] : '')}">${esc(vname(st.base))}</b> <span class="d">${esc(bi ? bi['적용시작일'] : '')}</span></span>
       <span class="it" aria-label="${esc(cp('scopeVsAria'))}">${IC.arrow}</span>${peers}
-      <span class="it">${esc(cp('scopePairTpl', { total: fmt(r['비교쌍']), wait: fmt(r['뺀비교쌍']) }))}</span>
+      <span class="it">${esc(cp('scopePairTpl', { total: fmt(pairTot), wait: fmt(pairWait) }))}</span> ${pairScoped ? '' : fullScopeTag()}
       ${scope('base')}</div>`;
     const g = cellOf();
     let line2;
@@ -989,166 +1285,529 @@
     el.innerHTML = fadeBand(line1 + line2);
   }
 
-  // ---------- 탭, 층 경로(.lpath), 본문 ----------
-  function renderTabs() {
-    const nav = $('#tabs');
-    nav.setAttribute('aria-label', cp('tabsAria'));
-    nav.innerHTML = TAB_IDS.map(id => `<button class="tab" type="button" role="tab" id="tab-${id}" aria-controls="view-${id}" aria-selected="false" tabindex="-1" data-tab="${id}"><span>${esc(TAB_NAME[id])}</span></button>`).join('');
-    nav.addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) set({ tab: b.dataset.tab }); });
-    nav.addEventListener('keydown', e => {
-      const i = TAB_IDS.indexOf(st.tab);
-      let j = -1;
-      if (e.key === 'ArrowRight') j = (i + 1) % TAB_IDS.length;
-      if (e.key === 'ArrowLeft') j = (i + TAB_IDS.length - 1) % TAB_IDS.length;
-      if (e.key === 'Home') j = 0;
-      if (e.key === 'End') j = TAB_IDS.length - 1;
-      if (j >= 0) { e.preventDefault(); set({ tab: TAB_IDS[j] }); $('#tab-' + TAB_IDS[j]).focus(); }
-    });
-    const main = $('#main');
-    for (const id of TAB_IDS) {
-      const sec = document.createElement('section');
-      sec.className = 'view'; sec.id = 'view-' + id; sec.hidden = true;
-      sec.setAttribute('role', 'tabpanel'); sec.setAttribute('aria-labelledby', 'tab-' + id); sec.dataset.tab = id;
-      const t = tabs[id];
-      sec.innerHTML = `<header class="vhead">${title(id, t ? t.kicker : '', TAB_NAME[id])}<div class="vhead-aside"></div></header><div class="vbody"></div>`;
-      main.appendChild(sec);
+  // ---------- 다섯 고리 탭 수치(갱신 유형 및 비교 범위 교집합 정확히 반영, 숫자 창작 금지) ----------
+  function lineOf(base, k) {
+    return ((base && base['브리핑']) || []).find(x => x['줄'] === k) || null;
+  }
+
+  function ringTabMetrics(c) {
+    const curC = c || ctx();
+    const base = curC.base || S['기준별'][st.base];
+    const pSet = new Set(curC.activePeerOrgs);
+    const bGa = lineOf(base, '가'), bNa = lineOf(base, '나'), bDa = lineOf(base, '다'), bRa = lineOf(base, '라'), bMa = lineOf(base, '마');
+    const vNa = (bNa && bNa['값']) || {}, vDa = (bDa && bDa['값']) || {}, vRa = (bRa && bRa['값']) || {}, vMa = (bMa && bMa['값']) || {};
+
+    // 1. 고객군과 시장: 현재 갱신 선택 지도(mapOf(renewal))의 열린 칸 수 / 전체 칸 수
+    const mCur = mapOf(curC.st.renewal);
+    let gaTotal = 0, gaOnly = 0, gaBoth = 0;
+    if (mCur && mCur['칸']) {
+      mCur['칸'].forEach(row => row.forEach(cell => {
+        gaTotal++;
+        const cc = cellCounts(cell, curC.st);
+        if (cc.oursOpen) {
+          if (cc.openAny === 0) gaOnly++;
+          else gaBoth++;
+        }
+      }));
+    }
+    const gaOpen = gaOnly + gaBoth;
+    const revCnt = vNa['개정변동수'] != null ? vNa['개정변동수'] : ((S['개정변동'] && S['개정변동']['수'] && S['개정변동']['수']['전체']) || 0);
+
+    // 2. 가입 관문: 자료의 관문차이수(관문차이상대코드가 있으면 교집합, 없으면 전체 값 + 전체 기준 배지)
+    let daVal = vDa['관문차이수'] || 0;
+    let daMax = Math.max(1, (base && base['범위'] && base['범위']['회사수']) || 1);
+    let daFullBadge = false;
+    if (curC.peerScope !== 'all') {
+      if (Array.isArray(vDa['관문차이상대코드'])) {
+        daVal = inScope(vDa['관문차이상대코드'], curC.st);
+        daMax = Math.max(1, curC.activePeerOrgs.length);
+      } else {
+        daFullBadge = true;
+      }
+    }
+
+    // 3. 담보 비교: 고른 비교 범위 안의 견준 쌍 / 공통 담보 쌍
+    let raCmp = vRa['견준쌍'] || 0, raTot = vRa['공통담보쌍'] || 0;
+    if (curC.peerScope !== 'all' && window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
+      const sp = App.cover.scopedPairs(curC.baseId, pSet);
+      if (sp) { raCmp = sp.cmp; raTot = sp.total; }
+    }
+
+    // 4. 영업 인사이트: 고른 비교 범위와 겹치는 포인트 건수(우체국 나음인 앞세울 강점만 금색 호)
+    let maVal = vMa['전체수'] || 0, maGold = vMa['앞세울수'] || 0;
+    if (curC.peerScope !== 'all' && base) {
+      maVal = 0; maGold = 0;
+      (base['포인트'] || []).forEach(id => {
+        const p = S['포인트'][id];
+        if (!p) return;
+        if ((p['관련기관코드'] || []).some(o => pSet.has(o))) {
+          maVal++;
+          if (p['분류'] === '앞세울 강점') maGold++;
+        }
+      });
+    }
+
+    return {
+      market: {
+        id: 'market', name: TAB_NAME.market,
+        val: gaOpen, denom: gaTotal, revCnt,
+        numHTML: `${esc(fmt(gaOpen))}<small>/${esc(fmt(gaTotal))}</small>`,
+        subText: cp('homeRevBadgeTpl', { n: fmt(revCnt) }),
+        max: Math.max(1, gaTotal), segs: [{ v: gaOnly, cls: 'gold' }, { v: gaBoth, cls: '' }],
+        flag: bGa && bGa['원문대조'] ? (bGa['원문대조글'] || cp('flagDefault')) : '',
+        fullBadge: false,
+      },
+      gate: {
+        id: 'gate', name: TAB_NAME.gate,
+        val: daVal, denom: null,
+        numHTML: `${esc(fmt(daVal))}`,
+        subText: '',
+        max: daMax, segs: [{ v: daVal, cls: '' }],
+        flag: bDa && bDa['원문대조'] ? (bDa['원문대조글'] || cp('flagDefault')) : '',
+        fullBadge: daFullBadge,
+      },
+      cover: {
+        id: 'cover', name: TAB_NAME.cover,
+        val: raCmp, denom: raTot,
+        numHTML: `${esc(fmt(raCmp))}<small>/${esc(fmt(raTot))}</small>`,
+        subText: '',
+        max: Math.max(1, raTot || 1), segs: [{ v: raCmp, cls: '' }],
+        flag: bRa && bRa['원문대조'] ? (bRa['원문대조글'] || cp('flagDefault')) : '',
+        fullBadge: false,
+      },
+      insight: {
+        id: 'insight', name: TAB_NAME.insight,
+        val: maVal, denom: null,
+        numHTML: `${esc(fmt(maVal))}`,
+        subText: '',
+        max: Math.max(1, maVal || 1), segs: [{ v: maGold, cls: 'gold' }, { v: Math.max(0, maVal - maGold), cls: '' }],
+        flag: bMa && bMa['원문대조'] ? (bMa['원문대조글'] || cp('flagDefault')) : '',
+        fullBadge: false,
+      },
+      graph: {
+        id: 'graph', name: TAB_NAME.graph,
+        val: null, denom: null,
+        numHTML: '',
+        subText: '',
+        isGraph: true,
+        max: 1, segs: [],
+        flag: '',
+        fullBadge: false,
+      },
+    };
+  }
+
+  function graphGlyphSVG() {
+    return `<svg viewBox="-24 -24 48 48" aria-hidden="true" focusable="false">
+      <circle class="rt-trk" r="20" fill="none" stroke-width="1"/>
+      <path class="rt-glyph" d="M-10 4L-2 -7L10 -3M-2 -7L3 8L-10 4M3 8L11 6"/>
+      <rect class="rt-glyph-dot" x="-12.5" y="1.5" width="5" height="5"/>
+      <rect class="rt-glyph-dot" x="-4.5" y="-9.5" width="5" height="5"/>
+      <rect class="rt-glyph-dot" x="7.5" y="-5.5" width="5" height="5"/>
+      <rect class="rt-glyph-dot" x="0.5" y="5.5" width="5" height="5"/>
+      <rect class="rt-glyph-dot" x="8.5" y="3.5" width="4.5" height="4.5"/>
+    </svg>`;
+  }
+
+  function rtabRingSVG(m, withDiag) {
+    if (m.isGraph) return graphGlyphSVG();
+    const r = 34, C = +(2 * Math.PI * r).toFixed(2);
+    const max = Math.max(0.0001, m.max || 1);
+    let off = 0, sum = 0;
+    const arcs = (m.segs || []).filter(s => s.v > 0).map(s => {
+      sum += s.v;
+      const len = +(C * Math.min(1, s.v / max)).toFixed(2);
+      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
+      off += len;
+      return el;
+    }).join('');
+    const f = Math.min(1, sum / max);
+    let ticks = '';
+    if (f < 0.999) {
+      const N = 24, r1 = r - 2.6, r2 = r + 2.6;
+      const ls = [];
+      for (let i = 0; i < N; i++) {
+        if (i / N < f - 0.004) continue;
+        const a = (i / N) * 2 * Math.PI - Math.PI / 2;
+        ls.push(`<line x1="${(r1 * Math.cos(a)).toFixed(1)}" y1="${(r1 * Math.sin(a)).toFixed(1)}" x2="${(r2 * Math.cos(a)).toFixed(1)}" y2="${(r2 * Math.sin(a)).toFixed(1)}" stroke-width="1"/>`);
+      }
+      ticks = `<g class="rt-tks">${ls.join('')}</g>`;
+    }
+    const diag = withDiag
+      ? '<g class="rt-tks" stroke-width="1.1"><line x1="-36" y1="-36" x2="-30" y2="-30"/><line x1="36" y1="-36" x2="30" y2="-30"/><line x1="-36" y1="36" x2="-30" y2="30"/><line x1="36" y1="36" x2="30" y2="30"/></g>'
+      : '';
+    return `<svg viewBox="-42 -42 84 84" aria-hidden="true" focusable="false">
+      ${diag}
+      <circle class="rt-trk" r="39" fill="none" stroke-width="1"/>
+      <circle class="rt-disc" r="28"/>
+      <circle class="rt-trk" r="${r}" fill="none" stroke-width="1.2"/>
+      ${ticks}${arcs}
+    </svg>`;
+  }
+
+  function miniRingSVG(v, max, cls) {
+    const r = 15, C = +(2 * Math.PI * r).toFixed(2);
+    const f = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
+    const len = +(C * f).toFixed(2);
+    return `<svg viewBox="-20 -20 40 40" aria-hidden="true" focusable="false">
+      <circle class="rt-trk" r="${r}" fill="none" stroke-width="1.8"/>
+      ${f > 0 ? `<circle class="rt-arc${cls ? ' ' + cls : ''}" r="${r}" fill="none" stroke-width="2.8" stroke-dasharray="${len} ${C}" transform="rotate(-90)"/>` : ''}
+    </svg>`;
+  }
+  UI.miniRingSVG = miniRingSVG;
+  UI.graphGlyphSVG = graphGlyphSVG;
+
+  function renderRingTabs(c) {
+    const nav = $('#rtabs');
+    const thTotal = $('#th-total');
+    if (!nav) return;
+    const isHome = st.tab === 'brief';
+    if (isHome) {
+      nav.hidden = true;
+      nav.innerHTML = '';
+      if (thTotal) { thTotal.hidden = true; thTotal.innerHTML = ''; }
+      lastRenderedTab = 'brief';
+      return;
+    }
+    const enteredFromHome = lastRenderedTab === 'brief' && motionOn();
+    lastRenderedTab = st.tab;
+    nav.hidden = false;
+    if (enteredFromHome) {
+      nav.classList.remove('from-home');
+      void nav.offsetWidth;
+      nav.classList.add('from-home');
+    }
+    const metrics = ringTabMetrics(c || ctx());
+    const homeBtn = `<button class="rtab rtab-home" type="button" role="tab" id="tab-brief" data-rtab="brief" aria-selected="false" tabindex="-1">${IC.chevL}<span>${esc(cp('homePathRoot'))}</span></button>`;
+    const tabsHTML = SCREEN_IDS.map(id => {
+      const m = metrics[id];
+      const on = st.tab === id;
+      const badge = m.fullBadge ? ` <span class="tag" title="${esc(cp('fullScopeHint'))}">${esc(cp('fullScopeBadge'))}</span>` : '';
+      const sub = m.subText ? `<span class="rt-sub">${esc(m.subText)}</span>` : '';
+      return `<button class="rtab" type="button" role="tab" id="tab-${id}" data-rtab="${id}" aria-selected="${on}" tabindex="${on ? 0 : -1}">
+        <span class="rt-ring">${m.flag ? flag(m.flag) : ''}${rtabRingSVG(m, false)}${m.numHTML ? `<span class="rt-num num">${m.numHTML}</span>` : ''}</span>
+        <span class="rt-txt"><span class="rt-name"><span>${esc(m.name)}</span>${badge}</span>${sub}</span>
+      </button>`;
+    }).join('');
+    nav.innerHTML = homeBtn + tabsHTML;
+
+    const act = $('.rtab[aria-selected="true"]', nav);
+    if (act && nav.scrollWidth > nav.clientWidth + 4) {
+      nav.scrollLeft = Math.max(0, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2));
+    }
+
+    if (thTotal) {
+      const curM = metrics[st.tab] || metrics.market;
+      thTotal.hidden = false;
+      thTotal.innerHTML = `<div class="tht-ring">${rtabRingSVG(curM, true)}${curM.numHTML ? `<span class="tht-val num">${curM.numHTML}</span>` : ''}</div>`;
     }
   }
-  function viewOf(id) { return document.getElementById('view-' + id); }
 
-  /** 현재 탭의 한 줄 경로(1층: 탭 이름, 2층: 탭 > 항목, 3층: 탭 > 항목 > 세부)를 갱신한다 */
-  function syncPath(id = st.tab) {
-    const sec = viewOf(id); if (!sec) return;
-    const nav = $('.lpath', sec); if (!nav) return;
-    const t = tabs[id];
-    const l2 = st.sel[id], l3 = st.sub[id];
-    let parts = [TAB_NAME[id]];
+  // ---------- 제목, 경로(#lpath), 하단 조작 막대(#actbar) ----------
+  function syncHeaderAndPath(c) {
+    const curC = c || ctx();
+    const ttl = $('#th-title');
+    if (ttl) ttl.textContent = TAB_NAME[st.tab] || cp('homeTitle');
+    const nav = $('#lpath');
+    if (!nav) return;
+    if (st.tab === 'brief') {
+      nav.innerHTML = `<span class="lp-cur">${esc(cp('homePathRoot'))}</span>`;
+      return;
+    }
+    const t = tabs[st.tab];
+    let parts = [cp('homePathRoot'), TAB_NAME[st.tab]];
     if (t && t.path) {
       try {
-        const custom = t.path(ctx());
-        if (Array.isArray(custom) && custom.length) parts = custom;
+        const custom = t.path(curC);
+        if (Array.isArray(custom) && custom.length) parts = [cp('homePathRoot')].concat(custom);
       } catch (e) { console.error(e); }
-    } else if (l2 != null) {
-      const ttl = $('#ev-t') ? $('#ev-t').textContent : String(l2);
-      parts = [TAB_NAME[id], ttl];
+    } else if (st.sel[st.tab] != null) {
+      const evT = $('#ev-t') ? $('#ev-t').textContent : String(st.sel[st.tab]);
+      if (evT) parts.push(evT);
     }
     nav.innerHTML = parts.map((label, idx) => {
       const last = idx === parts.length - 1;
       if (last) return `<span class="lp-cur">${esc(label)}</span>`;
-      return `<button type="button" class="lp-b" data-layer-to="${idx + 1}">${esc(label)}</button><span class="lp-sep" aria-hidden="true">&gt;</span>`;
+      return `<button type="button" class="lp-b" data-path-idx="${idx}">${esc(label)}</button><span class="lp-sep" aria-hidden="true">&gt;</span>`;
     }).join('');
   }
 
-  function renderTab(id, c, why) {
-    const t = tabs[id]; const sec = viewOf(id);
-    if (!sec) return;
-    const body = $('.vbody', sec), aside = $('.vhead-aside', sec);
-    if (!t) { body.innerHTML = `<div class="panel placeholder">${esc(cp('tabMissing'))}</div>`; return; }
-    try {
-      t.render(body, Object.assign(c || ctx(), { aside, view: sec, why: why || 'render' }));
-    } catch (e) {
-      console.error(e);
-      body.innerHTML = `<div class="panel placeholder">${esc(cp('tabErrorPrefix') + e.message)}</div>`;
+  function renderActBar(c) {
+    const box = $('#actbar-l');
+    if (!box) return;
+    const curC = c || ctx();
+    const btns = [];
+    if (st.tab !== 'brief') {
+      btns.push(btn(cp('actBack'), { sm: true, ghost: true, attrs: 'id="act-back" data-layer-up="1"' }));
     }
-    t._dirty = false;
-    remark(id);
-    syncPath(id);
+    const t = tabs[st.tab];
+    if (t && typeof t.actions === 'function') {
+      try {
+        const extra = t.actions(curC);
+        if (extra) btns.push(extra);
+      } catch (e) { console.error(e); }
+    }
+    btns.push(btn(cp('actCopySum'), { sm: true, ghost: true, icon: 'copy', attrs: 'id="act-copy" data-act="copy-summary"' }));
+    const legKey = LEGENDS[st.tab] ? st.tab : 'verdict';
+    btns.push(legendBtn(legKey, cp('legendBtn')));
+    box.innerHTML = btns.join('');
   }
 
-  function applyLayerView(animate) {
+  // ---------- 본문 무대 렌더링 ----------
+  function ensureLegacySections() {
+    const center = $('#z-center');
+    for (const id of SCREEN_IDS) {
+      if ($('#view-' + id)) continue;
+      const sec = document.createElement('section');
+      sec.className = 'view'; sec.id = 'view-' + id; sec.hidden = true;
+      sec.dataset.tab = id;
+      sec.innerHTML = '<div class="vhead-aside" hidden></div><div class="vbody"></div>';
+      center.appendChild(sec);
+    }
+  }
+  function viewOf(id) { return document.getElementById('view-' + id); }
+
+  function renderLegacyLeft(id, sec) {
+    const left = $('#z-left');
+    const sections = $$('section[id]', sec).filter(s => $('h2', s));
+    if (!sections.length) {
+      left.innerHTML = `<div class="zl-head"><span class="zl-k">${esc(TAB_NAME[id])}</span></div>`;
+      return;
+    }
+    left.innerHTML = `<div class="zl-head"><span class="zl-k">${esc(cp('zlSecTitle'))}</span></div>
+      <div class="zl-list" role="listbox" aria-label="${esc(TAB_NAME[id])}">
+        ${sections.slice(0, 6).map((s, idx) => {
+          const h2 = $('h2', s);
+          const nm = h2 ? h2.textContent.replace(/^0\d\s*/, '').replace(/\s*\?\s*$/, '').trim() : s.id;
+          return `<button type="button" class="zl-item${idx === 0 ? ' is-on' : ''}" data-jump-sec="${esc(s.id)}">
+            <span class="zl-ring">${miniRingSVG(1, 1, '')}<span class="zl-n num">0${idx + 1}</span></span>
+            <span class="zl-t">${esc(nm)}</span>
+          </button>`;
+        }).join('')}
+      </div>`;
+  }
+
+  function syncLegacyLegend(id) {
+    const t = tabs[id];
+    if (!t || !t.evidence || LEGENDS[id]) return;
+    registerLegend(id, 'legendVerdictTitle', c => {
+      const spec = t.evidence(c);
+      return spec && spec.body ? spec.body : legendHTML();
+    });
+  }
+
+  function boardLayoutFor(id) {
+    const t = tabs[id];
+    if (t && t.layout) return t.layout;
+    if (id === 'cover') return 'band';
+    if (id === 'market' || id === 'gate') return 'side';
+    return 'three';
+  }
+
+  function renderActiveScreen(c, why) {
+    const curC = c || ctx();
+    renderRingTabs(curC);
+    const isHome = st.tab === 'brief';
+    const homePanel = $('#home-panel');
+    const board = $('#board');
+    homePanel.hidden = !isHome;
+    board.hidden = isHome;
+
+    if (isHome) {
+      hideEv();
+      clearSelLink();
+      const tb = tabs.brief;
+      if (tb && tb.renderHome) tb.renderHome(homePanel, curC);
+      syncHeaderAndPath(curC);
+      renderActBar(curC);
+      placeGuides();
+      return;
+    }
+
+    const lay = boardLayoutFor(st.tab);
+    board.dataset.layout = lay;
+    const zl = $('#z-left');
+    if (zl) zl.hidden = lay !== 'three';
+
+    ensureLegacySections();
+    for (const x of SCREEN_IDS) {
+      const v = viewOf(x);
+      if (v) v.hidden = x !== st.tab;
+    }
+
     const id = st.tab;
     const t = tabs[id];
-    if (t && t.onLayer) {
-      const sec = viewOf(id);
-      try { t.onLayer($('.vbody', sec), Object.assign(ctx(), { aside: $('.vhead-aside', sec), view: sec }), animate); } catch (e) { console.error(e); }
-    }
-    remark(id);
-    const key = st.sel[id], subKey = st.sub[id];
-    if (key != null && t) {
-      if (subKey != null && t.pickSub) showSubPick(key, subKey, animate);
-      else if (t.pick) showPick(key, animate);
-      else showDefaultEv(animate);
-      if (mode() !== 'wide' && EV.open) sheetPad();
+    const sec = viewOf(id);
+    const body = sec ? $('.vbody', sec) : $('#z-center');
+    const aside = sec ? $('.vhead-aside', sec) : null;
+    if (!t) {
+      if (zl) zl.innerHTML = '';
+      if (body) body.innerHTML = `<div class="placeholder">${esc(cp('tabMissing'))}</div>`;
+    } else if (typeof t.renderStage === 'function') {
+      try {
+        t.renderStage(body, Object.assign({}, curC, { why: why || 'render', view: sec }));
+      } catch (e) {
+        console.error(e);
+        body.innerHTML = `<div class="placeholder">${esc(cp('tabErrorPrefix') + e.message)}</div>`;
+      }
+      t._dirty = false;
+      t._drawn = true;
+    } else if (typeof t.renderZones === 'function') {
+      try {
+        t.renderZones({ left: zl, center: body, ctx: Object.assign({}, curC, { why: why || 'render', view: sec }) });
+      } catch (e) {
+        console.error(e);
+        body.innerHTML = `<div class="placeholder">${esc(cp('tabErrorPrefix') + e.message)}</div>`;
+      }
+      t._dirty = false;
+      t._drawn = true;
     } else {
-      showDefaultEv(animate);
-      if (mode() !== 'wide') hideEv();
-    }
-    syncPath(id);
-    placeGuides();
-  }
-
-  function showTab(id, opts = {}) {
-    for (const x of TAB_IDS) {
-      const b = $('#tab-' + x), v = viewOf(x), on = x === id;
-      if (b) { b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; if (on && mode() === 'sheet') b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
-      if (v) v.hidden = !on;
-    }
-    const t = tabs[id];
-    if (t && (t._dirty || !t._drawn)) { renderTab(id, ctx(new Set(['tab'])), 'tab'); t._drawn = true; }
-    const v = viewOf(id);
-    if (t && t.enter) { try { t.enter($('.vbody', v), ctx(new Set(['tab']))); } catch (e) { console.error(e); } }
-    if (v) drawRings(v);
-    if (v && motionOn()) { v.classList.remove('entering'); void v.offsetWidth; v.classList.add('entering'); setTimeout(() => v.classList.remove('entering'), 700); }
-    const key = st.sel[id], subKey = st.sub[id];
-    if (key != null && t) {
-      if (subKey != null && t.pickSub) showSubPick(key, subKey, false);
-      else if (t.pick) showPick(key, false);
-      else showDefaultEv(false);
-    } else {
-      showDefaultEv(false);
-      if (mode() !== 'wide') hideEv();
-    }
-    syncPath(id);
-    placeGuides();
-    if (opts.scroll !== false && booted) {
-      const top = $('#work').getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--head-h')) || 66) - 12;
-      if (scrollY > top) scrollTo({ top, behavior: 'auto' });
-    }
-    emit('tab', id);
-  }
-
-  function notify(changed, opts = {}) {
-    syncCond(); renderScope(); placeEv();
-    const c = ctx(changed);
-    for (const id of TAB_IDS) {
-      const t = tabs[id]; if (!t) continue;
-      if (id === st.tab) {
+      syncLegacyLegend(id);
+      if (why === 'change' || t._dirty || !t._drawn) {
         let done = false;
-        if (t.update) { try { done = t.update($('.vbody', viewOf(id)), Object.assign(c, { aside: $('.vhead-aside', viewOf(id)), view: viewOf(id) })) === true; } catch (e) { console.error(e); } }
-        if (!done) renderTab(id, c, 'change');
-        else { remark(id); syncPath(id); }
-      } else t._dirty = true;
+        if (why === 'change' && t.update && t._drawn) {
+          try { done = t.update(body, Object.assign({}, curC, { aside, view: sec })) === true; } catch (e) { console.error(e); }
+        }
+        if (!done) {
+          try { t.render(body, Object.assign({}, curC, { aside, view: sec, why: why || 'render' })); } catch (e) { console.error(e); }
+        }
+        t._dirty = false;
+        t._drawn = true;
+      }
+      if (lay === 'three') renderLegacyLeft(id, sec);
     }
-    const key = st.sel[st.tab], subKey = st.sub[st.tab];
-    const t = tabs[st.tab];
-    if (key != null && t) {
-      if (subKey != null && t.pickSub) showSubPick(key, subKey, false);
-      else if (t.pick) showPick(key, false);
-      else showDefaultEv(false);
-    } else showDefaultEv(false);
-    syncPath(st.tab);
-    emit('change', c, opts);
+
+    if (why === 'tab' && t && t.enter) {
+      try { t.enter(body, curC); } catch (e) { console.error(e); }
+    }
+    if (sec) drawRings(sec);
+    applySelectionState(false, curC);
+    renderActBar(curC);
+    placeGuides();
   }
 
-  // ---------- 고르기(2층, 3층)와 근거 기둥("고른 것만, 평소엔 결론 한 문장") ----------
+  // ---------- 읽기 영역(.z-right)과 1px 연결선(#sel-link) ----------
   const EV = { open: false };
-  function setEvBox(spec, animate) {
+  function syncRightScrollCue() {
+    const body = $('#ev-body'), more = $('#zr-more');
+    if (!body || !more) return;
+    const over = body.scrollHeight - body.clientHeight > 6 && body.scrollTop + body.clientHeight < body.scrollHeight - 6;
+    more.hidden = !over;
+  }
+
+  function clearSelLink() {
+    const p = $('#sel-link-p'), dot = $('#sel-link-dot');
+    if (p) p.setAttribute('d', '');
+    if (dot) dot.hidden = true;
+  }
+
+  function updateSelLink() {
+    const p = $('#sel-link-p'), dot = $('#sel-link-dot'), board = $('#board'), zr = $('#z-right');
+    if (!p || !board || board.hidden || !zr || !zr.classList.contains('is-picked') || mode() === 'sheet') {
+      clearSelLink();
+      return;
+    }
+    const root = viewOf(st.tab) || $('#z-center');
+    const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
+    if (!selEl) { clearSelLink(); return; }
+    const anchor = selEl.querySelector('[data-link-pt]') || selEl;
+    const bBox = board.getBoundingClientRect();
+    const sBox = anchor.getBoundingClientRect();
+    const rBox = zr.getBoundingClientRect();
+    if (!sBox.width || !sBox.height || !rBox.width || !rBox.height) { clearSelLink(); return; }
+    const lay = board.dataset.layout || 'side';
+    let d = '', dx = 0, dy = 0;
+    if (lay === 'band') {
+      const sx = Math.round(sBox.left + sBox.width / 2 - bBox.left);
+      const sy = Math.round(sBox.bottom - bBox.top);
+      const ey = Math.round(rBox.top - bBox.top);
+      if (ey > sy - 4) {
+        d = `M${sx} ${sy}V${ey}`;
+        dx = sx; dy = sy;
+      }
+    } else {
+      const sx = Math.round(sBox.right - bBox.left);
+      const sy = Math.round(sBox.top + sBox.height / 2 - bBox.top);
+      const ex = Math.round(rBox.left - bBox.left);
+      const ey = Math.round(Math.max(rBox.top + 22, Math.min(rBox.bottom - 22, sBox.top + sBox.height / 2)) - bBox.top);
+      if (ex > sx + 2) {
+        const mx = Math.round(sx + (ex - sx) * 0.55);
+        d = Math.abs(ey - sy) <= 3 ? `M${sx} ${sy}H${ex}` : `M${sx} ${sy}H${mx}V${ey}H${ex}`;
+        dx = sx; dy = sy;
+      }
+    }
+    p.setAttribute('d', d);
+    if (dot) {
+      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; }
+      else dot.hidden = true;
+    }
+  }
+
+  function setEvPicked(spec, animate) {
+    const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
+    if (!zr || !zrIn || !k || !body) return;
+    zr.classList.add('is-picked');
+    if (unsel) unsel.hidden = true;
+    zrIn.hidden = false;
     k.textContent = spec.kicker || cp('evKickerPick');
     t.textContent = spec.title || '';
     b.innerHTML = (spec.badges || []).join('');
     body.innerHTML = typeof spec.body === 'string' ? spec.body : '';
     if (spec.body && typeof spec.body !== 'string') body.appendChild(spec.body);
     body.scrollTop = 0;
-    if (animate && motionOn()) { const box = $('.ev-in'); box.classList.remove('ev-anim'); void box.offsetWidth; box.classList.add('ev-anim'); }
+    if (animate && motionOn()) { zrIn.classList.remove('ev-anim'); void zrIn.offsetWidth; zrIn.classList.add('ev-anim'); }
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
+    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(); });
   }
+
+  function unselectedConclusion(c) {
+    const curC = c || ctx();
+    const tb = tabs[st.tab];
+    if (tb && typeof tb.conclusion === 'function') {
+      try {
+        const custom = tb.conclusion(curC);
+        if (custom) return custom;
+      } catch (e) { console.error(e); }
+    }
+    const base = curC.base || S['기준별'][st.base];
+    if (st.tab === 'graph') {
+      const spec = tb && tb.defaultEv ? tb.defaultEv(curC) : null;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = (spec && spec.body) || '';
+      return { text: firstSentence(tmp.textContent), flag: '' };
+    }
+    const bk = TAB_BRIEF_KEY[st.tab];
+    if (base && bk) {
+      const row = lineOf(base, bk);
+      if (row) {
+        return {
+          text: firstSentence(row['문장']),
+          flag: row['원문대조'] ? (row['원문대조글'] || cp('flagDefault')) : '',
+        };
+      }
+    }
+    const fb = base && base['범위'] ? firstSentence(base['범위']['문장']) : '';
+    return { text: fb, flag: '' };
+  }
+
+  function showUnselectedEv(c) {
+    const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
+    if (!zr || !unsel) return;
+    zr.classList.remove('is-picked');
+    if (zrIn) zrIn.hidden = true;
+    unsel.hidden = false;
+    const info = unselectedConclusion(c);
+    unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}</p>` : '';
+    clearSelLink();
+  }
+
   function showEv(spec, o = {}) {
-    setEvBox(spec, o.animate !== false);
-    if (o.open !== false && mode() !== 'wide') openEv();
+    setEvPicked(spec, o.animate !== false);
+    if (o.open !== false && mode() === 'sheet') openEv();
   }
   function openEv() {
-    if (mode() === 'wide') return;
+    if (mode() !== 'sheet') return;
     if (!EV.open) { EV.open = true; document.body.classList.add('ev-open'); }
     sheetPad();
   }
@@ -1158,37 +1817,9 @@
     sheetPad();
   }
   function sheetPad() {
-    const h = EV.open && mode() === 'sheet' ? $('#ev').offsetHeight : 0;
+    const zr = $('#z-right');
+    const h = EV.open && mode() === 'sheet' && zr ? zr.offsetHeight : 0;
     document.documentElement.style.setProperty('--sheet-h', h + 'px');
-  }
-
-  /** 아무것도 고르지 않았을 때는 그 탭의 결론 한 문장만 보인다 */
-  function defaultEvSpec() {
-    const t = tabs[st.tab];
-    if (t && t.defaultEv) {
-      try { const spec = t.defaultEv(ctx()); if (spec) return spec; } catch (e) { console.error(e); }
-    }
-    return coreDefaultEv();
-  }
-  function showDefaultEv(animate) { setEvBox(defaultEvSpec(), animate); }
-  function coreDefaultEv() {
-    const base = S['기준별'][st.base];
-    const bk = TAB_BRIEF_KEY[st.tab];
-    let sent = '';
-    let sc = 'base';
-    if (base) {
-      if (bk) {
-        const row = (base['브리핑'] || []).find(x => x['줄'] === bk);
-        if (row) { sent = row['문장']; sc = row['범위'] === '전체 고객군' ? 'all' : 'base'; }
-      }
-      if (!sent && base['범위']) sent = String(base['범위']['문장'] || '').split(/(?<=\.)\s+/)[0] || base['범위']['문장'];
-    }
-    return {
-      kicker: cp('evKickerDefault'),
-      title: TAB_NAME[st.tab],
-      badges: [scope(sc)],
-      body: `<div class="ev-sec"><p>${esc(sent)}</p></div>`,
-    };
   }
 
   function legendHTML() {
@@ -1208,140 +1839,224 @@
   }
   registerLegend('verdict', 'legendVerdictTitle', legendHTML);
 
+  function syncRovingTabindex() {
+    const zlItems = $$('#z-left .zl-item');
+    if (zlItems.length) {
+      let onIdx = zlItems.findIndex(b => b.classList.contains('is-on') || b.getAttribute('aria-selected') === 'true');
+      if (onIdx < 0) onIdx = 0;
+      zlItems.forEach((b, k) => { b.tabIndex = k === onIdx ? 0 : -1; });
+    }
+    const gridItems = $$('#z-center [data-grid-r][data-grid-c]');
+    if (gridItems.length) {
+      let selIdx = gridItems.findIndex(b => b.classList.contains('is-sel'));
+      if (selIdx < 0) selIdx = 0;
+      gridItems.forEach((b, k) => { b.tabIndex = k === selIdx ? 0 : -1; });
+    }
+  }
+
   function remark(id) {
-    const v = viewOf(id); if (!v) return;
-    const key = st.sel[id], subKey = st.sub[id];
+    const v = viewOf(id) || $('#z-center');
+    if (!v) return;
+    const key = st.sel[id];
     for (const el of $$('[data-pick]', v)) {
       const on = key != null && el.dataset.pick === String(key);
       el.classList.toggle('is-sel', on);
       const hit = el.matches('button') ? el : $('.lrow-hit', el);
       if (hit) hit.setAttribute('aria-pressed', String(on));
     }
-    for (const el of $$('[data-sub-pick]', v)) {
-      const on = subKey != null && el.dataset.subPick === String(subKey);
-      el.classList.toggle('is-sub-sel', on);
-      if (el.matches('button')) el.setAttribute('aria-pressed', String(on));
-    }
-    fitSel(v);
+    syncRovingTabindex();
   }
 
-  const SEL_SHARE = { wide: 0.021, push: 0.017, sheet: 0.016 };
-  const SEL_EXTRA = 76;
-  function fitSel(root) {
-    root = root || viewOf(st.tab);
-    if (!root) return;
-    const budget = SEL_SHARE[mode()] * innerWidth * innerHeight;
-    for (const el of $$('.is-sel', root)) {
-      let bars;
-      if (el.matches('tr')) {
-        const blk = getComputedStyle(el).display === 'block';
-        bars = blk ? [el.querySelector('td') || el] : [el];
-      } else if (el.matches('.selbar')) bars = [el];
-      else bars = $$('.selbar', el);
-      for (const b of bars) {
-        const r = b.getBoundingClientRect();
-        if (!r.height) continue;
-        const w = r.width + 24;
-        const L = Math.max(8, Math.min(w + 120, Math.floor(budget / r.height - SEL_EXTRA)));
-        b.style.setProperty('--sel-red', L >= w ? `${Math.ceil(w + 120)}px` : `${L}px`);
+  function fitSel() {
+    updateSelLink();
+  }
+
+  function applySelectionState(animate, c) {
+    const id = st.tab;
+    if (id === 'brief') return;
+    const curC = c || ctx();
+    remark(id);
+    const key = st.sel[id];
+    const t = tabs[id];
+    if (key != null && t && t.pick) {
+      let spec = null;
+      try { spec = t.pick(String(key), curC); } catch (e) { console.error(e); }
+      if (spec) {
+        setEvPicked(spec, animate);
+      } else {
+        delete st.sel[id];
+        remark(id);
+        showUnselectedEv(curC);
+        hideEv();
       }
+    } else {
+      showUnselectedEv(curC);
+      hideEv();
     }
-  }
-
-  function showPick(key, animate) {
-    const t = tabs[st.tab];
-    let spec = null;
-    try { spec = t && t.pick ? t.pick(String(key), ctx()) : null; } catch (e) { console.error(e); }
-    if (!spec) { delete st.sel[st.tab]; delete st.sub[st.tab]; remark(st.tab); showDefaultEv(animate); return false; }
-    setEvBox(spec, animate);
-    return true;
-  }
-  function showSubPick(key, subKey, animate) {
-    const t = tabs[st.tab];
-    let spec = null;
-    try { spec = t && t.pickSub ? t.pickSub(String(key), String(subKey), ctx()) : null; } catch (e) { console.error(e); }
-    if (!spec) { delete st.sub[st.tab]; remark(st.tab); return showPick(key, animate); }
-    setEvBox(spec, animate);
-    return true;
+    syncHeaderAndPath(curC);
   }
 
   function select(key, o = {}) {
+    if (st.tab === 'brief') return;
     if (key == null) return unselect(o);
-    const same = st.sel[st.tab] === String(key) && st.sub[st.tab] == null;
+    const same = st.sel[st.tab] === String(key);
+    if (same && o.toggleOff) return unselect(o);
     st.sel[st.tab] = String(key);
-    delete st.sub[st.tab];
     if (o.push !== false && booted && !same) pushHistory(new Set(['pick']));
-    const t = tabs[st.tab];
-    if (t && t.onLayer) {
-      const sec = viewOf(st.tab);
-      try { t.onLayer($('.vbody', sec), Object.assign(ctx(), { aside: $('.vhead-aside', sec), view: sec }), o.animate !== false); } catch (e) { console.error(e); }
+    const curC = ctx();
+    applySelectionState(o.animate !== false, curC);
+    if (st.sel[st.tab] != null && mode() === 'sheet' && o.open !== false) openEv();
+    const root = viewOf(st.tab) || $('#z-center');
+    const el = root && $(`[data-pick="${CSS.escape(String(key))}"]`, root);
+    if (el && o.focus) {
+      const hit = el.matches('button,tr,[tabindex]') ? el : ($('.lrow-hit', el) || el);
+      try { hit.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
-    remark(st.tab);
-    const ok = showPick(key, o.animate !== false);
-    syncPath(st.tab);
-    if (ok && mode() !== 'wide' && o.open !== false) openEv();
-    const el = $(`[data-pick="${CSS.escape(String(key))}"]`, viewOf(st.tab));
-    if (el && o.reveal !== false) setTimeout(() => reveal(el), mode() === 'sheet' ? 260 : 0);
+    if (el && o.reveal !== false && mode() === 'sheet') setTimeout(() => reveal(el), 240);
     placeGuides();
+    requestAnimationFrame(updateSelLink);
     emit('select', st.tab, String(key));
   }
 
-  function selectSub(subKey, o = {}) {
-    const key = st.sel[st.tab];
-    if (key == null) return;
-    if (subKey == null) {
-      if (st.sub[st.tab] == null) return;
-      delete st.sub[st.tab];
-      if (o.push !== false && booted) pushHistory(new Set(['sub']));
-      remark(st.tab);
-      showPick(key, o.animate !== false);
-      syncPath(st.tab);
-      emit('sub', st.tab, null);
-      return;
-    }
-    const same = st.sub[st.tab] === String(subKey);
-    st.sub[st.tab] = String(subKey);
-    if (o.push !== false && booted && !same) pushHistory(new Set(['sub']));
-    remark(st.tab);
-    const ok = showSubPick(key, subKey, o.animate !== false);
-    syncPath(st.tab);
-    if (ok && mode() !== 'wide' && o.open !== false) openEv();
-    emit('sub', st.tab, String(subKey));
-  }
-
   function unselect(o = {}) {
-    const had = st.sel[st.tab] != null || st.sub[st.tab] != null;
+    const prevKey = st.sel[st.tab];
+    const had = prevKey != null;
     delete st.sel[st.tab];
     delete st.sub[st.tab];
     if (o.push !== false && booted && had) pushHistory(new Set(['pick']));
-    const t = tabs[st.tab];
-    if (t && t.onLayer) {
-      const sec = viewOf(st.tab);
-      try { t.onLayer($('.vbody', sec), Object.assign(ctx(), { aside: $('.vhead-aside', sec), view: sec }), o.animate !== false); } catch (e) { console.error(e); }
-    }
-    remark(st.tab);
-    showDefaultEv(o.animate !== false);
+    const curC = ctx();
+    applySelectionState(false, curC);
     hideEv();
-    syncPath(st.tab);
+    if (o.restoreFocus !== false && prevKey != null) {
+      const root = viewOf(st.tab) || $('#z-center');
+      const el = root && $(`[data-pick="${CSS.escape(String(prevKey))}"]`, root);
+      if (el) {
+        const hit = el.matches('button,tr,[tabindex]') ? el : ($('.lrow-hit', el) || el);
+        try { hit.focus({ preventScroll: true }); } catch (e) { /* */ }
+      }
+    }
     placeGuides();
     emit('select', st.tab, null);
   }
 
-  /** Esc나 경로 이동: 열린 팝오버 -> 조건/범위 -> 3층에서 2층 -> 2층에서 1층 순서로 한 단계 올라간다 */
+  function setGroup(grpVal, o = {}) {
+    const id = st.tab;
+    if (id === 'brief') return;
+    const next = grpVal == null ? '' : String(grpVal);
+    if ((st.grp[id] || '') === next) {
+      if (o.toggleOff && next !== '') st.grp[id] = '';
+      else return;
+    } else {
+      st.grp[id] = next;
+    }
+    if (o.clearSel !== false) delete st.sel[id];
+    if (o.push !== false && booted) pushHistory(new Set(['grp']));
+    renderActiveScreen(ctx(), 'grp');
+    if (o.focusKey != null) {
+      const btnEl = $(`#z-left [data-zl="${CSS.escape(String(o.focusKey))}"]`);
+      if (btnEl) { try { btnEl.focus({ preventScroll: true }); } catch (e) { /* */ } }
+    }
+  }
+
+  function returnToHome(fromTab) {
+    const prev = fromTab && fromTab !== 'brief' ? fromTab : 'market';
+    set({ tab: 'brief' });
+    const target = $('#tab-' + prev) || $(`#home-panel [data-rtab="${prev}"]`);
+    if (target) { try { target.focus({ preventScroll: true }); } catch (e) { /* */ } }
+  }
+
+  // ---------- 눌러서 여는 전체 표 및 문장 창(#data-modal) ----------
+  let modalTrigger = null;
+  let modalRefreshFn = null;
+  function openModal(spec) {
+    const m = $('#data-modal');
+    if (!m || !spec) return;
+    closeHelp(false);
+    modalTrigger = spec.trigger || document.activeElement || null;
+    modalRefreshFn = typeof spec.render === 'function' ? spec.render : null;
+    const content = modalRefreshFn ? modalRefreshFn(ctx()) : spec;
+    fillModal(content);
+    m.hidden = false;
+    const closeBtn = $('#dm-x', m);
+    if (closeBtn) { try { closeBtn.focus({ preventScroll: true }); } catch (e) { /* */ } }
+  }
+  function fillModal(content) {
+    const m = $('#data-modal');
+    if (!m || !content) return;
+    $('#dm-k', m).textContent = content.kicker || '';
+    $('#dm-title', m).textContent = content.title || '';
+    $('#dm-b', m).innerHTML = (content.badges || []).join('');
+    $('#dm-acts', m).innerHTML = content.actions || '';
+    const body = $('#dm-body', m);
+    body.innerHTML = typeof content.html === 'string' ? content.html : '';
+    if (content.html && typeof content.html !== 'string') body.appendChild(content.html);
+    if (typeof content.after === 'function') {
+      try { content.after(body, ctx()); } catch (e) { console.error(e); }
+    }
+  }
+  function refreshModalIfOpen() {
+    const m = $('#data-modal');
+    if (!m || m.hidden || !modalRefreshFn) return;
+    fillModal(modalRefreshFn(ctx()));
+  }
+  function closeModal(restoreFocus) {
+    const m = $('#data-modal');
+    if (!m || m.hidden) return false;
+    m.hidden = true;
+    $('#dm-body', m).innerHTML = '';
+    modalRefreshFn = null;
+    const prev = modalTrigger;
+    modalTrigger = null;
+    if (restoreFocus && prev && document.contains(prev)) {
+      try { prev.focus({ preventScroll: true }); } catch (e) { /* */ }
+    }
+    return true;
+  }
+
   function stepUp() {
     if (closeHelp(true)) return true;
-    if (condOpen) { setCondOpen(false); return true; }
-    if (scopeOpen) { setScopeOpen(false); return true; }
-    if (st.sub[st.tab] != null) { selectSub(null); return true; }
-    if (st.sel[st.tab] != null || EV.open) { unselect(); return true; }
+    if (closeModal(true)) return true;
+    if (condOpen) { setCondOpen(false); const b = $('#cond-sum'); if (b) b.focus(); return true; }
+    if (scopeOpen) { setScopeOpen(false); const b = $('#scope-tgl'); if (b) b.focus(); return true; }
+    if (EV.open && mode() === 'sheet') { unselect({ restoreFocus: true }); return true; }
+    if (st.sel[st.tab] != null) { unselect({ restoreFocus: true }); return true; }
+    const curGrp = st.grp[st.tab];
+    if (st.tab !== 'brief' && curGrp) {
+      setGroup('', { focusKey: '' });
+      const firstZl = $('#z-left .zl-item');
+      if (firstZl) { try { firstZl.focus({ preventScroll: true }); } catch (e) { /* */ } }
+      return true;
+    }
+    if (st.tab !== 'brief') {
+      returnToHome(st.tab);
+      return true;
+    }
     return false;
+  }
+
+  function showTab(id, opts = {}) {
+    closeModal(false);
+    renderActiveScreen(ctx(new Set(['tab'])), 'tab');
+    if (opts.scroll !== false && booted) scrollTo({ top: 0, behavior: 'auto' });
+    emit('tab', id);
+  }
+
+  function notify(changed, opts = {}) {
+    syncCond();
+    renderScope();
+    for (const id of SCREEN_IDS) {
+      if (id !== st.tab && tabs[id]) tabs[id]._dirty = true;
+    }
+    renderActiveScreen(ctx(changed), 'change');
+    refreshModalIfOpen();
+    emit('change', ctx(changed), opts);
   }
 
   function reveal(el) {
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--head-h')) || 66) + 12;
-    const bottom = innerHeight - (EV.open && mode() === 'sheet' ? $('#ev').offsetHeight : 0) - 12;
+    const top = 36;
+    const bottom = innerHeight - (EV.open && mode() === 'sheet' ? $('#z-right').offsetHeight : 0) - 12;
     const sm = motionOn() ? 'smooth' : 'auto';
     if (r.top < top) scrollBy({ top: r.top - top, behavior: sm });
     else if (r.bottom > bottom) scrollBy({ top: Math.min(r.bottom - bottom, r.top - top), behavior: sm });
@@ -1349,15 +2064,28 @@
   function go(tabId, o = {}) {
     if (!TAB_IDS.includes(tabId)) tabId = TAB_BY_NAME[tabId] || tabId;
     if (!TAB_IDS.includes(tabId)) return;
+    closeModal(false);
+    if (o.grp != null) st.grp[tabId] = o.grp;
     set({ tab: tabId });
+    const nextBtn = $('#tab-' + tabId);
+    if (nextBtn && !o.focus) { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* */ } }
     const t = tabs[tabId];
-    if (o.focus != null && t && t.focus) setTimeout(() => { try { t.focus(o.focus, $('.vbody', viewOf(tabId)), ctx()); } catch (e) { console.error(e); } }, 30);
+    if (o.focus != null && t && t.focus) {
+      setTimeout(() => {
+        try {
+          const sec = viewOf(tabId);
+          t.focus(o.focus, sec ? $('.vbody', sec) : $('#z-center'), ctx());
+        } catch (e) { console.error(e); }
+      }, 30);
+    }
   }
 
   // ---------- 복사와 인쇄 ----------
   function scopeLine() {
     const base = S['기준별'][st.base];
-    const peers = base ? base['맞붙는종형'].map(vname).join(', ') : '';
+    const pSet = new Set(activePeerOrgs());
+    const vids = base ? (st.peerScope === 'all' ? base['맞붙는종형'] : base['맞붙는종형'].filter(v => pSet.has((vinfo(v) || {})['기관코드']))) : [];
+    const peers = vids.length ? vids.map(vname).join(', ') : cp('condPeerNone');
     return cp('scopeLineTpl', { base: vname(st.base), peers, seg: condSegOnly(), asof: asofText(), notice: S['고지'] });
   }
   const clean = s => String(s == null ? '' : s).replace(/[\t\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
@@ -1392,6 +2120,18 @@
     const cap = $('caption', tbl);
     copyRows(head, rows, { title: o.title || (cap ? cap.textContent : ''), scope: o.scope });
   }
+  function copyCurrentSummary() {
+    const t = tabs[st.tab];
+    if (t && typeof t.copySummary === 'function') {
+      t.copySummary(ctx());
+      return;
+    }
+    const base = S['기준별'][st.base];
+    if (!base) return;
+    const NAMES = { '가': cp('briefRowGa'), '나': cp('briefRowNa'), '다': cp('briefRowDa'), '라': cp('briefRowRa'), '마': cp('briefRowMa') };
+    const rows = (base['브리핑'] || []).map(b => [b['줄'], NAMES[b['줄']] || '', b['범위'], b['문장'], b['갈곳']]);
+    copyRows(cp('briefCopyCols').split(','), rows, { title: cp('briefCopyTitle') });
+  }
   function print(el, o = {}) {
     if (typeof el === 'string') el = document.getElementById(el);
     if (!el) return;
@@ -1414,40 +2154,26 @@
   function placeGuides() {
     const g = $('#guides'); if (!g) return;
     const W = innerWidth, H = innerHeight;
-    const headH = $('#head').offsetHeight;
-    const main = $('#main').getBoundingClientRect();
-    const ev = (mode() === 'sheet' ? $('#ev') : $('.ev-slot')).getBoundingClientRect();
-    const narrow = mode() === 'sheet';
-    const centers = [];
-    centers.push(Math.round(main.left - 16));
-    if (mode() === 'wide' || (EV.open && mode() === 'push')) centers.push(Math.round(main.right + (ev.left - main.right) / 2));
-    const ttl = $('.view:not([hidden]) .ttl');
-    if (ttl && !narrow) { const r = ttl.getBoundingClientRect(); if (r.width) centers.push(Math.round(r.right + 16)); }
-    centers.push(Math.round((mode() === 'wide' || EV.open ? Math.max(ev.right, main.right) : main.right) + 16));
-    let html = '';
+    const anchorEl = st.tab === 'brief' ? $('#home-panel') : $('#rtabs');
+    if (!anchorEl) return;
+    const rtBox = anchorEl.getBoundingClientRect();
+    const topY = Math.round(rtBox.top);
+    const botY = H - 72;
+    const centers = [Math.round(rtBox.left), Math.round(rtBox.right)];
+    let html = `<i class="hl" style="top:${topY}px"></i><i class="hl" style="top:${botY}px"></i>`;
     for (const c of centers) {
       if (c < 0 || c > W) continue;
-      if (!narrow && mode() === 'wide') html += `<i class="gl" style="left:${c - 16}px"></i><i class="gl" style="left:${c + 16}px"></i>`;
       html += `<i class="gl c" style="left:${c}px"></i>`;
+      html += `<i class="tk" style="left:${c}px;top:${topY}px"></i><i class="tk" style="left:${c}px;top:${botY}px"></i>`;
     }
-    const yb = H - 90;
-    html += `<i class="hl" style="top:${headH}px"></i><i class="hl" style="top:${yb}px"></i>`;
-    for (const c of centers) if (c >= 0 && c <= W) html += `<i class="tk" style="left:${c}px;top:${headH}px"></i><i class="tk" style="left:${c}px;top:${yb}px"></i>`;
-    const tb = $('#tab-' + st.tab);
-    const tx = tb ? Math.round(tb.getBoundingClientRect().left + 7) : 0;
-    html += `<i class="tk red" id="tk-red" style="left:${tx}px;top:${headH}px"></i>`;
+    const activeTab = st.tab !== 'brief' ? $('#rtabs #tab-' + st.tab) : null;
+    if (activeTab) {
+      const ab = activeTab.getBoundingClientRect();
+      html += `<i class="tk red" style="left:${Math.round(ab.left + 14)}px;top:${topY}px"></i>`;
+    }
     g.innerHTML = html;
   }
 
-  function placeEv() {
-    if (mode() === 'sheet') return;
-    const headH = $('#head').offsetHeight;
-    const top = Math.max(headH + 12, Math.round($('#work').getBoundingClientRect().top));
-    document.documentElement.style.setProperty('--ev-top', top + 'px');
-  }
-  addEventListener('scroll', placeEv, { passive: true });
-
-  // ---------- 스킨, 움직임 ----------
   function applySkin() {
     document.documentElement.dataset.theme = st.skin;
     const b = $('#skin'); if (b) { b.textContent = st.skin === 'dark' ? cp('skinLight') : cp('skinDark'); b.setAttribute('aria-pressed', String(st.skin === 'dark')); }
@@ -1460,13 +2186,13 @@
   }
   const asofText = () => String(S['자료시각'] || '').replace('T', ' ').slice(0, 16);
 
-  // ---------- 용어 물음표, 범례 팝오버, 가리킴 말풍선(#hud-tip) ----------
+  // ---------- 물음표 풀이, 범례, 비교 범위 팝오버, 말풍선 ----------
   let helpAnchor = null;
   function closeHelp(restoreFocus) {
     const pop = $('#help-pop');
     if (!pop || pop.hidden) return false;
     pop.hidden = true;
-    pop.classList.remove('is-leg');
+    pop.classList.remove('is-leg', 'is-peer');
     pop.innerHTML = '';
     const prev = helpAnchor;
     helpAnchor = null;
@@ -1478,10 +2204,10 @@
   }
   function positionPop(pop, anchor) {
     const r = anchor.getBoundingClientRect();
-    const pw = pop.offsetWidth || 340, ph = pop.offsetHeight || 120;
-    const left = Math.max(12, Math.min(innerWidth - pw - 12, Math.round(r.left - 8)));
-    const below = r.bottom + 8 + ph <= innerHeight - 12;
-    const top = below ? Math.round(r.bottom + 8) : Math.max(12, Math.round(r.top - ph - 8));
+    const pw = pop.offsetWidth || 380, ph = pop.offsetHeight || 180;
+    const left = Math.max(8, Math.min(innerWidth - pw - 8, Math.round(r.left)));
+    const below = r.bottom + 8 + ph <= innerHeight - 8;
+    const top = below ? Math.round(r.bottom + 8) : Math.max(8, Math.round(r.top - ph - 8));
     pop.style.left = left + 'px';
     pop.style.top = top + 'px';
   }
@@ -1489,7 +2215,6 @@
     const item = TERMS[btnEl.dataset.help];
     if (!item) return;
     const pop = $('#help-pop');
-    if (!pop) return;
     if (helpAnchor === btnEl && !pop.hidden) { closeHelp(false); return; }
     closeHelp(false);
     helpAnchor = btnEl;
@@ -1500,10 +2225,10 @@
     positionPop(pop, btnEl);
   }
   function toggleLegend(btnEl) {
-    const spec = LEGENDS[btnEl.dataset.legend] || LEGENDS.verdict;
+    const key = btnEl.dataset.legend || st.tab || 'verdict';
+    const spec = LEGENDS[key] || LEGENDS.verdict;
     if (!spec) return;
     const pop = $('#help-pop');
-    if (!pop) return;
     if (helpAnchor === btnEl && !pop.hidden) { closeHelp(false); return; }
     closeHelp(false);
     helpAnchor = btnEl;
@@ -1531,7 +2256,7 @@
         ${modes.map(m => `<button type="button" class="peer-m${st.peerScope === m.v ? ' is-on' : ''}" role="radio" aria-checked="${st.peerScope === m.v}" data-peer-mode="${m.v}">${esc(m.t)}</button>`).join('')}
       </div>
       <div class="peer-orgs${st.peerScope === 'custom' ? ' is-custom' : ''}">
-        ${groups.map(g => `<div class="peer-grp"><div class="peer-gh">${esc(g.t)}</div><div class="peer-gl">${g.list.map(code => {
+        ${groups.map(g => `<div class="peer-grp"><div class="peer-gh">${esc(g.t)} (${g.list.length})</div><div class="peer-gl">${g.list.map(code => {
           const on = st.peerScope === 'custom' ? picked.has(code) : activePeerOrgs().includes(code);
           return `<button type="button" class="peer-chk${on ? ' is-on' : ''}" data-peer-org="${esc(code)}" aria-pressed="${on}"><i></i><span>${esc(orgShort(code))}</span></button>`;
         }).join('')}</div></div>`).join('')}
@@ -1539,7 +2264,6 @@
   }
   function togglePeerPop(btnEl) {
     const pop = $('#help-pop');
-    if (!pop) return;
     if (helpAnchor === btnEl && !pop.hidden) { closeHelp(false); return; }
     closeHelp(false);
     helpAnchor = btnEl;
@@ -1551,14 +2275,13 @@
     positionPop(pop, btnEl);
   }
 
-  let tipAnchor = null, touchTimer = 0;
+  let tipAnchor = null, touchTimer = 0, scrollMuteUntil = 0;
   function showHudTip(el) {
     const tip = $('#hud-tip');
     const text = el && el.dataset && el.dataset.tip;
     if (!tip || !text) return;
     const r = el.getBoundingClientRect();
-    const headEl = $('#head');
-    const minTop = (headEl ? Math.max(0, headEl.getBoundingClientRect().bottom) : 66) + 6;
+    const minTop = 30;
     if (r.width < 1 || r.bottom <= minTop || r.top >= innerHeight) { hideHudTip(); return; }
     tipAnchor = el;
     tip.textContent = text;
@@ -1576,7 +2299,7 @@
     if (tip) tip.hidden = true;
   }
   document.addEventListener('pointerover', e => {
-    if (e.pointerType === 'touch') return;
+    if (e.pointerType === 'touch' || performance.now() < scrollMuteUntil) return;
     const el = e.target.closest && e.target.closest('[data-tip]');
     if (el) showHudTip(el); else if (tipAnchor) hideHudTip();
   });
@@ -1597,13 +2320,15 @@
   document.addEventListener('touchmove', () => clearTimeout(touchTimer), { passive: true });
   document.addEventListener('touchend', () => clearTimeout(touchTimer), { passive: true });
 
-  addEventListener('scroll', () => { closeHelp(false); hideHudTip(); }, { passive: true });
+  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 250; closeHelp(false); hideHudTip(); }, { passive: true });
   on('tab', () => { closeHelp(false); hideHudTip(); });
   on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideHudTip(); });
 
-  // ---------- 위임한 눌림과 키보드 ----------
+  // ---------- 위임 클릭과 키보드 ----------
   document.addEventListener('click', e => {
     hideHudTip();
+    const mc = e.target.closest('[data-modal-close]');
+    if (mc) { e.stopPropagation(); closeModal(true); return; }
     const hc = e.target.closest('[data-help-close]');
     if (hc) { e.stopPropagation(); closeHelp(true); return; }
     const pb = e.target.closest('[data-peer-pop]');
@@ -1616,7 +2341,7 @@
       if (modeVal === 'custom' && (!st.peerPick || !st.peerPick.length)) patch.peerPick = PEER_ORGS.slice();
       set(patch, { keepPop: true });
       const pop = $('#help-pop');
-      if (pop && !pop.hidden) pop.innerHTML = renderPeerPopBody();
+      if (pop && !pop.hidden) { pop.innerHTML = renderPeerPopBody(); positionPop(pop, helpAnchor || pb || $('#peer-tgl')); }
       return;
     }
     const po = e.target.closest('[data-peer-org]');
@@ -1636,50 +2361,161 @@
     if (lb) { e.stopPropagation(); toggleLegend(lb); return; }
     if (!e.target.closest('#help-pop')) closeHelp(false);
 
-    const lt = e.target.closest('[data-layer-to]');
-    if (lt) {
+    const rt = e.target.closest('[data-rtab]');
+    if (rt) {
       e.stopPropagation();
-      const lv = +lt.dataset.layerTo;
-      if (lv <= 1) unselect();
-      else if (lv === 2) selectSub(null);
+      const id = rt.dataset.rtab;
+      if (id === 'brief') {
+        returnToHome(st.tab);
+        return;
+      }
+      if (st.tab === id && st.sel[id] == null && !st.grp[id]) {
+        returnToHome(id);
+        return;
+      }
+      set({ tab: id });
+      const nextBtn = $('#tab-' + st.tab) || $('#tab-' + id);
+      if (nextBtn) { try { nextBtn.focus({ preventScroll: true }); } catch (ex) { /* */ } }
       return;
     }
+
+    const pi = e.target.closest('[data-path-idx]');
+    if (pi) {
+      e.stopPropagation();
+      const idx = +pi.dataset.pathIdx;
+      if (idx === 0) {
+        returnToHome(st.tab);
+      } else if (idx === 1) {
+        if (st.sel[st.tab] != null) unselect({ restoreFocus: true });
+        else if (st.grp[st.tab]) setGroup('', { focusKey: '' });
+      }
+      return;
+    }
+
     const lu = e.target.closest('[data-layer-up]');
     if (lu) { e.stopPropagation(); stepUp(); return; }
-    const ts = e.target.closest('[data-tab-step]');
-    if (ts) {
+
+    const zl = e.target.closest('[data-zl]');
+    if (zl) {
       e.stopPropagation();
-      const d = +ts.dataset.tabStep || 1;
-      const i = TAB_IDS.indexOf(st.tab);
-      set({ tab: TAB_IDS[(i + d + TAB_IDS.length) % TAB_IDS.length] });
+      setGroup(zl.dataset.zl, { toggleOff: zl.dataset.zlToggle === '1', focusKey: zl.dataset.zl });
+      return;
+    }
+
+    const js = e.target.closest('[data-jump-sec]');
+    if (js) {
+      e.stopPropagation();
+      $$('#z-left [data-jump-sec]').forEach(x => x.classList.toggle('is-on', x === js));
+      const target = document.getElementById(js.dataset.jumpSec);
+      if (target) target.scrollIntoView({ block: 'start', behavior: motionOn() ? 'smooth' : 'auto' });
       return;
     }
 
     const a = e.target.closest('[data-act],[data-go],button[data-copy],button[data-print]');
     if (a) {
-      if (a.dataset.go) { e.stopPropagation(); go(a.dataset.go, { focus: a.dataset.focus }); return; }
+      if (a.dataset.go) { e.stopPropagation(); go(a.dataset.go, { focus: a.dataset.focus, grp: a.dataset.grp }); return; }
       if (a.dataset.copy) { e.stopPropagation(); copyTable(a.dataset.copy, { title: a.dataset.title }); return; }
       if (a.dataset.print) { e.stopPropagation(); print(a.dataset.print, { title: a.dataset.title, card: a.dataset.card === '1' }); return; }
       if (a.dataset.act === 'base-to') { set({ base: a.dataset.v }); return; }
+      if (a.dataset.act === 'copy-summary') { e.stopPropagation(); copyCurrentSummary(); return; }
       if (a.dataset.act) return;
     }
-    const sp = e.target.closest('.view [data-sub-pick]');
-    if (sp && !e.target.closest('.live')) { selectSub(sp.dataset.subPick); return; }
-    const p = e.target.closest('.view [data-pick]');
-    if (p && !e.target.closest('.live')) select(p.dataset.pick);
+
+    const mp = e.target.closest('#dm-body [data-pick]');
+    if (mp && !e.target.closest('.live')) {
+      const pickKey = mp.dataset.pick;
+      closeModal(false);
+      select(pickKey, { focus: true });
+      return;
+    }
+
+    const p = e.target.closest('#z-center [data-pick]');
+    if (p && !e.target.closest('.live')) {
+      select(p.dataset.pick, { focus: true, toggleOff: p.dataset.toggle === '1' });
+    }
   });
 
   document.addEventListener('keydown', e => {
-    const p = e.target.closest && e.target.closest('.view tr[data-pick]');
-    if (p && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(p.dataset.pick); return; }
+    // 1. 고리 탭 줄 및 첫 화면 다섯 묶음 좌우 화살표 이동
+    const inRtab = e.target.closest && e.target.closest('[data-rtab]');
+    if (inRtab && ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
+      const scopeRoot = st.tab === 'brief' ? $('#home-panel') : $('#rtabs');
+      const items = scopeRoot ? $$('[data-rtab]', scopeRoot) : [];
+      if (!items.length) return;
+      const i = items.indexOf(inRtab);
+      if (i < 0) return;
+      let j = i;
+      if (e.key === 'ArrowRight') j = (i + 1) % items.length;
+      if (e.key === 'ArrowLeft') j = (i + items.length - 1) % items.length;
+      if (e.key === 'Home') j = 0;
+      if (e.key === 'End') j = items.length - 1;
+      e.preventDefault();
+      if (st.tab === 'brief' || items[j].dataset.rtab === 'brief') {
+        items.forEach((b, k) => { b.tabIndex = k === j ? 0 : -1; });
+        items[j].focus();
+      } else {
+        set({ tab: items[j].dataset.rtab });
+        const nb = $('#tab-' + items[j].dataset.rtab);
+        if (nb) nb.focus();
+      }
+      return;
+    }
+
+    // 2. 왼쪽 분류 구역 상하 화살표 이동
+    const inZl = e.target.closest && e.target.closest('#z-left .zl-item');
+    if (inZl && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End')) {
+      const items = $$('#z-left .zl-item');
+      const i = items.indexOf(inZl);
+      let j = i;
+      if (e.key === 'ArrowDown') j = Math.min(items.length - 1, i + 1);
+      if (e.key === 'ArrowUp') j = Math.max(0, i - 1);
+      if (e.key === 'Home') j = 0;
+      if (e.key === 'End') j = items.length - 1;
+      if (j !== i) {
+        e.preventDefault();
+        items.forEach((b, k) => { b.tabIndex = k === j ? 0 : -1; });
+        items[j].focus();
+      }
+      return;
+    }
+
+    // 3. 무대 단위 도형 격자 화살표 이동([data-grid-r][data-grid-c])
+    const cellBtn = e.target.closest && e.target.closest('#z-center [data-grid-r][data-grid-c]');
+    if (cellBtn && ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      const r = +cellBtn.dataset.gridR, c = +cellBtn.dataset.gridC;
+      const nr = e.key === 'ArrowDown' ? r + 1 : e.key === 'ArrowUp' ? r - 1 : r;
+      const nc = e.key === 'ArrowRight' ? c + 1 : e.key === 'ArrowLeft' ? c - 1 : c;
+      const next = $(`#z-center [data-grid-r="${nr}"][data-grid-c="${nc}"]`);
+      if (next) {
+        e.preventDefault();
+        $$('#z-center [data-grid-r][data-grid-c]').forEach(b => { b.tabIndex = b === next ? 0 : -1; });
+        next.focus();
+      }
+      return;
+    }
+
+    const trPick = e.target.closest && e.target.closest('tr[data-pick]');
+    if (trPick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      if (trPick.closest('#dm-body')) {
+        const pk = trPick.dataset.pick;
+        closeModal(false);
+        select(pk, { focus: true });
+      } else {
+        select(trPick.dataset.pick, { focus: true });
+      }
+      return;
+    }
+
     if (e.key === 'Escape') {
       if (stepUp()) { e.preventDefault(); return; }
     }
     const typing = e.target.closest && e.target.closest('input,select,textarea');
     if (typing) return;
     if (e.key === ']' || e.key === '[') {
-      const i = TAB_IDS.indexOf(st.tab);
-      set({ tab: TAB_IDS[(i + (e.key === ']' ? 1 : TAB_IDS.length - 1)) % TAB_IDS.length] });
+      const curIdx = SCREEN_IDS.indexOf(st.tab);
+      const nextIdx = curIdx < 0 ? 0 : (curIdx + (e.key === ']' ? 1 : SCREEN_IDS.length - 1)) % SCREEN_IDS.length;
+      set({ tab: SCREEN_IDS[nextIdx] });
     }
   });
 
@@ -1687,11 +2523,7 @@
   function registerTab(def) {
     if (!def || !TAB_IDS.includes(def.id)) throw new Error('Unknown tab: ' + (def && def.id));
     tabs[def.id] = Object.assign({ kicker: '' }, def, { _dirty: true, _drawn: false });
-    if (booted) {
-      const sec = viewOf(def.id);
-      if (sec) $('.ttl', sec).outerHTML = title(def.id, def.kicker, TAB_NAME[def.id]);
-      if (def.id === st.tab) showTab(st.tab);
-    }
+    if (booted && def.id === st.tab) renderActiveScreen(ctx(), 'register');
   }
 
   // ---------- 시작 ----------
@@ -1702,18 +2534,23 @@
     else if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) st.motion = 'off';
     const initHash = decodeHash(location.hash);
     Object.assign(st, initHash.patch);
+    lastRenderedTab = st.tab;
+    if (initHash.grp != null) st.grp[st.tab] = initHash.grp;
     if (initHash.pick != null) st.sel[st.tab] = initHash.pick;
-    if (initHash.sub != null && initHash.pick != null) st.sub[st.tab] = initHash.sub;
     if (st.since == null) st.surg = false;
     applySkin(); applyMotion();
 
-    // tpl.html 의 고정 문구도 COPY 표에서 동기화
-    if ($('#app-title')) $('#app-title').textContent = cp('appTitle');
     if ($('#boot-loader')) $('#boot-loader').setAttribute('aria-label', cp('bootAria'));
-    if ($('#condmini')) $('#condmini').title = cp('condMiniTitle');
-    if ($('#ev')) $('#ev').setAttribute('aria-label', cp('evAria'));
+    if ($('#rtabs')) $('#rtabs').setAttribute('aria-label', cp('tabsAria'));
+    if ($('#lpath')) $('#lpath').setAttribute('aria-label', cp('pathAria'));
+    if ($('#z-left')) $('#z-left').setAttribute('aria-label', cp('zoneLeftAria'));
+    if ($('#z-center')) $('#z-center').setAttribute('aria-label', cp('zoneCenterAria'));
+    if ($('#z-right')) $('#z-right').setAttribute('aria-label', cp('evAria'));
     if ($('#ev-pnm-t')) $('#ev-pnm-t').textContent = cp('evPanelName');
     if ($('#ev-x')) $('#ev-x').setAttribute('aria-label', cp('evCloseAria'));
+    if ($('#dm-x')) $('#dm-x').setAttribute('aria-label', cp('legendCloseAria'));
+    if ($('#dm-x-t')) $('#dm-x-t').textContent = cp('modalCloseBtn');
+    if ($('#zr-more')) $('#zr-more').innerHTML = `<span>${esc(cp('evMoreBtn'))}</span> ${IC.chevD}`;
     if ($('#foot-notice-h')) $('#foot-notice-h').textContent = cp('footNoticeHead');
     if ($('#foot-disclaimer')) $('#foot-disclaimer').textContent = cp('footDisclaimer');
     if ($('#asof-label')) $('#asof-label').textContent = cp('footAsof');
@@ -1724,39 +2561,51 @@
     const eh = $('#ev-help');
     if (eh) eh.outerHTML = help('ev-panel', cp('evPanelName'));
 
-    renderCond(); renderScope(); renderTabs();
+    renderCond();
+    renderScope();
+    ensureLegacySections();
+
     $('#skin').addEventListener('click', () => set({ skin: st.skin === 'dark' ? 'light' : 'dark' }));
     $('#motion').addEventListener('click', () => set({ motion: st.motion === 'on' ? 'off' : 'on' }));
-    $('#ev-x').addEventListener('click', () => stepUp());
-    $('#condmini').addEventListener('click', () => { scrollTo({ top: 0, behavior: motionOn() ? 'smooth' : 'auto' }); });
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(es => { for (const x of es) $('#head').classList.toggle('cond-away', !x.isIntersecting); }, { rootMargin: '-80px 0px 0px 0px' }).observe($('#cond'));
+    $('#ev-x').addEventListener('click', () => unselect({ restoreFocus: true }));
+    const zc = $('#z-center');
+    if (zc) zc.addEventListener('scroll', () => requestAnimationFrame(updateSelLink), { passive: true });
+    const evBody = $('#ev-body'), zrMore = $('#zr-more');
+    if (evBody) {
+      evBody.addEventListener('scroll', syncRightScrollCue, { passive: true });
+      evBody.addEventListener('toggle', () => setTimeout(syncRightScrollCue, 20), true);
     }
+    if (zrMore && evBody) {
+      zrMore.addEventListener('click', () => evBody.scrollBy({ top: 180, behavior: motionOn() ? 'smooth' : 'auto' }));
+    }
+
     let rz = 0, lastMode = mode();
     addEventListener('resize', () => {
       clearTimeout(rz);
       rz = setTimeout(() => {
         const m = mode();
-        if (m !== lastMode) { if (m === 'wide') { EV.open = false; document.body.classList.remove('ev-open'); } lastMode = m; }
+        if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
         closeHelp(false); hideHudTip();
-        sheetPad(); placeEv(); placeGuides(); fitSel(); emit('resize', m);
+        sheetPad(); placeGuides(); updateSelLink(); syncRightScrollCue(); emit('resize', m);
       }, 80);
     });
-    $('#work').addEventListener('transitionend', e => { if (e.target === $('#work')) { placeGuides(); fitSel(); } });
+
     booted = true;
     try { history.replaceState({ c4: 1 }, '', encodeHash()); } catch (e) { /* */ }
-    showTab(st.tab, { scroll: false });
-    placeEv(); setTimeout(() => { placeEv(); placeGuides(); }, 50);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); fitSel(); });
+    renderActiveScreen(ctx(), 'tab');
+    setTimeout(() => { placeGuides(); updateSelLink(); syncRightScrollCue(); }, 50);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(); });
   }
 
   window.App = {
-    S, D: DD, COPY, t: cp, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
-    get state() { return { ...st, peerPick: st.peerPick.slice(), sel: { ...st.sel }, sub: { ...st.sub } }; },
-    set, on, ctx: () => ctx(), registerTab, go, select, selectSub, unselect, stepUp, syncPath, reveal,
-    ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showDefaultEv(true), legend: legendHTML },
+    S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
+    get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
+    set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal,
+    openModal, closeModal, updateSelLink,
+    ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
     ui: UI, txt: TXT, mode, motionOn,
-    cellOf, segPatch, segPatchText, samePatch, activePeerOrgs, activeOrgs, orgSector,
+    cellOf, cellCounts, gateFlowRows, coverStageStacks, firstSentence,
+    segPatch, segPatchText, samePatch, activePeerOrgs, activeOrgs, orgSector, inScope, filterScopeCodes, ringTabMetrics,
     limitOf, mapOf, condSummary, condSegOnly, scopeLine, asofText,
     copyText, copyRows, copyTable, print, toast, fitSel,
     boot,

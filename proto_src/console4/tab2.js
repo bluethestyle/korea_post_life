@@ -1,46 +1,67 @@
-/* 탭 2 고객군과 시장: 주인공 도형은 구역 지도(이력 12행 x 나이 구간). 아래는 개정 변동과 시장 소식.
-   값과 문장은 sales.json 의 지도, 포인트, 개정변동, 시장소식에서 읽는다. 화면은 칸 수를 세고 자료의 문장을 옮길 뿐 판정을 짓지 않는다. */
+/* 탭 2 고객군과 시장: 안개 위 네 줄 시간축(2px 선, 12px 열림 전환 눈금) + 24개 고리 마디(64px) + 오른쪽 28% 읽기 영역.
+   모든 화면 문구는 core.js 의 COPY(App.t)에서 읽고, 수와 문장은 sales.json 에서 읽으며 비교 범위 교집합만 센다. */
 App.registerTab((function () {
+  'use strict';
   const { ui, txt } = App;
   const { esc, fmt } = ui;
   const S = App.S;
+  const t = (k, v) => App.t(k, v);
+
   const LABELS = S['라벨'];
-  const CATS = S['분류'].concat(['검토 대기']);
-  const CAT_SHORT = { '관문 차이': '관문', '앞세울 강점': '강점', '관련 담보 안내': '관련', '조건 열위 방어': '열위', '개정 검토 후보': '개정', '검토 대기': '대기' };
-  const ORGS = txt.ORG_ORDER;
-  const ORG_INI = { EPOST: '우', HANWHALIFE: '한', SAMSUNGFIRE: '삼' };
-  const ST_IC = { '열림': ui.IC.open, '닫힘': ui.IC.lock, '심사로 확인': ui.IC.check, '나이 자료 없음': ui.IC.hatch, '질문 자료 없음': ui.IC.hatch };
-  const REN_OPTS = [{ v: null, t: '전체' }, { v: '갱신', t: '갱신' }, { v: '비갱신', t: '비갱신' }];
+  const CATS = S['분류'];
   const NEWS = S['시장소식'];
   const REV = S['개정변동'];
+  const ST_IC = {
+    '열림': ui.IC.open,
+    '일부 나이만 열림': ui.IC.open,
+    '닫힘': ui.IC.lock,
+    '심사로 확인': ui.IC.check,
+    '나이 자료 없음': ui.IC.hatch,
+    '질문 자료 없음': ui.IC.hatch,
+  };
 
-  // ---------- 작은 도구 ----------
-  const renText = r => (r == null ? '갱신 유형 전체' : `${r} 종형만`);
-  const rowGroup = row => (row['종류'] === '수술만' ? '입원 없이 수술만' : '입원이 있었음');
-  const rowShort = row => row['이름'].replace(/^(입원|수술만)\s*/, '');
-  const colText = col => `${col.lo}~${col.hi}세`;
-  // 칸 열쇠에 갱신 유형을 넣는다. 거르개를 바꾸면 열 구간이 달라지므로 앞서 고른 칸은 풀린다
+  let revSub = 'rev';
+
   const REN_KEY = r => (r == null ? 'a' : r === '갱신' ? 'g' : 'n');
   const keyOf = (ri, ci) => `m${REN_KEY(App.state.renewal)}${ri}-${ci}`;
   const parseKey = k => {
-    const m = /^m([agn])(\d+)-(\d+)$/.exec(k);
+    const m = /^m([agn])(\d+)-(\d+)$/.exec(k || '');
     return m && m[1] === REN_KEY(App.state.renewal) ? { ri: +m[2], ci: +m[3] } : null;
   };
   const vk = vid => (vid ? txt.vkind(vid) : '');
-  const jo = (word, p) => txt.josa(word, p).slice(String(word).length);
-  function cellAt(map, ri, ci) { return (map['칸'][ri] || [])[ci] || null; }
-  function notes(cell, long) {
-    const out = [];
-    if (cell['보조']) out.push(cell['보조']);
-    if (cell['닫힌사유'] && cell['닫힌사유'].length) out.push(`${long ? '닫힌 사유: ' : '사유 '}${cell['닫힌사유'].join(', ')}`);
-    return out;
+  const colText = col => `${col.lo}~${col.hi}${t('condAgeUnit')}`;
+  const timeShort = r => (r.since === 5 ? t('mkTimeOver5') : r['이름'].replace(/^(입원|수술만)\s*/, '').replace(/\s*전$/, ''));
+  const cellAt = (map, ri, ci) => (map['칸'][ri] || [])[ci] || null;
+
+  ui.registerLegend('market', 'mkLegendTitle', () => `<dl class="legend">
+      <dt><i class="cq m-ours" aria-hidden="true"></i></dt><dd>${esc(t('mkLgWorse'))}</dd>
+      <dt><i class="cq m-only" aria-hidden="true"></i></dt><dd>${esc(t('mkLgGold'))}</dd>
+      <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>${esc(t('mkLgBoth'))}</dd>
+      <dt><i class="cq m-all" aria-hidden="true"></i></dt><dd>${esc(t('mkLgAllClosed'))}</dd>
+      <dt>${ui.IC.hatch}</dt><dd>${esc(t('mkLgDash'))}</dd>
+      <dt>${ui.IC.open}</dt><dd>${esc(t('mkLgArc'))}</dd>
+      <dt>${ui.IC.arrow}</dt><dd>${esc(t('mkLgAxis'))}</dd>
+      <dt>${ui.IC.pin}</dt><dd>${esc(t('mkLgRed'))}</dd>
+      <dt>${ui.flagText(t('flagShort'))}</dt><dd>${esc(t('lgFlag'))}</dd>
+    </dl>`);
+
+  function renOpts() {
+    return [
+      { v: null, t: t('condRenAll') },
+      { v: '갱신', t: t('condRenRenew') },
+      { v: '비갱신', t: t('condRenNon') },
+    ];
   }
+  function renLabel(r) {
+    return r == null ? t('condRenAll') : r;
+  }
+
   function tally(map) {
     const lab = map['라벨별'] || {};
     let total = 0;
     map['칸'].forEach(r => { total += r.length; });
-    const gap = {};          // 회사별 자료 없음 칸 수와 그 상태
-    const closed = {};       // 닫힌 사유별 칸 수
+    const gap = {};
+    const closed = {};
     let closedCells = 0;
     map['칸'].forEach(r => r.forEach(c => {
       (c['자료없음'] || []).forEach(o => { gap[o] = gap[o] || { n: 0, state: c['회사'][o] }; gap[o].n++; });
@@ -49,306 +70,340 @@ App.registerTab((function () {
     return { lab, total, gap, closed, closedCells };
   }
 
-
-  // ---------- 지도 ----------
-  function cellHTML(map, ri, ci, c) {
-    const cell = cellAt(map, ri, ci);
-    const row = map['행'][ri], col = map['열'][ci];
-    const cls = ui.MAP_CLS[cell['라벨']] || 'm-none';
-    const now = c.seg && c.seg.cell && c.seg.ri === ri && c.seg.ci === ci;
-    const sub = notes(cell);
-    const orgs = ORGS.filter(o => o in cell['회사']).map(o => {
-      const s = cell['회사'][o];
-      return `<span class="mk-os${(cell['자료없음'] || []).includes(o) ? ' gap' : ''}"><b>${ORG_INI[o]}</b>${ST_IC[s] || ''}</span>`;
-    }).join('');
-    const n = cell['분류수'] || {};
-    const counts = CATS.map(k => `<b>${n[k] == null ? '' : fmt(n[k])}</b>`).join('');
-    const flag = cell['라벨'] === '우리 간편만 열림' ? ui.flag() : '';
-    const gateOnly = cell['관문만수집'] || [];
-    const goHTML = gateOnly.length
-      ? `<span class="mk-go">${gateOnly.map(x => `<span class="mk-gob">관문만 수집</span><span>${esc(x['이름'])}</span>`).join(', ')}</span>`
-      : '';
-    const goAria = gateOnly.length ? `, ${gateOnly.map(x => `${x['이름']} ${x['안내'] || '관문만 수집(담보 미수집)'}`).join(', ')}` : '';
-    const label = `${row['이름']}, ${colText(col)}: ${cell['라벨']}${sub.length ? ' (' + sub.join(', ') + ')' : ''}${goAria}${now ? ', 지금 조건' : ''}. 근거 보기`;
-    return `<button type="button" class="sq mk-cell" data-l="${cls}" data-pick="${keyOf(ri, ci)}" aria-pressed="false" aria-label="${esc(label)}" style="--d:${(ri + ci * 2) * 22}ms">
-      <i class="mk-bg ${cls}" aria-hidden="true"></i>
-      <i class="cur t"></i><i class="cur r"></i><i class="cur b"></i><i class="cur l"></i>
-      ${flag}
-      <span class="mk-l">${esc(cell['라벨'])}</span>
-      <span class="mk-o" aria-hidden="true">${orgs}</span>
-      <span class="mk-s">${now ? `<span class="mk-now">${ui.IC.pin}지금 조건</span>` : ''}${esc(sub.join(', '))}</span>
-      <span class="mk-n" aria-hidden="true">${counts}</span>
-      ${goHTML}
-    </button>`;
-  }
-  function mapHTML(c) {
-    const map = App.mapOf(c.st.renewal);
-    const nc = map['열'].length;
-    const head = `<div class="mk-corner"><span>마지막 입원이나 수술</span><span class="num">나이 ${ui.IC.arrow}</span></div>` + map['열'].map(col => `<div class="mk-ch"><b class="num">${esc(colText(col))}</b><span class="mk-nh" aria-hidden="true">${CATS.map(k => `<i>${esc(CAT_SHORT[k])}</i>`).join('')}</span></div>`).join('');
-    let body = '', lastG = '';
-    map['행'].forEach((row, ri) => {
-      const g = rowGroup(row);
-      if (g !== lastG) { body += `<div class="mk-gh"><span>${esc(g)}</span><i></i></div>`; lastG = g; }
-      body += `<div class="mk-rh">${esc(rowShort(row))}</div>`;
-      for (let ci = 0; ci < nc; ci++) body += cellHTML(map, ri, ci, c);
+  /** 지도의 (이력 종류 x 나이 열) 네 줄과 여섯 마디 모형을 만든다(나이 열이 우체국 경계 2개로 고정이라 늘 4줄 x 6마디 = 24개) */
+  function buildRowsModel(map) {
+    const hospPeriods = map['행'].map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
+    const surgPeriods = map['행'].map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
+    const cols = map['열'] || [];
+    const rows = [];
+    [
+      { kind: '입원', kindLabel: t('mkGroupHosp'), periods: hospPeriods },
+      { kind: '수술만', kindLabel: t('mkGroupSurg'), periods: surgPeriods },
+    ].forEach(g => {
+      cols.forEach((col, ci) => {
+        const items = g.periods.map(p => ({ ri: p.i, ci, period: p.r, col, cell: cellAt(map, p.i, ci) }));
+        const oursOpenCnt = items.filter(x => x.cell && x.cell['회사'] && x.cell['회사'].EPOST === '열림').length;
+        rows.push({
+          rowIdx: rows.length,
+          kind: g.kind,
+          kindLabel: g.kindLabel,
+          ci,
+          col,
+          label: `${g.kindLabel} ${col.lo}~${col.hi}${t('condAgeUnit')}`,
+          items,
+          oursOpenCnt,
+        });
+      });
     });
-    return `<div class="mk-grid" id="mk-grid" style="--nc:${nc}" role="group" aria-label="고객군 지도, ${esc(txt.sexText(map['성별']))} 기준, ${esc(renText(c.st.renewal))}">${head}${body}</div>`;
-  }
-  function sumHTML(c) {
-    const map = App.mapOf(c.st.renewal);
-    const t = tally(map);
-    const strip = [];
-    LABELS.forEach(l => { for (let i = 0; i < (t.lab[l] || 0); i++) strip.push(ui.MAP_CLS[l]); });
-    return `<div class="mk-sum">${ui.eq({ total: { t: '고객군', n: t.total }, parts: LABELS.map(l => ({ t: l, n: t.lab[l] || 0 })), tail: '칸' })}${ui.cells(strip)}</div>`;
-  }
-  function footHTML(c) {
-    const map = App.mapOf(c.st.renewal);
-    const t = tally(map);
-    const gaps = Object.entries(t.gap).map(([o, x]) => `<li>${ui.IC.hatch}<span><b>${esc(txt.orgShort(o))}</b> 자료 없음 표지 ${fmt(x.n)}칸. ${esc(txt.stateWhy(o, x.state) || '')}</span></li>`).join('');
-    const closedT = Object.entries(t.closed).map(([k, n]) => `${k} ${fmt(n)}칸`).join(', ');
-    const closedSum = Object.values(t.closed).reduce((a, b) => a + b, 0);
-    const rows = LABELS.map(l => [`${ui.swatch(l)} ${esc(l)}`, fmt(t.lab[l] || 0)]);
-    return `<div class="mk-foot3">
-      <div class="mk-tl">${ui.table({ id: 'mk-tally', head: ['주 라벨', '칸 수'], rows, num: [1], caption: `고객군 지도 집계(${esc(txt.sexText(map['성별']))}, ${esc(renText(c.st.renewal))})` })}</div>
-      <div class="mk-nt">
-        ${t.closedCells ? `<p class="note">우리 간편이 닫힌 칸 ${fmt(t.closedCells)}칸의 사유는 ${esc(closedT)}입니다.</p>${closedSum > t.closedCells ? `<div class="nadd">한 칸에 사유 둘이 함께 들 수 있어 사유별 칸 수를 더하면 ${fmt(closedSum)}칸으로 ${fmt(t.closedCells)}칸보다 큽니다.</div>` : ''}` : '<p class="note">우리 간편이 닫힌 칸이 없습니다.</p>'}
-        ${gaps ? `<ul class="mk-gap">${gaps}</ul>` : ''}
-        <p class="note">칸의 수는 기준 종형과 조건을 바꿔도 그대로입니다. 갱신 유형 거르개를 바꾸면 그 유형의 종형만으로 다시 센 지도로 바뀝니다.</p>
-      </div>
-      <div class="mk-acts">${ui.btn('집계 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="mk-tally" data-title="고객군 지도 집계"' })}${ui.btn('칸 목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="mk-copy-cells"' })}</div>
-    </div>`;
-  }
-  function legendHTML(map) {
-    return `<div class="mk-legend" aria-label="지도 읽는 법">
-      <span class="lg">${LABELS.map(l => `<span>${ui.swatch(l)}${esc(l)}</span>`).join('')}</span>
-      <span class="lg">${ORGS.map(o => `<span><b>${ORG_INI[o]}</b> ${esc(txt.orgShort(o))}</span>`).join('')}<span>${ui.IC.open}열림</span><span>${ui.IC.lock}닫힘</span><span>${ui.IC.check}심사로 확인</span><span>${ui.IC.hatch}자료 없음</span><span><span class="mk-gob">관문만 수집</span>담보 미수집 종형만 열림</span></span>
-      <span class="lg mk-lgn">칸 안 숫자 여섯은 차례대로 ${CATS.map(k => esc(k)).join(', ')}의 수입니다. 비어 있으면 견줄 대표 종형이 없는 칸입니다. 칸에 우열을 매기지 않습니다.</span>
-    </div>`;
-  }
-  function mapPanel(c) {
-    const map = App.mapOf(c.st.renewal);
-    const sexNote = c.seg && c.seg.sexNote ? `<p class="mk-why">${esc(c.seg.sexNote)}</p>` : '';
-    const segWhy = c.seg && !c.seg.cell && c.seg.reason ? `<p class="mk-why">지금 조건의 칸이 이 지도에 없습니다. ${esc(c.seg.reason)}</p>` : '';
-    return `<section class="panel mk-map" id="mk-map" aria-labelledby="mk-map-h">
-      <div class="panel-h">
-        <div><span class="k">${ui.scope('all')} <span class="mk-k">${esc(txt.sexText(map['성별']))} 기준, ${esc(renText(c.st.renewal))}</span></span><h2 id="mk-map-h">고객군 지도</h2></div>
-        <div class="r"><span class="mk-renl">갱신 유형</span><span data-slot="mk-ren"></span></div>
-      </div>
-      ${sexNote}${segWhy}
-      ${sumHTML(c)}
-      <div class="mk-body">${mapHTML(c)}</div>
-      <div class="panel-f">${legendHTML(map)}</div>
-      ${footHTML(c)}
-      ${ui.notes('고객군과 시장')}
-    </section>`;
+    return { hospPeriods, cols, rows };
   }
 
-  // ---------- 개정과 시장 ----------
-  function revTable() {
-    const th = ['담보', '종류', '달라진 항목', '종형'].map(h => `<th scope="col">${esc(h)}</th>`).join('');
-    const tr = REV['담보'].map((d, i) => {
-      const full = d['종형ID'].map(vk);
-      const short = full.map(n => txt.shortName(n).short);
-      return `<tr class="pick" data-pick="rv${i}" tabindex="0"><td>${esc(d['담보'])}</td><td data-cp="${esc(d['종류'])}">${ui.tag(d['종류'])}</td><td>${esc(d['항목'].join(', '))}</td>
-        <td data-cp="${esc(full.join(', '))}"><span title="${esc(full.join(', '))}">${esc(short.join(', '))}</span>${ui.RCHEV}</td></tr>`;
-    }).join('');
-    return `<table class="tbl" id="mk-rev-tbl"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
-  }
-  function revPanel() {
-    const n = REV['수'];
-    const pairSum = REV['짝'].reduce((a, p) => a + p['신설'] + p['변경'] + p['종료'], 0);
-    const pairs = REV['짝'].map(p => `<li><b>${esc(vk(p['후']))}</b><span class="num">신설 ${fmt(p['신설'])}, 변경 ${fmt(p['변경'])}, 종료 ${fmt(p['종료'])}</span></li>`).join('');
-    const ages = (REV['가입나이변경'] || []).map(vk);
-    const gates = (REV['관문변경'] || []).map(vk);
-    return `<section class="panel tbl-wrap mk-rev" aria-labelledby="mk-rev-h">
-      <div class="panel-h">
-        <div><span class="k">${ui.scope('all')}</span><h2 id="mk-rev-h">우체국 직전 개정과 견준 변동</h2></div>
-        <div class="r">${ui.btn('표 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="mk-rev-tbl" data-title="개정 변동"' })}</div>
-      </div>
-      <div class="mk-pad">
-        <ul class="mk-pairs">${pairs}</ul>
-        ${REV['짝'].length > 1 ? `<div class="nadd">개정 짝 ${REV['짝'].length}개의 수를 더하면 ${fmt(pairSum)}건입니다. 같은 담보가 여러 짝에서 바뀌면 짝마다 세므로 ${fmt(n['전체'])}건보다 큽니다.</div>` : ''}
-        <dl class="kv mk-kv"><dt>고지 질문이 바뀐 종형</dt><dd>${gates.length ? esc(gates.join(', ')) : '없음'}</dd>
-          <dt>가입나이가 바뀐 종형</dt><dd>${ages.length ? esc(ages.join(', ')) : '없음'}</dd></dl>
-        <p class="note">짝마다 직전 개정 종형과 같은 담보를 견줘 신설, 변경, 종료로 셉니다. 직전 개정 종형은 판매를 마쳐 견준 상품 목록에 이름이 없습니다.</p>
-      </div>
-      ${revTable()}
-    </section>`;
-  }
-  function newsPanel() {
-    const cls = Object.entries(NEWS['분류별'] || {});
-    const items = (NEWS['소식'] || []).map((x, i) => {
-      const warn = (x['주의표현'] || []).length ? ui.tag(`주의 표현 ${x['주의표현'].join(', ')}`, '화면 문장에 쓰지 않는 말이 보도 요약에 들어 있습니다') : '';
-      return `<li class="lrow mk-nw" data-pick="nw${i}">
-        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${x['회사']} ${x['분류']} 소식 근거 보기`)}"></button>
-        <div class="selbar mk-nwh"><span class="num mk-d">${esc(x['발표일자'])}</span><b>${esc(x['회사'])}</b>${ui.tag(x['분류'])}</div>
-        <p class="mk-tg">${x['인용'] ? ui.tag('인용') : ''}${warn}</p>
-        <p class="mk-q">${esc(x['요약'])}</p>
-        <p class="mk-src">${esc(x['출처표시'] || x['매체'] || '')}${(x['표준담보ID'] || []).length ? `, 표준담보 ${fmt(x['표준담보ID'].length)}개에 이어짐` : ', 표준담보에 이어지지 않음'}</p>
-        <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span>
-      </li>`;
-    }).join('');
-    return `<section class="panel mk-news" aria-labelledby="mk-news-h">
-      <div class="panel-h">
-        <div><span class="k">${ui.scope('all')} <span class="num mk-k">${esc(NEWS['주차'])}</span></span><h2 id="mk-news-h">시장 소식</h2></div>
-        <div class="r">${ui.tag('인용')}</div>
-      </div>
-      <div class="mk-pad">
-        <p class="mk-quote">${esc(NEWS['인용안내'])}</p>
-        ${ui.eq({ total: { t: '소식', n: NEWS['건수'] }, parts: cls.map(([a, n]) => ({ t: a, n })), tail: '건' })}
-        <div class="mk-cls">${cls.map(([a, n]) => `<span class="mk-clb"><span>${esc(a)}</span>${ui.hbar(n, NEWS['건수'])}<b class="num">${fmt(n)}</b></span>`).join('')}</div>
-        <p class="note">표준담보에 이어진 소식 ${fmt(NEWS['연결'])}건.${NEWS['연결'] ? '' : ' 이어진 담보가 없어 대응 문장을 달지 않습니다.'}</p>
-      </div>
-      <ul class="lrows">${items}</ul>
-    </section>`;
-  }
-
-  /** 개정과 시장 구역 머리: 달라진 담보 셋(신설, 변경, 종료)과 이번 주 소식 수를 큰 숫자로 */
-  function lowerBand() {
-    const n = REV['수'];
-    return ui.band({ kicker: '직전 개정과 이번 주 시장 소식', title: '개정과 시장', sc: 'all',
-      stats: [
-        { n: n['신설'], d: n['전체'], l: '신설', bar: [n['신설'], n['전체']] },
-        { n: n['변경'], d: n['전체'], l: '변경', bar: [n['변경'], n['전체']] },
-        { n: n['종료'], d: n['전체'], l: '종료', bar: [n['종료'], n['전체']] },
-        { n: NEWS['건수'], u: '건', l: `시장 소식 ${NEWS['주차']}`, bar: [NEWS['연결'] || 0, NEWS['건수'], 'gold'], title: `표준담보에 이어진 소식 ${NEWS['연결'] || 0}건` },
-      ],
-      eq: ui.eq({ total: { t: '우체국 직전 개정과 견준 달라진 담보', n: n['전체'] }, parts: [{ t: '신설', n: n['신설'] }, { t: '변경', n: n['변경'] }, { t: '종료', n: n['종료'] }], tail: '건' })
-        + `<div class="nadd">시장 소식 ${fmt(NEWS['건수'])}건은 보도를 센 수라 달라진 담보 수와 더하지 않습니다. 막대는 표준담보에 이어진 소식 ${fmt(NEWS['연결'] || 0)}건입니다.</div>`,
-    });
-  }
-
-  // ---------- 그리기 ----------
-  function conclText(c) {
-    const map = App.mapOf(c.st.renewal);
-    if (c.st.renewal == null) {
-      const b = (c.base && c.base['브리핑'] || []).find(x => x['줄'] === '가');
-      if (b) return b['문장'];
+  // 원호 구간 [f0, f1] 의 SVG 경로(0=12시 방향, 시계방향)
+  function arcSegPath(r, f0, f1) {
+    const span = Math.max(0, Math.min(1, f1) - Math.max(0, f0));
+    if (span <= 0.0005) return '';
+    if (span >= 0.999) {
+      return `M 0 ${-r} A ${r} ${r} 0 1 1 0 ${r} A ${r} ${r} 0 1 1 0 ${-r}`;
     }
-    const t = tally(map);
-    return `${renText(c.st.renewal)} 지도의 고객군 ${fmt(t.total)}칸은 ${LABELS.filter(l => t.lab[l]).map(l => `${l} ${fmt(t.lab[l])}칸`).join(', ')}입니다.`;
+    const a0 = f0 * 2 * Math.PI - Math.PI / 2;
+    const a1 = f1 * 2 * Math.PI - Math.PI / 2;
+    const x0 = +(r * Math.cos(a0)).toFixed(2), y0 = +(r * Math.sin(a0)).toFixed(2);
+    const x1 = +(r * Math.cos(a1)).toFixed(2), y1 = +(r * Math.sin(a1)).toFixed(2);
+    const large = span > 0.5 ? 1 : 0;
+    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
   }
-  function asideHTML(c) {
+
+  function cellRingSVG(cc) {
+    const r = 28;
+    const tot = Math.max(1, cc.total);
+    const fConf = cc.total > 0 ? cc.openConfirmed / tot : 0;
+    const fPart = cc.total > 0 ? cc.partial / tot : 0;
+    const fGate = cc.total > 0 ? cc.gateOnly / tot : 0;
+    const fUnk = cc.total > 0 ? cc.unknown / tot : 0;
+
+    const pConf = arcSegPath(r, 0, fConf);
+    const pPart = arcSegPath(r, fConf, fConf + fPart);
+    const pGate = arcSegPath(r, fConf + fPart, fConf + fPart + fGate);
+
+    // 모르는 상대 비율은 바깥 트랙 끝 구간에 빗금 눈금으로 표시
+    let unkTicks = '';
+    if (fUnk > 0.001) {
+      const N = 32;
+      const startF = 1 - fUnk;
+      const ls = [];
+      for (let i = 0; i < N; i++) {
+        const fi = (i + 0.5) / N;
+        if (fi < startF - 0.005) continue;
+        const a = fi * 2 * Math.PI - Math.PI / 2;
+        const a2 = a + 0.07;
+        ls.push(`<line x1="${((r - 3) * Math.cos(a)).toFixed(1)}" y1="${((r - 3) * Math.sin(a)).toFixed(1)}" x2="${((r + 3) * Math.cos(a2)).toFixed(1)}" y2="${((r + 3) * Math.sin(a2)).toFixed(1)}" stroke-width="1.1"/>`);
+      }
+      if (ls.length) unkTicks = `<g class="mkr-unk">${ls.join('')}</g>`;
+    }
+
+    // 우리만 열림일 때 색과 독립된 안쪽 2px 이중 고리
+    const innerDouble = cc.state === 'only'
+      ? '<circle class="mkr-dbl" r="17.5" fill="none" stroke-width="2"/>'
+      : '';
+    // 일부 나이로만 열린 칸 표지(위쪽 작은 반원 점)
+    const partialBadge = cc.partialOnly
+      ? '<path class="mkr-part-mk" d="M-4 -22 L0 -17 L4 -22 Z"/>'
+      : '';
+
+    return `<svg viewBox="-34 -34 68 68" aria-hidden="true" focusable="false">
+      <g class="mkr-diag" stroke-width="1.3"><line x1="-31" y1="-31" x2="-24" y2="-24"/><line x1="31" y1="-31" x2="24" y2="-24"/><line x1="-31" y1="31" x2="-24" y2="24"/><line x1="31" y1="31" x2="24" y2="24"/></g>
+      <circle class="mkr-disc" r="22.5"/>
+      <circle class="mkr-sel-ring" r="22.5" fill="none" stroke-width="1.8"/>
+      ${innerDouble}
+      <circle class="mkr-trk" r="${r}" fill="none" stroke-width="1.3"/>
+      ${unkTicks}
+      ${pConf ? `<path class="mkr-arc mkr-arc-conf" d="${pConf}" fill="none" stroke-width="4.2"/>` : ''}
+      ${pPart ? `<path class="mkr-arc mkr-arc-part" d="${pPart}" fill="none" stroke-width="2.1"/>` : ''}
+      ${pGate ? `<path class="mkr-arc mkr-arc-gate" d="${pGate}" fill="none" stroke-width="3.6" stroke-dasharray="3.2 2.4"/>` : ''}
+      ${partialBadge}
+    </svg>`;
+  }
+
+  function renderStage(center, c) {
     const map = App.mapOf(c.st.renewal);
-    const t = tally(map);
-    const only = t.lab['우리 간편만 열림'] || 0, both = t.lab['함께 열림'] || 0;
-    return `<div class="mk-zone"><div class="mk-zin">
-      <div class="mk-zt"><span class="k">${esc(renText(c.st.renewal))}, ${esc(txt.sexText(map['성별']))} 기준</span>
-        <b>우리 간편이 열리는 칸</b>
-        <span class="sub">우리 간편만 열림 ${fmt(only)}, 함께 열림 ${fmt(both)}</span></div>
-      ${ui.ring({ v: only + both, max: t.total, segs: [{ v: only, cls: 'gold' }, { v: both, cls: '' }], lead: true, label: `우리 간편이 열리는 칸 ${only + both}/${t.total}` })}
-      ${ui.big(only + both, t.total)}
-    </div></div>`;
-  }
-  function render(body, c) {
-    if (c.aside) c.aside.innerHTML = asideHTML(c);
-    body.innerHTML = `<p class="concl">${esc(conclText(c))}</p>
-      ${mapPanel(c)}
-      <div class="mk-lower" id="mk-news">
-        ${lowerBand()}
-        <div class="mk-two">${revPanel()}${newsPanel()}</div>
+    const gm = buildRowsModel(map);
+    const basisTxt = c.seg && c.seg.sexNote ? c.seg.sexNote : t('mkMaleBasis');
+
+    const timeHeads = `<div class="mk-thead">
+      <span class="mk-basis">${esc(basisTxt)}</span>
+      <div class="mk-tcols" aria-hidden="true">
+        ${gm.hospPeriods.map(p => `<span class="mk-tch">${esc(timeShort(p.r))}</span>`).join('')}
+      </div>
+    </div>`;
+
+    const rowsHTML = gm.rows.map((rowObj, rIdx) => {
+      const prevRow = gm.rows[rIdx - 1];
+      const kindBreak = prevRow && prevRow.kind !== rowObj.kind;
+      const trackParts = [];
+      rowObj.items.forEach((it, cIdx) => {
+        const cell = it.cell;
+        const cc = c.cellCounts(cell);
+        if (cIdx > 0) {
+          const prevCell = rowObj.items[cIdx - 1].cell;
+          const prevOpen = !!(prevCell && prevCell['회사'] && prevCell['회사'].EPOST === '열림');
+          const curOpen = cc.oursOpen;
+          const bothOpen = prevOpen && curOpen;
+          const openTransition = !prevOpen && curOpen;
+          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
+        }
+        const stateCls = 'st-' + cc.state;
+        const numStr = (cc.state === 'unknown' && cc.total > 0 && cc.unknown === cc.total) ? t('mkUnknownSym') : fmt(cc.openAny);
+        const needFlag = cell && cell['라벨'] === '우리 간편만 열림';
+        const partNote = cc.partialOnly ? ` (${t('mkPartialOnlyMark')})` : '';
+        const tip = `${it.period['이름']}, ${colText(it.col)}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
+        const pk = keyOf(it.ri, it.ci);
+        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 3 + cIdx) * 16}ms">
+          ${needFlag ? ui.flag() : ''}
+          ${cellRingSVG(cc)}
+          <span class="mk-rn num">${esc(numStr)}</span>
+        </button>`);
+      });
+
+      return `<div class="mk-trow${kindBreak ? ' is-break' : ''}">
+        <div class="mk-rh">
+          <span class="mk-rh-nm">${esc(rowObj.label)}</span>
+          <span class="mk-rh-cnt num">${esc(`${fmt(rowObj.oursOpenCnt)}/${fmt(rowObj.items.length)}`)}</span>
+        </div>
+        <div class="mk-track">${trackParts.join('')}</div>
       </div>`;
-    const slot = body.querySelector('[data-slot="mk-ren"]');
-    if (slot) slot.replaceWith(ui.chevSel({ label: '고객군 지도의 갱신 유형', options: REN_OPTS, value: c.st.renewal, w: '64px', onChange: v => App.set({ renewal: v }) }));
-    bind(body);
+    }).join('');
+
+    const missBanner = c.seg && !c.seg.cell && c.seg.reason
+      ? `<p class="mk-miss-note">${esc(t('mkMissingSegWhyTpl', { why: c.seg.reason }))}</p>`
+      : '';
+
+    center.innerHTML = `<div class="mkc-stage" id="mk-map">
+      <div class="mk-top-ctrl">
+        <div class="mk-ren-box">
+          <span class="mk-ren-lb">${esc(t('mkRenLabel'))}</span>
+          <span data-slot="mk-ren"></span>
+        </div>
+      </div>
+      ${missBanner}
+      <div class="mk-axis-board" id="mk-grid">
+        ${timeHeads}
+        <div class="mk-trows">${rowsHTML}</div>
+      </div>
+    </div>`;
+
+    const slot = center.querySelector('[data-slot="mk-ren"]');
+    if (slot) {
+      slot.replaceWith(ui.chevSel({
+        label: t('mkRenAria'),
+        options: renOpts(),
+        value: c.st.renewal,
+        w: '54px',
+        onChange: v => App.set({ renewal: v }),
+      }));
+    }
   }
-  function grow(body) {
-    const g = body.querySelector('#mk-grid');
+
+  function enter(center) {
+    const g = center && center.querySelector('#mk-grid');
     if (!g || !App.motionOn()) return;
     g.classList.remove('mk-anim'); void g.offsetWidth; g.classList.add('mk-anim');
-    clearTimeout(g._t); g._t = setTimeout(() => g.classList.remove('mk-anim'), 900);
-  }
-  function enter(body) { grow(body); }
-
-  function bind(body) {
-    if (body._b) return;
-    body._b = true;
-    body.addEventListener('click', e => {
-      if (e.target.closest('[data-act="mk-copy-cells"]')) copyCells();
-    });
-  }
-  function copyCells() {
-    const c = App.ctx();
-    const map = App.mapOf(c.st.renewal);
-    const rows = [];
-    map['행'].forEach((row, ri) => map['열'].forEach((col, ci) => {
-      const cell = cellAt(map, ri, ci);
-      const n = cell['분류수'] || {};
-      const goT = (cell['관문만수집'] || []).map(x => `${x['이름']}: ${x['안내'] || '관문만 수집(담보 미수집)'}`).join(', ');
-      rows.push([rowGroup(row), rowShort(row), colText(col), cell['라벨'], cell['보조'] || '', (cell['닫힌사유'] || []).join(', '),
-        ...ORGS.map(o => cell['회사'][o] || ''), vk(cell['대표']), ORGS.filter(o => o !== 'EPOST').map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean).join(', '),
-        goT, ...CATS.map(k => (n[k] == null ? '' : String(n[k])))]);
-    }));
-    App.copyRows(['이력 종류', '이력 시점', '나이', '주 라벨', '보조 줄', '닫힌 사유', ...ORGS.map(o => txt.orgShort(o) + ' 상태'), '우리 대표 종형', '상대 대표 종형', '관문만 수집', ...CATS],
-      rows, { title: `고객군 지도 칸 목록(${txt.sexText(map['성별'])}, ${renText(c.st.renewal)})` });
+    clearTimeout(g._t); g._t = setTimeout(() => g.classList.remove('mk-anim'), 700);
   }
 
-  // ---------- 근거 기둥 ----------
+  // ---------- 읽기 영역과 [표로 보기] / [개정과 시장] / [문장으로 보기] 창 ----------
   function sec(title, html, lo) { return `<div class="ev-sec${lo ? ' lo' : ''}">${title ? `<h3>${title}</h3>` : ''}${html}</div>`; }
+  function det(summary, html, open) {
+    return `<details class="zr-det"${open ? ' open' : ''}><summary><span>${esc(summary)}</span>${ui.IC.chevD}</summary><div class="zr-det-b">${html}</div></details>`;
+  }
+
+  function conclFullText(c) {
+    const map = App.mapOf(c.st.renewal);
+    if (c.st.renewal == null) {
+      const b = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '가');
+      if (b) return b['문장'];
+    }
+    const tl = tally(map);
+    return `${renLabel(c.st.renewal)}: ${LABELS.filter(l => tl.lab[l]).map(l => `${l} ${fmt(tl.lab[l])}${t('mkClosedUnit')}`).join(', ')}.`;
+  }
+
+  function conclusion(c) {
+    return { text: App.firstSentence(conclFullText(c)), flag: '' };
+  }
+
   function pointLi(id) {
     const p = S['포인트'][id]; if (!p) return '';
-    const head = p['머리말'] != null ? S['글'][p['머리말']] : '';
-    return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p>${head ? `<p class="note">${esc(head)}</p>` : ''}</li>`;
+    const hd = p['머리말'] != null ? S['글'][p['머리말']] : '';
+    const docs = (p['근거'] || []).map(g => ui.tag(`${txt.orgShort((txt.vinfo(g['종형ID']) || {})['기관코드'] || '')} ${txt.pageText(g['문서'], g['쪽'])}`, '', 'doc')).join(' ');
+    return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p>${docs ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${docs}</div>` : ''}${hd ? `<p class="note">${esc(hd)}</p>` : ''}</li>`;
   }
-  // 칸에서 조건 줄 값을 만드는 규칙은 core 의 segPatch 하나를 브리핑과 함께 쓴다
-  const applyPatch = (map, ri, ci, c) => App.segPatch(map, ri, ci, c.st);
-  const samePatch = (patch, st) => App.samePatch(patch, st);
-  function cellSpec(c, ri, ci, opts = {}) {
+
+  function formatSpans(spans) {
+    if (!Array.isArray(spans) || !spans.length) return '';
+    return spans.map(([lo, hi]) => (lo === hi ? `${lo}` : `${lo}~${hi}`)).join(', ');
+  }
+
+  function cellSpec(c, ri, ci) {
     const map = App.mapOf(c.st.renewal);
     const cell = cellAt(map, ri, ci);
     if (!cell) return null;
     const row = map['행'][ri], col = map['열'][ci];
-    const sub = notes(cell, true);
-    const now = c.seg && c.seg.cell && c.seg.ri === ri && c.seg.ci === ci;
-    const gateOnly = cell['관문만수집'] || [];
-    const orgRows = ORGS.filter(o => o in cell['회사']).map(o => {
+    const now = !!(c.seg && c.seg.cell && c.seg.ri === ri && c.seg.ci === ci);
+    const pSet = new Set(c.activePeerOrgs);
+    const cc = c.cellCounts(cell);
+
+    const openCodes = c.filterScopeCodes(cell['열린상대코드']);
+    const partialCodes = c.filterScopeCodes(cell['일부열린상대코드']);
+    const gateOnly = (cell['관문만수집'] || []).filter(x => c.peerScope === 'all' || pSet.has(x['기관코드']));
+
+    const oursState = cc.oursState;
+    const oursOpenIds = (cell['열린종형'] && cell['열린종형'].EPOST) || [];
+    const subNotes = [];
+    if (cell['보조']) subNotes.push(cell['보조']);
+    if (cell['닫힌사유'] && cell['닫힌사유'].length) subNotes.push(`${t('scopeClosedWhy')}: ${cell['닫힌사유'].join(', ')}`);
+
+    const openAllNames = openCodes.concat(partialCodes).map(txt.orgShort);
+    const openSummary = openAllNames.length ? txt.peerNamesEtc(openAllNames, 3) : t('mkRevNone');
+
+    const partialSpansHTML = partialCodes.length
+      ? `<p class="note" style="margin-top:4px"><b>${esc(t('mkPartialHeadTpl', { n: fmt(partialCodes.length) }))}:</b> ${esc(partialCodes.map(code => t('mkPartialSpanTpl', { org: txt.orgShort(code), spans: formatSpans((cell['일부열린나이'] || {})[code]) })).join(', '))}</p>`
+      : '';
+
+    const scopedPts = (cell['관문포인트'] || []).filter(id => {
+      const p = S['포인트'][id];
+      return p && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o)));
+    });
+    const anyFlag = scopedPts.some(id => S['포인트'][id] && S['포인트'][id]['원문대조']) || cell['라벨'] === '우리 간편만 열림';
+
+    const patch = App.segPatch(map, ri, ci, c.st);
+    const same = App.samePatch(patch, c.st);
+    const patchT = App.segPatchText(patch);
+    const willChangeTip = t('mkEvWillChangeTpl', { target: txt.josa(patchT, '으로') });
+
+    const topHTML = `<p><b>${esc(cell['라벨'])}</b>${subNotes.length ? ` (${esc(subNotes.join(', '))})` : ''}. ${ui.fullScopeTag()}</p>
+      <dl class="kv" style="margin-top:6px">
+        <dt>${esc(txt.orgShort('EPOST'))}</dt><dd>${esc(oursState)}${cell['대표'] ? ` (${esc(vk(cell['대표']))})` : ''}</dd>
+        <dt>${esc(t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) }))}</dt><dd>${esc(openSummary)}</dd>
+      </dl>
+      ${partialSpansHTML}
+      ${oursOpenIds.length ? `<p class="note" style="margin-top:6px">${esc(t('mkEvOpenVarCntTpl', { n: fmt(oursOpenIds.length), list: oursOpenIds.map(vk).join(', ') }))}</p>` : ''}
+      ${gateOnly.length ? `<p class="note" style="margin-top:4px">${esc(txt.peerNamesEtc(gateOnly.map(x => `${x['이름']}(${x['안내']})`), 2))}</p>` : ''}
+      ${anyFlag ? `<p style="margin-top:6px">${ui.flagText()}</p>` : ''}
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+        ${same ? `<span class="note">${esc(t('mkEvSameCond'))}</span>` : ui.btn(t('mkEvApplyBtn'), { main: true, sm: true, chev: true, attrs: `data-act="mk-apply" data-k="${esc(keyOf(ri, ci))}" title="${esc(willChangeTip)}"` })}
+        ${ui.btn(t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: 'data-go="graph"' })}
+      </div>`;
+
+    let body = sec('', topHTML);
+
+    const shownOrgs = c.activeOrgs.filter(o => cell['회사'] && (o in cell['회사']));
+    const orgRows = shownOrgs.map(o => {
       const s = cell['회사'][o];
       const open = (cell['열린종형'] && cell['열린종형'][o]) || [];
       const why = txt.stateWhy(o, s);
+      const pSpan = (cell['일부열린나이'] && cell['일부열린나이'][o]) ? formatSpans(cell['일부열린나이'][o]) : '';
       const go = gateOnly.filter(x => x['기관코드'] === o);
-      return `<li><span class="mk-est">${ST_IC[s] || ''}<b>${esc(txt.orgShort(o))}</b> ${esc(s)}</span>
-        <p class="note">${open.length ? `열린 종형 ${fmt(open.length)}개: ${esc(open.map(vk).join(', '))}` : '열린 종형 없음'}${why ? `. ${esc(why)}` : ''}</p>
-        ${go.map(x => `<p class="note">${ui.tag(x['안내'] || '관문만 수집(담보 미수집)')} ${esc(x['이름'])}: 가입 관문만 수집했고 특약과 급부 담보는 수집하지 않아 담보 비교에는 쓰지 않습니다.</p>`).join('')}</li>`;
+      return `<li><span class="mk-est">${ST_IC[s] || ''}<b>${esc(txt.orgShort(o))}</b> ${esc(s)}${pSpan ? ` (${esc(pSpan + t('condAgeUnit'))})` : ''}</span>
+        <p class="note">${open.length ? esc(t('mkEvOpenVarCntTpl', { n: fmt(open.length), list: open.map(vk).join(', ') })) : esc(t('mkEvOpenVarNone'))}${why ? `. ${esc(why)}` : ''}</p>
+        ${go.map(x => `<p class="note">${ui.tag(x['안내'])} ${esc(x['이름'])}</p>`).join('')}</li>`;
     }).join('');
-    const n = cell['분류수'] || {};
-    const counted = CATS.filter(k => n[k] != null);
-    const pts = (cell['관문포인트'] || []).map(pointLi).join('');
-    const anyFlag = (cell['관문포인트'] || []).some(id => S['포인트'][id] && S['포인트'][id]['원문대조']) || cell['라벨'] === '우리 간편만 열림';
-    const patch = applyPatch(map, ri, ci, c);
-    const same = samePatch(patch, c.st);
-    const patchT = App.segPatchText(patch);
-    const reps = ORGS.filter(o => o !== 'EPOST').map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean);
-    let body = sec('', `<p><b>${esc(cell['라벨'])}</b>${sub.length ? ` (${esc(sub.join(', '))})` : ''}. ${esc(row['이름'])}, ${esc(colText(col))}의 고객군입니다.${now ? ' 지금 조건이 가리키는 칸입니다.' : ''}</p>${gateOnly.length ? `<p class="note">${gateOnly.map(x => `${esc(x['이름'])}: <b>${esc(x['안내'] || '관문만 수집(담보 미수집)')}</b>`).join(', ')}</p>` : ''}${anyFlag ? `<p>${ui.flagText()}</p>` : ''}`);
-    body += sec('회사별 관문과 열린 종형', `<ul class="evl">${orgRows}</ul>`);
-    body += sec(`관문 포인트 ${fmt((cell['관문포인트'] || []).length)}건`, pts ? `<ul class="evl">${pts}</ul>` : '<p class="note">이 칸에서 나온 관문 차이가 없습니다.</p>');
-    body += sec('대표 종형과 칸의 수', `<dl class="kv"><dt>우리 대표 종형</dt><dd>${esc(vk(cell['대표']) || '없음')}</dd><dt>상대 대표 종형</dt><dd>${esc(reps.join(', ') || '없음')}</dd></dl>
-      ${counted.length ? ui.eq({ parts: counted.map(k => ({ t: k, n: n[k] })) }) : ''}
-      <p class="note">${counted.length > 1 ? '관문 차이는 이 칸의 관문 포인트 수이고, 나머지는 우리 대표와 상대 대표를 견준 인사이트 수입니다. 검토 대기는 견주지 못한 시사점이라 다른 수와 더하지 않습니다. ' : ''}${CATS.some(k => n[k] == null) ? '빈 수는 견줄 대표 종형이 없어 세지 않은 것입니다. ' : ''}칸의 수는 칸의 대표 종형으로 셌으므로 조건 줄의 기준 종형을 바꿔도 그대로입니다.</p>`);
-    body += sec('', `${same ? `<p class="note">지금 조건이 이미 이 고객군입니다.</p>` : `<p class="note">누르면 조건 줄이 ${esc(txt.josa(patchT, '으로'))} 바뀝니다.</p>${ui.btn('이 고객군으로 조건 바꾸기', { main: true, chev: true, attrs: `data-act="mk-apply" data-k="${keyOf(ri, ci)}"` })}`}
-      <p class="note">관문 상태는 사업방법서의 고지 질문과 가입나이로 계산했습니다. 칸에 우열을 매기지 않습니다.</p>`, true);
-    return { kicker: opts.kicker || '고객군 지도 칸', title: `${row['이름']}, ${colText(col)}`,
-      badges: [ui.scope('all'), `<span class="tag">${ui.swatch(cell['라벨'])}${esc(cell['라벨'])}</span>`], body };
+    body += det(t('mkEvOrgsSummaryTpl', { n: fmt(shownOrgs.length) }), `<ul class="evl">${orgRows}</ul>`, false);
+
+    body += det(
+      t('mkEvGatePtsTpl', { n: fmt(scopedPts.length) }),
+      scopedPts.length ? `<ul class="evl">${scopedPts.map(pointLi).join('')}</ul>` : `<p class="note">${esc(t('mkEvGatePtsNone'))}</p>`,
+      false
+    );
+
+    const nMap = cell['분류수'] || {};
+    const allCats = CATS.concat([t('mkCatWait')]);
+    const counted = allCats.filter(k => nMap[k] != null);
+    const reps = c.activePeerOrgs.map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean);
+    body += det(t('mkEvRepAndCnts'), `<dl class="kv">
+        <dt>${esc(t('mkEvOursRep'))}</dt><dd>${esc(vk(cell['대표']) || t('mkRevNone'))}</dd>
+        <dt>${esc(t('mkEvPeerRep'))}</dt><dd>${esc(txt.peerNamesEtc(reps, 3))}</dd>
+      </dl>
+      ${counted.length ? `<div style="margin-top:8px">${ui.eq({ parts: counted.map(k => ({ t: k, n: nMap[k] })) })}</div>` : ''}
+      <p class="note" style="margin-top:6px">${esc(t('mkEvRuleNote'))}</p>`, false);
+
+    const badges = [
+      ui.scope('all'),
+      `<span class="tag">${ui.swatch(cell['라벨'])}${esc(cell['라벨'])}</span>`,
+      cc.partialOnly ? ui.tag(t('mkPartialOnlyMark')) : '',
+      now ? ui.tag(t('mkEvNowTag')) : '',
+    ].filter(Boolean);
+
+    return { kicker: t('mkEvKickerCell'), title: `${row['이름']}, ${colText(col)}`, badges, body };
   }
+
   function revSpec(i) {
     const d = REV['담보'][i]; if (!d) return null;
     const isStd = !/^급부:/.test(d['열쇠']);
-    const st = isStd ? S['표준담보'][d['열쇠']] : null;
-    const stName = st ? `${st['이름']}(${[st['대분류'], st['급부유형']].filter(Boolean).join(', ')})` : d['담보'];
-    let body = sec('', `<p><b>${esc(d['담보'])}</b>${jo(d['담보'], '는')} 직전 개정과 견주어 <b>${esc(d['종류'])}</b>입니다. 달라진 항목은 ${esc(d['항목'].join(', '))}입니다.</p>`);
-    body += sec('해당 종형', `<ul class="evl">${d['종형ID'].map(v => `<li><b>${esc(vk(v))}</b><br><span class="note">${esc((txt.vinfo(v) || {})['전체이름'] || '')}</span></li>`).join('')}</ul>`);
-    body += sec('', `<p class="note">${isStd ? `${esc(txt.josa(`표준담보 ${stName}`, '으로'))} 이어 견줬습니다.` : '표준담보에 이어지지 않은 급부라 급부 이름으로 견줬습니다.'} 공시 문서(상품요약서와 사업방법서)의 개정 전후를 견준 값입니다.</p>`, true);
-    return { kicker: '개정 변동', title: d['담보'], badges: [ui.scope('all'), ui.tag(d['종류'])], body };
+    const stdObj = isStd ? S['표준담보'][d['열쇠']] : null;
+    const stName = stdObj ? `${stdObj['이름']}(${[stdObj['대분류'], stdObj['급부유형']].filter(Boolean).join(', ')})` : d['담보'];
+    let body = sec('', `<p><b>${esc(d['담보'])}</b>: <b>${esc(d['종류'])}</b> (${esc(d['항목'].join(', '))}).</p>
+      <div style="margin-top:8px">${ui.btn(t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: 'data-go="graph"' })}</div>`);
+    body += det(t('mkEvRevVars'), `<ul class="evl">${d['종형ID'].map(v => `<li><b>${esc(vk(v))}</b><br><span class="note">${esc((txt.vinfo(v) || {})['전체이름'] || '')}</span></li>`).join('')}</ul>`, true);
+    body += sec('', `<p class="note">${esc(isStd ? t('mkEvRevStdNoteTpl', { target: txt.josa(stName, '으로') }) : t('mkEvRevRawNote'))}</p>`, true);
+    return { kicker: t('mkEvRevKicker'), title: d['담보'], badges: [ui.scope('all'), ui.tag(d['종류'])], body };
   }
+
   function newsSpec(i) {
     const x = (NEWS['소식'] || [])[i]; if (!x) return null;
     const warn = x['주의표현'] || [];
     const sids = (x['표준담보ID'] || []).map(sid => (S['표준담보'][sid] && S['표준담보'][sid]['이름']) || sid);
     let body = sec('', `<p class="mk-quote">${esc(NEWS['인용안내'])}</p><p>${esc(x['요약'])}</p>`);
-    body += sec('출처', `<dl class="kv"><dt>회사</dt><dd>${esc(x['회사'])}</dd><dt>분류</dt><dd>${esc(x['분류'])}</dd><dt>발표일</dt><dd class="num">${esc(x['발표일자'])}</dd><dt>매체</dt><dd>${esc(x['출처표시'] || x['매체'] || '')}</dd></dl>
-      ${x['출처URL'] ? `<p class="note mk-url">${esc(x['출처URL'])}</p><p class="note">주소는 글자로만 둡니다. 이 화면은 바깥으로 요청하지 않습니다.</p>` : ''}`);
-    body += sec('표준담보와 주의 표현', `<p class="note">${sids.length ? `표준담보 ${esc(sids.join(', '))}에 이어졌습니다.` : '표준담보에 이어지지 않아 대응 문장을 달지 않습니다.'}</p>${warn.length ? `<p class="note">보도 요약에 "${esc(warn.join('", "'))}" 같은 말이 들어 있습니다. 화면 문장에는 쓰지 않는 말이라 인용한 그대로 두고 표지만 붙였습니다.</p>` : ''}`, true);
-    return { kicker: `시장 소식 ${NEWS['주차']}`, title: `${x['회사']} ${x['분류']}`, badges: [ui.scope('all'), ui.tag('인용')], body };
+    body += det(t('mkEvNewsSrcHead'), `<dl class="kv">
+        <dt>${esc(t('mkEvNewsOrg'))}</dt><dd>${esc(x['회사'])}</dd>
+        <dt>${esc(t('mkEvNewsCat'))}</dt><dd>${esc(x['분류'])}</dd>
+        <dt>${esc(t('mkEvNewsDate'))}</dt><dd class="num">${esc(x['발표일자'])}</dd>
+        <dt>${esc(t('mkEvNewsMedia'))}</dt><dd>${esc(x['출처표시'] || x['매체'] || '')}</dd>
+      </dl>
+      ${x['출처URL'] ? `<p class="note mk-url" style="margin-top:6px">${esc(x['출처URL'])}</p><p class="note">${esc(t('mkEvNewsUrlNote'))}</p>` : ''}`, false);
+    body += det(t('mkEvNewsStdHead'), `<p class="note">${esc(sids.length ? t('mkEvNewsStdLinkedTpl', { list: sids.join(', ') }) : t('mkNewsNoConn').trim())}</p>
+      ${warn.length ? `<p class="note">${esc(t('mkEvNewsWarnBodyTpl', { list: warn.join('", "') }))}</p>` : ''}`, false);
+    return { kicker: t('mkEvNewsKickerTpl', { week: NEWS['주차'] }), title: `${x['회사']} ${x['분류']}`, badges: [ui.scope('all'), ui.tag(t('mkNewsQuoteTag'))], body };
   }
+
   function pick(key, c) {
     const m = parseKey(key);
     if (m) return cellSpec(c, m.ri, m.ci);
@@ -356,33 +411,265 @@ App.registerTab((function () {
     if (/^nw\d+$/.test(key)) return newsSpec(+key.slice(2));
     return null;
   }
-  function evidence(c) {
-    if (c.seg && c.seg.cell) {
-      const spec = cellSpec(c, c.seg.ri, c.seg.ci, { kicker: '지금 조건의 고객군' });
-      spec.body += sec('지도 읽는 법', `<dl class="legend">${LABELS.map(l => `<dt>${ui.swatch(l)}</dt><dd>${esc(l)}</dd>`).join('')}<dt>${ui.flagText('원문 확인')}</dt><dd>${esc(ui.FLAG_TEXT)}</dd></dl><p class="note">칸을 누르면 그 고객군의 요약이 여기에 뜹니다. 조건 줄은 요약 안의 단추를 눌러야 바뀝니다.</p>`, true);
-      return spec;
-    }
-    return { kicker: '지금 조건의 고객군', title: '지도에 칸이 없습니다', badges: [ui.scope('all')],
-      body: sec('', `<p>${esc((c.seg && c.seg.reason) || '지금 조건의 칸을 찾지 못했습니다.')}</p>${c.seg && c.seg.sexNote ? `<p class="note">${esc(c.seg.sexNote)}</p>` : ''}`) };
-  }
-  function focus(key, body) {
-    const el = body.querySelector(key === 'news' ? '#mk-news' : '#mk-map');
-    if (!el) return;
-    if (App.mode() === 'sheet') App.reveal(el);
-    else el.scrollIntoView({ block: 'start', behavior: App.motionOn() ? 'smooth' : 'auto' });
+
+  // ---------- [개정과 시장] 모달과 [표로 보기(집계와 일러두기)] 모달 ----------
+  function renderRevModalHTML() {
+    const n = REV['수'];
+    const pairSum = REV['짝'].reduce((a, p) => a + p['신설'] + p['변경'] + p['종료'], 0);
+    const pairs = REV['짝'].map(p => `<li><b>${esc(vk(p['후']))}</b><span class="num">${esc(t('mkRevNew'))} ${fmt(p['신설'])}, ${esc(t('mkRevChg'))} ${fmt(p['변경'])}, ${esc(t('mkRevEnd'))} ${fmt(p['종료'])}</span></li>`).join('');
+    const ages = (REV['가입나이변경'] || []).map(vk);
+    const gates = (REV['관문변경'] || []).map(vk);
+    const cols = t('mkRevCols').split(',');
+    const rows = REV['담보'].map(d => {
+      const full = d['종형ID'].map(vk);
+      const short = full.map(nm => txt.shortName(nm).short);
+      return [
+        esc(d['담보']),
+        { h: ui.tag(d['종류']), cp: d['종류'] },
+        esc(d['항목'].join(', ')),
+        { h: `<span title="${esc(full.join(', '))}">${esc(short.join(', '))}</span>`, cp: full.join(', ') },
+      ];
+    });
+
+    const newsItems = (NEWS['소식'] || []).map((x, i) => {
+      const warn = (x['주의표현'] || []).length ? ui.tag(t('mkNewsWarnTpl', { w: x['주의표현'].join(', ') }), t('mkNewsWarnHint')) : '';
+      const linked = (x['표준담보ID'] || []).length ? t('mkNewsLinkedTpl', { n: fmt(x['표준담보ID'].length) }) : t('mkNewsUnlinked');
+      return `<li class="lrow mk-nw" data-pick="nw${i}">
+        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${x['회사']} ${x['분류']}`)}"></button>
+        <div class="selbar mk-nwh"><span class="num mk-d">${esc(x['발표일자'])}</span><b>${esc(x['회사'])}</b>${ui.tag(x['분류'])}${x['인용'] ? ui.tag(t('mkNewsQuoteTag')) : ''}${warn}</div>
+        <p class="mk-q">${esc(x['요약'])}</p>
+        <p class="mk-src">${esc((x['출처표시'] || x['매체'] || '') + linked)}</p>
+        <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span>
+      </li>`;
+    }).join('');
+
+    const revBody = `<div class="mk-pane-scroll">
+      <div class="mkc-head">
+        <h2>${esc(t('mkRevHead'))}</h2>
+        ${ui.btn(t('mkRevCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="mk-rev-tbl" data-title="' + esc(t('mkRevHead')) + '"' })}
+      </div>
+      <ul class="mk-pairs">${pairs}</ul>
+      ${REV['짝'].length > 1 ? `<div class="nadd">${esc(t('mkRevNonAddTpl', { c: REV['짝'].length, sum: fmt(pairSum), total: fmt(n['전체']) }))}</div>` : ''}
+      <dl class="kv"><dt>${esc(t('mkRevGateChg'))}</dt><dd>${gates.length ? esc(gates.join(', ')) : esc(t('mkRevNone'))}</dd>
+        <dt>${esc(t('mkRevAgeChg'))}</dt><dd>${ages.length ? esc(ages.join(', ')) : esc(t('mkRevNone'))}</dd></dl>
+      <p class="note">${esc(t('mkRevNote'))}</p>
+      <div class="nadd">${esc(t('mkNewsNonAddNote'))}</div>
+      ${ui.table({ id: 'mk-rev-tbl', head: cols, rows, pick: i => 'rv' + i })}
+    </div>`;
+
+    const cls = Object.entries(NEWS['분류별'] || {});
+    const newsBody = `<div class="mk-pane-scroll">
+      <div class="mkc-head">
+        <h2>${esc(t('mkNewsHead'))} <span class="num">${esc(NEWS['주차'])}</span></h2>
+        ${ui.tag(t('mkNewsQuoteTag'))}
+      </div>
+      <p class="mk-quote">${esc(NEWS['인용안내'])}</p>
+      ${ui.eq({ total: { t: t('mkRevTabNews'), n: NEWS['건수'] }, parts: cls.map(([a, cnt]) => ({ t: a, n: cnt })), nonAdd: t('mkNewsNonAddNote') })}
+      <p class="note">${esc(t('mkNewsConnTpl', { n: fmt(NEWS['연결'] || 0) }) + (NEWS['연결'] ? '' : t('mkNewsNoConn')))}</p>
+      <ul class="lrows">${newsItems}</ul>
+    </div>`;
+
+    return `<div class="mk-pane-scroll" id="mk-news">
+      <div class="mkc-head">
+        <div class="mk-subtabs" role="tablist">
+          <button type="button" class="mk-subtab${revSub === 'rev' ? ' is-on' : ''}" data-mk-sub="rev">${esc(t('mkRevTabVar'))} <span class="num">${fmt(n['전체'])}</span></button>
+          <button type="button" class="mk-subtab${revSub === 'news' ? ' is-on' : ''}" data-mk-sub="news">${esc(t('mkRevTabNews'))} <span class="num">${fmt(NEWS['건수'])}</span></button>
+        </div>
+      </div>
+      ${revSub === 'rev' ? revBody : newsBody}
+    </div>`;
   }
 
-  // 근거 기둥 안의 "이 고객군으로 조건 바꾸기"(기둥은 탭 밖에 있어 문서에서 받는다)
-  document.addEventListener('click', e => {
-    const b = e.target.closest('[data-act="mk-apply"]');
-    if (!b) return;
-    const m = parseKey(b.dataset.k || ''); if (!m) return;
+  function renderRevModal(c) {
+    const bNa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '나');
+    const lead = bNa ? `<p class="concl">${esc(bNa['문장'])}</p>` : '';
+    return {
+      kicker: App.TAB_NAME.market,
+      title: t('mkGroupRev'),
+      badges: [ui.scope('all')],
+      html: lead + renderRevModalHTML(),
+    };
+  }
+
+  function renderTallyModal(c) {
+    const map = App.mapOf(c.st.renewal);
+    const tl = tally(map);
+    const bGa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '가');
+    const rows = LABELS.map(l => [`${ui.swatch(l)} ${esc(l)}`, fmt(tl.lab[l] || 0)]);
+    // 닫힌 사유 단위("칸") 복원: "나이 12칸, 고지 질문 6칸"
+    const closedT = Object.entries(tl.closed).map(([k, n]) => `${k} ${fmt(n)}${t('mkClosedUnit')}`).join(', ');
+    const closedSum = Object.values(tl.closed).reduce((a, b) => a + b, 0);
+    const gaps = Object.entries(tl.gap).map(([o, x]) => `<li>${ui.IC.hatch}<span>${esc(t('mkGapItemTpl', { org: txt.orgShort(o), n: fmt(x.n), why: txt.stateWhy(o, x.state) || '' }))}</span></li>`).join('');
+
+    const cellRows = [];
+    map['행'].forEach((row, ri) => map['열'].forEach((col, ci) => {
+      const cell = cellAt(map, ri, ci);
+      const cc = c.cellCounts(cell);
+      cellRows.push({
+        pk: keyOf(ri, ci),
+        cells: [
+          esc(row['이름']),
+          esc(colText(col)),
+          `${ui.swatch(cell['라벨'])} <b>${esc(cell['라벨'])}</b>${cell['보조'] ? ` <span class="note">(${esc(cell['보조'])})</span>` : ''}`,
+          esc(cc.oursState + (cell['대표'] ? ` (${vk(cell['대표'])})` : '')),
+          { h: `<span class="num">${esc(`${fmt(cc.openAny)}/${fmt(cc.total)}`)}</span>`, cp: `${cc.openAny}/${cc.total}` },
+          esc((cell['닫힌사유'] || []).join(', ')),
+        ],
+      });
+    }));
+
+    const html = `<div class="mk-pane-scroll" id="mk-tally-wrap">
+      ${bGa && c.st.renewal == null ? `<p class="concl">${esc(bGa['문장'])}</p>` : `<p class="concl">${esc(conclFullText(c))}</p>`}
+      <div class="dm-sec">
+        <div class="mkc-head">
+          <h2>${esc(t('mkTallyHead'))} (${esc(txt.sexText(map['성별']))}, ${esc(renLabel(c.st.renewal))})</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${ui.btn(t('mkTallyCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="mk-tally" data-title="' + esc(t('mkTallyHead')) + '"' })}
+            ${ui.btn(t('mkCellsCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="mk-copy-cells"' })}
+          </div>
+        </div>
+        ${ui.eq({ total: { t: t('mkGroupAll'), n: tl.total }, parts: LABELS.map(l => ({ t: l, n: tl.lab[l] || 0 })) })}
+        ${ui.table({ id: 'mk-tally', head: [t('mkTallyCol1'), t('mkTallyCol2')], rows, num: [1] })}
+        ${tl.closedCells
+          ? `<p class="note">${esc(t('mkClosedNoteTpl', { cells: fmt(tl.closedCells), why: closedT }))}</p>${closedSum > tl.closedCells ? `<div class="nadd">${esc(t('mkClosedNonAddTpl', { sum: fmt(closedSum), cells: fmt(tl.closedCells) }))}</div>` : ''}`
+          : `<p class="note">${esc(t('mkClosedZero'))}</p>`}
+        ${gaps ? `<ul class="mk-gap">${gaps}</ul>` : ''}
+        <p class="note">${esc(t('mkStaticNote'))}</p>
+      </div>
+      <div class="dm-sec">
+        ${ui.table({
+          id: 'mk-cells-tbl',
+          caption: `${App.TAB_NAME.market} 24${t('mkClosedUnit')} (${txt.sexText(map['성별'])})`,
+          head: ['이력', t('condAge'), t('mkTallyCol1'), txt.orgShort('EPOST'), '열린 상대', t('scopeClosedWhy')],
+          rows: cellRows.map(r => r.cells),
+          num: [4],
+          pick: i => cellRows[i].pk,
+        })}
+      </div>
+      <div class="dm-sec">
+        ${ui.notes(App.TAB_NAME.market)}
+      </div>
+    </div>`;
+
+    return {
+      kicker: App.TAB_NAME.market,
+      title: t('mkGroupTally'),
+      badges: [ui.scope('all'), ui.fullScopeTag()].filter(Boolean),
+      html,
+    };
+  }
+
+  function path(c) {
+    const out = [App.TAB_NAME.market];
+    const sel = c.st.sel.market;
+    const m = sel != null ? parseKey(sel) : null;
+    if (sel != null) {
+      if (m) {
+        const map = App.mapOf(c.st.renewal);
+        const r = map['행'][m.ri], col = map['열'][m.ci];
+        if (r && col) out.push(`${r['이름']}, ${colText(col)}`);
+      } else if (/^rv(\d+)$/.test(sel)) {
+        const d = REV['담보'][+sel.slice(2)];
+        if (d) out.push(d['담보']);
+      } else if (/^nw(\d+)$/.test(sel)) {
+        const x = (NEWS['소식'] || [])[+sel.slice(2)];
+        if (x) out.push(`${x['회사']} ${x['분류']}`);
+      }
+    }
+    return out;
+  }
+
+  function actions() {
+    return [
+      ui.btn(t('actModeTable'), { sm: true, ghost: true, icon: 'table', attrs: 'id="mk-btn-tally" data-mk-modal="tally"' }),
+      ui.btn(t('mkGroupRev'), { sm: true, ghost: true, attrs: 'id="mk-btn-rev" data-mk-modal="rev"' }),
+    ].join('');
+  }
+
+  function copyCells() {
     const c = App.ctx();
     const map = App.mapOf(c.st.renewal);
-    const patch = applyPatch(map, m.ri, m.ci, c);
-    App.set(patch);
-    App.toast(`조건을 바꿨습니다: ${App.condSummary()}`);
+    const allCats = CATS.concat([t('mkCatWait')]);
+    const rows = [];
+    map['행'].forEach((row, ri) => map['열'].forEach((col, ci) => {
+      const cell = cellAt(map, ri, ci);
+      const n = cell['분류수'] || {};
+      const goT = (cell['관문만수집'] || []).map(x => `${x['이름']}: ${x['안내']}`).join(', ');
+      rows.push([
+        row['종류'], timeShort(row), colText(col), cell['라벨'], cell['보조'] || '', (cell['닫힌사유'] || []).join(', '),
+        ...c.activeOrgs.map(o => (cell['회사'] && cell['회사'][o]) || ''),
+        vk(cell['대표']),
+        c.activePeerOrgs.map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean).join(', '),
+        goT,
+        ...allCats.map(k => (n[k] == null ? '' : String(n[k]))),
+      ]);
+    }));
+    App.copyRows(
+      ['이력', '기간', t('condAge'), t('mkTallyCol1'), '보조', t('scopeClosedWhy'), ...c.activeOrgs.map(o => txt.orgShort(o)), t('mkEvOursRep'), t('mkEvPeerRep'), '관문전용', ...allCats],
+      rows,
+      { title: `${App.TAB_NAME.market} (${txt.sexText(map['성별'])}, ${renLabel(c.st.renewal)})` }
+    );
+  }
+
+  function focus(key) {
+    if (key === 'news' || key === 'rev') {
+      revSub = key === 'news' ? 'news' : 'rev';
+      App.openModal({ trigger: document.getElementById('mk-btn-rev'), render: renderRevModal });
+    } else if (key === 'tally') {
+      App.openModal({ trigger: document.getElementById('mk-btn-tally'), render: renderTallyModal });
+    }
+  }
+
+  document.addEventListener('click', e => {
+    const mm = e.target.closest && e.target.closest('[data-mk-modal]');
+    if (mm) {
+      e.stopPropagation();
+      const kind = mm.dataset.mkModal;
+      if (kind === 'rev') App.openModal({ trigger: mm, render: renderRevModal });
+      else App.openModal({ trigger: mm, render: renderTallyModal });
+      return;
+    }
+    const sub = e.target.closest && e.target.closest('[data-mk-sub]');
+    if (sub) {
+      e.stopPropagation();
+      revSub = sub.dataset.mkSub === 'news' ? 'news' : 'rev';
+      const dmBody = document.getElementById('dm-body');
+      if (dmBody) {
+        const spec = renderRevModal(App.ctx());
+        dmBody.innerHTML = spec.html;
+      }
+      return;
+    }
+    if (e.target.closest && e.target.closest('[data-act="mk-copy-cells"]')) {
+      e.stopPropagation();
+      copyCells();
+      return;
+    }
+    const applyBtn = e.target.closest && e.target.closest('[data-act="mk-apply"]');
+    if (applyBtn) {
+      e.stopPropagation();
+      const m = parseKey(applyBtn.dataset.k || '');
+      if (!m) return;
+      const c = App.ctx();
+      const map = App.mapOf(c.st.renewal);
+      const patch = App.segPatch(map, m.ri, m.ci, c.st);
+      if (patch) {
+        App.set(patch);
+        App.toast(t('mkEvChangedToastTpl', { sum: App.condSummary() }));
+      }
+    }
   });
 
-  return { id: 'market', kicker: '넓게 본다', render, pick, evidence, focus, enter };
+  return {
+    id: 'market',
+    layout: 'side',
+    renderStage,
+    conclusion,
+    pick,
+    path,
+    actions,
+    copySummary: copyCells,
+    focus,
+    enter,
+  };
 })());

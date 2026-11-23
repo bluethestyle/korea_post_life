@@ -1,4 +1,4 @@
-/* 탭 5 영업 인사이트. 주인공 도형은 응대 카드 미리 보기(위 2.5px 금색 선의 짙은 결과 카드)와 다섯 분류의 묶음.
+/* 탭 5 영업 인사이트. 주인공 도형은 응대 카드 미리 보기(위 2.5px 금색 선의 짙은 결과 카드)와 분류별 묶음.
    본문은 분석 문장(자료의 "문장"), 창구 말투의 예상 질문과 답("카드질문", "카드답")은 응대 카드 미리 보기 안에서만 쓴다.
    처음 선택은 자료의 pick 규칙(기준별[종형].먼저.카드)을 따르고, 담당자가 체크로 싣고 뺀다. 값과 문장은 sales.json 에서만 읽는다.
    관계도는 탭 4 가 내보낸 App.cover 를 쓴다(같은 판정, R10). */
@@ -17,11 +17,12 @@ App.registerTab((function () {
 
   // ---------- 이름과 글 ----------
   const vinfo = v => S['종형'][v] || {};
-  const orgN = v => txt.orgShort(vinfo(v)['기관코드'] || String(v).split('_')[0]);
+  const orgOf = v => vinfo(v)['기관코드'] || String(v).split('_')[0];
+  const orgN = v => txt.orgShort(orgOf(v));
   const fullN = v => vinfo(v)['이름'] || v;
   const kindN = v => vinfo(v)['종형명'] || v;
   const stdN = sid => ((S['표준담보'][sid] || {})['이름'] || sid);
-  const VID_RE = /\b(?:EPOST|HANWHALIFE|SAMSUNGFIRE)_[A-Za-z0-9]+_[A-Za-z0-9]+\b/g;
+  const VID_RE = /\b[A-Z0-9]+_[A-Za-z0-9]+_[A-Za-z0-9]+\b/g;
   const reasonText = x => String(x == null ? '' : x).replace(VID_RE, m => fullN(m));
   const head = p => (p && p['머리말'] != null ? S['글'][p['머리말']] || '' : '');
   const evChip = g => ui.tag(`${orgN(g['종형ID'])} ${txt.pageText(g['문서'], g['쪽'])}`, g['급부명'] ? `${fullN(g['종형ID'])}: ${g['급부명']}` : `${fullN(g['종형ID'])} ${g['문서']}`, 'doc');
@@ -45,10 +46,27 @@ App.registerTab((function () {
   }
   // 관문 차이는 담보가 없으므로 세부 이름을 이름으로 삼고, 견준 상대는 따로 적는다(근거 기둥 제목에는 함께)
   const titleOf = p => (p['표준담보ID'] ? stdN(p['표준담보ID']) : (p['세부이름'] || p['분류']));
-  const titleLong = p => (p['표준담보ID'] ? stdN(p['표준담보ID']) : `${p['세부이름'] || p['분류']}, ${(p['비교종형ID'] || []).map(fullN).join(', ')}`);
+  const titleLong = p => (p['표준담보ID'] ? stdN(p['표준담보ID']) : `${p['세부이름'] || p['분류']}, ${txt.peerNamesEtc((p['비교종형ID'] || []).map(fullN), 3)}`);
 
   // ---------- 자료 ----------
-  const pts = c => (c.base['포인트'] || []).map(id => S['포인트'][id]).filter(Boolean);
+  function pts(c) {
+    const raw = (c.base['포인트'] || []).map(id => S['포인트'][id]).filter(Boolean);
+    if (c.peerScope === 'all') return raw;
+    const pSet = new Set(c.activePeerOrgs || []);
+    return raw.filter(p => (p['관련기관코드'] || []).some(o => pSet.has(o)));
+  }
+  function catCounts(c) {
+    if (c.peerScope === 'all') return c.base['분류집계'] || {};
+    const out = {};
+    pts(c).forEach(p => { out[p['분류']] = (out[p['분류']] || 0) + 1; });
+    return out;
+  }
+  function subCounts(c) {
+    if (c.peerScope === 'all') return c.base['세부집계'] || {};
+    const out = {};
+    pts(c).forEach(p => { if (p['세부']) out[p['세부']] = (out[p['세부']] || 0) + 1; });
+    return out;
+  }
   function pickSet(c) {
     if (!picks[c.baseId]) picks[c.baseId] = new Set((c.base['먼저'] && c.base['먼저']['카드']) || []);
     return picks[c.baseId];
@@ -57,53 +75,85 @@ App.registerTab((function () {
   const inPurpose = p => !purpose || !p['표준담보ID'] || (p['목적'] || []).includes(purpose);
   const purposeInfo = () => PURPOSES.find(x => x['이름'] === purpose) || null;
 
-  // ---------- 본문: 다섯 분류 ----------
+  // ---------- 본문: 분류별 목록 ----------
   function itemHTML(p, sel, groupHead, c) {
     const h = head(p);
     const cau = cautionOf(c, p);
     const flag = p['원문대조'] ? ui.flag(p['원문대조글'] || ui.FLAG_TEXT) : '';
+    const peerNames = txt.peerNamesEtc((p['비교종형ID'] || []).map(fullN), 3);
     return `<li class="lrow ins-it" data-pick="p:${esc(p['포인트ID'])}">
       <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${p['분류']}, ${titleLong(p)}. 근거 보기`)}"></button>${flag}
       <div class="ins-ih selbar">
         <span class="live ins-ckw"><label class="ins-ck"><input type="checkbox" data-act="ins-pick" data-id="${esc(p['포인트ID'])}"${sel.has(p['포인트ID']) ? ' checked' : ''} aria-label="${esc(titleLong(p))} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span><span class="lb">카드에 싣기</span><span class="lb2" aria-hidden="true">싣기</span></label></span>
         <span class="ins-t">${esc(titleOf(p))}</span><span class="ins-tgd">${pointChip(p, c)}${p['구조다름'] ? ui.tag('구조 다름', '갱신이나 환급 구조가 다른 상대와 견준 문장') : ''}</span>
       </div>
-      <div class="ins-tgm">${pointChip(p, c)}${p['구조다름'] ? ui.tag('구조 다름') : ''}${p['표준담보ID'] ? '' : `<span class="ins-pe">상대 ${esc((p['비교종형ID'] || []).map(fullN).join(', '))}</span>`}</div>
-      <p class="ins-s">${esc(p['문장'])}</p>
+      <div class="ins-tgm">${pointChip(p, c)}${p['구조다름'] ? ui.tag('구조 다름') : ''}${p['표준담보ID'] ? '' : `<span class="ins-pe">상대 ${esc(peerNames)}</span>`}</div>
+      <p class="ins-s">${esc(p['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>
       ${cau ? `<p class="ins-w ins-cau">${ui.verdict('diff')} ${esc(cautionNote(cau))}</p>` : ''}
       ${p['주의'] ? `<p class="ins-w">주의: ${esc(p['주의'])}</p>` : ''}
       <div class="ins-m">${(p['근거'] || []).map(evChip).join('')}${p['원문대조'] ? ui.flagText(p['원문대조글'] || ui.FLAG_TEXT) : ''}</div>
       ${h && h !== groupHead ? `<p class="ins-hd">${esc(h)}</p>` : ''}
       <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`;
   }
+  function revRowOrgs(d, c) {
+    if (!c || c.peerScope === 'all') return d['가진상대'] || [];
+    const pSet = new Set(c.activePeerOrgs || []);
+    const orgs = [];
+    const seen = new Set();
+    (d['가진종형ID'] || []).forEach(vid => {
+      const o = orgOf(vid);
+      if (pSet.has(o) && !seen.has(o)) { seen.add(o); orgs.push(txt.orgShort(o)); }
+    });
+    return orgs;
+  }
+  function revInScope(d, c, allowedIds) {
+    const p = S['포인트'][d['포인트ID']];
+    if (c.peerScope !== 'all') {
+      if (Array.isArray(d['가진종형ID']) && d['가진종형ID'].length) {
+        if (!revRowOrgs(d, c).length) return false;
+      } else if (p && !allowedIds.has(d['포인트ID'])) {
+        return false;
+      }
+    }
+    return !p || inPurpose(p);
+  }
   function revHTML(c, sel) {
-    const groups = (c.base['개정검토'] || []).map((g, gi) => ({ g, gi, ds: g['담보'].filter(d => { const p = S['포인트'][d['포인트ID']]; return !p || inPurpose(p); }) })).filter(x => x.ds.length);
-    if (!groups.length) return '<p class="ins-empty">이 목적에 드는 개정 검토 후보가 없습니다.</p>';
+    const allowedIds = new Set(pts(c).map(p => p['포인트ID']));
+    const groups = (c.base['개정검토'] || []).map((g, gi) => ({
+      g, gi,
+      ds: g['담보'].filter(d => revInScope(d, c, allowedIds)),
+    })).filter(x => x.ds.length);
+    if (!groups.length) return '<p class="ins-empty">조건과 비교 범위에 드는 개정 검토 후보가 없습니다.</p>';
     return `<ul class="lrows ins-rev" id="ins-rev">${groups.map(({ g, gi, ds }) => `<li class="lrow ins-rg" data-pick="r:${gi}">
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${g['중분류']}, 개정 검토 후보 ${ds.length}건. 근거 보기`)}"></button>
-        <div class="ins-ih selbar"><span class="ins-t">${esc(g['중분류'])}</span><span class="sub">${esc(g['대분류'])}</span>${ui.tag(`담보 ${ds.length}`)}${g['좁은담보만수'] ? ui.tag(`좁은 담보만 ${g['좁은담보만수']}`) : ''}</div>
+        <div class="ins-ih selbar"><span class="ins-t">${esc(g['중분류'])}</span><span class="sub">${esc(g['대분류'])}</span>${ui.tag(`담보 ${ds.length}`)}${g['좁은담보만수'] ? ui.tag(`좁은 담보만 ${g['좁은담보만수']}`) : ''}${c.peerScope !== 'all' ? ui.fullScopeTag() : ''}</div>
         <ul class="ins-rl">${ds.map(d => {
           const p = S['포인트'][d['포인트ID']];
+          const scOrgs = revRowOrgs(d, c);
+          const holderTxt = c.peerScope === 'all'
+            ? `가진 상대 <b class="num">${d['가진상대수']}</b>곳(${esc(txt.peerNamesEtc(d['가진상대'], 3))})`
+            : `선택 범위 <b class="num">${scOrgs.length}</b>곳(${esc(txt.peerNamesEtc(scOrgs, 3))}), 전체 <b class="num">${d['가진상대수']}</b>곳 ${ui.fullScopeTag()}`;
           return `<li><span class="live ins-ckw"><label class="ins-ck sm"><input type="checkbox" data-act="ins-pick" data-id="${esc(d['포인트ID'])}"${sel.has(d['포인트ID']) ? ' checked' : ''} aria-label="${esc(d['담보'])} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span></label></span>
             <span class="rn">${esc(d['담보'])}</span><span class="rt">${esc(d['급부유형'])}</span>
-            <span class="rh">가진 상대 <b class="num">${d['가진상대수']}</b>곳(${esc(d['가진상대'].join(', '))})</span>
+            <span class="rh">${holderTxt}</span>
             <span class="ro">우리 쪽 ${esc(d['우리상태'])}</span>
             <span class="rg">${p ? (p['근거'] || []).map(evChip).join('') : ''}</span></li>`;
         }).join('')}</ul>
         <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`).join('')}</ul>`;
   }
   function omitHTML(c, cat) {
-    const list = (c.base['뺀포인트'] || []).filter(o => o['분류'] === cat);
+    const pSet = new Set(c.activePeerOrgs || []);
+    const list = (c.base['뺀포인트'] || []).filter(o => o['분류'] === cat && (c.peerScope === 'all' || (o['비교종형ID'] || []).some(v => pSet.has(orgOf(v)))));
     if (!list.length) return '';
     const open = openOmit.has(cat);
     return `<details class="ins-omit"${open ? ' open' : ''} data-cat="${esc(cat)}"><summary><span>뺀 포인트 ${list.length}건</span><span class="note">검토 대기이거나 조건이 다른 줄이 있어 세지 않은 것</span>${ui.IC.chevD}</summary>
-      <ul>${list.map(o => `<li><b>${esc(stdN(o['표준담보ID']))}</b> <span class="tag">${esc(o['세부'])}</span><br><span class="note">상대 ${esc((o['비교종형ID'] || []).map(fullN).join(', '))}. ${esc(reasonText(o['사유']))}</span></li>`).join('')}</ul></details>`;
+      <ul>${list.map(o => `<li><b>${esc(stdN(o['표준담보ID']))}</b> <span class="tag">${esc(o['세부'])}</span><br><span class="note">상대 ${esc(txt.peerNamesEtc((o['비교종형ID'] || []).map(fullN), 3))}. ${esc(reasonText(o['사유']))}</span></li>`).join('')}</ul></details>`;
   }
   function catHTML(c, cat, i, sel) {
     const all = pts(c).filter(p => p['분류'] === cat);
     const shown = all.filter(inPurpose);
-    const n = (c.base['분류집계'] || {})[cat] || 0;
-    const sc = c.base['세부집계'] || {};
+    const n = (catCounts(c))[cat] || 0;
+    const sc = subCounts(c);
     const subT = (SUB[cat] || []).map(k => `${k}${SUB_NAME[k] ? ' ' + SUB_NAME[k] : ''} ${sc[k] || 0}`).join(', ');
     const heads = [...new Set(shown.map(head))];
     const groupHead = heads.length === 1 ? heads[0] : '';
@@ -114,7 +164,7 @@ App.registerTab((function () {
     else if (!shown.length) list = '<p class="ins-empty">이 목적에 드는 항목이 없습니다.</p>';
     else list = `<ul class="lrows">${shown.map(p => itemHTML(p, sel, groupHead, c)).join('')}</ul>`;
     return `<section class="panel ins-cat" id="ins-cat-${i}" aria-labelledby="ins-cat-${i}-h">
-      <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(subT)}</span>
+      <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(subT)}${cat === '개정 검토 후보' && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</span>
         <h2 id="ins-cat-${i}-h"><span class="ins-no num">0${i + 1}</span>${esc(cat)} <b class="num">${n}</b>건${purpose && shown.length !== all.length && cat !== '개정 검토 후보' ? ` <span class="note">(목적에 맞는 ${shown.length}건)</span>` : ''}</h2></div>
         <div class="r"><span>카드에 실은 것 <b class="num">${inCard}</b>건</span>${cat === '개정 검토 후보' ? `<span class="live">${ui.btn('개정 검토 목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-rev"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="ins-cat-${i}" data-title="개정 검토 목록"` })}</span>` : ''}</div></div>
       ${groupHead ? `<p class="ins-gh">${esc(groupHead)}</p>` : ''}
@@ -136,8 +186,17 @@ App.registerTab((function () {
     const who = App.condSegOnly();
     if (!g.cell) return `${who}: ${g.reason}${g.sexNote ? ` ${g.sexNote}` : ''}`;
     const cell = g.cell;
-    const st = txt.ORG_ORDER.filter(o => o in cell['회사']).map(o => `${txt.orgShort(o)} ${cell['회사'][o]}`).join(', ');
-    const why = txt.ORG_ORDER.map(o => txt.stateWhy(o, cell['회사'][o])).filter(Boolean);
+    const shownOrgs = (c.activeOrgs || txt.ORG_ORDER).filter(o => o in cell['회사']);
+    let st;
+    if (shownOrgs.length <= 4) {
+      st = shownOrgs.map(o => `${txt.orgShort(o)} ${cell['회사'][o]}`).join(', ');
+    } else {
+      const openP = c.inScope(cell['열린상대코드']);
+      const closedP = c.inScope(cell['닫힌상대코드']);
+      const unkP = c.inScope(cell['모르는상대코드']);
+      st = `${txt.orgShort('EPOST')} ${cell['회사'].EPOST || ''}, 상대 열림 ${openP}곳, 닫힘 ${closedP}곳${unkP ? `, 자료 없음 ${unkP}곳` : ''}`;
+    }
+    const why = shownOrgs.slice(0, 4).map(o => txt.stateWhy(o, cell['회사'][o])).filter(Boolean);
     const rep = cell['대표'] && cell['대표'] !== c.baseId ? ` 이 고객군의 우리 대표 종형은 ${kindN(cell['대표'])}입니다.` : '';
     return `${who}: ${cell['라벨']}${cell['보조'] ? `(${cell['보조']})` : ''}. ${st}.${rep}${why.length ? ` ${why.join(' ')}.` : ''}${g.sexNote ? ` ${g.sexNote}.` : ''}`;
   }
@@ -161,7 +220,8 @@ App.registerTab((function () {
     const groups = cardItems(c);
     const n = groups.reduce((a, g) => a + g.xs.length, 0);
     const flagN = groups.reduce((a, g) => a + g.xs.filter(p => p['원문대조']).length, 0);
-    const peers = c.peerIds.map(v => `${fullN(v)}(${vinfo(v)['적용시작일'] || '기준일 자료 없음'})`).join(', ');
+    const peerList = c.peerIds.map(v => `${fullN(v)}(${vinfo(v)['적용시작일'] || '기준일 자료 없음'})`);
+    const peers = peerList.length ? txt.peerNamesEtc(peerList, 3) : App.t('condPeerNone');
     const comp = composeLine(c);
     const body = groups.map(g => {
       const heads = [...new Set(g.xs.map(head))];
@@ -211,7 +271,8 @@ App.registerTab((function () {
     const r = body && body.querySelector('.ins-r');
     if (!r) return;
     if (getComputedStyle(r).position !== 'sticky') { r.style.top = ''; return; }
-    const headH = document.getElementById('head').offsetHeight;
+    const headEl = document.getElementById('head');
+    const headH = headEl ? headEl.offsetHeight : 0;
     r.style.top = `${Math.min(headH + 16, innerHeight - r.offsetHeight - 16)}px`;
   }
   App.on('resize', () => { const b = document.querySelector('#view-insight .vbody'); if (b) stick(b); });
@@ -235,20 +296,21 @@ App.registerTab((function () {
 
   // ---------- 그리기 ----------
   function concl(c) {
-    const cnt = c.base['분류집계'] || {};
+    const cnt = catCounts(c);
     const total = Object.values(cnt).reduce((a, n) => a + n, 0);
-    const first = ((c.base['먼저'] || {})['카드'] || []).length;
-    return `<p class="concl">우체국 ${esc(kindN(c.baseId))} 기준 영업 인사이트 ${total}건: ${CATS.map(k => `${k} ${cnt[k] || 0}`).join(', ')}. 응대 카드에는 처음에 ${first}건을 골라 두었습니다.</p>`;
+    const sel = pickSet(c);
+    const first = pts(c).filter(p => sel.has(p['포인트ID'])).length;
+    return `<p class="concl">우체국 ${esc(kindN(c.baseId))} 기준 영업 인사이트 ${total}건: ${CATS.map(k => `${k} ${cnt[k] || 0}`).join(', ')}. 응대 카드에는 현재 ${first}건이 실려 있습니다.</p>`;
   }
   function refNote(c) {
     const parts = [];
-    if (!c.isRef) parts.push(`지금 조건(${App.condSegOnly()})을 바꿔도 다섯 분류의 문장은 대표 조건(${c.ref['나이']}세 ${txt.sexText(c.ref['성별'])}, ${txt.sinceText(c.ref['이력'])}) 기준이라 그대로입니다. 응대 카드의 가입 관문과 구성 요약은 지금 조건으로 바뀝니다.`);
+    if (!c.isRef) parts.push(`지금 조건(${App.condSegOnly()})을 바꿔도 분류별 문장은 대표 조건(${c.ref['나이']}세 ${txt.sexText(c.ref['성별'])}, ${txt.sinceText(c.ref['이력'])}) 기준이라 그대로입니다. 응대 카드의 가입 관문과 구성 요약은 지금 조건으로 바뀝니다.`);
     if (c.st.renewal) parts.push('갱신 유형 거르개는 고객군 지도에만 씁니다.');
     return parts.length ? `<p class="ins-ref">${esc(parts.join(' '))}</p>` : '';
   }
   function jumpHTML(c) {
-    const cnt = c.base['분류집계'] || {};
-    return `<nav class="ins-jump" aria-label="다섯 분류로 가기">${CATS.map((k, i) => `<a href="#ins-cat-${i}" data-act="ins-jump" data-i="${i}"><span class="num">0${i + 1}</span><span class="t">${esc(k)}</span><b class="num">${cnt[k] || 0}</b></a>`).join('')}</nav>`;
+    const cnt = catCounts(c);
+    return `<nav class="ins-jump" aria-label="분류 바로가기">${CATS.map((k, i) => `<a href="#ins-cat-${i}" data-act="ins-jump" data-i="${i}"><span class="num">0${i + 1}</span><span class="t">${esc(k)}</span><b class="num">${cnt[k] || 0}</b></a>`).join('')}</nav>`;
   }
   function render(body, c) {
     if (!c.base) { body.innerHTML = '<div class="panel placeholder">자료 없음: 이 기준 종형의 영업 인사이트 자료가 없습니다.</div>'; return; }
@@ -260,7 +322,7 @@ App.registerTab((function () {
           <div class="ins-tools panel flat">
             <div class="ins-pf"><span class="lb">목적</span><span data-slot="purpose"></span>
               <span class="ins-pn">보장 대분류 기준${pi ? `: ${esc(txt.josa(pi['이름'], '은'))} ${esc(pi['기준'])}, ${esc(pi['값'].join(', '))}` : ', 입원과 수술은 급부유형 기준'}</span></div>
-            <span class="live">${ui.btn('다섯 분류 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-list"' })}</span>
+            <span class="live">${ui.btn('분류 목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-list"' })}</span>
           </div>
           ${jumpHTML(c)}
           ${CATS.map((k, i) => catHTML(c, k, i, sel)).join('')}
@@ -344,15 +406,16 @@ App.registerTab((function () {
     const c = App.ctx();
     const sel = pickSet(c);
     const rows = CATS.flatMap(cat => pts(c).filter(p => p['분류'] === cat && inPurpose(p)).map(p => { const cau = cautionOf(c, p); return [p['분류'], `${p['세부']} ${p['세부이름']}`, titleLong(p), p['문장'], cau ? `우열을 매기지 않음(단정 주의: ${cau['종류']})` : '', head(p), evText(p), p['원문대조'] ? (p['원문대조글'] || ui.FLAG_TEXT) : '', p['구조다름'] ? '구조 다름' : '', sel.has(p['포인트ID']) ? '실음' : '']; }));
-    App.copyRows(['분류', '세부', '담보나 항목', '분석 문장', '단정 주의', '범위 머리말', '근거', '원문 확인', '구조', '응대 카드'], rows, { title: `영업 인사이트 다섯 분류${purpose ? ` (목적 ${purpose})` : ''}` });
+    App.copyRows(['분류', '세부', '담보나 항목', '분석 문장', '단정 주의', '범위 머리말', '근거', '원문 확인', '구조', '응대 카드'], rows, { title: `영업 인사이트 분류별 목록${purpose ? ` (목적 ${purpose})` : ''}` });
   }
   function copyRev() {
     const c = App.ctx();
+    const allowedIds = new Set(pts(c).map(p => p['포인트ID']));
     const rows = [];
-    (c.base['개정검토'] || []).forEach(g => g['담보'].forEach(d => {
+    (c.base['개정검토'] || []).forEach(g => g['담보'].filter(d => revInScope(d, c, allowedIds)).forEach(d => {
       const p = S['포인트'][d['포인트ID']];
-      if (p && !inPurpose(p)) return;
-      rows.push([g['대분류'], g['중분류'], d['담보'], d['급부유형'], d['가진상대수'], d['가진상대'].join(', '), d['우리상태'], p ? evText(p) : '']);
+      const scOrgs = revRowOrgs(d, c);
+      rows.push([g['대분류'], g['중분류'], d['담보'], d['급부유형'], scOrgs.length, scOrgs.join(', '), d['우리상태'], p ? evText(p) : '']);
     }));
     App.copyRows(['보장 대분류', '보장 중분류', '담보', '급부유형', '가진 상대 수', '가진 상대', '우리 쪽 상태', '근거 쪽'], rows, { title: `개정 검토 목록${purpose ? ` (목적 ${purpose})` : ''}` });
   }
@@ -395,15 +458,22 @@ App.registerTab((function () {
   function pickRev(c, gi) {
     const g = (c.base['개정검토'] || [])[gi];
     if (!g) return null;
-    const items = g['담보'].map(d => {
+    const allowedIds = new Set(pts(c).map(p => p['포인트ID']));
+    const ds = g['담보'].filter(d => revInScope(d, c, allowedIds));
+    const list = ds.length ? ds : g['담보'];
+    const items = list.map(d => {
       const p = S['포인트'][d['포인트ID']];
-      return `<li><b>${esc(d['담보'])}</b> ${ui.verdict('none')}<br><span class="note">가진 상대 ${d['가진상대수']}곳(${esc(d['가진상대'].join(', '))}), 우리 쪽 ${esc(d['우리상태'])}</span>${p ? `<p>${esc(p['문장'])}</p><div class="ins-evc">${(p['근거'] || []).map(evChip).join('')}</div>` : ''}</li>`;
+      const scOrgs = revRowOrgs(d, c);
+      const holderNote = c.peerScope === 'all'
+        ? `가진 상대 ${d['가진상대수']}곳(${esc(txt.peerNamesEtc(d['가진상대'], 3))})`
+        : `선택 범위 ${scOrgs.length}곳(${esc(txt.peerNamesEtc(scOrgs, 3))}), 전체 ${d['가진상대수']}곳`;
+      return `<li><b>${esc(d['담보'])}</b> ${ui.verdict('none')}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}<br><span class="note">${holderNote}, 우리 쪽 ${esc(d['우리상태'])}</span>${p ? `<p>${esc(p['문장'])}</p><div class="ins-evc">${(p['근거'] || []).map(evChip).join('')}</div>` : ''}</li>`;
     }).join('');
     return {
-      kicker: '개정 검토 후보, 보장 중분류', title: g['중분류'], badges: [ui.scope('base'), ui.tag(g['대분류']), ui.tag(`담보 ${g['담보수']}`)],
-      body: sec('', `<p>${esc(txt.josa(g['중분류'], '은'))} 담보 ${g['담보수']}개가 개정 검토 후보입니다${g['좁은담보만수'] ? `(우리 쪽에 좁은 담보만 있는 것 ${g['좁은담보만수']}개)` : ''}.</p>`)
+      kicker: '개정 검토 후보, 보장 중분류', title: g['중분류'], badges: [ui.scope('base'), ui.tag(g['대분류']), ui.tag(`담보 ${list.length}`), c.peerScope !== 'all' ? ui.fullScopeTag() : ''].filter(Boolean),
+      body: sec('', `<p>${esc(txt.josa(g['중분류'], '은'))} 담보 ${list.length}개가 개정 검토 후보입니다${g['좁은담보만수'] ? `(우리 쪽에 좁은 담보만 있는 것 ${g['좁은담보만수']}개)` : ''}.</p>`)
         + sec('담보', `<ul class="cv-evl">${items}</ul>`)
-        + sec('', `<p class="note">빈자리 기준은 맞붙는 상대 두 곳 이상이 가진 담보입니다. 담보 이름을 담보 비교 탭의 비교표에서 찾으면 회사별 조건이 보입니다.</p>${g['담보'].map(d => `<button type="button" class="btn sm" data-act="cv-goto" data-sid="${esc(d['표준담보ID'])}">${esc(d['담보'])} 비교표에서 보기${ui.IC.chevR}</button>`).join(' ')}`, true),
+        + sec('', `<p class="note">빈자리 기준은 맞붙는 상대 두 곳 이상이 가진 담보입니다. 담보 이름을 담보 비교 탭의 비교표에서 찾으면 회사별 조건이 보입니다.</p>${list.map(d => `<button type="button" class="btn sm" data-act="cv-goto" data-sid="${esc(d['표준담보ID'])}">${esc(d['담보'])} 비교표에서 보기${ui.IC.chevR}</button>`).join(' ')}`, true),
     };
   }
   function pick(key, c) {
@@ -413,12 +483,12 @@ App.registerTab((function () {
   }
   function evidence(c) {
     if (!c.base) return null;
-    const cnt = c.base['분류집계'] || {};
+    const cnt = catCounts(c);
     const total = Object.values(cnt).reduce((a, n) => a + n, 0);
     return {
-      kicker: '읽는 법', title: '다섯 분류와 응대 카드', badges: [ui.scope('base')],
-      body: sec('다섯 분류', ui.eq({ total: { t: '인사이트', n: total }, parts: CATS.map(k => ({ t: k, n: cnt[k] || 0 })), tail: '건' })
-          + `<p class="note">다섯 분류는 서로 겹치지 않습니다. 검토 대기이거나 조건이 다른 줄이 있어 뺀 포인트 ${(c.base['뺀포인트'] || []).length}건은 세지 않고 분류마다 접어 둡니다.</p>`)
+      kicker: '읽는 법', title: '분류별 목록과 응대 카드', badges: [ui.scope('base')],
+      body: sec('분류별 집계', ui.eq({ total: { t: '인사이트', n: total }, parts: CATS.map(k => ({ t: k, n: cnt[k] || 0 })), tail: '건' })
+          + `<p class="note">분류끼리는 서로 겹치지 않습니다. 검토 대기이거나 조건이 다른 줄이 있어 뺀 포인트 ${(c.base['뺀포인트'] || []).length}건은 세지 않고 분류마다 접어 둡니다.</p>`)
         + sec('처음 선택', `<p class="note">응대 카드의 처음 선택은 세부 유형마다 한 건을 먼저 넣고, 카드에서는 조건 열위 방어와 관련 담보 안내를 개정 검토 후보보다 앞에 둡니다. 체크로 싣고 빼면 카드가 바로 바뀝니다.</p>`)
         + sec('본문과 카드', `<p class="note">본문은 분석 문장입니다. 창구 말투의 예상 질문과 답은 응대 카드 미리 보기 안에서만 씁니다. 카드를 인쇄하면 흰 바탕 A4 한 장에 고지와 "${esc(MARK)}" 표식이 찍힙니다.</p>`)
         + sec('판정 표지', App.ev.legend(), true),
@@ -442,7 +512,7 @@ App.registerTab((function () {
     stick(body);
   }
   function update(body, c) {
-    if (c.changed.has('base')) return false;
+    if (c.changed.has('base') || c.changed.has('peerScope') || c.changed.has('peerPick')) return false;
     const old = body.querySelector('.ins-ref');
     const html = refNote(c);
     if (old) { if (html) old.outerHTML = html; else old.remove(); }
