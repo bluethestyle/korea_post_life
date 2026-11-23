@@ -2047,12 +2047,10 @@
         }
       }
     }
-    targets.forEach((el, idx) => {
-      el.classList.remove('ev-line-in');
+    targets.slice(0, 10).forEach((el, idx) => {
       el.style.setProperty('--ld', `${Math.round(Math.min(idx, 5) * 30 * motionScale())}ms`);
+      el.classList.add('ev-line-in');
     });
-    void zrIn.offsetWidth;
-    targets.forEach(el => el.classList.add('ev-line-in'));
   }
 
   function setEvPicked(spec, animate) {
@@ -2648,29 +2646,31 @@
     return text ? esc(text) : '';
   }
 
-  function showHudTip(el) {
+  function measureBoxRect(el) {
+    if (!el || !el.isConnected) return null;
+    const boxEl = el.querySelector('[data-aim-box]') || el;
+    return boxEl.getBoundingClientRect();
+  }
+
+  function showHudTip(el, preRect) {
     const tip = $('#hud-tip');
     if (!tip || !el || !el.isConnected) return;
+    if (el === tipAnchor && !tip.hidden) return;
     const html = buildTipHTML(el);
     if (!html) { hideHudTip(); return; }
-    const boxEl = el.querySelector('[data-aim-box]') || el;
-    const r = boxEl.getBoundingClientRect();
+    const r = preRect || measureBoxRect(el);
     const minTop = 30;
-    if (r.width < 1 || r.bottom <= minTop || r.top >= innerHeight) { hideHudTip(); return; }
-    const wasHidden = tip.hidden;
+    if (!r || r.width < 1 || r.bottom <= minTop || r.top >= innerHeight) { hideHudTip(); return; }
     tipAnchor = el;
+    const halfClamp = Math.min(180, Math.floor(innerWidth * 0.42));
+    const cx = Math.max(halfClamp, Math.min(innerWidth - halfClamp, Math.round(r.left + r.width / 2)));
+    const above = r.top >= 96;
+    const ty = above ? Math.round(r.top - 10) : Math.min(innerHeight - 36, Math.max(minTop, Math.round(r.bottom + 10)));
+    tip.style.setProperty('--tip-x', cx + 'px');
+    tip.style.setProperty('--tip-y', ty + 'px');
+    tip.style.setProperty('--tip-vy', above ? '-100%' : '0%');
     tip.innerHTML = html;
-    if (wasHidden) tip.style.transition = 'none';
     tip.hidden = false;
-    const tw = tip.offsetWidth || 220, th = tip.offsetHeight || 36;
-    const left = Math.max(10, Math.min(innerWidth - tw - 10, Math.round(r.left + r.width / 2 - tw / 2)));
-    const top = r.top - th - 10 >= minTop ? Math.round(r.top - th - 10) : Math.min(innerHeight - th - 8, Math.max(minTop, Math.round(r.bottom + 10)));
-    tip.style.setProperty('--tip-x', left + 'px');
-    tip.style.setProperty('--tip-y', top + 'px');
-    if (wasHidden) {
-      void tip.offsetWidth;
-      tip.style.transition = '';
-    }
   }
 
   function hideHudTip() {
@@ -2679,7 +2679,7 @@
     if (tip) tip.hidden = true;
   }
 
-  function refreshAimReticle() {
+  function refreshAimReticle(preRect) {
     if (!curAimEl || !curAimEl.isConnected) { hideAimReticle(); return; }
     const ret = $('#aim-reticle');
     if (!ret) return;
@@ -2687,17 +2687,16 @@
       ret.hidden = true;
       return;
     }
-    const boxEl = curAimEl.querySelector('[data-aim-box]') || curAimEl;
-    const r = boxEl.getBoundingClientRect();
-    if (r.width < 2 || r.height < 2 || r.bottom < 24 || r.top > innerHeight) {
+    const r = preRect || measureBoxRect(curAimEl);
+    if (!r || r.width < 2 || r.height < 2 || r.bottom < 24 || r.top > innerHeight) {
       ret.hidden = true;
       return;
     }
     const wasHidden = ret.hidden;
     ret.dataset.shape = curAimEl.dataset.aim === 'circle' ? 'circle' : 'rect';
     ret.classList.toggle('is-sel-aim', curAimEl.classList.contains('is-sel'));
-    ret.style.width = Math.round(r.width) + 'px';
-    ret.style.height = Math.round(r.height) + 'px';
+    ret.style.setProperty('--ar-w', Math.round(r.width) + 'px');
+    ret.style.setProperty('--ar-h', Math.round(r.height) + 'px');
     if (wasHidden) {
       ret.style.transition = 'none';
       ret.classList.remove('is-tight', 'is-press');
@@ -2706,25 +2705,24 @@
     ret.style.setProperty('--ar-y', Math.round(r.top) + 'px');
     ret.hidden = false;
     if (wasHidden) {
-      void ret.offsetWidth;
-      ret.style.transition = '';
-      requestAnimationFrame(() => { if (!ret.hidden) ret.classList.add('is-tight'); });
+      requestAnimationFrame(() => {
+        ret.style.transition = '';
+        if (!ret.hidden) ret.classList.add('is-tight');
+      });
     } else {
       ret.classList.add('is-tight');
     }
   }
 
-  function setAimTarget(el) {
-    if (el === curAimEl) {
-      if (el) refreshAimReticle();
-      return;
-    }
+  function setAimTarget(el, preRect) {
+    if (el === curAimEl) return;
+    const r = el ? (preRect || measureBoxRect(el)) : null;
     const prev = curAimEl;
     if (prev) prev.classList.remove('is-aim');
     curAimEl = el || null;
     if (curAimEl) {
       curAimEl.classList.add('is-aim');
-      refreshAimReticle();
+      refreshAimReticle(r);
     } else {
       const ret = $('#aim-reticle');
       if (ret) { ret.hidden = true; ret.classList.remove('is-tight', 'is-press'); }
@@ -2741,15 +2739,24 @@
   }
 
   function findScrubCandidate(rowEl, clientX) {
-    const items = $$('[data-aim],[data-pick]', rowEl).filter(el => el.offsetParent !== null);
-    if (!items.length) return null;
+    const key = innerWidth + '|' + Math.round(window.scrollY || 0) + '|' + rowEl.childElementCount;
+    let zones = rowEl._scrubKey === key ? rowEl._scrubZones : null;
+    if (!zones) {
+      zones = [];
+      $$('[data-aim],[data-pick]', rowEl).forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (r.width >= 1 && r.height >= 1) zones.push({ el, left: r.left, right: r.right });
+      });
+      rowEl._scrubKey = key;
+      rowEl._scrubZones = zones;
+    }
+    if (!zones.length) return null;
     let best = null, bestDist = Infinity;
-    for (const it of items) {
-      const r = it.getBoundingClientRect();
-      if (r.width < 1) continue;
-      if (clientX >= r.left && clientX <= r.right) return it;
-      const dist = clientX < r.left ? (r.left - clientX) : (clientX - r.right);
-      if (dist < bestDist) { bestDist = dist; best = it; }
+    for (let i = 0; i < zones.length; i++) {
+      const z = zones[i];
+      if (clientX >= z.left && clientX <= z.right) return z.el;
+      const dist = clientX < z.left ? (z.left - clientX) : (clientX - z.right);
+      if (dist < bestDist) { bestDist = dist; best = z.el; }
     }
     return bestDist <= 42 ? best : null;
   }
@@ -2757,11 +2764,17 @@
   document.addEventListener('pointerover', e => {
     if (e.pointerType === 'touch' || performance.now() < scrollMuteUntil) return;
     const aimEl = e.target.closest && e.target.closest('[data-aim]');
-    if (aimEl) setAimTarget(aimEl);
+    const tipEl = (e.target.closest && e.target.closest('[data-tip],[data-tip-title]'))
+      || (aimEl && (aimEl.dataset.tip || aimEl.dataset.tipTitle) ? aimEl : null);
+    // 쓰기 전에 필요한 좌표를 한꺼번에 읽어 강제 동기 레이아웃을 0으로 만든다
+    const aimChanged = aimEl && aimEl !== curAimEl;
+    const tipChanged = tipEl && (tipEl !== tipAnchor || ($('#hud-tip') && $('#hud-tip').hidden));
+    const aimRect = aimChanged ? measureBoxRect(aimEl) : null;
+    const tipRect = tipChanged ? (tipEl === aimEl && aimRect ? aimRect : measureBoxRect(tipEl)) : null;
+
+    if (aimEl) setAimTarget(aimEl, aimRect);
     else if (curAimEl && !e.target.closest('[data-scrub-row]')) hideAimReticle();
-    const tipEl = e.target.closest && e.target.closest('[data-tip],[data-tip-title]');
-    if (tipEl) showHudTip(tipEl);
-    else if (aimEl && (aimEl.dataset.tip || aimEl.dataset.tipTitle)) showHudTip(aimEl);
+    if (tipEl) showHudTip(tipEl, tipRect);
     else if (tipAnchor && !e.target.closest('[data-scrub-row]')) hideHudTip();
   });
 
@@ -2776,7 +2789,11 @@
       }
       if (touchScrub && touchScrub.active) {
         const cand = findScrubCandidate(touchScrub.row, e.clientX);
-        if (cand) { setAimTarget(cand); showHudTip(cand); }
+        if (cand && cand !== curAimEl) {
+          const r = measureBoxRect(cand);
+          setAimTarget(cand, r);
+          showHudTip(cand, r);
+        }
       }
       return;
     }
@@ -2784,9 +2801,10 @@
     if (scrubRow) {
       const direct = e.target.closest && e.target.closest('[data-aim],[data-pick]');
       const cand = direct || findScrubCandidate(scrubRow, e.clientX);
-      if (cand) {
-        if (cand.dataset.aim) setAimTarget(cand);
-        if (cand.dataset.tip || cand.dataset.tipTitle) showHudTip(cand);
+      if (cand && (cand !== curAimEl || cand !== tipAnchor)) {
+        const r = measureBoxRect(cand);
+        if (cand.dataset.aim) setAimTarget(cand, r);
+        if (cand.dataset.tip || cand.dataset.tipTitle) showHudTip(cand, r);
       }
     }
   }, { passive: true });

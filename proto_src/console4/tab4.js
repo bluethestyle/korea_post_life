@@ -32,7 +32,7 @@ const stdN = sid => std(sid)['이름'] || sid;
 const VID_RE = /\b[A-Z0-9]+_[A-Za-z0-9]+_[A-Za-z0-9]+\b/g;
 const reasonText = list => [...new Set((Array.isArray(list) ? list : [list]).map(x => String(x).replace(VID_RE, m => fullN(m))))].join(', ');
 
-// ---------- 급부와 특약(CV 의 번호) ----------
+// ---------- 급부와 특약(CV 의 번호) 및 금액 없는 급부 규약 ----------
 function ben(i) {
   const b = CV && CV.ben[i];
   return b ? { i, name: fixG(b[0]), rid: b[1], role: b[2], pay: b[3], base: b[4], ratio: !!b[5], wait: b[6] || 0, red: b[7] || [],
@@ -44,13 +44,43 @@ function won(m) {
   if (m >= 10000) { const e = Math.floor(m / 10000), r = Math.round((m - e * 10000) * 100) / 100; return r ? `${N(e)}억 ${N(r)}만원` : `${N(e)}억원`; }
   return `${N(m)}만원`;
 }
+const nonMonKind = b => (b && CV && CV['지급기준'] && CV['지급기준'][String(b.i)]) || null;
+const nonMonWhy = kind => (kind && CV && CV['지급기준글'] && CV['지급기준글'][kind]) || '';
+const nonMonCopy = key => (CV && CV['금액없음글'] && CV['금액없음글'][key]) || '';
 const rateOf = b => (b.base ? b.pay * 100 / b.base : b.pay);
-const payText = b => (b.pay == null ? '자료 없음' : b.ratio ? `가입금액의 ${N(rateOf(b))}%` : won(b.pay));
-const baseText = b => (b.ratio ? '가입금액 대비 비율로 적힌 급부' : b.base != null ? `기준 가입금액 ${won(b.base)}일 때` : '기준 가입금액 자료 없음');
+const payText = b => {
+  if (!b) return '없음';
+  const nm = nonMonKind(b);
+  if (nm) return nm;
+  return b.pay == null ? '자료 없음' : b.ratio ? `가입금액의 ${N(rateOf(b))}%` : won(b.pay);
+};
+const baseText = b => {
+  if (!b) return '없음';
+  if (nonMonKind(b)) return nonMonCopy('기준') || '금액 하나로 적을 수 없는 급부';
+  return b.ratio ? '가입금액 대비 비율로 적힌 급부' : b.base != null ? `기준 가입금액 ${won(b.base)}일 때` : '기준 가입금액 자료 없음';
+};
 const waitText = w => `${N(w || 0)}일`;
 const monthsText = m => (m % 12 === 0 ? `${m / 12}년` : `${m}개월`);
-const redText = red => (red && red.length ? red.map(([m, r]) => `${monthsText(m)} 안 ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '감액 없음');
-const redShort = red => (red && red.length ? red.map(([m, r]) => `${monthsText(m)} ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '없음');
+const redText = (red, b) => {
+  if (b && nonMonKind(b)) return nonMonCopy('감액') || '원문 확인';
+  return red && red.length ? red.map(([m, r]) => `${monthsText(m)} 안 ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '감액 없음';
+};
+const redShort = (red, b) => {
+  if (b && nonMonKind(b)) return nonMonCopy('감액') || '원문 확인';
+  return red && red.length ? red.map(([m, r]) => `${monthsText(m)} ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '없음';
+};
+const tagsStr = b => {
+  if (!b || !b.tags) return '';
+  return Array.isArray(b.tags) ? b.tags.join(', ') : String(b.tags);
+};
+const formText = (b, hasAnyNonMon) => {
+  if (!b) return null;
+  const nm = nonMonKind(b);
+  if (nm) return nm;
+  const ts = tagsStr(b);
+  if (hasAnyNonMon) return ts ? `정액 지급(${ts})` : '정액 지급';
+  return ts || '문구 없음';
+};
 const has = c => !!(c && c.i && c.i.length);
 const repOf = c => (has(c) ? ben(c.r != null ? c.r : c.i[0]) : null);
 
@@ -142,89 +172,580 @@ function verdictOf(row, cols, k) {
 const chip = (v, title) => (v ? ui.verdict(v.kind, v.text, title || v.why) : '<span class="cv-both">둘 다 없음</span>');
 const chipText = v => (v ? (v.text || { better: '우체국 나음', only: '우체국에만 있음', worse: '우체국 못함', same: '같음', diff: '우열을 매기지 않음', none: '우체국에 없음', unknown: '모름' }[v.kind]) : '둘 다 없음');
 
-// ---------- 새 무대: 전폭 가로 기준축 + 치료 단계 다섯 구간 + 담보별 판정 적층 기둥 ----------
-function pillarSVG(row, B, c, totPeerOrgs) {
+// ---------- 두 층 담보 비교: 위 전체 띠(79개 눈금 + 거르개 셋) + 아래 고른 단계 확대 구역 ----------
+const FILTERS = [
+  { k: 'miss', label: '우체국에 없는 담보' },
+  { k: 'split', label: '판정이 갈린 담보' },
+  { k: 'only', label: '우체국만 가진 담보' },
+];
+let curStepByBase = {};
+let curPageByStep = {};
+const activeFilters = new Set();
+let stepSwitchToken = 0;
+let lastStageHost = null;
+let cachedHostW = 0;
+let lastHotSid = '';
+
+function truncLabel(str, maxChars) {
+  const s = String(str || '').trim();
+  const arr = Array.from(s);
+  if (arr.length <= maxChars) return s;
+  return arr.slice(0, maxChars - 1).join('').trimEnd() + '…';
+}
+
+function rowStackMetrics(row, m, B, c, totPeerOrgs, pIdxs) {
   const sid = row.sid;
   const oursHas = has(row.cells[0]);
   const isAll = c.peerScope === 'all';
   const ownCodes = (B['보유기관코드'] && B['보유기관코드'][sid]) || [];
   const ownN = isAll ? ownCodes.length : c.inScope(ownCodes);
-  const W = 14, MAX_H = 200;
-
-  // 1. 상대는 아무도 안 가졌고 우체국만 가진 담보: 축 위 금색 마름모
-  if (ownN <= 0 && oursHas) {
-    return {
-      h: 16,
-      ownN: 0,
-      oursHas: true,
-      svg: `<svg class="cvp-svg is-dia" width="14" height="16" viewBox="0 0 14 16" aria-hidden="true" focusable="false">
-        <polygon class="pil-fill-gold" points="7,2 13,8 7,14 1,8"/>
-      </svg>`,
-    };
-  }
-  // 2. 범위 내 누구도 갖지 않은 담보: 낮은 점선 윤곽
-  if (ownN <= 0 && !oursHas) {
-    return {
-      h: 12,
-      ownN: 0,
-      oursHas: false,
-      svg: `<svg class="cvp-svg" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true" focusable="false">
-        <rect class="pil-empty" x="0.5" y="0.5" width="13" height="11"/>
-      </svg>`,
-    };
-  }
-
-  const totH = Math.max(12, Math.round((ownN / Math.max(1, totPeerOrgs)) * MAX_H));
-
-  // 3. 우체국에 없는 담보: 기둥 전체를 1px 점선 윤곽과 옅은 빗금으로
-  if (!oursHas) {
-    return {
-      h: totH,
-      ownN,
-      oursHas: false,
-      svg: `<svg class="cvp-svg" width="${W}" height="${totH}" viewBox="0 0 ${W} ${totH}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-        <rect class="pil-hatch-pale" x="0.5" y="0.5" width="${W - 1}" height="${totH - 1}"/>
-      </svg>`,
-    };
-  }
-
-  // 4. 우체국과 상대가 함께 가진 담보: 판정상대수 / 판정기관코드 비율로 아래부터 쌓기
   const perCodes = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
   const perCnts = (B['판정상대수'] && B['판정상대수'][sid]) || {};
   const cntOf = vdKey => (isAll ? (perCnts[vdKey] || 0) : c.inScope(perCodes[vdKey]));
-
-  const layers = [
-    { v: cntOf('나음'), cls: 'pil-fill-gold', goldCap: true },
-    { v: cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의'), cls: 'pil-fill-neutral' },
-    { v: cntOf('못함'), cls: 'pil-fill-worse' },
-    { v: cntOf('검토 대기') + cntOf('판정 보류'), cls: 'pil-hatch' },
-  ].filter(l => l.v > 0);
-
-  let curY = totH;
-  let remV = layers.reduce((a, l) => a + l.v, 0) || ownN;
-  let remH = totH;
-  const rects = [];
-  layers.forEach((l, li) => {
-    const lh = li === layers.length - 1 ? remH : Math.max(3, Math.round((l.v / remV) * remH));
-    const y = Math.max(0, curY - lh);
-    rects.push(`<rect class="${l.cls}" x="0.5" y="${y + 0.5}" width="${W - 1}" height="${Math.max(2, lh - 0.5)}"/>`);
-    if (l.goldCap && lh >= 5) {
-      rects.push(`<line x1="1.5" y1="${y + 2.5}" x2="${W - 1.5}" y2="${y + 2.5}" stroke="var(--gold-edge)" stroke-width="1.2"/>`);
-    }
-    curY = y;
-    remV = Math.max(1, remV - l.v);
-    remH = Math.max(0, remH - lh);
-  });
-
+  const better = cntOf('나음');
+  const same = cntOf('같음');
+  const diff = cntOf('엇갈림') + cntOf('단정 주의');
+  const worse = cntOf('못함');
+  const wait = cntOf('검토 대기') + cntOf('판정 보류');
+  const miss = cntOf('우체국에 없음');
+  const hasSplit = oursHas && ownN > 0 && (better > 0 || worse > 0 || diff > 0 || pIdxs.some(i => {
+    const v = verdFor(row, m, i, pIdxs);
+    return v && (v.kind === 'better' || v.kind === 'worse' || v.kind === 'diff');
+  }));
+  const isMiss = !oursHas && ownN > 0;
+  const isOnly = oursHas && ownN <= 0;
+  let domChip = 'same';
+  if (isOnly) domChip = 'only';
+  else if (isMiss) domChip = 'none';
+  else if (!oursHas && ownN <= 0) domChip = 'unknown';
+  else if (worse > 0 && better === 0) domChip = 'worse';
+  else if (better > 0 && worse === 0) domChip = 'better';
+  else if (worse > 0 || better > 0 || diff > 0) domChip = 'diff';
+  else if (wait > 0 && same === 0) domChip = 'unknown';
   return {
-    h: totH,
-    ownN,
-    oursHas: true,
-    svg: `<svg class="cvp-svg" width="${W}" height="${totH}" viewBox="0 0 ${W} ${totH}" preserveAspectRatio="none" aria-hidden="true" focusable="false">${rects.join('')}</svg>`,
+    oursHas, ownN, totPeerOrgs, better, same, diff, worse, wait, miss,
+    isMiss, isOnly, hasSplit, domChip,
   };
 }
 
+function matchesCoverFilter(rm) {
+  if (!activeFilters.size) return true;
+  if (activeFilters.has('miss') && rm.isMiss) return true;
+  if (activeFilters.has('split') && rm.hasSplit) return true;
+  if (activeFilters.has('only') && rm.isOnly) return true;
+  return false;
+}
+
+/** 작은 눈금과 큰 기둥이 함께 쓰는 적층 도형 생성 함수(SVG 패턴 재래스터화 없이 GPU 합성 레이어로 구성) */
+function stackedShapeHTML(rm, w, maxH, minH) {
+  if (rm.ownN <= 0 && rm.oursHas) {
+    const d = Math.max(4, Math.min(12, w - 1));
+    return {
+      h: d + 4,
+      html: `<span class="cvs-dia-w"><i class="cvs-dia" style="width:${d}px;height:${d}px"></i></span>`,
+    };
+  }
+  if (rm.ownN <= 0 && !rm.oursHas) {
+    const h = Math.max(5, Math.round(minH * 0.75));
+    return {
+      h,
+      html: `<span class="cvs-box is-empty"></span>`,
+    };
+  }
+  const totH = Math.max(minH, Math.round((rm.ownN / Math.max(1, rm.totPeerOrgs)) * maxH));
+  if (!rm.oursHas) {
+    return {
+      h: totH,
+      html: `<span class="cvs-box is-miss"></span>`,
+    };
+  }
+  const layers = [
+    { v: rm.better, cls: 's-gold', goldCap: true },
+    { v: rm.same + rm.diff, cls: 's-neutral' },
+    { v: rm.worse, cls: 's-worse' },
+    { v: rm.wait, cls: 's-hatch' },
+  ].filter(l => l.v > 0);
+  let remV = layers.reduce((a, l) => a + l.v, 0) || rm.ownN;
+  let remH = totH;
+  const segsBottomUp = [];
+  const minSeg = maxH <= 32 ? 2 : 3;
+  layers.forEach((l, li) => {
+    const lh = li === layers.length - 1 ? remH : Math.max(minSeg, Math.round((l.v / remV) * remH));
+    const capCls = l.goldCap && w >= 10 && lh >= 5 ? ' has-cap' : '';
+    segsBottomUp.push(`<i class="cvs-seg ${l.cls}${capCls}" style="height:${Math.max(1, lh)}px"></i>`);
+    remV = Math.max(1, remV - l.v);
+    remH = Math.max(0, remH - lh);
+  });
+  segsBottomUp.reverse();
+  return {
+    h: totH,
+    html: `<span class="cvs-box is-stack">${segsBottomUp.join('')}</span>`,
+  };
+}
+
+function defaultStepFor(m, B, c) {
+  let bestStep = STEPS[0], bestPairSum = -1, bestCovCnt = -1;
+  STEPS.forEach(stNm => {
+    const stRows = m.rows.filter(r => r.type === stNm);
+    if (!stRows.length) return;
+    let pairSum = 0, covCnt = 0;
+    const isAll = c.peerScope === 'all';
+    stRows.forEach(r => {
+      const sid = r.sid;
+      const oursHas = has(r.cells[0]);
+      const ownCodes = (B['보유기관코드'] && B['보유기관코드'][sid]) || [];
+      const ownN = isAll ? ownCodes.length : c.inScope(ownCodes);
+      const pc = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
+      const w = isAll ? ((B['판정상대수'] && B['판정상대수'][sid] && B['판정상대수'][sid]['못함']) || 0) : c.inScope(pc['못함']);
+      const miss = !oursHas ? ownN : 0;
+      pairSum += w + miss;
+      if (w > 0 || miss > 0) covCnt++;
+    });
+    if (pairSum > bestPairSum || (pairSum === bestPairSum && covCnt > bestCovCnt)) {
+      bestPairSum = pairSum;
+      bestCovCnt = covCnt;
+      bestStep = stNm;
+    }
+  });
+  return bestStep;
+}
+
+function domainOrderOf(c) {
+  const j = c.base && c.base['치료여정'];
+  return (j && Array.isArray(j['행']) && j['행'].length) ? j['행'] : ['암보장', '뇌혈관보장', '심장보장', '뇌심장보장', '공통보장'];
+}
+
+function buildDomainGroups(stRows, domOrder) {
+  const map = new Map();
+  domOrder.forEach(d => map.set(d, []));
+  stRows.forEach(r => {
+    const d = r.major || '기타';
+    if (!map.has(d)) map.set(d, []);
+    map.get(d).push(r);
+  });
+  const out = [];
+  for (const [dom, items] of map.entries()) {
+    if (items.length) out.push({ dom, items });
+  }
+  return out;
+}
+
+function domMinWidth(domNm, isMobile) {
+  const len = Array.from(String(domNm || '')).length;
+  return Math.max(isMobile ? 48 : 56, Math.ceil(len * (isMobile ? 11.5 : 12.5) + 12));
+}
+
+function measureZoomLayout(hostEl, stRows, domOrder) {
+  const vw = innerWidth;
+  if (!cachedHostW && hostEl && hostEl.clientWidth > 120) cachedHostW = hostEl.clientWidth;
+  const hostW = cachedHostW > 120 ? cachedHostW : Math.max(320, vw - (vw >= 1600 ? 96 : vw >= 1000 ? 64 : 32));
+  const isMobile = vw < 700;
+  const rulerW = isMobile ? 22 : 30;
+  const rightPad = isMobile ? 82 : 108;
+  const domGap = isMobile ? 14 : 20;
+  const usableW = Math.max(150, hostW - rulerW - rightPad);
+  const minPitch = 32;
+  const maxPitch = isMobile ? 48 : 64;
+  const maxBarH = isMobile ? 96 : (innerHeight <= 820 ? 128 : 168);
+  const minBarH = isMobile ? 10 : 12;
+
+  const rawGroups = buildDomainGroups(stRows, domOrder);
+  const grpMinW = g => Math.max(g.items.length * minPitch, domMinWidth(g.dom, isMobile));
+  const totalNeed = rawGroups.reduce((acc, g) => acc + grpMinW(g), 0) + Math.max(0, rawGroups.length - 1) * domGap;
+  let pages = [];
+  if (totalNeed <= usableW || stRows.length <= 1) {
+    pages = [{ groups: rawGroups, count: stRows.length }];
+  } else {
+    const maxColsPerChunk = Math.max(3, Math.floor(usableW / minPitch));
+    const chunks = [];
+    rawGroups.forEach(g => {
+      if (g.items.length <= maxColsPerChunk && grpMinW(g) <= usableW) {
+        chunks.push({ dom: g.dom, items: g.items });
+      } else {
+        const parts = Math.max(2, Math.ceil(g.items.length / maxColsPerChunk));
+        const per = Math.ceil(g.items.length / parts);
+        for (let p = 0; p < parts; p++) {
+          const sl = g.items.slice(p * per, (p + 1) * per);
+          if (sl.length) chunks.push({ dom: `${g.dom} ${p + 1}/${parts}`, items: sl });
+        }
+      }
+    });
+    let cur = { groups: [], count: 0, widthUsed: 0 };
+    chunks.forEach(ch => {
+      const chW = grpMinW(ch);
+      const addGap = cur.groups.length ? domGap : 0;
+      const addW = addGap + chW;
+      if (cur.groups.length && cur.widthUsed + addW > usableW) {
+        pages.push(cur);
+        cur = { groups: [ch], count: ch.items.length, widthUsed: chW };
+      } else {
+        cur.groups.push(ch);
+        cur.count += ch.items.length;
+        cur.widthUsed += addW;
+      }
+    });
+    if (cur.groups.length) pages.push(cur);
+  }
+  return { hostW, rulerW, rightPad, domGap, usableW, minPitch, maxPitch, maxBarH, minBarH, isMobile, pages };
+}
+
+function positionOvBracket(stageEl, animate, preMetric) {
+  if (!stageEl) return;
+  const wrap = stageEl.querySelector('#cv-ov-segs');
+  const brk = stageEl.querySelector('#cv-ov-brk');
+  const activeSeg = wrap && wrap.querySelector('.cv-ov-seg.is-on');
+  if (!wrap || !brk || (!activeSeg && !preMetric)) return;
+  const x = preMetric ? preMetric.x : activeSeg.offsetLeft;
+  const w = preMetric ? preMetric.w : Math.max(16, activeSeg.offsetWidth);
+  const bl = brk.querySelector('.b-b');
+  const br = brk.querySelector('.b-r');
+  const prevX = brk._lastX;
+  const prevW = brk._lastW;
+  brk.hidden = false;
+  brk.style.transform = `translate3d(${x}px,0,0)`;
+  if (bl) bl.style.transform = `scaleX(${(w / 100).toFixed(4)})`;
+  if (br) br.style.transform = `translate3d(${Math.max(0, w - 2)}px,0,0)`;
+  if (animate && App.motionOn() && prevX != null && prevW != null && (Math.abs(prevX - x) > 1 || Math.abs(prevW - w) > 1)) {
+    const dur = Math.max(90, Math.round(280 * App.motionScale()));
+    const ease = 'cubic-bezier(0.65, 0, 0.35, 1)';
+    if (brk._anim) brk._anim.cancel();
+    brk._anim = brk.animate([{ transform: `translate3d(${prevX}px,0,0)` }, { transform: `translate3d(${x}px,0,0)` }], { duration: dur, easing: ease });
+    if (bl && bl.animate) bl.animate([{ transform: `scaleX(${(prevW / 100).toFixed(4)})` }, { transform: `scaleX(${(w / 100).toFixed(4)})` }], { duration: dur, easing: ease });
+    if (br && br.animate) br.animate([{ transform: `translate3d(${Math.max(0, prevW - 2)}px,0,0)` }, { transform: `translate3d(${Math.max(0, w - 2)}px,0,0)` }], { duration: dur, easing: ease });
+  }
+  brk._lastX = x;
+  brk._lastW = w;
+}
+
+function syncCoverSelectionAndFilter(stageEl) {
+  if (!stageEl) return;
+  const sel = App.state.sel.cover || '';
+  const selSid = sel.startsWith('s:') ? sel.slice(2) : (sel.startsWith('c:') ? sel.slice(2) : '');
+  const prevTk = stageEl.querySelector('.cv-tick.is-sel');
+  if (prevTk && prevTk.dataset.cvTick !== selSid) prevTk.classList.remove('is-sel');
+  if (selSid) {
+    const nextTk = stageEl.querySelector(`.cv-tick[data-cv-tick="${CSS.escape(selSid)}"]`);
+    if (nextTk) nextTk.classList.add('is-sel');
+  }
+  const slots = Array.from(stageEl.querySelectorAll('.cvp-slot[data-sid]'));
+  let selSlotIdx = slots.findIndex(s => s.dataset.sid === selSid);
+  if (selSlotIdx < 0) selSlotIdx = 0;
+  slots.forEach((sl, idx) => {
+    const on = sl.dataset.sid === selSid;
+    sl.classList.toggle('is-sel', on);
+    sl.setAttribute('aria-pressed', String(on));
+    sl.tabIndex = idx === selSlotIdx ? 0 : -1;
+  });
+}
+
+function syncCoverAimHot(aimEl) {
+  const stageEl = document.getElementById('cv-pillar-stage');
+  if (!stageEl) return;
+  let sid = '';
+  let slotEl = null;
+  if (aimEl && stageEl.contains(aimEl)) {
+    if (aimEl.dataset.sid) { sid = aimEl.dataset.sid; slotEl = aimEl; }
+    else if (aimEl.dataset.cvTick) sid = aimEl.dataset.cvTick;
+  }
+  if (sid !== lastHotSid) {
+    if (lastHotSid) {
+      stageEl.querySelectorAll('.is-hot').forEach(el => el.classList.remove('is-hot'));
+    }
+    lastHotSid = sid;
+    if (sid) {
+      const tk = stageEl.querySelector(`.cv-tick[data-cv-tick="${CSS.escape(sid)}"]`);
+      if (tk) tk.classList.add('is-hot');
+      const sl = stageEl.querySelector(`.cvp-slot[data-sid="${CSS.escape(sid)}"]`);
+      if (sl) { sl.classList.add('is-hot'); if (!slotEl) slotEl = sl; }
+    }
+  }
+  const hair = stageEl.querySelector('#cv-hairline');
+  if (hair) {
+    if (slotEl) {
+      const ph = parseInt(slotEl.style.getPropertyValue('--ph'), 10) || 14;
+      const plotEl = stageEl.querySelector('#cv-plot-area');
+      const plotH = plotEl ? (parseInt(plotEl.style.getPropertyValue('--plot-h'), 10) || 196) : 196;
+      const hy = Math.max(0, plotH - ph);
+      hair.style.setProperty('--hy', hy + 'px');
+      hair.hidden = false;
+    } else {
+      hair.hidden = true;
+    }
+  }
+}
+
+function buildZoomedHTML(c, m, B, curStep, pageIdx, pIdxs, totPeerOrgs, pSet, hostEl) {
+  const stRows = m.rows.filter(r => r.type === curStep);
+  const domOrder = domainOrderOf(c);
+  const lay = measureZoomLayout(hostEl, stRows, domOrder);
+  const pCount = lay.pages.length;
+  const safePage = Math.max(0, Math.min(pCount - 1, pageIdx || 0));
+  curPageByStep[c.baseId + '|' + curStep] = safePage;
+  const pageObj = lay.pages[safePage] || { groups: [], count: 0 };
+  const gapTotal = Math.max(0, pageObj.groups.length - 1) * lay.domGap;
+  // 좁은 보장 분야(1~2개 담보)가 최소 이름 폭을 차지하는 만큼을 빼고 나머지 기둥 간격을 고르게 분배한다.
+  let fixedW = 0, flexCount = 0;
+  pageObj.groups.forEach(g => {
+    const mw = domMinWidth(g.dom, lay.isMobile);
+    if (g.items.length * lay.maxPitch <= mw) fixedW += mw;
+    else flexCount += g.items.length;
+  });
+  let rawPitch = flexCount > 0 ? Math.floor((lay.usableW - gapTotal - fixedW) / flexCount) : lay.maxPitch;
+  let pitch = Math.max(lay.minPitch, Math.min(lay.maxPitch, rawPitch));
+  // 검증: 혹시라도 합계 폭이 usableW 를 넘으면 한 단계 더 줄여 0px 초과도 막는다.
+  const sumAtPitch = p => pageObj.groups.reduce((a, g) => a + Math.max(g.items.length * p, domMinWidth(g.dom, lay.isMobile)), 0) + gapTotal;
+  while (pitch > lay.minPitch && sumAtPitch(pitch) > lay.usableW) pitch--;
+  const barW = Math.max(12, Math.min(28, pitch - 12));
+  const maxChars = lay.isMobile ? 10 : 14;
+
+  let slotSeq = 0;
+  let curGrpLeft = lay.rulerW;
+  const groupsHTML = pageObj.groups.map(grp => {
+    const grpW = Math.max(grp.items.length * pitch, domMinWidth(grp.dom, lay.isMobile));
+    const slotW = grp.items.length === 1 ? grpW : pitch;
+    const slotsTotalW = grp.items.length * slotW;
+    const slotsOffset = curGrpLeft + (grpW - slotsTotalW) / 2;
+    curGrpLeft += grpW + lay.domGap;
+    const slotsHTML = grp.items.map((r, j) => {
+      const idxInPage = slotSeq++;
+      const bcx = slotsOffset + j * slotW + slotW / 2;
+      const rm = rowStackMetrics(r, m, B, c, totPeerOrgs, pIdxs);
+      const passFilter = matchesCoverFilter(rm);
+      const pil = stackedShapeHTML(rm, barW, lay.maxBarH, lay.minBarH);
+      const hasFlag = r.pts.some(p => p['원문대조'] && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o))));
+      const pk = `s:${r.sid}`;
+      const fullNm = stdN(r.sid);
+      const shortLbl = truncLabel(fullNm, maxChars);
+      const ownDesc = rm.oursHas
+        ? (rm.ownN > 0 ? `우체국 보유, 상대 ${fmt(rm.ownN)}/${fmt(totPeerOrgs)}곳` : '우체국 단독 보유')
+        : (rm.ownN > 0 ? `우체국 없음, 상대 ${fmt(rm.ownN)}/${fmt(totPeerOrgs)}곳` : '비교 범위 내 보유 회사 없음');
+      const aria = `${fullNm} (${grp.dom}, ${curStep}, ${ownDesc})`;
+      const isNoData = !rm.oursHas && rm.ownN <= 0;
+      return `<button type="button" class="cvp-slot${rm.oursHas ? '' : ' is-miss'}${passFilter ? '' : ' is-filtered-out'}" style="width:${slotW}px;--bw:${barW}px;--ph:${pil.h}px;--pd:${Math.min(260, idxInPage * 11)}ms" data-bcx="${bcx.toFixed(1)}" data-bw="${barW}" data-ph="${pil.h}" data-pick="${esc(pk)}" data-sid="${esc(r.sid)}" data-toggle="1" data-aim="rect"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-tip-title="${esc(fullNm)}" data-tip-sub="${esc(`${grp.dom} / ${ownDesc}`)}" data-tip-chip="${rm.domChip}" aria-pressed="false" aria-label="${esc(aria)}">
+        <span class="cvp-upper" style="height:${lay.maxBarH + 28}px">
+          <span class="cvp-stem" aria-hidden="true"><i class="cvp-dia"></i></span>
+          ${hasFlag ? '<i class="cvp-flg" aria-hidden="true"></i>' : ''}
+          <span class="cvp-bar" data-link-pt="1" data-aim-box="1">${pil.html}</span>
+        </span>
+        <i class="cvp-foot-tk" aria-hidden="true"></i>
+        <span class="cvp-lbl-box" aria-hidden="true"><span class="cvp-lbl">${esc(shortLbl)}</span></span>
+      </button>`;
+    }).join('');
+
+    return `<div class="cv-dom-grp" style="width:${grpW}px">
+      <div class="cv-dom-slots">${slotsHTML}</div>
+      <div class="cv-dom-brk" aria-hidden="true"><i class="db-l"></i><span class="db-nm">${esc(grp.dom)}</span><i class="db-r"></i></div>
+    </div>`;
+  }).join('');
+
+  const pagerHTML = pCount > 1
+    ? `<div class="cv-pager" role="navigation" aria-label="보장 분야 쪽 이동">
+        <button type="button" class="btn sm ghost" data-cv-page="${safePage - 1}"${safePage <= 0 ? ' disabled' : ''}>${ui.IC.chevL}<span>앞 묶음</span></button>
+        <span class="cv-page-ind num">${safePage + 1}/${pCount}</span>
+        <button type="button" class="btn sm ghost" data-cv-page="${safePage + 1}"${safePage >= pCount - 1 ? ' disabled' : ''}><span>다음 묶음</span>${ui.IC.chevR}</button>
+      </div>`
+    : '';
+
+  const stageOursCnt = stRows.filter(r => has(r.cells[0])).length;
+  const stageFilteredCnt = activeFilters.size
+    ? stRows.filter(r => matchesCoverFilter(rowStackMetrics(r, m, B, c, totPeerOrgs, pIdxs))).length
+    : stRows.length;
+  const subInfo = activeFilters.size
+    ? `거르개 통과 ${fmt(stageFilteredCnt)}/${fmt(stRows.length)}개`
+    : `우체국 보유 ${fmt(stageOursCnt)}/${fmt(stRows.length)}개`;
+
+  return `<div class="cv-zoom-head">
+      <div class="cv-zh-l">
+        <span class="cv-zh-step">${esc(curStep)} 단계 확대</span>
+        <span class="cv-zh-sub num">${esc(subInfo)}</span>
+      </div>
+      ${pagerHTML}
+    </div>
+    <div class="cv-plot-wrap" id="cv-plot-area" style="--plot-h:${lay.maxBarH + 28}px;--lbl-h:${lay.isMobile ? 96 : 120}px;--ruler-w:${lay.rulerW}px;--rpad:${lay.rightPad}px">
+      <div class="ax-ruler cv-ruler" style="height:${lay.maxBarH}px;top:28px" aria-hidden="true"><span>100</span><span>50</span><span>0</span></div>
+      <div class="ax-hairline" id="cv-hairline" hidden aria-hidden="true"></div>
+      <div class="cv-stage-axis" data-main-axis="1" style="top:${lay.maxBarH + 28}px" aria-hidden="true"></div>
+      <div class="cv-dom-row" id="cv-zoom-axis" data-scrub-row="1" style="gap:${lay.domGap}px">${groupsHTML}</div>
+    </div>`;
+}
+
+function captureSinkGhostHTML(zoomBox) {
+  const plot = zoomBox && zoomBox.querySelector('#cv-plot-area');
+  if (!plot) return '';
+  const slots = plot.querySelectorAll('.cvp-slot[data-bcx]');
+  const parts = [];
+  slots.forEach(sl => {
+    const bar = sl.querySelector('.cvp-bar');
+    if (!bar) return;
+    const bcx = parseFloat(sl.dataset.bcx) || 0;
+    const bw = parseFloat(sl.dataset.bw) || 18;
+    const ph = parseFloat(sl.dataset.ph) || 14;
+    if (bw < 2 || ph < 2) return;
+    const x = (bcx - bw / 2).toFixed(1);
+    parts.push(`<span class="cv-ghost-bar" style="left:${x}px;width:${bw.toFixed(1)}px;height:${ph.toFixed(1)}px">${bar.innerHTML}</span>`);
+  });
+  return parts.join('');
+}
+
+function animateZoomBarsFromTicks(stageEl, baseDelayMs = 0, prePlotRect = null, preTickMap = null) {
+  if (!stageEl || !App.motionOn()) return;
+  const plot = stageEl.querySelector('#cv-plot-area');
+  const slots = Array.from(stageEl.querySelectorAll('.cvp-slot[data-sid]'));
+  if (!plot || !slots.length) return;
+  const mScale = App.motionScale();
+  const pRect = prePlotRect || plot.getBoundingClientRect();
+  const axisY = pRect.top + (parseFloat(plot.style.getPropertyValue('--plot-h')) || 196);
+
+  // 모든 좌표를 사전 계산값 또는 일괄 측정값으로 결합하여 DOM 교체 뒤 강제 동기 레이아웃을 0으로 유지한다
+  slots.forEach((sl, idx) => {
+    const sid = sl.dataset.sid;
+    const bar = sl.querySelector('.cvp-bar');
+    if (!bar || typeof bar.animate !== 'function') return;
+    const bcx = parseFloat(sl.dataset.bcx) || 32;
+    const bw = parseFloat(sl.dataset.bw) || 18;
+    const ph = parseFloat(sl.dataset.ph) || 14;
+    const bCx = pRect.left + bcx;
+    const bCy = axisY - ph / 2;
+    const tRect = preTickMap ? preTickMap.get(sid) : null;
+    const dly = Math.round((baseDelayMs + Math.min(100, idx * 5)) * mScale);
+    if (tRect && tRect.width >= 1 && tRect.height >= 1) {
+      const dx = (tRect.left + tRect.width / 2) - bCx;
+      const dy = (tRect.top + tRect.height / 2) - bCy;
+      const sx = Math.max(0.15, Math.min(1, tRect.width / bw));
+      const sy = Math.max(0.12, Math.min(1, tRect.height / ph));
+      bar.animate([
+        { transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(${sx.toFixed(3)},${sy.toFixed(3)})`, opacity: baseDelayMs ? 0 : 0.55 },
+        { transform: 'translate3d(0,0,0) scale(1,1)', opacity: 1 },
+      ], {
+        duration: Math.max(100, Math.round(290 * mScale)),
+        delay: dly,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'backwards',
+      });
+    } else {
+      bar.animate([
+        { transform: 'scaleY(0.08)', opacity: baseDelayMs ? 0 : 0.25 },
+        { transform: 'scaleY(1)', opacity: 1 },
+      ], {
+        duration: Math.max(90, Math.round(270 * mScale)),
+        delay: dly,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'backwards',
+      });
+    }
+  });
+}
+
+function switchCoverStep(nextStep, opts = {}) {
+  const c = App.ctx();
+  const m = model(c.baseId);
+  const B = CV && CV.b[c.baseId];
+  const stageEl = document.getElementById('cv-pillar-stage');
+  if (!m || !B || !stageEl || !STEPS.includes(nextStep)) return;
+  const prevStep = curStepByBase[c.baseId];
+  curStepByBase[c.baseId] = nextStep;
+  if (opts.page != null) curPageByStep[c.baseId + '|' + nextStep] = opts.page;
+
+  const zoomBox = stageEl.querySelector('#cv-zoom-box');
+  if (!zoomBox) return;
+
+  // 1단계(읽기 전용): 어떤 클래스나 DOM 도 바꾸기 전에 필요한 모든 기하 좌표를 먼저 읽는다(강제 레이아웃 0)
+  const nextSegEl = stageEl.querySelector(`.cv-ov-seg[data-cv-step="${CSS.escape(nextStep)}"]`);
+  const preSegMetric = nextSegEl ? { x: nextSegEl.offsetLeft, w: Math.max(16, nextSegEl.offsetWidth) } : null;
+  const oldPlot = zoomBox.querySelector('#cv-plot-area');
+  const prePlotRect = oldPlot ? oldPlot.getBoundingClientRect() : null;
+  const canSink = opts.animate !== false && App.motionOn() && prevStep && prevStep !== nextStep;
+  const ghostBarsHTML = canSink ? captureSinkGhostHTML(zoomBox) : '';
+  const preTickMap = new Map();
+  if (opts.animate !== false && App.motionOn() && nextSegEl) {
+    nextSegEl.querySelectorAll('.cv-tick[data-cv-tick]').forEach(tk => {
+      preTickMap.set(tk.dataset.cvTick, tk.getBoundingClientRect());
+    });
+  }
+
+  // 2단계(쓰기 전용): 모든 DOM/스타일/WAAPI 애니메이션을 단번에 기록한다
+  stageEl.querySelectorAll('.cv-ov-seg[data-cv-step]').forEach(seg => {
+    const on = seg === nextSegEl;
+    seg.classList.toggle('is-on', on);
+    seg.setAttribute('aria-pressed', String(on));
+  });
+  positionOvBracket(stageEl, opts.animate !== false, preSegMetric);
+
+  const pIdxs = peerIdxOf(m, c);
+  const totPeerOrgs = Math.max(1, new Set(pIdxs.map(i => orgOf(m.cols[i + 1]))).size);
+  const pSet = new Set(c.activePeerOrgs || []);
+
+  stepSwitchToken++;
+  const pg = curPageByStep[c.baseId + '|' + nextStep] || 0;
+  zoomBox.innerHTML = buildZoomedHTML(c, m, B, nextStep, pg, pIdxs, totPeerOrgs, pSet, stageEl);
+  syncCoverSelectionAndFilter(stageEl);
+
+  if (opts.animate !== false && App.motionOn()) {
+    let ghostEl = null;
+    if (ghostBarsHTML) {
+      const plot = zoomBox.querySelector('#cv-plot-area');
+      if (plot) {
+        ghostEl = document.createElement('div');
+        ghostEl.className = 'cv-sink-ghost';
+        ghostEl.setAttribute('aria-hidden', 'true');
+        ghostEl.innerHTML = ghostBarsHTML;
+        plot.appendChild(ghostEl);
+      }
+    }
+    animateZoomBarsFromTicks(stageEl, ghostEl ? 105 : 0, prePlotRect, preTickMap);
+    if (ghostEl && typeof ghostEl.animate === 'function') {
+      const sinkDur = Math.max(70, Math.round(160 * App.motionScale()));
+      ghostEl.animate([
+        { transform: 'scaleY(1)', opacity: 0.92 },
+        { transform: 'scaleY(0.03)', opacity: 0 },
+      ], {
+        duration: sinkDur,
+        easing: 'cubic-bezier(0.7, 0, 0.84, 0)',
+        fill: 'forwards',
+      });
+    }
+  }
+  if (opts.focusEdge) {
+    const slots = Array.from(zoomBox.querySelectorAll('.cvp-slot[data-sid]'));
+    const target = opts.focusEdge === 'last' ? slots[slots.length - 1] : slots[0];
+    if (target) {
+      slots.forEach(s => { s.tabIndex = s === target ? 0 : -1; });
+      try { target.focus({ preventScroll: true }); } catch (ex) { /* */ }
+    }
+  }
+  requestAnimationFrame(() => App.updateSelLink(false));
+}
+
+function ensureSidInView(sid, c) {
+  const m = model(c.baseId);
+  if (!m || !m.byId[sid]) return false;
+  const row = m.byId[sid];
+  const stNm = row.type;
+  if (!STEPS.includes(stNm)) return false;
+  const curStep = curStepByBase[c.baseId];
+  if (curStep === stNm && document.querySelector(`#cv-zoom-box .cvp-slot[data-sid="${CSS.escape(sid)}"]`)) {
+    return false;
+  }
+  const stageEl = document.getElementById('cv-pillar-stage');
+  const stRows = m.rows.filter(r => r.type === stNm);
+  const lay = measureZoomLayout(stageEl, stRows, domainOrderOf(c));
+  let hitPage = 0;
+  lay.pages.forEach((p, pi) => {
+    if (p.groups.some(g => g.items.some(it => it.sid === sid))) hitPage = pi;
+  });
+  const curPage = curPageByStep[c.baseId + '|' + stNm] || 0;
+  if (curStep !== stNm || curPage !== hitPage) {
+    curPageByStep[c.baseId + '|' + stNm] = hitPage;
+    switchCoverStep(stNm, { page: hitPage, animate: true });
+    return true;
+  }
+  return false;
+}
+
 function renderStage(center, c) {
+  lastStageHost = center;
+  lastHotSid = '';
+  cachedHostW = center && center.clientWidth > 120 ? center.clientWidth : 0;
   const m = model(c.baseId);
   const B = CV && CV.b[c.baseId];
   if (!m || !B) {
@@ -235,72 +756,86 @@ function renderStage(center, c) {
   const totPeerOrgs = Math.max(1, new Set(pIdxs.map(i => orgOf(m.cols[i + 1]))).size);
   const pSet = new Set(c.activePeerOrgs || []);
 
-  let gCol = 0;
-  const segsHTML = STEPS.map((stNm, sIdx) => {
+  // 선택된 담보가 있으면 해당 단계를 우선 유지하고, 없으면 못함+없음 최대 단계를 기본으로 선택
+  const selRaw = c.st.sel.cover || '';
+  const selSid = selRaw.startsWith('s:') ? selRaw.slice(2) : (selRaw.startsWith('c:') ? selRaw.slice(2) : '');
+  if (selSid && m.byId[selSid] && STEPS.includes(m.byId[selSid].type)) {
+    curStepByBase[c.baseId] = m.byId[selSid].type;
+  } else if (!curStepByBase[c.baseId] || !STEPS.includes(curStepByBase[c.baseId])) {
+    curStepByBase[c.baseId] = defaultStepFor(m, B, c);
+  }
+  const curStep = curStepByBase[c.baseId];
+
+  const tickW = innerWidth >= 1600 ? 6 : innerWidth >= 1000 ? 4 : 3;
+  let totalPassCnt = 0;
+  m.rows.forEach(r => {
+    if (matchesCoverFilter(rowStackMetrics(r, m, B, c, totPeerOrgs, pIdxs))) totalPassCnt++;
+  });
+
+  const ovSegsHTML = STEPS.map(stNm => {
     const stRows = m.rows.filter(r => r.type === stNm);
     const oursCnt = stRows.filter(r => has(r.cells[0])).length;
     const totCnt = stRows.length;
-    const ratioStr = `${fmt(oursCnt)}/${fmt(totCnt)}`;
-
-    const pils = stRows.map(r => {
-      const colIdx = gCol++;
-      const pil = pillarSVG(r, B, c, totPeerOrgs);
-      const hasFlag = r.pts.some(p => p['원문대조'] && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o))));
-      const pk = `s:${r.sid}`;
-      const ownDesc = pil.oursHas
-        ? (pil.ownN > 0 ? `우체국 보유, 상대 ${fmt(pil.ownN)}/${fmt(totPeerOrgs)}곳` : '우체국 단독 보유')
-        : `우체국 없음, 상대 ${fmt(pil.ownN)}/${fmt(totPeerOrgs)}곳`;
-      const lbl = `${stdN(r.sid)} (${stNm}, ${ownDesc})`;
-      return `<button type="button" class="cvp-btn${pil.oursHas ? '' : ' is-miss'}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="0" data-grid-c="${colIdx}" data-cv-nm="${esc(stdN(r.sid))}" data-cv-sub="${esc(ownDesc)}" aria-pressed="false" aria-label="${esc(lbl)}">
-        <span class="cvp-stem" aria-hidden="true"><i class="cvp-dia"></i></span>
-        ${hasFlag ? '<i class="cvp-flg" aria-hidden="true"></i>' : ''}
-        <span class="cvp-bar" data-link-pt="1" style="--ph:${pil.h}px">${pil.svg}</span>
-      </button>`;
+    const on = stNm === curStep;
+    const ticksHTML = stRows.map(r => {
+      const rm = rowStackMetrics(r, m, B, c, totPeerOrgs, pIdxs);
+      const pass = matchesCoverFilter(rm);
+      const tk = stackedShapeHTML(rm, tickW, innerWidth < 700 ? 22 : 28, 4);
+      const fullNm = stdN(r.sid);
+      const ownDesc = rm.oursHas
+        ? (rm.ownN > 0 ? `우체국 보유, 상대 ${fmt(rm.ownN)}/${fmt(totPeerOrgs)}곳` : '우체국 단독 보유')
+        : `우체국 없음, 상대 ${fmt(rm.ownN)}/${fmt(totPeerOrgs)}곳`;
+      return `<span class="cv-tick${pass ? '' : ' is-filtered-out'}" data-cv-tick="${esc(r.sid)}" data-cv-step-of="${esc(stNm)}" data-tip-title="${esc(fullNm)}" data-tip-sub="${esc(`${stNm} / ${ownDesc}`)}" data-tip-chip="${rm.domChip}" style="width:${tickW}px;--th:${tk.h}px">${tk.html}<i class="cv-tk-sel"></i></span>`;
     }).join('');
 
-    return `<div class="cvp-seg" data-step="${esc(stNm)}">
-      <div class="cvp-sh">
-        <span class="cvp-ring">${ui.miniRingSVG(oursCnt, Math.max(1, totCnt), '')}</span>
-        <span class="cvp-snm">${esc(stNm)}</span>
-        <span class="cvp-scnt num">${esc(ratioStr)}</span>
-      </div>
-      <div class="cvp-row">${pils}</div>
-    </div>`;
+    return `<button type="button" class="cv-ov-seg${on ? ' is-on' : ''}" data-cv-step="${esc(stNm)}" aria-pressed="${on}" aria-label="${esc(`${stNm} 단계 펼치기 (${oursCnt}/${totCnt})`)}">
+      <span class="cv-ov-sh">
+        <span class="cv-ov-ring">${ui.miniRingSVG(oursCnt, Math.max(1, totCnt), '')}</span>
+        <span class="cv-ov-nm">${esc(stNm)}</span>
+        <span class="cv-ov-cnt num">${esc(`${fmt(oursCnt)}/${fmt(totCnt)}`)}</span>
+      </span>
+      <span class="cv-ov-ticks" data-cv-ov="1">${ticksHTML}</span>
+    </button>`;
   }).join('');
 
-  center.innerHTML = `<div class="cvp-stage" id="cv-pillar-stage">
-    <div class="cvp-hover-bar" id="cv-hover-bar" aria-live="polite"></div>
-    <div class="cvp-axis" id="cv-pillar-axis">${segsHTML}</div>
-  </div>`;
+  const filterBtnsHTML = FILTERS.map(f => {
+    const on = activeFilters.has(f.k);
+    return `<button type="button" class="cv-flt-btn${on ? ' is-on' : ''}" data-cv-flt="${f.k}" aria-pressed="${on}">${esc(f.label)}</button>`;
+  }).join('');
+  const activeFilterNames = FILTERS.filter(f => activeFilters.has(f.k)).map(f => f.label).join(', ');
+  const filterCountHTML = activeFilters.size
+    ? `<span class="cv-flt-stat num" aria-live="polite">${esc(activeFilterNames)}: <b>${fmt(totalPassCnt)}</b>/${fmt(m.rows.length)}개</span>`
+    : `<span class="cv-flt-stat num" aria-live="polite">전체 <b>${fmt(m.rows.length)}</b>개</span>`;
 
-  const axisEl = center.querySelector('#cv-pillar-axis');
-  const hoverBar = center.querySelector('#cv-hover-bar');
-  if (axisEl && hoverBar) {
-    const showHover = btnEl => {
-      if (!btnEl) { hoverBar.innerHTML = ''; return; }
-      const nm = btnEl.dataset.cvNm || '';
-      const sub = btnEl.dataset.cvSub || '';
-      const aBox = axisEl.getBoundingClientRect();
-      const bBox = btnEl.getBoundingClientRect();
-      const leftPx = Math.max(0, Math.min(Math.max(0, aBox.width - 240), Math.round(bBox.left - aBox.left - 8)));
-      hoverBar.innerHTML = `<span class="cvp-hlbl" style="transform:translateX(${leftPx}px)"><b>${esc(nm)}</b> <span>${esc(sub)}</span></span>`;
-    };
-    axisEl.addEventListener('pointerover', e => {
-      const b = e.target.closest && e.target.closest('.cvp-btn');
-      if (b) showHover(b);
-    });
-    axisEl.addEventListener('pointerleave', () => {
-      const f = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cv-pillar-axis .cvp-btn');
-      showHover(f || null);
-    });
-    axisEl.addEventListener('focusin', e => {
-      const b = e.target.closest && e.target.closest('.cvp-btn');
-      if (b) showHover(b);
-    });
-    axisEl.addEventListener('focusout', e => {
-      if (!axisEl.contains(e.relatedTarget)) showHover(null);
+  // 만약 선택된 담보가 현재 단계의 다른 쪽에 있으면 그 쪽으로 맞춤
+  let initPage = curPageByStep[c.baseId + '|' + curStep] || 0;
+  if (selSid && m.byId[selSid] && m.byId[selSid].type === curStep) {
+    const stRows = m.rows.filter(r => r.type === curStep);
+    const lay = measureZoomLayout(center, stRows, domainOrderOf(c));
+    lay.pages.forEach((p, pi) => {
+      if (p.groups.some(g => g.items.some(it => it.sid === selSid))) initPage = pi;
     });
   }
+
+  const zoomHTML = buildZoomedHTML(c, m, B, curStep, initPage, pIdxs, totPeerOrgs, pSet, center);
+
+  center.innerHTML = `<div class="cvp-stage" id="cv-pillar-stage">
+    <div class="cv-ov-top">
+      <div class="cv-ov-strip" id="cv-ov-strip">
+        <div class="cv-ov-segs" id="cv-ov-segs">${ovSegsHTML}</div>
+        <div class="cv-ov-brk" id="cv-ov-brk" hidden aria-hidden="true"><i class="b-l"></i><i class="b-b"></i><i class="b-r"></i></div>
+      </div>
+      <div class="cv-flt-bar" role="group" aria-label="담보 거르개">
+        ${filterBtnsHTML}
+        ${filterCountHTML}
+      </div>
+    </div>
+    <div class="cv-zoom-box" id="cv-zoom-box">${zoomHTML}</div>
+  </div>`;
+
+  const stageEl = center.querySelector('#cv-pillar-stage');
+  syncCoverSelectionAndFilter(stageEl);
+  requestAnimationFrame(() => positionOvBracket(stageEl, false));
 }
 
 // ---------- 관계도(직각 꺾은선, 갈림 자리 9px 마름모). 탭 5 도 쓴다 ----------
@@ -448,42 +983,107 @@ function drawRel(el, baseId, sid) {
   if (App.motionOn()) { el.classList.remove('rl-in'); void el.offsetWidth; el.classList.add('rl-in'); }
 }
 
-// ---------- 조건 비교와 근거(고른 회사 셋까지 나란히, 나머지는 목록) ----------
+// ---------- 조건 비교와 근거(상대 셋 이하는 나란히, 넷 이상이면 우체국 + 판정별 묶음 접기) ----------
 function condTable(m, row, c) {
   const allPIdxs = peerIdxOf(m, c);
-  const topPIdxs = allPIdxs.slice(0, 3);
-  const restPIdxs = allPIdxs.slice(3);
-  const colIdxs = [0].concat(topPIdxs.map(i => i + 1));
-  const cols = colIdxs.map(k => m.cols[k]);
-  const reps = colIdxs.map(k => repOf(row.cells[k]));
+  const B = CV && CV.b[c.baseId];
+  const allColIdxs = [0].concat(allPIdxs.map(i => i + 1));
+  const hasAnyNonMon = allColIdxs.some(k => {
+    const rp = repOf(row.cells[k]);
+    return !!(rp && nonMonKind(rp));
+  });
   const items = [
-    ['지급', b => payText(b)], ['기준 가입금액', b => baseText(b)], ['면책', b => waitText(b.wait)], ['감액', b => redText(b.red)],
-    ['지급 형태', b => b.tags || '문구 없음'],
+    ['지급', b => payText(b)],
+    ['기준 가입금액', b => baseText(b)],
+    ['면책', b => waitText(b.wait)],
+    ['감액', b => redText(b.red, b)],
+    ['지급 형태', b => formText(b, hasAnyNonMon)],
   ];
+
+  // 상대가 넷 이상이면 우체국 + 판정기관코드 기준 판정 묶음으로 접고 누르면 회사별 줄을 펼친다
+  if (allPIdxs.length >= 4) {
+    const oursRep = repOf(row.cells[0]);
+    const perCodes = (B && B['판정기관코드'] && B['판정기관코드'][row.sid]) || {};
+    const pSet = new Set(c.activePeerOrgs || []);
+    const scopedCodes = list => {
+      if (!Array.isArray(list)) return [];
+      return c.peerScope === 'all' ? list.slice() : list.filter(code => pSet.has(code));
+    };
+    const peerIdxsByOrg = {};
+    allPIdxs.forEach(i => {
+      const code = orgOf(m.cols[i + 1]);
+      (peerIdxsByOrg[code] = peerIdxsByOrg[code] || []).push(i);
+    });
+    const buckets = [
+      { key: 'better', label: '나음', vd: 'better', codes: scopedCodes(perCodes['나음']) },
+      { key: 'same', label: '같음', vd: 'same', codes: scopedCodes(perCodes['같음']) },
+      { key: 'worse', label: '못함', vd: 'worse', codes: scopedCodes(perCodes['못함']) },
+      { key: 'diff', label: '우열 보류(엇갈림, 단정 주의)', vd: 'diff', codes: [...new Set(scopedCodes(perCodes['엇갈림']).concat(scopedCodes(perCodes['단정 주의'])))] },
+      { key: 'hold', label: '판정 보류', vd: 'unknown', codes: [...new Set(scopedCodes(perCodes['판정 보류']).concat(scopedCodes(perCodes['검토 대기'])))] },
+      { key: 'miss', label: '우체국에 없음(상대 보유)', vd: 'none', codes: scopedCodes(perCodes['우체국에 없음']) },
+    ].filter(bk => bk.codes.length > 0);
+
+    const heldPeerCodes = new Set(scopedCodes((B && B['보유기관코드'] && B['보유기관코드'][row.sid]) || []));
+    const absentPeerOrgs = [...new Set(allPIdxs.map(i => orgOf(m.cols[i + 1])))].filter(code => !heldPeerCodes.has(code));
+
+    const summaryChips = buckets.map(bk => `<span class="cv-vg-chip">${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)}</span>`).join(' ')
+      + (absentPeerOrgs.length ? ` <span class="tag">상대 미보유 ${fmt(absentPeerOrgs.length)}곳</span>` : '');
+
+    const oursCells = items.map(([lab, f]) => `<div class="cv-ours-kv"><span>${esc(lab)}</span><b>${oursRep ? esc(f(oursRep)) : '없음'}</b></div>`).join('');
+
+    const groupsAccordion = buckets.map((bk, bIdx) => {
+      const pRows = [];
+      bk.codes.forEach(code => {
+        const matchIdxs = peerIdxsByOrg[code] || [];
+        if (matchIdxs.length) {
+          matchIdxs.forEach(i => {
+            const k = i + 1;
+            const vid = m.cols[k];
+            const rp = repOf(row.cells[k]);
+            const v = verdFor(row, m, i, allPIdxs);
+            pRows.push(`<tr>
+              <th scope="row" title="${esc(fullN(vid))}">${esc(orgN(vid))} <span class="note">${esc(txt.shortName(kindN(vid)).short)}</span></th>
+              <td>${rp ? esc(payText(rp)) : '<span class="cv-na">없음</span>'}</td>
+              <td>${rp ? esc(waitText(rp.wait)) : '-'}</td>
+              <td>${rp ? esc(redText(rp.red, rp)) : '-'}</td>
+              <td>${rp ? esc(formText(rp, hasAnyNonMon)) : '-'}</td>
+              <td>${chip(v)}</td>
+            </tr>`);
+          });
+        } else {
+          pRows.push(`<tr><th scope="row">${esc(txt.orgShort(code))}</th><td colspan="5" class="note">해당 회사 보유</td></tr>`);
+        }
+      });
+      return `<details class="zr-det cv-vg-det"${bIdx === 0 ? ' open' : ''}>
+        <summary><span>${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)} <span class="note">${esc(txt.peerNamesEtc(bk.codes.map(txt.orgShort), 4))}</span></span>${ui.IC.chevD}</summary>
+        <div class="zr-det-b"><div class="cv-ct-w"><table class="cv-ct">
+          <tr><th scope="col">상대 회사</th><th scope="col">지급</th><th scope="col">면책</th><th scope="col">감액</th><th scope="col">지급 형태</th><th scope="col">판정</th></tr>
+          ${pRows.join('')}
+        </table></div></div>
+      </details>`;
+    }).join('');
+
+    return `<div class="cv-ct-w"><table class="cv-ct cv-ct-fold">
+        <tr><th scope="col">${esc(orgN(m.cols[0]))} (기준)</th><th scope="col">판정별로 묶은 상대 (${fmt(allPIdxs.length)}개 종형)</th></tr>
+        <tr><td><div class="cv-ours-grid">${oursCells}</div></td><td><div class="cv-vg-sum">${summaryChips || '<span class="note">보유 상대 없음</span>'}</div></td></tr>
+      </table></div>
+      <div class="cv-vg-list">${groupsAccordion}</div>
+      <p class="note">상대가 넷 이상이라 우체국과 판정별 상대 묶음으로 접었습니다. 묶음을 누르면 그 회사들의 줄이 펼쳐집니다.</p>`;
+  }
+
+  const cols = allColIdxs.map(k => m.cols[k]);
+  const reps = allColIdxs.map(k => repOf(row.cells[k]));
   const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
   const body = items.map(([lab, f]) => {
     const vals = {};
-    [0].concat(allPIdxs.map(i => i + 1)).forEach(k => {
+    allColIdxs.forEach(k => {
       const rp = repOf(row.cells[k]);
       vals[orgOf(m.cols[k])] = rp ? f(rp) : null;
     });
     return `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(txt.sameSummary(vals))}</td></tr>`;
   }).join('');
 
-  let restHTML = '';
-  if (restPIdxs.length) {
-    const lis = restPIdxs.map(i => {
-      const k = i + 1;
-      const vid = m.cols[k];
-      const rp = repOf(row.cells[k]);
-      const v = verdFor(row, m, i, allPIdxs);
-      const condStr = rp ? `지급 ${payText(rp)}, 면책 ${waitText(rp.wait)}, 감액 ${redText(rp.red)}` : '이 담보 없음';
-      return `<li><b>${esc(orgN(vid))}</b> ${chip(v)} <span class="note">${esc(condStr)}</span></li>`;
-    }).join('');
-    restHTML = `<details class="zr-det" style="margin-top:8px"><summary><span>나머지 상대 회사 ${fmt(restPIdxs.length)}곳 조건 목록</span>${ui.IC.chevD}</summary><div class="zr-det-b"><ul class="cv-evl">${lis}</ul></div></details>`;
-  }
-
-  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div>${restHTML}<p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, 지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.</p>`;
+  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, 지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.</p>`;
 }
 
 function evidenceList(m, row, extra, c) {
@@ -493,7 +1093,10 @@ function evidenceList(m, row, extra, c) {
     const b = repOf(row.cells[k]);
     if (!b) return '';
     const rd = rider(b.rid);
-    return `<li><b>${esc(orgN(v))}</b> ${ui.tag(txt.pageText(b.doc, b.page))} <span title="${esc(b.name)}">${esc(b.name)}</span>${rd ? `<br><span class="note">특약: ${esc(rd.name)}</span>` : ''}</li>`;
+    const nm = nonMonKind(b);
+    const nmDesc = nonMonWhy(nm);
+    const nmHTML = nmDesc ? `<br><span class="note"><b>${esc(nm)}:</b> ${esc(nmDesc)}</span>` : '';
+    return `<li><b>${esc(orgN(v))}</b> ${ui.tag(txt.pageText(b.doc, b.page))} <span title="${esc(b.name)}">${esc(b.name)}</span>${rd ? `<br><span class="note">특약: ${esc(rd.name)}</span>` : ''}${nmHTML}</li>`;
   }).join('');
   return `<ul class="cv-evl">${items}${extra || ''}</ul>`;
 }
@@ -501,6 +1104,7 @@ function evidenceList(m, row, extra, c) {
 function rowEvidence(c, sid, mode) {
   const m = model(c.baseId); const row = m && m.byId[sid];
   if (!row) return null;
+  const B = CV && CV.b[c.baseId];
   const pIdxs = peerIdxOf(m, c);
   const pSet = new Set(c.activePeerOrgs || []);
   const scopedCau = c.peerScope === 'all' ? row.cau : row.cau.filter(x => (x['상대종형ID'] || []).some(v => pSet.has(orgOf(v))));
@@ -524,7 +1128,8 @@ function rowEvidence(c, sid, mode) {
   const out = [];
   pIdxs.forEach(i => { const v = row.verd[i]; if (v && v.kind === 'unknown') out.push(`${orgN(m.cols[i + 1])}: ${v.why || v.text}`); });
   row.omit.filter(o => c.peerScope === 'all' || (o['비교종형ID'] || []).some(v => pSet.has(orgOf(v)))).forEach(o => out.push(`${o['분류']}(${o['세부']}): ${reasonText(o['사유'])}`));
-  const body = `<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}</div>
+  const graphJump = `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>`;
+  const body = `<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}${graphJump}</div>
     <div class="ev-sec"><h3>판정과 인사이트</h3>${judge || `<p class="note">${esc(App.t('peerEmptyHint'))}</p>`}${pts ? `<ul class="cv-pts" style="margin-top:8px">${pts}</ul>` : ''}</div>
     <details class="zr-det"><summary><span>관계도와 근거 문서 쪽 번호 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b">
       <div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}
@@ -532,13 +1137,28 @@ function rowEvidence(c, sid, mode) {
       ${mode === 'caution' && cauEv ? `<ul class="cv-evl">${cauEv}</ul><p class="note">"대표 밖"은 대표 급부 밖에 조건이 다른 급부입니다.</p>` : evidenceList(m, row, '', c)}
       ${out.length ? `<h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">뺀 것</h3><ul class="cv-evl">${out.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
     </div></details>`;
-  const verdBadges = pIdxs.slice(0, 3).map(i => { const v = verdFor(row, m, i, pIdxs); return v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(v)}</span>` : ''; }).join('');
+
+  let verdBadges = '';
+  if (pIdxs.length >= 4 && B && B['판정기관코드'] && B['판정기관코드'][sid]) {
+    const pc = B['판정기관코드'][sid];
+    const cntCode = k => (c.peerScope === 'all' ? ((pc[k] || []).length) : c.inScope(pc[k]));
+    const summaryPairs = [
+      ['better', '나음', cntCode('나음')],
+      ['same', '같음', cntCode('같음')],
+      ['worse', '못함', cntCode('못함')],
+      ['unknown', '보류', cntCode('판정 보류') + cntCode('검토 대기')],
+      ['none', '우체국 없음', cntCode('우체국에 없음')],
+    ].filter(x => x[2] > 0);
+    verdBadges = summaryPairs.map(([vd, lb, n]) => ui.verdict(vd, `${lb} ${fmt(n)}곳`)).join(' ');
+  } else {
+    verdBadges = pIdxs.slice(0, 3).map(i => { const v = verdFor(row, m, i, pIdxs); return v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(v)}</span>` : ''; }).join('');
+  }
   return {
     kicker: mode === 'caution' ? '단정 주의, 선택 종형' : '담보 비교, 선택 종형', title: stdN(sid),
-    badges: [ui.scope('base'), ui.tag(`${st['대분류'] || ''} ${st['급부유형'] || ''}`.trim()), verdBadges],
+    badges: [ui.scope('base'), ui.tag(`${st['대분류'] || ''} ${st['급부유형'] || ''}`.trim()), verdBadges].filter(Boolean),
     body,
     after(el) {
-      const detEl = el.querySelector('.zr-det');
+      const detEl = el.querySelector('.zr-det:not(.cv-vg-det)');
       const relEl = el.querySelector('.cv-rel');
       if (detEl && relEl) {
         detEl.addEventListener('toggle', () => { if (detEl.open && !relEl.innerHTML) drawRel(relEl, c.baseId, sid); });
@@ -569,7 +1189,7 @@ function journeyHTML(c) {
   const rowSum = (x, g) => STEPS.reduce((a, s) => a + ((x['칸'][g] || {})[s] || 0), 0);
   const maxR = Math.max(1, ...cols.flatMap(x => rowsG.map(g => rowSum(x, g))));
   const CLS = ['', 'other', 'other hollow', 'other'];
-  const bars = (vals, mx) => dispVals(vals).map((n, i) => `<span class="cvj-b"><span class="hbar"><i class="${CLS[i] || 'other'}" style="width:${(n / mx * 100).toFixed(1)}%"></i></span><b class="num">${n}</b></span>`).join('');
+  const bars = (vals, mx) => dispVals(vals).map((n, i) => `<span class="cvj-b"><span class="hbar"><i class="${CLS[i] || 'other'}" style="width:100%;transform:scaleX(${(n / mx).toFixed(4)})"></i></span><b class="num">${n}</b></span>`).join('');
   const lab = dispLabels.map(d => `<span class="cvj-l" title="${esc(d.title)}">${esc(d.nm)}</span>`).join('');
   let h = `<div class="cvj-h cvj-c0"></div>${STEPS.map(s => `<div class="cvj-h">${esc(s)}</div>`).join('')}<div class="cvj-h cvj-t">대분류 합계</div>`;
   rowsG.forEach(g => {
@@ -712,7 +1332,7 @@ function compCell(row, k, vid) {
   if (has(c)) {
     const b = repOf(c);
     const extra = [c.n > 1 ? `같은 담보 급부 ${c.n}개 가운데 대표 급부` : '', c.o ? `대표와 조건이 다른 줄 ${c.o}개` : '', c.w ? `매핑 대기 ${c.w}줄` : ''].filter(Boolean).join(', ');
-    return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${esc(payText(b))}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red))}</span></span></td>`;
+    return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${esc(payText(b))}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red, b))}</span></span></td>`;
   }
   const t = c && c.w ? `검토 대기 ${c.w}줄` : c && c.c ? `없음, ${txt.josa(c.c[0], '으로')} 덮음` : '없음';
   return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-x${c && c.w ? ' wait' : ''}">${esc(t)}</span></td>`;
@@ -815,7 +1435,7 @@ function copyTable() {
     const out = [r.major, stdN(r.sid), r.type];
     colIdxs.forEach(k => {
       const c2 = r.cells[k], b = repOf(c2);
-      if (b) out.push(payText(b), waitText(b.wait), redShort(b.red));
+      if (b) out.push(payText(b), waitText(b.wait), redShort(b.red, b));
       else out.push(c2 && c2.w ? `검토 대기 ${c2.w}줄` : c2 && c2.c ? `없음(${c2.c[0]})` : '없음', '', '');
     });
     pIdxs.forEach(i => out.push(chipText(verdFor(r, m, i, pIdxs))));
@@ -870,11 +1490,85 @@ function actions() {
   ].join('');
 }
 
+function findNearestTick(ovTrackEl, clientX) {
+  const ticks = Array.from(ovTrackEl.querySelectorAll('.cv-tick[data-cv-tick]'));
+  if (!ticks.length) return null;
+  let best = null, bestDist = Infinity;
+  for (const tk of ticks) {
+    const r = tk.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const d = Math.abs(cx - clientX);
+    if (d < bestDist) { bestDist = d; best = tk; }
+  }
+  return bestDist <= 18 ? best : null;
+}
+
+document.addEventListener('pointermove', e => {
+  if (App.state.tab !== 'cover' || e.pointerType === 'touch') return;
+  const ov = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (ov) {
+    const tk = findNearestTick(ov, e.clientX);
+    if (tk) {
+      App.aim.showTip(tk);
+      syncCoverAimHot(tk);
+    }
+  }
+}, { passive: true });
+
+document.addEventListener('pointerout', e => {
+  if (App.state.tab !== 'cover') return;
+  const fromOv = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (fromOv && (!e.relatedTarget || !fromOv.contains(e.relatedTarget))) {
+    syncCoverAimHot(null);
+  }
+});
+
 document.addEventListener('click', e => {
   const mb = e.target.closest && e.target.closest('[data-cv-modal]');
   if (mb) {
     e.stopPropagation();
     App.openModal({ trigger: mb, render: renderFullTablesModal });
+    return;
+  }
+  const flt = e.target.closest && e.target.closest('[data-cv-flt]');
+  if (flt) {
+    e.stopPropagation();
+    const k = flt.dataset.cvFlt;
+    if (activeFilters.has(k)) activeFilters.delete(k);
+    else activeFilters.add(k);
+    if (lastStageHost && App.state.tab === 'cover') renderStage(lastStageHost, App.ctx());
+    return;
+  }
+  const pgBtn = e.target.closest && e.target.closest('[data-cv-page]');
+  if (pgBtn) {
+    e.stopPropagation();
+    if (pgBtn.disabled) return;
+    const c = App.ctx();
+    const curStep = curStepByBase[c.baseId] || STEPS[0];
+    switchCoverStep(curStep, { page: +pgBtn.dataset.cvPage, animate: true });
+    return;
+  }
+  const ovTrack = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (ovTrack) {
+    e.stopPropagation();
+    const tk = findNearestTick(ovTrack, e.clientX);
+    if (tk && tk.dataset.cvTick) {
+      const sid = tk.dataset.cvTick;
+      const stNm = tk.dataset.cvStepOf;
+      if (stNm) switchCoverStep(stNm, { page: 0, animate: true });
+      ensureSidInView(sid, App.ctx());
+      App.select('s:' + sid, { focus: false });
+      return;
+    }
+  }
+  const stBtn = e.target.closest && e.target.closest('[data-cv-step]');
+  if (stBtn) {
+    e.stopPropagation();
+    const nextStep = stBtn.dataset.cvStep;
+    const c = App.ctx();
+    if (curStepByBase[c.baseId] !== nextStep) {
+      switchCoverStep(nextStep, { page: 0, animate: true });
+    }
     return;
   }
   const a = e.target.closest && e.target.closest('[data-act]');
@@ -891,14 +1585,81 @@ document.addEventListener('click', e => {
       const sid = a.dataset.sid;
       App.closeModal(false);
       if (App.state.tab !== 'cover') App.go('cover');
-      setTimeout(() => { App.select('s:' + sid, { focus: true }); }, 30);
+      setTimeout(() => {
+        ensureSidInView(sid, App.ctx());
+        App.select('s:' + sid, { focus: true });
+      }, 30);
     }
   }
 });
 
+document.addEventListener('keydown', e => {
+  if (App.state.tab !== 'cover') return;
+  const slot = e.target.closest && e.target.closest('#cv-zoom-box .cvp-slot[data-sid]');
+  if (!slot || !['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+  const zoomBox = document.getElementById('cv-zoom-box');
+  if (!zoomBox) return;
+  const slots = Array.from(zoomBox.querySelectorAll('.cvp-slot[data-sid]'));
+  const idx = slots.indexOf(slot);
+  if (idx < 0) return;
+  e.preventDefault();
+  if (e.key === 'Home') {
+    slots.forEach((s, k) => { s.tabIndex = k === 0 ? 0 : -1; });
+    slots[0].focus();
+    return;
+  }
+  if (e.key === 'End') {
+    const last = slots.length - 1;
+    slots.forEach((s, k) => { s.tabIndex = k === last ? 0 : -1; });
+    slots[last].focus();
+    return;
+  }
+  const dir = e.key === 'ArrowRight' ? 1 : -1;
+  const nextIdx = idx + dir;
+  if (nextIdx >= 0 && nextIdx < slots.length) {
+    slots.forEach((s, k) => { s.tabIndex = k === nextIdx ? 0 : -1; });
+    slots[nextIdx].focus();
+    return;
+  }
+  // 단계 안의 쪽 끝이나 단계 끝에 닿으면 다음/앞 쪽 또는 옆 단계로 이동
+  const c = App.ctx();
+  const m = model(c.baseId);
+  if (!m) return;
+  const curStep = curStepByBase[c.baseId] || STEPS[0];
+  const stageEl = document.getElementById('cv-pillar-stage');
+  const stRows = m.rows.filter(r => r.type === curStep);
+  const lay = measureZoomLayout(stageEl, stRows, domainOrderOf(c));
+  const curPage = curPageByStep[c.baseId + '|' + curStep] || 0;
+  if (dir > 0 && curPage < lay.pages.length - 1) {
+    switchCoverStep(curStep, { page: curPage + 1, animate: true, focusEdge: 'first' });
+    return;
+  }
+  if (dir < 0 && curPage > 0) {
+    switchCoverStep(curStep, { page: curPage - 1, animate: true, focusEdge: 'last' });
+    return;
+  }
+  const nonEmptySteps = STEPS.filter(stNm => m.rows.some(r => r.type === stNm));
+  const sPos = nonEmptySteps.indexOf(curStep);
+  if (sPos < 0 || nonEmptySteps.length < 2) return;
+  const nextStep = nonEmptySteps[(sPos + dir + nonEmptySteps.length) % nonEmptySteps.length];
+  let targetPage = 0;
+  if (dir < 0) {
+    const prevRows = m.rows.filter(r => r.type === nextStep);
+    const prevLay = measureZoomLayout(stageEl, prevRows, domainOrderOf(c));
+    targetPage = Math.max(0, prevLay.pages.length - 1);
+  }
+  switchCoverStep(nextStep, { page: targetPage, animate: true, focusEdge: dir > 0 ? 'first' : 'last' });
+});
+
 function pick(key, c) {
-  if (key.startsWith('s:')) return rowEvidence(c, key.slice(2), 'row');
-  if (key.startsWith('c:')) return rowEvidence(c, key.slice(2), 'caution');
+  if (key.startsWith('s:')) {
+    ensureSidInView(key.slice(2), c);
+    return rowEvidence(c, key.slice(2), 'row');
+  }
+  if (key.startsWith('c:')) {
+    ensureSidInView(key.slice(2), c);
+    return rowEvidence(c, key.slice(2), 'caution');
+  }
   if (key.startsWith('j:')) return journeyPick(c, key);
   return null;
 }
@@ -917,15 +1678,40 @@ function focus(key) {
         return spec;
       },
     });
+    return;
+  }
+  if (key && key.startsWith('s:')) {
+    ensureSidInView(key.slice(2), App.ctx());
+    App.select(key, { focus: true });
+  } else if (key && model(App.state.base) && model(App.state.base).byId[key]) {
+    ensureSidInView(key, App.ctx());
+    App.select('s:' + key, { focus: true });
   }
 }
 
 function enter(body) {
-  const ax = body && body.querySelector('#cv-pillar-axis');
-  if (!ax || !App.motionOn()) return;
-  ax.classList.remove('cvp-anim'); void ax.offsetWidth; ax.classList.add('cvp-anim');
-  clearTimeout(ax._t); ax._t = setTimeout(() => ax.classList.remove('cvp-anim'), 500);
+  const stageEl = body && body.querySelector('#cv-pillar-stage');
+  if (!stageEl) return;
+  positionOvBracket(stageEl, false);
+  if (!App.motionOn()) return;
+  stageEl.classList.remove('cvp-anim');
+  void stageEl.offsetWidth;
+  stageEl.classList.add('cvp-anim');
+  clearTimeout(stageEl._t);
+  stageEl._t = setTimeout(() => stageEl.classList.remove('cvp-anim'), 700);
 }
+
+App.on('aim', aimEl => { if (App.state.tab === 'cover') syncCoverAimHot(aimEl); });
+App.on('select', tab => {
+  if (tab !== 'cover') return;
+  const stageEl = document.getElementById('cv-pillar-stage');
+  syncCoverSelectionAndFilter(stageEl);
+});
+App.on('resize', () => {
+  cachedHostW = 0;
+  if (App.state.tab !== 'cover' || !lastStageHost) return;
+  renderStage(lastStageHost, App.ctx());
+});
 
 // 탭 5 와 core.js, tab1.js 가 쓰는 것
 App.cover = {
@@ -933,6 +1719,7 @@ App.cover = {
   model, scopedPairs, verdictOf: (baseId, sid) => { const m = model(baseId); const r = m && m.byId[sid]; return r ? r.verd : null; },
   rel: drawRel, relLegend, chipText, hasRow: (baseId, sid) => { const m = model(baseId); return !!(m && m.byId[sid]); },
   peerCols: baseId => { const m = model(baseId); return m ? m.cols : []; },
+  switchStep: switchCoverStep,
 };
 
 App.registerTab({ id: 'cover', layout: 'band', kicker: '좁혀 확인한다, 담보', renderStage, conclusion, pick, actions, copySummary: copyTable, focus, enter });

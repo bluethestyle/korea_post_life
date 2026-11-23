@@ -205,7 +205,7 @@ COUNTS_JS = r"""() => {
     }
     const checkEls = [stageEl, ...stageEl.querySelectorAll('*')];
     for (const cel of checkEls) {
-      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb')) continue;
+      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb,.cvp-bar,.cv-tick,.gr-node,.cv-flt-btn.is-on')) continue;
       let ca = cel, chid = false;
       while (ca && ca !== document.body) {
         const cs2 = getComputedStyle(ca);

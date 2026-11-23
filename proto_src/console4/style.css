@@ -364,54 +364,58 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 .sel-glide .sg-c.bl{left:-5px;bottom:-5px;border-left-width:1.5px;border-bottom-width:1.5px}
 .sel-glide .sg-c.br{right:-5px;bottom:-5px;border-right-width:1.5px;border-bottom-width:1.5px}
 
-/* 가리킴 및 포커스 조준 표식(#aim-reticle: 네모 L자 꺾쇠 8px/1.5px, 원 45도 사선 15px/1.5px) */
-.aim-reticle{position:fixed;left:0;top:0;width:40px;height:40px;pointer-events:none;z-index:66;background:transparent;
+/* 가리킴 및 포커스 조준 표식(#aim-reticle: width/height 변경 없이 오직 transform 으로만 네 귀 이동 -> 레이아웃 유발 0) */
+.aim-reticle{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:66;background:transparent;
   transform:translate3d(var(--ar-x,0px),var(--ar-y,0px),0);
   transition:transform 90ms var(--ease-in),opacity 90ms var(--ease-in)}
 .aim-reticle[hidden]{display:none!important}
-.aim-reticle .ar-c{position:absolute;border-color:var(--ink-0);border-style:solid;border-width:0;
+.aim-reticle .ar-c{position:absolute;left:0;top:0;border-color:var(--ink-0);border-style:solid;border-width:0;
   transition:transform 120ms var(--ease-in),border-color 120ms var(--ease-in)}
 .aim-reticle.is-sel-aim .ar-c{border-color:var(--red)}
 /* 네모꼴: 바깥 6px 에서 2px 로 조여 들고, 누르면 2px 더 조인다(80ms) */
 .aim-reticle[data-shape="rect"] .ar-c{width:8px;height:8px}
-.aim-reticle[data-shape="rect"] .ar-c.tl{left:0;top:0;border-left-width:1.5px;border-top-width:1.5px;transform:translate(-6px,-6px)}
-.aim-reticle[data-shape="rect"] .ar-c.tr{right:0;top:0;border-right-width:1.5px;border-top-width:1.5px;transform:translate(6px,-6px)}
-.aim-reticle[data-shape="rect"] .ar-c.bl{left:0;bottom:0;border-left-width:1.5px;border-bottom-width:1.5px;transform:translate(-6px,6px)}
-.aim-reticle[data-shape="rect"] .ar-c.br{right:0;bottom:0;border-right-width:1.5px;border-bottom-width:1.5px;transform:translate(6px,6px)}
+.aim-reticle[data-shape="rect"] .ar-c.tl{border-left-width:1.5px;border-top-width:1.5px;transform:translate(-6px,-6px)}
+.aim-reticle[data-shape="rect"] .ar-c.tr{border-right-width:1.5px;border-top-width:1.5px;transform:translate(calc(var(--ar-w,40px) - 2px),-6px)}
+.aim-reticle[data-shape="rect"] .ar-c.bl{border-left-width:1.5px;border-bottom-width:1.5px;transform:translate(-6px,calc(var(--ar-h,40px) - 2px))}
+.aim-reticle[data-shape="rect"] .ar-c.br{border-right-width:1.5px;border-bottom-width:1.5px;transform:translate(calc(var(--ar-w,40px) - 2px),calc(var(--ar-h,40px) - 2px))}
 .aim-reticle[data-shape="rect"].is-tight .ar-c.tl{transform:translate(-2px,-2px)}
-.aim-reticle[data-shape="rect"].is-tight .ar-c.tr{transform:translate(2px,-2px)}
-.aim-reticle[data-shape="rect"].is-tight .ar-c.bl{transform:translate(-2px,2px)}
-.aim-reticle[data-shape="rect"].is-tight .ar-c.br{transform:translate(2px,2px)}
+.aim-reticle[data-shape="rect"].is-tight .ar-c.tr{transform:translate(calc(var(--ar-w,40px) - 6px),-2px)}
+.aim-reticle[data-shape="rect"].is-tight .ar-c.bl{transform:translate(-2px,calc(var(--ar-h,40px) - 6px))}
+.aim-reticle[data-shape="rect"].is-tight .ar-c.br{transform:translate(calc(var(--ar-w,40px) - 6px),calc(var(--ar-h,40px) - 6px))}
 .aim-reticle[data-shape="rect"].is-press .ar-c{transition-duration:80ms}
-.aim-reticle[data-shape="rect"].is-press .ar-c.tl,
-.aim-reticle[data-shape="rect"].is-press .ar-c.tr,
-.aim-reticle[data-shape="rect"].is-press .ar-c.bl,
-.aim-reticle[data-shape="rect"].is-press .ar-c.br{transform:translate(0,0)}
+.aim-reticle[data-shape="rect"].is-press .ar-c.tl{transform:translate(0,0)}
+.aim-reticle[data-shape="rect"].is-press .ar-c.tr{transform:translate(calc(var(--ar-w,40px) - 8px),0)}
+.aim-reticle[data-shape="rect"].is-press .ar-c.bl{transform:translate(0,calc(var(--ar-h,40px) - 8px))}
+.aim-reticle[data-shape="rect"].is-press .ar-c.br{transform:translate(calc(var(--ar-w,40px) - 8px),calc(var(--ar-h,40px) - 8px))}
 
 /* 원형: 네 귀 45도 사선(길이 15px, 선 1.5px)이 조여 든다 */
 .aim-reticle[data-shape="circle"] .ar-c{width:15px;height:0;border-top-width:1.5px;transform-origin:center center}
-.aim-reticle[data-shape="circle"] .ar-c.tl{left:-7px;top:-2px;transform:translate(-5px,-5px) rotate(45deg)}
-.aim-reticle[data-shape="circle"] .ar-c.tr{right:-7px;top:-2px;transform:translate(5px,-5px) rotate(-45deg)}
-.aim-reticle[data-shape="circle"] .ar-c.bl{left:-7px;bottom:-2px;transform:translate(-5px,5px) rotate(-45deg)}
-.aim-reticle[data-shape="circle"] .ar-c.br{right:-7px;bottom:-2px;transform:translate(5px,5px) rotate(45deg)}
-.aim-reticle[data-shape="circle"].is-tight .ar-c.tl{transform:translate(-1px,-1px) rotate(45deg)}
-.aim-reticle[data-shape="circle"].is-tight .ar-c.tr{transform:translate(1px,-1px) rotate(-45deg)}
-.aim-reticle[data-shape="circle"].is-tight .ar-c.bl{transform:translate(-1px,1px) rotate(-45deg)}
-.aim-reticle[data-shape="circle"].is-tight .ar-c.br{transform:translate(1px,1px) rotate(45deg)}
+.aim-reticle[data-shape="circle"] .ar-c.tl{transform:translate(-12px,-7px) rotate(45deg)}
+.aim-reticle[data-shape="circle"] .ar-c.tr{transform:translate(calc(var(--ar-w,64px) - 3px),-7px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"] .ar-c.bl{transform:translate(-12px,calc(var(--ar-h,64px) + 7px)) rotate(-45deg)}
+.aim-reticle[data-shape="circle"] .ar-c.br{transform:translate(calc(var(--ar-w,64px) - 3px),calc(var(--ar-h,64px) + 7px)) rotate(45deg)}
+.aim-reticle[data-shape="circle"].is-tight .ar-c.tl{transform:translate(-8px,-3px) rotate(45deg)}
+.aim-reticle[data-shape="circle"].is-tight .ar-c.tr{transform:translate(calc(var(--ar-w,64px) - 7px),-3px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"].is-tight .ar-c.bl{transform:translate(-8px,calc(var(--ar-h,64px) + 3px)) rotate(-45deg)}
+.aim-reticle[data-shape="circle"].is-tight .ar-c.br{transform:translate(calc(var(--ar-w,64px) - 7px),calc(var(--ar-h,64px) + 3px)) rotate(45deg)}
 .aim-reticle[data-shape="circle"].is-press .ar-c{transition-duration:80ms}
-.aim-reticle[data-shape="circle"].is-press .ar-c.tl{transform:translate(1px,1px) rotate(45deg)}
-.aim-reticle[data-shape="circle"].is-press .ar-c.tr{transform:translate(-1px,1px) rotate(-45deg)}
-.aim-reticle[data-shape="circle"].is-press .ar-c.bl{transform:translate(1px,-1px) rotate(-45deg)}
-.aim-reticle[data-shape="circle"].is-press .ar-c.br{transform:translate(-1px,-1px) rotate(45deg)}
+.aim-reticle[data-shape="circle"].is-press .ar-c.tl{transform:translate(-6px,-1px) rotate(45deg)}
+.aim-reticle[data-shape="circle"].is-press .ar-c.tr{transform:translate(calc(var(--ar-w,64px) - 9px),-1px) rotate(-45deg)}
+.aim-reticle[data-shape="circle"].is-press .ar-c.bl{transform:translate(-6px,calc(var(--ar-h,64px) + 1px)) rotate(-45deg)}
+.aim-reticle[data-shape="circle"].is-press .ar-c.br{transform:translate(calc(var(--ar-w,64px) - 9px),calc(var(--ar-h,64px) + 1px)) rotate(45deg)}
 
 /* 누름(80ms 1px 내려앉음), 자료 없음 점선, 문지르기 가로 터치 허용, 고른 뒤 나머지 단위 물러남(불투명도 .45) */
 [data-scrub-row]{touch-action:pan-y}
 [data-nodata="1"]{cursor:default}
 [data-pick]:not([data-nodata="1"]):active,[data-aim]:not([data-nodata="1"]):active,.is-press-el{transform:translateY(1px)!important;transition-duration:80ms!important}
-.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-slot,.cvp-btn,.cv-tick,.gr-node):not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim){
+.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn,.gr-node):not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim){
   opacity:.45;transition:opacity 220ms var(--ease-in),transform 120ms var(--ease-in)}
-.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-slot,.cvp-btn,.cv-tick,.gr-node):is(.is-sel,:hover,:focus-visible,.is-aim){
+.board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn,.gr-node):is(.is-sel,:hover,:focus-visible,.is-aim){
   opacity:1;transition:opacity 120ms var(--ease-in),transform 120ms var(--ease-in)}
+.board.has-sel .z-center .cvp-slot:not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim) :is(.cvp-bar,.cvp-lbl){
+  opacity:.45;transition:opacity 180ms var(--ease-in)}
+.board.has-sel .z-center .cvp-slot:is(.is-sel,:hover,:focus-visible,.is-aim) :is(.cvp-bar,.cvp-lbl){
+  opacity:1;transition:opacity 110ms var(--ease-in)}
 
 /* 왼쪽 0, 50, 100% 눈금자와 기둥 꼭대기 수평 기준선 */
 .ax-ruler{position:absolute;left:0;bottom:0;width:28px;pointer-events:none;z-index:2;display:flex;flex-direction:column;justify-content:space-between}
@@ -806,8 +810,8 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 
 .hud-tip{position:fixed;left:0;top:0;z-index:68;max-width:min(360px,calc(100vw - 24px));padding:7px 11px;pointer-events:none;
   background:var(--slate-solid);color:#fff;border-top:2px solid #fff;font:400 13px/1.45 var(--f-body);word-break:keep-all;
-  box-shadow:0 6px 18px rgba(21,29,36,.22);
-  transform:translate3d(var(--tip-x,12px),var(--tip-y,12px),0);
+  box-shadow:0 6px 18px rgba(21,29,36,.22);contain:layout style;
+  transform:translate3d(var(--tip-x,120px),var(--tip-y,60px),0) translate(-50%,var(--tip-vy,-100%));
   transition:transform 90ms var(--ease-in),opacity 90ms var(--ease-in)}
 .hud-tip[hidden]{display:none!important}
 .hud-tip .ht-t{display:block;font:600 13.5px/1.3 var(--f-ko);color:#fff}
