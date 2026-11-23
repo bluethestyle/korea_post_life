@@ -1,52 +1,52 @@
-# 우체국보험 상품·청약 판단 지원 앱 — 발표 시연 애니메이션 스토리보드 (쉬운 설명 · 직관 비유 · 카메라 연출판)
+# 우체국보험 상품·청약 판단 지원 앱: 발표 시연 애니메이션 스토리보드
 
-본 영상은 보험 상품 구조나 AI·데이터 기술을 처음 접하는 시청자도 **단 한 번의 시청으로 전체 문제와 해결 원리를 막힘없이 이해**할 수 있도록, 모든 전문용어를 **일상적인 쉬운 말과 구체적인 실생활 예시**로 풀어 쓰고 **살아 움직이는 도형 메타포 · 선택적 3차원(`ThreeDScene`) 공간 · 차분한 카메라 워킹(클로즈업 · 수평 패닝 · 펄스 추적)**을 결합한 시연 애니메이션입니다.
+본 영상은 모든 수치와 항목 이름을 `presentation_animation/facts.json`에서 읽어 표시하며, 각 단계의 문제와 해결 구조를 기구적 도형, 선택적 3차원(`ThreeDScene`) 공간, 카메라 이동(클로즈업, 수평 패닝, 펄스 추적)으로 전달합니다.
 
-전체 이야기는 다음 4단계 흐름을 차근차근 따라갑니다:
-1. **왜 이 서비스가 필요하며 무엇을 만들었는가?** (`1장`)
-2. **화면에서 실제로 어떤 기능들이 어떻게 작동하는가?** (`2장`)
-3. **주어진 무료 조건 속에서 어떤 문제에 부딪혔고, 어떻게 쉽게 풀었는가?** (`3장~8장`)
-4. **도입 전과 비교해 없던 것·안 되던 것·불안하던 것이 어떻게 달라졌는가?** (`9장`)
-
----
-
-## 파일 구성 (1920×1080 · 60fps · H.264 MP4)
-
-- **분할본 Part 1 (`1~2장`)**: `우체국보험_발표시연_Part1_서비스목표와_구현기능_1080p60.mp4`
-- **분할본 Part 2 (`3~4장`)**: `우체국보험_발표시연_Part2_자원제약과_난제해결_수집추출_1080p60.mp4`
-- **분할본 Part 3 (`5~6장`)**: `우체국보험_발표시연_Part3_판정AI배경과_검증분류_해법_1080p60.mp4`
-- **분할본 Part 4 (`7~9장`)**: `우체국보험_발표시연_Part4_온톨로지해석과_업무혁신결과_1080p60.mp4`
-- **전체 통합본 (`1~9장 연속`)**: `우체국보험_발표시연_애니메이션_1080p60.mp4`
+전체 이야기는 다음 네 단계 흐름을 따릅니다.
+1. **우리가 만들려는 서비스** (1장)
+2. **구현한 운영 화면 구성** (2장)
+3. **각 단계에서 활용 가능한 자원과 부딪힌 문제, 그리고 푼 방법** (3~8장)
+4. **손으로 하던 방식과 비교해 이 앱으로 만든 구조와 남은 과제** (9장)
 
 ---
 
-## 장별 쉬운 설명 포인트 · 도형 메타포 · 카메라 워킹 설계
+## 파일 구성 (1920x1080, 60fps, H.264 MP4)
 
-### Part 1. 왜 만들었으며, 어떤 기능이 있는가 (`1~2장`)
-- **1장. 왜 이 서비스를 만들었나 — 수백 쪽 약관 비교부터 창구 요약 카드까지**
-  - **현실의 어려움**: 19개 보험사의 수백 쪽 약관이 솟아 있는 **3차원 약관 기둥 숲**에서 출발해, 회사마다 제각각인 기준 이름(`"315 간편"` vs `"간편(1년)"`)이 부딪히는 상자 내부로 **클로즈업** → 본부 분석과 현장이 끊어진 다리 너머로 패닝하며 창구·설계사가 요약 자료 없이 겪는 어려움을 보여줍니다.
-  - **우리가 만든 해법**: 좌측 **약관·뉴스 자동 정리 깔때기**를 거쳐 **검증된 기준표 13개**가 켜지고 → 중앙 **설치 없이 파일 1개만 열면 작동하는 본부 화면**에서 `'50세 · 남성 · 수술 이력 있음'`을 고르는 즉시 `우체국 가입 가능 ▲ vs 타사 가입 거절 ×`이 갈리며 → 우측 **창구 직원용 A4 1장 요약 카드**가 레이저 주사로 깔끔하게 인쇄됩니다.
-- **2장. 구현한 6가지 핵심 기능 — 고객 조건 한 번 선택으로 모든 비교 화면이 동시에 작동**
-  - 중앙 **고객 조건 다이얼 바늘이 회전**하며 황금 물결과 6방향 빛줄기를 보내고, 카메라가 `① 가입 가능 여부 비교 · ② 76가지 보장 비교표` → `③ 옛 상품 vs 새 상품 비교 · ⑤ A4 요약 카드` → `⑥ AI 점검 내역 13,671건 투명 공개`를 차분히 클로즈업 투어합니다.
+- **분할본 Part 1 (1~2장)**: `우체국보험_발표시연_Part1_서비스목표와_구현기능_1080p60.mp4`
+- **분할본 Part 2 (3~4장)**: `우체국보험_발표시연_Part2_자원제약과_난제해결_수집추출_1080p60.mp4`
+- **분할본 Part 3 (5~6장)**: `우체국보험_발표시연_Part3_판정AI배경과_검증분류_해법_1080p60.mp4`
+- **분할본 Part 4 (7~9장)**: `우체국보험_발표시연_Part4_온톨로지해석과_업무혁신결과_1080p60.mp4`
+- **전체 통합본 (1~9장 연속, `README.md`의 FFmpeg concat 명령으로 생성)**: `우체국보험_발표시연_애니메이션_1080p60.mp4`
 
-### Part 2. 약관 모으기와 표·숫자 읽기 문제 해결 (`3~4장`)
-- **3장. 약관·뉴스 모으기 — 접속 차단과 철 지난 기사를 막아낸 4단계 역할 분담**
-  - **부딪힌 문제**: ① 비싼 AI만 쓰다 하루 사용량 바닥 → ② `한화손보 접속 거절` 벽에 부딪혀 튕김 → ③ 찾아온 27건 중 **23건이 기간 지난 옛날 기사**로 잘려 나가는 장면을 순서대로 클로즈업합니다.
-  - **쉬운 해법**: **① 사전 조사 담당 → ② 총괄 설계 담당(`DB손보`로 먼저 성공 본보기 제작) → ③ 다운로드 담당 ×16 → ④ 원본 검사 담당 ×16(두 번 내려받아 똑같은 원본인지 대조)**의 4단계 분업 기구와 3D 16개사 2단 확인 물결, 요일별 나눠 찾기·3단 거름망을 보여줍니다.
-- **4장. 약관 속 숫자·표 읽기 — 그림으로 된 308쪽 요약서와 AI 계산 실수를 잡은 법**
-  - **부딪힌 문제**: 하루 500번 한도 초과와 AI 암산 실수, **글자가 복사 안 되는 12조각 통그림 문서**, 한도표 166건 통째 누락(`0건 ×`)을 직관적 도형으로 보여줍니다.
-  - **쉬운 해법**: **AI는 약관 글자 그대로 받아쓰기만 하고(암산 금지!), 실제 지급액 계산은 실수 없는 컴퓨터 공식(`90일 면책 → 1년 미만 절반 → 1년 뒤 전액` 3D 계단 블록)이 맡는 분리 원리**와, **두 AI가 각자 읽고 다르게 읽은 칸만 원본을 확대해 확인**하는 교차 읽기를 시각화합니다.
+---
 
-### Part 3. 새로운 채점 전용 AI 원리와 점수 검증·속도 조절 (`5~6장`)
-- **5장. 새로운 채점 전용 AI — 글짓기 없이 정답 확률만 바로 찍는 원리**
-  - 좌측 **기존 글짓기형 AI**에서 초시계가 돌며(`3.8초↑`) 단어를 하나씩 지어내는 모습과, 우측 **객관식 채점 전용 AI(`Jev` · `0.05초 · 설명글 0글자 → 보기 A: 94%`)**를 대비하고, 구글 **`gemini-decision-1` 3D 코어**의 4가지 장점(`긴 문서 통째 입력 · 한 번에 1,000문제 채점 · 객관식 답만 반환 · 90점이면 실제 90% 정답`)을 알기 쉽게 풀어냅니다.
-- **6장. 검증·분류 단계 — 애매한 점수와 1분 글자 수 제한을 해결한 방법**
-  - `'맞나요?'` 질문 시 `50~80점` 애매 구간 뭉침, 묶음 질문 속 틀린 특약 숨김, `1분 한도 폭발(203분 대기)`을 짚은 뒤 → 질문 방식을 **`"[조건 있음] vs [조건 없음]"` 양자택일**로 바꿔 **3D 황금 첨탑(`정답 94점↑ vs 오답 6점↓`, 일부러 틀리게 고친 437건 통과 0건)**으로 분리하고 → **`75점 / 40점` 3단 신호등 분류**와 **`[1분 속도 조절기]`** 슬라이딩 브래킷으로 마무리합니다.
+## 장별 참조 열쇠와 시각 연출 설계
 
-### Part 4. 공통 기준 연결 지도와 도입 전후 업무 변화 (`7~9장`)
-- **7장. 기준 연결과 화면 제작 — 회사마다 다른 특약 이름을 하나의 지도로 묶는 법**
-  - 파일 크기 `4MB` 제한과 `52종 그릇 넘침(1,951건)` 문제를 보여준 뒤 → **가벼운 3층 구조(`1층 검증된 약관 사실 2.97MB · 2층 76가지 공통 기준표 · 3층 화면 즉석 계산 0MB`)** 3D 입체 층이 펼쳐지고 → **3D 공통 기준 연결 지도(실선 3,807건 vs 사람 확인 중 점선 672건)**와 **새 기준 25가지가 갈 곳 없던 986건을 끌어당겨 흡수**하는 장면을 보여줍니다.
-- **8장. 연결 지도로 숨은 보장 찾기 — 합산 보장 탐색부터 창구 요약 카드까지**
-  - 타사는 `'뇌·심장 통합특약'` 1개로 팔고 우체국은 `'뇌혈관 + 심장'` 2개로 나눠 팔 때, 지도를 따라 두 갈래 광점이 합쳐지며 **겉보기에 없어 보이던 29가지 중 25가지가 우체국에도 보장됨**을 밝히고 → 가입 가능 표(`수술만 = 우체국 가입 가능 ▲`) · 치료 5단계(`통원 0종 보완 필요`) → **4가지 알기 쉬운 실무 지침**과 **창구 A4 1장 요약 카드** 인쇄로 이어집니다.
-- **9장. 도입 전과 도입 후 — 없던 것은 새로 만들고, 안 되던 것은 풀고, 불안하던 것은 고쳤습니다**
-  - 도입 전 어려움(Before)에서 도입 후 변화(After)로 트래킹하며, **3개의 달성률 도넛(`308쪽 계산오차 0건 100%` · `틀린 437건 전량 차단 100%` · `숨은 보장 29→25종 발굴 86%`)**이 실시간으로 채워지고 전체 조감 피날레로 마무리됩니다.
+### Part 1. 서비스 목표와 운영 화면 구성 (`part1_service.py`)
+- **1장. 우리가 만들려는 서비스: 공시 문서 비교 화면과 현장 응대 카드**
+  - **현실 문제**: 정밀 비교 대상(`comparison_target_counts`), 대용량 요약서(`hanwha_summary_pages`), 글자가 그림인 요약서(`image_doc.pages`)를 3차원 기둥 숲으로 조감한 뒤, 고지 질문 범위와 지급 기준(`example_targeted_anticancer`, `benefits_by_org_basis`)이 다른 상자 내부로 클로즈업하고 창구 전달 단절 구간으로 패닝합니다.
+  - **목표 구조**: 기관 보도(`market_news_institution_count`)와 공시 문서가 정련 깔때기를 거쳐 구글 시트 정본(`sheet_tab_count`)에 담기고, 대표 조건(`reference_condition`, `default_base_variant`)을 반영한 본부 단독 HTML 화면(`operating_cost_won`, `site_browser_check_problems`, `standard_coverage_in_use`, `compared_coverage_pairs`, `forbidden_words`)과 창구용 A4 한 장 응대 카드(`card_category_order`, `lead_strengths`)로 이어집니다.
+- **2장. 구현한 운영 화면 구성**
+  - 중앙 조건 다이얼 바늘이 회전하며 운영 화면(`site_screen_count`)으로 광선을 보내고, 주간 시장 소식(`screen_market_news`), 가입 관문 비교, 표준담보 비교표(`standard_coverage_in_use`), 특약 조합별 실제 지급액, 개정 전후 비교(`example_targeted_anticancer`, `revision_changes`), 검증과 작업 로그(`work_log_count_site`, `work_log_by_result`)를 클로즈업 투어합니다.
+
+### Part 2. 수집 단계와 추출 단계 (`part2_collect_extract.py`)
+- **3장. 수집 단계: 공시 문서와 시장 소식 수집**
+  - **부딪힌 문제**: 가용 자원(`daily_limit_search`, `actions_free_minutes_per_month`, `operating_cost_won`, `team_size`)과 함께 모델 미지정 실행(`unpinned_agent_incident`), 목록 요청 차단(`hanwhafire_block_status`), 검색 후보 탈락(`search_candidates_rejected`) 및 API 보관 상한(`news_api_storage_limit_days`), 첫 수집 구간 밖 소식 유입(`first_collect_news`)을 짚습니다.
+  - **푼 방법**: 조사(`comparison_target_counts`), 총괄 지휘(`disclosure_pilot_org`, `disclosure_batch_org_count`), 수집 구현, 독립 점검(`disclosure_batch_auto_org_count`, 점검 모델 sonnet)의 분업 기구와 일괄 실행 대상(`disclosure_batch_orgs`, `disclosure_batch_pdf_count`, `disclosure_batch_test_count`) 3차원 파동, 요일별 검색 배분(`collect_daily_plan`) 및 날짜, 무관 종목 필터(`news_excluded_lines`, `news_excluded_topics`)를 시각화합니다.
+- **4장. 추출 단계: 요약서와 사업방법서에서 급부와 한도를 뽑는 방법**
+  - **부딪힌 문제**: 한도와 도구(`daily_limit_extract`, `daily_limit_upper`), 첫 추출 호출 수(`hanwha_first_extract`), 숫자 직접 추출 오독(`targeted_anticancer_misread`, `text_switch_confirmed_rows`), 그림 요약서와 대조용 로컬 OCR 결과(`image_doc`, `local_ocr_test`), 가짜 시트 시험의 특약 한도 초기화(`rider_limit_rows_protected`)를 보여줍니다.
+  - **푼 방법**: 모델은 원문 글자만 옮기고 숫자는 코드가 계산하는 분리 구조(`example_targeted_anticancer`, `samsungfire_crosscheck_rows`, `benefits_by_org`)를 3차원 계단 블록으로 보이고, 그림 요약서를 제미나이 패널과 sonnet 에이전트가 따로 읽어 대조한 결과(`image_doc`, `image_doc_same_reader_repeat`)와 지난 자료로 시험한 급부ID 승계(`id_inherit_simulated_rows`)를 제시합니다.
+
+### Part 3. 판정 모델 원리와 검증, 분류 단계 (`part3_decision.py`)
+- **5장. 판정 모델 원리와 적용 영역**
+  - 기존 생성형 모델의 순차 단어 생성과 비생성 판정 모델(`models.decide`, `decision_model_release_date`, `decision_model_spec`)의 선택지 확률 반환(`symmetric_choice_probability`) 및 실제 활용처(`decision_model_uses`)를 대비하고, 입력 단위와 문항 사양, 정형 판정 방식, 표본 경계값 검증(`calibration_flipped_rows`, `calibration_reextract_band`)을 3차원 코어 주위에 배치합니다.
+- **6장. 검증, 분류 단계: 분당 토큰 한도와 모호한 확률 문제를 푼 방법**
+  - 참/거짓 질문 확률 범위(`true_false_probability_range`), 결합 제약 묶음 질문의 오류 통과(`bundled_constraint_check`), 매핑 재질의 실행 전 시간 어림(`mapping_requery`)을 진단한 뒤, 개별 문항 분리와 대칭 선택지 전환(`symmetric_choice_probability`, `calibration_flipped_rows`)을 3차원 확률 기둥으로 대조하고, 확률 경계 분기(`verify_confirm_threshold`, `verify_reextract_threshold`)와 분당 토큰 대기 규칙(`decide_token_window`, `decide_tokens_per_minute_guard`, `decide_per_minute_limit`), 시장 소식 분류(`market_news_categories`, `market_news_by_category`, `decide_quota_failures_logged`)로 마무리합니다.
+
+### Part 4. 온톨로지 구조, 관계 탐색, 전후 비교 (`part4_ontology_impact.py`)
+- **7장. 온톨로지와 단독 화면: 명칭 불일치와 매핑 대기를 푼 방법**
+  - 종형과 특약 이름 불일치(`default_base_variant`, `peer_held_coverage`), 한화 매핑 대기(`dictionary_initial_size`, `hanwha_pending_before_rerun`, `hanwha_pending_after_rerun`), 보험료 예시 부재(`premium_example_rows`)를 짚은 뒤, 빌드 때 계산해 싣고 화면은 읽는 세 계층 구조(`site_org_count`, `variant_count_site`, `rider_count_site`, `benefit_count_site`, `market_news_count`, `standard_coverage_in_use`, `coverage_relations_by_kind`)와 3차원 관계망(`mapping_status_site`, `benefits_without_mapping`, `coverage_relation_count`), 사전 확장 경과(`dictionary_first_expansion_added`, `dictionary_second_expansion`, `standard_coverage_rows`, `dictionary_expansion_survey_org_count`, `dictionary_addition_rule`, `standard_coverage_names`)를 보여줍니다.
+- **8장. 포함, 통합 관계 탐색과 실행**
+  - 포함과 통합 관계(`standard_coverage_names`, `coverage_relations_by_kind`)를 따라 상대 통합특약과 우체국 분리특약을 연결하는 다단계 탐색, 고객군 지도 요약(`segment_map_rows`, `segment_map_columns`, `segment_map_cell_count`, `segment_map_labels`), 치료 단계별 보유 담보 막대(`treatment_stages`, `held_coverage_by_stage`), 결합 제약(`reference_main_contract_limit_manwon`, `combination_constraints_by_org`), 영업 인사이트 분류(`sales_insight_categories`, `sales_insight_by_category`, `briefing_by_base_variant`)와 A4 한 장 응대 카드(`card_category_order`)를 이어서 보여줍니다.
+- **9장. 손으로 하던 방식과 이 앱으로 만든 구조**
+  - 손으로 하던 방식 대비 정본과 단독 화면, 작업 로그(`work_log_count_site`), 그림 요약서 교차 판독(`image_doc`)과 표본 경계 보정(`calibration_flipped_rows`), 매핑 대기(`mapping_status_site`)와 우열 미단정(`no_verdict_pairs`) 분리 결과를 정리하고, 전체 시험 수(`test_count`), 브라우저 점검(`site_browser_check_problems`), 다음 단계 과제(`premium_example_rows`, `benefit_disease_code_rows`), 아직 재지 못한 성과(`not_yet_measured`)를 함께 밝힙니다.

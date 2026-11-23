@@ -1,29 +1,47 @@
 from __future__ import annotations
 
+import json
 import math
+from pathlib import Path
 from typing import Iterable, Sequence
 import cairo
 import numpy as np
 from manim import *
 
+_FACTS = json.loads(Path(__file__).with_name("facts.json").read_bytes())["facts"]
+
+
+def fact(key: str, *path):
+    """facts.json 의 값. 열쇠가 없으면 KeyError 로 멈춘다(기본값을 두지 않는다)."""
+    value = _FACTS[key]["value"]
+    for p in path:
+        value = value[p]
+    return value
+
+
+def num(n) -> str:
+    """천 단위 쉼표. 1274 -> "1,274"."""
+    return f"{n:,}"
+
+
 # ---------------------------------------------------------------------------
-# 3Blue1Brown Documentary Cinema x Post Life Palette
+# Color Palette
 # ---------------------------------------------------------------------------
 C_BG = "#070B10"
 C_BG_SUB = "#101720"
 C_GRID = "#1B2634"
 
-C_CYAN = "#58C4DD"       # Collection, fact layer, deterministic code
+C_CYAN = "#58C4DD"
 C_CYAN_DIM = "#1A4350"
-C_GOLD = "#E2C878"       # Verified truth, shared standard, Post Life strength
+C_GOLD = "#E2C878"
 C_GOLD_DEEP = "#8F7B3E"
-C_AMBER = "#F59E0B"      # Constraint / pending review / caution
+C_AMBER = "#F59E0B"
 C_AMBER_DIM = "#3D2B0D"
-C_CORAL = "#FF5C5C"      # Bottleneck, error, blocked access, coverage gap
+C_CORAL = "#FF5C5C"
 C_CORAL_DIM = "#4D1F24"
-C_VIOLET = "#A78BFA"     # Decision model, market trend, live insight
+C_VIOLET = "#A78BFA"
 C_VIOLET_DIM = "#261E42"
-C_MINT = "#6EE7B7"       # Solved architecture, verified match, active defense
+C_MINT = "#6EE7B7"
 C_MINT_DIM = "#16382C"
 
 C_INK_0 = "#F2F5F8"
@@ -140,30 +158,43 @@ def cross_mark(pos: np.ndarray | list[float], size: float = 0.13, color: str = C
 def capacity_ring(
     pos: np.ndarray | list[float],
     radius: float,
-    ratio: float,
     col: str,
     top_txt: str,
     sub_txt: str,
+    ratio: float | None = None,
     z: int = 7,
 ) -> VGroup:
+    """한도 배지. 두 사실 값으로 계산한 양수 비율이 있을 때만 호를 그린다."""
     p = np.array(pos, dtype=float)
-    bg_ring = Circle(radius=radius, fill_color=C_BG_SUB, fill_opacity=0.92, stroke_color=C_SLATE, stroke_width=3.2).move_to(p).set_z_index(z)
-    arc = Arc(
-        radius=radius,
-        start_angle=math.pi / 2,
-        angle=-2 * math.pi * min(max(ratio, 0.05), 1.0),
-        arc_center=p,
-        color=col,
-        stroke_width=4.2,
-    ).set_z_index(z + 1)
+    bg_ring = (
+        Circle(
+            radius=radius,
+            fill_color=C_BG_SUB,
+            fill_opacity=0.92,
+            stroke_color=col if ratio is None else C_SLATE,
+            stroke_width=2.4 if ratio is None else 3.2,
+        )
+        .move_to(p)
+        .set_z_index(z)
+    )
     t1 = txt(top_txt, size=11.0, color=col, bold=True, z=z + 2)
     t2 = txt(sub_txt, size=9.6, color=C_INK_1, z=z + 2)
     tg = fit(VGroup(t1, t2).arrange(DOWN, buff=0.04), max_w=radius * 1.68).move_to(p)
-    return VGroup(bg_ring, arc, tg)
+    if ratio is not None and ratio > 0.0:
+        arc = Arc(
+            radius=radius,
+            start_angle=math.pi / 2,
+            angle=-2 * math.pi * min(ratio, 1.0),
+            arc_center=p,
+            color=col,
+            stroke_width=4.2,
+        ).set_z_index(z + 1)
+        return VGroup(bg_ring, arc, tg)
+    return VGroup(bg_ring, tg)
 
 
 def build_world_grid(span_x: float = 11.0, span_y: float = 6.5) -> VGroup:
-    """3D/2D mathematical coordinate grid living in world space (zooms & tilts with camera!)."""
+    """세계 좌표 격자."""
     grid = VGroup()
     for x in np.arange(-span_x, span_x + 0.1, 1.0):
         is_ax = abs(x) < 1e-6
@@ -192,7 +223,7 @@ def build_world_grid(span_x: float = 11.0, span_y: float = 6.5) -> VGroup:
 
 
 def build_hud_chrome() -> VGroup:
-    """Fixed-in-frame cinema matte bars that stay pinned to the 1080p screen."""
+    """상하단 고정 자막 배경 바."""
     top_bar = Rectangle(width=14.6, height=0.74, fill_color="#05080C", fill_opacity=0.96, stroke_width=0).move_to([0, 3.65, 0])
     bot_bar = Rectangle(width=14.6, height=0.74, fill_color="#05080C", fill_opacity=0.96, stroke_width=0).move_to([0, -3.65, 0])
     top_line = Line([-7.15, 3.28, 0], [7.15, 3.28, 0], color=C_SLATE, stroke_width=1.15)
@@ -202,15 +233,9 @@ def build_hud_chrome() -> VGroup:
     return chrome
 
 
-def build_canvas() -> VGroup:
-    """Legacy wrapper returning world grid (kept for compatibility)."""
-    return build_world_grid()
-
-
-# ---------------------------------------------------------------------------
-# 3Blue1Brown Documentary 3D + Zoom/Pan Base Scene
-# ---------------------------------------------------------------------------
 class PostLifeBaseScene(ThreeDScene):
+    """고정 상하단 자막 바와 카메라 이동 도우미를 갖춘 장면."""
+
     def init_cinema_canvas(self) -> tuple[VGroup, VGroup]:
         self.camera.background_color = C_BG
         cam = self.camera
@@ -265,11 +290,6 @@ class PostLifeBaseScene(ThreeDScene):
 
     def snap_cam_2d(self) -> None:
         self.set_camera_orientation(phi=0 * DEGREES, theta=-90 * DEGREES, gamma=0 * DEGREES, zoom=1.0, frame_center=ORIGIN)
-
-    def wait(self, duration: float = 1.0, stop_condition=None, frozen_frame: bool | None = None) -> None:
-        if stop_condition is None and duration >= 0.5:
-            duration = round(duration * 1.55, 2)
-        super().wait(duration=duration, stop_condition=stop_condition, frozen_frame=frozen_frame)
 
     def add_billboard(self, *mobs: Mobject) -> None:
         self.add_fixed_orientation_mobjects(*mobs)

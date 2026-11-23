@@ -4,3 +4,4 @@ media/
 smoke/
 *.pyc
 *.mp4
+concat_list.txt
