@@ -83,19 +83,33 @@
   <div class="guides" id="guides"></div>
 </div>
 
+<!-- 여는 화면: 첫 화면이 그려진 뒤 자료 읽기, 지도, 표 단계에 맞춰 가운데 기하 도형이 채워지고 탭 구성으로 펼쳐진다 -->
+<div class="boot-loader" id="boot-loader" role="status" aria-live="polite" hidden>
+  <div class="bl-emblem">
+    <svg class="bl-svg" width="168" height="168" viewBox="-76 -76 152 152" aria-hidden="true" focusable="false">
+      <circle class="bl-outer" r="64" fill="none" stroke-width="1"/>
+      <path class="bl-cross" d="M0 -70V-60M70 0H60M0 70V60M-70 0H-60M-50 -50l9 9M50 -50l-9 9M-50 50l9 -9M50 50l-9 -9" fill="none" stroke-width="1.5"/>
+      <circle class="bl-trk" r="52" fill="none" stroke-width="1.2"/>
+      <circle class="bl-arc" id="boot-arc" r="52" fill="none" stroke-width="5.2" pathLength="100" stroke-dasharray="10 100" transform="rotate(-90)"/>
+      <circle class="bl-gold" r="43" fill="none" stroke-width="1.4"/>
+      <path class="bl-dia" id="boot-dia" d="M0 -33L33 0 0 33 -33 0Z" fill="none" stroke-width="1.8" pathLength="100" stroke-dasharray="10 100"/>
+    </svg>
+    <span class="bl-pct num" id="boot-pct">10%</span>
+  </div>
+</div>
+
 <header class="head" id="head">
   <div class="notice" role="note">
     <span class="nt"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x=".75" y=".75" width="10.5" height="10.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 3v4M6 8.4v1" stroke="currentColor" stroke-width="1.5"/></svg><span id="notice-t">공모전 시연용 화면이며 영업 자료가 아닙니다</span></span>
-    <span class="asof">자료 기준 <span class="num" id="asof"></span></span>
   </div>
   <div class="bar">
     <div class="brand">
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 1.5L24.5 13 13 24.5 1.5 13Z" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="10" width="6" height="6" fill="currentColor"/></svg>
-      <div><b>영업 분석 콘솔</b><small>우체국보험 상품과 청약 판단 지원, 시안 4</small></div>
+      <svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 1.5L24.5 13 13 24.5 1.5 13Z" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="10" width="6" height="6" fill="currentColor"/></svg>
+      <div><b id="app-title">영업 분석 콘솔</b></div>
     </div>
     <nav class="tabs" id="tabs" role="tablist" aria-label="분석 단계"></nav>
     <div class="bar-r">
-      <button class="condmini" id="condmini" type="button" title="조건 줄로 올라가기"></button>
+      <button class="condmini" id="condmini" type="button"></button>
       <button class="tgl" id="skin" type="button" aria-pressed="false">짙은 화면</button>
       <button class="tgl" id="motion" type="button" aria-pressed="true">움직임 <b>켬</b></button>
     </div>
@@ -104,7 +118,7 @@
 
 <div class="shell" id="shell">
   <section class="cond" id="cond" aria-label="조건 줄"></section>
-  <section class="scope" id="scope" aria-label="범위 띠" aria-live="polite"></section>
+  <section class="scope" id="scope" aria-label="범위 띠" aria-live="polite" hidden></section>
   <div class="work" id="work">
     <main class="main" id="main" tabindex="-1">
       <div class="dots" aria-hidden="true"></div>
@@ -114,8 +128,8 @@
       <div class="ev-in">
         <i class="ev-handle" aria-hidden="true"></i>
         <div class="ev-top">
-          <div class="ev-krow"><span class="k" id="ev-k">근거</span><span class="ev-pnm">관계와 근거 패널<span id="ev-help"></span></span></div>
-          <h2 id="ev-t">범위와 읽는 법</h2>
+          <div class="ev-krow"><span class="k" id="ev-k">근거</span><span class="ev-pnm"><span id="ev-pnm-t">관계와 근거 패널</span><span id="ev-help"></span></span></div>
+          <h2 id="ev-t">요약</h2>
           <div class="badges" id="ev-b"></div>
           <button class="ev-x" id="ev-x" type="button" aria-label="근거 닫기"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button>
         </div>
@@ -124,17 +138,79 @@
     </aside>
   </div>
   <footer class="foot" id="foot">
-    <p><b>고지.</b> <span id="foot-notice">공모전 시연용 화면이며 영업 자료가 아닙니다</span>. 상품요약서와 사업방법서 같은 공시 문서에서 뽑은 값으로 계산했고, 판매 시책, 수수료, 손해율, 인수 판정은 다루지 않습니다.</p>
-    <p><b>글꼴.</b> /*__FONT_NOTICE__*/</p>
+    <p><b id="foot-notice-h">고지.</b> <span id="foot-notice">공모전 시연용 화면이며 영업 자료가 아닙니다</span>. <span id="foot-disclaimer"></span> <span class="asof"><span id="asof-label">자료 기준</span> <span class="num" id="asof"></span></span></p>
+    <p><b id="foot-font-h">글꼴.</b> /*__FONT_NOTICE__*/</p>
   </footer>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<div class="help-pop" id="help-pop" role="region" aria-label="용어 풀이" hidden></div>
+<div class="help-pop" id="help-pop" role="region" aria-label="풀이 및 범례" hidden></div>
+<div class="hud-tip" id="hud-tip" role="tooltip" hidden></div>
 <div id="print-root"></div>
 
 <script id="sales-data" type="application/json">/*__SALES__*/</script>
 <script>/*__D__*/</script>
-<script>/*__SCRIPTS__*/</script>
+<script id="app-bundle" type="text/plain">/*__SCRIPTS__*/</script>
+<script>
+(function () {
+  var skin = null, motion = null;
+  try { skin = localStorage.getItem('postlife-c4-skin'); motion = localStorage.getItem('postlife-c4-motion'); } catch (e) {}
+  if (skin === 'dark' || skin === 'light') document.documentElement.dataset.theme = skin;
+  if (motion !== 'on' && motion !== 'off') {
+    motion = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'off' : 'on';
+  }
+  document.documentElement.dataset.motion = motion;
+  function runBundle() {
+    var el = document.createElement('script');
+    el.textContent = document.getElementById('app-bundle').textContent;
+    document.body.appendChild(el);
+  }
+  if (motion === 'off') {
+    runBundle();
+    return;
+  }
+  var loader = document.getElementById('boot-loader');
+  var arc = document.getElementById('boot-arc');
+  var dia = document.getElementById('boot-dia');
+  var pct = document.getElementById('boot-pct');
+  document.body.classList.add('is-booting');
+  loader.hidden = false;
+  var t0 = performance.now();
+  function setProg(p) {
+    if (arc) arc.setAttribute('stroke-dasharray', p + ' 100');
+    if (dia) dia.setAttribute('stroke-dasharray', p + ' 100');
+    if (pct) pct.textContent = p + '%';
+  }
+  setProg(14);
+  function afterPaint(fn) { requestAnimationFrame(function () { setTimeout(fn, 0); }); }
+  afterPaint(function () {
+    // 1단계: 핵심 영업 자료 읽기
+    window.__BOOT_S = JSON.parse(document.getElementById('sales-data').textContent);
+    setProg(45);
+    afterPaint(function () {
+      // 2단계: 고객군 지도와 기준 종형 색인 확인
+      var m = window.__BOOT_S && window.__BOOT_S['지도'];
+      if (m) void Object.keys(m).length;
+      setProg(76);
+      afterPaint(function () {
+        // 3단계: 담보 표와 다섯 탭 실행부 구성
+        runBundle();
+        setProg(100);
+        var wait = Math.max(0, 600 - (performance.now() - t0));
+        setTimeout(function () {
+          loader.classList.add('is-out');
+          document.body.classList.remove('is-booting');
+          document.body.classList.add('boot-unfold');
+          setTimeout(function () {
+            loader.hidden = true;
+            loader.classList.remove('is-out');
+            document.body.classList.remove('boot-unfold');
+          }, 280);
+        }, wait);
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>

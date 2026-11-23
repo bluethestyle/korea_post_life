@@ -1,108 +1,112 @@
-/* 탭 1 브리핑: 주인공 도형은 다섯 큰 메달(지름 96~108px)과 24칸 고객군 지형 격자, 치료 여정 다섯 단계 타일, 공통 담보 막대.
-   긴 문장과 관계 식은 근거 기둥에 모으고, 한 번에 읽고 싶은 사람을 위해 "문장으로 보기" 전환을 둔다.
-   값과 문장은 sales.json 의 기준별[종형].브리핑, 지도, 범위, 치료여정, 보류요약에서 읽는다. */
+/* 탭 1 브리핑: 주인공 도형은 원형 이중 고리 메달.
+   1층은 큰 메달 다섯과 결론 한 줄만 보이고, 고르면 2층 단일 시각화가 펼쳐지며, 세부 요소를 고르면 3층 근거가 열린다.
+   화면 코드 문구는 모두 App.t(core.js 의 COPY)에서 읽고, 숫자와 문장은 sales.json 에서 읽는다. */
 App.registerTab((function () {
-  const { ui, txt } = App;
+  const { ui, txt, t } = App;
   const { esc, fmt } = ui;
   const S = App.S;
-  const ROW_NAME = { '가': '고객군 지형', '나': '개정과 시장', '다': '가입 관문과 한도', '라': '담보 포지션', '마': '영업 인사이트' };
+  const ROW_KEY_NAME = {
+    '가': 'briefRowGa', '나': 'briefRowNa', '다': 'briefRowDa', '라': 'briefRowRa', '마': 'briefRowMa',
+  };
   const ROW_FOCUS = { '가': 'map', '나': 'news', '다': '', '라': 'journey', '마': '' };
   const ROW_NO = { '가': 1, '나': 2, '다': 3, '라': 4, '마': 5 };
   const MAP_LABELS = S['라벨'];
 
-  let viewMode = 'medal'; // 'medal' | 'list'
-  // 하단 판의 지표 단추도 core 의 고르기(App.select)로 고른다. 고른 것은 늘 하나라 메달의 빨강과 함께 켜지지 않는다.
-  // 0: 고객군 24칸 격자(메달 가와 같은 근거), 1: 공통 담보 쌍, 2: 치료 여정 5단계
-  const SUB_KEY = ['가', 'sub1', 'sub2'];
-  const subOf = key => SUB_KEY.indexOf(key);
-  let focusSeg = null;    // { ri, ci } 지도 칸을 눌렀을 때
-  let lastBase = null;
-  let lastNote = { short: '', long: '' };
-  const justChanged = new Set();
+  let viewMode = 'medal';
 
   const brief = c => (c.base ? c.base['브리핑'] : []);
   const line = (c, k) => brief(c).find(b => b['줄'] === k) || null;
-  const refText = c => `${c.ref['나이']}세 ${txt.sexText(c.ref['성별'])}, ${txt.sinceText(c.ref['이력'])}`;
+  const rowName = b => b['구역'] || t(ROW_KEY_NAME[b['줄']] || 'briefRowGa');
+  const refText = c => `${c.ref['나이']}${t('condAgeUnit')} ${txt.sexText(c.ref['성별'])}, ${txt.sinceText(c.ref['이력'])}`;
+
+  function conclText(c) {
+    const ga = line(c, '가'), na = line(c, '나'), da = line(c, '다'), ra = line(c, '라'), ma = line(c, '마');
+    const gv = ga ? ga['값'] : {}, nv = na ? na['값'] : {}, dv = da ? da['값'] : {}, rv = ra ? ra['값'] : {}, mv = ma ? ma['값'] : {};
+    const open = (gv['우리간편만열림칸수'] || 0) + (gv['함께열림칸수'] || 0);
+    return t('briefConclTpl', {
+      kind: txt.vkind(c.baseId),
+      open: fmt(open),
+      cells: fmt(gv['전체칸수'] || 0),
+      rev: fmt(nv['개정변동수'] || 0),
+      gate: fmt(dv['관문차이수'] || 0),
+      cmp: fmt(rv['견준쌍'] || 0),
+      pairs: fmt(rv['공통담보쌍'] || 0),
+      ins: fmt(mv['전체수'] || 0),
+    });
+  }
 
   function limitLine(c) {
     const L = c.limit;
     if (!L || (c.st.age === c.ref['나이'] && c.st.sex === c.ref['성별'])) return '';
-    const who = `${c.st.age}세 ${txt.sexText(c.st.sex)}`;
+    const who = `${c.st.age}${t('condAgeUnit')} ${txt.sexText(c.st.sex)}`;
     const kind = txt.vkind(c.baseId);
-    if (!L.hit) return `지금 조건 ${who}: ${kind}의 가입나이(${L.lo}~${L.hi}세) 밖입니다.`;
-    return `지금 조건 ${who}: 주계약 최대 가입금액 ${fmt(L.hit.max)}만원(나이 구간별 한도 표의 ${L.hit.lo}~${L.hit.hi}세 구간${L.hit.pend ? ', 검토 대기' : ''}${L.table['성별같음'] ? ', 남녀 같음' : ''}).`;
+    if (!L.hit) return t('briefLimitOutTpl', { who, kind, lo: L.lo, hi: L.hi });
+    const extra = (L.hit.pend ? t('briefLimitPend') : '') + (L.table['성별같음'] ? t('briefLimitSameSex') : '');
+    return t('briefLimitInTpl', { who, max: fmt(L.hit.max), lo: L.hit.lo, hi: L.hit.hi, extra });
   }
 
+  // 브리핑 전용 도형 범례 등록(늘 깔아 두지 않고 범례 단추로 연다)
+  ui.registerLegend('brief', 'briefLegendTitle', () => `<dl class="legend">
+    <dt><span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2.5px solid var(--gold-line);box-shadow:inset 0 0 0 2px var(--gold)"></span></dt><dd>${esc(t('briefLgMedalGold'))}</dd>
+    <dt><span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--red)"></span></dt><dd>${esc(t('briefLgMedalRed'))}</dd>
+    <dt><span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:1.5px dashed var(--ink-2)"></span></dt><dd>${esc(t('briefLgMedalTick'))}</dd>
+    <dt><span style="display:inline-block;width:16px;height:14px;background:var(--gold);border-top:2.5px solid var(--gold-line)"></span></dt><dd>${esc(t('briefLgMapOpen'))}</dd>
+    <dt><span style="display:inline-block;width:16px;height:14px;background:var(--m-ours)"></span></dt><dd>${esc(t('briefLgMapOurs'))}</dd>
+    <dt><span style="display:inline-block;width:16px;height:14px;border:1.5px dashed var(--ink-1)"></span></dt><dd>${esc(t('briefLgMapGo'))}</dd>
+    <dt><span style="display:inline-block;width:16px;height:14px;border:2px solid var(--ink-0)"></span></dt><dd>${esc(t('briefLgMapNow'))}</dd>
+    <dt><span style="display:inline-block;width:16px;height:14px;background:var(--gold);border-top:2.5px solid var(--gold-line)"></span></dt><dd>${esc(t('briefLgStepGold'))}</dd>
+    <dt>${ui.scope('all')}</dt><dd>${esc(t('lgScopeAll'))}</dd>
+    <dt>${ui.scope('base')}</dt><dd>${esc(t('lgScopeBase'))}</dd>
+  </dl>`);
+
   // ---------- 1. 머리 제어 줄 ----------
-  function headAsideHTML(c) {
+  function headAsideHTML() {
     const isList = viewMode === 'list';
     return `<div class="bhead">
-      <div class="bhead-meta">
-        <span>대표 조건 <b class="num">${esc(refText(c))}</b></span>
-        <span>기준 종형 <b>${esc(txt.vkind(c.baseId))}</b></span>
-      </div>
-      <div class="bhead-act">
-        ${ui.btn(isList ? '도형으로 보기' : '문장으로 보기', {
-          sm: true, ghost: !isList, cls: isList ? 'is-mode-on' : '',
-          attrs: `data-act="brief-mode" aria-pressed="${isList}"`,
-        })}
-        ${ui.btn('요약 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="brief-copy"' })}
-      </div>
+      ${ui.legendBtn('brief')}
+      ${ui.btn(t(isList ? 'briefModeShape' : 'briefModeText'), {
+        sm: true, ghost: !isList, cls: isList ? 'is-mode-on' : '',
+        attrs: `data-act="brief-mode" aria-pressed="${isList}"`,
+      })}
+      ${ui.btn(t('briefCopyBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="brief-copy"' })}
     </div>`;
   }
 
-  // ---------- 2. 다섯 메달 자료와 이중 고리 SVG ----------
+  // ---------- 2. 1층: 다섯 큰 원형 메달 ----------
   function medalSpecs(c) {
     return brief(c).map(b => {
       const k = b['줄'];
       const v = b['값'] || {};
       const no = String(ROW_NO[k]).padStart(2, '0');
-      const name = b['구역'] || ROW_NAME[k];
+      const nm = rowName(b);
       const scope = b['범위'] === '전체 고객군' ? 'all' : 'base';
-      let num = '0', den = null, unit = '', cap = '', max = 1, segs = [], hasGold = false;
+      let num = '0', den = null, max = 1, segs = [], hasGold = false;
 
       if (k === '가') {
         num = fmt(v['함께열림칸수'] || 0);
         den = fmt(v['전체칸수'] || 0);
-        unit = '칸';
-        cap = (v['우리간편만열림칸수'] || 0) > 0
-          ? `단독 ${fmt(v['우리간편만열림칸수'])}, 함께 열림`
-          : `함께 열림, 일반확인 ${fmt(v['우리간편닫힘칸수'] || 0)}`;
         max = v['전체칸수'] || 1;
-        const openN = (v['우리간편만열림칸수'] || 0) + (v['함께열림칸수'] || 0);
-        segs = [{ v: openN, cls: 'gold' }];
-        hasGold = openN > 0;
+        const onlyN = v['우리간편만열림칸수'] || 0;
+        segs = [{ v: onlyN, cls: 'gold' }, { v: v['함께열림칸수'] || 0, cls: '' }];
+        hasGold = onlyN > 0;
       } else if (k === '나') {
         num = fmt(v['개정변동수'] || 0);
-        unit = '개';
-        cap = `신설 ${fmt(v['개정신설'] || 0)}, 변경 ${fmt(v['개정변경'] || 0)}, 종료 ${fmt(v['개정종료'] || 0)}`;
         max = v['개정변동수'] || 1;
         segs = [{ v: v['개정신설'] || 0, cls: 'gold' }, { v: v['개정변경'] || 0, cls: '' }];
         hasGold = (v['개정신설'] || 0) > 0;
       } else if (k === '다') {
         num = fmt(v['관문차이수'] || 0);
-        unit = '곳';
-        if (!c.isRef && c.limit) {
-          cap = c.limit.hit ? `${c.st.age}세 한도 ${fmt(c.limit.hit.max)}만원` : `${c.st.age}세 가입나이 밖`;
-        } else {
-          cap = v['심사'] === '일반심사'
-            ? `일반심사, ${v['우리최저']}~${v['우리최고']}세`
-            : `고지 다른 상대, ${v['우리최저']}~${v['우리최고']}세`;
-        }
-        max = Math.max(1, c.peerIds.length);
+        const denomPeers = (c.allPeerIds || c.peerIds || []).length;
+        max = Math.max(1, denomPeers);
         segs = [{ v: v['관문차이수'] || 0, cls: '' }];
       } else if (k === '라') {
         num = fmt(v['견준쌍'] || 0);
         den = fmt(v['공통담보쌍'] || 0);
-        unit = '쌍';
-        cap = `우체국 ${fmt(v['보유수'] || 0)}개, 대기 ${fmt(v['뺀비교쌍'] || 0)}쌍`;
         max = v['공통담보쌍'] || 1;
-        segs = [{ v: v['견준쌍'] || 0, cls: 'gold' }];
-        hasGold = (v['견준쌍'] || 0) > 0;
+        segs = [{ v: v['견준쌍'] || 0, cls: '' }];
+        hasGold = (v['보유수'] || 0) > 0;
       } else if (k === '마') {
         num = fmt(v['전체수'] || 0);
-        unit = '건';
-        cap = `강점 ${fmt(v['앞세울수'] || 0)}, 관련 ${fmt(v['관련담보수'] || 0)}, 개정 ${fmt(v['개정검토수'] || 0)}`;
         max = v['전체수'] || 1;
         const pos = (v['앞세울수'] || 0) + (v['관련담보수'] || 0);
         const mid = (v['관문차이수'] || 0) + (v['조건열위수'] || 0);
@@ -110,11 +114,12 @@ App.registerTab((function () {
         hasGold = pos > 0;
       }
 
+      const numText = den != null ? `${num}/${den}` : num;
       return {
-        key: k, no, name, scope, scopeText: b['범위'],
-        num, den, unit, numText: den != null ? `${num}/${den}${unit}` : `${num}${unit}`,
-        cap, max, segs, hasGold,
+        key: k, no, name: nm, scope, scopeText: b['범위'],
+        num, den, numText, max, segs, hasGold,
         flag: !!b['원문대조'], flagText: b['원문대조글'],
+        tip: `${nm} (${b['범위']}): ${numText}`,
       };
     });
   }
@@ -125,7 +130,7 @@ App.registerTab((function () {
       const f = m.max > 0 ? Math.max(0, Math.min(1 - acc, s.v / m.max)) : 0;
       if (f > 0) {
         const to = (f * 100).toFixed(2);
-        arcs += `<circle class="arc ${s.cls || ''}" r="45" fill="none" stroke-width="5.5" pathLength="100" stroke-dasharray="${to} 100" stroke-dashoffset="${(-acc * 100).toFixed(2)}" transform="rotate(-90)" data-to="${to}"/>`;
+        arcs += `<circle class="arc ${s.cls || ''}" r="46" fill="none" stroke-width="5.8" pathLength="100" stroke-dasharray="${to} 100" stroke-dashoffset="${(-acc * 100).toFixed(2)}" transform="rotate(-90)" data-to="${to}"/>`;
       }
       acc += f;
     }
@@ -134,252 +139,256 @@ App.registerTab((function () {
     for (let i = 0; i < 72; i++) {
       const a = i / 72;
       if (a < frac - 1e-6) continue;
-      const t = a * Math.PI * 2 - Math.PI / 2, cs = Math.cos(t), sn = Math.sin(t);
-      tks += `<line x1="${(cs * 41.5).toFixed(2)}" y1="${(sn * 41.5).toFixed(2)}" x2="${(cs * 48.5).toFixed(2)}" y2="${(sn * 48.5).toFixed(2)}"/>`;
+      const th = a * Math.PI * 2 - Math.PI / 2, cs = Math.cos(th), sn = Math.sin(th);
+      tks += `<line x1="${(cs * 42.5).toFixed(2)}" y1="${(sn * 42.5).toFixed(2)}" x2="${(cs * 49.5).toFixed(2)}" y2="${(sn * 49.5).toFixed(2)}"/>`;
     }
-    return `<svg class="ring bm-svg" width="108" height="108" viewBox="-64 -64 128 128" aria-hidden="true" focusable="false">
-      <circle class="bm-outer" r="54" fill="none" stroke-width="1"/>
-      <path class="bm-card" d="M0 -58V-53M58 0H53M0 58V53M-58 0H-53" stroke-width="1.4" fill="none"/>
-      <circle class="trk" r="45" fill="none" stroke-width="1"/>
+    return `<svg class="ring bm-svg" width="136" height="136" viewBox="-64 -64 128 128" aria-hidden="true" focusable="false">
+      <circle class="bm-outer" r="55" fill="none" stroke-width="1"/>
+      <path class="bm-card" d="M0 -59V-54M59 0H54M0 59V54M-59 0H-54" stroke-width="1.4" fill="none"/>
+      <circle class="trk" r="46" fill="none" stroke-width="1"/>
       <g class="tks" stroke-width="1.5">${tks}</g>
       ${arcs}
-      <circle class="bm-inner${m.hasGold ? ' gold' : ''}" r="37.5" fill="none" stroke-width="1.5"/>
-      <circle class="bm-disc" r="34.5"/>
-      <path class="bm-diag" d="M-56 -56l10 10M56 -56l-10 10M-56 56l10 -10M56 56l-10 -10" stroke-width="2" fill="none"/>
+      <circle class="bm-inner${m.hasGold ? ' gold' : ''}" r="38.5" fill="none" stroke-width="1.5"/>
+      <circle class="bm-disc" r="35.5"/>
+      <path class="bm-diag" d="M-56 -56l10 10M56 -56l-10 10M-56 56l10 -10M56 56l-10 -10" stroke-width="2.1" fill="none"/>
     </svg>`;
   }
 
   function medalsHTML(c) {
-    const list = medalSpecs(c);
-    return `<div class="bmedals" data-pick-group="brief">${list.map((m, i) => {
-      const flag = m.flag ? ui.flag(m.flagText || ui.FLAG_TEXT) : '';
-      const ch = justChanged.has(m.key) && lastNote.short ? `<span class="chg bm-chg">${esc(lastNote.short)}</span>` : '';
-      return `<div class="bmedal brow${justChanged.has(m.key) ? ' just' : ''}" data-pick="${esc(m.key)}" data-scope="${m.scope}" style="--mi:${i}">
-        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${m.no} ${m.name}, ${m.numText}, ${m.scopeText}. 근거 보기`)}"></button>
-        ${flag}
-        <div class="bm-top">
-          <span class="bm-no num" aria-hidden="true"><span class="num-0">${m.no[0]}</span>${m.no[1]}</span>
-          ${ui.scope(m.scope)}
-        </div>
+    return `<div class="bmedals" data-pick-group="brief">${medalSpecs(c).map((m, i) => `
+      <div class="bmedal brow" data-pick="${esc(m.key)}" data-tip="${esc(m.tip)}" style="--mi:${i}">
+        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${m.name}, ${m.numText}, ${m.scopeText}`)}"></button>
+        ${m.flag ? ui.flag(m.flagText || ui.FLAG_TEXT) : ''}
         <div class="bm-emblem">
           ${medalSVG(m)}
           <div class="bm-val">
             <span class="bm-n num${m.den != null ? ' frac' : ''}">${esc(m.num)}${m.den != null ? `<small class="bm-d">/${esc(m.den)}</small>` : ''}</span>
-            <span class="bm-u">${esc(m.unit)}</span>
           </div>
         </div>
         <div class="bm-foot">
+          <span class="bm-sc" aria-hidden="true">${m.scope === 'all' ? ui.IC.grid : ui.IC.pin}</span>
           <span class="bm-name">${esc(m.name)}</span>
-          <span class="bm-cap">${esc(m.cap)}</span>
-          ${ch}
         </div>
-      </div>`;
-    }).join('')}</div>`;
+      </div>`).join('')}</div>`;
   }
 
-  // ---------- 3. 하단 통합 기하 격자(고객군 24칸 지도 + 치료 여정 5단계 + 공통 쌍) ----------
-  const TIME_SHORT = r => {
-    if (r.since === 5) return '5년+/없음';
-    return r['이름'].replace(/^(입원|수술만)\s*/, '').replace(/\s*전$/, '');
-  };
-  const TIME_TINY = r => (r.since === 5 ? '5년+' : TIME_SHORT(r));
+  // ---------- 3. 2층: 고른 메달 하나에 해당하는 시각화 하나만 ----------
+  function subRingSVG(v, max, cls = '') {
+    const f = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
+    const to = (f * 100).toFixed(2);
+    let tks = '';
+    for (let i = 0; i < 48; i++) {
+      const a = i / 48;
+      if (a < f - 1e-6) continue;
+      const th = a * Math.PI * 2 - Math.PI / 2, cs = Math.cos(th), sn = Math.sin(th);
+      tks += `<line x1="${(cs * 38).toFixed(2)}" y1="${(sn * 38).toFixed(2)}" x2="${(cs * 44).toFixed(2)}" y2="${(sn * 44).toFixed(2)}"/>`;
+    }
+    const arc = f > 0 ? `<circle class="arc ${cls}" r="41" fill="none" stroke-width="5" pathLength="100" stroke-dasharray="${to} 100" transform="rotate(-90)" data-to="${to}"/>` : '';
+    return `<svg class="ring" width="92" height="92" viewBox="-52 -52 104 104" aria-hidden="true" focusable="false">
+      <circle class="trk" r="41" fill="none" stroke-width="1"/>
+      <g class="tks" stroke-width="1.4">${tks}</g>
+      ${arc}
+      <circle class="disc" r="32"/>
+    </svg>`;
+  }
+
   const CELL_STYLE = {
-    '우리 간편만 열림': { cls: 'is-only', ic: ui.IC.only, txt: '단독' },
-    '함께 열림': { cls: 'is-open', ic: ui.IC.open, txt: '열림' },
-    '우리 간편 닫힘': { cls: 'is-ours', ic: ui.IC.check, txt: '일반' },
-    '간편 모두 닫힘': { cls: 'is-all', ic: ui.IC.lock, txt: '닫힘' },
-    '자료 없음': { cls: 'is-none', ic: ui.IC.hatch, txt: '미상' },
+    '우리 간편만 열림': { cls: 'is-only', ic: ui.IC.only },
+    '함께 열림': { cls: 'is-open', ic: ui.IC.open },
+    '우리 간편 닫힘': { cls: 'is-ours', ic: ui.IC.check },
+    '간편 모두 닫힘': { cls: 'is-all', ic: ui.IC.lock },
+    '자료 없음': { cls: 'is-none', ic: ui.IC.hatch },
   };
+  const timeShort = r => (r.since === 5 ? t('briefTimeOver5') : r['이름'].replace(/^(입원|수술만)\s*/, '').replace(/\s*전$/, ''));
+  const orgCodeOfVid = vid => ((txt.vinfo(vid) && txt.vinfo(vid)['기관코드']) || String(vid).split('_')[0]);
 
-  function map24HTML(c) {
-    const ga = line(c, '가');
-    const gv = ga ? ga['값'] : {};
-    const lab = gv['라벨별'] || {};
-    const m = App.mapOf(null);
-    const cols = m['열'] || [];
-    const hospRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
-    const surgRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
-    const openCnt = (gv['우리간편만열림칸수'] || 0) + (gv['함께열림칸수'] || 0);
-    const nowSeg = App.cellOf({ ...c.st, renewal: null });
-    const focusSub = subOf(c.st.sel.brief);
-
-    const colHeads = `<div class="bmap-cols" aria-hidden="true"><span></span>${hospRows.map(x => `<span class="bmap-ch" title="${esc(x.r['이름'])}"><span class="ch-full">${esc(TIME_SHORT(x.r))}</span><span class="ch-sm">${esc(TIME_TINY(x.r)).replace('~', '~<wbr>')}</span></span>`).join('')}</div>`;
-    const gridRows = [];
-    [
-      { kind: '입원', rows: hospRows, surg: false },
-      { kind: '수술만', rows: surgRows, surg: true },
-    ].forEach(group => {
-      cols.forEach((col, ci) => {
-        const firstSurg = group.surg && ci === 0;
-        const cells = group.rows.map((x, bi) => {
-          const ri = x.i;
-          const cell = m['칸'][ri][ci];
-          const st = CELL_STYLE[cell['라벨']] || CELL_STYLE['자료 없음'];
-          const isNow = !!nowSeg.cell && nowSeg.ri === ri && nowSeg.ci === ci;
-          const isFocus = focusSeg && focusSeg.ri === ri && focusSeg.ci === ci;
-          const go = cell['관문만수집'] || [];
-          const goTitle = go.length ? go.map(g => `${g['이름']} ${g['안내'] || '관문만 수집'}`).join(', ') : '';
-          const aria = `${x.r['이름']}, ${col.lo}~${col.hi}세: ${cell['라벨']}${cell['보조'] ? ', ' + cell['보조'] : ''}${goTitle ? ', ' + goTitle : ''}${isNow ? ', 지금 조건' : ''}`;
-          return `<button type="button" class="bm-cell ${st.cls}${go.length ? ' has-go' : ''}${isNow ? ' is-now' : ''}${isFocus ? ' is-focus' : ''}" data-act="bmap-cell" data-ri="${ri}" data-ci="${ci}" style="--ci:${bi + (group.surg ? 2 : 0) + ci}" aria-label="${esc(aria)}" title="${esc(aria)}">
-            <i class="bm-cbg" aria-hidden="true"></i>
-            ${cell['라벨'] === '우리 간편만 열림' ? ui.flag() : ''}
-            <span class="bm-cs">${st.ic}<span class="bm-ct">${esc(st.txt)}</span></span>
-            ${(go.length || isNow) ? `<span class="bm-ctag">${go.length ? '<span class="bm-cgo">관문만</span>' : ''}${isNow ? '<span class="bm-cnow">지금</span>' : ''}</span>` : ''}
-          </button>`;
-        }).join('');
-        gridRows.push(`<div class="bmap-row${firstSurg ? ' surg-start' : ''}">
-          <span class="bmap-rh"><span>${esc(group.kind)}</span><span class="nw">${col.lo}~${col.hi}세</span></span>${cells}
-        </div>`);
-      });
-    });
-
-    return `<section class="bsub bmap-box${focusSub === 0 ? ' is-on' : ''}" data-sub="0" aria-label="고객군 24칸 관문 지형">
-      <div class="bsub-top">
-        <button type="button" class="kpi bsub-t${focusSub === 0 ? ' is-on' : ''}" data-act="kpi" data-i="0" aria-pressed="${focusSub === 0}">
-          <span class="bsub-h">고객군 ${fmt(gv['전체칸수'] || 24)}칸 관문 지형</span>
-          <span class="bsub-big num">${fmt(openCnt)}<small>/${fmt(gv['전체칸수'] || 24)}</small><em>칸 열림</em></span>
-        </button>
-        <div class="bsub-r">
-          ${ui.scope('all')}
-          ${ui.btn('지도 탭', { sm: true, ghost: true, chev: true, attrs: 'data-go="market" data-focus="map"' })}
-        </div>
-      </div>
-      <div class="bmap-wrap" role="group" aria-label="이력과 나이 구간별 24개 고객군 칸">
-        ${colHeads}
-        ${gridRows.join('')}
-      </div>
-      <div class="bmap-lg">
-        <span class="lg-i"><i class="msw open"></i>우리 간편 열림(함께 열림) <b class="num">${fmt(lab['함께 열림'] || 0)}</b></span>
-        <span class="lg-i"><i class="msw only"></i>우리 간편만 열림 <b class="num">${fmt(lab['우리 간편만 열림'] || 0)}</b></span>
-        <span class="lg-i"><i class="msw ours"></i>일반심사 확인 <b class="num">${fmt(lab['우리 간편 닫힘'] || 0)}</b></span>
-        <span class="lg-i"><i class="msw go"></i>관문만 수집 칸 <b class="num">${fmt(gv['관문만칸수'] || 0)}</b></span>
-        <span class="lg-i"><i class="msw now"></i>지금 조건</span>
-      </div>
-    </section>`;
+  function orgNodeInfo(org, cell, orgTotals) {
+    const stName = (cell['회사'] && cell['회사'][org]) || '';
+    const noData = (cell['자료없음'] || []).includes(org);
+    const openIds = (cell['열린종형'] && cell['열린종형'][org]) || [];
+    const nTxt = noData ? t('briefGateUnknownSym') : fmt(openIds.length);
+    const cls = org === 'EPOST' && stName === '열림' ? 'gold' : '';
+    const ic = stName === '열림' ? ui.IC.open : stName === '닫힘' ? ui.IC.lock : noData ? ui.IC.hatch : ui.IC.check;
+    const tip = `${txt.orgShort(org)}: ${stName}${noData ? '' : `, ${openIds.length}${t('briefGateOpenUnit')}`}`;
+    return { org, stName, noData, openIds, nTxt, cls, ic, tip, max: orgTotals[org] || 1 };
   }
 
-  function sideDeckHTML(c) {
-    const ra = line(c, '라');
-    const rv = ra ? ra['값'] : {};
-    const j = c.base['치료여정'];
-    const steps = j['열'] || [];
-    const cols = j['종형'] || [];
-    const ours = cols.find(x => x['종형ID'] === c.baseId) || cols[0];
-    const have = ours ? steps.filter(s => (ours['합계'][s] || 0) > 0).length : 0;
-    const maxStep = Math.max(1, ...cols.flatMap(x => steps.map(s => x['합계'][s] || 0)));
-    const focusSub = subOf(c.st.sel.brief);
+  function layer2HTML(key, c, animate) {
+    if (!key) return '';
+    const b = line(c, key);
+    if (!b) return '';
+    const idx = (ROW_NO[key] || 1) - 1;
+    const ox = `${(idx + 0.5) * 20}%`;
+    const tab = App.TAB_BY_NAME[b['갈곳']] || 'brief';
+    const goBtn = ui.btn(t('briefGoTabTpl', { tab: b['갈곳'] }), {
+      sm: true, ghost: true, chev: true,
+      attrs: `data-go="${tab}"${ROW_FOCUS[key] ? ` data-focus="${ROW_FOCUS[key]}"` : ''}`,
+    });
+    const closeBtn = ui.btn(t('briefUpBtn'), { sm: true, ghost: true, attrs: 'data-layer-up="1"' });
 
-    const stepTiles = steps.map((s, si) => {
-      const n = ours ? (ours['합계'][s] || 0) : 0;
-      const bars = cols.map((x, xi) => {
-        const cnt = x['합계'][s] || 0;
-        const h = cnt > 0 ? Math.max(3, Math.round(cnt / maxStep * 18)) : 0;
-        return `<i class="c${xi}" style="height:${h}px" title="${esc(txt.orgShort(x['종형ID'].split('_')[0]))} ${cnt}개"></i>`;
-      }).join('');
-      return `<div class="bstep ${n > 0 ? 'is-gold' : 'is-empty'}" style="--si:${si}" role="group" aria-label="${esc(`${s} 단계, 우체국 담보 ${n}개`)}">
-        <i class="bs-bg" aria-hidden="true"></i>
-        <span class="bs-s">${esc(s)}</span>
-        <span class="bs-n num">${fmt(n)}</span>
-        <span class="bs-bars" aria-hidden="true">${bars}</span>
-      </div>`;
-    }).join('');
+    let titleStr = '';
+    let inner = '';
 
-    const totalPairs = rv['공통담보쌍'] || 0;
-    const cmpPairs = rv['견준쌍'] || 0;
-    const waitPairs = rv['뺀비교쌍'] || 0;
-    const cmpPct = totalPairs > 0 ? (cmpPairs / totalPairs * 100).toFixed(1) : 0;
-    const waitPct = totalPairs > 0 ? (waitPairs / totalPairs * 100).toFixed(1) : 0;
-    const cats = (c.base['보류요약'] && c.base['보류요약']['대분류']) || [];
-    const catHTML = cats.map(x => {
-      const tot = (x['견준쌍'] || 0) + (x['뺀쌍'] || 0);
-      const cp = tot > 0 ? (x['견준쌍'] / tot * 100).toFixed(1) : 0;
-      const wp = tot > 0 ? (x['뺀쌍'] / tot * 100).toFixed(1) : 0;
-      return `<div class="bp-cat">
-        <div class="bp-ch"><span>${esc(x['대분류'])}</span><span class="num"><b>${fmt(x['견준쌍'])}</b>/${fmt(tot)}</span></div>
-        <div class="bp-cb" aria-hidden="true"><i class="c" style="width:${cp}%"></i><i class="w" style="width:${wp}%"></i></div>
-      </div>`;
-    }).join('');
+    if (key === '가') {
+      titleStr = t('briefL2GaTitle');
+      const m = App.mapOf(null);
+      const nowSeg = App.cellOf(Object.assign({}, c.st, { renewal: null }));
+      const cols = m['열'] || [];
+      const hospRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '입원');
+      const surgRows = (m['행'] || []).map((r, i) => ({ r, i })).filter(x => x.r['종류'] === '수술만');
+      const colHeads = `<div class="bmap-cols" aria-hidden="true"><span></span>${hospRows.map(x => `<span class="bmap-ch">${esc(timeShort(x.r))}</span>`).join('')}</div>`;
+      const rows = [];
+      [
+        { label: t('briefHospShort'), list: hospRows, surg: false },
+        { label: t('briefSurgShort'), list: surgRows, surg: true },
+      ].forEach(g => {
+        cols.forEach((col, ci) => {
+          const cells = g.list.map(x => {
+            const ri = x.i, cell = m['칸'][ri][ci];
+            const st = CELL_STYLE[cell['라벨']] || CELL_STYLE['자료 없음'];
+            const isNow = nowSeg && nowSeg.cell && nowSeg.ri === ri && nowSeg.ci === ci;
+            const go = cell['관문만수집'] || [];
+            const goTxt = go.length ? `, ${go.map(z => `${z['이름']} ${z['안내'] || ''}`).join(', ')}` : '';
+            const tip = `${x.r['이름']}, ${col.lo}~${col.hi}${t('condAgeUnit')}: ${cell['라벨']}${cell['보조'] ? ` (${cell['보조']})` : ''}${goTxt}`;
+            return `<button type="button" class="bm-cell ${st.cls}${go.length ? ' has-go' : ''}${isNow ? ' is-now' : ''}" data-sub-pick="seg:${ri}-${ci}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
+              <i class="bm-cbg" aria-hidden="true"></i>
+              ${cell['라벨'] === '우리 간편만 열림' ? ui.flag() : ''}
+              <span class="bm-cs" aria-hidden="true">${st.ic}</span>
+            </button>`;
+          }).join('');
+          rows.push(`<div class="bmap-row${g.surg && ci === 0 ? ' surg-start' : ''}">
+            <span class="bmap-rh">${esc(`${g.label} ${col.lo}~${col.hi}`)}</span>${cells}
+          </div>`);
+        });
+      });
+      inner = `<div class="bmap-wrap">${colHeads}${rows.join('')}</div>`;
+    } else if (key === '나') {
+      titleStr = t('briefL2NaTitle');
+      const v = b['값'] || {};
+      const tot = v['개정변동수'] || 1;
+      const nw = S['시장소식'] || {};
+      const items = [
+        { k: 'rev:new', lbl: t('briefRevNew'), n: v['개정신설'] || 0, max: tot, cls: 'gold' },
+        { k: 'rev:chg', lbl: t('briefRevChg'), n: v['개정변경'] || 0, max: tot, cls: '' },
+        { k: 'rev:end', lbl: t('briefRevEnd'), n: v['개정종료'] || 0, max: tot, cls: '' },
+        { k: 'rev:news', lbl: t('briefNewsNode'), n: nw['건수'] || 0, max: Math.max(1, nw['건수'] || 1), cls: (nw['연결'] || 0) > 0 ? 'gold' : '' },
+      ];
+      inner = `<div class="l2-rings" style="--cols:4">${items.map(it => `
+        <button type="button" class="l2-node" data-sub-pick="${esc(it.k)}" data-tip="${esc(`${it.lbl}: ${fmt(it.n)}`)}" aria-pressed="false" aria-label="${esc(`${it.lbl} ${fmt(it.n)}`)}">
+          <div class="l2-rbox">${subRingSVG(it.n, it.max, it.cls)}<span class="l2-n num">${esc(fmt(it.n))}</span></div>
+          <span class="l2-lbl">${esc(it.lbl)}</span>
+        </button>`).join('')}</div>`;
+    } else if (key === '다') {
+      titleStr = t('briefL2DaTitle');
+      const m = App.mapOf(null);
+      const cell = (c.seg && c.seg.cell) || m['칸'][5][1];
+      const orgTotals = {};
+      Object.values(S['종형']).forEach(v => { orgTotals[v['기관코드']] = (orgTotals[v['기관코드']] || 0) + 1; });
+      const peers = c.activePeerOrgs || [];
+      const orgs = ['EPOST'].concat(peers);
+      const ringBtn = info => `<button type="button" class="l2-node" data-sub-pick="org:${esc(info.org)}" data-tip="${esc(info.tip)}" aria-pressed="false" aria-label="${esc(info.tip)}">
+        <div class="l2-rbox">${subRingSVG(info.noData ? 0 : info.openIds.length, info.max, info.cls)}<span class="l2-n num">${esc(info.nTxt)}</span></div>
+        <span class="l2-lbl"><span aria-hidden="true">${info.ic}</span>${esc(txt.orgShort(info.org))}</span>
+      </button>`;
+      if (peers.length <= 3) {
+        inner = `<div class="l2-rings" style="--cols:${Math.max(1, orgs.length)}">${orgs.map(o => ringBtn(orgNodeInfo(o, cell, orgTotals))).join('')}</div>`
+          + (peers.length === 0 ? `<p class="l2-empty">${esc(t('peerEmptyHint'))}</p>` : '');
+      } else {
+        // 상대 회사가 넷을 넘을 때는 우체국 고리 하나와 업권별(생명보험, 손해보험) 세로 목록으로 그린다
+        const ours = orgNodeInfo('EPOST', cell, orgTotals);
+        const groups = [
+          { lbl: t('peerLifeGroup'), list: peers.filter(o => txt.orgSector(o) === 'life') },
+          { lbl: t('peerNonLifeGroup'), list: peers.filter(o => txt.orgSector(o) === 'nonlife') },
+        ].filter(g => g.list.length > 0);
+        inner = `<div class="l2-org-many">
+          <div>${ringBtn(ours)}</div>
+          <div class="l2-org-groups">${groups.map(g => `<div class="l2-org-grp">
+            <div class="l2-org-gh">${esc(`${g.lbl} (${fmt(g.list.length)})`)}</div>
+            <div class="l2-org-ul">${g.list.map(o => {
+              const inf = orgNodeInfo(o, cell, orgTotals);
+              return `<button type="button" class="l2-org-row" data-sub-pick="org:${esc(inf.org)}" data-tip="${esc(inf.tip)}" aria-pressed="false" aria-label="${esc(inf.tip)}">
+                <span class="l2-org-nm"><span aria-hidden="true">${inf.ic}</span><span>${esc(txt.orgShort(inf.org))}</span></span>
+                <span class="l2-org-n num">${esc(inf.nTxt)}</span>
+              </button>`;
+            }).join('')}</div>
+          </div>`).join('')}</div>
+        </div>`;
+      }
+    } else if (key === '라') {
+      titleStr = t('briefL2RaTitle');
+      const j = c.base['치료여정'];
+      const steps = j['열'] || [];
+      const activeSet = new Set(c.activeOrgs || txt.ORG_ORDER);
+      const cols = (j['종형'] || []).filter(x => activeSet.has(orgCodeOfVid(x['종형ID'])));
+      const ours = (j['종형'] || []).find(x => x['종형ID'] === c.baseId) || (j['종형'] || [])[0];
+      inner = `<div class="bsteps">${steps.map(s => {
+        const n = ours ? (ours['합계'][s] || 0) : 0;
+        const shownCols = cols.slice(0, 4);
+        const orgSummary = shownCols.map(x => `${txt.orgShort(orgCodeOfVid(x['종형ID']))} ${x['합계'][s] || 0}`).join(', ');
+        const tip = `${s}: ${orgSummary}`;
+        return `<button type="button" class="bstep ${n > 0 ? 'is-gold' : 'is-empty'}" data-sub-pick="step:${esc(s)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
+          <i class="bs-bg" aria-hidden="true"></i>
+          <span class="bs-n num">${esc(fmt(n))}</span>
+          <span class="bs-s">${esc(s)}</span>
+        </button>`;
+      }).join('')}</div>`;
+    } else if (key === '마') {
+      titleStr = t('briefL2MaTitle');
+      const cnt = c.base['분류집계'] || {};
+      const total = Math.max(1, Object.values(cnt).reduce((a, n) => a + n, 0));
+      inner = `<div class="l2-rings" style="--cols:5">${S['분류'].map((cat, idx2) => {
+        const n = cnt[cat] || 0;
+        const cls = (idx2 === 1 || idx2 === 2) && n > 0 ? 'gold' : '';
+        const tip = `${cat}: ${fmt(n)}${t('briefInsUnit')}`;
+        return `<button type="button" class="l2-node" data-sub-pick="cat:${esc(cat)}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
+          <div class="l2-rbox">${subRingSVG(n, total, cls)}<span class="l2-n num">${esc(fmt(n))}</span></div>
+          <span class="l2-lbl">${esc(cat)}</span>
+        </button>`;
+      }).join('')}</div>`;
+    }
 
-    return `<div class="bdeck-side">
-      <section class="bsub bstep-box${focusSub === 2 ? ' is-on' : ''}" data-sub="2" aria-label="우체국 담보가 있는 치료 단계">
-        <div class="bsub-top">
-          <button type="button" class="kpi bsub-t${focusSub === 2 ? ' is-on' : ''}" data-act="kpi" data-i="2" aria-pressed="${focusSub === 2}">
-            <span class="bsub-h">치료 여정 다섯 단계</span>
-            <span class="bsub-big num">${fmt(have)}<small>/${fmt(steps.length)}</small><em>단계 보유</em></span>
-          </button>
-          <div class="bsub-r">
-            ${ui.help('journey-grid', '치료 여정 격자')}
-            ${ui.scope('base')}
-            ${ui.btn('여정 격자', { sm: true, ghost: true, chev: true, attrs: 'data-go="cover" data-focus="journey"' })}
-          </div>
-        </div>
-        <div class="bsteps">${stepTiles}</div>
-        <div class="bstep-lg">
-          <span>우체국 보유 <b>${fmt(ours ? ours['전체'] : 0)}</b>개(금색 타일)</span>
-          <span class="orgs">${cols.map((x, i) => `<span class="oi"><i class="ob c${i}"></i>${esc(txt.orgShort(x['종형ID'].split('_')[0]))}</span>`).join('')}</span>
-        </div>
-      </section>
-      <section class="bsub bpair-box${focusSub === 1 ? ' is-on' : ''}" data-sub="1" aria-label="견준 공통 담보 쌍">
-        <div class="bsub-top">
-          <button type="button" class="kpi bsub-t${focusSub === 1 ? ' is-on' : ''}" data-act="kpi" data-i="1" aria-pressed="${focusSub === 1}">
-            <span class="bsub-h">견준 공통 담보 쌍</span>
-            <span class="bsub-big num">${fmt(cmpPairs)}<small>/${fmt(totalPairs)}</small><em>쌍</em></span>
-          </button>
-          <div class="bsub-r">
-            ${ui.help('caution-pending', '단정 주의와 검토 대기')}
-            ${ui.scope('base')}
-            ${ui.btn('담보 비교', { sm: true, ghost: true, chev: true, attrs: 'data-go="cover"' })}
-          </div>
-        </div>
-        <div class="bpair-bar" role="img" aria-label="${esc(`공통 담보 ${totalPairs}쌍 가운데 견준 쌍 ${cmpPairs}, 검토 대기 ${waitPairs}`)}">
-          <i class="bp-cmp" style="width:${cmpPct}%"></i><i class="bp-wait" style="width:${waitPct}%"></i>
-        </div>
-        <div class="bpair-cats">${catHTML}</div>
-        <div class="bpair-lg">
-          <span><i class="c"></i>견준 쌍 <b class="num">${fmt(cmpPairs)}</b></span>
-          <span><i class="w"></i>검토 대기로 뺀 쌍 <b class="num">${fmt(waitPairs)}</b></span>
-        </div>
-      </section>
+    return `<div class="blayer2${animate && App.motionOn() ? ' l2-open' : ''}" id="brief-l2" style="--ox:${ox}">
+      <div class="l2-head">
+        <h2 class="l2-title">${esc(titleStr)}</h2>
+        <div class="l2-act">${goBtn}${closeBtn}</div>
+      </div>
+      ${inner}
     </div>`;
   }
 
   function stageHTML(c) {
-    const off = !c.isRef;
-    return `<section class="panel bstage" id="brief-stage" aria-label="브리핑 도형 요약">
-      ${off ? `<p class="brief-off">지금 조건(${esc(App.condSummary().split(', 기준')[0])})은 대표 조건과 다릅니다. 메달 대표 값은 대표 조건 기준이고, 지도 칸의 지금 표지와 03번 메달 한도는 지금 조건을 따릅니다.</p>` : ''}
-      ${medalsHTML(c)}
-      <div class="bdeck">
-        ${map24HTML(c)}
-        ${sideDeckHTML(c)}
-      </div>
-      <div class="panel-f" id="brief-foot">${footText()}</div>
-    </section>`;
+    const sel = c.st.sel.brief || null;
+    return `<p class="concl b-concl">${esc(conclText(c))}</p>
+      <section class="panel bstage" id="brief-stage" aria-label="${esc(App.TAB_NAME.brief)}">
+        <div class="bstage-l1">${medalsHTML(c)}</div>
+        <div id="brief-l2-slot">${layer2HTML(sel, c, false)}</div>
+      </section>`;
   }
 
-  // ---------- 4. "문장으로 보기" 다섯 줄 목록 ----------
+  // ---------- 4. "문장으로 보기" 목록 모드 ----------
   function rowsHTML(c) {
     return brief(c).map(b => {
       const k = b['줄'];
-      const name = b['구역'] || ROW_NAME[k];
+      const nm = rowName(b);
       const tab = App.TAB_BY_NAME[b['갈곳']] || 'brief';
       const flag = b['원문대조'] ? ui.flag(b['원문대조글'] || ui.FLAG_TEXT) : '';
       const extra = k === '다' ? limitLine(c) : '';
-      const ch = justChanged.has(k) && lastNote.short ? `<span class="chg">${esc(lastNote.short)}</span>` : '';
       const n = String(ROW_NO[k]).padStart(2, '0');
-      return `<li class="lrow brow${justChanged.has(k) ? ' just' : ''}" data-pick="${esc(k)}" data-scope="${b['범위'] === '전체 고객군' ? 'all' : 'base'}">
-        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${n} ${name}, ${b['범위']}. 근거 보기`)}"></button>
+      const goLabel = t('briefGoTabTpl', { tab: b['갈곳'] });
+      return `<li class="lrow brow" data-pick="${esc(k)}" data-scope="${b['범위'] === '전체 고객군' ? 'all' : 'base'}">
+        <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${n} ${nm}, ${b['범위']}`)}"></button>
         ${flag}
         <div class="bstrip selbar">
           <span class="no num" aria-hidden="true"><span class="num-0">${n[0]}</span>${n[1]}</span>
-          <span class="bn">${esc(name)}</span>
-          ${ui.scope(b['범위'] === '전체 고객군' ? 'all' : 'base')}${ch}
+          <span class="bn">${esc(nm)}</span>
+          ${ui.scope(b['범위'] === '전체 고객군' ? 'all' : 'base')}
           <span class="sp"></span>
-          <span class="live">${ui.btn(`${b['갈곳']} 탭으로`, { sm: true, chev: true, attrs: `data-go="${tab}"${ROW_FOCUS[k] ? ` data-focus="${ROW_FOCUS[k]}"` : ''}` })}</span>
+          <span class="live">${ui.btn(goLabel, { sm: true, chev: true, attrs: `data-go="${tab}"${ROW_FOCUS[k] ? ` data-focus="${ROW_FOCUS[k]}"` : ''}` })}</span>
           <span class="bchev" aria-hidden="true">${ui.IC.chevR}</span>
         </div>
         <p class="btext">${esc(b['문장'])}</p>
         ${extra ? `<p class="bnow">${esc(extra)}</p>` : ''}
-        <div class="bgo live">${ui.btn(`${b['갈곳']} 탭으로`, { sm: true, chev: true, attrs: `data-go="${tab}"${ROW_FOCUS[k] ? ` data-focus="${ROW_FOCUS[k]}"` : ''}` })}</div>
+        <div class="bgo live">${ui.btn(goLabel, { sm: true, chev: true, attrs: `data-go="${tab}"${ROW_FOCUS[k] ? ` data-focus="${ROW_FOCUS[k]}"` : ''}` })}</div>
       </li>`;
     }).join('');
   }
@@ -387,153 +396,297 @@ App.registerTab((function () {
     const off = !c.isRef;
     return `<section class="panel brows" id="brief-rows" aria-labelledby="brief-rows-h">
       <div class="panel-h">
-        <div><span class="k">다섯 줄의 차례는 탭 차례와 같습니다</span><h2 id="brief-rows-h">분석 요약 전체 문장</h2></div>
+        <div><span class="k">${esc(t('briefListSub'))}</span><h2 id="brief-rows-h">${esc(t('briefListTitle'))}</h2></div>
       </div>
-      ${off ? `<p class="brief-off">지금 조건(${esc(App.condSummary().split(', 기준')[0])})은 대표 조건과 다릅니다. 다섯 줄의 문장은 대표 조건으로 계산한 값이고, 지금 고객군의 관문은 위 범위 띠에, 지금 나이의 주계약 한도는 (다) 줄 아래에 있습니다.</p>` : ''}
+      ${off ? `<p class="brief-off">${esc(t('briefOffCondTpl', { cond: App.condSegOnly(), ref: refText(c) }))}</p>` : ''}
       <ol class="lrows" data-pick-group="brief">${rowsHTML(c)}</ol>
-      <div class="panel-f" id="brief-foot">${footText()}</div>
     </section>`;
   }
-  function footText() {
-    const base = `${ui.scope('all')} 항목(01, 02)은 기준 종형과 조건을 바꿔도 그대로이고, ${ui.scope('base')} 항목(03, 04, 05)은 기준 종형을 따라 바뀝니다.`;
-    return `<span>${(lastNote.long ? `<b style="font-weight:600">${esc(lastNote.long)}</b> ` : '') + base}</span>`;
+
+  // ---------- 5. 층 경로(1~3층)와 근거 기둥(1층 결론 한 줄, 2층 메달 요약, 3층 세부 요소 근거) ----------
+  function subLabel(key, subKey) {
+    if (!subKey) return '';
+    if (subKey.startsWith('seg:')) {
+      const [ri, ci] = subKey.slice(4).split('-').map(Number);
+      const m = App.mapOf(null);
+      const row = m['행'][ri], col = m['열'][ci];
+      return row && col ? `${row['이름']}, ${col.lo}~${col.hi}${t('condAgeUnit')}` : subKey;
+    }
+    const REV_LBL = { 'rev:new': 'briefRevNew', 'rev:chg': 'briefRevChg', 'rev:end': 'briefRevEnd', 'rev:news': 'briefNewsNode' };
+    if (subKey in REV_LBL) return t(REV_LBL[subKey]);
+    if (subKey.startsWith('rev:')) return subKey.slice(4);
+    if (subKey.startsWith('org:')) return txt.orgShort(subKey.slice(4));
+    if (subKey.startsWith('step:')) return subKey.slice(5);
+    if (subKey.startsWith('cat:')) return subKey.slice(4);
+    return subKey;
   }
 
-  // ---------- 5. 근거 기둥 ----------
-  function sec(title, html, lo) { return `<div class="ev-sec${lo ? ' lo' : ''}">${title ? `<h3>${title}</h3>` : ''}${html}</div>`; }
+  function path(c) {
+    const out = [App.TAB_NAME.brief];
+    const k = c.st.sel.brief;
+    if (!k) return out;
+    const b = line(c, k);
+    out.push(b ? rowName(b) : k);
+    const sub = c.st.sub.brief;
+    if (sub) out.push(subLabel(k, sub));
+    return out;
+  }
+
+  function sec(titleStr, html, lo) { return `<div class="ev-sec${lo ? ' lo' : ''}">${titleStr ? `<h3>${esc(titleStr)}</h3>` : ''}${html}</div>`; }
   function pointItem(id) {
     const p = S['포인트'][id]; if (!p) return '';
     return `<li class="pt"><span class="tag">${esc(p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p></li>`;
   }
-  function segStrip(gv) {
-    const lab = gv['라벨별'] || {};
-    const list = [];
-    for (const l of MAP_LABELS) for (let i = 0; i < (lab[l] || 0); i++) list.push(ui.MAP_CLS[l]);
-    return list;
-  }
-  function pickedSegSec(c) {
-    if (!focusSeg) return '';
-    const m = App.mapOf(null);
-    const row = m['행'][focusSeg.ri], col = m['열'][focusSeg.ci];
-    const cell = (m['칸'][focusSeg.ri] || [])[focusSeg.ci];
-    if (!row || !col || !cell) return '';
-    const patch = App.segPatch(m, focusSeg.ri, focusSeg.ci, c.st);
-    const same = App.samePatch(patch, c.st);
-    const go = cell['관문만수집'] || [];
-    const orgTxt = txt.ORG_ORDER.filter(o => o in cell['회사']).map(o => `${txt.orgShort(o)} ${cell['회사'][o]}`).join(', ');
-    return sec(`고른 격자 칸: ${esc(row['이름'])}, ${col.lo}~${col.hi}세`,
-      `<p>${ui.swatch(cell['라벨'])} <b style="font-weight:600">${esc(cell['라벨'])}</b>${cell['보조'] ? ` (${esc(cell['보조'])})` : ''}. ${esc(orgTxt)}.</p>`
-      + (go.length ? `<p class="note">${esc(go.map(g => `${g['이름']}: ${g['안내'] || '관문만 수집(담보 미수집)'}`).join(', '))}</p>` : '')
-      + (same ? '<p class="note">지금 조건이 이미 이 고객군입니다.</p>'
-        : `<p class="note">누르면 조건 줄이 ${esc(txt.josa(App.segPatchText(patch), '으로'))} 바뀝니다.</p>${ui.btn('이 고객군으로 조건 바꾸기', { sm: true, attrs: `data-act="brief-apply-seg" data-ri="${focusSeg.ri}" data-ci="${focusSeg.ci}"` })}`));
+
+  /** 1층 기본 근거 기둥: 아무것도 고르지 않았을 때는 결론 한 문장만 보인다 */
+  function defaultEv(c) {
+    const extra = !c.isRef ? `<p class="note">${esc(t('briefOffCondTpl', { cond: App.condSegOnly(), ref: refText(c) }))}</p>` : '';
+    return {
+      kicker: t('briefEvConclKicker'),
+      title: App.TAB_NAME.brief,
+      badges: [ui.scope('base')],
+      body: sec('', `<p>${esc(conclText(c))}</p>${extra}`),
+    };
   }
 
-  function subEvSpec(i, c) {
-    if (i === 0) return pick('가', c);
-    if (i === 1) {
-      const ra = line(c, '라');
-      const rv = ra ? ra['값'] : {};
-      const p = c.base['보류요약'] || {};
-      const why = p['사유별'] || {};
-      const whyT = Object.entries(why).map(([a, b]) => `${a} ${fmt(b)}`).join(', ');
-      const whySum = Object.values(why).reduce((a, b) => a + b, 0);
-      let body = sec('', `<p>${esc(ra ? ra['문장'] : '')}</p>`);
-      body += sec('공통 담보 쌍의 구성', ui.eq({ total: { t: '공통 담보', n: rv['공통담보쌍'] }, parts: [{ t: '견줌', n: rv['견준쌍'] }, { t: '검토 대기로 뺌', n: rv['뺀비교쌍'] }], tail: '쌍' })
-        + (whyT ? `<div class="nadd">검토 대기 사유는 ${esc(whyT)}입니다. 한 쌍에 두 사유가 함께 들 수 있어 더하면 ${txt.josa(fmt(whySum), '으로')} ${fmt(rv['뺀비교쌍'])}보다 큽니다.</div>` : ''));
-      body += sec('', ui.btn('담보 비교 탭에서 자세히', { main: true, chev: true, attrs: 'data-go="cover"' }), true);
-      return { kicker: '하단 도형 02', title: '견준 공통 담보 쌍', badges: [ui.scope('base')], body };
-    }
-    const j = c.base['치료여정'];
-    const steps = j['열'] || [];
-    const cols = j['종형'] || [];
-    const ours = cols.find(x => x['종형ID'] === c.baseId) || cols[0];
-    const parts = steps.map(s => ({ t: s, n: ours['합계'][s] || 0 })).concat(ours['기타'] ? [{ t: '기타', n: ours['기타'] }] : []);
-    let body = sec('치료 여정 다섯 단계', ui.eq({ total: { t: '우체국 담보', n: ours['전체'] }, parts, tail: '개' })
-      + `<div class="nadd">회사별 담보 수(${cols.map(x => `${esc(txt.orgShort(x['종형ID'].split('_')[0]))} ${fmt(x['전체'])}`).join(', ')})는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>`);
-    body += sec('', ui.btn('치료 여정 격자 보기', { main: true, chev: true, attrs: 'data-go="cover" data-focus="journey"' }), true);
-    return { kicker: '하단 도형 03', title: '치료 여정 다섯 단계', badges: [ui.scope('base')], body };
-  }
-
+  /** 2층 메달 선택 시: 그 메달의 문장, 핵심 식, 전체 근거가 기둥 안에서 스크롤로 보인다(한 화면 300자 이하) */
   function pick(key, c) {
-    const si = subOf(key);
-    if (si > 0) return subEvSpec(si, c);
     const b = line(c, key); if (!b) return null;
     const v = b['값'] || {};
     const scopeB = ui.scope(b['범위'] === '전체 고객군' ? 'all' : 'base');
-    const name = b['구역'] || ROW_NAME[key];
+    const nm = rowName(b);
     const tab = App.TAB_BY_NAME[b['갈곳']];
-    const goBtn = ui.btn(`${b['갈곳']} 탭에서 자세히`, { main: true, chev: true, attrs: `data-go="${tab}"${ROW_FOCUS[key] ? ` data-focus="${ROW_FOCUS[key]}"` : ''}` });
-    const head = sec('', `<p>${esc(b['문장'])}</p>${b['원문대조'] ? `<p>${ui.flagText(b['원문대조글'])}</p>` : ''}`);
-    let body = (key === '가' ? pickedSegSec(c) : '') + head;
+    const goBtn = ui.btn(t('briefGoDetailTpl', { tab: b['갈곳'] }), {
+      main: true, chev: true,
+      attrs: `data-go="${tab}"${ROW_FOCUS[key] ? ` data-focus="${ROW_FOCUS[key]}"` : ''}`,
+    });
+    let body = sec('', `<p>${esc(b['문장'])}</p>${b['원문대조'] ? `<p>${ui.flagText(b['원문대조글'])}</p>` : ''}`);
     if (key === '가') {
       const lab = v['라벨별'] || {};
       const m = App.mapOf(null);
       const only = [];
-      m['칸'].forEach((r, ri) => r.forEach((cell, ci) => { if (cell['라벨'] === '우리 간편만 열림') only.push({ r: m['행'][ri], col: m['열'][ci], cell }); }));
-      body += sec('칸의 수', ui.eq({ total: { t: '고객군', n: v['전체칸수'] }, parts: MAP_LABELS.map(l => ({ t: l, n: lab[l] || 0 })) }) + ui.cells(segStrip(v)));
-      body += sec('우리 간편만 열리는 칸', only.length ? `<ul class="evl">${only.map(o => `<li><b>${esc(o.r['이름'])}, ${o.col.lo}~${o.col.hi}세</b><br><span class="note">우리 대표 종형 ${esc(o.cell['대표'] ? txt.vkind(o.cell['대표']) : '없음')}. ${txt.ORG_ORDER.filter(x => x !== 'EPOST').map(x => `${txt.orgShort(x)} ${o.cell['회사'][x]}`).join(', ')}</span></li>`).join('')}</ul>` : '<p>없습니다.</p>');
-      body += sec('', `<p class="note">고객군 지도(${esc(txt.sexText(m['성별']))}, 갱신 유형 전체)로 셉니다. 조건 줄의 나이와 이력, 기준 종형을 바꿔도 이 줄은 그대로입니다.</p>${goBtn}`, true);
+      m['칸'].forEach((r, ri) => r.forEach((cell, ci) => {
+        if (cell['라벨'] === '우리 간편만 열림') only.push({ r: m['행'][ri], col: m['열'][ci], cell });
+      }));
+      body += sec(t('briefEvCellsTitle'), ui.eq({
+        total: { t: t('briefEqCellsTotal'), n: v['전체칸수'] },
+        parts: MAP_LABELS.map(l => ({ t: l, n: lab[l] || 0 })),
+      }));
+      body += sec(t('briefEvOnlyTitle'), only.length ? `<ul class="evl">${only.map(o => {
+        const rep = o.cell['대표'] ? txt.vkind(o.cell['대표']) : t('briefEvNoneWord');
+        const peers = txt.ORG_ORDER.filter(x => x !== 'EPOST').map(x => `${txt.orgShort(x)} ${o.cell['회사'][x]}`).join(', ');
+        return `<li><b>${esc(`${o.r['이름']}, ${o.col.lo}~${o.col.hi}${t('condAgeUnit')}`)}</b><br><span class="note">${esc(t('briefEvOnlyRepTpl', { rep, peers }))}</span></li>`;
+      }).join('')}</ul>` : `<p>${esc(t('briefEvEmpty'))}</p>`);
+      body += sec('', `<p class="note">${esc(t('briefEvMapScopeTpl', { sex: txt.sexText(m['성별']) }))}</p>`);
     } else if (key === '나') {
-      const rv = S['개정변동'], nw = S['시장소식'];
-      const pairs = rv['짝'].map(p => `<li><b>${esc(txt.vkind(p['후']))}</b>: 직전 종형과 견주어 신설 ${p['신설']}, 변경 ${p['변경']}, 종료 ${p['종료']}</li>`).join('');
-      const pairSum = rv['짝'].reduce((a, p) => a + p['신설'] + p['변경'] + p['종료'], 0);
-      body += sec('개정 변동', ui.eq({ total: { t: '달라진 담보', n: v['개정변동수'] }, parts: [{ t: '신설', n: v['개정신설'] }, { t: '변경', n: v['개정변경'] }, { t: '종료', n: v['개정종료'] }], tail: '건' })
-        + `<ul class="evl">${pairs}</ul><div class="nadd">개정 짝 ${rv['짝'].length}개의 수를 더하면 ${pairSum}건입니다. 같은 담보가 여러 짝에서 바뀌어 짝마다 세므로 ${v['개정변동수']}건보다 큽니다.</div>`);
+      const rv = S['개정변동'] || { '짝': [] };
+      const nw = S['시장소식'] || {};
+      const pairs = (rv['짝'] || []).map(p => `<li>${esc(t('briefEvRevPairTpl', { kind: txt.vkind(p['후']), n1: p['신설'], n2: p['변경'], n3: p['종료'] }))}</li>`).join('');
+      const pairSum = (rv['짝'] || []).reduce((a, p) => a + p['신설'] + p['변경'] + p['종료'], 0);
+      body += sec(t('briefEvRevTitle'), ui.eq({
+        total: { t: t('briefEqRevTotal'), n: v['개정변동수'] },
+        parts: [{ t: t('briefRevNew'), n: v['개정신설'] }, { t: t('briefRevChg'), n: v['개정변경'] }, { t: t('briefRevEnd'), n: v['개정종료'] }],
+        tail: t('briefInsUnit'),
+      }) + `<ul class="evl">${pairs}</ul><div class="nadd">${esc(t('briefEvNonAddPairTpl', { c: (rv['짝'] || []).length, sum: pairSum }))}</div>`);
       const cls = Object.entries(nw['분류별'] || {});
-      body += sec(`시장 소식 ${esc(nw['주차'])}`, ui.eq({ total: { t: '소식', n: nw['건수'] }, parts: cls.map(([a, n]) => ({ t: a, n })), tail: '건' })
-        + `<p class="note">표준담보에 이어진 소식 ${fmt(nw['연결'])}건. ${esc(nw['인용안내'])}</p>`);
-      body += sec('', goBtn, true);
+      body += sec(t('briefEvNewsTitleTpl', { week: nw['주차'] || '' }), ui.eq({
+        total: { t: t('briefEqNewsTotal'), n: nw['건수'] },
+        parts: cls.map(([a, n]) => ({ t: a, n })),
+        tail: t('briefInsUnit'),
+      }) + `<p class="note">${esc(nw['인용안내'] || '')}</p>`);
     } else if (key === '다') {
       const L = c.limit;
       const segs = L && L.table ? (L.table['구간'][c.st.sex] || []) : [];
       const gp = (c.base['포인트'] || []).filter(id => S['포인트'][id] && S['포인트'][id]['분류'] === '관문 차이');
-      body += sec('값', `<dl class="kv"><dt>가입나이</dt><dd class="num">${v['우리최저']}~${v['우리최고']}세</dd>
-        <dt>대표 조건 ${v['나이']}세의 주계약 한도</dt><dd class="num">${esc(v['주계약한도만원'])}만원</dd>
-        <dt>고지 질문이 다른 곳</dt><dd class="num">${fmt(v['관문차이수'])}건</dd>
-        <dt>갱신이나 환급 구조가 다른 상대</dt><dd class="num">${fmt(v['구조다름회사수'])}곳</dd></dl>`);
-      body += sec(`나이 구간별 주계약 최대 가입금액(${esc(txt.sexText(c.st.sex))})`, segs.length ? `<dl class="kv">${segs.map(g => `<dt class="num">${g.lo}~${g.hi}세</dt><dd class="num">${fmt(g.max)}만원${g.pend ? ' (검토 대기)' : ''}</dd>`).join('')}</dl>${limitLine(c) ? `<p class="note">${esc(limitLine(c))}</p>` : ''}` : '<p>한도 자료 없음: 이 종형의 한도 표가 아직 없습니다.</p>');
-      body += sec(`관문 차이 ${gp.length}건`, gp.length ? `<ul class="evl">${gp.map(pointItem).join('')}</ul>` : '<p>일반심사 종형이라 간편 고지 질문을 견주지 않았습니다.</p>');
-      body += sec('', goBtn, true);
+      const lim = limitLine(c);
+      body += sec(t('briefEvGateValTitle'), `<dl class="kv">
+        <dt>${esc(t('briefEvAgeRange'))}</dt><dd class="num">${v['우리최저']}~${v['우리최고']}${esc(t('condAgeUnit'))}</dd>
+        <dt>${esc(t('briefEvRefLimitTpl', { age: v['나이'] }))}</dt><dd class="num">${esc(v['주계약한도만원'])}${esc(t('briefWonUnit'))}</dd>
+        <dt>${esc(t('briefEvGateDiff'))}</dt><dd class="num">${fmt(v['관문차이수'])}${esc(t('briefInsUnit'))}</dd>
+        <dt>${esc(t('briefEvDiffStruct'))}</dt><dd class="num">${fmt(v['구조다름회사수'])}${esc(t('briefEvPlaceUnit'))}</dd></dl>`
+        + (lim ? `<p class="note">${esc(lim)}</p>` : ''));
+      body += sec(t('briefEvLimitTblTpl', { sex: txt.sexText(c.st.sex) }),
+        segs.length ? `<dl class="kv">${segs.map(g => `<dt class="num">${g.lo}~${g.hi}${esc(t('condAgeUnit'))}</dt><dd class="num">${fmt(g.max)}${esc(t('briefWonUnit'))}${g.pend ? esc(t('briefEvPendSuffix')) : ''}</dd>`).join('')}</dl>` : `<p>${esc(t('briefEvNoLimit'))}</p>`);
+      body += sec(`${esc(t('briefEvGateDiff'))} ${fmt(gp.length)}${esc(t('briefInsUnit'))}`,
+        gp.length ? `<ul class="evl">${gp.map(pointItem).join('')}</ul>` : `<p>${esc(t('briefEvNoSimpQ'))}</p>`);
     } else if (key === '라') {
+      const j = c.base['치료여정'];
+      const steps = j ? (j['열'] || []) : [];
       const cau = c.base['단정주의'] || [];
-      const kinds = {};
-      cau.forEach(x => { (kinds[x['종류']] = kinds[x['종류']] || []).push(x); });
-      body += sec('쌍과 담보의 수', ui.eq({ total: { t: '공통 담보', n: v['공통담보쌍'] }, parts: [{ t: '견줌', n: v['견준쌍'] }, { t: '검토 대기', n: v['뺀비교쌍'] }], tail: '쌍' })
-        + ui.eq({ total: { t: '우체국 담보', n: v['보유수'] }, parts: ['진단', '수술', '치료', '입원', '통원'].map(s => ({ t: s, n: v[s + '수'] })).concat(v['기타수'] ? [{ t: '기타', n: v['기타수'] }] : []), tail: '개' })
-        + `<div class="nadd">쌍은 우체국과 상대가 함께 가진 담보의 짝이고, 담보 수는 우체국만 센 것이라 서로 더하지 않습니다.</div>`);
-      body += sec(`단정 주의 ${cau.length}건`, Object.entries(kinds).map(([kd, xs]) => `<p class="note" style="margin-top:6px"><b style="font-weight:600">${esc(kd)}</b> ${xs.length}건</p><ul class="evl">${xs.map(x => `<li>${ui.verdict('diff')} <b>${esc(x['담보'])}</b><p>${esc(x['문장'])}</p></li>`).join('')}</ul>`).join(''));
-      body += sec('', goBtn, true);
+      const hold = c.base['보류요약'] || {};
+      body += sec(t('briefEvPairTitle'), ui.eq({
+        total: { t: t('briefEqPairTotal'), n: v['공통담보쌍'] },
+        parts: [{ t: t('briefEqCmp'), n: v['견준쌍'] }, { t: t('briefEqWait'), n: v['뺀비교쌍'] }],
+        tail: t('briefEqPairUnit'),
+      }) + ui.eq({
+        total: { t: t('briefEqOurCov'), n: v['보유수'] },
+        parts: steps.map(s => ({ t: s, n: v[s + '수'] })).concat(v['기타수'] ? [{ t: t('briefEqOther'), n: v['기타수'] }] : []),
+        tail: t('briefStepUnit'),
+      }) + `<div class="nadd">${esc(t('briefEvNonAddStep'))}</div>`);
+      const holdRows = (hold['대분류'] || []).map(x => `<dt>${esc(x['대분류'])}</dt><dd class="num">${fmt(x['견준쌍'])}+${fmt(x['뺀쌍'])}${esc(t('briefEqPairUnit'))}</dd>`).join('');
+      const why = hold['사유별'] || {};
+      const whyT = Object.entries(why).map(([a, cnt2]) => `${a} ${fmt(cnt2)}`).join(', ');
+      const whySum = Object.values(why).reduce((a, cnt2) => a + cnt2, 0);
+      if (holdRows) {
+        body += sec(t('briefEvHoldTitle'), `<dl class="kv">${holdRows}</dl>`
+          + (whyT ? `<p class="note">${esc(t('briefEvHoldWhyTpl', { why: whyT, sum: fmt(whySum) }))}</p>` : ''));
+      }
+      if (cau.length) {
+        body += sec(t('briefEvCautionTpl', { n: cau.length }),
+          `<ul class="evl">${cau.map(x => `<li>${ui.verdict('diff')} <b>${esc(x['담보'])}</b><p>${esc(x['문장'])}</p></li>`).join('')}</ul>`);
+      }
     } else if (key === '마') {
       const cnt = c.base['분류집계'] || {};
       const firsts = (c.base['먼저'] && c.base['먼저']['브리핑']) || [];
       const total = Object.values(cnt).reduce((a, n) => a + n, 0);
-      body += sec('다섯 분류', ui.eq({ total: { t: '인사이트', n: total }, parts: S['분류'].map(k => ({ t: k, n: cnt[k] || 0 })), tail: '건' })
-        + `<p class="note">다섯 분류는 서로 겹치지 않습니다. 검토 대기 등으로 뺀 포인트 ${fmt((c.base['뺀포인트'] || []).length)}건은 세지 않았습니다.</p>`);
-      body += sec(`먼저 볼 것 ${firsts.length}건`, `<ul class="evl">${firsts.map(pointItem).join('')}</ul>`);
-      body += sec('', goBtn, true);
+      body += sec(t('briefEvInsTitle'), ui.eq({
+        total: { t: t('briefEqInsTotal'), n: total },
+        parts: S['분류'].map(cat => ({ t: cat, n: cnt[cat] || 0 })),
+        tail: t('briefInsUnit'),
+      }) + `<p class="note">${esc(t('briefEvInsSkipTpl', { n: fmt((c.base['뺀포인트'] || []).length) }))}</p>`);
+      if (firsts.length) body += sec(t('briefEvFirstTpl', { n: firsts.length }), `<ul class="evl">${firsts.map(pointItem).join('')}</ul>`);
     }
-    return { kicker: `${String(ROW_NO[key]).padStart(2, '0')} ${b['범위']}`, title: name, badges: [scopeB], body };
+    body += sec('', goBtn, true);
+    return { kicker: `${String(ROW_NO[key]).padStart(2, '0')} ${b['범위']}`, title: nm, badges: [scopeB], body };
   }
 
-  // ---------- 6. 그리기와 상호작용 ----------
+  /** 3층 세부 요소 선택 시: 고른 요소 하나의 문장, 식, 근거만 보인다 */
+  function pickSub(key, subKey, c) {
+    const b = line(c, key); if (!b) return null;
+    const nm = rowName(b);
+    const tab = App.TAB_BY_NAME[b['갈곳']];
+    const goBtn = ui.btn(t('briefGoDetailTpl', { tab: b['갈곳'] }), {
+      main: true, chev: true,
+      attrs: `data-go="${tab}"${ROW_FOCUS[key] ? ` data-focus="${ROW_FOCUS[key]}"` : ''}`,
+    });
+
+    if (subKey.startsWith('seg:')) {
+      const [ri, ci] = subKey.slice(4).split('-').map(Number);
+      const m = App.mapOf(null);
+      const row = m['행'][ri], col = m['열'][ci], cell = (m['칸'][ri] || [])[ci];
+      if (!row || !col || !cell) return null;
+      const patch = App.segPatch(m, ri, ci, c.st);
+      const same = patch ? App.samePatch(patch, c.st) : true;
+      const go = cell['관문만수집'] || [];
+      const shownOrgs = (c.activeOrgs || txt.ORG_ORDER).filter(o => o in (cell['회사'] || {}));
+      const orgBlock = shownOrgs.length <= 4
+        ? `<p>${ui.swatch(cell['라벨'])} <b style="font-weight:600">${esc(cell['라벨'])}</b>${cell['보조'] ? ` (${esc(cell['보조'])})` : ''}. ${esc(shownOrgs.map(o => `${txt.orgShort(o)} ${cell['회사'][o]}`).join(', '))}.</p>`
+        : `<p>${ui.swatch(cell['라벨'])} <b style="font-weight:600">${esc(cell['라벨'])}</b>${cell['보조'] ? ` (${esc(cell['보조'])})` : ''}.</p><dl class="kv">${shownOrgs.map(o => `<dt>${esc(txt.orgShort(o))}</dt><dd>${esc(cell['회사'][o])}</dd>`).join('')}</dl>`;
+      const actBlock = same
+        ? `<p class="note">${esc(t('briefSegSameNote'))}</p>`
+        : `<p class="note">${esc(t('briefSegWillChangeTpl', { target: txt.josa(App.segPatchText(patch), '으로') }))}</p>`
+          + ui.btn(t('briefApplySegBtn'), { sm: true, attrs: `data-act="brief-apply-seg" data-ri="${ri}" data-ci="${ci}"` });
+      const pts = (cell['관문포인트'] || []).map(pointItem).join('');
+      let body = sec('', orgBlock
+        + (go.length ? `<p class="note">${esc(go.map(g => `${g['이름']}: ${g['안내'] || ''}`).join(', '))}</p>` : '')
+        + actBlock);
+      if (pts) body += sec('', `<ul class="evl">${pts}</ul>`);
+      body += sec('', goBtn, true);
+      return { kicker: nm, title: subLabel(key, subKey), badges: [ui.scope('all')], body };
+    }
+
+    if (subKey === 'rev:news') {
+      const nw = S['시장소식'] || {};
+      const cls = Object.entries(nw['분류별'] || {});
+      let body = sec(t('briefEvNewsTitleTpl', { week: nw['주차'] || '' }),
+        ui.eq({ total: { t: t('briefNewsNode'), n: nw['건수'] }, parts: cls.map(([a, n]) => ({ t: a, n })) })
+        + `<p class="note">${esc(nw['인용안내'] || '')}</p>`);
+      body += sec('', goBtn, true);
+      return { kicker: nm, title: t('briefNewsNode'), badges: [ui.scope('all')], body };
+    }
+
+    if (subKey.startsWith('rev:')) {
+      const kind = subLabel(key, subKey);
+      const rv = S['개정변동'] || { '짝': [] };
+      const pairs = (rv['짝'] || []).map(p => `<li>${esc(t('briefEvRevPairTpl', { kind: txt.vkind(p['후']), n1: p['신설'], n2: p['변경'], n3: p['종료'] }))}</li>`).join('');
+      const pairSum = (rv['짝'] || []).reduce((a, p) => a + p['신설'] + p['변경'] + p['종료'], 0);
+      let body = sec(kind, `<ul class="evl">${pairs}</ul><div class="nadd">${esc(t('briefEvNonAddPairTpl', { c: (rv['짝'] || []).length, sum: pairSum }))}</div>`);
+      body += sec('', goBtn, true);
+      return { kicker: nm, title: kind, badges: [ui.scope('all')], body };
+    }
+
+    if (subKey.startsWith('org:')) {
+      const org = subKey.slice(4);
+      const m = App.mapOf(null);
+      const cell = (c.seg && c.seg.cell) || m['칸'][5][1];
+      const stName = (cell['회사'] && cell['회사'][org]) || '';
+      const why = txt.stateWhy(org, stName);
+      const openIds = (cell['열린종형'] && cell['열린종형'][org]) || [];
+      let body = sec('', `<p><b style="font-weight:600">${esc(txt.orgShort(org))}</b>: ${esc(stName)}${why ? `. ${esc(why)}.` : '.'}</p>`);
+      if (openIds.length) {
+        body += sec(t('briefEvGateOpenList'), `<p>${esc(openIds.map(id => txt.vname(id)).join(', '))}</p>`);
+      }
+      if (org === 'EPOST') {
+        const L = c.limit;
+        const segs = L && L.table ? (L.table['구간'][c.st.sex] || []) : [];
+        body += sec(t('briefEvLimitTblTpl', { sex: txt.sexText(c.st.sex) }),
+          segs.length ? `<dl class="kv">${segs.map(g => `<dt class="num">${g.lo}~${g.hi}${esc(t('condAgeUnit'))}</dt><dd class="num">${fmt(g.max)}${esc(t('briefWonUnit'))}${g.pend ? esc(t('briefEvPendSuffix')) : ''}</dd>`).join('')}</dl>` : `<p>${esc(t('briefEvNoLimit'))}</p>`);
+      } else {
+        const gp = (c.base['포인트'] || []).filter(id => S['포인트'][id] && S['포인트'][id]['분류'] === '관문 차이' && (S['포인트'][id]['문장'] || '').includes(txt.orgShort(org)));
+        if (gp.length) body += sec('', `<ul class="evl">${gp.map(pointItem).join('')}</ul>`);
+      }
+      body += sec('', goBtn, true);
+      return { kicker: nm, title: txt.orgShort(org), badges: [ui.scope(c.seg && c.seg.cell ? 'now' : 'base')], body };
+    }
+
+    if (subKey.startsWith('step:')) {
+      const step = subKey.slice(5);
+      const j = c.base['치료여정'];
+      const activeSet = new Set(c.activeOrgs || txt.ORG_ORDER);
+      const cols = (j['종형'] || []).filter(x => activeSet.has(orgCodeOfVid(x['종형ID'])));
+      const ours = (j['종형'] || []).find(x => x['종형ID'] === c.baseId) || (j['종형'] || [])[0];
+      const byMajor = Object.entries((ours && ours['칸']) || {}).map(([mj, obj]) => ({ t: mj, n: obj[step] || 0 })).filter(x => x.n > 0);
+      const orgNote = cols.length <= 4
+        ? `<p class="note">${esc(cols.map(x => `${txt.orgShort(orgCodeOfVid(x['종형ID']))} ${fmt(x['합계'][step] || 0)}`).join(', '))}</p>`
+        : `<dl class="kv" style="margin-top:8px">${cols.map(x => `<dt>${esc(txt.orgShort(orgCodeOfVid(x['종형ID'])))}</dt><dd class="num">${fmt(x['합계'][step] || 0)}</dd>`).join('')}</dl>`;
+      let body = sec(step, (byMajor.length ? ui.eq({ total: { t: step, n: ours['합계'][step] || 0 }, parts: byMajor }) : `<p>${esc(t('briefEvEmpty'))}</p>`)
+        + orgNote);
+      const cau = c.base['단정주의'] || [];
+      if (cau.length) {
+        body += sec(t('briefEvCautionTpl', { n: cau.length }),
+          `<ul class="evl">${cau.map(x => `<li>${ui.verdict('diff')} <b>${esc(x['담보'])}</b><p>${esc(x['문장'])}</p></li>`).join('')}</ul>`);
+      }
+      body += sec('', goBtn, true);
+      return { kicker: nm, title: step, badges: [ui.scope('base')], body };
+    }
+
+    if (subKey.startsWith('cat:')) {
+      const cat = subKey.slice(4);
+      let body = '';
+      if (cat === '개정 검토 후보') {
+        const groups = c.base['개정검토'] || [];
+        body += sec(cat, groups.length
+          ? `<dl class="kv">${groups.map(g => `<dt>${esc(g['중분류'])}</dt><dd class="num">${fmt(g['담보수'])}${t('briefInsUnit')}</dd>`).join('')}</dl>`
+          : `<p>${esc(t('briefEvEmpty'))}</p>`);
+      } else {
+        const pts = (c.base['포인트'] || []).filter(id => S['포인트'][id] && S['포인트'][id]['분류'] === cat);
+        body += sec(cat, pts.length ? `<ul class="evl">${pts.map(pointItem).join('')}</ul>` : `<p>${esc(t('briefEvEmpty'))}</p>`);
+      }
+      body += sec('', goBtn, true);
+      return { kicker: nm, title: cat, badges: [ui.scope('base')], body };
+    }
+
+    return null;
+  }
+
+  // ---------- 6. 그리기와 층 전환 반응 ----------
   function render(body, c) {
-    if (c.aside) c.aside.innerHTML = headAsideHTML(c);
+    if (c.aside) c.aside.innerHTML = headAsideHTML();
     body.innerHTML = viewMode === 'medal' ? stageHTML(c) : rowsPanel(c);
     bind(body, c);
-    lastBase = c.baseId;
   }
 
-  // 하단 판의 강조(is-on)를 고른 key 에 맞춘다. 지표 단추는 빨강 대신 먹색 밑줄과 옅은 면으로 고른 것을 보인다
-  function syncSub(key) {
-    const view = document.getElementById('view-brief');
-    if (!view) return;
-    const i = subOf(key);
-    view.querySelectorAll('.bsub').forEach(el => el.classList.toggle('is-on', +el.dataset.sub === i));
-    view.querySelectorAll('[data-act="kpi"]').forEach(b => {
-      const on = +b.dataset.i === i;
-      b.classList.toggle('is-on', on);
-      b.setAttribute('aria-pressed', String(on));
-    });
+  function onLayer(body, c, animate) {
+    if (viewMode !== 'medal') return;
+    const slot = body.querySelector('#brief-l2-slot');
+    if (!slot) return;
+    const sel = c.st.sel.brief || null;
+    slot.innerHTML = layer2HTML(sel, c, animate);
+    if (sel && animate && App.motionOn()) {
+      const medalEl = body.querySelector(`.bmedal[data-pick="${CSS.escape(sel)}"]`);
+      if (medalEl) ui.drawRings(medalEl);
+      ui.drawRings(slot);
+    }
   }
 
   function bind(body, c) {
@@ -546,83 +699,74 @@ App.registerTab((function () {
           const cc = App.ctx();
           render(body, Object.assign(cc, { aside }));
           const curSel = App.state.sel.brief;
-          if (curSel != null) App.select(curSel, { open: false, reveal: false, animate: false });
+          if (curSel != null) App.select(curSel, { open: false, reveal: false, animate: false, push: false });
           if (viewMode === 'medal' && App.motionOn()) ui.drawRings(body);
           return;
         }
         if (e.target.closest('[data-act="brief-copy"]')) {
           const cc = App.ctx();
-          App.copyRows(['줄', '구역', '범위', '문장', '갈 곳'], brief(cc).map(b => [`(${b['줄']})`, b['구역'] || ROW_NAME[b['줄']], b['범위'], b['문장'] + (b['원문대조'] ? ` [${b['원문대조글']}]` : ''), b['갈곳']]), { title: '브리핑 분석 요약' });
+          const cols = t('briefCopyCols').split(',');
+          App.copyRows(cols, brief(cc).map(b => [`(${b['줄']})`, rowName(b), b['범위'], b['문장'] + (b['원문대조'] ? ` [${b['원문대조글']}]` : ''), b['갈곳']]), { title: t('briefCopyTitle') });
         }
       });
     }
     if (!body._b) {
       body._b = true;
+      // 이미 고른 메달을 다시 누르면(3층이 아닐 때) 2층을 닫아 1층으로 올라간다
       body.addEventListener('click', e => {
-        const kb = e.target.closest('[data-act="kpi"]');
-        if (kb) { App.select(SUB_KEY[+kb.dataset.i], { reveal: false }); return; }
-        const mc = e.target.closest('[data-act="bmap-cell"]');
-        if (mc) {
-          focusSeg = { ri: +mc.dataset.ri, ci: +mc.dataset.ci };
-          body.querySelectorAll('.bm-cell').forEach(el => el.classList.toggle('is-focus', el === mc));
-          App.select('가', { reveal: false });
+        const m = e.target.closest('.bmedal[data-pick]');
+        if (m && !e.target.closest('.live')) {
+          const k = m.dataset.pick;
+          if (App.state.sel.brief === k && App.state.sub.brief == null) {
+            e.stopPropagation();
+            App.unselect();
+          }
         }
+      }, true);
+      // 메달 사이에서 좌우 방향키, Home, End 로 초점을 옮긴다
+      body.addEventListener('keydown', e => {
+        const hit = e.target.closest && e.target.closest('.bmedal > .lrow-hit');
+        if (!hit) return;
+        const hits = Array.from(body.querySelectorAll('.bmedal > .lrow-hit'));
+        const idx = hits.indexOf(hit);
+        if (idx < 0 || !hits.length) return;
+        let next = -1;
+        if (e.key === 'ArrowRight') next = (idx + 1) % hits.length;
+        else if (e.key === 'ArrowLeft') next = (idx + hits.length - 1) % hits.length;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = hits.length - 1;
+        if (next >= 0) { e.preventDefault(); hits[next].focus(); }
       });
     }
-    if (!document._briefEvBound) {
-      document._briefEvBound = true;
+    if (!document._briefApplyBound) {
+      document._briefApplyBound = true;
       document.addEventListener('click', e => {
         const ab = e.target.closest('[data-act="brief-apply-seg"]');
         if (!ab) return;
         const patch = App.segPatch(App.mapOf(null), +ab.dataset.ri, +ab.dataset.ci, App.state);
         if (!patch) return;
         App.set(patch);
-        App.toast(`조건을 바꿨습니다: ${App.condSummary()}`);
-      });
-      // 메달을 고를 때 그 메달의 고리가 채워지는 움직임
-      App.on('select', (tab, key) => {
-        if (tab !== 'brief') return;
-        syncSub(key);
-        if (!key || !App.motionOn()) return;
-        const view = document.getElementById('view-brief');
-        const el = view && view.querySelector(`.bmedal[data-pick="${CSS.escape(key)}"]`);
-        if (el) ui.drawRings(el);
+        App.toast(t('briefSegChangedToastTpl', { sum: App.condSummary() }));
       });
     }
   }
 
   function update(body, c) {
-    justChanged.clear();
-    if (c.changed.has('base') && lastBase && lastBase !== c.baseId) {
-      brief(c).forEach(b => { if (b['범위'] !== '전체 고객군') justChanged.add(b['줄']); });
-      const from = txt.vkind(lastBase), to = txt.vkind(c.baseId);
-      lastNote = { short: '다시 계산', long: `기준 종형을 ${from}에서 ${txt.josa(to, '으로')} 바꿨습니다. 선택 종형 항목 셋은 다시 셌고 전체 고객군 항목 둘은 그대로입니다.` };
-    } else if (['age', 'sex', 'since', 'surg'].some(k => c.changed.has(k))) {
-      lastNote = { short: '', long: '조건을 바꿔도 메달의 대표 값은 대표 조건 기준이라 그대로입니다. 바뀐 것은 범위 띠, 24칸 격자의 지금 표지, 03번 메달의 지금 나이 한도입니다.' };
-      if (!c.isRef) { justChanged.add('다'); lastNote.short = '지금 조건 반영'; }
-    } else if (c.changed.has('renewal')) {
-      lastNote = { short: '', long: '갱신 유형 거르개는 고객군 지도 탭에만 씁니다. 브리핑의 01번 메달과 24칸 격자는 갱신 유형 전체 기준입니다.' };
-    }
     render(body, c);
-    if (justChanged.size && App.motionOn() && viewMode === 'medal') {
-      justChanged.forEach(k => {
-        const el = body.querySelector(`.bmedal[data-pick="${CSS.escape(k)}"]`);
-        if (el) ui.drawRings(el);
-      });
-    }
+    if (App.motionOn() && viewMode === 'medal') ui.drawRings(body);
     return true;
   }
 
   let enterTimer = 0;
-  function enter(body, c) {
+  function enter() {
     const view = document.getElementById('view-brief');
     if (!view || !App.motionOn()) return;
     clearTimeout(enterTimer);
     view.classList.remove('b-enter');
     void view.offsetWidth;
     view.classList.add('b-enter');
-    enterTimer = setTimeout(() => view.classList.remove('b-enter'), 580);
+    enterTimer = setTimeout(() => view.classList.remove('b-enter'), 560);
   }
 
-  return { id: 'brief', kicker: '분석 요약', render, update, pick, enter };
+  return { id: 'brief', kicker: t('briefKicker'), render, update, onLayer, path, defaultEv, pick, pickSub, enter };
 })());
