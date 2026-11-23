@@ -7,6 +7,7 @@
 1. 가상 사본을 만든다(scripts/dev/make_synthetic_snapshot.py. 우체국, 한화생명, 삼성화재에 가상 생명보험사와 손해보험사를 더한다).
 2. proto_src/console4 를 작업 폴더에 복사하고, 그 안에 가상 사본의 화면 자료를 내보낸다(scripts/export_app_data.py 와 같은 계산.
    손으로 쓴 코드는 proto_src/console4 에서 읽는다). proto_src/console4 의 원본과 자료는 건드리지 않는다.
+   화면에 올릴 회사(config.SITE_ORGS)로 거르지 않고 가상 사본의 모든 회사를 싣는다(--orgs all).
 3. 작업 폴더의 원본과 자료를 build.py 로 합친다(--src). 맨 위 고지 줄 옆에 "가상 자료(화면 배치 시험용, 실제 회사 자료 아님)"를
    끼운다(--banner. tpl.html 은 고치지 않는다).
 
@@ -102,7 +103,8 @@ def main() -> int:
     try:
         shutil.copytree(SRC, work, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         (work / WORK_MARK).write_text("scripts/dev/build_console4_synthetic.py 가 만든 작업 폴더\n", encoding="utf-8")
-        run("화면 자료", [py, str(ROOT / "scripts/export_app_data.py"), "--snapshot", str(args.synthetic), "--out", str(work)])
+        run("화면 자료", [py, str(ROOT / "scripts/export_app_data.py"), "--snapshot", str(args.synthetic), "--out", str(work),
+                        "--orgs", "all"])   # 가상 사본은 모든 회사를 싣는다(config.SITE_ORGS 로 거르지 않는다)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         run("합치기", [py, str(SRC / "build.py"), str(args.out), "--src", str(work), "--banner", NOTICE])
         sizes = {n: (work / n).stat().st_size for n in DATA_FILES}

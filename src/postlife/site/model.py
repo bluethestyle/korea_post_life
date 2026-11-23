@@ -4,15 +4,17 @@
 - 급부의 표준담보: hum_담보매핑의 확정표준담보ID (검토상태가 자동확정·승인·수정인 행만)
 - 검토 대기 표시: sys_작업로그에서 작업단계가 "사람검토이관"인 행의 대상행ID
 - 나이·성별 조건 구간과 그 구간의 가입 한도
+load는 화면에 올릴 회사(config.SITE_ORGS)의 행만 남긴다(site/orgs.py). Data를 직접 만들면 거르지 않는다.
 """
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from .. import config
+from . import orgs as site_orgs
 from ..extract import rerun as R
 from ..snapshot import read_snapshot
 from ..validate import NO_AMOUNT_BASES
@@ -371,8 +373,11 @@ def link_ceiling(rule: dict, base_amount: float | None) -> float | None:
     return None if base_amount is None else base_amount * float(number)
 
 
-def load(snapshot_dir: Path) -> Data:
+def load(snapshot_dir: Path, orgs: str | Iterable[str] | None = None) -> Data:
+    """사본을 읽어 화면에 올릴 회사의 행만 남긴다(site/orgs.py). orgs 를 주지 않으면 config.SITE_ORGS, "all" 이면 모든 회사."""
     snapshot_dir = Path(snapshot_dir)
     meta_path = snapshot_dir / "meta.json"
     meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
-    return Data(read_snapshot(snapshot_dir), meta)
+    picked = site_orgs.parse(orgs)
+    tables = site_orgs.filter_tables(read_snapshot(snapshot_dir), picked)
+    return Data(tables, site_orgs.filter_meta(meta, tables) if picked != site_orgs.ALL else meta)

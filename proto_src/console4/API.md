@@ -29,7 +29,13 @@ python proto_src/console4/shoot.py "" w1920
 # (가상 사본 폴더와 작업 폴더가 이미 있으면 이 명령이 만든 폴더일 때만 지우고 다시 만든다. 다른 폴더를 주면 멈춘다)
 python scripts/dev/build_console4_synthetic.py
 # shoot.py 는 site/proto/console4.html 만 연다. 가상 자료 화면은 브라우저로 out/console4_synthetic.html 을 직접 연다
+# 사본에 든 다른 회사까지 실은 시험용 화면(아래 "화면에 올릴 회사"). 이 폴더를 복사한 작업 폴더에 자료를 내보내고 합친다
+cp -r proto_src/console4 out/console4_all
+python scripts/export_app_data.py --orgs all --out out/console4_all
+python proto_src/console4/build.py out/console4_all.html --src out/console4_all
 ```
+
+화면에 올릴 회사: 시트와 사본(`data/snapshot`)에는 회사가 하나씩 더 들어오지만(주마다 자동 커밋), 화면 자료는 `src/postlife/config.py`의 `SITE_ORGS`(지금 `EPOST`, `HANWHALIFE`, `SAMSUNGFIRE`)에 든 회사만 싣는다. 사본을 읽는 자리(`src/postlife/site/orgs.py`의 `filter_tables`, `site/model.py`의 `load`)에서 목록 밖 회사의 종형, 특약, 급부, 가입조건, 결합 제약, 보험료, 매핑 행과 그 행을 가리키는 작업 로그 줄을 뺀다. 표준담보 사전, 기준값, 시장 소식은 거르지 않는다. 그래서 사본에 새 회사가 들어와도 커밋된 자료와 시험은 그대로다. 네 번째 회사를 화면에서 시험하려면 `scripts/export_app_data.py`, `scripts/build_site.py`, `proto_src/graph/build_data.py`에 `--orgs all`(사본의 모든 회사)이나 `--orgs EPOST,HANWHALIFE,SAMSUNGFIRE,MERITZ`(고른 회사)를 주고 출력은 `out/` 아래에 쓴다. 기본과 다른 묶음은 커밋되는 자리(`proto_src/console4`, `site/`, `proto_src/graph/graph.json`)에 쓰지 않고 멈춘다. 화면이 새 회사를 받을 준비가 되면 `SITE_ORGS`에 더하고 자료를 다시 만든다. 가상 자료 도구(`scripts/dev/build_console4_synthetic.py`)는 늘 모든 회사를 싣는다.
 
 가상 자료 화면(`out/console4_synthetic.html`)은 회사 수에 매이지 않는 화면을 시험하는 자료다. 회사 이름은 "가상생명 01", "가상화재 01" 따위이고 기관코드는 `SYNLIFE01`, `SYNFIRE01` 따위다. 한화생명과 삼성화재의 행을 본떠 회사마다 특약과 급부 일부를 빼고, 간편 종형의 고지 유형(입원수술 기간의 범위, 0년 유형 유무, 수술 포함 여부, 중대질병 수, 소견 범위), 면책과 감액, 가입나이를 사본에 있는 값 안에서 바꿨다. 값은 실제 회사 자료가 아니다. 맨 위 고지 줄의 고지 글 앞과 창 제목에 "가상 자료(화면 배치 시험용, 실제 회사 자료 아님)"가 붙는다(`build.py --banner`. 이 글은 어느 폭에서나 다 보이고, 380px 처럼 좁으면 고지 글 쪽이 줄임표로 줄어든다). out/ 은 저장소에 커밋하지 않고, 이 화면을 site/ 아래에 두지 않는다(공개 배포되면 안 된다). `build.py --src 폴더`는 원본과 자료를 그 폴더에서 읽어 합친다(글꼴은 저장소에서 읽는다).
 

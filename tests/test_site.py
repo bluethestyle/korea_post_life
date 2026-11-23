@@ -1008,8 +1008,10 @@ def test_실제_자료_화면_구성(built, real):
     _, _, payload = built
     meta = json.loads((SNAPSHOT / "meta.json").read_text(encoding="utf-8"))
     assert payload["meta"]["snapshotAt"] == meta["snapshot_at"]
-    assert len(payload["s6"]["rows"]) == meta["row_counts"]["sys_작업로그"]
-    assert len(payload["benefits"]) == meta["row_counts"]["sys_급부"]
+    # 행 수는 화면에 올릴 회사(config.SITE_ORGS)로 거른 뒤의 수다(site/orgs.py). 사본에 다른 회사가 들어와도 화면에는 섞이지 않는다
+    assert payload["meta"]["rowCounts"] == real.meta["row_counts"]
+    assert len(payload["s6"]["rows"]) == real.meta["row_counts"]["sys_작업로그"] == len(real.logs)
+    assert len(payload["benefits"]) == real.meta["row_counts"]["sys_급부"] == len(real.benefits)
     roles = {v["id"]: v["role"] for v in payload["variants"].values()}
     assert all(roles[v] == "정밀비교" for v in payload["s3"]["variants"]) and payload["s3"]["variants"] == payload["s4"]["variants"]
     assert payload["s3"]["defaultBase"] in payload["s3"]["bases"]
