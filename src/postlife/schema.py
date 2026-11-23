@@ -109,9 +109,11 @@ TABS: dict[str, Tab] = {
             Column("특약ID", "str", True),
             Column("원시급부명", "str", True),
             Column("급부역할", "str", True),
-            Column("기준가입금액만원", "float", True),
-            Column("기준지급금액만원", "float", True),
-            Column("지급기준구분", "str", False),   # 금액 / 가입금액비율. 비면 금액
+            # 두 금액은 지급기준구분이 금액, 가입금액비율이거나 비면 반드시 채운다(validate._logic).
+            # 금액 하나로 담기지 않는 꼴(차등지급, 실손보상, 분할지급, 현물급부)이면 비운다
+            Column("기준가입금액만원", "float", False),
+            Column("기준지급금액만원", "float", False),
+            Column("지급기준구분", "str", False),   # 금액 / 가입금액비율 / 차등지급 / 실손보상 / 분할지급 / 현물급부. 비면 금액
             Column("지급횟수제한", "str", False),
             Column("면책기간일수", "int", True),
             Column("감액개월1", "int", False),

@@ -484,13 +484,88 @@ def test_same_name_covers_share_one_row_only_when_rows_are_equal():
     assert built.skipped["R004-1"].startswith("이름이 같은 세부보장(R004-1, R004-2)의 값이 서로 다름")
 
 
+def no_row(number, kind, **values):
+    return {**RR.DEFAULTS, "번호": number, "쪽": 10, "꼴": RR.NO_ROW, "행없음사유": kind, **values}
+
+
+def test_every_no_row_kind_but_other_maps_to_one_of_four_bases():
+    from postlife.validate import NO_AMOUNT_BASES
+    assert set(RR.NO_AMOUNT_BASIS) == set(RR.NO_ROW_KINDS) - {"그밖"}
+    assert set(RR.NO_AMOUNT_BASIS.values()) == set(NO_AMOUNT_BASES)
+    assert RR.NO_AMOUNT_BASIS["경과기간별지급률"] == "차등지급" and RR.NO_AMOUNT_BASIS["조문별한도"] == "실손보상"
+    assert RR.NO_AMOUNT_BASIS["정기분할지급"] == "분할지급" and RR.NO_AMOUNT_BASIS["현물급부"] == "현물급부"
+
+
+def test_no_row_lines_become_rows_without_amounts_or_cuts():
+    values = finals()
+    values["R003-3"] = no_row("R003-3", "항목별금액표", 면책일수=0)
+    before = RR.build_rows(VID, views(), finals(), renewal_years=20)
+    built = RR.build_rows(VID, views(), values, renewal_years=20)
+    assert "R003-3" not in built.skipped and "R003-3" in built.no_rows
+    row = next(b for b in built.benefits if b["원시급부명"] == "사아 입원일당")
+    assert row["지급기준구분"] == "차등지급"
+    for name in ("기준가입금액만원", "기준지급금액만원", "감액개월1", "감액지급률1", "감액개월2", "감액지급률2", "감액예외"):
+        assert row[name] is None, name
+    assert row["면책기간일수"] == 0 and row["근거문서쪽수"] == 10 and row["근거문서종류"] == "요약서"
+    assert row["급부ID"] == ids.benefit_id(row["특약ID"], "사아 입원일당")
+    assert built.numbers[row["급부ID"]] == ("R003-3",)
+    assert check_rows("sys_급부", built.benefits) == {}
+    # 다른 줄의 급부ID와 값은 행없음 줄이 행이 되어도 그대로다
+    others = {b["급부ID"]: b for b in built.benefits if b["급부ID"] != row["급부ID"]}
+    old = {b["급부ID"]: b for b in before.benefits}
+    assert {k: v for k, v in old.items() if k != row["급부ID"]} == others
+
+
+def test_no_row_line_keeps_its_limit_phrase_and_wait():
+    values = finals()
+    values["R003-3"] = no_row("R003-3", "실제손해액", 한도=[{"앞말": "없음", "수": 30, "단위": "일"}])
+    built = RR.build_rows(VID, views(), values, renewal_years=20)
+    row = next(b for b in built.benefits if b["원시급부명"] == "사아 입원일당")
+    assert (row["지급기준구분"], row["지급횟수제한"]) == ("실손보상", "30일 한도")
+    assert check_rows("sys_급부", built.benefits) == {}
+
+
+def test_other_no_row_lines_and_failed_checks_still_make_no_row():
+    values = finals()
+    values["R003-3"] = no_row("R003-3", "그밖")
+    built = RR.build_rows(VID, views(), values, renewal_years=20)
+    assert built.skipped["R003-3"] == "스키마가 담지 못하는 꼴: 그밖"
+    assert "사아 입원일당" not in {b["원시급부명"] for b in built.benefits}
+    # 한도 구절이 그 줄에 없으면 기계 검사에 걸려 행이 되지 않는다
+    values["R003-3"] = no_row("R003-3", "실제손해액", 한도=[{"앞말": "연간", "수": 5, "단위": "회"}])
+    built = RR.build_rows(VID, views(), values, renewal_years=20)
+    assert built.skipped["R003-3"].startswith("기계 검사: ")
+    assert "사아 입원일당" not in {b["원시급부명"] for b in built.benefits}
+    values["R003-3"] = no_row("R003-3", "실제손해액", 모름=[{"칸": "면책일수", "이유": "칸이 흐림"}])
+    assert RR.build_rows(VID, views(), values, renewal_years=20).skipped["R003-3"] == "모름인 칸: 면책일수"
+
+
+def test_a_missed_override_is_caught_by_the_format_check():
+    # 행없음 줄에 benefit_row의 가입금액비율 100%가 남으면 형식 검사가 잡는다(덮어쓰기 누락의 안전장치)
+    values = finals()
+    values["R003-3"] = no_row("R003-3", "항목별금액표")
+    built = RR.build_rows(VID, views(), values, renewal_years=20)
+    row = next(b for b in built.benefits if b["원시급부명"] == "사아 입원일당")
+    bad = {**row, "기준가입금액만원": 100.0, "기준지급금액만원": 100.0}
+    assert "지급기준구분이 차등지급인데 기준가입금액만원이 있음" in check_rows("sys_급부", [bad])[row["급부ID"]]
+
+
+def test_content_fingerprint_ignores_page_and_piece_head():
+    a = views()[2].covers[2]
+    moved = RR.CoverView(a.number, a.name, a.reason, a.amount, a.page + 5, a.only)
+    assert RR.content_fingerprint(a) == RR.content_fingerprint(moved)
+    assert len(RR.content_fingerprint(a)) == RR.FINGERPRINT_LENGTH
+    changed = RR.CoverView(a.number, a.name, a.reason, "1일당 가입금액(입원 60일 한도)", a.page, a.only)
+    assert RR.content_fingerprint(a) != RR.content_fingerprint(changed)
+
+
 def test_unrepresentable_and_unknown_lines_make_no_row():
     values = finals()
-    values["R003-3"] = {**RR.DEFAULTS, "번호": "R003-3", "쪽": 10, "꼴": RR.NO_ROW, "행없음사유": "항목별금액표"}
+    values["R003-3"] = {**RR.DEFAULTS, "번호": "R003-3", "쪽": 10, "꼴": RR.NO_ROW, "행없음사유": "그밖"}
     values["R001-1"] = reading("R001-1", 모름=[{"칸": "감액", "이유": "칸이 흐림"}])
     del values["R002-1"]
     built = RR.build_rows(VID, views(), values, renewal_years=20)
-    assert built.skipped["R003-3"] == "스키마가 담지 못하는 꼴: 항목별금액표"
+    assert built.skipped["R003-3"] == "스키마가 담지 못하는 꼴: 그밖"
     assert built.skipped["R001-1"] == "모름인 칸: 감액" and built.skipped["R002-1"] == "판독 값 없음"
     names = {b["원시급부명"] for b in built.benefits}
     assert "사아 입원일당" not in names and "가나 진단비" not in names

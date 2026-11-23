@@ -16,7 +16,7 @@ import pytest
 
 from postlife.schema import TABS
 from postlife.site import build, combo, compare, eligibility, overview, pack, revision, worklog
-from postlife.site.model import BASIS_COLUMN, RATIO_BASIS, Cond, Data, is_ratio, load, pay_rate
+from postlife.site.model import BASIS_COLUMN, FORM_TEXT, RATIO_BASIS, Cond, Data, is_ratio, load, pay_rate
 
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "data" / "snapshot"
@@ -720,6 +720,53 @@ def test_비율_급부의_개정_전후는_지급률과_지급_기준이_달라�
     assert pay_items(view(50, 100, False), view(50, 100, False)) == []
 
 
+def no_amount_tables():
+    """비율 급부 종형(SF)의 암 진단비를 금액 하나로 담기지 않는 급부(차등지급)로 바꾼 자료. 두 금액과 감액을 비운다."""
+    tables = ratio_tables(caps=True)
+    b = next(b for b in tables["sys_급부"] if b["급부ID"] == f"{SF}_Tca_Bca")
+    b.update({BASIS_COLUMN: "차등지급", "기준가입금액만원": None, "기준지급금액만원": None, "감액개월1": None, "감액지급률1": None})
+    return tables
+
+
+def test_금액_없는_급부는_form을_싣고_비교표_부호는_x다():
+    data = Data(no_amount_tables())
+    view = data.benefit_view(f"{SF}_Tca_Bca")
+    assert (view["form"], view["base"], view["pay"], view["red"], view["ratio"]) == ("차등지급", None, None, [], False)
+    assert "form" not in data.benefit_view(f"{SF}_Tca_Bth") and "form" not in data.benefit_view(f"{NEW_A}_Tcancer_Bca")
+    s3 = compare.build(data, data.conds())
+    cell, st = cell_at(s3, "STD_CA_DX_GENERAL", SF, 0)
+    assert st["kind"] == "ok" and st["vals"] == [None] and st["vs"] == ["x", "x"]     # 보유로 세고 지급액은 견주지 않는다
+    payload = build.payload(data)
+    assert payload["formText"] == {"차등지급": FORM_TEXT["차등지급"]}
+    assert payload["benefits"][f"{SF}_Tca_Bca"]["form"] == "차등지급"
+    assert all("form" in b for b in payload["benefits"].values())                     # 키를 맞춰 pack이 표로 줄인다
+    assert payload["benefits"][f"{SF}_Tca_Bth"]["form"] is None
+    assert build.read_payload(build.render(data)) == json.loads(json.dumps(payload, ensure_ascii=False))
+    # 금액 없는 급부가 없는 자료에는 새 키가 없다
+    plain = build.payload(Data(ratio_tables(caps=True)))
+    assert "formText" not in plain and not any("form" in b for b in plain["benefits"].values())
+
+
+def test_금액_급부가_금액_없는_급부로_바뀌면_지급액_변경이고_방향은_없다():
+    def view(pay, base, form=None, red=None):
+        out = {"pay": pay, "base": base, "ratio": False, "rate": None, "red": red or [], "wait": 0, "limit": None,
+               "std": "STD_CA_DX_GENERAL"}
+        if form:
+            out["form"] = form
+        return out
+
+    def items(old, new):
+        return [(i["field"], i["dir"], i.get("forms")) for i in revision.benefit_changes(old, new, None, None)]
+
+    assert items(view(1000, 1000), view(None, None, "차등지급")) == [("pay", None, [None, "차등지급"])]
+    assert items(view(None, None, "차등지급"), view(1000, 1000)) == [("pay", None, ["차등지급", None])]
+    assert items(view(None, None, "차등지급"), view(None, None, "실손보상")) == [("pay", None, ["차등지급", "실손보상"])]
+    assert items(view(None, None, "차등지급"), view(None, None, "차등지급")) == []      # 같은 값이면 알아보지 못한다(나중 일)
+    # 감액이 있던 금액 급부가 금액 없는 급부가 되면 감액이 "없어져 나아진" 것이 아니다
+    assert items(view(1000, 1000, red=[[12, 0.5]]), view(None, None, "차등지급"))[1] == ("red", None, None)
+    assert "forms" not in revision.benefit_changes(view(1000, 1000), view(2000, 1000), None, None)[0]
+
+
 SF_OLD = "SAMSUNGFIRE_S0_hhhhhh"
 
 
@@ -961,8 +1008,10 @@ def test_실제_자료_화면_구성(built, real):
     _, _, payload = built
     meta = json.loads((SNAPSHOT / "meta.json").read_text(encoding="utf-8"))
     assert payload["meta"]["snapshotAt"] == meta["snapshot_at"]
-    assert len(payload["s6"]["rows"]) == meta["row_counts"]["sys_작업로그"]
-    assert len(payload["benefits"]) == meta["row_counts"]["sys_급부"]
+    # 행 수는 화면에 올릴 회사(config.SITE_ORGS)로 거른 뒤의 수다(site/orgs.py). 사본에 다른 회사가 들어와도 화면에는 섞이지 않는다
+    assert payload["meta"]["rowCounts"] == real.meta["row_counts"]
+    assert len(payload["s6"]["rows"]) == real.meta["row_counts"]["sys_작업로그"] == len(real.logs)
+    assert len(payload["benefits"]) == real.meta["row_counts"]["sys_급부"] == len(real.benefits)
     roles = {v["id"]: v["role"] for v in payload["variants"].values()}
     assert all(roles[v] == "정밀비교" for v in payload["s3"]["variants"]) and payload["s3"]["variants"] == payload["s4"]["variants"]
     assert payload["s3"]["defaultBase"] in payload["s3"]["bases"]
@@ -1013,8 +1062,11 @@ def test_실제_자료에서_가입_한도가_없는_종형(built, real):
 
 
 def test_실제_자료의_지급기준구분(built, real):
-    """지금 사본에는 지급기준구분 열이 없어 모두 금액 급부다. 열이 생긴 뒤에도 비율 급부가 아닌 줄은 지급률을 싣지 않는다."""
+    """비율 급부가 아닌 줄은 지급률을 싣지 않는다. 지금 사본에는 금액 하나로 담기지 않는 급부(차등지급 따위)가 없어
+    화면 자료에 form 키와 formText가 없다(금액 없는 급부를 넣기 전과 자료가 바이트까지 같다)."""
     _, _, payload = built
+    if not any(real.benefits[bid].get(BASIS_COLUMN) in FORM_TEXT for bid in real.benefits):
+        assert "formText" not in payload and not any("form" in b for b in payload["benefits"].values())
     for bid, b in payload["benefits"].items():
         assert b["ratio"] is is_ratio(real.benefits[bid])
         if not b["ratio"]:

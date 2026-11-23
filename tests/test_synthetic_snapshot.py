@@ -96,7 +96,8 @@ def test_same_input_gives_the_same_snapshot(made, tmp_path):
 
 
 def test_names_reach_the_sentences(made):
-    data = load(made)
+    # 가상 사본은 사본의 모든 회사를 싣는다. 여기서는 화면에 올릴 회사와 가상 회사만 본다(사본에 새 회사가 들어와도 같은 규칙을 탄다)
+    data = load(made, orgs=(*config.SITE_ORGS, *SYN))
     assert data.org_name("SYNLIFE01") == "가상생명 01" and data.org_sector("SYNFIRE01") == "손해보험"
     base = S.I.base_variants(data)[1][0]
     pts = S.points(data, base, S.Profile(), None)

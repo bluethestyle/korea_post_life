@@ -22,7 +22,7 @@ from typing import Any
 from . import combo, eligibility, lineup
 from . import insights as I
 from . import sales as SA
-from .model import MAX_AGE, Data
+from .model import FORM_TEXT, MAX_AGE, Data
 from .relations import Relations, load_relations
 
 SINCE = [None, 0.25, 1, 2, 3, 4, 5]
@@ -383,6 +383,7 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
     rid: dict[str, list] = {}
     bix: dict[str, int] = {}
     rix: dict[str, int] = {}
+    forms: dict[str, str] = {}           # 금액 하나로 담기지 않는 급부의 순번(글) → 지급기준구분
 
     def add_ben(bid: str) -> int:
         if bid in bix:
@@ -401,6 +402,8 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
             rid[t] = [r['원시특약명'], r['담보구분'], num(r.get('최대가입금액만원'))]
         ben[bid][1] = rix[t]
         bix[bid] = len(bix)
+        if v.get('form'):
+            forms[str(bix[bid])] = v['form']
         return bix[bid]
 
     bases = {}
@@ -493,7 +496,17 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
                        '판정상대수': {sid: {k: len(v) for k, v in per.items()} for sid, per in verdicts.items()}}
 
     # 급부와 특약은 번호로 가리킨다(줄마다 긴 ID를 되풀이하지 않게)
-    return {'t': A['자료시각'], 'ben': list(ben.values()), 'rid': list(rid.values()), 'b': bases}
+    out = {'t': A['자료시각'], 'ben': list(ben.values()), 'rid': list(rid.values()), 'b': bases}
+    if forms:
+        # 금액 없는 급부(API.md "금액 없는 급부"). 그런 급부가 없으면 세 키를 싣지 않는다(지금 자료와 바이트까지 같다)
+        out['지급기준'] = forms
+        out['지급기준글'] = {k: FORM_TEXT[k] for k in FORM_TEXT if k in set(forms.values())}
+        out['금액없음글'] = dict(NO_AMOUNT_TEXT)
+    return out
+
+
+# 금액 없는 급부를 그릴 때 금액, 기준 가입금액, 감액 자리에 보일 글과 지급액 판정의 사유(docs/proposals/급부표_지급기준_확장안.md 7절)
+NO_AMOUNT_TEXT = {'기준': '금액 하나로 적을 수 없는 급부', '감액': I.CUT_IN_SOURCE, '지급액판정': I.AMOUNT_FORM}
 
 
 def cover_text(cover: dict) -> str:

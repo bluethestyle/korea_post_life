@@ -1,15 +1,19 @@
 """사본(data/snapshot)에서 관계망 탐색 시안 2의 자료(graph.json)를 만든다. 값은 사본 그대로 옮긴다.
 
-쓰기: python proto_src/graph/build_data.py [출력 경로]
+쓰기: python proto_src/graph/build_data.py [출력 경로] [--snapshot 사본 폴더] [--orgs all | EPOST,HANWHALIFE,...]
       출력 경로를 주지 않으면 proto_src/graph/graph.json 에 쓴다. 그다음 python proto_src/graph/build.py 로 합친다.
+      화면에 올릴 회사(config.SITE_ORGS)만 싣는다(src/postlife/site/orgs.py 가 사본을 읽은 자리에서 거른다). --orgs 로 바꾸며,
+      기본과 다른 묶음은 proto_src/graph/graph.json 에 쓰지 않는다(커밋되는 자료다. out/graph_all.json 처럼 다른 곳에 쓴다).
 읽는 것(모두 저장소 안)
 - data/snapshot/ 의 sys_상품종형, sys_특약, sys_급부, hum_담보매핑, sys_시장동향, meta.json(자료 시각)
 - data/seed/hum_표준담보사전.jsonl (사용여부가 참인 줄만)
 - data/proposals/표준담보_관계_두판독.jsonl (표준담보 사이의 넓고 좁은 관계)
-견줄 종형(WANT)이 사본에서 한 줄로 집히지 않으면 멈춘다. 같은 입력이면 같은 바이트를 쓴다.
+견줄 종형(WANT)이 사본에서 한 줄로 집히지 않으면 멈춘다(WANT 의 회사가 --orgs 에 없으면 그 줄은 건너뛴다).
+WANT 에 없는 회사를 --orgs 로 실으면 그 회사의 종형을 pick_types 규칙으로 둘 고른다. 같은 입력이면 같은 바이트를 쓴다.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from collections import Counter
@@ -20,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'src'))
 from postlife.snapshot import read_snapshot  # noqa: E402
 from postlife.config import INSTITUTIONS  # noqa: E402
+from postlife.site import orgs as site_orgs  # noqa: E402
 
 SNAP = ROOT / 'data/snapshot'
 STD = ROOT / 'data/seed/hum_표준담보사전.jsonl'
@@ -45,8 +50,13 @@ def jl(p: Path) -> list[dict]:
         return [json.loads(ln) for ln in f if ln.strip()]
 
 
+NO_AMOUNT = ('차등지급', '실손보상', '분할지급', '현물급부')   # 금액 하나로 담기지 않는 지급기준구분(두 금액이 비어 있다)
+
+
 def amount(b: dict) -> str | None:
     a, base = b.get('기준지급금액만원'), b.get('기준가입금액만원')
+    if b.get('지급기준구분') in NO_AMOUNT:
+        return b['지급기준구분']
     if b.get('지급기준구분') == '가입금액비율':
         if a is not None and base:
             return f'가입금액의 {a / base * 100:g}%'
@@ -55,6 +65,8 @@ def amount(b: dict) -> str | None:
 
 
 def reduce_txt(b: dict) -> str:
+    if b.get('지급기준구분') in NO_AMOUNT:          # 감액을 읽지 않은 꼴이라 "없음"이 아니다
+        return '원문 확인'
     out = []
     for m, r in (('감액개월1', '감액지급률1'), ('감액개월2', '감액지급률2')):
         if b.get(m) is not None and b.get(r) is not None:
@@ -64,17 +76,35 @@ def reduce_txt(b: dict) -> str:
     return ', '.join(out) or '없음'
 
 
-def build() -> tuple[dict, dict, list]:
-    snap = read_snapshot(SNAP)
+def pick_types(variants: list[dict], org: str) -> list[dict]:
+    """WANT 에 없는 회사에서 견줄 종형 둘: 판매 중인 정밀비교 종형 가운데 간편심사 하나(간편고지 3.2.5 를 먼저, 없으면 종형ID 가
+    가장 앞선 것)와 일반심사 하나(종형ID 가 가장 앞선 것). 없는 쪽은 싣지 않는다."""
+    pool = sorted((v for v in variants if v['기관코드'] == org and v.get('비교역할구분') == '정밀비교'
+                   and not v.get('판매종료일')), key=lambda v: v['종형ID'])
+    simple = [v for v in pool if v.get('심사유형') == '간편심사']
+    simple.sort(key=lambda v: v.get('간편고지약칭') != '3.2.5')
+    plain = [v for v in pool if v.get('심사유형') == '일반심사']
+    return simple[:1] + plain[:1]
+
+
+def build(snap_dir: Path = SNAP, orgs=None) -> tuple[dict, dict, list]:
+    picked = site_orgs.parse(orgs)
+    snap = site_orgs.filter_tables(read_snapshot(snap_dir), picked)
     std = [r for r in jl(STD) if r.get('사용여부')]
     rel = jl(REL)
 
     types = []
     for org, p, t in WANT:
+        if picked != site_orgs.ALL and org not in picked:
+            continue
         hit = [v for v in snap['sys_상품종형'] if v['기관코드'] == org and p in v['공시상품명'] and t in v['종형명']]
         if len(hit) != 1:
             sys.exit(f'견줄 종형이 한 줄로 집히지 않는다: {org} {p} {t} -> {len(hit)}줄. WANT 를 지금 사본에 맞게 고친다')
         types.append(hit[0])
+    named = {org for org, _, _ in WANT}
+    extra = sorted({v['기관코드'] for v in snap['sys_상품종형']} - named)   # 거른 뒤 남은 회사 가운데 WANT 에 없는 회사
+    for org in extra:
+        types += pick_types(snap['sys_상품종형'], org)
 
     nodes: dict[str, dict] = {}
     edges: list[dict] = []
@@ -165,7 +195,7 @@ def build() -> tuple[dict, dict, list]:
             o[str(keys.index(k))] = v
         return o
 
-    meta = json.loads((SNAP / 'meta.json').read_text(encoding='utf-8'))
+    meta = json.loads((Path(snap_dir) / 'meta.json').read_text(encoding='utf-8'))
     out = {'snapshot_at': meta['snapshot_at'], 'kinds': KIND, 'ekinds': EK,
            'nodes': [[n['i'], KIND.index(n['k']), n['l'], n['o'], kc(n['p'])] for n in nl],
            'edges': [[idx[e['s']], idx[e['t']], EK.index(e['k']), kc(e['p'])] for e in edges]}
@@ -174,10 +204,24 @@ def build() -> tuple[dict, dict, list]:
 
 
 def main() -> int:
-    out_path = Path(sys.argv[1]) if len(sys.argv) > 1 else OUT_DEFAULT
-    out, nodes, edges = build()
+    ap = argparse.ArgumentParser()
+    ap.add_argument('out', nargs='?', type=Path, default=OUT_DEFAULT, help='출력 경로(기본 proto_src/graph/graph.json)')
+    ap.add_argument('--snapshot', type=Path, default=SNAP, help='사본 폴더(기본 data/snapshot)')
+    site_orgs.add_argument(ap)
+    args = ap.parse_args()
+    try:
+        picked = site_orgs.parse(args.orgs)
+    except ValueError as e:
+        ap.error(str(e))
+    out_path = args.out
+    if not site_orgs.is_default(picked) and out_path.resolve() == OUT_DEFAULT.resolve():
+        print(f'기본과 다른 회사 묶음({site_orgs.describe(picked)})의 자료는 {OUT_DEFAULT} 에 쓰지 않는다(커밋되는 자료다). '
+              '출력 경로를 out/graph_test.json 처럼 따로 준다')
+        return 1
+    out, nodes, edges = build(args.snapshot, picked)
     s = json.dumps(out, ensure_ascii=False, separators=(',', ':'))
     out_path.write_text(s, encoding='utf-8')
+    print('화면에 올린 회사:', site_orgs.describe(picked))
     print(out_path, 'bytes', len(s.encode('utf-8')))
     print('nodes', len(nodes), dict(Counter(n['k'] for n in nodes.values())))
     print('edges', len(edges), dict(Counter(e['k'] for e in edges)))

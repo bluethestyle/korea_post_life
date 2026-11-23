@@ -25,11 +25,11 @@ def test_seed_is_the_two_readings_with_ids_from_the_dictionary():
     seed = read(R.RELATIONS_PATH)
     assert R.RELATIONS_PATH == SEED / "표준담보_관계.jsonl"
     assert seed == R.rows_from_names(read(PROPOSAL), dictionary)
-    assert len(seed) == 31
+    assert len(seed) == 32
     assert all(tuple(r) == R.FIELDS for r in seed)
     assert {r["관계"] for r in seed} == {"포함", "통합"}
     relations = R.load_relations()
-    assert len(relations) == 31
+    assert len(relations) == 32
     assert relations.check(dictionary) == []
     # 사전에서 쓰는 담보만 잇는다
     used = {r["표준담보ID"] for r in dictionary if r["사용여부"]}

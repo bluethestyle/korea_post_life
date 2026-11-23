@@ -419,7 +419,22 @@ def check_width(browser, width, problems, pages):
     print(f"[{width}px] 근거 창: 벗어남·잘림 {len(over)}건")
     run.problems += [(width, "detail", o) for o in over]
     page.click("#detail-close")
-    soft = page.locator(".cellbtn:has(.main.soft)")
+    # 금액 하나로 담기지 않는 급부(지급기준구분 차등지급 따위)의 칸은 금액 대신 값 이름을 적는다. 그런 칸이 없는 자료에서는 건너뛴다
+    form_cells = page.locator(".cellbtn:has(.main.noamt)")
+    if form_cells.count():
+        cell_text = form_cells.first.inner_text()
+        assert any(f in cell_text for f in ("차등지급", "실손보상", "분할지급", "현물급부")), cell_text
+        assert "금액 하나로 적을 수 없는 급부" in cell_text and "감액 없음" not in cell_text, cell_text
+        form_cells.first.click()
+        page.wait_for_selector("dialog[open]")
+        body = page.inner_text("#detail-body")
+        assert "원문에서 확인" in body, "금액 없는 급부의 근거 창에 감액을 원문에서 확인하라는 글이 없음"
+        over = page.evaluate(OVERFLOW_JS)
+        page.screenshot(path=str(OUT / f"s3_detail_form_{width}.png"))
+        print(f"[{width}px] 근거 창(금액 없는 급부): 벗어남·잘림 {len(over)}건")
+        run.problems += [(width, "detail form", o) for o in over]
+        page.click("#detail-close")
+    soft = page.locator(".cellbtn:has(.main.soft):not(:has(.main.noamt))")
     if soft.count():
         cell_text = soft.first.inner_text()
         assert "기준 가입" in cell_text and "자료 없음" in cell_text, cell_text

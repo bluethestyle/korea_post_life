@@ -483,6 +483,40 @@ def test_cover_shape_and_ids(files):
             assert set(prs) <= set(b["cols"][1:]), (vid, sid)
 
 
+def test_cover_carries_forms_only_for_benefits_without_amount(made):
+    """금액 하나로 담기지 않는 급부(지급기준구분 차등지급 따위)가 있을 때만 cover.json 에 지급기준, 지급기준글, 금액없음글을 싣는다."""
+    assert not {"지급기준", "지급기준글", "금액없음글"} & set(made["CV"])       # 세 회사 사본에는 그런 급부가 없다
+    spec = importlib.util.spec_from_file_location("sales_book_for_cover_test", Path(__file__).with_name("test_site_sales.py"))
+    book = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(book)
+    from postlife.site import sales as SA
+    from postlife.site.model import FORM_TEXT, Data
+    b = book.Book()
+    book.fill(b)
+    b.t["hum_표준담보사전"].append(book.std("STD_CM_FORM", "공통보장", "시험 수술비", "수술"))
+    b.ben(book.E1, "STD_CM_FORM", limit="수술 1회당")
+    bid = b.ben(book.H1, "STD_CM_FORM", limit="연간 3회한")
+    for r in b.t["sys_급부"]:
+        if r["급부ID"] == bid:
+            r.update({"지급기준구분": "차등지급", "기준가입금액만원": None, "기준지급금액만원": None})
+    data = Data(b.t, {"snapshot_at": "2026-11-23T10:00:00+09:00"})
+    sales_obj = json.loads(json.dumps(SA.export(data, relations=book.REL), ensure_ascii=False))
+    cover = json.loads(C4.cover_text(C4.build_cover(data, sales_obj, book.REL)))
+    assert check(cover, CV) == []
+    forms = cover["지급기준"]
+    assert set(forms.values()) == {"차등지급"} and len(forms) == 1
+    i = int(next(iter(forms)))
+    assert cover["ben"][i][3] is None and cover["ben"][i][4] is None and cover["ben"][i][7] == []
+    assert cover["지급기준글"] == {"차등지급": FORM_TEXT["차등지급"]}
+    assert set(cover["금액없음글"]) == {"기준", "감액", "지급액판정"}
+    # 그 짝의 감액 항목은 원문 확인과 판정 보류다
+    row = next(r for r in cover["b"][book.E1]["rows"] if r[0] == "STD_CM_FORM")
+    items = {it[0]: it for it in row[2][book.H1]["it"]}
+    assert items["감액"][2] == cover["금액없음글"]["감액"] and items["감액"][3] == "판정 보류"
+    assert (items["지급 형태"][1], items["지급 형태"][2], items["지급 형태"][3]) == ("정액 지급(수술 1회당)", "차등지급", "다름")
+    assert "단정 주의" in cover["b"][book.E1]["판정기관코드"]["STD_CM_FORM"]
+
+
 def test_d_shape_and_ids(files):
     d, S = files["D"], files["S"]
     assert check(d, D) == []

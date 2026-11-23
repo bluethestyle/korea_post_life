@@ -9,6 +9,7 @@ from postlife.site import compare as C
 from postlife.site import insights as I
 from postlife.site.model import Data, load
 from postlife.site.relations import Relations
+from postlife.validate import NO_AMOUNT_BASES, check_rows
 
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "data" / "snapshot"
@@ -179,12 +180,17 @@ class Book:
             self.t["sys_특약"].append(row("sys_특약", 특약ID=f"{vid}_T", 종형ID=vid, 특약계보키="T", 담보구분="선택특약",
                                       원시특약명="시험특약", 최대가입금액만원=1000))
 
-    def ben(self, vid, sid, wait=0, red=None, limit="최초 1회한", exc=None, state="자동확정", pay=1000, logged=False):
+    def ben(self, vid, sid, wait=0, red=None, limit="최초 1회한", exc=None, state="자동확정", pay=1000, logged=False, basis=None):
+        """basis: 지급기준구분. 금액 없는 값(차등지급 따위)이면 두 금액과 감액을 비운다."""
         self.n += 1
         bid = f"{vid}_T_B{self.n}"
         months, rate = red or (None, None)
+        base = 1000
+        if basis in NO_AMOUNT_BASES:
+            base = pay = months = rate = exc = None
         self.t["sys_급부"].append(row("sys_급부", 급부ID=bid, 특약ID=f"{vid}_T", 원시급부명=f"{sid} 급부{self.n}", 급부역할="주급부",
-                                   기준가입금액만원=1000, 기준지급금액만원=pay, 면책기간일수=wait, 감액개월1=months, 감액지급률1=rate,
+                                   기준가입금액만원=base, 기준지급금액만원=pay, 지급기준구분=basis, 면책기간일수=wait,
+                                   감액개월1=months, 감액지급률1=rate,
                                    감액예외=exc, 지급횟수제한=limit, 근거문서종류="요약서", 근거문서쪽수=self.n))
         confirmed = state in ("자동확정", "승인", "수정")
         self.t["hum_담보매핑"].append(row("hum_담보매핑", 급부ID=bid, 검토상태=state, 추천표준담보ID=sid,
@@ -365,3 +371,82 @@ def test_real_snapshot_runs_and_holds_together():
                 assert ins["표준담보ID"] not in own
             if ins["유형"] in (I.UNIQUE, I.CONDITION, I.DESIGN):
                 assert ins["표준담보ID"] in own
+
+
+# ---------- 금액 하나로 담기지 않는 급부(지급기준구분 차등지급 따위) ----------
+def form_book():
+    b = Book()
+    names = {"STD_CA_F1": "금액 없는 상대", "STD_CA_F2": "감액 견줌", "STD_CA_F3": "같은 꼴", "STD_CA_F4": "대표 밖"}
+    b.t["hum_표준담보사전"] = [std(sid, "암보장", name) for sid, name in names.items()]
+    b.ben(BASE, "STD_CA_F1", limit="수술 1회당"); b.ben(HW, "STD_CA_F1", wait=90, limit="연간 3회한", basis="차등지급")
+    b.ben(BASE, "STD_CA_F2", red=(12, 0.5)); b.ben(HW, "STD_CA_F2", basis="실손보상")
+    b.ben(BASE, "STD_CA_F3", basis="차등지급"); b.ben(HW, "STD_CA_F3", basis="차등지급")
+    b.ben(BASE, "STD_CA_F4"); b.ben(HW, "STD_CA_F4"); b.ben(HW, "STD_CA_F4", basis="분할지급")
+    assert check_rows("sys_급부", b.t["sys_급부"]) == {}
+    return b
+
+
+def test_benefit_view_carries_form_only_on_benefits_without_amount():
+    data = Data(form_book().t)
+    views = [data.benefit_view(bid) for bid in data.benefits]
+    forms = [v for v in views if "form" in v]
+    assert {v["form"] for v in forms} == {"차등지급", "실손보상", "분할지급"}
+    assert all(v["base"] is None and v["pay"] is None and v["red"] == [] and v["exc"] is None for v in forms)
+    assert all("form" not in v for v in views if v["pay"] is not None)
+
+
+def test_benefit_without_amount_is_held_not_unique_and_its_pair_is_a_design_difference():
+    result = I.analyze(Data(form_book().t), REL)["기준"][0]
+    assert result["맞붙는종형"][0]["종형ID"] == HW
+    # 상대가 금액 없는 급부로만 가진 담보도 보유다. 고유가 아니다
+    assert kinds(result, "STD_CA_F1") == [(I.DESIGN, "")]
+    pair = next(p for p in result["비교쌍목록"] if p["표준담보ID"] == "STD_CA_F1")
+    assert (pair["판정"], pair["지급형태"]) == (I.HOLD, I.DIFF)
+    held = next(x for x in result["보류비교"] if x["표준담보ID"] == "STD_CA_F1")
+    items = {i["항목"]: i for i in held["항목"]}
+    assert (items[I.REDUCTION]["판정"], items[I.REDUCTION]["사유"]) == (I.HOLD, I.HOLD_FORM_CUT)
+    assert (items[I.REDUCTION]["기준"], items[I.REDUCTION]["상대"]) == ("감액 없음", I.CUT_IN_SOURCE)
+    assert (items[I.PAY]["기준"], items[I.PAY]["상대"]) == ("정액 지급(수술 1회당)", "차등지급")
+    assert items[I.WAIT]["판정"] == I.BETTER                # 면책은 그대로 견준다
+    design = find(result, I.DESIGN, "STD_CA_F1")
+    assert design["변수"]["기준지급형태"] == "정액 지급(수술 1회당)" and design["변수"]["상대지급형태"] == {"한화생명": "차등지급"}
+    assert design["지급액"][HW] == {"비교표부호": "x", "지급액": None, "사유": I.AMOUNT_FORM}
+
+
+def test_empty_cut_of_a_benefit_without_amount_is_not_read_as_no_cut():
+    result = I.analyze(Data(form_book().t), REL)["기준"][0]
+    # 기준은 1년 50% 감액, 상대는 감액 칸이 빈 실손보상. 감액 없음으로 견주면 조건 못함이 나온다
+    assert (I.CONDITION, I.WORSE) not in kinds(result, "STD_CA_F2")
+    assert kinds(result, "STD_CA_F2") == [(I.DESIGN, "")]
+    assert next(p for p in result["비교쌍목록"] if p["표준담보ID"] == "STD_CA_F2")["판정"] == I.HOLD
+    assert not [x for x in result["시사점"] if x["유형"] == I.CONDITION]
+
+
+def test_same_form_on_both_sides_is_held_not_a_design_difference():
+    result = I.analyze(Data(form_book().t), REL)["기준"][0]
+    assert kinds(result, "STD_CA_F3") == []
+    held = next(x for x in result["보류비교"] if x["표준담보ID"] == "STD_CA_F3")
+    items = {i["항목"]: i for i in held["항목"]}
+    assert (items[I.PAY]["판정"], items[I.PAY]["사유"]) == (I.HOLD, I.HOLD_SAME_FORM)
+    assert (items[I.REDUCTION]["판정"], items[I.REDUCTION]["사유"]) == (I.HOLD, I.HOLD_SAME_FORM_CUT)
+
+
+def test_benefit_without_amount_beside_the_representative_counts_as_an_other_line():
+    data = Data(form_book().t)
+    result = I.analyze(data, REL)["기준"][0]
+    hold = I.Holding(data, HW)
+    rep = hold.rep("STD_CA_F4")
+    assert "form" not in rep                                 # 금액 급부가 대표다
+    assert hold.other_lines("STD_CA_F4", rep) == 1
+    pair = next(p for p in result["비교쌍목록"] if p["표준담보ID"] == "STD_CA_F4")
+    assert pair["판정"] == I.SAME and kinds(result, "STD_CA_F4") == []
+    assert I.condition_signature(rep)[-1] is None
+
+
+def test_compare_pay_with_forms():
+    assert I.compare_pay("최초 1회한", None, None, "현물급부")["판정"] == I.DIFF
+    assert I.compare_pay(None, None, "분할지급", "현물급부")["판정"] == I.DIFF
+    out = I.compare_pay("해당 장해지급률", "연간 1회한", None, "차등지급")
+    assert (out["기준"], out["상대"], out["판정"]) == ("정액 지급", "차등지급", I.DIFF)
+    # 금액 급부끼리는 지금과 같다
+    assert I.compare_pay("최초 1회한", "연간 1회한") == I.compare_pay("최초 1회한", "연간 1회한", None, None)

@@ -4,17 +4,20 @@
 - 급부의 표준담보: hum_담보매핑의 확정표준담보ID (검토상태가 자동확정·승인·수정인 행만)
 - 검토 대기 표시: sys_작업로그에서 작업단계가 "사람검토이관"인 행의 대상행ID
 - 나이·성별 조건 구간과 그 구간의 가입 한도
+load는 화면에 올릴 회사(config.SITE_ORGS)의 행만 남긴다(site/orgs.py). Data를 직접 만들면 거르지 않는다.
 """
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from .. import config
+from . import orgs as site_orgs
 from ..extract import rerun as R
 from ..snapshot import read_snapshot
+from ..validate import NO_AMOUNT_BASES
 
 HOME_ORG = "EPOST"                       # 이 앱의 관점이 되는 기관
 CONFIRMED_STATES = {"자동확정", "승인", "수정"}
@@ -32,6 +35,16 @@ MAX_AGE = 120                            # 나이 입력의 상한
 # 기준가입금액만원 100, 기준지급금액만원 = 지급률(%)로 적는다. 열이 없거나 비어 있으면 "금액"으로 본다.
 BASIS_COLUMN = "지급기준구분"
 RATIO_BASIS = "가입금액비율"
+# 금액 하나로 담기지 않는 꼴(2026-11-23 사용자 승인). 이 값의 급부는 두 금액과 감액이 비어 있다(validate.NO_AMOUNT_BASES).
+# 보유로는 세지만 지급액과 감액의 우열은 매기지 않는다(insights.compare_pay, compare_conditions). 화면은 benefit_view의
+# "form"(값 이름)과 FORM_TEXT(값별 설명 글)를 읽는다. 금액 급부에는 form 키를 싣지 않는다.
+FORM_TEXT = {
+    "차등지급": "항목, 종, 등급, 가입금액 구간, 회차, 경과 기간 같은 조건마다 지급액이나 지급률이 달라 금액 하나로 적지 않았습니다",
+    "실손보상": "실제 든 비용이나 손해액을 한도 안에서 지급해 정해진 지급액이 없습니다",
+    "분할지급": "보험금을 정해진 기간 동안 나눠 지급해 한 번에 받는 금액으로 적지 않았습니다",
+    "현물급부": "돈 대신 간병인 지원 같은 서비스로 지급합니다",
+}
+assert set(FORM_TEXT) == set(NO_AMOUNT_BASES)
 # meta.json 의 선택 열쇠(가상 사본이 싣는다): 기관코드 → 기관 이름, 기관코드 → 업권
 META_NAMES, META_SECTORS = "기관이름", "기관업권"
 SECTOR_LIFE, SECTOR_NONLIFE = "생명보험", "손해보험"
@@ -67,6 +80,12 @@ def _columns(text: Any) -> list[str]:
 def is_ratio(row: dict[str, Any]) -> bool:
     """가입금액 대비 비율로 적힌 급부인지. 지급기준구분 열이 없거나 비어 있거나 "금액"이면 금액 급부다."""
     return str(row.get(BASIS_COLUMN) or "").strip() == RATIO_BASIS
+
+
+def no_amount_form(row: dict[str, Any]) -> str | None:
+    """금액 하나로 담기지 않는 꼴이면 그 값(차등지급, 실손보상, 분할지급, 현물급부), 아니면 None."""
+    basis = str(row.get(BASIS_COLUMN) or "").strip()
+    return basis if basis in NO_AMOUNT_BASES else None
 
 
 def pay_rate(pay: float | None, base: float | None) -> float | None:
@@ -241,6 +260,7 @@ class Data:
 
         ratio는 가입금액 대비 비율로 적힌 급부인지, rate는 그 지급률(%)이다. 금액 급부의 rate는 None이다.
         화면은 비율 급부를 "기준 가입 100만원에 50만원" 대신 "가입금액의 50%"로 적는다.
+        form은 금액 하나로 담기지 않는 급부에만 싣는다(값 이름). 그런 급부는 base, pay, red, exc가 비어 있다.
         """
         b = self.benefits[bid]
         ratio = is_ratio(b)
@@ -261,6 +281,7 @@ class Data:
             "std": std, "rec": (m.get("추천표준담보ID") if m and state == WAITING_STATE else None),
             "pend": self.pending_benefit.get(bid, []),
             "ratio": ratio, "rate": pay_rate(b.get("기준지급금액만원"), b.get("기준가입금액만원")) if ratio else None,
+            **({"form": form} if (form := no_amount_form(b)) else {}),
         }
 
     def verdict_pending(self, view: dict[str, Any]) -> bool:
@@ -352,8 +373,11 @@ def link_ceiling(rule: dict, base_amount: float | None) -> float | None:
     return None if base_amount is None else base_amount * float(number)
 
 
-def load(snapshot_dir: Path) -> Data:
+def load(snapshot_dir: Path, orgs: str | Iterable[str] | None = None) -> Data:
+    """사본을 읽어 화면에 올릴 회사의 행만 남긴다(site/orgs.py). orgs 를 주지 않으면 config.SITE_ORGS, "all" 이면 모든 회사."""
     snapshot_dir = Path(snapshot_dir)
     meta_path = snapshot_dir / "meta.json"
     meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
-    return Data(read_snapshot(snapshot_dir), meta)
+    picked = site_orgs.parse(orgs)
+    tables = site_orgs.filter_tables(read_snapshot(snapshot_dir), picked)
+    return Data(tables, site_orgs.filter_meta(meta, tables) if picked != site_orgs.ALL else meta)

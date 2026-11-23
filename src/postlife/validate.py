@@ -18,7 +18,8 @@ ALLOWED: dict[tuple[str, str], set[str]] = {
     ("sys_상품종형", "고지소견범위"): {"서면", "서면과 진료기록부"},
     ("sys_특약", "담보구분"): {"주계약", "의무특약", "선택특약"},
     ("sys_급부", "급부역할"): {"주급부", "부수급부", "대등복합"},
-    ("sys_급부", "지급기준구분"): {"금액", "가입금액비율"},     # 비어 있으면 금액으로 본다
+    # 비어 있으면 금액으로 본다. 뒤의 넷은 금액 하나로 담기지 않는 꼴(NO_AMOUNT_BASES)
+    ("sys_급부", "지급기준구분"): {"금액", "가입금액비율", "차등지급", "실손보상", "분할지급", "현물급부"},
     ("sys_보험료예시", "성별"): {"M", "F"},
     ("sys_보험료예시", "출처구분"): {"요약서", "계산기"},
     ("sys_결합제약", "제약유형"): {"의무부가", "배타선택", "최대연동", "선행가입"},
@@ -35,6 +36,12 @@ ALLOWED: dict[tuple[str, str], set[str]] = {
     ("hum_담보매핑", "검토상태"): {"자동확정", "대기", "승인", "수정", "오류", "대상외"},
     ("hum_기준값", "기준분류"): {"법정한도", "색상기준", "판정구간", "대표조건", "표시문구"},
 }
+
+
+# 지급기준구분 가운데 두 금액과 감액을 비우는 값. 이 값의 급부는 금액 하나로 견줄 수 없다
+NO_AMOUNT_BASES: tuple[str, ...] = ("차등지급", "실손보상", "분할지급", "현물급부")
+_AMOUNT_COLS = ("기준가입금액만원", "기준지급금액만원")
+_CUT_COLS = ("감액개월1", "감액지급률1", "감액개월2", "감액지급률2", "감액예외")
 
 
 def _type_ok(value: Any, kind: str) -> bool:
@@ -105,7 +112,20 @@ def _logic(tab_name: str, row: dict[str, Any]) -> list[str]:
         if row.get("갱신여부") is True and row.get("갱신주기년") in (None, ""):
             out.append("갱신형 특약인데 갱신주기년이 비어 있음")
     if tab_name == "sys_급부":
-        for name in ("기준가입금액만원", "기준지급금액만원"):      # 읽지 못한 금액이 0으로 들어온 행
+        basis = row.get("지급기준구분")
+        if basis in NO_AMOUNT_BASES:
+            # 두 금액과 감액을 읽지 않은 꼴이다. 값이 남아 있으면 덮어쓰기를 빠뜨린 행이다
+            for name in _AMOUNT_COLS:
+                if row.get(name) not in (None, ""):
+                    out.append(f"지급기준구분이 {basis}인데 {name}이 있음")
+            if any(row.get(name) not in (None, "") for name in _CUT_COLS):
+                out.append(f"지급기준구분이 {basis}인데 감액이 있음")
+        else:
+            label = basis if basis not in (None, "") else "금액"
+            for name in _AMOUNT_COLS:
+                if row.get(name) in (None, ""):
+                    out.append(f"지급기준구분이 {label}인데 {name}이 비어 있음")
+        for name in _AMOUNT_COLS:      # 읽지 못한 금액이 0으로 들어온 행
             if isinstance(row.get(name), (int, float)) and not isinstance(row[name], bool) and row[name] <= 0:
                 out.append(f"{name}이 0 이하: {row[name]}")
         for n in ("1", "2"):

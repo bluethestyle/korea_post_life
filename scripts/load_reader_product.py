@@ -10,8 +10,11 @@ benefits_2reader.jsonl, 꼴은 data/crosscheck/README.md)에 둔다. 이 스크�
 3. 값 파일의 번호마다 조각 지문(reader_rows.cover_fingerprint)을 다시 읽은 조각과 맞춰 본다. 지문이 다른 줄은 쓰지 않는다.
 4. reader_rows.build_rows로 특약 행과 급부 행을 만든다. 원문 구절이 들어가는 열(지급횟수제한, 감액예외)은 조각에서 잘라 쓴다.
    갱신형 특약의 갱신주기년은 대상 설정의 갱신형특약주기년이고, 갱신형특약제외에 적은 특약은 만들지 않는다.
-5. 쓰지 않는 줄: 판정이 "검토 대기"이거나 빈 줄, 행없음 줄(행없음 정보는 결과물 파일에만 둔다), 지문이 다른 줄, 표 읽기가
-   이름을 잘못 낸 줄(reader_rows.name_problem의 보류), 기계 검사에 걸린 줄, 갱신형특약제외의 특약에 걸린 줄. 사유별 수를 요약에 낸다.
+   행없음 줄은 금액 없는 급부 행(지급기준구분 차등지급, 실손보상, 분할지급, 현물급부. 두 금액과 감액은 비움)이 되고,
+   그런 급부마다 작업 로그 한 줄(작업단계 추출, 대상열 지급기준구분, 결과 통과)에 판독 사유, 번호, 내용 지문을 남긴다.
+5. 쓰지 않는 줄: 판정이 "검토 대기"이거나 빈 줄, 행없음사유가 "그밖"인 행없음 줄(행없음 정보는 결과물 파일에만 둔다), 지문이
+   다른 줄, 표 읽기가 이름을 잘못 낸 줄(reader_rows.name_problem의 보류), 기계 검사에 걸린 줄, 갱신형특약제외의 특약에 걸린 줄.
+   사유별 수를 요약에 낸다.
 
 관문전용 종형은 종형 행만 쓴다(특약과 급부는 정밀비교 종형에만 쓴다). 시트 쓰기와 작업 로그는 삼성화재 적재
 (scripts/load_table_product.py)와 같다: 호출모델은 "교차 확인", 판정확률은 비운다. 쓰는 줄은 모두 판정을 마친 값이라 검토 기록은
@@ -48,7 +51,7 @@ from postlife.extract import reader_rows as RR  # noqa: E402
 from postlife.extract import rerun as R  # noqa: E402
 from postlife.sheets_io import MemoryBackend, SheetStore  # noqa: E402
 from postlife.snapshot import KST  # noqa: E402
-from postlife.validate import check_rows  # noqa: E402
+from postlife.validate import NO_AMOUNT_BASES, check_rows  # noqa: E402
 from postlife.worklog import WorkLog  # noqa: E402
 
 MODEL = "교차 확인"                 # sys_작업로그의 호출모델
@@ -88,6 +91,7 @@ class Loaded(job.Report):
     clashes: dict[str, list[str]] = field(default_factory=dict)          # 탭 → 겹친 ID
     dropped: dict[str, int] = field(default_factory=dict)                # 탭 → 시트에 있었는데 이번에 빠지는 행 수
     gate_done: set[str] = field(default_factory=set)
+    no_amount: dict[str, str] = field(default_factory=dict)              # 금액 없는 급부ID → 작업 로그 사유(판독 사유, 번호, 내용 지문)
 
 
 def value_lines(path: Path) -> list[dict[str, Any]]:
@@ -199,6 +203,7 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
             report.rows["sys_상품종형"].append(v.row)
             report.rows["sys_특약"] += built.riders
             report.rows["sys_급부"] += built.benefits
+            report.no_amount.update(no_amount_reasons(built, readings, mine))
             report.done.add(v.id)
             _account(report, group, v, mine, built, banned)
 
@@ -211,6 +216,10 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
     _drop_bad_benefits(report, now)
 
     log = WorkLog(now, "sys_급부")
+    for b in report.rows["sys_급부"]:       # 금액 없는 급부: 판독의 세부 사유는 시트 값이 아니라 이 기록에 남긴다
+        if b["급부ID"] in report.no_amount and b.get("지급기준구분") in NO_AMOUNT_BASES:
+            log.add("추출", b["급부ID"], "통과", report.no_amount[b["급부ID"]], model=MODEL, column=NO_AMOUNT_COLUMN,
+                    after=b["지급기준구분"])
     by_name: dict[str, list[str]] = {}
     for g in report.groups:
         for v in g.variants:
@@ -248,6 +257,29 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
         return report
     report.written = True
     return report
+
+
+NO_AMOUNT_COLUMN = "지급기준구분"
+
+
+def no_amount_reasons(built: RR.Built, readings: Mapping[str, Mapping[str, Any]],
+                      pieces: Sequence[RR.PieceView]) -> dict[str, str]:
+    """금액 없는 급부ID → 작업 로그 사유. "판독 사유 회차별지급률, 번호 R012-3, 내용 지문 a1b2c3d4e5f6" 꼴이다.
+
+    급부 하나에 번호가 여럿(이름과 값이 같은 줄)이면 번호마다 이어 적는다. 원문 글자는 싣지 않는다(지문만).
+    """
+    covers = RR.covers_by_number(pieces)
+    out = {}
+    for b in built.benefits:
+        if b.get("지급기준구분") not in NO_AMOUNT_BASES:
+            continue
+        parts = []
+        for n in built.numbers.get(b["급부ID"], ()):
+            kind = (readings.get(n) or {}).get("행없음사유") or ""
+            mark = RR.content_fingerprint(covers[n][1]) if n in covers else ""
+            parts.append(f"판독 사유 {kind}, 번호 {n}, 내용 지문 {mark}")
+        out[b["급부ID"]] = "; ".join(parts)
+    return out
 
 
 def _variant_of(row: Mapping[str, Any], report: Loaded) -> str | None:
@@ -295,6 +327,11 @@ def reason_counts(group: Group) -> collections.Counter:
     return kinds
 
 
+def no_amount_counts(report: Loaded) -> collections.Counter:
+    """쓸 급부 행 가운데 금액 없는 급부(지급기준구분이 차등지급, 실손보상, 분할지급, 현물급부)의 값별 수."""
+    return collections.Counter(r["지급기준구분"] for r in report.rows["sys_급부"] if r.get("지급기준구분") in NO_AMOUNT_BASES)
+
+
 def markdown(report: Loaded) -> str:
     """실행 요약. 조각의 문장은 싣지 않는다."""
     head = ["| 공시상품코드 | 종형명 | 특약 | 급부 |", "| --- | --- | --- | --- |"]
@@ -314,6 +351,10 @@ def markdown(report: Loaded) -> str:
         if report.excluded.get(g.code):
             out += f"- 갱신형특약제외로 뺀 특약 {len(report.excluded[g.code])}개\n"
         out += "\n"
+    bases = no_amount_counts(report)
+    if bases:
+        out += (f"금액 없는 급부(행없음 줄이 된 행): {sum(bases.values())}행 ("
+                + ", ".join(f"{k} {n}" for k, n in bases.most_common()) + ")\n")
     out += f"ID 겹침: {report.clashes or '없음'}\n"
     out += f"형식 오류: {sum(len(e) for e in report.errors.values()) if report.errors else 0}행\n"
     out += f"시트에 있었는데 이번에 빠지는 행: 특약 {report.dropped.get('sys_특약', 0)}, 급부 {report.dropped.get('sys_급부', 0)}\n"
@@ -331,6 +372,7 @@ def result_of(report: Loaded) -> dict[str, Any]:
         "쓰지 않은 줄": {g.code: dict(reason_counts(g)) for g in report.groups},
         "쓰지 않은 줄 번호": {g.code: {n: why.split(":", 1)[0] for n, why in sorted(g.reasons.items(), key=lambda x: RR._order(x[0]))
                                      if n not in g.written and n in set(g.used)} for g in report.groups},
+        "금액 없는 급부": dict(no_amount_counts(report).most_common()),
         "갱신형특약제외": report.excluded, "ID 겹침": report.clashes, "형식 오류": report.errors,
         "시트에서 빠지는 행": report.dropped, "주의": report.notes, "기록 행 수": len(report.logs), "시트에 씀": report.written,
     }

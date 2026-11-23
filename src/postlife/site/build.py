@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from .. import ids
 from . import card, combo, commentary, compare, eligibility, overview, pack, revision, worklog
-from .model import Data, HOME_ORG, MAIN_KIND, MAX_AGE, _blank, load
+from .model import Data, FORM_TEXT, HOME_ORG, MAIN_KIND, MAX_AGE, _blank, load
 
 ASSETS = Path(__file__).parent / "assets"
 
@@ -44,9 +44,25 @@ def rider_view(data: Data, tid: str) -> dict[str, Any]:
     }
 
 
+def benefit_views(data: Data) -> tuple[dict[str, dict[str, Any]], dict[str, str] | None]:
+    """화면에 싣는 급부(급부ID → benefit_view에서 id를 뺀 것)와, 금액 없는 급부가 있을 때만 값별 설명 글(formText).
+
+    금액 하나로 담기지 않는 급부가 하나라도 있으면 다른 급부에도 "form": None을 넣어 키를 맞춘다(pack이 키가 같은 묶음을 표로
+    줄인다). 그런 급부가 없으면 form 키도 formText도 싣지 않아 지금 자료와 바이트까지 같다.
+    """
+    views = {bid: {k: v for k, v in data.benefit_view(bid).items() if k != "id"} for bid in data.benefits}
+    forms = {v["form"] for v in views.values() if v.get("form")}
+    if not forms:
+        return views, None
+    for v in views.values():
+        v.setdefault("form", None)
+    return views, {k: FORM_TEXT[k] for k in FORM_TEXT if k in forms}
+
+
 def payload(data: Data, previous: Data | None = None, texts: dict[str, Any] | None = None) -> dict[str, Any]:
     """화면에 싣는 자료 전부. previous는 지난주 사본(화면 1의 우열 변화), texts는 검사를 마친 해설 글(없으면 기본 파일을 읽는다)."""
     conds = data.conds()
+    benefits, form_text = benefit_views(data)
     if texts is None:
         texts = commentary.load()[0]
     age = data.setting_num("REP_WEEKLY_AGE")
@@ -61,7 +77,8 @@ def payload(data: Data, previous: Data | None = None, texts: dict[str, Any] | No
         "variantOrder": list(data.variant_order),
         "riders": {tid: rider_view(data, tid) for tid in data.riders},
         # 급부ID는 benefits의 키로만 적는다. 급부마다 "id"를 또 적으면 6천여 줄에 같은 ID가 두 번씩 실린다(화면은 키로 찾는다)
-        "benefits": {bid: {k: v for k, v in data.benefit_view(bid).items() if k != "id"} for bid in data.benefits},
+        "benefits": benefits,
+        **({"formText": form_text} if form_text else {}),
         "std": {sid: {"id": sid, "name": s["표준담보명"], "major": s["보장대분류"], "mid": s["보장중분류"],
                       "type": s["급부유형"], "unit": s["비교기준단위만원"]} for sid, s in data.std.items()},
         "commentary": {"texts": texts, "s3Margin": data.setting_num("COMMENT_S3_MARGIN", 0)},
@@ -106,14 +123,16 @@ def read_payload(html: str) -> dict[str, Any]:
 
 
 def build_site(snapshot_dir: Path, out_path: Path, previous_dir: Path | None = None,
-               commentary_path: Path | None = None) -> dict[str, Any]:
-    """previous_dir를 주면 지난주 사본과 견줘 화면 1에 대표 조건의 우열 변화를 싣는다. 해설 글에서 버린 글은 warnings에 남긴다."""
-    data = load(snapshot_dir)
+               commentary_path: Path | None = None, orgs: str | Iterable[str] | None = None) -> dict[str, Any]:
+    """previous_dir를 주면 지난주 사본과 견줘 화면 1에 대표 조건의 우열 변화를 싣는다. 해설 글에서 버린 글은 warnings에 남긴다.
+
+    orgs는 화면에 올릴 회사다(site/orgs.py). 주지 않으면 config.SITE_ORGS이고, 지난주 사본도 같은 회사로 거른다."""
+    data = load(snapshot_dir, orgs)
     previous = None
     if previous_dir is not None:
         if not Path(previous_dir).is_dir():
             raise FileNotFoundError(f"지난주 사본 폴더가 없습니다: {previous_dir}")
-        previous = load(previous_dir)
+        previous = load(previous_dir, orgs)
     texts, warnings = commentary.load(commentary_path)
     html = render(data, previous, texts)
     out_path = Path(out_path)

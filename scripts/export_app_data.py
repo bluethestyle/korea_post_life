@@ -11,6 +11,11 @@
 - tab3.js, tab4.js   위 자료를 실은 탭 코드. 손으로 쓴 코드(tab3.js 의 표식 밖, tab4.src.js)는 proto_src/console4 에서 읽고 고치지 않는다
 
 --out 을 다른 폴더로 주면 거기에 일곱 파일을 쓰고 proto_src/console4 는 건드리지 않는다(견주어 볼 때).
+화면에는 config.SITE_ORGS 의 회사만 싣는다(src/postlife/site/orgs.py 가 사본을 읽는 자리에서 거른다). --orgs 로 바꾼다
+(all 은 사본의 모든 회사, EPOST,HANWHALIFE,SAMSUNGFIRE,MERITZ 처럼 쉼표로 이으면 그 회사들). 기본과 다른 묶음은
+proto_src/console4 에 쓰지 않는다(커밋되는 자료다). 시험용 자료는 --out out/console4_all 처럼 다른 폴더에 쓰고,
+합칠 때는 python proto_src/console4/build.py out/console4_all.html --src <그 폴더> 로 합친다(손으로 쓴 코드도 그 폴더에 있어야
+하므로 proto_src/console4 를 그 폴더에 먼저 복사한다. scripts/dev/build_console4_synthetic.py 의 작업 폴더와 같은 방식).
 모델 호출, 시트 쓰기는 하지 않는다. 사본은 읽기만 한다.
 """
 from __future__ import annotations
@@ -24,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from postlife.site import console4  # noqa: E402
+from postlife.site import orgs as site_orgs  # noqa: E402
 from postlife.site.model import load  # noqa: E402
 
 SRC = ROOT / "proto_src" / "console4"
@@ -33,9 +39,18 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--snapshot", type=Path, default=ROOT / "data" / "snapshot", help="사본 폴더")
     p.add_argument("--out", type=Path, default=SRC, help="쓸 폴더(기본 proto_src/console4)")
+    site_orgs.add_argument(p)
     args = p.parse_args()
+    try:
+        picked = site_orgs.parse(args.orgs)
+    except ValueError as e:
+        p.error(str(e))
+    if not site_orgs.is_default(picked) and args.out.resolve() == SRC.resolve():
+        print(f"기본과 다른 회사 묶음({site_orgs.describe(picked)})의 자료는 proto_src/console4 에 쓰지 않는다(커밋되는 자료다). "
+              "--out out/console4_test 처럼 다른 폴더를 준다")
+        return 1
 
-    data = load(args.snapshot)
+    data = load(args.snapshot, picked)
     texts = console4.export_texts(data, SRC)
     before = {n: (args.out / n).read_text(encoding="utf-8") if (args.out / n).exists() else None for n in console4.FILES}
     console4.write_texts(texts, args.out)
@@ -45,6 +60,7 @@ def main() -> int:
         print(f"{args.out / name}: {size:,}바이트 ({state})")
     sales = json.loads(texts["sales.json"])
     d = json.loads(texts["d.json"])
+    print(f"화면에 올린 회사: {site_orgs.describe(picked)}")
     print(f"자료 시각 {data.meta.get('snapshot_at')}, 기준 종형 {len(sales['기준종형'])}개, 포인트 {len(sales['포인트'])}개, "
           f"D 종형 {len(d['variants'])}개")
     if args.out.resolve() == SRC.resolve():

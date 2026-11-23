@@ -67,6 +67,8 @@ def score(item: dict, riders: list[dict], benefits: list[dict]) -> tuple[str, st
         return "불일치", "해당 급부를 찾지 못함"
     have: set[float] = set()
     for b in rows:
+        if b.get("기준지급금액만원") is None:      # 금액 하나로 담기지 않는 급부(지급기준구분 차등지급 따위)는 금액이 없다
+            continue
         have.add(float(b["기준지급금액만원"]))
         for rate in (b.get("감액지급률1"), b.get("감액지급률2")):
             if rate is not None:
