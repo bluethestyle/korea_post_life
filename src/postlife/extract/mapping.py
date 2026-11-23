@@ -444,6 +444,8 @@ def run(gemini: Any, variants: list[dict[str, Any]], riders: list[dict[str, Any]
 
 # ---------- 두 판독의 교차 확인으로 매핑하기 (초기 적재) ----------
 CROSS_CHECK = "교차 확인"          # 이 길로 넣은 줄의 작업 로그 호출모델. 판정 모델을 부르지 않는다
+READERS = ("claude", "gemini")     # 의견 파일의 두 판독 열 이름(기본). 앞의 열이 대기 줄 추천에서 먼저다
+READER_LABELS = {"claude": "Claude", "gemini": "제미나이"}    # 작업 로그에 적는 판독 이름. 없으면 열 이름 그대로
 # 의견 파일을 만든 정규식과 같다. 앞 표시는 이름 맨 앞에 이어 붙은 대괄호 묶음만, 감액 표시는 이름 안 어디에 있든 모두 뗀다
 _KIND_MARKS = re.compile(r"^(?:\[[^\[\]]*\])+\s*")
 _KIND_REDUCTION = re.compile(r"\s*\(\s*(?:1년\s*50%|1년\s*감액|180일\s*감액)\s*\)")
@@ -478,14 +480,18 @@ def _same_mapping_row(old: dict[str, Any], new: dict[str, Any]) -> bool:
 
 def cross_check(variants: list[dict[str, Any]], riders: list[dict[str, Any]], benefits: list[dict[str, Any]],
                 dictionary: list[dict[str, Any]], existing: list[dict[str, Any]],
-                opinions: dict[tuple[str, str], dict[str, Any]], now: datetime) -> CrossCheck:
+                opinions: dict[tuple[str, str], dict[str, Any]], now: datetime,
+                readers: tuple[str, str] = READERS) -> CrossCheck:
     """두 판독의 의견으로 매핑 행을 만든다. 판정 모델을 부르지 않는다.
 
     benefits: 이번에 다룰 상품의 급부만 넘긴다. existing: 지금 hum_담보매핑 전체.
-    opinions: (특약 묶음 이름, 급부 묶음 이름) → 의견 파일의 줄. 줄의 "claude"와 "gemini"가 표준담보명이나 해당없음이다.
+    opinions: (특약 묶음 이름, 급부 묶음 이름) → 의견 파일의 줄. 줄의 두 판독 열(readers, 기본은 "claude"와 "gemini")이
+    표준담보명이나 해당없음이다. 열 이름만 바뀌고 판정 규칙은 같다.
     - 두 의견이 같은 표준담보명이면 자동확정(추천과 확정표준담보ID가 그 담보), 둘 다 해당없음이면 대상외, 그 밖이면 대기다.
-      대기의 추천은 Claude의 의견이 표준담보명이면 그것, 아니면 제미나이의 것, 둘 다 아니면 비운다.
-    - 사전(쓰는 담보, in_use)에 없는 이름은 그 판독의 의견이 없는 것으로 보고 unknown에 적는다.
+      대기의 추천은 앞 판독(기본은 Claude)의 의견이 표준담보명이면 그것, 아니면 뒤 판독(제미나이)의 것, 둘 다 아니면 비운다.
+    - 사전(쓰는 담보, in_use)에 없는 이름은 그 판독의 의견이 없는 것으로 보고 unknown에 적는다. 의견 파일이 새 담보가
+      필요하다는 뜻으로 적는 "신규"와 모른다는 "모름"도 사전에 없는 이름이라 확정하지 않는다. 두 판독이 모두 그렇게 적어도
+      의견이 없는 급부와 같다.
     - 의견이 없는 급부(두 판독 모두 쓸 의견이 없는 급부도)는 매핑 행이 없을 때만 추천 없는 대기 행을 낸다. 이미 행이 있으면
       그대로 둔다. 판정 모델이 정한 다른 급부의 줄을 의견 파일이 다루지 않았다고 대기로 되돌리지 않으려는 것이다.
     - 담당자가 정한 행과 검토상태가 배치 값 밖인 행(protected)은 건드리지 않는다. 쓰기는 merge와 upsert로 한다.
@@ -500,10 +506,11 @@ def cross_check(variants: list[dict[str, Any]], riders: list[dict[str, Any]], be
     log = WorkLog(now, MAPPING_TAB)
     out = CrossCheck()
 
+    reader_a, reader_b = (READER_LABELS.get(side, side) for side in readers)
     views: dict[tuple[str, str], tuple[str | None, str | None]] = {}
     for key, line in opinions.items():
         pair = []
-        for side in ("claude", "gemini"):
+        for side in readers:
             name = str(line.get(side) or "").strip()
             if name == NONE or name in by_name:
                 pair.append(name)
@@ -572,7 +579,7 @@ def cross_check(variants: list[dict[str, Any]], riders: list[dict[str, Any]], be
         if state is None:
             why = f"교차 확인 의견이 없어 담당자 검토 대기: {label}"
         else:
-            why = f"두 판독의 의견이 달라 담당자 검토 대기: {label} (Claude {claude or '없음'}, 제미나이 {gemini or '없음'})"
+            why = f"두 판독의 의견이 달라 담당자 검토 대기: {label} ({reader_a} {claude or '없음'}, {reader_b} {gemini or '없음'})"
         log.add("판정", first["급부ID"], "보류", why[:300], model=CROSS_CHECK, column="추천표준담보ID")
         log.add("사람검토이관", first["급부ID"], "보류", f"{why} {many}"[:300], model=CROSS_CHECK, column="추천표준담보ID")
         out.waiting.append(f"- {why}")

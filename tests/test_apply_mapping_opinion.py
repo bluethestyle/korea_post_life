@@ -245,3 +245,80 @@ def test_dry_run_snapshot_and_bad_inputs_do_not_write(monkeypatch, tmp_path):
     body = json.loads(result.read_text(encoding="utf-8"))
     assert body["stats"]["대상 급부"] == 6 and body["stats"]["자동확정"] == 1 and body["unused"] == []
     assert read(backend, "hum_담보매핑") == []
+
+
+# ---------- 판독 열 이름 (--readers) ----------
+def renamed(lines, a="opus", b="sonnet"):
+    """claude, gemini 열을 다른 판독 열 이름으로 바꾼 의견 줄. 다른 열(근거 등)이 더 있어도 읽지 않는다."""
+    return [{"번호": l["번호"], "특약": l["특약"], "급부": l["급부"], a: l["claude"], f"{a}확신": l["claude확신"],
+             b: l["gemini"], f"{b}확신": l["gemini확신"], f"{a}근거": "지어낸 근거"} for l in lines]
+
+
+def test_reader_columns_can_be_renamed_and_the_rule_stays_the_same():
+    variants, riders, benefits = scope(*world())
+    default = M.cross_check(variants, riders, benefits, DICTIONARY, [], keyed(OPINIONS), NOW)
+    other = M.cross_check(variants, riders, benefits, DICTIONARY, [], keyed(renamed(OPINIONS)), NOW,
+                          readers=("opus", "sonnet"))
+    assert other.rows == default.rows and other.stats == default.stats and other.by_standard == default.by_standard
+    # 기록과 대기 목록에는 열 이름을 판독 이름으로 적는다. 기본 열은 Claude와 제미나이로 적는다
+    assert any("(opus 일반암 진단비, sonnet 유사암 진단비(통합))" in w for w in other.waiting)
+    assert any("(Claude 일반암 진단비, 제미나이 유사암 진단비(통합))" in w for w in default.waiting)
+    assert [(u["번호"], u["판독"]) for u in other.unknown] == [("K005", "opus")]
+    # 열 이름을 주지 않으면 opus, sonnet 열은 읽히지 않아 모든 급부가 의견 없음이다
+    blind = M.cross_check(variants, riders, benefits, DICTIONARY, [], keyed(renamed(OPINIONS)), NOW)
+    assert blind.stats["자동확정"] == 0 and blind.stats["의견 없음"] == 12
+
+
+def test_new_cover_and_unknown_are_never_confirmed():
+    """의견 파일의 "신규"(새 담보 필요)와 "모름"은 사전에 없는 이름이라 확정하지 않는다."""
+    variants, riders, benefits = scope(*world())
+    v1 = {b["원시급부명"]: b for b in benefits if b["특약ID"] == riders[0]["특약ID"]}
+    existing = [{"급부ID": v1[name]["급부ID"], "공시상품명": "상품 V1", "원시특약명": RIDER, "원시급부명": name,
+                 "추천표준담보ID": STD["일반암 진단비"], "추천표준담보명": "일반암 진단비", "매핑확률": 0.61,
+                 "확정표준담보ID": None, "검토상태": "대기", "담당자메모": None}
+                for name in ("가나진단비(1년감액)", "다라진단비")]
+    lines = [opinion("K001", "가나진단비", "신규", "신규"),                 # 둘 다 신규: 지금 줄을 그대로 둔다
+             opinion("K002", "다라진단비", "모름", "신규"),                  # 신규와 모름: 지금 줄을 그대로 둔다
+             opinion("K003", "마바사망보험금", "신규", M.NONE),              # 한쪽만 해당없음: 대상외가 아니라 대기
+             opinion("K004", "사아입원비", "질병 입원일당", "모름"),          # 한쪽만 담보: 자동확정이 아니라 대기
+             opinion("K005", "자차수술비", "모름", "모름")]                  # 줄이 없으면 추천 없는 대기
+    r = M.cross_check(variants, riders, benefits, DICTIONARY, existing, keyed(lines), NOW)
+    v1_rows = by_name(r.rows)
+    assert "가나진단비(1년감액)" not in v1_rows and "다라진단비" not in v1_rows
+    v2_rows = by_name(r.rows, "V2")                     # V2에는 지금 줄이 없다
+    got = {n: (row["검토상태"], row["추천표준담보ID"]) for n, row in v1_rows.items()}
+    assert got["마바사망보험금"] == ("대기", None)
+    assert got["사아입원비"] == ("대기", STD["질병 입원일당"])
+    assert got["자차수술비"] == ("대기", None)
+    assert (v2_rows["가나진단비(1년감액)"]["검토상태"], v2_rows["가나진단비(1년감액)"]["추천표준담보ID"]) == ("대기", None)
+    assert r.stats["자동확정"] == 0 and r.stats["대상외"] == 0 and r.stats["의견 없음(기존 줄 둠)"] == 2
+    assert {u["이름"] for u in r.unknown} == {"신규", "모름"}
+
+
+def test_main_reads_renamed_columns_and_reports_new_cover_apart_from_typos(monkeypatch, tmp_path, capsys):
+    backend, _ = sheet(monkeypatch)
+    lines = renamed(OPINIONS + [opinion("K006", "카타통원비", "신규", "모름")])
+    path = write_opinions(tmp_path, lines, "renamed")
+    result = tmp_path / "out.json"
+    # 기본 열(claude, gemini)로는 이 파일을 읽지 않는다
+    assert S.main(["--opinion", str(path), "--products", "GANA_A", "--dry-run"]) == 2
+    assert "빠진 열" in capsys.readouterr().out
+    assert S.main(["--opinion", str(path), "--products", "GANA_A", "--readers", "opus", "sonnet", "--dry-run",
+                   "--result", str(result)]) == 0
+    out = capsys.readouterr().out
+    assert "판독 열 opus, sonnet" in out
+    assert "신규나 모름이라 확정하지 않은 의견 2개: K006 opus 신규, K006 sonnet 모름" in out
+    assert "사전에 없는 의견: K005 opus '없는 담보'" in out
+    body = json.loads(result.read_text(encoding="utf-8"))
+    assert body["readers"] == ["opus", "sonnet"] and body["stats"]["자동확정"] == 2 and body["stats"]["대상외"] == 2
+    assert read(backend, "hum_담보매핑") == []
+    # 쉼표로 붙여도 받고, 하나뿐이거나 같은 이름 둘이거나 고정 열 이름이면 멈춘다
+    assert S.parse(["--opinion", "x", "--products", "A", "--readers=opus,sonnet"]).readers == ("opus", "sonnet")
+    assert S.parse(["--opinion", "x", "--products", "A"]).readers == ("claude", "gemini")
+    for bad in (["opus"], ["opus", "opus"], ["opus", "급부"], ["a", "b", "c"]):
+        with pytest.raises(SystemExit):
+            S.parse(["--opinion", "x", "--products", "A", "--readers", *bad])
+    # 같은 묶음이 두 번 나오면 고른 열의 의견으로 견준다
+    twice = write_opinions(tmp_path, lines + renamed([opinion("K009", "가나진단비", "일반암 진단비", M.NONE)]), "twice")
+    with pytest.raises(ValueError):
+        S.load_opinions(twice, ("opus", "sonnet"))

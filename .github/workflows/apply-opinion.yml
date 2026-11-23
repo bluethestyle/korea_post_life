@@ -13,6 +13,10 @@ on:
         description: "고를 상품의 모상품ID, 공시상품코드, 기관코드 (여럿이면 공백이나 쉼표로. 예: SAMSUNGFIRE)"
         type: string
         required: true
+      readers:
+        description: "두 판독의 열 이름 (공백이나 쉼표로. 예: opus sonnet). 앞의 열이 대기 줄 추천에서 먼저다"
+        type: string
+        default: "claude gemini"
       dry_run:
         description: "시트에 쓰지 않고 결과만 본다"
         type: boolean
@@ -34,6 +38,7 @@ jobs:
       SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
       INPUT_OPINION: ${{ inputs.opinion }}
       INPUT_PRODUCTS: ${{ inputs.products }}
+      INPUT_READERS: ${{ inputs.readers }}
       INPUT_DRY_RUN: ${{ inputs.dry_run }}
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +53,7 @@ jobs:
           if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           # 값이 '-'로 시작해도 값으로 읽히게 '='로 붙여 넘긴다. 공백과 쉼표는 스크립트가 나눈다
           python scripts/apply_mapping_opinion.py --opinion="$INPUT_OPINION" --products="$INPUT_PRODUCTS" \
-            --result result/mapping_opinion.json "${args[@]}"
+            --readers="${INPUT_READERS:-claude gemini}" --result result/mapping_opinion.json "${args[@]}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
