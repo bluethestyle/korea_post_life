@@ -131,7 +131,7 @@ def bench(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(fd, "pdf_pages", lambda data: b.pages[data.decode().rsplit("_", 1)[-1][:5]])
 
-    def read_tables(source, first, last):
+    def read_tables(source, first, last, layout=tables.SAMSUNGFIRE, misses=None):
         b.read.append((source, first, last))
         return [t for t in b.tables if first <= t.page <= last]
 
@@ -345,7 +345,7 @@ def test_table_failure_keeps_documents_and_index_but_exits_nonzero(bench, capsys
 
 
 def test_one_missing_table_is_enough_to_fail(bench, monkeypatch):
-    def read_tables(source, first, last):
+    def read_tables(source, first, last, layout=tables.SAMSUNGFIRE, misses=None):
         if B.encode() in source:
             raise RuntimeError("표의 선을 읽지 못함")
         return TABLES

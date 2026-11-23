@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       org:
-        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재)"
+        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재), meritz(메리츠화재, 대상 설정 data/targets/meritz.json)"
         type: choice
-        options: [epost, hanwha, samsungfire]
+        options: [epost, hanwha, samsungfire, meritz]
         default: epost
 
 permissions:

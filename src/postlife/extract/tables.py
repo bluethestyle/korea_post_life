@@ -16,6 +16,9 @@
 이 파일은 두 부분이다. 앞부분은 PDF 없이 돌아간다(행 목록 → 조각, JSON 쓰기·읽기, 쪽 범위 찾기).
 뒷부분만 pdfplumber를 쓴다(표의 선과 글자 읽기).
 
+회사마다 다른 것(급부 절의 제목, 표 위 구분 줄의 꼴, 한 칸에 이어 적은 이름을 가르는 규칙, 머리행 없이 이어지는 표)은
+Layout에 모았다. 함수마다 layout을 받고, 주지 않으면 삼성화재(SAMSUNGFIRE)다. 회사별 차이는 docs/table_layouts.md에 적었다.
+
 수집 단계는 PDF를 받은 실행 안에서 글자 파일만 남기고 PDF는 버린다. 표 조각도 그 실행에서
 write_riders로 JSON에 써 두면 추출 단계가 read_riders와 to_blocks로 읽는다.
 """
@@ -24,7 +27,7 @@ from __future__ import annotations
 import io
 import json
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
@@ -36,6 +39,54 @@ _HEAD_WORDS = ("보장명", "지급사유", "지급금액")
 _SECTION_START = re.compile(r"^□\s*보험금\s*지급사유\s*및\s*지급금액\s*$")
 _SECTION_END = re.compile(r"^□\s*보험금\s*지급제한\s*사항")
 _LABEL = re.compile(r"^◆\s*(.+?)\s*$")                       # 표 위의 "◆ 기본계약", "◆ 선택계약"
+
+
+@dataclass(frozen=True)
+class Layout:
+    """회사마다 다른 상품요약서 급부 표의 꼴.
+
+    표 자체(보장명, 지급사유, 지급금액 머리행과 칸 병합, 쪽 넘김)는 회사가 달라도 같고, 다른 것은 아래뿐이다.
+    기본값은 삼성화재의 꼴이고, 기본값으로 읽은 결과는 이 설정을 만들기 전과 글자 하나 다르지 않아야 한다.
+    """
+    name: str
+    section_start: re.Pattern = _SECTION_START  # 급부 절의 시작 줄
+    section_end: re.Pattern = _SECTION_END      # 급부 절 다음 절의 시작 줄
+    section_title: str = "□ 보험금 지급사유 및 지급금액"   # 오류 글에 적을 절 제목
+    label: re.Pattern = _LABEL                  # 표 위의 구분 줄. group(1)이 구분 글자다
+    heading: re.Pattern | None = None           # 표 위의 "< … >" 줄. group(1)이 안의 글자다
+    rider_word: str = ""                        # 구분 줄이나 "< … >" 줄에 이 말이 있으면 특약 하나의 세부 표를 여는 머리다
+    slash_names: bool = False                   # 한 칸에 이어 적은 특약 이름을 "/"로 가른다(아니면 쉼표, split_names)
+    nested: bool = False                        # 보장명 칸이 셋 이상으로 갈린 표에서 가운데 단의 이름을 세부보장 이름 앞에 잇는다
+    notes: bool = False                         # 표 너비를 다 차지한 행("주1) …", "※ …")을 조각이 아닌 주석으로 뗀다
+    headless: bool = False                      # 머리행 없이 앞 쪽 표가 이어지는 표를 칸 자리로 알아보고 읽는다
+    trailing: bool = False                      # 쪽의 마지막 표 아래에 적힌 구분 줄과 머리 줄도 다음 쪽으로 넘긴다
+    # 병합된 칸을 더 읽는다: 위 행과 병합된 지급사유 칸은 위 행의 글을 물려받고, 지급금액 칸까지 넓게 병합된 지급사유 칸
+    # (지급사유 칸 안의 작은 표가 지급금액 자리까지 차지한 행)은 지급금액을 위 행에서 물려받지 않는다
+    merged: bool = False
+    main_label: str = ""                        # 이 구분의 조각에 주계약 표시를 단다. 비우면 표시를 달지 않는다
+    common: str = "공통"                         # 형 구간이 있는 문서에서 형이 적히지 않은 특약 머리의 형
+
+
+# 삼성화재: "□ 보험금 지급사유 및 지급금액" 절, "◆ 기본계약" 구분, 쉼표로 이은 이름
+SAMSUNGFIRE = Layout("samsungfire")
+
+# 메리츠화재: "(1) 보험금지급사유 및 지급금액" 절. 구분 표시(❍)는 글자로 풀면 "m"이 된다("m 기본계약").
+# 특약 하나의 세부보장을 따로 적은 표 위에는 "m 무배당 … 특별약관2610"이나 "< 무배당 … 특별약관2610(일반심사형) >"가,
+# 형(심사 유형)마다 표를 따로 둔 요약서에는 형 구간 앞에 "< 무배당 메리츠 …(통합간편심사형) >"가 적혀 있다.
+# 지급사유와 지급금액이 같은 특약은 이름을 "/"로 이어 한 칸에 적는다("가나 진단비/갱신형 가나 진단비").
+MERITZ = Layout(
+    "meritz",
+    section_start=re.compile(r"^\(1\)\s*보험금\s*지급사유\s*및\s*지급금액\s*$"),
+    section_end=re.compile(r"^\(2\)\s*보험금\s*지급제한\s*사항"),
+    section_title="(1) 보험금지급사유 및 지급금액",
+    label=re.compile(r"^[m❍○◆]\s+(.+?)\s*$"),
+    heading=re.compile(r"^[<＜]\s*(.+?)\s*[>＞]$"),
+    rider_word="특별약관",
+    slash_names=True, nested=True, notes=True, headless=True, trailing=True, merged=True,
+    main_label="기본계약",
+)
+
+LAYOUTS = {layout.name: layout for layout in (SAMSUNGFIRE, MERITZ)}
 _ONLY = re.compile(r"\s*[*＊※]\s*([^*＊※]*?에\s*한함)\s*")       # 이름 칸에 붙은 "*7종에 한함"
 # 종 번호. "7종", 그리고 번호를 이어 적은 "1, 2, 3종", "1~3종"
 _VARIANT = re.compile(r"(?<!\d)(\d+(?:\s*(?:[,·ㆍ/~∼-]|및)\s*\d+)*)\s*종")
@@ -77,6 +128,9 @@ class PageTable:
     rows: Sequence[Sequence[str | None]]
     label: str = ""             # 표 바로 위에 적힌 구분. 예: "기본계약", "선택계약"
     open_end: bool = False      # 마지막 행의 지급사유가 문장 가운데서 끊겼는가(다음 쪽 첫 행으로 이어진다)
+    segment: str = ""           # 형 구간. 예: "통합간편심사형". 형마다 표를 따로 둔 요약서에만 있다
+    heading: str = ""           # 특약 하나의 세부 표이면 그 특약 이름(표 위 머리 줄). 행은 모두 이 특약의 세부보장이다
+    head: tuple[int, int, int] | None = None    # (머리행 수, 지급사유 칸 번호, 지급금액 칸 번호). 머리행 없이 이어진 표만 적는다
 
 
 @dataclass(frozen=True)
@@ -90,6 +144,12 @@ class Line:
     label: str = ""
     top: bool = False           # 그 표에서 머리행 바로 다음 행인가
     cut: bool = False           # 쪽 끝에서 잘린 행인가
+    # Layout.nested일 때 보장명 칸들(특약 칸 오른쪽, 특약 머리가 있는 표는 맨 왼쪽부터)의 글자.
+    # None은 위 행과 병합되어 위의 이름을 물려받는 자리, ""는 이름이 없는 자리다. cover는 이 가운데 마지막 이름이다
+    levels: tuple[str | None, ...] = ()
+    segment: str = ""
+    heading: str = ""
+    remark: bool = False        # 특약 전체에 붙는 "※" 설명 행. 그 특약의 세부보장마다 지급사유 끝에 붙인다
 
 
 @dataclass(frozen=True)
@@ -111,6 +171,9 @@ class Rider:
     last_page: int
     label: str = ""             # "기본계약", "선택계약"
     only: str = ""              # 특별약관 이름 칸에 붙은 적용 범위
+    segment: str = ""           # 형 구간(형마다 표를 따로 둔 요약서만). 형이 적히지 않은 특약 머리의 표는 Layout.common
+    main: bool | None = None    # 주계약(기본계약)인가. Layout.main_label이 없는 회사는 None
+    parts: tuple[str, ...] = () # 이름 칸에 적힌 특약 이름들. 비어 있으면 title을 쉼표 규칙(split_names)으로 가른다
 
     @property
     def text(self) -> str:
@@ -118,6 +181,10 @@ class Rider:
         head = [f"특별약관: {self.title}"]
         if self.label:
             head.append(f"구분: {self.label}")
+        if self.segment:
+            head.append(f"형: {self.segment}")
+        if self.main is not None:
+            head.append(f"주계약: {'예' if self.main else '아니오'}")
         if self.only:
             head.append(f"적용 범위: {self.only}")
         head.append(f"세부보장 {len(self.covers)}개")
@@ -132,8 +199,8 @@ class Rider:
 
     @property
     def names(self) -> tuple[str, ...]:
-        """이름 칸에 적힌 특별약관 이름들. 지급사유가 같은 특별약관 여럿을 한 행에 쉼표로 이어 적은 표가 있다."""
-        return split_names(self.title)
+        """이름 칸에 적힌 특별약관 이름들. 지급사유가 같은 특별약관 여럿을 한 행에 쉼표로("/"로 잇는 회사도 있다) 이어 적은 표가 있다."""
+        return self.parts or split_names(self.title)
 
     def to_block(self) -> Block:
         return Block(self.title, self.text, self.first_page, self.last_page)
@@ -192,6 +259,27 @@ def split_names(title: str) -> tuple[str, ...]:
         elif ch in ")]":
             depth = max(depth - 1, 0)
         elif ch == "," and depth == 0 and title[start:i].rstrip().endswith(")"):
+            names.append(title[start:i])
+            start = i + 1
+    names.append(title[start:])
+    return tuple(n.strip() for n in names if n.strip())
+
+
+def tidy_slash(name: str) -> str:
+    """"/"로 이은 이름에서 "/" 앞뒤 빈칸을 없앤다. "가나 진단비/ 갱신형 가나 진단비" → "가나 진단비/갱신형 가나 진단비"."""
+    return re.sub(r"\s*/\s*", "/", name)
+
+
+def split_slash(title: str) -> tuple[str, ...]:
+    """괄호 밖의 "/"에서 이름을 가른다. "가나 사망/갱신형 가나 사망" → 둘, "(다라용/마바용)가나 사망"은 하나."""
+    names: list[str] = []
+    depth, start = 0, 0
+    for i, ch in enumerate(title):
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth = max(depth - 1, 0)
+        elif ch == "/" and depth == 0:
             names.append(title[start:i])
             start = i + 1
     names.append(title[start:])
@@ -266,32 +354,168 @@ def _first(cells: Sequence[str | None]) -> str | None:
     return next((c for c in filled if c.strip()), filled[0] if filled else None)
 
 
-def table_lines(table: PageTable) -> list[Line]:
+def is_note_row(row: Sequence[str | None]) -> bool:
+    """표 너비를 다 차지한 행인가. 맨 왼쪽 칸에만 글자가 있고 나머지는 모두 병합된 자리(None)다. "주1) …", "※ …" 같은 주석이다.
+
+    지급금액 자리는 ""일 수 있다(Layout.merged가 넓게 병합된 칸 오른쪽의 지급금액 자리를 ""로 둔다).
+    """
+    return (len(row) >= 3 and bool((row[0] or "").strip()) and all(c is None for c in row[1:-1])
+            and row[-1] in (None, ""))
+
+
+def _levels(cells: Sequence[str | None], top: bool, blank: bool) -> tuple[str | None, ...]:
+    """보장명 칸들을 단별로 읽는다. 위 행과 병합된 자리는 None(위의 이름을 물려받는다), 이름이 없는 자리는 "".
+
+    None은 위 행과 병합된 자리일 수도, 왼쪽 칸과 병합된 자리일 수도 있다. 왼쪽 칸이 모두 비어 있을 때만 위 행과
+    병합된 것으로 본다(왼쪽에 이름이 있으면 그 이름 칸이 옆으로 넓게 병합된 것이다). 표의 첫 행에서 빈 칸("")은
+    앞 쪽에서 병합된 칸이 쪽을 넘어온 자리라 마찬가지로 물려받는다. blank는 이 칸들 왼쪽(특약 칸)이 비었는가.
+    """
+    out: list[str | None] = []
+    for c in cells:
+        if c is not None and c.strip():
+            out.append(c)
+            blank = False
+        elif c is None or top:
+            out.append(None if blank else "")
+        else:
+            out.append("")
+    return tuple(out)
+
+
+def _remark(cells: Sequence[str | None]) -> str | None:
+    """특약 칸이 병합된(비거나 None) 행에서 처음 적힌 칸이 "※"로 시작하고 그 뒤로 적힌 칸이 없으면 그 글.
+
+    세부보장 행들 아래에 "※ 가나보장개시일은 …"처럼 그 특약 전체에 붙는 설명을 적은 행이다(Layout.merged).
+    """
+    if (cells[0] or "").strip():
+        return None
+    filled = [c for c in cells[1:] if c is not None and c.strip()]
+    return filled[0] if len(filled) == 1 and filled[0].strip().startswith("※") else None
+
+
+def table_lines(table: PageTable, layout: Layout = SAMSUNGFIRE) -> list[Line]:
     """표 하나의 행을 역할별로 읽는다. 머리행은 건너뛴다. 급부 표가 아닌 표(머리행이 다른 표)는 빈 목록.
 
     보장명 칸은 지급사유 칸 왼쪽의 칸 전부다. 맨 왼쪽이 특별약관 이름이고, 나머지 가운데 글자가 있는 칸이
     세부보장 이름이다(쪽에 따라 세로선 자리가 달라 보장명 칸이 셋으로 읽히는 표가 있다).
+
+    Layout.nested이면 가운데 칸들을 단별로 levels에 담는다(특약 > 묶음 > 세부보장처럼 보장명 칸이 셋인 표).
+    특약 머리가 있는 표(heading)는 맨 왼쪽 칸도 특약 이름이 아니라 세부보장 이름의 단이다.
+    Layout.merged이면 지급사유 머리 아래 칸이 여럿으로 갈린 표에서 글이 가장 많은 칸만 지급사유로 읽고, 나머지 칸
+    ("특정소액암" 같은 세부보장 이름, "자가용운전자형", "4주미만 진단시" 같은 조건)은 세부보장 이름의 단으로 levels 끝에 붙인다.
+    Layout.notes이면 표 너비를 다 차지한 주석 행 가운데 "※"로 시작하는 행은 그 특약에 붙는 설명(remark)으로,
+    나머지("주1) …")는 건너뛴다(table_notes가 따로 모은다).
     """
-    found = _columns(table.rows)
+    found = table.head or _columns(table.rows)
     if found is None:
         return []
     count, reason, amount = found
     lines = []
-    body = table.rows[count:]
+    body = [list(row) + [None] * (amount + 1 - len(row)) for row in table.rows[count:]]
+    said: dict[int, str] = {}           # 지급사유 칸에 마지막으로 적힌 글. Layout.merged
+    main = _main_reason(body, reason, amount)
     for i, row in enumerate(body):
-        row = list(row) + [None] * (amount + 1 - len(row))
+        top = i == 0
+        if layout.notes and is_note_row(row):
+            if (row[0] or "").strip().startswith("※"):
+                lines.append(Line(table.page, None, None, row[0], "", table.label, top, False,
+                                  segment=table.segment, heading=table.heading, remark=True))
+            continue
+        if layout.merged and row[amount] == "" and _remark(row[:amount]) is not None:
+            lines.append(Line(table.page, None, None, _remark(row[:amount]), "", table.label, top, False,
+                              segment=table.segment, heading=table.heading, remark=True))
+            continue
         texts = [c for c in row[reason:amount] if c is not None]
+        extra: tuple[str | None, ...] = ()
+        if layout.merged:
+            texts, extra = _reason_cells(row[reason:amount], main - reason, said, top)
+        rider, cover, levels = row[0], _first(row[1:reason]) if reason > 1 else None, ()
+        if layout.nested:
+            if table.heading:
+                rider, levels = None, _levels(row[:reason], top, True)
+            else:
+                levels = _levels(row[1:reason], top, not (row[0] or "").strip() and (row[0] is None or top))
+            levels += extra
+            cover = next((c for c in reversed(levels) if c), None)
         lines.append(Line(
             page=table.page,
-            rider=row[0],
-            cover=_first(row[1:reason]) if reason > 1 else None,
+            rider=rider,
+            cover=cover,
             reason="\n".join(texts) if texts else None,
             amount=_first(row[amount:]),
             label=table.label,
-            top=i == 0,
+            top=top,
             cut=table.open_end and i == len(body) - 1,
+            levels=levels,
+            segment=table.segment,
+            heading=table.heading,
         ))
     return lines
+
+
+def _main_reason(body: Sequence[Sequence[str | None]], reason: int, amount: int) -> int:
+    """지급사유 머리 아래 칸이 여럿으로 갈린 표에서 지급사유 글이 든 칸의 번호. 글이 가장 많은 칸이다.
+
+    지급사유 칸들이 모두 따로 있는 행(옆으로 병합되지 않은 행)의 글만 센다. 옆으로 넓게 병합된 칸의 글은 맨 왼쪽 칸
+    번호로 읽히기 때문이다. 그런 행이 없으면 모든 행의 글을 센다.
+    """
+    if amount - reason < 2 or not body:
+        return reason
+    split = [r for r in body if all(c is not None for c in r[reason:amount])] or list(body)
+    return max(range(reason, amount), key=lambda j: (sum(len(r[j] or "") for r in split), -j))
+
+
+def _reason_cells(cells: Sequence[str | None], main: int, said: dict[int, str],
+                  top: bool) -> tuple[list[str], tuple[str | None, ...]]:
+    """지급사유 머리 아래 칸들을 (지급사유 글, 세부보장 이름의 단들)로 읽는다(Layout.merged).
+
+    main은 지급사유 글이 든 칸(표에서 글이 가장 많은 칸)이다. 나머지 칸은 이름의 단이다. 칸이 하나뿐이면 그 칸이 지급사유다.
+    - 위 행과 병합된 칸(None, 왼쪽 칸들도 모두 None)은 지급사유이면 위 행의 글을 물려받고(said), 이름이면 None(물려받음)이다.
+    - 왼쪽 칸에 글이 있는데 None인 자리는 왼쪽 칸이 옆으로 넓게 병합된 자리다. 지급사유 칸이 그렇게 비었으면
+      지급사유 칸까지 덮은 왼쪽 칸의 글이 지급사유다(그 칸은 이름의 단에서 뺀다).
+    """
+    names: list[str | None] = []
+    text: str | None = None
+    blank, wide = True, None
+    for j, c in enumerate(cells):
+        vertical = c is None and blank and not top
+        if j == main:
+            if c is not None:
+                text = said[main] = c
+            elif vertical and main in said:
+                text = said[main]
+            elif not vertical:
+                wide = max((k for k in range(j) if cells[k] is not None), default=None)
+            names.append("")
+        elif c is not None:
+            names.append(c if c.strip() else "")
+        else:
+            names.append(None if vertical or (top and blank) else "")
+        if c is not None:
+            blank = False
+    if wide is not None:
+        text, names[wide] = cells[wide], ""
+        said[main] = text or ""
+    names = [v for k, v in enumerate(names) if k != main]
+    return ([text] if text is not None else []), tuple(names)
+
+
+def table_notes(tables: Iterable[PageTable], layout: Layout = SAMSUNGFIRE) -> list[dict[str, Any]]:
+    """급부 표 안의 주석 행(표 너비를 다 차지한 "주1) …")을 쪽, 형, 특약 머리와 함께 모은다. Layout.notes인 회사만.
+
+    "※"로 시작하는 행은 바로 위 특약의 세부보장에 붙이므로(table_lines의 remark) 여기에 넣지 않는다.
+    """
+    out: list[dict[str, Any]] = []
+    if not layout.notes:
+        return out
+    for table in tables:
+        found = table.head or _columns(table.rows)
+        if found is None:
+            continue
+        for row in table.rows[found[0]:]:
+            if is_note_row(row) and not (row[0] or "").strip().startswith("※"):
+                out.append({"쪽": table.page, "형": table.segment, "특약머리": table.heading, "글": join_text(row[0])})
+    return out
 
 
 def _unclosed(text: str | None) -> int:
@@ -362,35 +586,68 @@ def _append_reason(parts: list[str], more: str) -> None:
 class _Open:
     """묶는 중인 특별약관. 쪽을 넘어 갈린 토막을 모아 두었다가 닫을 때 잇는다."""
 
-    def __init__(self, label: str, name: str | None = None):
+    def __init__(self, label: str, name: str | None = None, layout: Layout = SAMSUNGFIRE,
+                 segment: str = "", heading: str = ""):
         self.label = label
         self.name: list[str] = [name] if name else []
         self.rows: list[dict[str, Any]] = []
         self.last_page = 0
+        self.layout = layout
+        self.segment = segment
+        self.heading = heading
+        self.levels: dict[int, str] = {}        # 단별로 마지막에 적힌 이름. 병합된 자리가 물려받는다(Layout.nested)
 
     @property
     def title(self) -> str:
         return split_only(join_name("\n".join(self.name)))[0]
 
-    def add(self, name: str | None, reason: str | None, amount: list[str], page: int) -> None:
+    def add(self, name: str | None, reason: str | None, amount: list[str], page: int,
+            around: tuple[Sequence[str], Sequence[str]] = ((), ())) -> None:
         self.rows.append({"name": [name] if name and name.strip() else [], "reason": [reason or ""],
-                          "amount": amount, "page": page})
+                          "amount": amount, "page": page, "prefix": list(around[0]), "suffix": list(around[1])})
+
+    def around(self, levels: Sequence[str | None]) -> tuple[list[str], list[str]]:
+        """세부보장 이름 앞뒤에 이을 다른 단의 이름들. 병합된 자리(None)는 위 행에서 물려받고, 적힌 자리는 기억해 둔다.
+
+        마지막으로 이름이 적힌 단이 세부보장 이름이고(Line.cover), 그보다 왼쪽 단들은 앞에, 오른쪽 단들(위 행에서
+        물려받은 조건 칸)은 뒤에 붙는다. 적힌 이름이 없는 행(세부보장 칸까지 위 행과 병합된 행)은 물려받은 이름 전부가 앞에 붙는다.
+        """
+        resolved = []
+        for k, value in enumerate(levels):
+            if value is None:
+                value = self.levels.get(k, "")
+            else:
+                self.levels = {j: v for j, v in self.levels.items() if j < k}
+                self.levels[k] = value
+            resolved.append(value)
+        leaf = max((k for k, v in enumerate(levels) if v), default=len(levels))
+        return [v for v in resolved[:leaf] if v.strip()], [v for v in resolved[leaf + 1:] if v.strip()]
+
+    def _tidy(self, name: str) -> str:
+        return tidy_slash(name) if self.layout.slash_names else name
 
     def close(self) -> Rider:
         """다 모은 토막을 이어 조각을 만든다. 원문에서 괄호가 빠진 이름은 여기서 짝을 맞춘다(mend_brackets)."""
         title, only = split_only(join_name("\n".join(self.name)))
-        title = mend_brackets(title)
+        title = mend_brackets(self._tidy(title))
         covers = []
         for row in self.rows:
             name, cover_only = split_only(join_name("\n".join(row["name"])))
-            name = mend_brackets(name)
+            name = mend_brackets(self._tidy(name))
+            if row["prefix"] or row["suffix"]:
+                tidy = [mend_brackets(self._tidy(join_name(p))) for p in row["prefix"]]
+                tidy += [name] + [mend_brackets(self._tidy(join_name(p))) for p in row["suffix"]]
+                name = " ".join(p for p in tidy if p)
             covers.append(Cover(name or title, join_text("\n".join(row["reason"])),
                                 join_text("\n".join(row["amount"])), row["page"], cover_only))
         title = title or covers[0].name
-        return Rider(title, tuple(covers), covers[0].page, max(self.last_page, covers[-1].page), self.label, only)
+        main = self.label == self.layout.main_label if self.layout.main_label else None
+        parts = split_slash(title) if self.layout.slash_names else ()
+        return Rider(title, tuple(covers), covers[0].page, max(self.last_page, covers[-1].page), self.label, only,
+                     self.segment, main, parts)
 
 
-def group_riders(lines: Iterable[Line]) -> list[Rider]:
+def group_riders(lines: Iterable[Line], layout: Layout = SAMSUNGFIRE) -> list[Rider]:
     """역할별로 읽은 행을 특별약관 단위로 묶는다.
 
     - 보장명 왼쪽 칸에 글자가 있으면 새 특별약관이다. 다만 세부보장이 딸린 행에 앞의 특별약관과 같은 이름이
@@ -401,6 +658,8 @@ def group_riders(lines: Iterable[Line]) -> list[Rider]:
       꼬리는 특별약관 이름에 잇고, 행은 그 특별약관의 다음 세부보장으로 본다.
     - 지급금액 칸이 병합되어 비었으면(None) 위 행의 값을 물려받는다. 특별약관이 이어지는 쪽 첫 행의
       지급금액 칸이 비었으면 병합된 칸이 쪽을 넘어온 것이므로 마찬가지로 물려받는다.
+    - 구분, 형 구간, 특약 머리가 바뀌면 묶던 특별약관을 닫는다. 특약 머리가 있는 표의 행은 모두 그 특약의 세부보장이다.
+    - Layout.nested이면 보장명 칸의 다른 단 이름(_Open.around)을 세부보장 이름 앞뒤에 빈칸 하나를 두고 잇는다.
     """
     riders: list[Rider] = []
     current: _Open | None = None
@@ -413,12 +672,21 @@ def group_riders(lines: Iterable[Line]) -> list[Rider]:
             riders.append(current.close())
         current = None
 
+    def start(name: str | None) -> _Open:
+        return _Open(line.label, name, layout, line.segment, line.heading)
+
     for line in lines:
+        if line.remark:
+            if current is not None and current.label == line.label and current.heading == line.heading:
+                for row in current.rows:
+                    row["reason"].append("\n" + (line.reason or ""))      # 빈 줄을 두어 새 문단으로 붙인다
+            continue
         rider, cover = (line.rider or "").strip(), (line.cover or "").strip()
         reason, amount = (line.reason or "").strip(), (line.amount or "").strip()
         if not (rider or cover or reason or amount):
             continue
-        if current is not None and current.label != line.label:
+        if current is not None and (current.label != line.label or current.segment != line.segment
+                                    or current.heading != line.heading):
             close()
 
         if current is not None and _continues(prev, line):
@@ -439,11 +707,14 @@ def group_riders(lines: Iterable[Line]) -> list[Rider]:
                 current.name.append(line.rider)     # 이름 꼬리는 앞 특별약관 이름에 잇고, 행은 그 특별약관의 다음 세부보장이다
             elif rider and not (same and cover):
                 close()
-                current = _Open(line.label, line.rider)
+                current = start(line.rider)
             elif current is None:
-                current = _Open(line.label)         # 범위가 특별약관 가운데서 시작한 경우. 첫 세부보장 이름을 제목으로 쓴다
+                # 특약 머리가 있는 표는 머리가 특별약관 이름이다. 그 밖에는 범위가 특별약관 가운데서 시작한 경우라
+                # 첫 세부보장 이름을 제목으로 쓴다
+                current = start(line.heading or None)
             inherited = line.amount is None or (not amount and line.top and bool(current.rows))
-            current.add(line.cover, line.reason, list(last_amount) if inherited else [line.amount or ""], line.page)
+            current.add(line.cover, line.reason, list(last_amount) if inherited else [line.amount or ""], line.page,
+                        current.around(line.levels) if line.levels else ((), ()))
         last_amount = current.rows[-1]["amount"]
         current.last_page = max(current.last_page, line.page)
         prev = line
@@ -456,9 +727,9 @@ def _title_key(cell: str) -> str:
     return name_key(split_only(join_name(cell))[0])
 
 
-def riders_from_tables(tables: Iterable[PageTable]) -> list[Rider]:
+def riders_from_tables(tables: Iterable[PageTable], layout: Layout = SAMSUNGFIRE) -> list[Rider]:
     """쪽 순서로 읽은 표들을 특별약관 조각으로 바꾼다. 급부 표가 아닌 표는 건너뛴다."""
-    return group_riders(line for table in tables for line in table_lines(table))
+    return group_riders((line for table in tables for line in table_lines(table, layout)), layout)
 
 
 def applies_to(only: str, variant_name: str) -> bool:
@@ -519,17 +790,31 @@ def to_blocks(riders: Iterable[Rider], max_covers: int | None = None) -> list[Bl
 # JSON 쓰기·읽기
 # ---------------------------------------------------------------------------
 
-def riders_to_json(riders: Iterable[Rider], source: dict[str, Any] | None = None) -> dict[str, Any]:
-    """조각 목록을 JSON으로 쓸 수 있는 dict로 바꾼다. source에는 문서 이름·쪽 범위처럼 출처를 적는다."""
-    return {
-        "형식": FORMAT,
-        "출처": dict(source or {}),
-        "조각": [{
-            "특별약관": r.title, "구분": r.label, "적용범위": r.only, "첫쪽": r.first_page, "끝쪽": r.last_page,
-            "세부보장": [{"보장명": c.name, "지급사유": c.reason, "지급금액": c.amount, "쪽": c.page, "적용범위": c.only}
-                     for c in r.covers],
-        } for r in riders],
-    }
+def _piece(r: Rider) -> dict[str, Any]:
+    out: dict[str, Any] = {"특별약관": r.title, "구분": r.label, "적용범위": r.only, "첫쪽": r.first_page, "끝쪽": r.last_page}
+    # 회사에 따라 생기는 값은 있을 때만 적는다(삼성화재 조각 파일의 꼴은 그대로다)
+    if r.segment:
+        out["형"] = r.segment
+    if r.main is not None:
+        out["주계약"] = r.main
+    if r.parts:
+        out["특약명들"] = list(r.parts)
+    out["세부보장"] = [{"보장명": c.name, "지급사유": c.reason, "지급금액": c.amount, "쪽": c.page, "적용범위": c.only}
+                   for c in r.covers]
+    return out
+
+
+def riders_to_json(riders: Iterable[Rider], source: dict[str, Any] | None = None,
+                   notes: Sequence[dict[str, Any]] = ()) -> dict[str, Any]:
+    """조각 목록을 JSON으로 쓸 수 있는 dict로 바꾼다. source에는 문서 이름·쪽 범위처럼 출처를 적는다.
+
+    notes는 표 안의 주석 행(table_notes)이다. 있을 때만 "주석"으로 적는다. 조각으로 읽을 때는 쓰지 않는다.
+    """
+    out: dict[str, Any] = {"형식": FORMAT, "출처": dict(source or {})}
+    if notes:
+        out["주석"] = list(notes)
+    out["조각"] = [_piece(r) for r in riders]
+    return out
 
 
 def riders_from_json(data: dict[str, Any]) -> list[Rider]:
@@ -540,12 +825,14 @@ def riders_from_json(data: dict[str, Any]) -> list[Rider]:
         covers=tuple(Cover(c["보장명"], c["지급사유"], c["지급금액"], int(c["쪽"]), c.get("적용범위", ""))
                      for c in r["세부보장"]),
         first_page=int(r["첫쪽"]), last_page=int(r["끝쪽"]), label=r.get("구분", ""), only=r.get("적용범위", ""),
+        segment=r.get("형", ""), main=r.get("주계약"), parts=tuple(r.get("특약명들", ())),
     ) for r in data["조각"]]
 
 
-def write_riders(path: Path | str, riders: Iterable[Rider], source: dict[str, Any] | None = None) -> None:
+def write_riders(path: Path | str, riders: Iterable[Rider], source: dict[str, Any] | None = None,
+                 notes: Sequence[dict[str, Any]] = ()) -> None:
     """조각 목록을 JSON 파일로 쓴다."""
-    Path(path).write_text(json.dumps(riders_to_json(riders, source), ensure_ascii=False, indent=1), encoding="utf-8")
+    Path(path).write_text(json.dumps(riders_to_json(riders, source, notes), ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def read_riders(path: Path | str) -> list[Rider]:
@@ -563,21 +850,21 @@ class PageRange:
     last_page: int              # "□ 보험금 지급제한사항"이 적힌 쪽. 표가 그 쪽 위쪽까지 이어질 수 있어 포함한다
 
 
-def benefit_ranges(pages: dict[int, str]) -> list[PageRange]:
+def benefit_ranges(pages: dict[int, str], layout: Layout = SAMSUNGFIRE) -> list[PageRange]:
     """쪽별 글자에서 급부 표가 있는 쪽 범위를 모두 찾는다. 종 구간마다 절이 따로 있는 요약서는 여러 개가 나온다.
 
-    pages는 segment.pages_from_text나 page_texts가 돌려주는 {쪽 번호: 글자}다.
+    pages는 segment.pages_from_text나 page_texts가 돌려주는 {쪽 번호: 글자}다. 절 제목의 꼴은 layout이 정한다.
     """
     ranges: list[PageRange] = []
     start: int | None = None
     for n in sorted(pages):
         for line in pages[n].split("\n"):
             line = line.strip()
-            if _SECTION_START.match(line):
+            if layout.section_start.match(line):
                 if start is not None:
                     ranges.append(PageRange(start, n))
                 start = n
-            elif start is not None and _SECTION_END.match(line):
+            elif start is not None and layout.section_end.match(line):
                 ranges.append(PageRange(start, n))
                 start = None
     if start is not None:
@@ -585,15 +872,15 @@ def benefit_ranges(pages: dict[int, str]) -> list[PageRange]:
     return ranges
 
 
-def benefit_pages(pages: dict[int, str], section: str | None = None) -> PageRange:
+def benefit_pages(pages: dict[int, str], section: str | None = None, layout: Layout = SAMSUNGFIRE) -> PageRange:
     """급부 표의 쪽 범위 하나를 고른다.
 
     section은 종 구간의 제목 줄이다(예: "나. 8종(일반형)"). 주면 그 줄이 적힌 쪽부터 찾아 처음 시작하는 급부 절을
     고른다. 안 주면 급부 절이 하나일 때만 돌려주고, 여럿이면 어느 구간인지 정하라고 ValueError를 낸다.
     """
-    ranges = benefit_ranges(pages)
+    ranges = benefit_ranges(pages, layout)
     if not ranges:
-        raise ValueError("'□ 보험금 지급사유 및 지급금액' 절을 찾지 못했습니다")
+        raise ValueError(f"'{layout.section_title}' 절을 찾지 못했습니다")
     if section is None:
         if len(ranges) > 1:
             found = ", ".join(f"{r.first_page}~{r.last_page}쪽" for r in ranges)
@@ -817,13 +1104,93 @@ def _header(table: Any, chars: list[dict]) -> tuple[float, float] | None:
     return None
 
 
-def _label_above(page: Any, top: float, floor: float) -> str:
-    """표 바로 위(앞 표의 아래부터)에 적힌 "◆ 기본계약" 같은 구분."""
+@dataclass
+class _Marks:
+    """표 위에 적힌 표시들. 쪽을 넘어 다음 표로 이어진다."""
+    label: str = ""             # 구분("기본계약", "선택계약")
+    segment: str = ""           # 지금 표들의 형
+    product: str = ""           # 마지막으로 본 형 구간 머리의 형
+    segments: list[str] = field(default_factory=list)       # 이 문서에서 본 형들
+    heading: str = ""           # 특약 머리. 비어 있으면 보통 표다
+    # 마지막으로 읽은 급부 표의 (지급사유 칸 왼쪽, 지급금액 칸 왼쪽, 표 왼쪽, 표 오른쪽). 머리행 없이 이어진 표를 알아볼 때 쓴다
+    frame: tuple[float, float, float, float] | None = None
+
+
+def _marks(page: Any, top: float, floor: float) -> list[str]:
+    """표 바로 위(앞 표의 아래부터)에 적힌 줄들."""
     if top - floor < 3:
-        return ""
+        return []
     text = page.crop((page.bbox[0], max(floor, page.bbox[1]), page.bbox[2], top)).extract_text() or ""
-    labels = [m.group(1) for m in (_LABEL.match(l.strip()) for l in text.split("\n")) if m]
-    return labels[-1] if labels else ""
+    return text.split("\n")
+
+
+def _rider_heading(text: str, marks: _Marks, layout: Layout) -> None:
+    """특약 머리. 형 구간이 있는 문서에서는 머리의 "(…형)"으로 형을 고르고, 형이 적히지 않았으면 Layout.common이다."""
+    marks.heading = text
+    if marks.segments:
+        key = squash(text)
+        marks.segment = next((s for s in marks.segments if f"({squash(s)})" in key), layout.common)
+    else:
+        marks.segment = marks.product
+
+
+def _read_marks(lines: Iterable[str], marks: _Marks, layout: Layout) -> None:
+    """표 위 줄들을 차례로 읽어 구분, 형, 특약 머리를 바꾼다.
+
+    - 구분 줄(삼성화재 "◆ 기본계약", 메리츠화재 "m 기본계약")은 구분을 바꾸고 특약 머리를 끝낸다.
+      구분 줄에 Layout.rider_word("특별약관")가 있으면 구분이 아니라 특약 머리다("m 무배당 … 특별약관2610").
+    - "< … >" 줄은 Layout.rider_word가 있으면 특약 머리, 없으면 형 구간 머리다. 형은 끝 괄호 안 글자다
+      ("< 무배당 가나보험(다라형) >" → "다라형"). 두 줄로 갈려 적혔으면 ">"가 나올 때까지 잇는다.
+    """
+    buffer = ""
+    for raw in lines:
+        line = raw.strip()
+        if layout.heading is not None and (buffer or line[:1] in "<＜"):
+            buffer = f"{buffer} {line}".strip()
+            if not buffer.endswith((">", "＞")) and len(buffer) < 300:
+                continue
+            line, buffer = buffer, ""
+            m = layout.heading.match(line)
+            if m:
+                text = re.sub(r"\s+", " ", m.group(1))
+                if layout.rider_word and layout.rider_word in text:
+                    _rider_heading(text, marks, layout)
+                else:
+                    found = re.search(r"\(([^()]*)\)\s*$", text)
+                    marks.product = marks.segment = found.group(1) if found else text
+                    if marks.product not in marks.segments:
+                        marks.segments.append(marks.product)
+                    marks.heading = ""
+                continue
+        m = layout.label.match(line)
+        if m:
+            text = re.sub(r"\s+", " ", m.group(1))
+            if layout.rider_word and layout.rider_word in text:
+                _rider_heading(text, marks, layout)
+            else:
+                marks.label, marks.heading, marks.segment = text, "", marks.product
+
+
+def _column_numbers(table: Any, columns: tuple[float, float]) -> tuple[int, int] | None:
+    """칸 자리(지급사유 칸 왼쪽, 지급금액 칸 왼쪽)로 찾은 (지급사유 칸 번호, 지급금액 칸 번호)."""
+    def number(x: float) -> int | None:
+        return min((j for row in table.rows for j, cell in enumerate(row.cells)
+                    if cell is not None and abs(cell[0] - x) <= 2 * _SNAP), default=None)
+    reason, amount = number(columns[0]), number(columns[1])
+    return (reason, amount) if reason is not None and amount is not None and 0 < reason < amount else None
+
+
+def _continued(table: Any, marks: _Marks, layout: Layout) -> tuple[float, float] | None:
+    """머리행 없이 앞 쪽 급부 표가 이어지는 표이면 (지급사유 칸 왼쪽, 지급금액 칸 왼쪽). Layout.headless인 회사만.
+
+    표의 양 끝과 지급사유, 지급금액 칸의 자리가 마지막으로 읽은 급부 표와 같으면 이어지는 표로 본다.
+    """
+    if not layout.headless or marks.frame is None:
+        return None
+    reason_left, amount_left, left, right = marks.frame
+    if abs(table.bbox[0] - left) > 3 or abs(table.bbox[2] - right) > 3:
+        return None
+    return (reason_left, amount_left) if _column_numbers(table, (reason_left, amount_left)) else None
 
 
 def _open_end(table: Any, chars: list[dict], columns: tuple[float, float], inner: list[Any]) -> bool:
@@ -853,13 +1220,27 @@ def _open_end(table: Any, chars: list[dict], columns: tuple[float, float], inner
     return counts[margin] >= 2 and last >= margin - _SNAP
 
 
-def _page_tables(page: Any, number: int, label: str) -> tuple[list[PageTable], str]:
-    """한 쪽의 급부 표들과, 다음 쪽으로 넘겨줄 구분(이 쪽에서 마지막으로 본 "◆ …")."""
+def _page_tables(page: Any, number: int, marks: _Marks, layout: Layout = SAMSUNGFIRE,
+                 misses: list[dict[str, Any]] | None = None) -> list[PageTable]:
+    """한 쪽의 급부 표들. marks(표 위 표시)는 이 쪽에서 본 것으로 바꿔 다음 쪽으로 넘긴다.
+
+    misses를 주면 급부 표로 읽지 못한 표(머리행이 없고 앞 표와 칸 자리도 다른 표)를 쪽 번호와 함께 적는다.
+    """
     h, v = _border_edges(page)
     chars = _numbered(page.chars)
-    heads = [(t, columns) for t in _find(page, h, v) for columns in [_header(t, chars)] if columns]
+    found = _find(page, h, v)
+    heads = [(t, columns) for t in found for columns in [_header(t, chars) or _continued(t, marks, layout)] if columns]
     if not heads:
-        return [], label
+        if layout.trailing:
+            _read_marks(_marks(page, page.bbox[3], page.bbox[1]), marks, layout)
+        return []
+
+    def splits(e: dict, reason_left: float, amount_left: float) -> bool:
+        """지급사유 칸을 세로로 갈라 칸을 하나 더 만드는 선인가(Layout.merged). 위아래 끝이 모두 행을 가르는 가로선
+        (지급사유 칸 왼쪽 경계나 그 왼쪽에서 시작해 지급금액 칸까지 뻗는 선)에 닿는다. 작은 표의 세로선은 작은 표의
+        가로선에 닿는다."""
+        rows = [o["top"] for o in h if o["x0"] <= reason_left + _SNAP and o["x1"] >= amount_left - _SNAP]
+        return (any(abs(e["top"] - y) <= _SNAP for y in rows) and any(abs(e["bottom"] - y) <= _SNAP for y in rows))
 
     def nested(e: dict) -> bool:
         """지급사유 칸 안에 든 작은 표의 선인가. 그대로 두면 바깥 표의 행이 그 선에서 갈린다.
@@ -873,11 +1254,19 @@ def _page_tables(page: Any, number: int, label: str) -> tuple[list[PageTable], s
             if e["orientation"] == "h" and e["x0"] >= reason_left - _SNAP and e["x1"] <= amount_left + _SNAP:
                 return True
             if e["orientation"] == "v" and reason_left + _SNAP < e["x0"] < amount_left - _SNAP:
+                return not (layout.merged and splits(e, reason_left, amount_left))
+            # 지급금액 자리까지 차지한 작은 표(Layout.merged): 지급사유 칸 안쪽에서 시작해 표 오른쪽 테두리에 닿지 않는
+            # 가로선, 지급사유 칸 안쪽부터 오른쪽 테두리 사이에 있는 세로선(지급금액 칸 경계는 빼고)
+            right = t.bbox[2] - _SNAP
+            if layout.merged and e["orientation"] == "h" and reason_left + _SNAP < e["x0"] and e["x1"] < right:
                 return True
+            if (layout.merged and e["orientation"] == "v" and reason_left + _SNAP < e["x0"] < right
+                    and abs(e["x0"] - amount_left) > _SNAP):
+                return not splits(e, reason_left, amount_left)
         return False
 
     inner_h, inner_v = [e for e in h if nested(e)], [e for e in v if nested(e)]
-    outer = [t for t, _ in heads]
+    outer = found if misses is not None else [t for t, _ in heads]     # 읽지 못한 표를 적을 때는 다른 표도 훑는다
     inner: list[Any] = []
     if inner_h or inner_v:
         outer_h = [e for e in h if not nested(e)]
@@ -896,10 +1285,17 @@ def _page_tables(page: Any, number: int, label: str) -> tuple[list[PageTable], s
     tables = []
     floor = page.bbox[1]
     for t in sorted(outer, key=lambda t: t.bbox[1]):
-        columns = _header(t, chars)
+        columns, head = _header(t, chars), None
+        numbers = _column_numbers(t, columns) if columns else None
         if columns is None:
-            continue
-        label = _label_above(page, t.bbox[1], floor) or label
+            columns = _continued(t, marks, layout)
+            numbers = _column_numbers(t, columns) if columns else None
+            if numbers is None:
+                if misses is not None and _within(chars, t.bbox):
+                    misses.append({"쪽": number, "이유": f"머리행이 없고 앞 급부 표와 칸 자리가 다른 표(위쪽 {t.bbox[1]:.0f}pt)"})
+                continue
+            head = (0, *numbers)
+        _read_marks(_marks(page, t.bbox[1], floor), marks, layout)
         floor = t.bbox[3]
         mine = _within(_numbered(page.chars, t.bbox), t.bbox)       # 테두리에 걸친 글자까지 이 표의 글자로 본다
         open_end = _open_end(t, mine, columns, inner)
@@ -913,45 +1309,60 @@ def _page_tables(page: Any, number: int, label: str) -> tuple[list[PageTable], s
                 small = [s for s in inner if cell[0] <= (s.bbox[0] + s.bbox[2]) / 2 < cell[2]
                          and cell[1] <= (s.bbox[1] + s.bbox[3]) / 2 < cell[3]]
                 cells.append(_cell_text(_within(mine, cell), small))
+            if layout.merged and numbers and numbers[1] < len(cells) and cells[numbers[1]] is None and any(
+                    c is not None and c[0] < columns[1] - _SNAP < columns[1] + _SNAP < c[2] for c in row.cells[:numbers[1]]):
+                cells[numbers[1]] = ""      # 지급사유 칸이 지급금액 자리까지 넓게 병합된 행. 위 행의 지급금액을 물려받지 않는다
             rows.append(cells)
-        tables.append(PageTable(number, rows, label, open_end))
-    return tables, label
+        tables.append(PageTable(number, rows, marks.label, open_end, marks.segment, marks.heading, head))
+        marks.frame = (columns[0], columns[1], t.bbox[0], t.bbox[2])
+    if layout.trailing:
+        _read_marks(_marks(page, page.bbox[3], floor), marks, layout)
+    return tables
 
 
-def read_tables(source: Path | str | bytes, first_page: int, last_page: int) -> list[PageTable]:
-    """PDF의 쪽 범위(양 끝 포함)에서 급부 표를 읽는다. 머리행이 보장명·지급사유·지급금액인 표만 고른다."""
+def read_tables(source: Path | str | bytes, first_page: int, last_page: int, layout: Layout = SAMSUNGFIRE,
+                misses: list[dict[str, Any]] | None = None) -> list[PageTable]:
+    """PDF의 쪽 범위(양 끝 포함)에서 급부 표를 읽는다. 머리행이 보장명·지급사유·지급금액인 표만 고른다.
+
+    Layout.headless인 회사는 머리행 없이 앞 쪽 표가 이어지는 표도 읽는다. misses를 주면 급부 표를 하나도 찾지 못한 쪽과
+    읽지 못한 표를 {"쪽", "이유"}로 적는다.
+    """
     tables: list[PageTable] = []
-    label = ""
+    marks = _Marks()
     with _open(source) as pdf:
         for number in range(max(first_page, 1), min(last_page, len(pdf.pages)) + 1):
             page = pdf.pages[number - 1]
-            found, label = _page_tables(page, number, label)
+            found = _page_tables(page, number, marks, layout, misses)
+            if misses is not None and not found:
+                misses.append({"쪽": number, "이유": "급부 표를 찾지 못함"})
             tables += found
             page.flush_cache()
     return tables
 
 
 def riders_from_pdf(source: Path | str | bytes, first_page: int | None = None, last_page: int | None = None,
-                    section: str | None = None, pages: dict[int, str] | None = None) -> list[Rider]:
+                    section: str | None = None, pages: dict[int, str] | None = None,
+                    layout: Layout = SAMSUNGFIRE) -> list[Rider]:
     """PDF(경로 또는 bytes)에서 급부 표를 읽어 특별약관 조각으로 돌려준다.
 
     쪽 범위를 주지 않으면 절 제목으로 찾는다. pages(쪽별 글자)를 주면 그것으로, 안 주면 PDF에서 글자를 풀어 찾는다.
     한 요약서에 급부 절이 여러 곳이면 section에 구간 제목을 준다(benefit_pages 참고).
     """
     if first_page is None or last_page is None:
-        found = benefit_pages(pages if pages is not None else page_texts(source), section)
+        found = benefit_pages(pages if pages is not None else page_texts(source), section, layout)
         first_page, last_page = first_page or found.first_page, last_page or found.last_page
-    return riders_from_tables(read_tables(source, first_page, last_page))
+    return riders_from_tables(read_tables(source, first_page, last_page, layout), layout)
 
 
 def rider_blocks_from_pdf(source: Path | str | bytes, first_page: int | None = None, last_page: int | None = None,
                           section: str | None = None, pages: dict[int, str] | None = None,
-                          variant: str | None = None, max_covers: int | None = None) -> list[Block]:
+                          variant: str | None = None, max_covers: int | None = None,
+                          layout: Layout = SAMSUNGFIRE) -> list[Block]:
     """PDF의 급부 표를 특별약관 단위 Block으로 돌려준다. segment.rider_blocks와 같은 자리에 쓴다.
 
     variant에 종 이름(예: "8종(일반형)")을 주면 "*7종에 한함"처럼 다른 종에만 해당하는 줄을 뺀다.
     """
-    riders = riders_from_pdf(source, first_page, last_page, section, pages)
+    riders = riders_from_pdf(source, first_page, last_page, section, pages, layout)
     if variant:
         riders = for_variant(riders, variant)
     return to_blocks(riders, max_covers)

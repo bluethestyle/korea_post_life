@@ -5,6 +5,9 @@
 삼성화재(--org samsungfire)는 상품요약서의 급부 표 조각(samsungfire_<공시상품코드>_급부표.json)도 함께 만든다.
 급부가 표 하나에 이어져 있어 글자 파일로는 담보 경계를 자를 수 없기 때문이다. 급부 절이 여러 곳인 요약서는
 대상 설정의 종형에 "급부구간"(구간 제목 줄. 예: "나. 8종(일반형)")을 적어 고른다. 절이 한 곳이면 적지 않는다.
+
+초기 적재 회사(--org meritz 등, postlife.disclosure.sources에 이은 회사)는 대상 설정(data/targets/<회사>.json)의
+공시상품코드마다 사업방법서와 상품요약서만 받고, 항목마다 파일 전체의 sha256을 더 적는다. 급부 표 조각은 만들지 않는다.
 """
 from __future__ import annotations
 
@@ -14,13 +17,14 @@ import io
 import json
 import os
 import sys
+import time
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from postlife.disclosure import epost, hanwha, samsungfire  # noqa: E402
+from postlife.disclosure import epost, hanwha, samsungfire, sources  # noqa: E402
 from postlife.disclosure.http import session  # noqa: E402
 from postlife.extract import tables  # noqa: E402
 from postlife.extract.segment import pages_from_text  # noqa: E402
@@ -32,6 +36,8 @@ EPOST_NAMES = ["우체국통합건강보험 2504", "우체국간편한건강보�
 EPOST_PREVIOUS = ["우체국간편건강보험"]
 # 삼성화재에서 받는 서류. 약관과 상품설명서는 받지 않는다.
 SAMSUNGFIRE_KINDS = ("사업방법서", "상품요약서")
+# 초기 적재 회사의 요청 사이 쉬기. 시험에서 바꿔 끼운다
+pause = time.sleep
 
 
 def pdf_pages(data: bytes) -> list[str]:
@@ -174,20 +180,103 @@ def fetch_samsungfire(s, out: Path, targets: Path,
     return index, rows, missing
 
 
+def fetch_source(src: sources.Source, s, out: Path, targets: Path, list_only: bool,
+                 on: str) -> tuple[list[dict], list[str], dict[str, list[str]]]:
+    """초기 적재 회사(postlife.disclosure.sources에 이은 회사)의 대상 코드마다 사업방법서와 상품요약서를 받는다.
+
+    대상 설정 파일의 공시상품코드마다 on(기준일)에 판매 중인 판매기간을 고른다. 같은 세션으로 목록과 서류를 받고,
+    요청 사이에 src.pause초 쉰다. 항목은 다른 회사와 같은 열쇠에 파일 전체의 sha256을 더한다.
+    세 번째 값은 공시상품코드마다 받지 못한 서류다. 다 받은 코드는 빠진다.
+    """
+    codes = sorted({v["공시상품코드"] for product in json.loads(targets.read_text(encoding="utf-8"))["상품"]
+                    for v in product["종형"]})
+    index, rows, asked = [], [], False
+
+    def wait():
+        nonlocal asked
+        if asked and src.pause > 0:
+            pause(src.pause)
+        asked = True
+
+    for code in codes:
+        wait()
+        try:
+            found = src.find(s, code, on)
+        except Exception as e:  # noqa: BLE001
+            print(f"  실패 {code} 서류 목록: {e}"[:400])
+            rows.append(f"| {code} | | 서류 목록 실패 | {type(e).__name__} | | | |")
+            continue
+        if found is None:
+            rows.append(f"| {code} | (판매상품 목록에 없음) | | | | | |")
+            continue
+        name, docs = found
+        docs = {d.kind: d for d in docs}
+        for kind in src.kinds:
+            doc = docs.get(kind)
+            if doc is None:
+                rows.append(f"| {code} | {name} | {kind} | (공시 목록에 서류 경로 없음) | | | |")
+                continue
+            entry = {"기관": src.org, "상품코드": code, "상품명": name, "판매시작일": doc.start, "판매종료일": doc.end,
+                     "문서": kind, "파일": doc.file_name, "등록일": doc.registered}
+            if list_only:
+                rows.append(f"| {code} | {name} | {kind} | {doc.file_name} | | | |")
+                continue
+            wait()
+            try:
+                data = src.download(s, doc)
+                saved = save(out, f"{src.key}_{code}_{kind}", data)
+            except Exception as e:  # noqa: BLE001
+                print(f"  실패 {code} {kind}: {e}"[:400])
+                rows.append(f"| {code} | {name} | {kind} | {doc.file_name} | 실패: {type(e).__name__} | | |")
+                continue
+            digest = hashlib.sha256(data).hexdigest()
+            index.append({**entry, **saved, "sha256": digest})
+            rows.append(f"| {code} | {name} | {kind} | {doc.file_name} | {saved['쪽수']} | {len(data):,} | {digest} |")
+    missing = {}
+    if not list_only:
+        for code in codes:
+            have = {e["문서"] for e in index if e["상품코드"] == code}
+            lack = [k for k in src.kinds if k not in have]
+            if lack:
+                missing[code] = lack
+    return index, rows, missing
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--out", type=Path, default=Path("out"))
     p.add_argument("--list-only", action="store_true")
-    p.add_argument("--org", default="epost", choices=["epost", "hanwha", "samsungfire"], help="받을 회사")
+    p.add_argument("--org", default="epost", choices=["epost", "hanwha", "samsungfire", *sources.SOURCES],
+                   help="받을 회사")
     p.add_argument("--targets", type=Path,
-                   help="추출 대상 설정. 안 주면 삼성화재는 data/targets/samsungfire.json, 그 밖에는 data/targets/hanwha.json")
+                   help="추출 대상 설정. 안 주면 삼성화재는 data/targets/samsungfire.json, 초기 적재 회사는 "
+                        "data/targets/<회사>.json(예: meritz.json), 그 밖에는 data/targets/hanwha.json")
     args = p.parse_args()
     if args.targets is None:
-        args.targets = Path("data/targets/samsungfire.json" if args.org == "samsungfire" else "data/targets/hanwha.json")
+        if args.org in sources.SOURCES:
+            args.targets = Path(sources.SOURCES[args.org].targets)
+        else:
+            args.targets = Path("data/targets/samsungfire.json" if args.org == "samsungfire" else "data/targets/hanwha.json")
     args.out.mkdir(parents=True, exist_ok=True)
     s = session()
     today = datetime.now(KST).date().isoformat()
     head = ["| 상품코드 | 상품명 | 문서 | 파일 | 쪽수 | 크기 |", "| --- | --- | --- | --- | --- | --- |"]
+
+    if args.org in sources.SOURCES:
+        src = sources.SOURCES[args.org]
+        index, rows, missing = fetch_source(src, s, args.out, args.targets, args.list_only, today)
+        (args.out / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+        table = "\n".join(["| 상품코드 | 상품명 | 문서 | 파일 | 쪽수 | 크기 | sha256 |",
+                           "| --- | --- | --- | --- | --- | --- | --- |"] + rows)
+        if missing:
+            table += "\n\n갖추지 못한 상품: " + ", ".join(f"{code}({', '.join(lack)})" for code, lack in missing.items())
+        print(table)
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with open(summary, "a", encoding="utf-8") as f:
+                f.write(f"## 공시 문서 수집 ({src.label})\n\n" + table + "\n")
+        # 대상 코드 가운데 사업방법서나 상품요약서가 하나라도 빠진 것이 있으면 실패로 끝낸다
+        return 0 if args.list_only or (index and not missing) else 1
 
     if args.org == "hanwha":
         index, rows = fetch_hanwha(s, args.out, args.targets, args.list_only)
