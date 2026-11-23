@@ -162,8 +162,8 @@ COUNTS_JS = r"""() => {
       zones[z].nodes += 1;
     }
   }
-  const rtEl = document.getElementById('rtabs');
-  const topH = rtEl ? Math.round(rtEl.getBoundingClientRect().bottom) : 0;
+    const rtEl = document.getElementById('rtabs');
+  const topH = rtEl && !rtEl.hidden ? Math.round(rtEl.getBoundingClientRect().bottom) : Math.round((document.getElementById('head') || document.body).getBoundingClientRect().bottom);
   const st = window.App ? window.App.state : { tab: 'brief', grp: {}, sel: {}, sub: {} };
   const tab = st.tab || 'brief';
   const grp = (st.grp && st.grp[tab]) || '';
@@ -171,7 +171,56 @@ COUNTS_JS = r"""() => {
   const condOpen = !!(condEl && !condEl.hidden);
   const scopeEl = document.getElementById('scope');
   const scopeOpen = !!(scopeEl && !scopeEl.hidden);
-  return { vw, vh, tab, grp, topH, condOpen, scopeOpen, zones };
+  const dmEl = document.getElementById('data-modal');
+  const modalOpen = !!(dmEl && !dmEl.hidden);
+  const picked = !!(st.sel && st.sel[tab] != null);
+
+  // 요청 27 기준: 본문 영역(#home-panel 또는 #board)의 사각 면 수, 마침표 문장 수, 글 조각 수, 안쪽 가로 스크롤 측정
+  const stageEl = tab === 'brief' ? document.getElementById('home-panel') : document.getElementById('board');
+  let stageNodes = 0, sentences = 0, rectSurfaces = 0, innerScrollX = 0;
+  if (stageEl && !stageEl.hidden) {
+    const sw = document.createTreeWalker(stageEl, NodeFilter.SHOW_TEXT);
+    let sn;
+    while ((sn = sw.nextNode())) {
+      const txt = sn.nodeValue.trim();
+      if (!txt) continue;
+      const pel = sn.parentElement;
+      if (!pel || pel.tagName === 'OPTION' || pel.closest('script,style,#print-root,.sr')) continue;
+      let pa = pel, phid = false;
+      while (pa && pa !== document.body) {
+        const ps = getComputedStyle(pa);
+        if (pa.hidden || ps.display === 'none' || ps.visibility === 'hidden' || +ps.opacity < 0.05) { phid = true; break; }
+        if (pa.tagName === 'DETAILS' && !pa.open && !pel.closest('summary')) { phid = true; break; }
+        if (pa.getAttribute && pa.getAttribute('aria-hidden') === 'true' && pa.closest('svg')) { phid = true; break; }
+        pa = pa.parentElement;
+      }
+      if (phid) continue;
+      stageNodes += 1;
+      const m = txt.match(/\.(?=\s|$)/g);
+      if (m) sentences += m.length;
+    }
+    const checkEls = [stageEl, ...stageEl.querySelectorAll('*')];
+    for (const cel of checkEls) {
+      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb')) continue;
+      let ca = cel, chid = false;
+      while (ca && ca !== document.body) {
+        const cs2 = getComputedStyle(ca);
+        if (ca.hidden || cs2.display === 'none' || cs2.visibility === 'hidden' || +cs2.opacity < 0.05) { chid = true; break; }
+        ca = ca.parentElement;
+      }
+      if (chid) continue;
+      const cs = getComputedStyle(cel);
+      const bg = cs.backgroundColor;
+      const cr = cel.getBoundingClientRect();
+      if (cr.width >= 24 && cr.height >= 20 && bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+        rectSurfaces += 1;
+      }
+      if ((cs.overflowX === 'auto' || cs.overflowX === 'scroll') && cel.scrollWidth > cel.clientWidth + 1) {
+        innerScrollX = Math.max(innerScrollX, Math.round(cel.scrollWidth - cel.clientWidth));
+      }
+    }
+  }
+  return { vw, vh, tab, grp, topH, condOpen, scopeOpen, modalOpen, picked, stageNodes, sentences, rectSurfaces, innerScrollX, zones };
 }"""
 
 
@@ -249,24 +298,38 @@ def measure(png: Path, texts: list[dict], dark: bool) -> dict:
     return res
 
 
+STAGE_NODE_LIMITS = {
+    'brief': 30,
+    'market': 60,
+    'gate': 80,
+    'cover': 30,
+}
+
+
 def check_budget(cnt: dict) -> list[str]:
-    if not cnt or cnt.get('vw') != 1920 or cnt.get('vh') != 1080:
+    if not cnt:
         return []
-    z = cnt['zones']
     over = []
-    if not cnt.get('condOpen') and not cnt.get('scopeOpen'):
+    tab = cnt.get('tab')
+    modal_open = bool(cnt.get('modalOpen'))
+    picked = bool(cnt.get('picked'))
+    if tab in STAGE_NODE_LIMITS and not modal_open:
+        if cnt.get('innerScrollX', 0) > 0:
+            over.append(f"도형영역 안쪽가로스크롤 {cnt['innerScrollX']}px>0")
+    if cnt.get('vw') != 1920 or cnt.get('vh') != 1080:
+        return over
+    z = cnt['zones']
+    if not cnt.get('condOpen') and not cnt.get('scopeOpen') and not modal_open:
         if z['top']['chars'] > 160:
             over.append(f"위영역 글자 {z['top']['chars']}>160")
-    if z['left']['nodes'] > 16:
-        over.append(f"왼쪽구역 조각 {z['left']['nodes']}>16")
-    # 1단계에서는 새로 짠 화면(brief, market 도형 격자, graph)에 가운데 구역 60조각 상한을 적용(2~3단계에서 gate, cover, insight 확장)
-    tab = cnt.get('tab')
-    grp = cnt.get('grp', '')
-    if tab in ('brief', 'graph') or (tab == 'market' and grp not in ('rev', 'tally')):
-        if z['center']['nodes'] > 60:
-            over.append(f"가운데구역 조각 {z['center']['nodes']}>60")
-    if z['right']['chars'] > 300:
-        over.append(f"오른쪽구역 글자 {z['right']['chars']}>300")
+    if tab in STAGE_NODE_LIMITS and not picked and not modal_open:
+        if cnt.get('rectSurfaces', 0) > 0:
+            over.append(f"본문 사각면 {cnt['rectSurfaces']}>0")
+        if cnt.get('sentences', 0) > 1:
+            over.append(f"본문 마침표문장 {cnt['sentences']}>1")
+        lim = STAGE_NODE_LIMITS[tab]
+        if cnt.get('stageNodes', 0) > lim:
+            over.append(f"본문 글조각 {cnt['stageNodes']}>{lim}")
     return over
 
 
@@ -285,8 +348,8 @@ async def shot(pg, name, report, dark=False, full=False):
     report[name] = {'overflow': ov, 'text_budget': tb, **m}
     z = cnt['zones'] if cnt else None
     z_str = (
-        f" | 글자(위 {z['top']['chars']}자/{z['top']['nodes']}조각, "
-        f"왼 {z['left']['chars']}자/{z['left']['nodes']}조각, "
+        f" | 본문(면 {cnt['rectSurfaces']}, 문장 {cnt['sentences']}, 조각 {cnt['stageNodes']}, 안쪽가로 {cnt['innerScrollX']}px)"
+        f" 구역(위 {z['top']['chars']}자/{z['top']['nodes']}조각, "
         f"가운데 {z['center']['chars']}자/{z['center']['nodes']}조각, "
         f"오른 {z['right']['chars']}자/{z['right']['nodes']}조각)"
     ) if z else ''
@@ -311,7 +374,8 @@ async def run():
     report = {}
     shot_names = [
         'brief', 'market', 'market-sel', 'market-sheet', 'market-rev', 'market-base4', 'market-cond',
-        'tab2', 'tab3', 'tab4', 'tab5', 'graph', 'dark', 'dark-sel', 'dark-brief', 'motion', 'full', 'scroll',
+        'tab2', 'tab3', 'gate-sel', 'gate-table', 'tab4', 'cover-sel', 'cover-table', 'tab5', 'graph',
+        'dark', 'dark-sel', 'dark-brief', 'motion', 'full', 'scroll',
     ]
     async with async_playwright() as pw:
         b = await pw.chromium.launch()
@@ -319,10 +383,10 @@ async def run():
             if ONLY and not any(ONLY in f'{tag}-{s}' for s in shot_names):
                 continue
             ctx, pg, errs, ext = await page_for(b, vw, vh)
-            # 1. 처음 여는 상태(브리핑 메달 다섯 + 번호 달린 다섯 줄)
+            # 1. 처음 여는 상태(가로 기준축과 다섯 묶음 기둥)
             await shot(pg, f'{tag}-brief', report)
 
-            # 2. 고객군과 시장(3구역 보드 + 4x6 고리 격자)
+            # 2. 고객군과 시장(네 줄 시간축 + 24개 고리 마디)
             await pg.locator('#tab-market').click()
             await pg.wait_for_timeout(240)
             await shot(pg, f'{tag}-market', report)
@@ -337,9 +401,9 @@ async def run():
             await pg.keyboard.press('Escape')
             await pg.wait_for_timeout(200)
 
-            # 개정과 시장 왼쪽 묶음 전환 후 복귀
-            await pg.locator('#z-left [data-zl="rev"]').click()
-            await pg.wait_for_timeout(200)
+            # 개정과 시장 모달 열기 후 복귀
+            await pg.locator('#mk-btn-rev').click()
+            await pg.wait_for_timeout(220)
             await shot(pg, f'{tag}-market-rev', report)
             await pg.keyboard.press('Escape')
             await pg.wait_for_timeout(180)
@@ -358,13 +422,41 @@ async def run():
                 await shot(pg, f'{tag}-market-scroll', report)
                 await pg.evaluate("window.scrollTo(0, 0)")
 
+            # 기본 대표 조건(50세 남성, 이력 없음)으로 복귀 뒤 가입 관문, 담보 비교, 영업 인사이트, 관계 지도 측정
+            await pg.evaluate("App.set({age:50, since:null, surg:false})")
+            await pg.wait_for_timeout(180)
+
             # 3. 가입 관문, 담보 비교, 영업 인사이트, 관계 지도
             for sname, tid in [('tab3', 'gate'), ('tab4', 'cover'), ('tab5', 'insight'), ('graph', 'graph')]:
-                if ONLY and sname not in ONLY and ONLY not in tag:
+                if ONLY and sname not in ONLY and tid not in ONLY and ONLY not in tag:
                     continue
                 await pg.evaluate(f"App.set({{tab:'{tid}'}})")
-                await pg.wait_for_timeout(180)
+                await pg.wait_for_timeout(200)
                 await shot(pg, f'{tag}-{sname}', report)
+                if tid == 'gate':
+                    await pg.locator('#z-center .gtf-cell').first.click()
+                    await pg.wait_for_timeout(220)
+                    await shot(pg, f'{tag}-gate-sel', report)
+                    await pg.keyboard.press('Escape')
+                    await pg.wait_for_timeout(180)
+                    if vw == 1920:
+                        await pg.locator('#gt-btn-tbl').click()
+                        await pg.wait_for_timeout(240)
+                        await shot(pg, f'{tag}-gate-table', report)
+                        await pg.keyboard.press('Escape')
+                        await pg.wait_for_timeout(180)
+                elif tid == 'cover':
+                    await pg.locator('#z-center .cvp-btn').nth(1).click()
+                    await pg.wait_for_timeout(220)
+                    await shot(pg, f'{tag}-cover-sel', report)
+                    await pg.keyboard.press('Escape')
+                    await pg.wait_for_timeout(180)
+                    if vw == 1920:
+                        await pg.locator('#cv-btn-tbl').click()
+                        await pg.wait_for_timeout(240)
+                        await shot(pg, f'{tag}-cover-table', report)
+                        await pg.keyboard.press('Escape')
+                        await pg.wait_for_timeout(180)
 
             await pg.evaluate("App.set({tab:'brief', age:50, since:null, surg:false})")
             await pg.wait_for_timeout(200)

@@ -414,7 +414,7 @@
         <text class="gr-sub" x="422" y="159" text-anchor="middle">${esc(fmt(stCnt.pts))}</text>
       </svg>
       <div class="gr-actions">
-        <a class="btn btn-main" href="graph2.html">${esc(t('grOpenProtoBtn'))} ${ui.IC.chevR}</a>
+        <a class="btn ghost" href="graph2.html">${esc(t('grOpenProtoBtn'))} ${ui.IC.chevR}</a>
       </div>
     </div>`;
   }

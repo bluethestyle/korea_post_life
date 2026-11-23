@@ -177,15 +177,15 @@ button{cursor:pointer}
 
 .th-total{position:relative;z-index:1;display:flex;align-items:center;gap:8px;flex:none}
 .th-total[hidden]{display:none!important}
-.tht-ring{position:relative;width:74px;height:74px;display:grid;place-items:center;flex:none}
+.tht-ring{position:relative;width:84px;height:84px;display:grid;place-items:center;flex:none}
 .tht-ring svg{width:100%;height:100%;display:block;overflow:visible}
-.tht-val{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;padding-top:26px;
-  font:600 18px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0)}
-.tht-val small{font-size:13px;font-weight:600;color:var(--ink-0);margin-left:1px}
+.tht-val{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;padding-top:31px;
+  font:600 16px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);letter-spacing:-.03em}
+.tht-val small{font-size:13px;font-weight:600;color:var(--ink-0);margin-left:0}
 @media (max-width:1599px){
   .th-title{font-size:30px}
-  .tht-ring{width:66px;height:66px}
-  .tht-val{padding-top:23px;font-size:16px}
+  .tht-ring{width:74px;height:74px}
+  .tht-val{padding-top:27px;font-size:15px}
 }
 @media (max-width:999px){
   .top-head{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
@@ -193,8 +193,8 @@ button{cursor:pointer}
   .th-mid{grid-column:1/-1;align-items:flex-start}
   .th-cond-line{white-space:normal}
   .th-cond-btns{justify-content:flex-start}
-  .tht-ring{width:56px;height:56px}
-  .tht-val{padding-top:19px;font-size:15px}
+  .tht-ring{width:64px;height:64px}
+  .tht-val{padding-top:23px;font-size:14px}
 }
 
 /* ---------- 5. 눌러서 여는 조건 편집 판과 범위 띠 ---------- */
@@ -269,11 +269,11 @@ button{cursor:pointer}
 .rtab:first-child{border-left:0}
 .rtab.rtab-home{padding:8px 16px;font:600 14px/1.2 var(--f-ko);gap:7px;white-space:nowrap}
 .rtab:hover{background:var(--hover)}
-.rt-ring{position:relative;flex:none;width:48px;height:48px;display:grid;place-items:center}
+.rt-ring{position:relative;flex:none;width:62px;height:62px;display:grid;place-items:center}
 .rt-ring svg{width:100%;height:100%;display:block;overflow:visible}
-.rt-ring > .flag{left:1px;top:1px}
-.rt-num{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;padding-top:16px;
-  font:600 13.5px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none;letter-spacing:-.02em}
+.rt-ring > .flag{left:2px;top:2px}
+.rt-num{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;padding-top:23px;
+  font:600 13px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none;letter-spacing:-.04em}
 .rt-num small{font-size:13px;font-weight:600;color:var(--ink-1)}
 .rt-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .rt-name{font:600 14.5px/1.25 var(--f-ko);color:var(--ink-0);word-break:keep-all;display:flex;flex-wrap:wrap;align-items:center;gap:5px}
@@ -306,8 +306,8 @@ button{cursor:pointer}
 @media (max-width:1279px){
   .rtab{padding:7px 8px;gap:7px}
   .rtab.rtab-home{padding:7px 10px;font-size:13px}
-  .rt-ring{width:40px;height:40px}
-  .rt-num{padding-top:13px;font-size:13px}
+  .rt-ring{width:54px;height:54px}
+  .rt-num{padding-top:19px;font-size:13px}
   .rt-name{font-size:13.5px}
 }
 @media (max-width:999px){
@@ -401,7 +401,7 @@ button{cursor:pointer}
 
 /* 왼쪽 구역 묶음 단추(사각 상자 면 없이 선과 고리로만 표시) */
 .zl-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.zl-k{font:600 13px/1.3 var(--f-ko);color:var(--ink-2)}
+.zl-k{font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
 .zl-list{display:flex;flex-direction:column;gap:2px}
 .zl-item{position:relative;display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:5px 8px;
   border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink-0);text-align:left;
@@ -867,7 +867,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 /* 시간축 판: 줄 머리 146px + 여섯 마디를 균등 배치하는 시간축 트랙 */
 .mk-axis-board{display:flex;flex-direction:column;gap:14px}
 .mk-thead{display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:end;padding-bottom:2px}
-.mk-basis{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
+.mk-basis{font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
 .mk-tcols{display:flex;justify-content:space-between;align-items:end}
 .mk-tch{width:64px;text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
 
@@ -878,7 +878,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 
 .mk-rh{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
 .mk-rh-nm{font:600 14px/1.28 var(--f-ko);color:var(--ink-0);word-break:keep-all}
-.mk-rh-cnt{font:600 13px/1.2 var(--f-num);color:var(--ink-2)}
+.mk-rh-cnt{font:600 13px/1.2 var(--f-num);color:var(--ink-1)}
 
 .mk-track{display:flex;align-items:center;justify-content:space-between;min-width:0;width:100%}
 .mk-seg{position:relative;flex:1 1 auto;min-width:4px;height:0}
@@ -1002,7 +1002,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .gtf-acols{display:flex;justify-content:space-between;align-items:end;width:100%}
 .gtf-acol{position:relative;flex:none;width:86px;display:flex;flex-direction:column;align-items:flex-start;padding-left:2px}
 .gtf-anm{font:600 13.5px/1.25 var(--f-ko);color:var(--ink-0);white-space:nowrap}
-.gtf-acol.is-prem .gtf-anm{color:var(--ink-2)}
+.gtf-acol.is-prem .gtf-anm{color:var(--ink-1)}
 .gtf-atk{position:absolute;left:24px;bottom:-9px;width:1px;height:8px;background:var(--axis)}
 
 /* 고지 유형 줄: 줄 높이 56px, 사이 8px(여덟 줄이면 504px) */
@@ -1407,35 +1407,38 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
    응대 카드(.ins-card)는 미리 보기, 쪽 수 재기(.icd-measure), 인쇄(#print-root) 세 곳에서 같은 꼴이어야 해서 .ins-card 이름으로 가둔다.
    주인공 도형: 위 2.5px 금색 선의 짙은 결과 카드(acs_22)와 분류별 묶음(번호 01~05, 메뉴 목록) */
 #view-insight .vbody{container-type:inline-size}
-#view-insight .ins-ref{margin:-8px 0 20px;padding:10px 20px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--ink-1);word-break:keep-all}
+#view-insight .ins-ref{margin:-4px 0 18px;padding:6px 0 6px 14px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:transparent;box-shadow:inset 2px 0 0 var(--ink-1);word-break:keep-all}
 #view-insight .ins-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,0.62fr);gap:var(--gap);align-items:start}
 #view-insight .ins-l{display:flex;flex-direction:column;gap:20px;min-width:0}
 
-/* 목적 거르개와 복사 */
-#view-insight .ins-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:10px 20px}
+/* 목적 거르개와 복사(사각 면 제거) */
+#view-insight .ins-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:10px 0;background:transparent;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
+#view-insight .ins-tools .chev-sel{background:transparent}
 #view-insight .ins-pf{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0}
 #view-insight .ins-pf .lb{font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
 #view-insight .ins-pn{font:400 13px/1.45 var(--f-body);color:var(--ink-1);word-break:keep-all}
 
-/* 분류 바로가기 메뉴(번호, 이름, 건수) */
-#view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
-#view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 14px;background:var(--panel);color:var(--ink-0);text-decoration:none}
-#view-insight .ins-jump a:hover{background:var(--panel-hi)}
-:root[data-theme="dark"] #view-insight .ins-jump a{background:rgba(255,255,255,.05)}
-:root[data-theme="dark"] #view-insight .ins-jump a:hover{background:rgba(255,255,255,.1)}
-#view-insight .ins-jump a > .num:first-child{font:600 12px/1 var(--f-num);color:var(--ink-2)}
+/* 분류 바로가기 메뉴(번호 13px 이상, 사각 면 대신 가로 축 선) */
+#view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+#view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 6px;background:transparent;border-bottom:2px solid var(--axis);color:var(--ink-0);text-decoration:none}
+#view-insight .ins-jump a:hover{background:var(--hover)}
+:root[data-theme="dark"] #view-insight .ins-jump a{background:transparent}
+:root[data-theme="dark"] #view-insight .ins-jump a:hover{background:var(--hover)}
+#view-insight .ins-jump a > .num:first-child{font:600 13px/1 var(--f-num);color:var(--ink-2)}
 #view-insight .ins-jump .t{font:600 14px/1.25 var(--f-ko);word-break:keep-all}
 #view-insight .ins-jump b{margin-left:auto;font:400 26px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0)}
 
-/* 분류 묶음 */
+/* 분류 묶음(사각 패널 면 제거) */
+:is(#view-insight,#print-root) .ins-cat{background:transparent;box-shadow:none;border-top:2px solid var(--axis)}
+:is(#view-insight,#print-root) .ins-cat .panel-h{padding:14px 0 10px;background:transparent}
 :is(#view-insight,#print-root) .ins-cat .panel-h h2{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
 :is(#view-insight,#print-root) .ins-no{font:600 13px/1 var(--f-num);color:var(--ink-2)}
 :is(#view-insight,#print-root) .ins-cat h2 b{font:400 30px/1 var(--f-num);font-variant-numeric:tabular-nums;margin-left:4px}
 :is(#view-insight,#print-root) .ins-cat h2 .note{font:400 13px/1.4 var(--f-body)}
 :is(#view-insight,#print-root) .ins-cat .panel-h .r b{font:600 15px/1 var(--f-num);color:var(--ink-0)}
-:is(#view-insight,#print-root) .ins-gh{margin:0 24px 6px;padding:8px 12px;font:400 13px/1.55 var(--f-body);color:var(--ink-1);background:var(--panel-lo);word-break:keep-all}
-:is(#view-insight,#print-root) .ins-empty{margin:0;padding:4px 24px 18px;font:400 14px/1.6 var(--f-body);color:var(--ink-1)}
-:is(#view-insight,#print-root) .ins-it,:is(#view-insight,#print-root) .ins-rg{padding:0 24px}
+:is(#view-insight,#print-root) .ins-gh{margin:0 0 8px;padding:6px 0 6px 12px;font:400 13px/1.55 var(--f-body);color:var(--ink-1);background:transparent;border-left:2px solid var(--line-2);word-break:keep-all}
+:is(#view-insight,#print-root) .ins-empty{margin:0;padding:4px 0 18px;font:400 14px/1.6 var(--f-body);color:var(--ink-1)}
+:is(#view-insight,#print-root) .ins-it,:is(#view-insight,#print-root) .ins-rg{padding:0 4px}
 :is(#view-insight,#print-root) .ins-ih{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-height:44px;padding:4px 36px 2px 0}
 :is(#view-insight,#print-root) .ins-ih.selbar::before{right:-24px}
 :is(#view-insight,#print-root) .ins-t{font:600 15px/1.35 var(--f-ko);color:var(--ink-0)}
@@ -1480,7 +1483,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 }
 
 /* 뺀 포인트(접어 둔다) */
-#view-insight .ins-omit{margin:0 24px 14px;border-top:1px solid var(--line-2)}
+#view-insight .ins-omit{margin:0 0 14px;border-top:1px solid var(--line-2)}
 #view-insight .ins-omit summary{display:flex;align-items:center;gap:10px;min-height:42px;cursor:pointer;list-style:none;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
 #view-insight .ins-omit summary::-webkit-details-marker{display:none}
 #view-insight .ins-omit summary:hover{background:var(--hover)}
@@ -1491,11 +1494,10 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 #view-insight .ins-omit li{padding:7px 0;border-top:1px solid var(--line);font:400 13px/1.55 var(--f-body);color:var(--ink-0);word-break:keep-all}
 #view-insight .ins-omit li b{font-weight:600}
 
-/* 응대 카드 열: 옅은 기둥 위에 짙은 결과 카드 */
+/* 응대 카드 열: 바깥 상자 면은 걷어 내고 짙은 결과 카드(.ins-card)만 남긴다 */
 /* 안쪽 스크롤을 두지 않는다. top 은 tab5.js 의 stick 이 카드 높이로 정한다(카드가 화면보다 길면 음수) */
 #view-insight .ins-r{position:sticky;top:calc(var(--head-h) + 16px);min-width:0}
-#view-insight .ins-cw{position:relative;padding:16px 16px 16px;background:var(--panel)}
-#view-insight .ins-cw::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--top-line)}
+#view-insight .ins-cw{position:relative;padding:0;background:transparent}
 #view-insight .ins-ct{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 12px;margin-bottom:8px}
 #view-insight .ins-ct .k{display:flex;align-items:center;gap:8px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2)}
 #view-insight .ins-ct h2{margin:4px 0 0;font:600 18px/1.35 var(--f-ko);color:var(--ink-0)}
@@ -4836,7 +4838,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         <text class="gr-sub" x="422" y="159" text-anchor="middle">${esc(fmt(stCnt.pts))}</text>
       </svg>
       <div class="gr-actions">
-        <a class="btn btn-main" href="graph2.html">${esc(t('grOpenProtoBtn'))} ${ui.IC.chevR}</a>
+        <a class="btn ghost" href="graph2.html">${esc(t('grOpenProtoBtn'))} ${ui.IC.chevR}</a>
       </div>
     </div>`;
   }
@@ -6199,12 +6201,38 @@ App.registerTab((function () {
         ? `<dt>고지 기간 열쇠</dt><dd class="num">소견 ${esc(partsKey[0])}개월, 입원수술 ${esc(partsKey[1])}년, 중대질병 ${esc(partsKey[2])}년</dd>`
         : `<dt>심사 구분</dt><dd>${esc(typeKey)}</dd>`;
 
+      const inTypeVars = (G['V'] || []).filter(vid => {
+        const vf = info(vid);
+        if (!vf || vf['고지유형열쇠'] !== typeKey) return false;
+        return vf['회사'] === 'EPOST' || c.peerScope === 'all' || pSet.has(vf['회사']);
+      });
+      const scopeMap = new Map(), majListMap = new Map();
+      inTypeVars.forEach(vid => {
+        const vf = info(vid);
+        const org = txt.orgShort(vf['회사']);
+        if (vf['고지소견범위']) {
+          if (!scopeMap.has(vf['고지소견범위'])) scopeMap.set(vf['고지소견범위'], new Set());
+          scopeMap.get(vf['고지소견범위']).add(org);
+        }
+        if (vf['고지중대질병목록']) {
+          if (!majListMap.has(vf['고지중대질병목록'])) majListMap.set(vf['고지중대질병목록'], new Set());
+          majListMap.get(vf['고지중대질병목록']).add(org);
+        }
+      });
+      const scopeLineHTML = scopeMap.size
+        ? `<dt>최근 소견 범위</dt><dd>${[...scopeMap.entries()].map(([val, orgs]) => `${esc(val)} (${esc(txt.peerNamesEtc([...orgs], 4))})`).join(', ')}</dd>`
+        : '';
+      const majListHTML = majListMap.size
+        ? `<div class="note" style="margin-top:6px">${[...majListMap.entries()].map(([val, orgs]) => `<b>중대질병 목록(${esc(txt.peerNamesEtc([...orgs], 4))}):</b> ${esc(val)}`).join('<br>')}</div>`
+        : '';
+
       body += sec('이 유형의 질문과 가입나이 범위', `<p>${ui.flagText()}</p><dl class="kv" style="margin-top:6px">
         ${periodLine}
+        ${scopeLineHTML}
         <dt>수술 포함 여부</dt><dd>${esc(surgStr)}</dd>
         <dt>중대질병 질문 수</dt><dd>${esc(majStr)}</dd>
         <dt>가입나이(${esc(txt.sexText(c.st.sex))})</dt><dd>${esc(ageStr)}</dd>
-      </dl>`);
+      </dl>${majListHTML}`);
     }
 
     // 3. 우체국과의 차이 문장(자료의 관문 포인트)
@@ -6250,10 +6278,10 @@ App.registerTab((function () {
     const segs = lim ? (lim['구간'][c.st.sex] || []) : [];
     let body = sec('', `<p>${esc(condText())}에서 <b>${esc(stT)}</b>입니다.${k === 'only' ? ' 지금 조건의 지도 칸이 "우리 간편만 열림"이고 이 간편 종형이 열려 우리만 열림으로 칠했습니다.' : ''}</p>${why.length ? `<ul class="evl">${why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}${f['관문전용'] ? '<p class="note">관문만 수집(담보 미수집): 사업방법서의 가입 관문(고지 질문과 가입나이)만 수집했고 특약과 급부 담보는 수집하지 않아 담보 비교 대상에는 들지 않습니다.</p>' : ''}`);
     body += sec('고지 질문', simple ? `<p>${ui.flagText()}</p><dl class="kv">
-        <dt>최근 소견</dt><dd class="num">${esc(q.months)}개월</dd>
+        <dt>최근 소견</dt><dd class="num">${esc(q.months)}개월${f['고지소견범위'] ? ` (${esc(f['고지소견범위'])})` : ''}</dd>
         <dt>입원과 수술 질문 기간</dt><dd class="num">${q.hospYears === 0 ? '묻지 않음(0년)' : `${esc(q.hospYears)}년 안`}</dd>
         <dt>질문 범위</dt><dd>${esc(q.hospYears === 0 ? '입원과 수술 기간 질문 없음' : q.surgery == null ? '자료 없음' : (q.surgery ? '입원과 수술' : '입원만(수술만 받은 이력은 묻지 않음)'))}</dd>
-        <dt>중대질병 질문</dt><dd class="num">${esc(q.majorYears)}년 안 ${esc(q.majorCount)}개</dd></dl>`
+        <dt>중대질병 질문</dt><dd class="num">${esc(q.majorYears)}년 안 ${esc(q.majorCount)}개</dd></dl>${f['고지중대질병목록'] ? `<p class="note" style="margin-top:6px"><b>중대질병 목록:</b> ${esc(f['고지중대질병목록'])}</p>` : ''}`
       : `<p>일반심사 종형이라 간편 고지 질문 값이 없습니다. 일반심사 종형은 이력과 무관하게 심사로 확인합니다.</p>`);
     const span = f['가입나이'][c.st.sex];
     body += sec('가입나이와 한도', `<dl class="kv"><dt>가입나이(${esc(txt.sexText(c.st.sex))})</dt><dd class="num">${span ? `${span[0]}~${span[1]}세` : '자료 없음'}</dd>
@@ -7417,27 +7445,49 @@ App.registerTab((function () {
       ${h && h !== groupHead ? `<p class="ins-hd">${esc(h)}</p>` : ''}
       <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`;
   }
+  function revRowOrgs(d, c) {
+    if (!c || c.peerScope === 'all') return d['가진상대'] || [];
+    const pSet = new Set(c.activePeerOrgs || []);
+    const orgs = [];
+    const seen = new Set();
+    (d['가진종형ID'] || []).forEach(vid => {
+      const o = orgOf(vid);
+      if (pSet.has(o) && !seen.has(o)) { seen.add(o); orgs.push(txt.orgShort(o)); }
+    });
+    return orgs;
+  }
+  function revInScope(d, c, allowedIds) {
+    const p = S['포인트'][d['포인트ID']];
+    if (c.peerScope !== 'all') {
+      if (Array.isArray(d['가진종형ID']) && d['가진종형ID'].length) {
+        if (!revRowOrgs(d, c).length) return false;
+      } else if (p && !allowedIds.has(d['포인트ID'])) {
+        return false;
+      }
+    }
+    return !p || inPurpose(p);
+  }
   function revHTML(c, sel) {
     const allowedIds = new Set(pts(c).map(p => p['포인트ID']));
     const groups = (c.base['개정검토'] || []).map((g, gi) => ({
       g, gi,
-      ds: g['담보'].filter(d => {
-        const p = S['포인트'][d['포인트ID']];
-        if (c.peerScope !== 'all' && p && !allowedIds.has(d['포인트ID'])) return false;
-        return !p || inPurpose(p);
-      }),
+      ds: g['담보'].filter(d => revInScope(d, c, allowedIds)),
     })).filter(x => x.ds.length);
     if (!groups.length) return '<p class="ins-empty">조건과 비교 범위에 드는 개정 검토 후보가 없습니다.</p>';
     return `<ul class="lrows ins-rev" id="ins-rev">${groups.map(({ g, gi, ds }) => `<li class="lrow ins-rg" data-pick="r:${gi}">
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${g['중분류']}, 개정 검토 후보 ${ds.length}건. 근거 보기`)}"></button>
-        <div class="ins-ih selbar"><span class="ins-t">${esc(g['중분류'])}</span><span class="sub">${esc(g['대분류'])}</span>${ui.tag(`담보 ${ds.length}`)}${g['좁은담보만수'] ? ui.tag(`좁은 담보만 ${g['좁은담보만수']}`) : ''}</div>
+        <div class="ins-ih selbar"><span class="ins-t">${esc(g['중분류'])}</span><span class="sub">${esc(g['대분류'])}</span>${ui.tag(`담보 ${ds.length}`)}${g['좁은담보만수'] ? ui.tag(`좁은 담보만 ${g['좁은담보만수']}`) : ''}${c.peerScope !== 'all' ? ui.fullScopeTag() : ''}</div>
         <ul class="ins-rl">${ds.map(d => {
           const p = S['포인트'][d['포인트ID']];
+          const scOrgs = revRowOrgs(d, c);
+          const holderTxt = c.peerScope === 'all'
+            ? `가진 상대 <b class="num">${d['가진상대수']}</b>곳(${esc(txt.peerNamesEtc(d['가진상대'], 3))})`
+            : `선택 범위 <b class="num">${scOrgs.length}</b>곳(${esc(txt.peerNamesEtc(scOrgs, 3))}), 전체 <b class="num">${d['가진상대수']}</b>곳 ${ui.fullScopeTag()}`;
           return `<li><span class="live ins-ckw"><label class="ins-ck sm"><input type="checkbox" data-act="ins-pick" data-id="${esc(d['포인트ID'])}"${sel.has(d['포인트ID']) ? ' checked' : ''} aria-label="${esc(d['담보'])} 카드에 싣기"><span class="box" aria-hidden="true">${ui.IC.check}</span></label></span>
             <span class="rn">${esc(d['담보'])}</span><span class="rt">${esc(d['급부유형'])}</span>
-            <span class="rh">가진 상대 <b class="num">${d['가진상대수']}</b>곳(${esc(txt.peerNamesEtc(d['가진상대'], 3))})</span>
+            <span class="rh">${holderTxt}</span>
             <span class="ro">우리 쪽 ${esc(d['우리상태'])}</span>
-            <span class="rg">${p ? (p['근거'] || []).slice(0, 4).map(evChip).join('') : ''}</span></li>`;
+            <span class="rg">${p ? (p['근거'] || []).map(evChip).join('') : ''}</span></li>`;
         }).join('')}</ul>
         <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`).join('')}</ul>`;
   }
@@ -7464,7 +7514,7 @@ App.registerTab((function () {
     else if (!shown.length) list = '<p class="ins-empty">이 목적에 드는 항목이 없습니다.</p>';
     else list = `<ul class="lrows">${shown.map(p => itemHTML(p, sel, groupHead, c)).join('')}</ul>`;
     return `<section class="panel ins-cat" id="ins-cat-${i}" aria-labelledby="ins-cat-${i}-h">
-      <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(subT)}</span>
+      <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(subT)}${cat === '개정 검토 후보' && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</span>
         <h2 id="ins-cat-${i}-h"><span class="ins-no num">0${i + 1}</span>${esc(cat)} <b class="num">${n}</b>건${purpose && shown.length !== all.length && cat !== '개정 검토 후보' ? ` <span class="note">(목적에 맞는 ${shown.length}건)</span>` : ''}</h2></div>
         <div class="r"><span>카드에 실은 것 <b class="num">${inCard}</b>건</span>${cat === '개정 검토 후보' ? `<span class="live">${ui.btn('개정 검토 목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-rev"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="ins-cat-${i}" data-title="개정 검토 목록"` })}</span>` : ''}</div></div>
       ${groupHead ? `<p class="ins-gh">${esc(groupHead)}</p>` : ''}
@@ -7710,11 +7760,12 @@ App.registerTab((function () {
   }
   function copyRev() {
     const c = App.ctx();
+    const allowedIds = new Set(pts(c).map(p => p['포인트ID']));
     const rows = [];
-    (c.base['개정검토'] || []).forEach(g => g['담보'].forEach(d => {
+    (c.base['개정검토'] || []).forEach(g => g['담보'].filter(d => revInScope(d, c, allowedIds)).forEach(d => {
       const p = S['포인트'][d['포인트ID']];
-      if (p && !inPurpose(p)) return;
-      rows.push([g['대분류'], g['중분류'], d['담보'], d['급부유형'], d['가진상대수'], d['가진상대'].join(', '), d['우리상태'], p ? evText(p) : '']);
+      const scOrgs = revRowOrgs(d, c);
+      rows.push([g['대분류'], g['중분류'], d['담보'], d['급부유형'], scOrgs.length, scOrgs.join(', '), d['우리상태'], p ? evText(p) : '']);
     }));
     App.copyRows(['보장 대분류', '보장 중분류', '담보', '급부유형', '가진 상대 수', '가진 상대', '우리 쪽 상태', '근거 쪽'], rows, { title: `개정 검토 목록${purpose ? ` (목적 ${purpose})` : ''}` });
   }
@@ -7757,15 +7808,22 @@ App.registerTab((function () {
   function pickRev(c, gi) {
     const g = (c.base['개정검토'] || [])[gi];
     if (!g) return null;
-    const items = g['담보'].map(d => {
+    const allowedIds = new Set(pts(c).map(p => p['포인트ID']));
+    const ds = g['담보'].filter(d => revInScope(d, c, allowedIds));
+    const list = ds.length ? ds : g['담보'];
+    const items = list.map(d => {
       const p = S['포인트'][d['포인트ID']];
-      return `<li><b>${esc(d['담보'])}</b> ${ui.verdict('none')}<br><span class="note">가진 상대 ${d['가진상대수']}곳(${esc(txt.peerNamesEtc(d['가진상대'], 3))}), 우리 쪽 ${esc(d['우리상태'])}</span>${p ? `<p>${esc(p['문장'])}</p><div class="ins-evc">${(p['근거'] || []).slice(0, 4).map(evChip).join('')}</div>` : ''}</li>`;
+      const scOrgs = revRowOrgs(d, c);
+      const holderNote = c.peerScope === 'all'
+        ? `가진 상대 ${d['가진상대수']}곳(${esc(txt.peerNamesEtc(d['가진상대'], 3))})`
+        : `선택 범위 ${scOrgs.length}곳(${esc(txt.peerNamesEtc(scOrgs, 3))}), 전체 ${d['가진상대수']}곳`;
+      return `<li><b>${esc(d['담보'])}</b> ${ui.verdict('none')}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}<br><span class="note">${holderNote}, 우리 쪽 ${esc(d['우리상태'])}</span>${p ? `<p>${esc(p['문장'])}</p><div class="ins-evc">${(p['근거'] || []).map(evChip).join('')}</div>` : ''}</li>`;
     }).join('');
     return {
-      kicker: '개정 검토 후보, 보장 중분류', title: g['중분류'], badges: [ui.scope('base'), ui.tag(g['대분류']), ui.tag(`담보 ${g['담보수']}`)],
-      body: sec('', `<p>${esc(txt.josa(g['중분류'], '은'))} 담보 ${g['담보수']}개가 개정 검토 후보입니다${g['좁은담보만수'] ? `(우리 쪽에 좁은 담보만 있는 것 ${g['좁은담보만수']}개)` : ''}.</p>`)
+      kicker: '개정 검토 후보, 보장 중분류', title: g['중분류'], badges: [ui.scope('base'), ui.tag(g['대분류']), ui.tag(`담보 ${list.length}`), c.peerScope !== 'all' ? ui.fullScopeTag() : ''].filter(Boolean),
+      body: sec('', `<p>${esc(txt.josa(g['중분류'], '은'))} 담보 ${list.length}개가 개정 검토 후보입니다${g['좁은담보만수'] ? `(우리 쪽에 좁은 담보만 있는 것 ${g['좁은담보만수']}개)` : ''}.</p>`)
         + sec('담보', `<ul class="cv-evl">${items}</ul>`)
-        + sec('', `<p class="note">빈자리 기준은 맞붙는 상대 두 곳 이상이 가진 담보입니다. 담보 이름을 담보 비교 탭의 비교표에서 찾으면 회사별 조건이 보입니다.</p>${g['담보'].map(d => `<button type="button" class="btn sm" data-act="cv-goto" data-sid="${esc(d['표준담보ID'])}">${esc(d['담보'])} 비교표에서 보기${ui.IC.chevR}</button>`).join(' ')}`, true),
+        + sec('', `<p class="note">빈자리 기준은 맞붙는 상대 두 곳 이상이 가진 담보입니다. 담보 이름을 담보 비교 탭의 비교표에서 찾으면 회사별 조건이 보입니다.</p>${list.map(d => `<button type="button" class="btn sm" data-act="cv-goto" data-sid="${esc(d['표준담보ID'])}">${esc(d['담보'])} 비교표에서 보기${ui.IC.chevR}</button>`).join(' ')}`, true),
     };
   }
   function pick(key, c) {

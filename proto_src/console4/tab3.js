@@ -657,12 +657,38 @@ App.registerTab((function () {
         ? `<dt>고지 기간 열쇠</dt><dd class="num">소견 ${esc(partsKey[0])}개월, 입원수술 ${esc(partsKey[1])}년, 중대질병 ${esc(partsKey[2])}년</dd>`
         : `<dt>심사 구분</dt><dd>${esc(typeKey)}</dd>`;
 
+      const inTypeVars = (G['V'] || []).filter(vid => {
+        const vf = info(vid);
+        if (!vf || vf['고지유형열쇠'] !== typeKey) return false;
+        return vf['회사'] === 'EPOST' || c.peerScope === 'all' || pSet.has(vf['회사']);
+      });
+      const scopeMap = new Map(), majListMap = new Map();
+      inTypeVars.forEach(vid => {
+        const vf = info(vid);
+        const org = txt.orgShort(vf['회사']);
+        if (vf['고지소견범위']) {
+          if (!scopeMap.has(vf['고지소견범위'])) scopeMap.set(vf['고지소견범위'], new Set());
+          scopeMap.get(vf['고지소견범위']).add(org);
+        }
+        if (vf['고지중대질병목록']) {
+          if (!majListMap.has(vf['고지중대질병목록'])) majListMap.set(vf['고지중대질병목록'], new Set());
+          majListMap.get(vf['고지중대질병목록']).add(org);
+        }
+      });
+      const scopeLineHTML = scopeMap.size
+        ? `<dt>최근 소견 범위</dt><dd>${[...scopeMap.entries()].map(([val, orgs]) => `${esc(val)} (${esc(txt.peerNamesEtc([...orgs], 4))})`).join(', ')}</dd>`
+        : '';
+      const majListHTML = majListMap.size
+        ? `<div class="note" style="margin-top:6px">${[...majListMap.entries()].map(([val, orgs]) => `<b>중대질병 목록(${esc(txt.peerNamesEtc([...orgs], 4))}):</b> ${esc(val)}`).join('<br>')}</div>`
+        : '';
+
       body += sec('이 유형의 질문과 가입나이 범위', `<p>${ui.flagText()}</p><dl class="kv" style="margin-top:6px">
         ${periodLine}
+        ${scopeLineHTML}
         <dt>수술 포함 여부</dt><dd>${esc(surgStr)}</dd>
         <dt>중대질병 질문 수</dt><dd>${esc(majStr)}</dd>
         <dt>가입나이(${esc(txt.sexText(c.st.sex))})</dt><dd>${esc(ageStr)}</dd>
-      </dl>`);
+      </dl>${majListHTML}`);
     }
 
     // 3. 우체국과의 차이 문장(자료의 관문 포인트)
@@ -708,10 +734,10 @@ App.registerTab((function () {
     const segs = lim ? (lim['구간'][c.st.sex] || []) : [];
     let body = sec('', `<p>${esc(condText())}에서 <b>${esc(stT)}</b>입니다.${k === 'only' ? ' 지금 조건의 지도 칸이 "우리 간편만 열림"이고 이 간편 종형이 열려 우리만 열림으로 칠했습니다.' : ''}</p>${why.length ? `<ul class="evl">${why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}${f['관문전용'] ? '<p class="note">관문만 수집(담보 미수집): 사업방법서의 가입 관문(고지 질문과 가입나이)만 수집했고 특약과 급부 담보는 수집하지 않아 담보 비교 대상에는 들지 않습니다.</p>' : ''}`);
     body += sec('고지 질문', simple ? `<p>${ui.flagText()}</p><dl class="kv">
-        <dt>최근 소견</dt><dd class="num">${esc(q.months)}개월</dd>
+        <dt>최근 소견</dt><dd class="num">${esc(q.months)}개월${f['고지소견범위'] ? ` (${esc(f['고지소견범위'])})` : ''}</dd>
         <dt>입원과 수술 질문 기간</dt><dd class="num">${q.hospYears === 0 ? '묻지 않음(0년)' : `${esc(q.hospYears)}년 안`}</dd>
         <dt>질문 범위</dt><dd>${esc(q.hospYears === 0 ? '입원과 수술 기간 질문 없음' : q.surgery == null ? '자료 없음' : (q.surgery ? '입원과 수술' : '입원만(수술만 받은 이력은 묻지 않음)'))}</dd>
-        <dt>중대질병 질문</dt><dd class="num">${esc(q.majorYears)}년 안 ${esc(q.majorCount)}개</dd></dl>`
+        <dt>중대질병 질문</dt><dd class="num">${esc(q.majorYears)}년 안 ${esc(q.majorCount)}개</dd></dl>${f['고지중대질병목록'] ? `<p class="note" style="margin-top:6px"><b>중대질병 목록:</b> ${esc(f['고지중대질병목록'])}</p>` : ''}`
       : `<p>일반심사 종형이라 간편 고지 질문 값이 없습니다. 일반심사 종형은 이력과 무관하게 심사로 확인합니다.</p>`);
     const span = f['가입나이'][c.st.sex];
     body += sec('가입나이와 한도', `<dl class="kv"><dt>가입나이(${esc(txt.sexText(c.st.sex))})</dt><dd class="num">${span ? `${span[0]}~${span[1]}세` : '자료 없음'}</dd>

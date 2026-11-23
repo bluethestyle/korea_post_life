@@ -13,7 +13,7 @@
 /* 시간축 판: 줄 머리 146px + 여섯 마디를 균등 배치하는 시간축 트랙 */
 .mk-axis-board{display:flex;flex-direction:column;gap:14px}
 .mk-thead{display:grid;grid-template-columns:146px minmax(0,1fr);column-gap:16px;align-items:end;padding-bottom:2px}
-.mk-basis{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
+.mk-basis{font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
 .mk-tcols{display:flex;justify-content:space-between;align-items:end}
 .mk-tch{width:64px;text-align:center;font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
 
@@ -24,7 +24,7 @@
 
 .mk-rh{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
 .mk-rh-nm{font:600 14px/1.28 var(--f-ko);color:var(--ink-0);word-break:keep-all}
-.mk-rh-cnt{font:600 13px/1.2 var(--f-num);color:var(--ink-2)}
+.mk-rh-cnt{font:600 13px/1.2 var(--f-num);color:var(--ink-1)}
 
 .mk-track{display:flex;align-items:center;justify-content:space-between;min-width:0;width:100%}
 .mk-seg{position:relative;flex:1 1 auto;min-width:4px;height:0}
