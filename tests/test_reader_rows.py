@@ -210,6 +210,26 @@ def test_waiting_days_from_a_listing_sentence_pair_each_name():
     assert RR.wait_days_on_page("가나보장개시일", pair) == RR.wait_days_on_page("사아보장개시일", pair) == {90}
 
 
+CASE_LISTED = ("가나보장개시일, 다라 보장개시일 및 마바보장개시일의 경우 이 상품 보장개시일은 가입한 날에서 90일\n"
+               "뒤로 정하고, 사아보장개시일 및 자차보장개시일의 경우 이 상품\n보장개시일은 가입한 날에서 30일 뒤로 "
+               "정하며, 카타보장개시일의 경우 이 상품 보장개시일은 가입한 날에서 1년 뒤로 정한다.")
+
+
+def test_waiting_days_from_a_listing_that_ends_with_the_case_phrase():
+    # 나열의 마지막 이름 바로 뒤가 "의 경우 회사의 보장개시일은"이어도 그 나열의 날수와 짝짓는다
+    assert RR.wait_days_on_page("가나보장개시일", CASE_LISTED) == {90}
+    assert RR.wait_days_on_page("다라보장개시일", CASE_LISTED) == {90}
+    assert RR.wait_days_on_page("마바보장개시일", CASE_LISTED) == {90}
+    assert RR.wait_days_on_page("사아보장개시일", CASE_LISTED) == {30}
+    assert RR.wait_days_on_page("자차보장개시일", CASE_LISTED) == {30}
+    assert RR.wait_days_on_page("카타보장개시일", CASE_LISTED) == {365}
+    assert RR.wait_days_on_page("파하보장개시일", CASE_LISTED) == set()
+    c = RR.CoverView("R009-1", "카타 간병비", "카타보장개시일 이후 카타병으로 진단확정시", "가입금액", 3)
+    v = reading("R009-1", 면책일수=365, 보장개시일="카타보장개시일", 면책근거쪽=9)
+    assert RR.machine_checks(c, v, None, {9: CASE_LISTED})[0] == []
+    assert RR.machine_checks(c, {**v, "면책일수": 90}, None, {9: CASE_LISTED})[0] != []
+
+
 def test_waiting_days_from_a_waiting_table_beside_the_name():
     table = "보장명 면책기간 1년경과시점 전일 이전\n가나진단비 90일 가입금액의 50%\n다라진단비 - 가입금액의 50%\n"
     assert RR.wait_days_on_page(["가나보장개시일", "가나진단비"], table) == {90}
@@ -247,6 +267,110 @@ def test_no_row_lines_still_check_waiting_days_and_limits():
     assert RR.machine_checks(c, full) == ([], [])
     assert RR.machine_checks(c, v)[1] != []                        # 면책을 비워 두면 표시
     assert "구절없음: 한도 최초 1회" in RR.machine_checks(c, {**full, "한도": [{"앞말": "최초", "수": 1, "단위": "회"}]})[0]
+
+
+MISSED_CUT = "빠진 값: 감액을 가리키는 말이 있는데 감액이 비어 있음"
+MISSED_LIMIT = "빠진 값: 한도를 가리키는 말이 있는데 한도가 비어 있음"
+
+
+def test_cut_written_as_a_proviso_is_missed_when_left_empty():
+    # 두 판독이 함께 빠뜨린 단서의 감액은 견줌으로 잡히지 않는다. 글자에 감액을 가리키는 말이 있으면 표시
+    c = RR.CoverView("R009-1", "가나진단비", "보험기간 중 가나병으로 진단확정시. 단, 다라병은 1년미만 50% 지급", "가입금액", 3)
+    assert MISSED_CUT in RR.machine_checks(c, reading("R009-1"))[1]
+    cut = reading("R009-1", 감액=[{"기간": 1, "단위": "년", "값": 50, "값기준": "가입금액"}], 감액대상="다라병")
+    assert MISSED_CUT not in RR.machine_checks(c, cut)[1]
+    # 감액 칸을 모름으로 두면 표시하지 않는다(모름은 따로 판정필요다)
+    unknown = reading("R009-1", 모름=[{"칸": "감액", "이유": "단서가 어느 대상에 걸리는지 모름"}])
+    assert MISSED_CUT not in RR.machine_checks(c, unknown)[1]
+    amount = RR.CoverView("R009-2", "가나수술비", "가나병으로 수술시", "가입금액(가입 후 1년 경과시점 전일 이전 가입금액의 50%)", 3)
+    assert MISSED_CUT in RR.machine_checks(amount, reading("R009-2"))[1]
+
+
+def test_words_that_are_not_a_cut_are_not_marked():
+    # 진단 뒤의 기간, 나이, 사고 뒤의 날수, "감액기간 없음"은 감액이 아니다
+    for reason in ("「보험금지급기간」 이내에 가나치료를 받은 경우",
+                   "보험계약일을 기준으로 15세 미만인 경우 보험기간 중 가나병으로 진단확정시",
+                   "사고일로부터 180일 이내 치료를 목적으로 수술을 받은 경우",
+                   "가나 사고로 인한 경우 감액기간 없음"):
+        c = RR.CoverView("R009-1", "가나 치료비", reason, "가입금액", 3)
+        assert MISSED_CUT not in RR.machine_checks(c, reading("R009-1"))[1], reason
+
+
+def test_cut_words_in_the_appended_remark_are_not_the_line_evidence():
+    remark = "\n※ 가나보장개시일은 계약일부터 90일이 지난 다음날(1년 미만 50% 지급)"
+    c = RR.CoverView("R009-1", "가나 치료비", "보험기간 중 다라병으로 치료를 받은 경우" + remark, "가입금액", 3)
+    assert MISSED_CUT not in RR.machine_checks(c, reading("R009-1"))[1]
+
+
+def test_limit_words_left_empty_are_marked():
+    c = RR.CoverView("R009-1", "가나화상진단비", "가나화상 진단확정시(단, 같은 사고로 둘 이상이면 1회에 한하여 지급)", "가입금액", 3)
+    assert MISSED_LIMIT in RR.machine_checks(c, reading("R009-1"))[1]
+    d = RR.CoverView("R009-2", "가나 통원일당", "가나병으로 통원한 경우 통원 1회당 지급", "가입금액(연간 30일 한도)", 3)
+    marks = RR.machine_checks(d, reading("R009-2", 지급단위="1회당"))[1]
+    assert MISSED_LIMIT in marks
+    assert MISSED_LIMIT not in RR.machine_checks(d, reading("R009-2", 지급단위="1회당",
+                                                            한도=[{"앞말": "연간", "수": 30, "단위": "일"}]))[1]
+    # 돈의 한도에는 수가 붙지 않는다
+    e = RR.CoverView("R009-3", "가나 치료비", "가나병 치료시 항목별 금액 지급", "연간 총지급액 한도 이내", 3)
+    assert MISSED_LIMIT not in RR.machine_checks(e, reading("R009-3"))[1]
+
+
+def test_no_row_item_tables_keep_limits_per_item():
+    # 칸 안 표의 항목마다 걸린 한도는 그 줄의 한도가 아니다. 다른 행없음 줄은 한도를 본다
+    c = RR.CoverView("R009-1", "가나 통합치료비", "가나병 치료시 아래 항목별 금액 지급\n가나수술(연간 1회한)", "항목별 지급금액", 3)
+    items = {**RR.DEFAULTS, "번호": "R009-1", "쪽": 3, "꼴": RR.NO_ROW, "행없음사유": "항목별금액표"}
+    assert MISSED_LIMIT not in RR.machine_checks(c, items)[1]
+    assert MISSED_LIMIT in RR.machine_checks(c, {**items, "행없음사유": "회차별지급률"})[1]
+    # 행없음 줄은 감액을 보지 않는다
+    d = RR.CoverView("R009-2", "가나 치료비", "가나병 치료시", "회차별 금액(1년 미만 50% 지급)", 3)
+    assert MISSED_CUT not in RR.machine_checks(d, {**items, "번호": "R009-2", "행없음사유": "회차별지급률"})[1]
+
+
+def test_named_start_in_the_amount_cell_wants_waiting_days():
+    c = RR.CoverView("R009-1", "가나 진단비", "가나병으로 진단확정시", "가나보장개시일 이후 가입금액", 3)
+    assert "지급금액 칸이 이름이 붙은 보장개시일을 가리키는데 면책일수가 0" in RR.machine_checks(c, reading("R009-1"))[1]
+
+
+def test_name_marks_must_agree_with_the_values():
+    name = "가나통원일당(연간30회한)/갱신형 가나통원일당(연간30회한)"
+    c = RR.CoverView("R009-1", name, "가나병으로 통원한 경우 통원 1회당 지급(연간 30일 한도)", "가입금액", 3)
+    marks = RR.machine_checks(c, reading("R009-1", 지급단위="1회당", 한도=[{"앞말": "연간", "수": 30, "단위": "일"}]))[1]
+    # 이은 이름에서 같은 표식이 두 번 나와도 한 번만 낸다. 일당 이름의 1회당은 칸에 적힌 단위라 걸지 않는다
+    assert marks == ["이름 표식: 이름에 연간 30회 한도가 있는데 한도에 없음"]
+    named = reading("R009-1", 지급단위="1회당", 한도=[{"앞말": "연간", "수": 30, "단위": "회"}])
+    assert not [m for m in RR.machine_checks(c, named)[1] if m.startswith("이름 표식")]
+    lump = RR.CoverView("R009-2", "가나입원일당", "가나병으로 입원한 경우", "가입금액", 3)
+    assert "이름 표식: 이름에 일당이 있는데 지급단위가 비어 있음" in RR.machine_checks(lump, reading("R009-2"))[1]
+    free = RR.CoverView("R009-3", "가나진단비(감액및면책기간미적용)", "보험기간 중 가나병으로 진단확정시(최초 1회한)",
+                        "가입금액(1년 미만 가입금액의 50%)", 3)
+    v = reading("R009-3", 한도=[{"앞말": "최초", "수": 1, "단위": "회"}])
+    assert not [m for m in RR.machine_checks(free, v)[1] if m.startswith("이름 표식")]
+    cut = {**v, "감액": [{"기간": 1, "단위": "년", "값": 50, "값기준": "가입금액"}]}
+    assert "이름 표식: 이름에 감액 미적용이 있는데 감액이 있음" in RR.machine_checks(free, cut)[1]
+    waits = {**v, "면책일수": 90, "보장개시일": "가나보장개시일"}
+    assert "이름 표식: 이름에 면책기간 미적용이 있는데 면책일수가 있음" in RR.machine_checks(free, waits)[1]
+    days = RR.CoverView("R009-4", "가나입원일당(1일이상 180일한도)", "가나병으로 입원한 경우 1일당 지급", "가입금액", 3)
+    assert "이름 표식: 이름에 180일 한도가 있는데 한도에 없음" in RR.machine_checks(days, reading("R009-4", 지급단위="1일당"))[1]
+
+
+def test_name_marks_read_the_piece_title_too():
+    c = RR.CoverView("R009-1", "다라병", "보험기간 중 다라병으로 진단확정시(최초 1회한)", "가입금액", 3)
+    p = RR.PieceView(9, "가나진단비(최초1회한)", (), "", "", 3, 3, (c,))
+    assert RR.name_marks(p, c)["한도"] == [("최초", 1, "회")]
+    assert "이름 표식: 이름에 최초 1회 한도가 있는데 한도에 없음" in RR.machine_checks(c, reading("R009-1"), p)[1]
+    assert RR.machine_checks(c, reading("R009-1", 한도=[{"앞말": "최초", "수": 1, "단위": "회"}]), p) == ([], [])
+
+
+def test_compare_bundle_does_not_confirm_a_value_both_readers_missed():
+    bundle = {"형식": RR.BUNDLE_FORMAT, "묶음": "T_B01", "조각": [
+        {"조각번호": "R001", "쪽": [3, 3], "특약명": "가나진단비", "세부보장": [
+            {"번호": "R001-1", "쪽": 3, "세부보장명": "가나진단비", "지급사유": "가나병 진단확정시. 단, 다라병은 1년미만 50% 지급",
+             "지급금액": "가입금액"}]}]}
+    same = {"형식": RR.FORMAT, "값": [{"번호": "R001-1", "쪽": 3, "꼴": RR.RATIO, "지급률": 100}]}
+    result = compare_readers.compare_bundle(bundle, {"sonnet": same, "opus": same}, ["sonnet", "opus"])
+    line = result["줄"][0]
+    assert line["일치"]["감액"] == RR.SAME and line["자동판정"] == RR.NEEDS_JUDGE
+    assert MISSED_CUT in line["기계검사"]["sonnet"]["표시"]
 
 
 def test_limit_and_unit_phrases_are_cut_from_the_text():
@@ -538,3 +662,72 @@ def test_check_file_reports_targets_of_same_name_covers():
     problems = compare_readers.check_file(bundle, {"형식": RR.FORMAT, "묶음": bundle["묶음"], "값": list(values.values())})
     assert problems == ["R001-1: 이름이 같은 줄이 없는데 대상이 있음",
                         "R003: 이름이 같은 줄(R003-1, R003-2)의 대상이 비었거나 서로 같음"]
+
+
+# ---------------------------------------------------------------------------
+# 조각 지문과 이름 보류
+# ---------------------------------------------------------------------------
+
+def test_fingerprint_ignores_spaces_but_not_letters_or_the_piece_head():
+    from_pieces = {c.number: RR.cover_fingerprint(p, c) for p in views() for c in p.covers}
+    assert len(set(from_pieces.values())) == len(from_pieces)
+    assert all(len(x) == RR.FINGERPRINT_LENGTH for x in from_pieces.values())
+    # 하나뿐인 특약명들은 적지 않은 것과 같다
+    alone = pieces_file([{k: v for k, v in SAMPLE["조각"][0].items() if k != "특약명들"}], notes=SAMPLE["주석"])
+    p = RR.load_pieces(alone)[0]
+    assert RR.cover_fingerprint(p, p.covers[0]) == from_pieces["R001-1"]
+    other_label = pieces_file([{**SAMPLE["조각"][0], "구분": "선택계약"}], notes=SAMPLE["주석"])
+    p = RR.load_pieces(other_label)[0]
+    assert RR.cover_fingerprint(p, p.covers[0]) != from_pieces["R001-1"]
+    spaced = pieces_file([piece("가나 진단비", [cover("가나  진단비", "가나병으로 진단\n확정된 경우 (최초 1회한)",
+                                                       "가입금액(가입 1년 안에는 가입금액의  50%)")], label="기본계약")],
+                         notes=SAMPLE["주석"])
+    p = RR.load_pieces(spaced)[0]
+    assert RR.cover_fingerprint(p, p.covers[0]) == from_pieces["R001-1"]
+    changed = pieces_file([piece("가나 진단비", [cover("가나 진단비", "가나병으로 진단 확정된 경우 (최초 1회한)",
+                                                        "가입금액(가입 1년 안에는 가입금액의 60%)")], label="기본계약")],
+                          notes=SAMPLE["주석"])
+    p = RR.load_pieces(changed)[0]
+    assert RR.cover_fingerprint(p, p.covers[0]) != from_pieces["R001-1"]
+
+
+GLUED = pieces_file([
+    # 세부보장 넷의 이름이 한 줄로 이어 붙고, 지급사유는 문단마다 대상이 하나씩이다
+    piece("가나 진단비", [cover("가가종양진단비나나,다다종양진단비라라종양진단비",
+                               "「가가종양」으로 진단확정되면 한 번 줌\n· 「나나,다다종양」으로 진단확정되면 한 번 줌\n"
+                               "· 「라라종양」으로 진단확정되면 한 번 줌", "가입금액")]),
+    # 따옴표 없이 "…으로 진단확정"만 적힌 대상
+    piece("마바 전이암진단비", [cover("마바전이암사아전이암", "마바보장개시일 뒤에 마바전이암으로 진단확정되면 줌\n"
+                                                         "※ 마바보장개시일은 가입 90일 뒤이고그 뒤에 사아전이암으로 진단확정되면 줌",
+                                     "가입금액")]),
+    # 같은 꼬리표가 되풀이되고 빈칸 없이 다음 이름이 이어진다
+    piece("자차 치료비(체증형)", [cover("가가암(체증형)나나암(체증형)다다암(체증형)", "암구분별 진단 후 경과 연도별로 지급", "가입금액")]),
+    # 이름 칸에 지급사유 문장
+    piece("카타 진단및치료비", [cover("카타 사고로 다친 경우 해마다 한 번 지급", "카타 경증진단비", "가입금액")]),
+    # 걸리면 안 되는 이름: 상위 이름과 세부 이름을 빈칸으로 이은 이름, 본형과 갱신형을 "/"로 이은 이름, 대상이 한 줄에 둘인 이름
+    piece("파하 진단및치료비", [cover("파하 진단및치료비 파하진단비", "「파하」로 진단확정되면 줌\n· 파하 진단 뒤 치료", "가입금액")]),
+    piece("가나 수술비/갱신형 가나 수술비", [cover("가나 수술비/갱신형 가나 수술비", "「가나」로 진단확정된 뒤 수술하면 줌",
+                                                  "가입금액")], names=["가나 수술비", "갱신형 가나 수술비"]),
+    piece("다라암 진단비", [cover("다라암 및 마바암 진단비", "「다라암」또는「마바암」으로 진단확정되면 줌", "가입금액")]),
+    piece("사아 입원일당", [cover("사아입원일당(1일이상)(요양병원제외)", "사아로 입원한 경우(1일이상)", "1일당 가입금액")]),
+])
+
+
+def test_glued_and_sentence_names_are_held():
+    problems = {c.number: RR.name_problem(c) for p in RR.load_pieces(GLUED) for c in p.covers}
+    held = {n for n, why in problems.items() if why}
+    assert held == {"R001-1", "R002-1", "R003-1", "R004-1"}
+    assert problems["R004-1"].startswith(f"{RR.HOLD}: 이름 칸에 지급사유 문장")
+    assert all(problems[n].startswith(f"{RR.HOLD}: 세부보장 이름 여럿이") for n in ("R001-1", "R002-1", "R003-1"))
+
+
+def test_held_names_make_no_row_whatever_the_reading():
+    pieces = RR.load_pieces(GLUED)
+    values = {c.number: reading(c.number) for p in pieces for c in p.covers}
+    built = RR.build_rows(VID, pieces, values, renewal_years=20)
+    made = {n for nums in built.numbers.values() for n in nums}
+    assert made == {"R005-1", "R006-1", "R007-1", "R008-1"}
+    assert all(built.skipped[n].startswith(RR.HOLD) for n in ("R001-1", "R002-1", "R003-1", "R004-1"))
+    # 보류한 줄도 특약 행은 남는다. 특약ID는 조각 이름으로 만든다
+    assert "가나 진단비" in {r["원시특약명"] for r in built.riders}
+    assert any(n.startswith("행을 만들지 않은 줄: 보류 4") for n in built.notes)
