@@ -5,45 +5,48 @@
 /* ---------- 1. 토큰 ---------- */
 :root{
   color-scheme: light;
-  /* 바탕 */
-  --fog-0:#C9CDD2; --fog-1:#E9E9E7;
-  --cloud-a:rgba(255,255,255,.34); --cloud-b:rgba(255,255,255,.22);
-  --cloud-d:rgba(140,148,158,.16); --cloud-h:rgba(255,255,255,.55);  /* 위쪽의 짙은 구름 자국, 아래 지평선의 밝음 */
-  /* 면: 흰 면은 입력 칸과 응대 카드 미리 보기에만(화면 넓이 10% 안쪽) */
+  /* 바탕: 구름 낀 하늘에서 지평선 안개로 이어지는 명도 층(흰 면 240 한도 아래로 유지) */
+  --fog-0:#B7BFC8; --fog-1:#DBE0E5;
+  --cloud-a:rgba(238,241,244,.38); --cloud-b:rgba(232,236,240,.26);
+  --cloud-d:rgba(68,80,94,.20); --cloud-h:rgba(235,238,242,.62);  /* 위쪽의 짙은 구름 자국, 아래 지평선의 밝음 */
+  --geo-hi:#EEF1F4; --geo-lo:#C4CCD5; --geo-dark:#515E6D;
+  --geo-edge:rgba(255,255,255,.52); --geo-grid:rgba(21,29,36,.11);
+  /* 면: 흰 면은 입력 칸과 응대 카드 미리 보기에만(화면 넓이 10% 안쪽). 패널은 뒤 기하 층이 은은히 비치는 반투명 */
   --white:rgba(247,247,245,.92);
-  --panel:rgba(226,229,233,.82);          /* 목록, 패널 */
-  --panel-t:rgba(226,229,233,.90);        /* 표 */
-  --panel-hi:rgba(236,238,240,.86);       /* 한 기둥 안 첫째 층(머리) */
-  --panel-lo:rgba(210,214,219,.88);       /* 한 기둥 안 셋째 층(근거, 뺀 것) */
-  --slate:rgba(58,66,74,.88);             /* 강조 패널, 고른 탭 */
+  --panel:rgba(228,232,237,.76);          /* 목록, 패널 */
+  --panel-t:rgba(230,234,238,.86);        /* 표 */
+  --panel-hi:rgba(237,240,243,.82);       /* 한 기둥 안 첫째 층(머리) */
+  --panel-lo:rgba(210,215,222,.82);       /* 한 기둥 안 셋째 층(근거, 뺀 것) */
+  --panel-edge:rgba(255,255,255,.46);
+  --slate:rgba(52,60,68,.86);             /* 강조 패널, 고른 탭 */
   --slate-solid:#424A52;
   --pillar:rgba(255,255,255,.28);         /* 제목과 큰 숫자만 얹는 옅은 기둥 */
-  --scrim:rgba(204,208,213,.96);          /* 고정된 위 띠의 바탕(안개와 같은 색). 아래로 지나가는 내용이 비치지 않게 짙게 */
+  --scrim:rgba(194,201,209,.92);          /* 고정된 위 띠의 바탕. 아래로 지나가는 내용이 비치지 않게 */
   /* 글자: 본문 7:1 이상, 가장 흐린 글자도 4.5:1 이상 */
-  --ink-0:#151D24; --ink-1:#2D333A; --ink-2:#4A535D; --ink-3:#59636E;
+  --ink-0:#151D24; --ink-1:#2A3138; --ink-2:#3E4751; --ink-3:#59636E;
   --on-slate:#FFFFFF; --on-slate-2:rgba(255,255,255,.88);
-  --line:rgba(21,29,36,.09); --line-2:rgba(21,29,36,.18); --hover:rgba(21,29,36,.05);
+  --line:rgba(21,29,36,.10); --line-2:rgba(21,29,36,.19); --hover:rgba(21,29,36,.05);
   --top-line:#FFFFFF;
   /* 빨강: 고른 것, 작은 눈금, 원문 확인 표식에만. 화면 넓이 2.5% 이하 */
   --red:#A30D0D; --red-hi:#B01212; --red-deep:#860000; --red-ink:#A30D0D;
-  /* 금색: 우체국이 나은 것과 우리 간편만 열림 */
-  --gold:#CDBE7E; --gold-line:#8A7D45; --gold-soft:rgba(205,190,126,.22); --gold-edge:#7A6D38; --gold-map:#D8CCA0;
+  /* 금색: 우체국이 나은 것과 우체국에 있는 것, 우리 간편이 열리는 칸 */
+  --gold:#CDBE7E; --gold-line:#8A7D45; --gold-soft:rgba(205,190,126,.24); --gold-open:rgba(205,190,126,.44); --gold-edge:#7A6D38; --gold-map:#D8CCA0;
   /* 판정 */
   --worse:#1E242B; --on-worse:#FFFFFF; --worse-edge:#FFFFFF;
-  /* 모름 글자: 합의안의 #59636E 는 셋째 층(--panel-lo) 위에서 4.27 이라 4.5 를 넘는 #4A535D 로 둔다 */
-  --hatch:rgba(74,83,93,.30); --dash:#9AA2AA; --unknown-edge:#AEB5BC; --unknown-ink:#4A535D;
+  /* 모름 글자: 셋째 층(--panel-lo) 위에서도 4.5 를 넘는 #3E4751 */
+  --hatch:rgba(74,83,93,.30); --dash:#9AA2AA; --unknown-edge:#AEB5BC; --unknown-ink:#3E4751;
   /* 고른 행의 몸통(머리 줄 아래)에 까는 옅은 면. 왼쪽 3px 빨강 선과 함께 쓴다 */
   --sel-tint:rgba(255,255,255,.34); --sel-fade:#424A52;
   /* 고객군 지도의 다섯 라벨(관문 상태이지 우열이 아니다) */
   --m-only:#D8CCA0; --m-only-fg:#151D24;
-  --m-both:#F2F2F1; --m-both-fg:#151D24;
-  --m-ours:#AEB4BA; --m-ours-fg:#151D24;
+  --m-both:#ECEEEF; --m-both-fg:#151D24;
+  --m-ours:#AEB5BD; --m-ours-fg:#151D24;
   --m-all:#59636E;  --m-all-fg:#FFFFFF;
-  --m-none:transparent; --m-none-fg:#2D333A;
-  /* 안내선 */
-  --guide:rgba(255,255,255,.35); --guide-lo:rgba(255,255,255,.14); --tick:#FFFFFF;
+  --m-none:transparent; --m-none-fg:#2A3138;
+  /* 안내선과 바닥 격자 */
+  --guide:rgba(255,255,255,.50); --guide-lo:rgba(255,255,255,.22); --tick:#FFFFFF;
   --dot-a:rgba(255,255,255,.62); --dot-b:rgba(255,255,255,.24);
-  --floor:#FFFFFF;
+  --floor:rgba(255,255,255,.88); --floor-ink:rgba(21,29,36,.22); --floor-block:rgba(66,78,92,.22);
   /* 글꼴: PLNum 은 숫자와 영문(Saira Semi Condensed), PLKo 는 한글(SUIT). 숫자가 앞서므로 섞인 글에서 숫자만 Saira 로 그려진다 */
   --f-body:"PLNum","PLKo","SUIT","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   --f-ko:"PLKo","SUIT","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
@@ -56,20 +59,23 @@
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --fog-0:#0E1318; --fog-1:#1A2128;
-  --cloud-a:rgba(255,255,255,.035); --cloud-b:rgba(255,255,255,.025);
-  --cloud-d:rgba(0,0,0,.22); --cloud-h:rgba(120,140,160,.10);
+  --fog-0:#0B1016; --fog-1:#18212B;
+  --cloud-a:rgba(160,185,210,.055); --cloud-b:rgba(150,175,200,.038);
+  --cloud-d:rgba(0,0,0,.32); --cloud-h:rgba(120,148,176,.14);
+  --geo-hi:#6E8399; --geo-lo:#222E3B; --geo-dark:#05080C;
+  --geo-edge:rgba(180,202,224,.18); --geo-grid:rgba(180,202,224,.07);
   --white:rgba(8,12,16,.72);
-  --panel:rgba(26,33,40,.88); --panel-t:rgba(26,33,40,.92);
-  --panel-hi:rgba(38,46,54,.90); --panel-lo:rgba(16,21,26,.90);
-  --slate:rgba(66,76,86,.92); --slate-solid:#424C56;
-  --pillar:rgba(255,255,255,.035);
-  --scrim:rgba(14,19,24,.96);
+  --panel:rgba(22,29,37,.80); --panel-t:rgba(22,29,37,.88);
+  --panel-hi:rgba(34,43,52,.84); --panel-lo:rgba(14,19,25,.86);
+  --panel-edge:rgba(255,255,255,.07);
+  --slate:rgba(62,72,82,.90); --slate-solid:#424C56;
+  --pillar:rgba(255,255,255,.04);
+  --scrim:rgba(12,17,22,.93);
   --ink-0:#E8EAEB; --ink-1:#C3C8CD; --ink-2:#9AA2AA; --ink-3:#9AA2AA;
-  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.16); --hover:rgba(255,255,255,.05);
+  --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.17); --hover:rgba(255,255,255,.05);
   --top-line:rgba(255,255,255,.92);
   --red:#CC2222; --red-hi:#CC2222; --red-deep:#A31616; --red-ink:#FF6B66;
-  --gold:#CDC081; --gold-line:#9D905A; --gold-soft:rgba(205,192,129,.16); --gold-edge:#B3A566; --gold-map:#B7AA72;
+  --gold:#CDC081; --gold-line:#9D905A; --gold-soft:rgba(205,192,129,.18); --gold-open:rgba(205,192,129,.30); --gold-edge:#B3A566; --gold-map:#B7AA72;
   --worse:#D5D9DC; --on-worse:#151D24; --worse-edge:#151D24;
   --hatch:rgba(154,162,170,.30); --dash:#7B848D; --unknown-edge:#7B848D; --unknown-ink:#AEB5BC;
   --sel-tint:rgba(255,255,255,.05); --sel-fade:#424C56;
@@ -78,9 +84,10 @@
   --m-ours:#2E363E; --m-ours-fg:#E8EAEB;
   --m-all:#171D23;  --m-all-fg:#C3C8CD;
   --m-none:transparent; --m-none-fg:#C3C8CD;
-  --guide:rgba(255,255,255,.14); --guide-lo:rgba(255,255,255,.06); --tick:rgba(255,255,255,.7);
-  --dot-a:rgba(255,255,255,.16); --dot-b:rgba(255,255,255,.06);
-  --floor:#9FB0C0;
+  --guide:rgba(255,255,255,.18); --guide-lo:rgba(255,255,255,.07); --tick:rgba(255,255,255,.76);
+  --dot-a:rgba(255,255,255,.18); --dot-b:rgba(255,255,255,.07);
+  /* 짙은 스킨의 바닥 선: 안개 위 13px 글자(--ink-1)가 선과 겹쳐도 4.5:1 을 넘게 .38 로 둔다 */
+  --floor:rgba(165,188,210,.38); --floor-ink:rgba(0,0,0,.55); --floor-block:rgba(140,165,190,.12);
 }
 @media (max-width:1599px){:root{--pad:32px;--ev-w:clamp(340px,30vw,424px)}}
 @media (max-width:999px){:root{--pad:16px;--gap:16px;--head-h:64px}}
@@ -106,14 +113,15 @@ button{cursor:pointer}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 
 .bg{position:fixed;inset:0;pointer-events:none;z-index:0}
-/* 층 2: 원근 격자선 바닥. 화면 아래 20%에만 */
+/* 층 2a: 기울어진 반투명 기둥과 큰 사선 면 */
+.bg-geo{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* 층 2b: 원근 격자선 바닥. 화면 아래 20%에만 깔리고(기준표 10절) 먼 쪽이 흐려진다 */
 .floor{position:absolute;left:0;right:0;bottom:0;width:100%;height:20vh;display:block}
-.floor g{stroke:var(--floor)}
 /* 층 3: 세로 안내선 묶음, 수평 기준선, 눈금 */
 .guides{position:absolute;inset:0}
 .gl{position:absolute;top:0;bottom:0;width:1px;background:var(--guide-lo)}
-.gl.c{background:var(--guide)}
-.hl{position:absolute;left:0;right:0;height:1px;background:var(--guide)}
+.gl.c{background:var(--guide);box-shadow:1px 0 0 rgba(21,29,36,.06)}
+.hl{position:absolute;left:0;right:0;height:1px;background:var(--guide);box-shadow:0 1px 0 rgba(21,29,36,.06)}
 .tk{position:absolute;width:14px;height:3px;background:var(--tick);transform:translate(-7px,-1px)}
 .tk.red{background:var(--red);transition:left var(--t-ev) var(--ease)}
 /* 층 3: 점 무늬 밭(제목 뒤) */
@@ -169,7 +177,8 @@ button{cursor:pointer}
 @media (max-width:999px){ .work{display:block} }
 
 /* 조건 줄: "라벨 / 값"(acs_34)을 세로로 쌓아 가로로 늘어놓는다. 입력 칸만 흰 면 */
-.cond{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--panel);position:relative}
+.cond{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--panel);position:relative;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px var(--panel-edge)}
 .cond::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--top-line)}
 .cg{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;padding:9px 20px 8px}
 .cg + .cg{border-left:1px solid var(--line-2)}
@@ -259,7 +268,8 @@ button{cursor:pointer}
 .ev{position:fixed;right:var(--pad);top:var(--ev-top,calc(var(--head-h) + 16px));width:var(--ev-w);
   max-height:calc(100vh - var(--ev-top,calc(var(--head-h) + 16px)) - 16px);min-width:0;z-index:5}
 .ev-slot{min-height:1px}
-.ev-in{position:relative;display:flex;flex-direction:column;max-height:inherit;background:var(--panel)}
+.ev-in{position:relative;display:flex;flex-direction:column;max-height:inherit;background:var(--panel);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px var(--panel-edge)}
 .ev-in::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--top-line);z-index:2}
 .ev-top{position:relative;flex:none;padding:20px 20px 16px;background:var(--panel-hi)}
 .ev-krow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px}
@@ -304,7 +314,8 @@ button{cursor:pointer}
 .vhead{position:relative;display:flex;align-items:flex-end;gap:var(--gap);min-height:108px}
 .vhead-aside{flex:1 1 auto;min-width:0}
 .ttl{position:relative;flex:none;width:264px;padding:8px 0 14px;z-index:1}
-.ttl-k{font:600 13px/1.3 var(--f-ko);color:var(--ink-2)}
+/* 패널 없이 안개 위에 놓이는 작은 글(탭 이름표, 띠 머리, 띠 이름표, 맨 아래 고지)은 뒤로 기하 기둥과 바닥 격자가 지나가므로 한 단 짙게 쓴다 */
+.ttl-k{font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
 .ttl-t{margin:2px 0 0;font:600 32px/1.2 var(--f-ko);color:var(--ink-0);letter-spacing:0;word-break:keep-all}
 .ttl-i{display:flex;align-items:center;gap:8px;height:4px;margin-top:12px}
 .ttl-i i{display:block;width:4px;height:4px;background:var(--ink-3)}
@@ -320,11 +331,12 @@ button{cursor:pointer}
 [id]{scroll-margin-top:calc(var(--head-h) + 16px)}
 
 /* ---------- 6. 패널 ---------- */
-.panel{position:relative;background:var(--panel)}
+.panel{position:relative;background:var(--panel);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  box-shadow:inset 0 0 0 1px var(--panel-edge)}
 .panel::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--top-line);z-index:1}
 .panel.flat::before{display:none}
 .panel.tbl-wrap{background:var(--panel-t)}
-.panel.slate{background:var(--slate);color:var(--on-slate)}
+.panel.slate{background:var(--slate);color:var(--on-slate);box-shadow:none}
 .panel.slate::before{display:none}
 .panel-h{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;padding:18px 24px 12px}
 .panel-h .k{display:block;font:600 13px/1.3 var(--f-ko);color:var(--ink-2)}
@@ -599,7 +611,7 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
    표와 목록이 길게 이어지는 구역 위에 둔다. 기둥에는 제목과 큰 숫자만, 본문과 표는 얹지 않는다 */
 .sband{position:relative;display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);align-items:stretch;margin:var(--gap) 0 12px;min-height:100px}
 .sb-t{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding:18px 22px 14px}
-.sb-t .k{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2)}
+.sb-t .k{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
 .sb-t h2{margin:0;font:600 20px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
 .sb-tk{position:absolute;left:-7px;top:-1px;width:14px;height:3px;background:var(--tick);z-index:2}
 .sb-s{display:flex;flex-wrap:wrap;align-items:flex-end;padding:0 0 8px}
@@ -607,7 +619,7 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 .sb-st:first-child{border-left-color:transparent}
 .sb-st .big{font-size:40px}
 .sb-st .big .u{font-size:14px;margin-left:4px}
-.sb-l{font:600 13px/1.3 var(--f-ko);color:var(--ink-1);word-break:keep-all;max-width:15em}
+.sb-l{font:600 13px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all;max-width:15em}
 .sb-st .hbar{width:100%;min-width:80px}
 .sb-f{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;padding:10px 22px 0}
 .sb-f .note{margin:0}

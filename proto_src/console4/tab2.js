@@ -11,7 +11,6 @@ App.registerTab((function () {
   const ORG_INI = { EPOST: '우', HANWHALIFE: '한', SAMSUNGFIRE: '삼' };
   const ST_IC = { '열림': ui.IC.open, '닫힘': ui.IC.lock, '심사로 확인': ui.IC.check, '나이 자료 없음': ui.IC.hatch, '질문 자료 없음': ui.IC.hatch };
   const REN_OPTS = [{ v: null, t: '전체' }, { v: '갱신', t: '갱신' }, { v: '비갱신', t: '비갱신' }];
-  const BASE_IDS = S['기준종형'].map(b => b['종형ID']);
   const NEWS = S['시장소식'];
   const REV = S['개정변동'];
 
@@ -291,19 +290,9 @@ App.registerTab((function () {
     const head = p['머리말'] != null ? S['글'][p['머리말']] : '';
     return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p>${head ? `<p class="note">${esc(head)}</p>` : ''}</li>`;
   }
-  function applyPatch(map, ri, ci, c) {
-    const row = map['행'][ri], col = map['열'][ci], cell = cellAt(map, ri, ci);
-    const st = c.st;
-    const age = st.age >= col.lo && st.age <= col.hi ? st.age : col.lo;
-    let since = row.since;
-    if (row.since === 5 && row['종류'] === '입원' && st.since == null) since = null;
-    const patch = { age, since, surg: row['종류'] === '수술만' };
-    if (cell && cell['대표'] && BASE_IDS.includes(cell['대표'])) patch.base = cell['대표'];
-    return patch;
-  }
-  function samePatch(patch, st) {
-    return Object.keys(patch).every(k => JSON.stringify(patch[k]) === JSON.stringify(st[k]));
-  }
+  // 칸에서 조건 줄 값을 만드는 규칙은 core 의 segPatch 하나를 브리핑과 함께 쓴다
+  const applyPatch = (map, ri, ci, c) => App.segPatch(map, ri, ci, c.st);
+  const samePatch = (patch, st) => App.samePatch(patch, st);
   function cellSpec(c, ri, ci, opts = {}) {
     const map = App.mapOf(c.st.renewal);
     const cell = cellAt(map, ri, ci);
@@ -327,7 +316,7 @@ App.registerTab((function () {
     const anyFlag = (cell['관문포인트'] || []).some(id => S['포인트'][id] && S['포인트'][id]['원문대조']) || cell['라벨'] === '우리 간편만 열림';
     const patch = applyPatch(map, ri, ci, c);
     const same = samePatch(patch, c.st);
-    const patchT = `${patch.age}세, ${patch.since == null ? '이력 없음' : `${patch.surg ? '수술만' : '입원이나 수술'} ${txt.sinceText(patch.since)}`}${patch.base ? `, 기준 종형 ${vk(patch.base)}` : ''}`;
+    const patchT = App.segPatchText(patch);
     const reps = ORGS.filter(o => o !== 'EPOST').map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean);
     let body = sec('', `<p><b>${esc(cell['라벨'])}</b>${sub.length ? ` (${esc(sub.join(', '))})` : ''}. ${esc(row['이름'])}, ${esc(colText(col))}의 고객군입니다.${now ? ' 지금 조건이 가리키는 칸입니다.' : ''}</p>${gateOnly.length ? `<p class="note">${gateOnly.map(x => `${esc(x['이름'])}: <b>${esc(x['안내'] || '관문만 수집(담보 미수집)')}</b>`).join(', ')}</p>` : ''}${anyFlag ? `<p>${ui.flagText()}</p>` : ''}`);
     body += sec('회사별 관문과 열린 종형', `<ul class="evl">${orgRows}</ul>`);

@@ -143,7 +143,7 @@
     surg: false,
     base: BASES[0]['종형ID'],
     renewal: null,
-    sel: {},
+    sel: { brief: '가' },
     skin: 'light',
     motion: 'on',
   };
@@ -167,6 +167,20 @@
     if (s.sex !== m['성별']) out.sexNote = `${sexText(s.sex)} 지도 자료 없음: 고객군 지도는 ${sexText(m['성별'])} 기준으로만 계산해 ${sexText(m['성별'])} 칸을 보입니다`;
     return out;
   }
+  /** cellOf 의 반대: 지도 m 의 칸(ri, ci)을 가리키게 하는 조건 줄 값. 지금 나이가 칸 안이면 나이를 두고,
+      칸의 대표 종형이 기준 종형이면 기준 종형도 바꾼다(고객군 탭과 브리핑의 "이 고객군으로 조건 바꾸기"가 함께 쓴다) */
+  function segPatch(m, ri, ci, s = st) {
+    const row = m['행'][ri], col = m['열'][ci], cell = (m['칸'][ri] || [])[ci] || null;
+    if (!row || !col) return null;
+    const age = s.age >= col.lo && s.age <= col.hi ? s.age : col.lo;
+    let since = row.since;
+    if (row.since === 5 && row['종류'] === '입원' && s.since == null) since = null;
+    const patch = { age, since, surg: row['종류'] === '수술만' };
+    if (cell && cell['대표'] && BASES.some(b => b['종형ID'] === cell['대표'])) patch.base = cell['대표'];
+    return patch;
+  }
+  const segPatchText = p => `${p.age}세, ${p.since == null ? '이력 없음' : `${p.surg ? '수술만' : '입원이나 수술'} ${sinceText(p.since)}`}${p.base ? `, 기준 종형 ${vkind(p.base)}` : ''}`;
+  const samePatch = (p, s = st) => Object.keys(p).every(k => JSON.stringify(p[k]) === JSON.stringify(s[k]));
   /** 지금 나이와 성별에서 기준 종형의 주계약 최대 가입금액(한도표) */
   function limitOf(s = st) {
     const t = (S['한도표'] || []).find(x => x['종형ID'] === s.base);
@@ -1075,7 +1089,7 @@
     set, on, ctx: () => ctx(), registerTab, go, select, unselect, reveal,
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showDefaultEv(true), legend: legendHTML },
     ui: UI, txt: TXT, mode, motionOn,
-    cellOf, limitOf, mapOf, condSummary, scopeLine, asofText,
+    cellOf, segPatch, segPatchText, samePatch, limitOf, mapOf, condSummary, scopeLine, asofText,
     copyText, copyRows, copyTable, print, toast, fitSel,
     boot,
   };
