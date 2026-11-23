@@ -205,7 +205,7 @@ COUNTS_JS = r"""() => {
     }
     const checkEls = [stageEl, ...stageEl.querySelectorAll('*')];
     for (const cel of checkEls) {
-      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb,.cvp-bar,.cv-tick,.gr-node,.cv-flt-btn.is-on')) continue;
+      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb,.cvp-bar,.cv-tick,.gr-node,.cv-flt-btn.is-on,.gr-tr-btn.is-cur,.gr-preset.is-on,.gr-search-in')) continue;
       let ca = cel, chid = false;
       while (ca && ca !== document.body) {
         const cs2 = getComputedStyle(ca);
@@ -306,7 +306,8 @@ STAGE_NODE_LIMITS = {
     'brief': 30,
     'market': 60,
     'gate': 80,
-    'cover': 30,
+    'cover': 65,
+    'graph': 70,
 }
 
 
