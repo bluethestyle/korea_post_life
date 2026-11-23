@@ -410,8 +410,8 @@ tr[data-k="keep"] td:first-child b{color:var(--text-2)}
   .who{line-height:1.42}
   .zl{gap:2px}
   .zl li{padding:2px 5px;line-height:1.36}
-  /* 걸음 상세: 보이는 것 칸을 넓혀 가장 긴 걸음도 세 줄에 든다 */
-  .dock .dl3{grid-template-columns:minmax(0,.95fr) minmax(0,2.05fr) minmax(0,.9fr);gap:4px 14px}
+  /* 걸음 상세: 보이는 것 칸을 넓혀 글이 긴 걸음(장면 1 걸음 1)도 1000px 폭에서 세 줄에 든다 */
+  .dock .dl3{grid-template-columns:minmax(0,.9fr) minmax(0,2.2fr) minmax(0,.85fr);gap:4px 12px}
   .dl3 dd{font-size:14px}
   /* 걸음 단추: 장면 3의 문의 예가 같은 줄에 두 줄 안으로 들게 단추 여백을 줄인다 */
   .st{padding:0 9px 0 6px;gap:6px}
@@ -432,8 +432,13 @@ tr[data-k="keep"] td:first-child b{color:var(--text-2)}
 @media (min-width:1000px) and (max-width:1279px) and (max-height:819px){
   .hd-in{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:16px;padding-top:4px;padding-bottom:4px}
   .lede{display:none}
-  .scn{padding:6px 12px 5px}
-  .dia{padding:5px 10px 4px}
+  .scn{padding:4px 12px 3px}
+  .dia{padding:3px 10px 3px}
+  .cond{min-height:38px;padding-top:3px;padding-bottom:3px}
+  .range{padding-top:3px;padding-bottom:3px}
+  /* 범례: 장면 이름은 바로 위 장면 고르기 단추에 있어 장면 번호와 선 모양만 남기고 두 줄에 넣는다 */
+  .lgd{margin-top:3px}
+  .lg-n{display:none}
 }
 @media (max-width:1199px){
   .wfs{grid-template-columns:minmax(0,1fr)}
@@ -615,7 +620,7 @@ tr[data-k="keep"] td:first-child b{color:var(--text-2)}
       </div>
 
       <div class="lgd">
-        <p><b>걸음과 길</b><span class="lg-i"><span class="mk c" aria-hidden="true"><span>1</span></span><svg class="lg-s" viewBox="0 0 24 8" aria-hidden="true"><line x1="0" y1="4" x2="24" y2="4" class="ln"/></svg><span>장면 1 주간 영업 주제 찾기와 응대 카드 배포(실선)</span></span><span class="lg-i"><span class="mk d" aria-hidden="true"><span>1</span></span><svg class="lg-s" viewBox="0 0 24 8" aria-hidden="true"><line x1="0" y1="4" x2="24" y2="4" class="ln pB"/></svg><span>장면 2 상품 개정 건의와 경쟁사 비교 보고(긴 점선)</span></span><span class="lg-i"><span class="mk" aria-hidden="true"><span>1</span></span><svg class="lg-s" viewBox="0 0 24 8" aria-hidden="true"><line x1="0" y1="4" x2="24" y2="4" class="ln pC"/></svg><span>장면 3 지점 문의에 대한 회신(짧은 점선)</span></span><span class="lg-i lg-ret"><svg class="lg-s" viewBox="0 0 24 8" aria-hidden="true"><line x1="1" y1="4" x2="23" y2="4" class="ln back"/></svg><span>조건 줄로 되돌아감(점선)</span></span></p>
+        <p><b>걸음과 길</b><span class="lg-i"><span class="mk c" aria-hidden="true"><span>1</span></span><svg class="lg-s" viewBox="0 0 24 8" aria-hidden="true"><line x1="0" y1="4" x2="24" y2="4" class="ln"/></svg><span>장면 1<span class="lg-n"> 주간 영업 주제 찾기와 응대 카드 배포</span>(실선)</span></span><span class="lg-i"><span class="mk d" aria-hidden="true"><span>1</span></span><svg class="lg-s" viewBox="0 0 24 8" aria-hidden="true"><line x1="0" y1="4" x2="24" y2="4" class="ln pB"/></svg><span>장면 2<span class="lg-n"> 상품 개정 건의와 경쟁사 비교 보고</span>(긴 점선)</span></span><span class="lg-i"><span class="mk" aria-hidden="true"><span>1</span></span><svg class="lg-s" viewBox="0 0 24 8" aria-hidden="true"><line x1="0" y1="4" x2="24" y2="4" class="ln pC"/></svg><span>장면 3<span class="lg-n"> 지점 문의에 대한 회신</span>(짧은 점선)</span></span><span class="lg-i lg-ret"><svg class="lg-s" viewBox="0 0 24 8" aria-hidden="true"><line x1="1" y1="4" x2="23" y2="4" class="ln back"/></svg><span>조건 줄로 되돌아감(점선)</span></span></p>
         <p><b>범위 배지</b><span class="bdg">전체 고객군</span><span>기준 종형과 무관한 값</span><span class="bdg vs">선택 종형</span><span>기준 종형에 따라 바뀌는 값</span><span>걸음 표지 안의 숫자는 걸음 순서</span></p>
       </div>
 
@@ -634,8 +639,8 @@ tr[data-k="keep"] td:first-child b{color:var(--text-2)}
         <thead><tr><th scope="col">탭과 단계</th><th scope="col">담당자의 일</th><th scope="col">영역(위에서 아래로)</th><th scope="col">지금 자료로</th></tr></thead>
         <tbody>
           <tr><td data-l="탭과 단계"><b>모든 탭 위: 범위 띠</b><span class="sub">단계 0 범위와 짝</span></td><td data-l="담당자의 일">누구와 무엇을 견주나</td><td data-l="영역(위에서 아래로)">견준 상품과 기준일, 구조 다름, 검토 대기로 뺀 쌍, 지금 고객군의 관문 한 줄</td><td data-l="지금 자료로"><span class="ok">된다</span>161쌍 중 89쌍 대기</td></tr>
-          <tr><td data-l="탭과 단계"><b>1 브리핑</b><span class="sub">요약</span></td><td data-l="담당자의 일">이번 주 어디를 볼지 고른다</td><td data-l="영역(위에서 아래로)">분석 요약 다섯 줄. 줄마다 범위 배지, 누르면 패널, 줄 끝 "자세히"</td><td data-l="지금 자료로">(나)의 개정 변동 담보는 23건(신설 4, 변경 15, 종료 4), 시장 소식은 9건이다. 다섯 줄의 간편 1종 값은 아래 브리핑 와이어프레임에 있다</td></tr>
-          <tr><td data-l="탭과 단계"><b>2 고객군과 시장</b><span class="sub">단계 1 넓게 본다</span><span class="bdg">전체 고객군</span></td><td data-l="담당자의 일">고객군 지형, 직전 개정과 시장 소식 점검</td><td data-l="영역(위에서 아래로)"><p class="tp"><b>위:</b> 고객군 지도(성별 스위치, 갱신 유형 거르개, 칸 이름과 보조 줄), 고객군별 인사이트 수. 칸 이름은 "우리 간편만 열림", "함께 열림", "우리 간편 닫힘", "간편 모두 닫힘", "자료 없음"이고 우열 판정어를 붙이지 않는다. 일반심사로 확인할 수 있는 칸에는 보조 줄 "일반심사 확인". 우리 쪽이 닫힌 칸은 패널에 닫힌 사유(가입나이 밖, 고지 질문 해당, 거르개에 맞는 간편 종형 없음)를 갈라 적는다</p><p class="tp"><b>아래:</b> 개정 전후 비교, 시장 소식</p></td><td data-l="지금 자료로"><span class="ok">된다</span>지도(36칸 중 우리 간편만 열림 0칸, 함께 열림 22칸, 우리 간편 닫힘 14칸, 간편 모두 닫힘 0칸. 36칸 중 6칸은 상대가 한화생명 간편가입형(0년)으로만 열림), 개정 변동 23건(신설 4, 변경 15, 종료 4). <span class="ok no">안 된다</span>시장 대응(소식 9건 모두 관련표준담보ID 빈칸)</td></tr>
+          <tr><td data-l="탭과 단계"><b>1 브리핑</b><span class="sub">요약</span></td><td data-l="담당자의 일">이번 주 어디를 볼지 고른다</td><td data-l="영역(위에서 아래로)">분석 요약 다섯 줄. 줄마다 범위 배지, 누르면 패널, 줄 끝 "자세히"</td><td data-l="지금 자료로">(나)의 개정 변동 담보는 23건(신설 4, 변경 15, 종료 4), 시장 소식은 17건이다. 다섯 줄의 간편 1종 값은 아래 브리핑 와이어프레임에 있다</td></tr>
+          <tr><td data-l="탭과 단계"><b>2 고객군과 시장</b><span class="sub">단계 1 넓게 본다</span><span class="bdg">전체 고객군</span></td><td data-l="담당자의 일">고객군 지형, 직전 개정과 시장 소식 점검</td><td data-l="영역(위에서 아래로)"><p class="tp"><b>위:</b> 고객군 지도(성별 스위치, 갱신 유형 거르개, 칸 이름과 보조 줄), 고객군별 인사이트 수. 칸 이름은 "우리 간편만 열림", "함께 열림", "우리 간편 닫힘", "간편 모두 닫힘", "자료 없음"이고 우열 판정어를 붙이지 않는다. 일반심사로 확인할 수 있는 칸에는 보조 줄 "일반심사 확인". 우리 쪽이 닫힌 칸은 패널에 닫힌 사유(가입나이 밖, 고지 질문 해당, 거르개에 맞는 간편 종형 없음)를 갈라 적는다</p><p class="tp"><b>아래:</b> 개정 전후 비교, 시장 소식</p></td><td data-l="지금 자료로"><span class="ok">된다</span>지도(24칸 중 우리 간편만 열림 0칸, 함께 열림 11칸, 우리 간편 닫힘 13칸, 간편 모두 닫힘 0칸. 24칸 중 4칸은 상대가 한화생명 간편가입형(0년)으로만 열림), 개정 변동 23건(신설 4, 변경 15, 종료 4). <span class="ok no">안 된다</span>시장 대응(소식 17건 모두 관련표준담보ID 빈칸)</td></tr>
           <tr><td data-l="탭과 단계"><b>3 가입 관문</b><span class="sub">단계 2 좁혀 확인한다(청약 규정)</span><span class="bdg vs">선택 종형</span></td><td data-l="담당자의 일">가입나이, 고지 질문, 한도, 결합 제약 대조</td><td data-l="영역(위에서 아래로)">위: 관문 표(회사별 종형, 질문, 나이, 한도, 원문 확인 필요 표시). 가운데: 나이 구간별 주계약 최대 가입금액 표. 아래: 한도와 결합 제약 안 구성 예시와 담보별 지급액(우체국, 목적 묶음에서 출발)</td><td data-l="지금 자료로"><span class="ok part">일부</span>삼성화재 가입조건 0줄, 고지 값에 근거 쪽이 없다, 결합 제약 79줄은 모두 우체국</td></tr>
           <tr><td data-l="탭과 단계"><b>4 담보 비교</b><span class="sub">단계 3 좁혀 확인한다(담보)</span><span class="bdg vs">선택 종형</span></td><td data-l="담당자의 일">공통 담보 사실 확인, 비교 보고 자료</td><td data-l="영역(위에서 아래로)">위: 치료 여정 격자, 단정 주의 목록, 검토 대기 보류 요약. 아래: 담보 비교표</td><td data-l="지금 자료로"><span class="ok part">일부</span>상대 가입 한도가 없어 금액 우열은 못 낸다. 공통 담보 쌍 161개 중 89개가 검토 대기</td></tr>
           <tr><td data-l="탭과 단계"><b>5 영업 인사이트</b><span class="sub">단계 4 인사이트, 5 산출물</span><span class="bdg vs">선택 종형</span></td><td data-l="담당자의 일">인사이트 고르기, 카드와 표 내보내기</td><td data-l="영역(위에서 아래로)"><p class="tp"><b>위:</b> 목적 거르개("암", "3대 질병", "입원과 수술", 화면에 "보장 대분류 기준"이라고 적는다), 다섯 분류 목록(분석 문장, 체크), 개정 검토 목록, 뺀 포인트. 다섯 분류는 관문 차이, 앞세울 강점, 관련 담보 안내, 조건 열위 방어, 개정 검토 후보이고 서로 겹치지 않는다</p><p class="tp"><b>아래:</b> 응대 카드 미리 보기(문답, 구성 요약 한 줄, 시연용 고지, 인쇄)</p></td><td data-l="지금 자료로"><span class="ok part">일부</span>앞세울 강점은 따로 주는 담보 둘뿐이고, 조건 나음은 거른 뒤 0건. 지금 카드는 비교표 중심</td></tr>
@@ -691,8 +696,8 @@ tr[data-k="keep"] td:first-child b{color:var(--text-2)}
             </div>
             <div class="wbody">
               <ol class="w5" id="w5" aria-label="분석 요약 다섯 줄">
-                <li><span class="lh"><b>(가) 고객군 지형</b><span class="bdg">전체 고객군</span></span><span class="tx">고객군 <span class="slot" data-v="36">전체칸수</span>칸 가운데 우리 간편만 열리는 곳은 <span class="slot" data-v="0">우리간편만열림칸수</span>칸<span class="w-t">(<span class="slot" data-v="">우리간편만열림요약</span>)</span>, 함께 열리는 곳은 <span class="slot" data-v="22">함께열림칸수</span>칸, 우리 간편이 닫혀 일반심사로 확인할 곳은 <span class="slot" data-v="14">우리간편닫힘칸수</span>칸, 간편이 모두 닫힌 곳은 <span class="slot" data-v="0">간편모두닫힘칸수</span>칸입니다.</span><span class="tx2">36칸 가운데 6칸(우리 간편 닫힘 4칸, 함께 열림 2칸)은 상대가 한화생명 간편가입형(0년)으로만 열린다</span><span class="go">자세히: 탭 2 위쪽</span></li>
-                <li><span class="lh"><b>(나) 개정과 시장</b><span class="bdg">전체 고객군</span></span><span class="tx">우체국 직전 개정과 견주어 달라진 담보는 <span class="slot" data-v="23">개정변동수</span>건(<span class="slot" data-v="신설 4, 변경 15, 종료 4">개정나눔</span>)이고, 최근 모은 시장 소식은 <span class="slot" data-v="9">시장소식수</span>건(표준담보에 이어진 것 <span class="slot" data-v="0">연결소식수</span>건)입니다.</span><span class="go">자세히: 탭 2 아래쪽</span></li>
+                <li><span class="lh"><b>(가) 고객군 지형</b><span class="bdg">전체 고객군</span></span><span class="tx">고객군 <span class="slot" data-v="24">전체칸수</span>칸 가운데 우리 간편만 열리는 곳은 <span class="w-t"><span class="slot" data-v="0">우리간편만열림칸수</span>칸(<span class="slot" data-v="">우리간편만열림요약</span>), </span><span class="w-v" hidden>없고, </span>함께 열리는 곳은 <span class="slot" data-v="11">함께열림칸수</span>칸, 우리 간편이 닫혀 일반심사로 확인할 곳은 <span class="slot" data-v="13">우리간편닫힘칸수</span>칸<span class="w-t">, 간편이 모두 닫힌 곳은 <span class="slot" data-v="0">간편모두닫힘칸수</span>칸</span>입니다.</span><span class="tx2">4칸은 상대 회사에서 열리는 종형이 우체국에 없는 고지 유형(한화생명 간편가입형(0년))뿐이고, 삼성화재는 가입나이 자료가 없어 지도에서 상태를 모르는 상대로 셉니다.</span><span class="go">자세히: 탭 2 위쪽</span></li>
+                <li><span class="lh"><b>(나) 개정과 시장</b><span class="bdg">전체 고객군</span></span><span class="tx">우체국 직전 개정과 견주어 달라진 담보는 <span class="slot" data-v="23">개정변동수</span>건(<span class="slot" data-v="신설 4, 변경 15, 종료 4">개정나눔</span>)이고, 최근 모은 시장 소식은 <span class="slot" data-v="17">시장소식수</span>건(표준담보에 이어진 것 <span class="slot" data-v="0">연결소식수</span>건)입니다.</span><span class="go">자세히: 탭 2 아래쪽</span></li>
                 <li><span class="lh"><b>(다) 가입 관문과 한도</b><span class="bdg vs">선택 종형</span></span><span class="tx">기준 종형 우체국 <span class="slot" data-v="1종(간편가입315)">우리종형</span>의 가입나이는 <span class="slot" data-v="20">우리최저</span>~<span class="slot" data-v="80">우리최고</span>세(지금 조건의 주계약 한도 <span class="slot" data-v="4000">주계약한도만원</span>만원)이고, 맞붙는 상대와 고지 질문이 다른 곳은 <span class="slot" data-v="2">관문차이수</span>건, 갱신이나 환급 구조가 다른 상대는 <span class="slot" data-v="2">구조다름회사수</span>곳입니다.</span><span class="go">자세히: 탭 3</span></li>
                 <li><span class="lh"><b>(라) 담보 포지션</b><span class="bdg vs">선택 종형</span></span><span class="tx">공통 담보 <span class="slot" data-v="33">비교쌍</span>쌍(검토 대기 <span class="slot" data-v="20">뺀비교쌍</span>쌍 제외)에서 우체국이 가진 담보는 진단 <span class="slot" data-v="7">진단수</span>, 수술 <span class="slot" data-v="6">수술수</span>, 치료 <span class="slot" data-v="4">치료수</span>, 입원 <span class="slot" data-v="8">입원수</span>, 통원 <span class="slot" data-v="0">통원수</span>개이고, 상대가 조건이 다른 특약을 함께 팔아 우열을 단정하지 않은 비교는 <span class="slot" data-v="2">단정보류수</span>건입니다.</span><span class="go">자세히: 탭 4</span></li>
                 <li><span class="lh"><b>(마) 영업 인사이트</b><span class="bdg vs">선택 종형</span></span><span class="tx">지금 기준에서 앞세울 강점 <span class="slot" data-v="2">앞세울수</span>건(<span class="slot" data-v="뇌혈관질환 입원일당, 심장질환 입원일당">대표강점요약</span>), 관련 담보 안내 <span class="slot" data-v="7">관련담보수</span>건, 조건 열위 방어 <span class="slot" data-v="0">조건열위수</span>건, 개정 검토 후보 <span class="slot" data-v="22">개정검토수</span>건이 나왔습니다.</span><span class="go">자세히: 탭 5</span></li>
@@ -809,7 +814,7 @@ tr[data-k="keep"] td:first-child b{color:var(--text-2)}
           <h3>아직 남은 것</h3>
           <ol class="nl o">
             <li><span>우체국보험에 타사 비교 안내에 관한 내부 기준이 있는지(사용자가 사내에서 확인할 일).</span></li>
-            <li><span>고지 질문 값(<code>고지수술포함여부</code>, <code>고지중대질병수</code> 등)의 사업방법서 근거 쪽과 세부 문구 확인. 한화생명 간편가입형 네 유형 적재 뒤 우리 간편만 열림은 0칸(함께 열림 22칸, 우리 간편 닫힘 14칸)이 됐고, 관문 차이 문장이 이 값에 달려 있다.</span></li>
+            <li><span>고지 질문 값(<code>고지수술포함여부</code>, <code>고지중대질병수</code> 등)의 사업방법서 근거 쪽과 세부 문구 확인. 한화생명 간편가입형 네 유형 적재 뒤 우리 간편만 열림은 0칸(함께 열림 11칸, 우리 간편 닫힘 13칸)이 됐고, 관문 차이 문장이 이 값에 달려 있다.</span></li>
             <li><span>핵심 담보 기준을 <code>hum_기준값</code>에 둘지. 담당자 탭이라 사용자 승인이 필요하다.</span></li>
           </ol>
         </div>
@@ -819,7 +824,7 @@ tr[data-k="keep"] td:first-child b{color:var(--text-2)}
 </section>
 
 <footer class="ft">
-  <p><b>근거 문서</b> docs/proposals/영업_인사이트_흐름.md (작성 2026-11-20, 같은 날 저녁 이용자 전제와 합의안으로 고침). 이 쪽의 탭, 영역, 걸음, 변경, 규칙은 이 문서에서 옮겼고, 예시 숫자는 한화생명 간편가입형(0년, 3년, 4년, 10년) 관문전용 적재 뒤의 2026-11-20 밤 사본 값으로 바꿨다. 걸음의 짧은 이름(브리핑, 고객군 지도 칸 같은 것)은 문서의 "누르는 것"을 줄인 것이고, 걸음 상세의 "관문 차이"는 문서의 세부 기호를 세부 이름으로 풀어 적었다.</p>
+  <p><b>근거 문서</b> docs/proposals/영업_인사이트_흐름.md (작성 2026-11-20, 같은 날 저녁 이용자 전제와 합의안으로 고침). 이 쪽의 탭, 영역, 걸음, 변경, 규칙은 이 문서에서 옮겼고, 예시 숫자는 한화생명 간편가입형(0년, 3년, 4년, 10년) 관문전용 적재 뒤의 2026-11-23 주간 사본(2026-W48) 값으로 바꿨다. 걸음의 짧은 이름(브리핑, 고객군 지도 칸 같은 것)은 문서의 "누르는 것"을 줄인 것이고, 걸음 상세의 "관문 차이"는 문서의 세부 기호를 세부 이름으로 풀어 적었다.</p>
   <p><b>사용자 원칙</b> 첫째는 사용자의 말("이거 이용하는 이용자가 현장 설계사가 아니라 보험영업 기획/분석 쪽 담당자야")이다. 둘째는 변경 표 첫 줄의 이유("탭 순서가 그 순서다")이고, 셋째와 넷째는 사용자의 말("이유없이 갈아엎어질까봐서 그런거지 일관성은 있어야하잖아")을 줄인 것이다.</p>
   <div class="fn">
     <p><b>글꼴 고지</b> 이 화면의 글꼴은 모두 SIL Open Font License 1.1(https://openfontlicense.org)에 따라 배포된 글꼴이다. 쓰는 글자만 남기도록 줄였고(서브셋), 그에 따라 글꼴 이름을 PL Sub &lt;원래 이름의 머리글자&gt; &lt;굵기&gt; 꼴로 바꿨다. 각 글꼴 파일 안에는 원래의 저작권과 라이선스 표기를 그대로 남겼다.</p>
@@ -851,8 +856,8 @@ tr[data-k="keep"] td:first-child b{color:var(--text-2)}
 /* 장면과 걸음: 문서 5절 (라)의 표를 그대로 옮겼다. stop은 흐름도에서 표지를 놓는 곳, also는 함께 밝히는 곳 */
 var PATHS = {
   A: {name:'장면 1', shape:'c', steps:[
-    {stop:'brief', label:'브리핑', press:'화면을 연다', see:'브리핑 (가) 고객군 36칸 가운데 우리 간편만 열림 0칸, 함께 열림 22칸, 우리 간편 닫힘 14칸, 간편 모두 닫힘 0칸. (나) 개정 변동 담보 23건(신설 4, 변경 15, 종료 4), 시장 소식 9건(표준담보에 이어진 것 0건)', next:'(가) 줄의 "자세히"'},
-    {stop:'market', also:['panel'], label:'고객군 지도 칸', press:'고객군과 시장 탭에서 "함께 열림" 칸(수술만 3개월~1년 전, 20~65세)', see:'패널: 우체국 열림(대표 3종(간편가입355)), 한화생명은 관문만 수집한 간편가입형(0년)만 열림, 삼성화재는 심사로 확인, 사업방법서 원문 확인 필요', next:'패널의 "이 고객군으로 보기"'},
+    {stop:'brief', label:'브리핑', press:'화면을 연다', see:'브리핑 (가) 고객군 24칸 가운데 우리 간편만 열림 0칸, 함께 열림 11칸, 우리 간편 닫힘 13칸, 간편 모두 닫힘 0칸. (나) 개정 변동 담보 23건(신설 4, 변경 15, 종료 4), 시장 소식 17건(표준담보에 이어진 것 0건)', next:'(가) 줄의 "자세히"'},
+    {stop:'market', also:['panel'], label:'고객군 지도 칸', press:'고객군과 시장 탭에서 "함께 열림" 칸(수술만 3개월~1년 전, 20~80세)', see:'패널: 우체국 열림(대표 3종(간편가입355)), 한화생명은 관문만 수집한 간편가입형(0년)만 열림, 삼성화재는 심사로 확인, 사업방법서 원문 확인 필요', next:'패널의 "이 고객군으로 보기"'},
     {stop:'cond', also:['range'], label:'이 고객군으로 보기', press:'"이 고객군으로 보기"', see:'조건 줄이 그 고객군과 기준 종형 3종으로 바뀌고, 범위 띠에 관문 한 줄', next:'가입 관문 탭'},
     {stop:'gate', label:'가입 관문', press:'가입 관문 탭', see:'3종 가입나이 20~80세, 주계약 한도 20~65세 4000만원과 66~80세 2000만원, 관문 차이 3건(질문 범위 다름 3, 한화생명 간편가입형(0년) 포함)의 원문 확인 필요 표시', next:'영업 인사이트 탭'},
     {stop:'insight', label:'영업 인사이트', press:'영업 인사이트 탭', see:'관문 차이 3, 앞세울 강점 2(뇌혈관질환 입원일당, 심장질환 입원일당과 패널 주의), 관련 담보 안내 7, 개정 검토 후보 22', next:'카드에 실을 항목 체크'},
@@ -1154,6 +1159,7 @@ function setW(k, focus){
   wm = k;
   $$('#wtg [role="radio"]').forEach(function(b){ var on = b.getAttribute('data-w') === k; b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
   $$('#w5 .w-t').forEach(function(el){ el.hidden = (k === 'v'); });
+  $$('#w5 .w-v').forEach(function(el){ el.hidden = (k !== 'v'); });
   $$('#w5 .slot').forEach(function(s){
     var v = s.getAttribute('data-v');
     s.textContent = k === 'v' ? v : s.getAttribute('data-t');
