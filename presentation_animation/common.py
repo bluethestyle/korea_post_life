@@ -152,10 +152,10 @@ def capacity_ring(
         radius=radius,
         start_angle=math.pi / 2,
         angle=-2 * math.pi * min(max(ratio, 0.05), 1.0),
+        arc_center=p,
         color=col,
         stroke_width=4.2,
-    )
-    arc.shift(p - arc.get_arc_center()).set_z_index(z + 1)
+    ).set_z_index(z + 1)
     t1 = txt(top_txt, size=11.0, color=col, bold=True, z=z + 2)
     t2 = txt(sub_txt, size=9.6, color=C_INK_1, z=z + 2)
     tg = fit(VGroup(t1, t2).arrange(DOWN, buff=0.04), max_w=radius * 1.68).move_to(p)
@@ -265,6 +265,11 @@ class PostLifeBaseScene(ThreeDScene):
 
     def snap_cam_2d(self) -> None:
         self.set_camera_orientation(phi=0 * DEGREES, theta=-90 * DEGREES, gamma=0 * DEGREES, zoom=1.0, frame_center=ORIGIN)
+
+    def wait(self, duration: float = 1.0, stop_condition=None, frozen_frame: bool | None = None) -> None:
+        if stop_condition is None and duration >= 0.5:
+            duration = round(duration * 1.55, 2)
+        super().wait(duration=duration, stop_condition=stop_condition, frozen_frame=frozen_frame)
 
     def add_billboard(self, *mobs: Mobject) -> None:
         self.add_fixed_orientation_mobjects(*mobs)
