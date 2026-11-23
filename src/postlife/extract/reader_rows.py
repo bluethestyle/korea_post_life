@@ -201,6 +201,22 @@ def covers_by_number(pieces: Iterable[PieceView]) -> dict[str, tuple[PieceView, 
     return {c.number: (p, c) for p in pieces for c in p.covers}
 
 
+FINGERPRINT_LENGTH = 12
+
+
+def cover_fingerprint(piece: PieceView, cover: CoverView) -> str:
+    """세부보장 한 줄의 조각 지문. 판독자가 읽은 조각과 다시 읽은 조각이 같은지 확인하는 짧은 해시다.
+
+    그 줄의 글자(세부보장명, 지급사유, 지급금액, 쪽, 적용범위)와 그 조각의 머리(특약명, 특약명들, 구분, 형)와 그 조각에
+    걸린 주석을 빈칸을 떼고 이어 해시한다. 원문 글자는 남기지 않는다. 조각 파일(급부표조각/1)로 읽은 조각에서 만든다.
+    묶음 파일에는 구분이 없어 같은 값이 나오지 않는다. 특약명들은 둘 이상일 때만 넣는다(하나뿐이면 특약명과 같다).
+    """
+    names = piece.names if len(piece.names) > 1 else ()
+    parts = (piece.title, "/".join(names), piece.label, piece.segment, cover.name, cover.reason, cover.amount,
+             str(cover.page), cover.only, "\n".join(piece.notes))
+    return ids.short_hash(*(_squash(p) for p in parts), length=FINGERPRINT_LENGTH)
+
+
 # ---------------------------------------------------------------------------
 # 판독 값의 꼴 검사
 # ---------------------------------------------------------------------------
@@ -687,11 +703,21 @@ def _flat_map(text: str) -> tuple[str, list[int]]:
     return "".join(text[i] for i in pos), pos
 
 
+_CASE = re.compile(r"의경우.{0,20}?보장개시일[은는]")     # 나열 끝 이름 뒤의 "의 경우 (짧은 말) 보장개시일은"
+
+
 def _listed_days(flat: str, end: int) -> int | None:
-    """flat[end:]가 이름 나열의 나머지(", 나보장개시일 및 다보장개시일")와 "은/는"이면, 그 뒤에 처음 나오는 날수."""
+    """flat[end:]가 이름 나열의 나머지(", 나보장개시일 및 다보장개시일")와 "은/는"이면, 그 뒤에 처음 나오는 날수.
+
+    나열이 "의 경우"와 짧은 말 뒤의 "보장개시일은 … N일"로 이어지면 나열의 마지막 이름(뒤에 쉼표나 "및"이 없는 이름) 바로
+    뒤가 "의 경우"이므로, 그 꼴도 받는다.
+    """
     tail = flat[end:end + 2000]
+    case = _CASE.match(tail)
     if tail[:1] in ("은", "는"):
         stop = 1
+    elif case:
+        stop = case.end()
     else:
         if not tail.startswith((",", "및", "과", "와")):
             return None
@@ -714,6 +740,8 @@ def wait_days_on_page(names: str | Sequence[str], page_text: str) -> set[int]:
     - 정의 문장: "<보장개시일 이름>은 … N일이 지난 다음날"
     - 나열 문장: "가보장개시일, 나보장개시일 및 다보장개시일은 … 90일 …, 라보장개시일은 … 1년 …". 이름마다 그 이름이 든
       나열의 "은/는" 뒤에 처음 나오는 날수와 짝짓는다. "유사암보장개시일" 속의 "암보장개시일"은 세지 않는다.
+      나열 끝 이름 뒤가 "은/는"이 아니라 "의 경우"이고 짧은 말 뒤에 "보장개시일은 … N일"이 오는 나열도 같다
+      ("가보장개시일 및 나보장개시일의 경우 그 보장개시일은 … 90일").
     - 표: 면책기간 표의 "<보장명> 90일"처럼 이름 바로 옆 칸에 날수가 있다(글자로 풀면 이름 바로 뒤). 표의 칸은 글자로
       풀면 앞 칸에 붙으므로, 원문에서 이름 앞이 빈칸이나 줄바꿈이면 경계로 본다.
     names에는 보장개시일 이름과 세부보장명, 특약명을 준다.
@@ -1028,6 +1056,76 @@ def reading_of(v: Mapping[str, Any], cover: CoverView, piece: PieceView | None, 
     )
 
 
+HOLD = "보류"
+# 이름 칸에 든 지급사유 문장의 표시. 세부보장명에는 나오지 않는 말이다
+_SENTENCE_NAME = re.compile(r"지급|경우|되고|되었|확정시|로써|한하여")
+_QUOTED = re.compile(r"「([^」]{2,40})」")
+_DIAGNOSED = re.compile(r"(?:으로|로)\s*진단\s*확정")
+_SUBJECT_HEAD = re.compile(r"(?:에|중|후|「|」|※|·)\s*")
+_TAG = re.compile(r"\([^()]*\)")
+
+
+def _reason_subjects(reason: str) -> list[tuple[str, int]]:
+    """지급사유의 대상 낱말과 그 줄 번호. 「」 안의 말과 "…(으)로 진단확정"의 앞말(바로 앞의 "에", "중", "후" 뒤)."""
+    out = []
+    for k, line in enumerate((reason or "").split("\n")):
+        out += [(_word(m.group(1)), k) for m in _QUOTED.finditer(line)]
+        for m in _DIAGNOSED.finditer(line):
+            head = line[:m.start()]
+            if head.endswith("」"):
+                continue
+            word = _word(_SUBJECT_HEAD.split(head)[-1])
+            if 2 <= len(word) <= 40:
+                out.append((word, k))
+    return out
+
+
+def _subjects_in(part: str, reason: str) -> tuple[int, int]:
+    """part(빈칸 뗀 이름)에 겹치지 않게 든 지급사유 대상 낱말의 수와, 그 낱말이 나온 지급사유 줄의 수. 긴 낱말부터 잡는다."""
+    taken = [False] * len(part)
+    found, lines = 0, set()
+    for word, line in sorted(set(_reason_subjects(reason)), key=lambda x: -len(x[0])):
+        at = part.find(word)
+        while at >= 0 and any(taken[at:at + len(word)]):
+            at = part.find(word, at + 1)
+        if at >= 0:
+            taken[at:at + len(word)] = [True] * len(word)
+            found += 1
+            lines.add(line)
+    return found, len(lines)
+
+
+def _glued_tag(part: str) -> str | None:
+    """같은 괄호 꼬리표("(체증형)")가 두 번 이상 나오고, 그 가운데 하나 바로 뒤에 빈칸 없이 다른 이름이 이어지는가."""
+    ends: dict[str, list[int]] = {}
+    for m in _TAG.finditer(part):
+        ends.setdefault(m.group(0), []).append(m.end())
+    for tag, at in ends.items():
+        if len(at) > 1 and any(e < len(part) and not part[e].isspace() and part[e] not in "([/" for e in at):
+            return tag
+    return None
+
+
+def name_problem(cover: CoverView) -> str:
+    """조각의 세부보장명으로 급부 행을 만들면 안 되는 사유. 괜찮으면 빈 글.
+
+    급부ID는 이 이름으로 만들어 뒤에 고칠 수 없다(hum_담보매핑이 급부ID로 이어진다). 표 읽기가 이름을 잘못 낸 줄은 행을
+    만들지 않고 보류로 남긴다. 조각 글자만 보고 정하므로 같은 문서를 다시 읽으면 같은 줄이 걸린다.
+    - 이름 칸에 지급사유 문장: 이름에 "지급", "경우", "확정시" 같은 문장의 말이 있다(표 읽기에서 칸이 뒤바뀐 줄).
+    - 이름 여럿이 이어 붙음: 칸 안의 여러 줄(세부보장 여럿)을 표 읽기가 한 줄로 합친 이름. "/"로 가른 이름 토막마다 본다.
+      ① 지급사유의 대상 낱말(「」 안의 말, "…(으)로 진단확정"의 앞말) 둘 이상이 겹치지 않게 이름에 들어 있고, 그 낱말들이
+      지급사유의 서로 다른 줄에서 나왔다(세부보장마다 지급사유 문단이 따로 있다).
+      ② 같은 괄호 꼬리표가 두 번 이상 나오고 그중 하나 바로 뒤에 빈칸 없이 다른 이름이 이어진다("가암(체증형)나암(체증형)").
+    """
+    if _SENTENCE_NAME.search(cover.name or ""):
+        return f"{HOLD}: 이름 칸에 지급사유 문장이 들어 있음(표 읽기에서 칸이 뒤바뀜)"
+    for part in (cover.name or "").split("/"):
+        found, lines = _subjects_in(_word(part), cover.reason)
+        if (found >= 2 and lines >= 2) or _glued_tag(part):
+            return f"{HOLD}: 세부보장 이름 여럿이 한 줄에 이어 붙음(표 읽기에서 칸 안의 줄이 합쳐짐)"
+    return ""
+
+
 def row_problem(v: Mapping[str, Any] | None, cover: CoverView, piece: PieceView,
                 pages: Mapping[int, str] | None = None) -> str:
     """이 판독 값으로 행을 만들 수 없는 사유. 만들 수 있으면 빈 글."""
@@ -1087,7 +1185,7 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
       기준지급금액, 지급기준구분을 판독 값으로 바꾼다. 급부ID 규칙은 table_rules와 같다(ids.benefit_id).
       이름이 여럿인 조각에 세부보장이 하나면 급부 이름을 특약 이름으로 바꿔 적는다(table_rules와 같다).
     - 행을 만들 수 없는 줄(행없음, 모름, 기계 검사에 걸린 줄)은 skipped에 사유를 남긴다. 행없음 줄은 no_rows에
-      면책일수, 보장개시일, 한도 구절을 남긴다.
+      면책일수, 보장개시일, 한도 구절을 남긴다. 표 읽기가 이름을 잘못 낸 줄(name_problem)은 판독 값과 상관없이 "보류"로 남긴다.
     - 한 조각 안에 이름이 같은 세부보장이 여럿이면, 대상이 모두 있고 서로 다를 때 줄마다 "세부보장명(대상)"으로 급부
       행을 만든다(table_rules의 원시급부명 규칙). 대상으로 가려지지 않으면 삼성화재 적재(job._drop_repeats)처럼 행이
       글자까지 같을 때만 하나를 남기고 번호를 모두 단다. 값이 다르거나 그중 하나라도 행을 만들 수 없으면 그 이름의
@@ -1099,7 +1197,8 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
     for piece in pieces:
         names = piece.names or (piece.title,)
         role = "주급부" if len(piece.covers) == 1 else "대등복합"
-        problems = {c.number: row_problem(readings.get(c.number), c, piece, pages) for c in piece.covers}
+        problems = {c.number: name_problem(c) or row_problem(readings.get(c.number), c, piece, pages)
+                    for c in piece.covers}
         for c in piece.covers:
             if problems[c.number]:
                 out.skipped[c.number] = problems[c.number]

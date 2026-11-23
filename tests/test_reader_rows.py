@@ -210,6 +210,26 @@ def test_waiting_days_from_a_listing_sentence_pair_each_name():
     assert RR.wait_days_on_page("가나보장개시일", pair) == RR.wait_days_on_page("사아보장개시일", pair) == {90}
 
 
+CASE_LISTED = ("가나보장개시일, 다라 보장개시일 및 마바보장개시일의 경우 이 상품 보장개시일은 가입한 날에서 90일\n"
+               "뒤로 정하고, 사아보장개시일 및 자차보장개시일의 경우 이 상품\n보장개시일은 가입한 날에서 30일 뒤로 "
+               "정하며, 카타보장개시일의 경우 이 상품 보장개시일은 가입한 날에서 1년 뒤로 정한다.")
+
+
+def test_waiting_days_from_a_listing_that_ends_with_the_case_phrase():
+    # 나열의 마지막 이름 바로 뒤가 "의 경우 회사의 보장개시일은"이어도 그 나열의 날수와 짝짓는다
+    assert RR.wait_days_on_page("가나보장개시일", CASE_LISTED) == {90}
+    assert RR.wait_days_on_page("다라보장개시일", CASE_LISTED) == {90}
+    assert RR.wait_days_on_page("마바보장개시일", CASE_LISTED) == {90}
+    assert RR.wait_days_on_page("사아보장개시일", CASE_LISTED) == {30}
+    assert RR.wait_days_on_page("자차보장개시일", CASE_LISTED) == {30}
+    assert RR.wait_days_on_page("카타보장개시일", CASE_LISTED) == {365}
+    assert RR.wait_days_on_page("파하보장개시일", CASE_LISTED) == set()
+    c = RR.CoverView("R009-1", "카타 간병비", "카타보장개시일 이후 카타병으로 진단확정시", "가입금액", 3)
+    v = reading("R009-1", 면책일수=365, 보장개시일="카타보장개시일", 면책근거쪽=9)
+    assert RR.machine_checks(c, v, None, {9: CASE_LISTED})[0] == []
+    assert RR.machine_checks(c, {**v, "면책일수": 90}, None, {9: CASE_LISTED})[0] != []
+
+
 def test_waiting_days_from_a_waiting_table_beside_the_name():
     table = "보장명 면책기간 1년경과시점 전일 이전\n가나진단비 90일 가입금액의 50%\n다라진단비 - 가입금액의 50%\n"
     assert RR.wait_days_on_page(["가나보장개시일", "가나진단비"], table) == {90}
@@ -538,3 +558,72 @@ def test_check_file_reports_targets_of_same_name_covers():
     problems = compare_readers.check_file(bundle, {"형식": RR.FORMAT, "묶음": bundle["묶음"], "값": list(values.values())})
     assert problems == ["R001-1: 이름이 같은 줄이 없는데 대상이 있음",
                         "R003: 이름이 같은 줄(R003-1, R003-2)의 대상이 비었거나 서로 같음"]
+
+
+# ---------------------------------------------------------------------------
+# 조각 지문과 이름 보류
+# ---------------------------------------------------------------------------
+
+def test_fingerprint_ignores_spaces_but_not_letters_or_the_piece_head():
+    from_pieces = {c.number: RR.cover_fingerprint(p, c) for p in views() for c in p.covers}
+    assert len(set(from_pieces.values())) == len(from_pieces)
+    assert all(len(x) == RR.FINGERPRINT_LENGTH for x in from_pieces.values())
+    # 하나뿐인 특약명들은 적지 않은 것과 같다
+    alone = pieces_file([{k: v for k, v in SAMPLE["조각"][0].items() if k != "특약명들"}], notes=SAMPLE["주석"])
+    p = RR.load_pieces(alone)[0]
+    assert RR.cover_fingerprint(p, p.covers[0]) == from_pieces["R001-1"]
+    other_label = pieces_file([{**SAMPLE["조각"][0], "구분": "선택계약"}], notes=SAMPLE["주석"])
+    p = RR.load_pieces(other_label)[0]
+    assert RR.cover_fingerprint(p, p.covers[0]) != from_pieces["R001-1"]
+    spaced = pieces_file([piece("가나 진단비", [cover("가나  진단비", "가나병으로 진단\n확정된 경우 (최초 1회한)",
+                                                       "가입금액(가입 1년 안에는 가입금액의  50%)")], label="기본계약")],
+                         notes=SAMPLE["주석"])
+    p = RR.load_pieces(spaced)[0]
+    assert RR.cover_fingerprint(p, p.covers[0]) == from_pieces["R001-1"]
+    changed = pieces_file([piece("가나 진단비", [cover("가나 진단비", "가나병으로 진단 확정된 경우 (최초 1회한)",
+                                                        "가입금액(가입 1년 안에는 가입금액의 60%)")], label="기본계약")],
+                          notes=SAMPLE["주석"])
+    p = RR.load_pieces(changed)[0]
+    assert RR.cover_fingerprint(p, p.covers[0]) != from_pieces["R001-1"]
+
+
+GLUED = pieces_file([
+    # 세부보장 넷의 이름이 한 줄로 이어 붙고, 지급사유는 문단마다 대상이 하나씩이다
+    piece("가나 진단비", [cover("가가종양진단비나나,다다종양진단비라라종양진단비",
+                               "「가가종양」으로 진단확정되면 한 번 줌\n· 「나나,다다종양」으로 진단확정되면 한 번 줌\n"
+                               "· 「라라종양」으로 진단확정되면 한 번 줌", "가입금액")]),
+    # 따옴표 없이 "…으로 진단확정"만 적힌 대상
+    piece("마바 전이암진단비", [cover("마바전이암사아전이암", "마바보장개시일 뒤에 마바전이암으로 진단확정되면 줌\n"
+                                                         "※ 마바보장개시일은 가입 90일 뒤이고그 뒤에 사아전이암으로 진단확정되면 줌",
+                                     "가입금액")]),
+    # 같은 꼬리표가 되풀이되고 빈칸 없이 다음 이름이 이어진다
+    piece("자차 치료비(체증형)", [cover("가가암(체증형)나나암(체증형)다다암(체증형)", "암구분별 진단 후 경과 연도별로 지급", "가입금액")]),
+    # 이름 칸에 지급사유 문장
+    piece("카타 진단및치료비", [cover("카타 사고로 다친 경우 해마다 한 번 지급", "카타 경증진단비", "가입금액")]),
+    # 걸리면 안 되는 이름: 상위 이름과 세부 이름을 빈칸으로 이은 이름, 본형과 갱신형을 "/"로 이은 이름, 대상이 한 줄에 둘인 이름
+    piece("파하 진단및치료비", [cover("파하 진단및치료비 파하진단비", "「파하」로 진단확정되면 줌\n· 파하 진단 뒤 치료", "가입금액")]),
+    piece("가나 수술비/갱신형 가나 수술비", [cover("가나 수술비/갱신형 가나 수술비", "「가나」로 진단확정된 뒤 수술하면 줌",
+                                                  "가입금액")], names=["가나 수술비", "갱신형 가나 수술비"]),
+    piece("다라암 진단비", [cover("다라암 및 마바암 진단비", "「다라암」또는「마바암」으로 진단확정되면 줌", "가입금액")]),
+    piece("사아 입원일당", [cover("사아입원일당(1일이상)(요양병원제외)", "사아로 입원한 경우(1일이상)", "1일당 가입금액")]),
+])
+
+
+def test_glued_and_sentence_names_are_held():
+    problems = {c.number: RR.name_problem(c) for p in RR.load_pieces(GLUED) for c in p.covers}
+    held = {n for n, why in problems.items() if why}
+    assert held == {"R001-1", "R002-1", "R003-1", "R004-1"}
+    assert problems["R004-1"].startswith(f"{RR.HOLD}: 이름 칸에 지급사유 문장")
+    assert all(problems[n].startswith(f"{RR.HOLD}: 세부보장 이름 여럿이") for n in ("R001-1", "R002-1", "R003-1"))
+
+
+def test_held_names_make_no_row_whatever_the_reading():
+    pieces = RR.load_pieces(GLUED)
+    values = {c.number: reading(c.number) for p in pieces for c in p.covers}
+    built = RR.build_rows(VID, pieces, values, renewal_years=20)
+    made = {n for nums in built.numbers.values() for n in nums}
+    assert made == {"R005-1", "R006-1", "R007-1", "R008-1"}
+    assert all(built.skipped[n].startswith(RR.HOLD) for n in ("R001-1", "R002-1", "R003-1", "R004-1"))
+    # 보류한 줄도 특약 행은 남는다. 특약ID는 조각 이름으로 만든다
+    assert "가나 진단비" in {r["원시특약명"] for r in built.riders}
+    assert any(n.startswith("행을 만들지 않은 줄: 보류 4") for n in built.notes)
