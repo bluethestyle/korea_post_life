@@ -1,4 +1,4 @@
-"""사본(data/snapshot)에서 관계망 탐색 시안 2의 자료(graph.json)를 만든다. 값은 사본 그대로 옮긴다.
+"""사본(data/snapshot)에서 관계망 자료(graph.json)를 만든다. 값은 사본 그대로 옮긴다.
 
 쓰기: python proto_src/graph/build_data.py [출력 경로] [--snapshot 사본 폴더] [--orgs all | EPOST,HANWHALIFE,...]
       출력 경로를 주지 않으면 proto_src/graph/graph.json 에 쓴다. 그다음 python proto_src/graph/build.py 로 합친다.
@@ -8,8 +8,11 @@
 - data/snapshot/ 의 sys_상품종형, sys_특약, sys_급부, hum_담보매핑, sys_시장동향, meta.json(자료 시각)
 - data/seed/hum_표준담보사전.jsonl (사용여부가 참인 줄만)
 - data/proposals/표준담보_관계_두판독.jsonl (표준담보 사이의 넓고 좁은 관계)
-견줄 종형(WANT)이 사본에서 한 줄로 집히지 않으면 멈춘다(WANT 의 회사가 --orgs 에 없으면 그 줄은 건너뛴다).
-WANT 에 없는 회사를 --orgs 로 실으면 그 회사의 종형을 pick_types 규칙으로 둘 고른다. 같은 입력이면 같은 바이트를 쓴다.
+싣는 종형: 화면에 올린 회사의 종형 전부(2026-11-23까지는 세 회사의 간편 종형 하나와 일반 종형 하나씩, 여섯만 실었다).
+차례는 화면의 종형 차례(site/model.py 의 Data.variant_order)다. 급부가 없는 관문전용 종형은 종형 노드와 판매 엣지만 싣는다.
+요약(summary): 종형마다 가진 표준담보와 보장분야별 수, 표준담보마다 가진 종형, 표준담보로 이어지지 못한 급부 수, 기준 종형과
+맞붙는 종형(sales.json 의 기준별[].맞붙는종형과 같은 함수에서 얻는다). 화면은 이 수를 그대로 쓰고 엣지를 다시 세지 않는다.
+같은 입력이면 같은 바이트를 쓴다.
 """
 from __future__ import annotations
 
@@ -25,24 +28,20 @@ sys.path.insert(0, str(ROOT / 'src'))
 from postlife.snapshot import read_snapshot  # noqa: E402
 from postlife.config import INSTITUTIONS  # noqa: E402
 from postlife.site import orgs as site_orgs  # noqa: E402
+from postlife.site import sales  # noqa: E402
+from postlife.site.model import Data  # noqa: E402
 
 SNAP = ROOT / 'data/snapshot'
 STD = ROOT / 'data/seed/hum_표준담보사전.jsonl'
 REL = ROOT / 'data/proposals/표준담보_관계_두판독.jsonl'
 OUT_DEFAULT = HERE / 'graph.json'
 
-# 견줄 종형: 세 회사의 간편 종형 하나와 일반 종형 하나씩. (기관코드, 공시상품명에 든 글자, 종형명에 든 글자)
-WANT = [
-    ('EPOST', '간편한건강보험', '2종(간편가입325)'),
-    ('EPOST', '간편한건강보험', '4종(일반가입)'),
-    ('HANWHALIFE', '시그니처', '간편가입형(2년)'),
-    ('HANWHALIFE', '시그니처', '일반가입형'),
-    ('SAMSUNGFIRE', '새로고침', '325·5'),
-    ('SAMSUNGFIRE', '새로고침', '일반고지'),
-]
 KIND = ['회사', '종형', '특약', '급부', '표준담보', '보장분야', '소식']
 EK = ['판매', '포함', '해당', '속함', '관계', '일으킴']
 MAPPED = ('자동확정', '승인', '수정')     # hum_담보매핑 에서 엣지로 싣는 검토상태
+GATE_ONLY = '관문전용'                    # 비교역할구분. 급부가 없으면 특약과 급부를 싣지 않는다
+# 표준담보로 이어지지 못한 급부의 사유(요약의 미연결사유 차례). 검토상태가 이 밖이면 그 이름을 뒤에 가나다순으로 붙인다
+UNLINKED_ORDER = ('대기', '오류', '대상외', '사전밖', '매핑없음')
 
 
 def jl(p: Path) -> list[dict]:
@@ -76,35 +75,81 @@ def reduce_txt(b: dict) -> str:
     return ', '.join(out) or '없음'
 
 
-def pick_types(variants: list[dict], org: str) -> list[dict]:
-    """WANT 에 없는 회사에서 견줄 종형 둘: 판매 중인 정밀비교 종형 가운데 간편심사 하나(간편고지 3.2.5 를 먼저, 없으면 종형ID 가
-    가장 앞선 것)와 일반심사 하나(종형ID 가 가장 앞선 것). 없는 쪽은 싣지 않는다."""
-    pool = sorted((v for v in variants if v['기관코드'] == org and v.get('비교역할구분') == '정밀비교'
-                   and not v.get('판매종료일')), key=lambda v: v['종형ID'])
-    simple = [v for v in pool if v.get('심사유형') == '간편심사']
-    simple.sort(key=lambda v: v.get('간편고지약칭') != '3.2.5')
-    plain = [v for v in pool if v.get('심사유형') == '일반심사']
-    return simple[:1] + plain[:1]
+def matchups(data: Data) -> tuple[list[str], dict[str, list[str]]]:
+    """(기준 종형, 기준 종형마다 맞붙는 종형). sales.export 와 같은 계산 저장소(sales._Ctx)의 bases 와 default_peers 다.
+
+    sales.json 의 기준종형 차례와 기준별[].맞붙는종형은 이 값이다(points 가 ctx.result(base) 의 맞붙는종형을 쓰고, 그 짝은
+    default_peers 와 같은 compare.peers 규칙이다). 여기서 따로 고르지 않는다.
+    """
+    ctx = sales._Ctx(data, None, None)
+    return list(ctx.bases), {b: ctx.default_peers(b) for b in ctx.bases}
+
+
+def unlinked_reason(m: dict | None) -> str:
+    """해당 엣지가 없는 급부의 사유: 매핑 줄의 검토상태(대기, 오류, 대상외), 확정했지만 확정표준담보ID 가 비었거나 사전(사용여부
+    참)에 없으면 사전밖, 매핑 줄이 없으면 매핑없음."""
+    if m is None:
+        return '매핑없음'
+    return '사전밖' if m['검토상태'] in MAPPED else m['검토상태']
+
+
+def summarize(nl: list[dict], edges: list[dict], idx: dict[str, int], types: list[dict], mapping: dict[str, dict],
+              bases: list[str], peers: dict[str, list[str]]) -> dict:
+    """graph.json 의 요약. 수는 모두 엣지를 따라 센다(종형 -포함-> 특약 -포함-> 급부 -해당-> 표준담보 -속함-> 보장분야)."""
+    kind = {n['i']: n['k'] for n in nl}
+    out_of: dict[tuple[str, str], list[str]] = {}
+    for e in edges:
+        out_of.setdefault((e['s'], e['k']), []).append(e['t'])
+    cat_of = {s: out_of[(s, '속함')][0] for s in idx if kind[s] == '표준담보' and (s, '속함') in out_of}
+    cat_order = [n['i'] for n in nl if n['k'] == '보장분야']
+
+    per_type: dict[str, dict] = {}
+    holders: dict[str, list[int]] = {n['i']: [] for n in nl if n['k'] == '표준담보'}
+    for v in types:
+        tid = v['종형ID']
+        riders = [r for r in out_of.get((tid, '포함'), []) if kind[r] == '특약']
+        bens = [b for r in riders for b in out_of.get((r, '포함'), []) if kind[b] == '급부']
+        stds: set[str] = set()
+        reasons: Counter = Counter()
+        for b in bens:
+            hit = out_of.get((b, '해당'), [])
+            if hit:
+                stds.update(hit)
+            else:
+                reasons[unlinked_reason(mapping.get(b))] += 1
+        by_cat = Counter(cat_of[s] for s in stds if s in cat_of)
+        for s in stds:
+            holders[s].append(idx[tid])
+        extra = sorted(k for k in reasons if k not in UNLINKED_ORDER)
+        row = {'노드': idx[tid], '심사유형': v.get('심사유형'), '비교역할': v.get('비교역할구분'),
+               '판매종료일': v.get('판매종료일') or None, '특약수': len(riders), '급부수': len(bens),
+               '표준담보': sorted(idx[s] for s in stds),
+               '보장분야별': {c: by_cat[c] for c in cat_order if by_cat[c]},
+               '미연결급부': sum(reasons.values()),
+               '미연결사유': {k: reasons[k] for k in (*UNLINKED_ORDER, *extra) if reasons[k]}}
+        per_type[tid] = {k: x for k, x in row.items() if x is not None}
+    return {
+        '회사': list(dict.fromkeys(v['기관코드'] for v in types)),
+        '종형': per_type,
+        '표준담보별종형': {s: sorted(ix) for s, ix in holders.items()},
+        '기준종형': bases,
+        '맞붙는종형': peers,
+    }
 
 
 def build(snap_dir: Path = SNAP, orgs=None) -> tuple[dict, dict, list]:
+    snap_dir = Path(snap_dir)
     picked = site_orgs.parse(orgs)
     snap = site_orgs.filter_tables(read_snapshot(snap_dir), picked)
+    meta = json.loads((snap_dir / 'meta.json').read_text(encoding='utf-8'))
+    data = Data(snap, meta)              # 화면 자료(sales.json)와 같은 모델. 종형 차례와 맞붙는 종형을 여기서 얻는다
     std = [r for r in jl(STD) if r.get('사용여부')]
     rel = jl(REL)
 
-    types = []
-    for org, p, t in WANT:
-        if picked != site_orgs.ALL and org not in picked:
-            continue
-        hit = [v for v in snap['sys_상품종형'] if v['기관코드'] == org and p in v['공시상품명'] and t in v['종형명']]
-        if len(hit) != 1:
-            sys.exit(f'견줄 종형이 한 줄로 집히지 않는다: {org} {p} {t} -> {len(hit)}줄. WANT 를 지금 사본에 맞게 고친다')
-        types.append(hit[0])
-    named = {org for org, _, _ in WANT}
-    extra = sorted({v['기관코드'] for v in snap['sys_상품종형']} - named)   # 거른 뒤 남은 회사 가운데 WANT 에 없는 회사
-    for org in extra:
-        types += pick_types(snap['sys_상품종형'], org)
+    types = [data.variants[vid] for vid in data.variant_order]
+    rider_type = {r['특약ID']: r['종형ID'] for r in snap['sys_특약']}
+    has_benefit = {rider_type[b['특약ID']] for b in snap['sys_급부'] if b['특약ID'] in rider_type}
+    bare = {v['종형ID'] for v in types if v.get('비교역할구분') == GATE_ONLY and v['종형ID'] not in has_benefit}
 
     nodes: dict[str, dict] = {}
     edges: list[dict] = []
@@ -129,7 +174,8 @@ def build(snap_dir: Path = SNAP, orgs=None) -> tuple[dict, dict, list]:
              간편고지=v.get('간편고지약칭'), 갱신유형=v.get('갱신유형'), 갱신주기년=v.get('갱신주기년'),
              심사유형=v.get('심사유형'), 환급유형=v.get('환급유형'), 적용시작일=v.get('적용시작일'))
         edge(o, v['종형ID'], '판매')
-        type_ids.add(v['종형ID'])
+        if v['종형ID'] not in bare:
+            type_ids.add(v['종형ID'])
 
     org_of_type = {v['종형ID']: v['기관코드'] for v in types}
     riders = {}
@@ -195,12 +241,19 @@ def build(snap_dir: Path = SNAP, orgs=None) -> tuple[dict, dict, list]:
             o[str(keys.index(k))] = v
         return o
 
-    meta = json.loads((Path(snap_dir) / 'meta.json').read_text(encoding='utf-8'))
     out = {'snapshot_at': meta['snapshot_at'], 'kinds': KIND, 'ekinds': EK,
            'nodes': [[n['i'], KIND.index(n['k']), n['l'], n['o'], kc(n['p'])] for n in nl],
            'edges': [[idx[e['s']], idx[e['t']], EK.index(e['k']), kc(e['p'])] for e in edges]}
     out['keys'] = keys
+    bases, peers = matchups(data)
+    mapping = {m['급부ID']: m for m in snap['hum_담보매핑']}
+    out['summary'] = summarize(nl, edges, idx, types, mapping, bases, peers)
     return out, nodes, edges
+
+
+def dumps(out: dict) -> str:
+    """graph.json 의 글(빈칸 없는 JSON, 한글 그대로)."""
+    return json.dumps(out, ensure_ascii=False, separators=(',', ':'))
 
 
 def main() -> int:
@@ -219,12 +272,15 @@ def main() -> int:
               '출력 경로를 out/graph_test.json 처럼 따로 준다')
         return 1
     out, nodes, edges = build(args.snapshot, picked)
-    s = json.dumps(out, ensure_ascii=False, separators=(',', ':'))
+    s = dumps(out)
     out_path.write_text(s, encoding='utf-8')
+    summary = out['summary']
     print('화면에 올린 회사:', site_orgs.describe(picked))
-    print(out_path, 'bytes', len(s.encode('utf-8')))
+    print(out_path, 'bytes', len(s.encode('utf-8')), '(요약', len(dumps(summary).encode('utf-8')), 'bytes)')
     print('nodes', len(nodes), dict(Counter(n['k'] for n in nodes.values())))
     print('edges', len(edges), dict(Counter(e['k'] for e in edges)))
+    print('종형', len(summary['종형']), '기준 종형', len(summary['기준종형']),
+          '미연결 급부', sum(t['미연결급부'] for t in summary['종형'].values()))
     return 0
 
 

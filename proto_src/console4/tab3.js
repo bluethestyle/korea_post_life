@@ -660,7 +660,7 @@ App.registerTab((function () {
       stopHTML += `<p class="note">최근 3개월 소견과 5년 안 중대질병은 고객 조건으로 받지 않는 전제 관문이라 간편 종형을 가르지 않습니다.</p>`;
     }
     if (cell && (c.st.age !== cell['세부나이'] || c.st.sex !== map['성별'])) {
-      stopHTML += `<p class="note">관문 흐름 통과 수는 지도 칸의 세부나이(${fmt(cell['세부나이'])}세, ${esc(txt.sexText(map['성별']))}) 기준입니다.</p>`;
+      stopHTML += `<p class="note">${esc(App.t(c.st.since == null ? 'flowAgeNoteNoHistTpl' : 'flowAgeNoteTpl', { age: fmt(cell['세부나이']), sex: txt.sexText(map['성별']) }))}</p>`;
     }
     if (stopEntries.length) {
       stopHTML += `<ul class="evl" style="margin-top:6px">${stopEntries.map(([reason, codes]) => `<li><b>${esc(reason)} (${fmt(codes.length)}곳)</b>: ${esc(txt.peerNamesEtc(codes.map(txt.orgShort), 6))}</li>`).join('')}</ul>`;

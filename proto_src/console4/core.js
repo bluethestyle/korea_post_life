@@ -160,6 +160,8 @@
     whySegAgeTpl: '나이 자료 없음: 고객군 지도는 {lo}~{hi}세만 계산했습니다',
     whySegRow: '이력 자료 없음: 이 이력의 칸이 지도에 없습니다',
     whySegSexTpl: '{sex} 지도 자료 없음: 고객군 지도는 {mapSex} 기준으로만 계산해 {mapSex} 칸을 보입니다',
+    flowAgeNoteTpl: '관문 흐름 통과 수는 지도 칸의 세부나이({age}세, {sex}) 기준입니다.',
+    flowAgeNoteNoHistTpl: '관문 흐름 통과 수는 이력 없는 고객의 세부나이({age}세, {sex}) 기준입니다.',
     docFallback: '문서',
     pageSuffix: '쪽',
     pageMissingSuffix: ': 쪽 번호 자료 없음',
@@ -689,7 +691,8 @@
     const out = { map: m, ri, ci, row: m['행'][ri] || null, col: m['열'][ci] || null, cell: null, reason: '', sexNote: '' };
     if (ci < 0) out.reason = cp('whySegAgeTpl', { lo, hi });
     else if (ri < 0) out.reason = cp('whySegRow');
-    else out.cell = m['칸'][ri][ci];
+    // 이력 없음은 지도의 "5년+" 칸(ri)에 표시하되, 값은 이력없음(이력 없는 고객으로 계산한 값)을 읽는다(API.md)
+    else out.cell = (s.since == null && m['이력없음'] && m['이력없음'][ci]) || m['칸'][ri][ci];
     if (s.sex !== m['성별']) out.sexNote = cp('whySegSexTpl', { sex: sexText(s.sex), mapSex: sexText(m['성별']) });
     return out;
   }

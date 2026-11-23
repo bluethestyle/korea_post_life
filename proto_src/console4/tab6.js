@@ -143,6 +143,7 @@
 
     G = {
       snapshotAt: raw.snapshot_at || '',
+      summary: raw.summary || null,
       kinds,
       ekinds,
       N,
@@ -189,12 +190,28 @@
   }
 
   function matchedVariants(g, c) {
-    const baseSimsa = (c.baseInfo && c.baseInfo['심사']) || '간편심사';
     const allowedPeers = new Set(c.activePeerOrgs || []);
     const outVars = [];
     const seen = new Set();
 
-    // 1. 우체국 기준 종형(graph.json 에 있으면 우선, 없으면 같은 심사유형 우체국 종형)
+    // summary.기준종형 과 summary.맞붙는종형 이 있으면 화면에서 다시 고르지 않고 그대로 쓴다
+    if (g.summary && g.summary['맞붙는종형']) {
+      const bIdx = g.byId.get(c.baseId);
+      if (bIdx != null) { outVars.push(bIdx); seen.add(bIdx); }
+      const peerIds = g.summary['맞붙는종형'][c.baseId] || c.peerIds || [];
+      peerIds.forEach(vid => {
+        const ni = g.byId.get(vid);
+        if (ni == null || seen.has(ni)) return;
+        const org = g.N[ni].o;
+        if (c.peerScope === 'all' || allowedPeers.has(org)) {
+          outVars.push(ni);
+          seen.add(ni);
+        }
+      });
+      if (outVars.length) return outVars;
+    }
+
+    const baseSimsa = (c.baseInfo && c.baseInfo['심사']) || '간편심사';
     const directBase = g.byId.get(c.baseId);
     if (directBase != null) {
       outVars.push(directBase);
@@ -204,8 +221,6 @@
         || g.N.find(n => n.k === 1 && n.o === 'EPOST');
       if (epFallback) { outVars.push(epFallback.i); seen.add(epFallback.i); }
     }
-
-    // 2. 지금 조건에서 맞붙는 상대 종형(sales.json 의 맞붙는종형 우선, 나머지 범위 회사는 같은 심사유형 종형)
     const coveredOrgs = new Set(['EPOST']);
     (c.peerIds || []).forEach(vid => {
       const ni = g.byId.get(vid);
@@ -568,23 +583,34 @@
     App.select('n:' + g.N[nodeIdx].id, { animate: false });
   }
 
-  // 표준담보의 우체국 보유 / 단독 보유 판별(graph.json 의 실제 경로만 사용)
+  // 표준담보의 우체국 보유 / 단독 보유 판별(summary.표준담보별종형 우선 사용)
   function stdOwnershipClass(g, stdIdx) {
-    const vars = state.cols[2].length ? state.cols[2] : g.N.filter(n => n.k === 1).map(n => n.i);
+    const stdNode = g.N[stdIdx];
+    if (!stdNode) return '';
+    const cmpVars = state.cols[2].filter(vi => {
+      const vs = g.summary && g.summary['종형'] && g.summary['종형'][g.N[vi].id];
+      return !vs || (!vs['판매종료일'] && vs['비교역할'] !== '관문전용' && vs['비교역할'] !== '직전개정시연');
+    });
+    const activeSet = new Set(cmpVars.length ? cmpVars : state.cols[2]);
+    let holderIdxs = null;
+    if (g.summary && g.summary['표준담보별종형'] && Array.isArray(g.summary['표준담보별종형'][stdNode.id])) {
+      holderIdxs = g.summary['표준담보별종형'][stdNode.id];
+    }
     let epostHas = false;
     let peerHas = false;
-    vars.forEach(vi => {
-      const sMap = g.varStdPaths.get(vi);
-      if (sMap && sMap.has(stdIdx)) {
-        if (g.N[vi].o === 'EPOST') epostHas = true;
-        else peerHas = true;
-      }
-    });
-    if (!epostHas && !peerHas) {
-      // 현재 종형 바깥 전체 graph.json 기준 확인
-      (g.stdBens.get(stdIdx) || []).forEach(({ ben }) => {
-        if (g.N[ben].o === 'EPOST') epostHas = true;
-        else if (g.N[ben].o) peerHas = true;
+    if (holderIdxs) {
+      holderIdxs.forEach(vi => {
+        if (activeSet.size && !activeSet.has(vi)) return;
+        if (g.N[vi] && g.N[vi].o === 'EPOST') epostHas = true;
+        else if (g.N[vi] && g.N[vi].o) peerHas = true;
+      });
+    } else {
+      activeSet.forEach(vi => {
+        const sMap = g.varStdPaths.get(vi);
+        if (sMap && sMap.has(stdIdx)) {
+          if (g.N[vi].o === 'EPOST') epostHas = true;
+          else peerHas = true;
+        }
       });
     }
     if (!epostHas && peerHas) return 'is-miss';
@@ -605,7 +631,6 @@
     // 1. graph.json 실제 엣지 가운데 양 끝 노드가 모두 화면에 있는 것
     g.E.forEach(e => {
       if (!allVis.has(e.s) || !allVis.has(e.t)) return;
-      // cover-2 에서 다른 표준담보로 가는 속함 선은 선택 담보와 관계 담보 위주로도 모두 실제 엣지 그대로 유지
       const colS = COL_OF_KIND[g.N[e.s].k];
       const colT = COL_OF_KIND[g.N[e.t].k];
       const leftNode = colS <= colT ? e.s : e.t;
@@ -626,52 +651,65 @@
       });
     });
 
-    // 2. 처음 상태(표준담보, 특약, 급부가 접혀 있을 때): 종형 -> 보장분야 묶은 엣지(굵기 1.5~6px + 담보 수 표기)
+    // 2. 처음 상태(표준담보, 특약, 급부가 접혀 있을 때): 종형 -> 보장분야 묶은 엣지(summary.종형[].보장분야별 값 그대로 사용)
     if (!hasStds && !hasRidersOrBens && visByCol[2].size && visByCol[6].size) {
       state.cols[2].forEach(vi => {
+        const vNode = g.N[vi];
+        const vSum = g.summary && g.summary['종형'] && g.summary['종형'][vNode.id];
         const dMap = g.varDomStds.get(vi);
-        if (!dMap) return;
         state.cols[6].forEach(di => {
-          const stdList = dMap.get(di);
-          if (!stdList || !stdList.length) return;
+          const dNode = g.N[di];
+          const sumCnt = vSum && vSum['보장분야별'] ? (vSum['보장분야별'][dNode.id] || 0) : null;
+          const stdList = (dMap && dMap.get(di)) || [];
+          const cnt = sumCnt != null ? sumCnt : stdList.length;
+          if (!cnt) return;
+          const waitCnt = (vSum && vSum['미연결사유'] && vSum['미연결사유']['대기']) || 0;
+          const props = {
+            연결구분: '종형별 분야 보유 요약(묶은 엣지)',
+            종형: vNode.l,
+            보장분야: dNode.l,
+            표준담보수: cnt,
+          };
+          if (waitCnt > 0) props['검토대기안내'] = `이 종형 전체에 매핑 검토 대기 급부 ${waitCnt}건이 있어 담보가 더 이어질 수 있습니다`;
           edges.push({
             key: `vb:${vi}:${di}`,
             kind: 'var-dom',
             eIdx: null,
             ek: 1,
-            ekName: `${g.N[di].l} 표준담보 ${stdList.length}개`,
+            ekName: `${dNode.l} 표준담보 ${cnt}개`,
             leftNode: vi,
             rightNode: di,
             sNode: vi,
             tNode: di,
             intraCol: false,
-            props: {
-              연결구분: '종형별 분야 보유 요약(묶은 엣지)',
-              종형: g.N[vi].l,
-              보장분야: g.N[di].l,
-              표준담보수: stdList.length,
-            },
+            props,
             stdList,
-            count: stdList.length,
+            count: cnt,
           });
         });
       });
     }
 
-    // 3. 1걸음 펼침(보장분야를 펼쳐 표준담보는 열렸고 특약과 급부는 접혀 있을 때): 종형 -> 표준담보 연결선
+    // 3. 1걸음 펼침(보장분야를 펼쳐 표준담보는 열렸고 특약과 급부는 접혀 있을 때): 종형 -> 표준담보 연결선(summary.표준담보별종형 우선)
     if (hasStds && !hasRidersOrBens && visByCol[2].size) {
-      state.cols[2].forEach(vi => {
-        const sMap = g.varStdPaths.get(vi);
-        if (!sMap) return;
-        state.cols[5].forEach(si => {
-          const pObj = sMap.get(si);
-          if (!pObj) return;
+      state.cols[5].forEach(si => {
+        const sNode = g.N[si];
+        const holderSet = (g.summary && g.summary['표준담보별종형'] && g.summary['표준담보별종형'][sNode.id])
+          ? new Set(g.summary['표준담보별종형'][sNode.id])
+          : null;
+        state.cols[2].forEach(vi => {
+          const sMap = g.varStdPaths.get(vi);
+          const pObj = sMap && sMap.get(si);
+          const hasLink = holderSet ? holderSet.has(vi) : !!pObj;
+          if (!hasLink) return;
+          const rCnt = pObj ? pObj.riders.length : 0;
+          const bCnt = pObj ? pObj.bens.length : 0;
           edges.push({
             key: `vs:${vi}:${si}`,
             kind: 'var-std',
             eIdx: null,
             ek: 2,
-            ekName: `특약 ${pObj.riders.length}, 급부 ${pObj.bens.length}`,
+            ekName: rCnt || bCnt ? `특약 ${rCnt}, 급부 ${bCnt}` : '보유 연결',
             leftNode: vi,
             rightNode: si,
             sNode: vi,
@@ -679,8 +717,8 @@
             intraCol: false,
             props: {
               연결구분: '종형에서 표준담보로 이어지는 경로 요약',
-              연결특약수: pObj.riders.length,
-              연결급부수: pObj.bens.length,
+              연결특약수: rCnt,
+              연결급부수: bCnt,
             },
             pathObj: pObj,
             count: null,
@@ -791,8 +829,19 @@
     } else if (n.k === 1) {
       const prodNm = p['공시상품명'] || n.l;
       const kindNm = p['종형명'] || p['심사유형'] || '';
+      const vSum = g.summary && g.summary['종형'] && g.summary['종형'][n.id];
+      const role = vSum && vSum['비교역할'];
+      const endDt = vSum && vSum['판매종료일'];
+      const waitCnt = (vSum && vSum['미연결사유'] && vSum['미연결사유']['대기']) || 0;
+      const roleNote = endDt
+        ? `판매종료(${endDt})`
+        : role === '관문전용'
+          ? '관문전용(담보 비교 대상 아님)'
+          : role === '직전개정시연'
+            ? '직전개정시연(담보 비교 대상 아님)'
+            : `표준담보 ${fmt(vSum && Array.isArray(vSum['표준담보']) ? vSum['표준담보'].length : 0)}개${waitCnt > 0 ? `, 검토 대기 ${fmt(waitCnt)}건` : ''}`;
       inner = `<span class="gn-p">${esc(orgLabel(n.o))} ${esc(prodNm)}</span><span class="gn-t">${esc(kindNm || n.l)}</span>`;
-      tipSub = `${orgLabel(n.o)} / ${p['심사유형'] || ''} / 특약 ${fmt((g.varRiders.get(ni) || []).length)}개`;
+      tipSub = `${orgLabel(n.o)} / ${p['심사유형'] || ''} / ${roleNote}`;
     } else if (n.k === 2) {
       const sub = [orgLabel(n.o), p['담보구분'], p['갱신여부']].filter(Boolean).join(', ');
       inner = `<span class="gn-t">${esc(n.l)}</span>${sub ? `<span class="gn-s">${esc(sub)}</span>` : ''}`;
@@ -1194,7 +1243,34 @@
       else if (ownCls === 'is-only') badges.push(ui.verdict('only'));
     }
 
-    const body = `<div class="ev-sec"><h3>노드 속성</h3>${propTableHTML(n.p, [['식별자', n.id]])}${crossTabButtonsHTML(g, n)}</div>
+    const extraRows = [['식별자', n.id]];
+    let summarySec = '';
+    if (n.k === 1 && g.summary && g.summary['종형'] && g.summary['종형'][n.id]) {
+      const vs = g.summary['종형'][n.id];
+      if (vs['비교역할']) extraRows.push(['비교역할', vs['비교역할']]);
+      if (vs['판매종료일']) extraRows.push(['판매종료일', vs['판매종료일']]);
+      extraRows.push(['특약 수 (요약)', `${fmt(vs['특약수'] || 0)}개`]);
+      extraRows.push(['급부 수 (요약)', `${fmt(vs['급부수'] || 0)}개`]);
+      if (vs['비교역할'] === '관문전용' || vs['비교역할'] === '직전개정시연' || vs['판매종료일']) {
+        summarySec = `<div class="ev-sec"><p class="note">${vs['판매종료일'] ? `판매를 마친 직전 개정 종형(${esc(vs['판매종료일'])} 종료)이라 현재 담보 비교 대상이 아닙니다.` : '가입 관문만 수집한 종형이라 담보 비교 대상이 아닙니다.'}</p></div>`;
+      } else {
+        const stdLen = Array.isArray(vs['표준담보']) ? vs['표준담보'].length : 0;
+        const reasons = vs['미연결사유'] || {};
+        const waitN = reasons['대기'] || 0;
+        const outN = reasons['대상외'] || 0;
+        extraRows.push(['연결 표준담보 수 (요약)', `${fmt(stdLen)}개`]);
+        if (vs['미연결급부']) extraRows.push(['미연결 급부 수', `${fmt(vs['미연결급부'])}개`]);
+        const notes = [];
+        if (waitN > 0) notes.push(`매핑 검토 대기 급부 ${fmt(waitN)}건이 있어 담당자 검토 뒤 표준담보가 더 이어질 수 있습니다.`);
+        if (outN > 0) notes.push(`대상외 급부 ${fmt(outN)}건은 표준담보 사전 범위 밖 급부이며 빠진 담보가 아닙니다.`);
+        if (notes.length) summarySec = `<div class="ev-sec"><p class="note">${esc(notes.join(' '))}</p></div>`;
+      }
+    } else if (n.k === 4 && g.summary && g.summary['표준담보별종형'] && Array.isArray(g.summary['표준담보별종형'][n.id])) {
+      extraRows.push(['보유 종형 수 (요약)', `${fmt(g.summary['표준담보별종형'][n.id].length)}개`]);
+    }
+
+    const body = `<div class="ev-sec"><h3>노드 속성</h3>${propTableHTML(n.p, extraRows)}${crossTabButtonsHTML(g, n)}</div>
+      ${summarySec}
       <div class="ev-sec"><h3>이웃 펼치기 (자료 목록 수)</h3>${hopBtns ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${hopBtns}</div>` : '<p class="note">연결 가능한 이웃이 없습니다.</p>'}</div>
       <div class="ev-sec lo"><h3>화면에 이어진 엣지 (${fmt(attachedEdges.length)})</h3>${edgeListHTML}</div>`;
 

@@ -1,0 +1,10 @@
+# 줄바꿈은 LF로 둔다. Windows에서 작업해도 CRLF로 올라오지 않게 한다.
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.yml text eol=lf
+*.txt text eol=lf

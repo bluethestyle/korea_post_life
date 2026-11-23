@@ -154,7 +154,7 @@ MAP_CELL = {
 }
 SEG_MAP = {"성별": str, "갱신유형": Opt(str), "행": Seq({"종류": str, "since": Opt(NUM), "이름": str}),
            "열": Seq({"lo": int, "hi": int}), "칸": Seq(Seq(MAP_CELL)), "라벨별": Map(int),
-           "고지유형": Seq({"열쇠": str, "상대수": int, "상대코드": Seq(str)})}
+           "고지유형": Seq({"열쇠": str, "상대수": int, "상대코드": Seq(str)}), "이력없음": Seq(MAP_CELL)}
 VALUE_COUNT = Seq({"값": ANY, "상대수": int, "상대코드": Seq(str), "종형수": int})
 LIMIT_STEP = {"lo": int, "hi": int, "max": Opt(NUM), "pend": ANY}
 SALES = {
@@ -335,7 +335,7 @@ def test_committed_files_match_snapshot(made, committed):
 ADDED_CELL = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수",
               "열린상대코드", "관문만열린상대코드", "닫힌상대코드", "모르는상대코드",
               "일부열린상대수", "일부열린상대코드", "일부열린나이", "일부나이로만열림", "세부나이", "관문흐름")
-ADDED_MAP = ("고지유형",)
+ADDED_MAP = ("고지유형", "이력없음")
 ADDED_TOP = ("관문마디", "고지유형속성")
 ADDED_SCOPE = ("업권별",)
 ADDED_BRIEF = ("열린상대수분포", "상대회사수", "상대보유분포", "상대보유요약", "일부열림칸수", "일부나이로만열림칸수",
@@ -636,7 +636,9 @@ def added_value_errors(f: dict) -> list[str]:
             errs.append(f"지도 {name}: 열이 이어지지 않는다")
         if any(not _codes_ok(g["상대코드"], orgs) or len(g["상대코드"]) != g["상대수"] for g in m["고지유형"]):
             errs.append(f"지도 {name}: 고지유형의 상대코드")
-        for ri, line in enumerate(m["칸"]):
+        if len(m["이력없음"]) != len(m["열"]):
+            errs.append(f"지도 {name}: 이력없음의 수 {len(m['이력없음'])} 가 열 수 {len(m['열'])} 와 다르다")
+        for ri, line in [*enumerate(m["칸"]), ("이력없음", m["이력없음"])]:
             for ci, c in enumerate(line):
                 at = f"지도 {name} [{ri}][{ci}]"
                 col = m["열"][ci]
@@ -881,3 +883,47 @@ def test_map_columns_and_flow_on_three_companies(made):
     assert stops == {("가입나이", "걸림"), ("입원과 수술의 기간", "걸림"), ("수술 포함 여부", "걸림"), ("최근 소견", "심사로 확인")}
     assert [m["열"] for m in S["지도"].values()] == [[{"lo": 15, "hi": 19}, {"lo": 20, "hi": 80}]] * 2 + [
         [{"lo": 15, "hi": 65}, {"lo": 66, "hi": 80}]]
+
+
+MAP_RENEWAL = {"전체": None, "갱신": "갱신", "비갱신": "비갱신"}
+
+
+def _final_pass_mismatches(f: dict, pick) -> list[tuple]:
+    """지도마다 열마다 pick(지도, 열 번호)이 고른 칸의 관문흐름에서 유형마다 마지막 마디의 통과수가, gate.json 의 이력 없음 조건
+    (M|-|0)의 그 칸의 세부나이에서 그 유형의 종형이 하나라도 열린 상대 회사 수와 다른 (지도, 열, 유형, 통과수, 열린 회사 수)."""
+    S, gate = f["S"], f["gate"]
+    info, vids = gate["종형정보"], gate["종형"]
+    out = []
+    for name, m in S["지도"].items():
+        renewal = MAP_RENEWAL[name]
+        for ci in range(len(m["열"])):
+            c = pick(m, ci)
+            hit = next(e for e in gate["조건"]["M|-|0"] if e["lo"] <= c["세부나이"] <= e["hi"])
+            opened: dict[str, set] = {}
+            for i, v in enumerate(vids):
+                x = info[v]
+                if x["회사"] == HOME or (renewal is not None and x["갱신"] != renewal):
+                    continue
+                if gate["상태"][hit["v"]["s"][i][0]] == "열림":
+                    opened.setdefault(x["고지유형열쇠"], set()).add(x["회사"])
+            for g in c["관문흐름"]["유형"]:
+                n = len(opened.get(g["열쇠"], ()))
+                if g["통과수"][-1] != n:
+                    out.append((name, ci, g["열쇠"], g["통과수"][-1], n))
+    return out
+
+
+def test_no_history_flow_matches_the_gate_tree(files):
+    """이력 없음의 관문흐름(지도의 이력없음): 유형마다 끝까지 통과한 상대 수가 관문 나무(gate.json)의 같은 조건에서 그 유형의
+    종형이 열린 상대 회사 수와 같다. 지도의 "5년+" 칸(마지막 입원이 5년 전)에서는 5년보다 긴 기간을 묻는 간편 종형(한화생명
+    10년형)이 닫혀 같지 않다. 화면은 이력 없음일 때 이력없음을 읽는다(core.js 의 cellOf)."""
+    assert _final_pass_mismatches(files, lambda m, ci: m["이력없음"][ci]) == []
+
+    def five(m, ci):
+        last = max(r["since"] for r in m["행"])
+        ri = next(i for i, r in enumerate(m["행"]) if r["종류"] == "입원" and r["since"] == last)
+        return m["칸"][ri][ci]
+
+    longer = any((x["질문"] or {}).get("hospYears") and x["질문"]["hospYears"] > 5
+                 for x in files["gate"]["종형정보"].values() if x["회사"] != HOME and x["심사"] == "간편심사")
+    assert bool(_final_pass_mismatches(files, five)) == longer
