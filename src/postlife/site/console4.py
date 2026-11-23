@@ -164,7 +164,8 @@ def build_gate(data: Data) -> dict:
     """관문 나무(gate.json). sales.gate, sales.simple_classify(지도 라벨), sales.closed_reasons, sales.general_note 를
     나이 구간 x 성별 x 이력(없음, 0.25~5년) x 수술만 마다 부른다. 이웃 나이 구간의 결과가 같으면 합친다.
     종형마다 고지 질문 값(eligibility.gate)과 가입나이(sales.age_span), 갱신과 환급 구조, 고지 유형 열쇠(sales.notice_key)를
-    함께 싣는다."""
+    함께 싣는다. 고지중대질병목록(중대질병 질문의 질병 이름을 ", "로 이은 것)과 고지소견범위(서면, 서면과 진료기록부)는 종형 표의
+    값을 그대로 싣고, 값이 없으면(일반심사 종형 따위) null 이다."""
     conds = [c for c in data.conds() if c.age is not None]
     vids = SA.gate_targets(data)          # 관문전용 종형(고지 질문과 주계약 가입조건만 모은 종형)도 관문 나무에 싣는다
     info = {}
@@ -175,7 +176,8 @@ def build_gate(data: Data) -> dict:
                      '환급': v.get('환급유형'), '질문': eligibility.gate(v),
                      '가입나이': {s: SA.age_span(data, vid, s) for s in ('M', 'F')},
                      '한도빈칸': data.limit_gap(vid), '관문전용': SA.gate_only(data, vid),
-                     '고지유형열쇠': SA.notice_key(data, vid)}
+                     '고지유형열쇠': SA.notice_key(data, vid),
+                     '고지중대질병목록': v.get('고지중대질병목록') or None, '고지소견범위': v.get('고지소견범위') or None}
     table = {}
     for sex in ('M', 'F'):
         for since in SINCE:

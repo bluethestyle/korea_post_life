@@ -2536,8 +2536,9 @@ def _brief_line(line: str, scope_name: str, values: dict, sentence: str, tab: st
     return {"줄": line, "범위": scope_name, "값": values, "문장": sentence, "갈곳": tab, "틀": used, **more}
 
 
-def no_age_companies(data: Data, renewal: str | None = None) -> list[str]:
-    """지도가 보는 상대 회사(거르개 안의 관문 대상 종형) 가운데 어느 종형에도 주계약 가입나이 자료가 없는 회사의 이름."""
+def no_age_orgs(data: Data, renewal: str | None = None) -> list[str]:
+    """지도가 보는 상대 회사(거르개 안의 관문 대상 종형) 가운데 어느 종형에도 주계약 가입나이 자료가 없는 회사의 기관코드
+    (처음 나온 차례)."""
     has: dict[str, bool] = {}
     for vid in gate_targets(data, renewal):
         org = _org(data, vid)
@@ -2545,7 +2546,12 @@ def no_age_companies(data: Data, renewal: str | None = None) -> list[str]:
             continue
         main = data.main_rider(vid)
         has[org] = has.get(org, False) or bool(main and data.condition_rows(main))
-    return [data.org_name(o) for o, ok in has.items() if not ok]
+    return [o for o, ok in has.items() if not ok]
+
+
+def no_age_companies(data: Data, renewal: str | None = None) -> list[str]:
+    """no_age_orgs 의 회사 이름."""
+    return [data.org_name(o) for o in no_age_orgs(data, renewal)]
 
 
 def spread(values: list[float]) -> dict[str, float] | None:
@@ -2570,8 +2576,8 @@ def _line_landscape(data: Data, seg: dict[str, Any]) -> dict[str, Any]:
     """(가) 고객군 지형. 라벨 다섯의 칸 수(라벨별. 합이 전체칸수)를 값에 담고 0칸이 아닌 라벨은 모두 문장에 적는다.
     우리간편닫힘칸수는 우리 간편 닫힘 칸 가운데 보조가 일반심사 확인인 칸이다(모두 그렇지 않으면 가_닫힘_일부 틀).
     관문만칸수와 관문만종형은 열린 상대 종형이 관문전용뿐인 칸(칸의 관문만수집)과 그 종형 이름이고, 나이자료없음회사는
-    no_age_companies다. 일부열림칸수는 일부 나이만 열린 상대가 있는 칸, 일부나이로만열림칸수는 열린 상대가 그 상대뿐인 칸이다
-    (span_cell. 0칸이 아니면 둘째 문장의 끝 절로 적는다)."""
+    no_age_companies다(나이자료없음회사코드는 그 기관코드. 정렬). 일부열림칸수는 일부 나이만 열린 상대가 있는 칸,
+    일부나이로만열림칸수는 열린 상대가 그 상대뿐인 칸이다(span_cell. 0칸이 아니면 둘째 문장의 끝 절로 적는다)."""
     cells = [x for line in seg["칸"] for x in line]
     labels = {lab: sum(1 for x in cells if x["라벨"] == lab) for lab in LABELS.values()}
     only, both = labels[LABELS[ONLY_OPEN]], labels[LABELS[BOTH_OPEN]]
@@ -2580,14 +2586,16 @@ def _line_landscape(data: Data, seg: dict[str, Any]) -> dict[str, Any]:
     places = cells_of(seg, LABELS[ONLY_OPEN])
     summary = ", ".join(places[:2]) + (f" 외 {len(places) - 2}개 구간" if len(places) > 2 else "")
     gate_cells, gate_names, unique = _gate_only_cells(data, seg)
-    no_age = no_age_companies(data, seg["갱신유형"])
+    no_age_codes = no_age_orgs(data, seg["갱신유형"])
+    no_age = [data.org_name(o) for o in no_age_codes]
     values = {"전체칸수": len(cells), "우리간편만열림칸수": only, "우리간편만열림요약": summary, "함께열림칸수": both,
               "우리간편닫힘칸수": closed, "우리간편닫힘라벨칸수": closed_all, "간편모두닫힘칸수": all_closed,
               "자료없음칸수": nodata, "라벨별": labels, "관문만칸수": gate_cells, "관문만종형": gate_names,
               "나이자료없음회사": no_age, "성별": seg["성별"], "갱신유형": seg["갱신유형"],
               "열린상대수분포": spread([x["열린상대수"] for x in cells if "열린상대수" in x]),
               "일부열림칸수": sum(1 for x in cells if x.get("일부열린상대수")),
-              "일부나이로만열림칸수": sum(1 for x in cells if x.get("일부나이로만열림"))}
+              "일부나이로만열림칸수": sum(1 for x in cells if x.get("일부나이로만열림")),
+              "나이자료없음회사코드": sorted(no_age_codes)}
     if not cells:
         used = ["가_자료없음"]
         text = render("가_자료없음", {})
@@ -2648,7 +2656,9 @@ def _line_market(data: Data, rev: dict[str, Any], news: dict[str, Any]) -> dict[
 
 def _line_gate(data: Data, base: str, p: Profile, pts: dict[str, Any]) -> dict[str, Any]:
     """(다) 가입 관문과 한도. 관문차이수는 고지 질문 범위가 다른 상대의 수(맞붙는 상대와 견준 G3이 있는 회사 수)이고,
-    관문차이상대는 그 회사 이름이다. 한도는 조건 p의 나이에서 주계약 한도다(나이가 없으면 적지 않는다).
+    관문차이상대는 그 회사 이름, 관문차이상대코드는 그 기관코드(정렬)다. 구조다름회사수는 갱신이나 환급 구조가 다른 맞붙는
+    상대 회사의 수이고 구조다름회사코드는 그 기관코드(정렬)다. 두 코드 목록은 화면이 고른 비교 범위로 수를 다시 셀 때 쓴다.
+    한도는 조건 p의 나이에서 주계약 한도다(나이가 없으면 적지 않는다).
     관문상태와 질문은 기준 종형의 variant_gate 값이다(일반심사 기준 종형은 이력과 무관하게 심사로 확인)."""
     peers = pts["맞붙는종형"]
     span = age_span(data, base, p.sex)
@@ -2658,12 +2668,14 @@ def _line_gate(data: Data, base: str, p: Profile, pts: dict[str, Any]) -> dict[s
                   for v in x["비교종형ID"]]
     diff_orgs = list(dict.fromkeys(_org(data, v) for v in diff_peers))
     gate_diff = len(diff_orgs)
-    struct = len({_org(data, x) for x in peers if structure_differs(data, base, x)})
+    struct_orgs = sorted({_org(data, x) for x in peers if structure_differs(data, base, x)})
+    struct = len(struct_orgs)
     general = data.variants[base].get("심사유형") != SIMPLE
     values = {"우리종형": _kind_name(data, base), "우리최저": span[0] if span else None, "우리최고": span[1] if span else None,
               "나이": p.age, "주계약한도만원": _money(g["한도만원"]) if g["한도만원"] is not None else None,
               "관문차이수": gate_diff, "관문차이상대": [data.org_name(o) for o in diff_orgs], "구조다름회사수": struct,
-              "심사": data.variants[base].get("심사유형"), "관문상태": g["상태"], "질문": g["질문"]}
+              "심사": data.variants[base].get("심사유형"), "관문상태": g["상태"], "질문": g["질문"],
+              "관문차이상대코드": sorted(diff_orgs), "구조다름회사코드": struct_orgs}
     if span is None:
         first = "다_나이없음"
     elif p.age is None:

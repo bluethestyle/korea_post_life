@@ -193,7 +193,7 @@ T3 = {
                        "C": Map(Map(Seq(Pos(int, int, int))))})},
     "관문": {"V": Seq(str), "ST": Seq(str), "Q": Seq(str), "A": Seq(str), "rule": dict,
              "I": Map({"회사": str, "이름": str, "심사": str, "질문": dict, "가입나이": {"M": ANY, "F": ANY}, "관문전용": bool,
-                       "고지유형열쇠": str}),
+                       "고지유형열쇠": str, "고지중대질병목록": Opt(str), "고지소견범위": Opt(str)}),
              "X": Seq({"s": Seq(Pos(int, int, int)), "라벨": str, "회사": Map(str), "닫힌사유": list}),
              "C": Map(Seq(Pos(int, int, int)))},
 }
@@ -338,7 +338,8 @@ ADDED_CELL = ("상대수", "열린상대수", "닫힌상대수", "모르는상�
 ADDED_MAP = ("고지유형",)
 ADDED_TOP = ("관문마디", "고지유형속성")
 ADDED_SCOPE = ("업권별",)
-ADDED_BRIEF = ("열린상대수분포", "상대회사수", "상대보유분포", "상대보유요약", "일부열림칸수", "일부나이로만열림칸수")
+ADDED_BRIEF = ("열린상대수분포", "상대회사수", "상대보유분포", "상대보유요약", "일부열림칸수", "일부나이로만열림칸수",
+               "나이자료없음회사코드", "관문차이상대코드", "구조다름회사코드")
 ADDED_POINT = ("관련기관코드",)
 ADDED_BASE = ("고지유형별",)
 
@@ -712,6 +713,59 @@ def added_value_errors(f: dict) -> list[str]:
             errs.append(f"기준별 {bid}: 고지유형별 종형 수의 합이 관문 나무의 종형 수와 다르다")
         if sum(g["맞붙는종형수"] for g in groups) != len(b["맞붙는종형"]):
             errs.append(f"기준별 {bid}: 고지유형별 맞붙는종형수의 합이 맞붙는 종형 수와 다르다")
+    errs += _notice_text_errors(gate, T)
+    errs += _brief_code_errors(S, D, orgs)
+    return errs
+
+
+OPINION_SCOPES = ("서면", "서면과 진료기록부")
+
+
+def _notice_text_errors(gate: dict, T: dict) -> list[str]:
+    """관문 종형정보의 고지중대질병목록과 고지소견범위: 일반심사는 둘 다 null, 목록은 ", "로 이은 빈 항목 없는 글이고 항목 수가
+    질문의 majorCount 와 같으며, 소견 범위는 서면 또는 서면과 진료기록부다. tab3.js 의 자료 줄(T3.관문.I)도 같은 값이다."""
+    errs: list[str] = []
+    for vid, x in gate["종형정보"].items():
+        names, scope = x["고지중대질병목록"], x["고지소견범위"]
+        if x["심사"] == "일반심사" and (names is not None or scope is not None):
+            errs.append(f"gate {vid}: 일반심사 종형에 고지중대질병목록이나 고지소견범위가 있다")
+        if names is not None:
+            items = names.split(", ")
+            count = x["질문"].get("majorCount")
+            if not names or any(not s.strip() or s != s.strip() for s in items) or \
+                    (count is not None and len(items) != count):
+                errs.append(f"gate {vid}: 고지중대질병목록 {names!r} 와 질병 수 {count}")
+        if scope is not None and scope not in OPINION_SCOPES:
+            errs.append(f"gate {vid}: 고지소견범위 {scope!r}")
+        t = T["관문"]["I"].get(vid, {})
+        if (t.get("고지중대질병목록"), t.get("고지소견범위")) != (names, scope):
+            errs.append(f"tab3 {vid}: 고지중대질병목록이나 고지소견범위가 gate.json 과 다르다")
+    return errs
+
+
+def _brief_code_errors(S: dict, D: dict, orgs: set) -> list[str]:
+    """브리핑 (가)와 (다)의 기관코드 목록: 길이가 같은 줄의 수(이름 목록)와 같고, 기관코드 공통 규칙을 따르며, 정의대로다.
+    관문차이상대코드는 맞붙는 상대와 견준 G3 포인트(비교종형ID 가 모두 맞붙는종형)의 회사, 구조다름회사코드는 범위.상대에서
+    구조다름이 참인 상대의 회사다. 이름 목록(관문차이상대, 나이자료없음회사)은 같은 회사를 D.orgs 의 이름으로 적은 것이다."""
+    errs: list[str] = []
+    kinds, names = S["종형"], {o["code"]: o["name"] for o in D["orgs"]}
+    for bid, b in S["기준별"].items():
+        lines = {x["줄"]: x["값"] for x in b["브리핑"]}
+        peers = set(b["맞붙는종형"])
+        ga, da = lines["가"], lines["다"]
+        no_age = ga["나이자료없음회사코드"]
+        if not _codes_ok(no_age, orgs) or sorted(names[o] for o in no_age) != sorted(ga["나이자료없음회사"]):
+            errs.append(f"브리핑 {bid} (가): 나이자료없음회사코드 {no_age} 와 나이자료없음회사 {ga['나이자료없음회사']}")
+        gate_codes = da["관문차이상대코드"]
+        want = sorted({kinds[v]["기관코드"] for pid in b["포인트"] for p in [S["포인트"][pid]]
+                       if p["세부"] == "G3" and set(p["비교종형ID"]) <= peers for v in p["비교종형ID"]})
+        if not _codes_ok(gate_codes, orgs) or len(gate_codes) != da["관문차이수"] or gate_codes != want or \
+                sorted(names[o] for o in gate_codes) != sorted(da["관문차이상대"]):
+            errs.append(f"브리핑 {bid} (다): 관문차이상대코드 {gate_codes}, 관문차이수 {da['관문차이수']}, G3 포인트로는 {want}")
+        struct = da["구조다름회사코드"]
+        want = sorted({kinds[r["종형ID"]]["기관코드"] for r in b["범위"]["상대"] if r["구조다름"]})
+        if not _codes_ok(struct, orgs) or len(struct) != da["구조다름회사수"] or struct != want:
+            errs.append(f"브리핑 {bid} (다): 구조다름회사코드 {struct}, 구조다름회사수 {da['구조다름회사수']}, 범위로는 {want}")
     return errs
 
 
@@ -742,6 +796,42 @@ def test_added_value_checker_catches_mismatch(made):
     errs = added_value_errors(f)
     assert any("일부열린나이의 회사" in e for e in errs) and any("통과수" in e for e in errs)
     assert any("고지유형속성" in e for e in errs) and any(f"{sid}: 판정기관코드" in e for e in errs)
+    # 고지 질병 목록과 소견 범위, 브리핑의 기관코드 목록
+    f = {k: copy.deepcopy(made[k]) for k in ("S", "D", "CV", "T3", "gate")}
+    info = f["gate"]["종형정보"]
+    simple = next(v for v, x in info.items() if x["고지중대질병목록"])
+    info[simple]["고지중대질병목록"] += ", 새 질병"                 # 질병 수와 어긋난다(tab3 과도 다르다)
+    general = next(v for v, x in info.items() if x["심사"] == "일반심사")
+    info[general]["고지소견범위"] = "진료기록부"
+    lines = {x["줄"]: x["값"] for x in next(b for b in f["S"]["기준별"].values()
+                                         if next(y for y in b["브리핑"] if y["줄"] == "다")["값"]["관문차이수"])["브리핑"]}
+    lines["다"]["관문차이상대코드"] = lines["다"]["관문차이상대코드"][:-1]
+    lines["다"]["구조다름회사코드"] = ["EPOST"] + lines["다"]["구조다름회사코드"]
+    lines["가"]["나이자료없음회사코드"] = ["NOPE"]
+    errs = added_value_errors(f)
+    assert any(f"gate {simple}: 고지중대질병목록" in e for e in errs) and any(f"tab3 {simple}" in e for e in errs)
+    assert any(f"gate {general}: 일반심사" in e for e in errs) and any(f"gate {general}: 고지소견범위" in e for e in errs)
+    assert any("관문차이상대코드" in e for e in errs) and any("구조다름회사코드" in e for e in errs)
+    assert any("나이자료없음회사코드" in e for e in errs)
+
+
+def test_notice_texts_and_cover_steps_follow_the_tables(made):
+    """관문 종형정보의 고지중대질병목록과 고지소견범위는 종형 표의 값 그대로다(빈 값은 null). 담보 비교 자료의 담보마다 치료
+    단계(급부유형)와 보장 분야(대분류)는 S.표준담보 에 있고 표준담보 사전의 값 그대로다(tab4.src.js 의 model 이 읽는 자리)."""
+    data, gate, S, CV = made["data"], made["gate"], made["S"], made["CV"]
+    for vid, x in gate["종형정보"].items():
+        v = data.variants[vid]
+        assert x["고지중대질병목록"] == (v.get("고지중대질병목록") or None), vid
+        assert x["고지소견범위"] == (v.get("고지소견범위") or None), vid
+    assert any(x["고지중대질병목록"] for x in gate["종형정보"].values())
+    assert {x["고지소견범위"] for x in gate["종형정보"].values()} == {None, *OPINION_SCOPES}
+    steps = S["기준별"][S["기준종형"][0]["종형ID"]]["치료여정"]["열"]
+    assert steps == ["진단", "수술", "치료", "입원", "통원"]
+    for bid, b in CV["b"].items():
+        for r in b["rows"]:
+            st, src = S["표준담보"][r[0]], data.std[r[0]]
+            assert (st["급부유형"], st["대분류"]) == (src.get("급부유형"), src["보장대분류"]), (bid, r[0])
+            assert st["급부유형"] and st["대분류"], (bid, r[0])   # 다섯 단계 밖의 급부유형은 화면이 기타로 둔다
 
 
 def test_map_columns_and_flow_on_three_companies(made):

@@ -1352,6 +1352,9 @@ def test_g3_appears_when_only_the_opinion_scope_differs(data):
     # 브리핑 (다)는 이 짝도 고지 질문 범위가 다른 상대로 센다
     line = S.briefing(d, E1, P(age=30), None, REL)[2]
     assert line["값"]["관문차이수"] == 2 and line["값"]["관문차이상대"] == ["한화생명", "삼성화재"]
+    # 그 회사의 기관코드(정렬). 화면이 고른 비교 범위로 다시 셀 때 이 목록과 범위의 교집합 크기만 센다
+    assert line["값"]["관문차이상대코드"] == ["HANWHALIFE", "SAMSUNGFIRE"]
+    assert len(line["값"]["구조다름회사코드"]) == line["값"]["구조다름회사수"]
 
 
 def test_scope_sentences_pass_the_forbidden_word_check():
@@ -1407,6 +1410,10 @@ def test_briefing_first_line_names_a_gate_only_type_we_also_sell():
 def test_no_age_companies_and_product_names():
     d = Data(Book().t)
     assert S.no_age_companies(d) == ["삼성화재"] and S.no_age_companies(d, "비갱신") == ["삼성화재"]
+    assert S.no_age_orgs(d) == ["SAMSUNGFIRE"]
+    # 브리핑 (가)는 이름과 함께 기관코드(정렬)를 싣는다. 화면이 고른 비교 범위로 거를 때 쓴다
+    first = S.briefing(d, E1, P(age=30), None, REL)[0]["값"]
+    assert first["나이자료없음회사"] == ["삼성화재"] and first["나이자료없음회사코드"] == ["SAMSUNGFIRE"]
     b = Book()
     b.t["sys_가입조건"].append(row("sys_가입조건", 조건행ID="S_C", 종형ID=S1, 보험기간구분="20년", 납입기간구분="20년",
                                 최저가입나이=20, 최고가입나이=80, 구간최대가입금액만원=3000))
