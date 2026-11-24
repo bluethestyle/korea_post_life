@@ -183,7 +183,7 @@ App.registerTab((function () {
     if (!list.length) return '';
     const open = openOmit.has(cat);
     const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
-    return `<details class="ins-omit"${open ? ' open' : ''} data-cat="${esc(cat)}"><summary><span>뺀 포인트 ${list.length}건</span><span class="note">검토 대기이거나 조건이 다른 줄이 있어 세지 않은 것</span>${ui.IC.chevD}</summary>
+    return `<details class="ins-omit"${open ? ' open' : ''} data-cat="${esc(cat)}"><summary><span>뺀 포인트 ${list.length}건</span><span class="note">검수 대기이거나 조건이 다른 줄이 있어 세지 않은 것</span>${ui.IC.chevD}</summary>
       <ul>${list.map(o => {
         const sl = subLabel(o['세부']);
         return `<li><b>${esc(stdN(o['표준담보ID']))}</b>${sl ? ` <span class="tag">${esc(sl)}</span>` : ''}${scBadge}<br><span class="note">타사 ${esc(txt.peerNamesEtc((o['비교종형ID'] || []).map(fullN), 3))}. ${esc(reasonText(o['사유']))}</span></li>`;
@@ -218,7 +218,7 @@ App.registerTab((function () {
   function emptyWhy(c, cat) {
     const bi = c.baseInfo || {};
     if (cat === '관문 차이' && bi['심사'] === '일반심사') return '일반심사 종형이라 간편 고지 질문을 견주지 않아 인수기준 차이가 없습니다.';
-    if (cat === '조건 열위 방어') return '맞붙는 타사보다 조건이 열위인 담보가 없습니다(검토 대기와 조건이 다른 줄이 있는 것은 뺀 포인트에 있습니다).';
+    if (cat === '조건 열위 방어') return '맞붙는 타사보다 조건이 열위인 담보가 없습니다(검수 대기와 조건이 다른 줄이 있는 것은 뺀 포인트에 있습니다).';
     if (cat === '앞세울 강점') return '견준 타사에 없는 담보나 조건 우위 담보가 나오지 않았습니다.';
     return '이 분류에 든 항목이 없습니다.';
   }
@@ -255,7 +255,7 @@ App.registerTab((function () {
     const who = `${c.st.age}세 ${txt.sexText(c.st.sex)}`;
     if (!L) return { t: `한도 자료 없음: ${kindN(c.baseId)}의 나이 구간별 한도 표가 없습니다.`, from: 'limit' };
     if (!L.hit) return { t: `${txt.josa(who, '는')} ${kindN(c.baseId)}의 가입나이(${L.lo}~${L.hi}세) 밖입니다.`, from: 'limit' };
-    return { t: `${kindN(c.baseId)} 주계약 최대 가입금액 ${fmt(L.hit.max)}만원(${who}, 나이 구간별 한도 표의 ${L.hit.lo}~${L.hit.hi}세 구간${L.hit.pend ? ', 검토 대기' : ''}). 특약 구성 예시는 인수기준 비교 탭에서 봅니다.`, from: 'limit' };
+    return { t: `${kindN(c.baseId)} 주계약 최대 가입금액 ${fmt(L.hit.max)}만원(${who}, 나이 구간별 한도 표의 ${L.hit.lo}~${L.hit.hi}세 구간${L.hit.pend ? ', 검수 대기' : ''}). 특약 구성 예시는 인수기준 비교 탭에서 봅니다.`, from: 'limit' };
   }
 
   function cardItems(c) {
@@ -286,7 +286,7 @@ App.registerTab((function () {
     }).join('');
     return `<div class="rcard ins-card" id="insight-card" aria-label="응대 화법 미리 보기">
       <div class="icd-nt no-print"><span>${esc(S['고지'])}</span><span class="icd-mk">${esc(MARK)}</span></div>
-      <span class="k">응대 화법, 지금 조건과 기준 종형</span>
+      <span class="k">응대 화법, 지금 조건과 기준 상품</span>
       <h3>우체국 ${esc(kindN(c.baseId))}<br><span class="gold-t">${esc(App.condSegOnly())}</span></h3>
       <div class="sec">조건과 비교 상품</div>
       <p class="icd-sm">기준 ${esc(txt.josa(`${fullN(c.baseId)}(${vinfo(c.baseId)['적용시작일'] || '기준일 자료 없음'})`, '와'))} ${esc(txt.josa(peers, '를'))} 견줬습니다. 자료 기준 ${esc(App.asofText())}.</p>
@@ -340,7 +340,7 @@ App.registerTab((function () {
     if (!unselEl) return;
     const curC = c || App.ctx();
     if (!curC.base) {
-      unselEl.innerHTML = '<p class="read-concl">이 기준 종형의 영업 인사이트 자료가 없습니다.</p>';
+      unselEl.innerHTML = '<p class="read-concl">이 기준 상품의 영업 인사이트 자료가 없습니다.</p>';
       return;
     }
     unselEl.innerHTML = cardPanel(curC);
@@ -510,7 +510,7 @@ App.registerTab((function () {
   function renderZones({ left, center, ctx: c }) {
     if (!c.base) {
       renderLeftTOC(left, c);
-      center.innerHTML = '<div class="panel placeholder">자료 없음: 이 기준 종형의 영업 인사이트 자료가 없습니다.</div>';
+      center.innerHTML = '<div class="panel placeholder">자료 없음: 이 기준 상품의 영업 인사이트 자료가 없습니다.</div>';
       return;
     }
     if (c.why === 'change' && c.changed && !c.changed.has('base') && !c.changed.has('peerScope') && !c.changed.has('peerPick') && center.querySelector('.ins-top-bar')) {
@@ -702,7 +702,7 @@ App.registerTab((function () {
     const sel = pickSet(c);
     const rows = CATS.flatMap(cat => pts(c).filter(p => p['분류'] === cat && inPurpose(p)).map(p => {
       const cau = cautionOf(c, p);
-      return [catLabel(p['분류']), subLabel(p['세부'], p['세부이름']), titleLong(p), p['문장'], cau ? `우열을 매기지 않음(단정 주의: ${cau['종류']})` : '', head(p), evText(p), p['원문대조'] ? (p['원문대조글'] || ui.FLAG_TEXT) : '', p['구조다름'] ? '구조 다름' : '', sel.has(p['포인트ID']) ? '추가' : ''];
+      return [catLabel(p['분류']), subLabel(p['세부'], p['세부이름']), titleLong(p), p['문장'], cau ? `조건 상이(단정 주의: ${cau['종류']})` : '', head(p), evText(p), p['원문대조'] ? (p['원문대조글'] || ui.FLAG_TEXT) : '', p['구조다름'] ? '구조 다름' : '', sel.has(p['포인트ID']) ? '추가' : ''];
     }));
     App.copyRows(['분류', '세부', '담보나 항목', '분석 문장', '단정 주의', '범위 머리말', '근거', '원문 확인', '구조', '응대 화법'], rows, { title: `영업 인사이트 분류별 목록${purpose ? ` (목적 ${purpose})` : ''}` });
   }
@@ -807,7 +807,7 @@ App.registerTab((function () {
     return {
       kicker: '읽는 법', title: '분류별 목록과 응대 화법', badges: [ui.scope('base')],
       body: sec('분류별 집계', ui.eq({ total: { t: '인사이트', n: total }, parts: CATS.map(k => ({ t: catLabel(k), n: cnt[k] || 0 })), tail: '건' })
-          + `<p class="note">분류끼리는 서로 겹치지 않습니다. 검토 대기이거나 조건이 다른 줄이 있어 뺀 포인트 ${(c.base['뺀포인트'] || []).length}건은 세지 않고 분류마다 접어 둡니다.</p>`)
+          + `<p class="note">분류끼리는 서로 겹치지 않습니다. 검수 대기이거나 조건이 다른 줄이 있어 뺀 포인트 ${(c.base['뺀포인트'] || []).length}건은 세지 않고 분류마다 접어 둡니다.</p>`)
         + sec('기본 선택', `<p class="note">응대 화법의 기본 선택은 세부 유형마다 한 건을 먼저 넣고, 화법에서는 열위 담보와 관련 담보를 미보유 담보보다 앞에 둡니다. 체크로 추가하고 빼면 오른쪽 미리 보기가 바로 바뀝니다.</p>`)
         + sec('본문과 화법', `<p class="note">본문은 분석 문장입니다. 창구 말투의 예상 질문과 답은 응대 화법 미리 보기 안에서만 씁니다. 화법을 인쇄하면 흰 바탕 A4 한 장에 고지와 "${esc(MARK)}" 표식이 찍힙니다.</p>`)
         + sec('판정 표지', App.ev.legend(), true),

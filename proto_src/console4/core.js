@@ -2356,26 +2356,55 @@
 
   let evAnimToken = 0;
   function cancelEvAnims(zr, zrIn, body) {
+    const unsel = $('#ev-unselected'), zc = $('#z-center');
     if (zr && zr._evAnim) { zr._evAnim.cancel(); zr._evAnim = null; }
     if (zrIn && zrIn._evAnim) { zrIn._evAnim.cancel(); zrIn._evAnim = null; }
     if (body && body._evAnim) { body._evAnim.cancel(); body._evAnim = null; }
-    if (zr) zr._closingEv = false;
+    if (unsel && unsel._evAnim) { unsel._evAnim.cancel(); unsel._evAnim = null; }
+    if (zc && zc._evAnim) { zc._evAnim.cancel(); zc._evAnim = null; }
+    if (zr) {
+      zr._closingEv = false;
+      zr.style.position = '';
+      zr.style.left = '';
+      zr.style.right = '';
+      zr.style.top = '';
+      zr.style.zIndex = '';
+    }
+    if (unsel) {
+      unsel.style.position = '';
+      unsel.style.inset = '';
+      unsel.style.pointerEvents = '';
+      unsel.style.zIndex = '';
+    }
+    if (zc) zc.style.clipPath = '';
   }
 
   function setEvPicked(spec, animate) {
     const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
     const backBtn = $('#ev-back-btn');
-    const board = $('#board');
+    const board = $('#board'), zc = $('#z-center');
     if (!zr || !zrIn || !k || !body) return;
-    evAnimToken++;
+    const token = ++evAnimToken;
     const wasPicked = zr.classList.contains('is-picked') && !zrIn.hidden && !zr._closingEv;
     cancelEvAnims(zr, zrIn, body);
+    const canAnim = !!(animate && motionOn() && mode() !== 'sheet');
     const isBand = !!(board && board.dataset.layout === 'band' && mode() !== 'sheet');
-    const beforeZrTop = (!wasPicked && isBand && animate && motionOn()) ? zr.getBoundingClientRect().top : null;
+    const beforeZrTop = (!wasPicked && isBand && canAnim) ? zr.getBoundingClientRect().top : null;
+    const beforeZcH = (!wasPicked && isBand && canAnim && zc) ? zc.getBoundingClientRect().height : null;
+    const fadeUnsel = !wasPicked && !isBand && canAnim && unsel && !unsel.hidden && typeof unsel.animate === 'function';
     zr.classList.remove('has-default-panel');
     zr.classList.add('is-picked');
-    if (unsel) unsel.hidden = true;
+    if (unsel) {
+      if (fadeUnsel) {
+        unsel.style.position = 'absolute';
+        unsel.style.inset = '0';
+        unsel.style.pointerEvents = 'none';
+        unsel.style.zIndex = '0';
+      } else {
+        unsel.hidden = true;
+      }
+    }
     zrIn.hidden = false;
     if (backBtn) {
       if (spec.backLabel) {
@@ -2393,11 +2422,26 @@
     body.scrollTop = 0;
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
     if (animate && motionOn()) {
-      const rawDy = (isBand && beforeZrTop != null) ? (beforeZrTop - zr.getBoundingClientRect().top) : 0;
+      const afterZrTop = isBand ? zr.getBoundingClientRect().top : 0;
+      const afterZcH = (isBand && zc) ? zc.getBoundingClientRect().height : 0;
+      const rawDy = (isBand && beforeZrTop != null) ? (beforeZrTop - afterZrTop) : 0;
+      const zcShrink = (isBand && beforeZcH != null) ? (beforeZcH - afterZcH) : 0;
       const dist = isBand ? Math.max(zr.offsetHeight || 0, Math.abs(rawDy)) : 0;
       const { dur, easing } = panelTiming(true, dist);
       if (!wasPicked && dur > 0 && typeof zrIn.animate === 'function') {
         if (isBand) {
+          if (Math.abs(rawDy) >= 1 && zc && zcShrink >= 1) {
+            const bTop = board.getBoundingClientRect().top;
+            zr.style.position = 'absolute';
+            zr.style.left = '0';
+            zr.style.right = '0';
+            zr.style.top = `${(afterZrTop - bTop).toFixed(2)}px`;
+            zr.style.zIndex = '5';
+            zc._evAnim = zc.animate([
+              { clipPath: 'inset(0 0 0px 0)' },
+              { clipPath: `inset(0 0 ${zcShrink.toFixed(2)}px 0)` },
+            ], { duration: dur, easing });
+          }
           const kfZr = Math.abs(rawDy) >= 1
             ? [
                 { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 100% 0)' },
@@ -2412,7 +2456,28 @@
             { transform: 'scaleY(0)', opacity: 0 },
             { transform: 'scaleY(1)', opacity: 1 },
           ], { duration: dur, easing });
+          zrIn._evAnim.onfinish = () => {
+            if (token !== evAnimToken) return;
+            cancelEvAnims(zr, zrIn, body);
+            syncRightScrollCue();
+            updateSelLink(false);
+          };
         } else {
+          if (fadeUnsel) {
+            unsel._evAnim = unsel.animate([
+              { opacity: 1, transform: 'translate3d(0,0,0)' },
+              { opacity: 0, transform: 'translate3d(-10px,0,0)' },
+            ], { duration: dur, easing });
+            unsel._evAnim.onfinish = () => {
+              if (token !== evAnimToken) return;
+              unsel._evAnim = null;
+              unsel.hidden = true;
+              unsel.style.position = '';
+              unsel.style.inset = '';
+              unsel.style.pointerEvents = '';
+              unsel.style.zIndex = '';
+            };
+          }
           zrIn._evAnim = zrIn.animate([
             { opacity: 0, transform: 'translate3d(16px,0,0)' },
             { opacity: 1, transform: 'translate3d(0,0,0)' },
@@ -2424,8 +2489,21 @@
           { opacity: 1, offset: 1 },
         ], { duration: dur, easing });
       } else {
+        if (fadeUnsel && unsel) {
+          unsel.hidden = true;
+          unsel.style.position = '';
+          unsel.style.inset = '';
+          unsel.style.pointerEvents = '';
+          unsel.style.zIndex = '';
+        }
         staggerEvLines(zrIn);
       }
+    } else if (fadeUnsel && unsel) {
+      unsel.hidden = true;
+      unsel.style.position = '';
+      unsel.style.inset = '';
+      unsel.style.pointerEvents = '';
+      unsel.style.zIndex = '';
     }
     requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(animate === true); });
   }
@@ -2491,17 +2569,33 @@
       const isBand = !!(board && board.dataset.layout === 'band');
       populateUnselectedEv(zr, unsel, curC);
       if (isBand) {
+        const zc = $('#z-center');
         const curTop = zr.getBoundingClientRect().top;
+        const zcCurH = zc ? zc.getBoundingClientRect().height : 0;
         zr.classList.remove('is-picked');
         zrIn.hidden = true;
         unsel.hidden = false;
         const targetTop = zr.getBoundingClientRect().top;
+        const zcTargetH = zc ? zc.getBoundingClientRect().height : 0;
         unsel.hidden = true;
         zrIn.hidden = false;
         zr.classList.add('is-picked');
         const rawDy = targetTop - curTop;
+        const zcGrow = zcTargetH - zcCurH;
         const closeDist = Math.max(zr.offsetHeight || 0, Math.abs(rawDy));
         const { dur: bandDur, easing: bandEasing } = panelTiming(false, closeDist);
+        if (Math.abs(rawDy) >= 1 && zc && zcGrow >= 1) {
+          const bTop = board.getBoundingClientRect().top;
+          zr.style.position = 'absolute';
+          zr.style.left = '0';
+          zr.style.right = '0';
+          zr.style.top = `${(curTop - bTop).toFixed(2)}px`;
+          zr.style.zIndex = '5';
+          zc._evAnim = zc.animate([
+            { clipPath: `inset(0 0 ${zcGrow.toFixed(2)}px 0)` },
+            { clipPath: 'inset(0 0 0px 0)' },
+          ], { duration: bandDur, easing: bandEasing });
+        }
         const kfZr = Math.abs(rawDy) >= 1
           ? [
               { transform: 'translate3d(0,0,0)', clipPath: 'inset(0 0 0% 0)' },
