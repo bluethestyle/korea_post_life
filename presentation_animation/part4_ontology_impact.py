@@ -23,6 +23,7 @@ from common import (
     C_SLATE,
     C_VIOLET,
     C_WHITE,
+    SCREEN_TITLE,
     PostLifeBaseScene,
     TERM,
     arrow_2d,
@@ -112,7 +113,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             fill_opacity=0.96,
             stroke_color=C_GOLD_DEEP,
             stroke_width=1.8,
-        ).move_to([0.0, 2.08, 0]).set_z_index(4)
+        ).move_to([0.0, 2.72, 0]).set_z_index(4)
         spec_hdr_7 = pill(f"{TERM['master']}와 배포 조건", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.8, px=0.12, py=0.05, z=7)
         sp_chip_1 = VGroup(
             svg_icon("database_master", size=0.38, col=C_CYAN, accent=C_GOLD, z=7),
@@ -128,7 +129,9 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).arrange(RIGHT, buff=0.08)
         spec_items_7 = fit(VGroup(spec_hdr_7, sp_chip_1, sp_chip_2, sp_chip_3).arrange(RIGHT, buff=0.22), max_w=11.52).move_to(spec_bar_7)
         top_spec_7 = VGroup(spec_bar_7, spec_items_7)
-
+        # 규칙 A: 배포 규격 바는 카메라와 함께 움직이지 않는 HUD 레이어에 두고, 열 단위 줌에서 열 머리보다 위(제목 바 아래)에 남긴다.
+        self.add_fixed_in_frame_mobjects(top_spec_7)
+        self.remove(top_spec_7)
         def make_diag_col_7(cx: float, w_c: float, col: str, ic_name: str, title_s: str) -> tuple[RoundedRectangle, VGroup]:
             frame = RoundedRectangle(
                 corner_radius=0.09,
@@ -245,7 +248,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         # Col 1 spotlight -> Col 2 proportional bar growth -> Col 3 blueprint lock -> Full 3-column workbench
         self.cam_move(
-            zoom=1.22,
+            zoom=1.20,
             center=[-2.45, -0.25, 0],
             anims=[FadeIn(col7_1_base, shift=UP * 0.10)],
             rt=1.05,
@@ -267,7 +270,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.wait(1.90)
 
         self.cam_move(
-            zoom=1.22,
+            zoom=1.20,
             center=[0.0, -0.25, 0],
             anims=[FadeIn(col7_2_base, shift=UP * 0.10)],
             rt=1.05,
@@ -279,8 +282,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.wait(1.90)
 
         self.cam_move(
-            zoom=1.22,
-            center=[2.45, -0.25, 0],
+            zoom=1.20,
+            center=[3.86, -0.25, 0],
             anims=[FadeIn(col7_3_full, shift=UP * 0.10)],
             rt=1.05,
         )
@@ -376,6 +379,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             ],
             rt=1.45,
         )
+        self.remove_fixed_in_frame_mobjects(top_spec_7)
         self.remove(beat7a_all)
         self.wait(1.60)
 
@@ -1278,42 +1282,49 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             stroke_width=2.2,
         ).move_to([-1.82, -0.10, 0]).set_z_index(2)
         app_hdr_ic = svg_icon("hq_console", size=0.42, col=C_CYAN, accent=C_GOLD, z=7)
-        app_hdr_t = txt("본부 상품, 영업지원 판단 화면 (오프라인 단독 HTML)", size=12.0, color=C_WHITE, bold=True, z=7)
+        app_hdr_t = txt(f"{SCREEN_TITLE} (오프라인 단독 HTML)", size=12.0, color=C_WHITE, bold=True, z=7)
         app_hdr_sum = pill(f"{num(n_ins_cats)}분류 합계 {num(ins_total)}건 ({base_var_name})", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.4, px=0.12, py=0.04, z=7)
         app_win_hdr = fit(VGroup(app_hdr_ic, app_hdr_t, app_hdr_sum).arrange(RIGHT, buff=0.14), max_w=7.86).move_to([-1.82, 1.94, 0])
 
+        # 번호와 색은 분류(sales_insight_categories의 차례)에 고정해 콘솔과 A4 장표가 같은 분류에 같은 번호, 같은 색을 쓴다.
+        cat_mark = {c_k: chr(ord("①") + c_i) for c_i, c_k in enumerate(ins_cats)}
+        cat_col = dict(zip(ins_cats, [C_GOLD, C_MINT, C_VIOLET, C_CYAN, C_CORAL]))
+
+        def cat_tag(c_k: str) -> str:
+            return f"{cat_mark[c_k]} {label_ko(c_k)}"
+
         ins_row_specs = [
             (
-                C_GOLD,
-                f"① {label_ko(ins_cats[0])}",
+                cat_col[ins_cats[0]],
+                cat_tag(ins_cats[0]),
                 ins_by_cat[ins_cats[0]],
                 f"{num(ins_by_cat[ins_cats[0]])}건",
                 f"{TERM['disc_item']} 상이 {TERM['peer']} {num(q_diff_peers)}개사 ({TERM['ours_only']} {num(seg_ours_only)}개 고객군)",
             ),
             (
-                C_MINT,
-                f"② {label_ko(ins_cats[1])}",
+                cat_col[ins_cats[1]],
+                cat_tag(ins_cats[1]),
                 ins_by_cat[ins_cats[1]],
                 f"{num(ins_by_cat[ins_cats[1]])}건",
                 f"대표 담보: {lead_str}",
             ),
             (
-                C_VIOLET,
-                f"③ {label_ko(ins_cats[2])}",
+                cat_col[ins_cats[2]],
+                cat_tag(ins_cats[2]),
                 ins_by_cat[ins_cats[2]],
                 f"{num(ins_by_cat[ins_cats[2]])}건",
                 f"{rel_kinds_str} 관계 분리 특약과 상위 특약 연결 안내",
             ),
             (
-                C_CYAN,
-                f"④ {label_ko(ins_cats[3])}",
+                cat_col[ins_cats[3]],
+                cat_tag(ins_cats[3]),
                 ins_by_cat[ins_cats[3]],
                 f"기준 {num(ins_by_cat[ins_cats[3]])}건",
                 f"{var_gen_name} {num(var_gen_def_cnt)}건, 감액 조건과 {TERM['verdict_hold']} 분리",
             ),
             (
-                C_CORAL,
-                f"⑤ {label_ko(ins_cats[4])}",
+                cat_col[ins_cats[4]],
+                cat_tag(ins_cats[4]),
                 ins_by_cat[ins_cats[4]],
                 f"{num(ins_by_cat[ins_cats[4]])}건",
                 f"입원 {num(held_by_stage['입원'])}개 대비 통원 {num(held_by_stage['통원'])}개 등 {TERM['unheld_cov']} 정리",
@@ -1371,12 +1382,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             max_w=7.86,
         ).move_to([-1.82, -2.04, 0])
 
-        circled_nums = ["①", "②", "③", "④", "⑤"]
-        ord_accent_cols = [C_GOLD, C_CYAN, C_MINT, C_VIOLET, C_CORAL]
-        a4_rows_8c = [
-            (ord_accent_cols[idx_c % len(ord_accent_cols)], f"{circled_nums[idx_c]} {label_ko(c_cat)} ({num(ins_by_cat[c_cat])}건)")
-            for idx_c, c_cat in enumerate(card_ord)
-        ]
+        # A4 장표는 card_category_order 차례로 싣되, 번호와 색은 콘솔과 같은 분류 고정 값을 쓴다.
+        a4_rows_8c = [(cat_col[c_cat], f"{cat_tag(c_cat)} ({num(ins_by_cat[c_cat])}건)") for c_cat in card_ord]
         a4_full = make_dark_a4_sheet(
             center=[4.48, -0.10, 0],
             w=2.96,
@@ -1478,7 +1485,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         mb9_1 = make_manual_bottleneck_9(-4.02, "doc_text", "기존 수작업 ① 서술형 공시 대조", "회사별 고지 범위, 지급기준 표기 상이")
         mb9_2 = make_manual_bottleneck_9(0.00, "doc_image", f"기존 수작업 ② {num(img_pages)}쪽 이미지 요약서", "수치 직접 추출 오독 및 특약명 불일치")
-        mb9_3 = make_manual_bottleneck_9(4.02, "alert_warn", "기존 수작업 ③ 쪽수 재확인, 표현 부담", "대기, 보류 혼선과 비교 표현 검증 부담")
+        mb9_3 = make_manual_bottleneck_9(4.02, "alert_warn", "기존 수작업 ③ 문장 속 조건 차이", "감액기간, 면책기간, 지급 배수를 손으로 대조")
         manual_row_9 = VGroup(mb9_1, mb9_2, mb9_3)
 
         # 상단 -> 중앙 전환 브리지 화살표

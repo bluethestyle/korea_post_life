@@ -345,10 +345,12 @@ class Part3DecisionScene(PostLifeBaseScene):
         self.play(LaggedStart(*[Indicate(d, color=WHITE, scale_factor=1.45) for d in q_dots], lag_ratio=0.025), run_time=0.95)
         self.wait(1.90)
 
+        # 오른쪽 패널로 줌하는 동안 왼쪽 패널은 화면 가장자리에 반만 걸리므로 잠시 내렸다가 전체 구도에서 다시 보인다.
         self.cam_move(
             zoom=1.28,
             center=[2.15, 0.0, 0],
             anims=[
+                FadeOut(st5_left, shift=LEFT * 0.10),
                 GrowArrow(link_5b_r),
                 FadeIn(st5_right, shift=LEFT * 0.12),
             ],
@@ -357,7 +359,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         self.play(Circumscribe(cal_r1, color=C_GOLD, stroke_width=2.4, buff=0.03), run_time=0.80)
         self.wait(1.90)
 
-        self.reset_cam_2d(anims=[FadeIn(tl_bar, shift=DOWN * 0.08)], rt=1.10)
+        self.reset_cam_2d(anims=[FadeIn(tl_bar, shift=DOWN * 0.08), FadeIn(st5_left, shift=RIGHT * 0.10)], rt=1.10)
         ch5_stage = VGroup(tl_bar, st5_left, link_5b_l, st5_center, link_5b_r, st5_right)
         self.check_bounds(ch5_stage, "CH5B PACKET ARCHITECTURE")
         self.wait(3.80)
@@ -372,7 +374,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             hb,
             6,
             "검증, 분류 단계: 분당 토큰 한도와 확률 임계값 설계",
-            f"참/거짓 질의의 확률 중첩, {TERM['rider_cond']} {TERM['batch_query']} 오류, 분당 토큰 한도 대기를 해결했습니다",
+            f"참/거짓 질의의 확률 중첩과 {TERM['rider_cond']} {TERM['batch_query']} 오류를 해결했고, 분당 토큰 한도에는 대기 기준을 두었습니다",
         )
 
         # -------------------------------------------------------------------
@@ -401,22 +403,39 @@ class Part3DecisionScene(PostLifeBaseScene):
             ).arrange(RIGHT, buff=0.08),
             max_w=3.74,
         ).move_to([-4.08, 1.70, 0])
-        ax_c1 = Line([-5.78, -0.88, 0], [-2.38, -0.88, 0], color=C_SLATE, stroke_width=2.2).set_z_index(5)
-        zone_mush = Rectangle(width=1.58, height=1.88, fill_color=C_AMBER, fill_opacity=0.20, stroke_color=C_AMBER, stroke_width=1.6).move_to([-3.92, 0.06, 0]).set_z_index(5)
+        # 확률 축: 값 p(0~1)를 축 좌표 ax_x(p)로 바꿔 상자, 곡선, 눈금을 모두 같은 좌표계에 놓는다.
+        ax_x0, ax_x1, ax_y = -5.78, -2.38, -0.88
+        p_ax_min, p_ax_max = 0.0, 1.0
+
+        def ax_x(p: float) -> float:
+            return ax_x0 + (p - p_ax_min) / (p_ax_max - p_ax_min) * (ax_x1 - ax_x0)
+
+        ax_c1 = Line([ax_x0, ax_y, 0], [ax_x1, ax_y, 0], color=C_SLATE, stroke_width=2.2).set_z_index(5)
+        mush_top = 1.00
+        zone_mush = Rectangle(
+            width=ax_x(tf_rng["high"]) - ax_x(tf_rng["low"]), height=mush_top - ax_y, fill_color=C_AMBER, fill_opacity=0.20, stroke_color=C_AMBER, stroke_width=1.6
+        ).move_to([(ax_x(tf_rng["low"]) + ax_x(tf_rng["high"])) / 2, (mush_top + ax_y) / 2, 0]).set_z_index(5)
+        # 예시 곡선: 정상 행(금색)도 중첩 구간 안에 머무는 모양을 축 좌표 위에 그린다.
+        tf_mid = (tf_rng["low"] + tf_rng["high"]) / 2
+        tf_sig = (tf_rng["high"] - tf_rng["low"]) / 2.6
         curve_t = ParametricFunction(
-            lambda u: np.array([-5.62 + u * 3.08, -0.88 + 1.52 * math.exp(-(((u - 0.58) / 0.21) ** 2)), 0]),
-            t_range=[0, 1, 0.02],
+            lambda u: np.array([ax_x(u), ax_y + 1.52 * math.exp(-(((u - tf_mid) / tf_sig) ** 2)), 0]),
+            t_range=[p_ax_min, p_ax_max, 0.01],
             color=C_GOLD,
             stroke_width=3.2,
         ).set_z_index(7)
         curve_f = ParametricFunction(
-            lambda u: np.array([-5.62 + u * 3.08, -0.88 + 1.36 * math.exp(-(((u - 0.43) / 0.21) ** 2)), 0]),
-            t_range=[0, 1, 0.02],
+            lambda u: np.array([ax_x(u), ax_y + 1.36 * math.exp(-(((u - (tf_mid - tf_sig)) / tf_sig) ** 2)), 0]),
+            t_range=[p_ax_min, p_ax_max, 0.01],
             color=C_CORAL,
             stroke_width=3.0,
         ).set_z_index(7)
-        lbl_mush = pill(f"{tf_rng['low']:.2f}~{tf_rng['high']:.2f} 중첩 (예시 그림)", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.2, px=0.09, py=0.035, z=8).move_to([-3.92, 1.12, 0])
-        lbl_ax_c1 = txt(f"{0.0:.1f}            {tf_rng['low']:.1f}    {tf_rng['high']:.1f}          {1.0:.1f}", size=10.2, color=C_INK_1, z=6).move_to([-4.08, -1.16, 0])
+        lbl_mush = pill(f"{tf_rng['low']:.2f}~{tf_rng['high']:.2f} 중첩 (예시 그림)", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.2, px=0.09, py=0.035, z=8).move_to([zone_mush.get_center()[0], mush_top + 0.14, 0])
+        lbl_ax_c1 = VGroup()
+        for tick_v in (p_ax_min, tf_rng["low"], tf_rng["high"], p_ax_max):
+            tick_m = Line([ax_x(tick_v), ax_y, 0], [ax_x(tick_v), ax_y - 0.08, 0], color=C_INK_1, stroke_width=1.6).set_z_index(6)
+            tick_t = txt(f"{tick_v:.1f}", size=10.2, color=C_INK_1, z=6).next_to(tick_m, DOWN, buff=0.05)
+            lbl_ax_c1.add(VGroup(tick_m, tick_t))
         z6_1_foot = fit(
             VGroup(
                 txt("면책 조건 참/거짓 질의 시", size=10.6, color=C_INK_0, bold=True, z=7),
@@ -487,6 +506,9 @@ class Part3DecisionScene(PostLifeBaseScene):
         ).move_to([4.08, -1.74, 0])
 
         # Zone 1 -> Zone 2 -> Zone 3 시연
+        # 패널 하나로 줌하는 동안 왼쪽 이웃 패널은 가장자리에 반만 걸리므로 잠시 내렸다가 전체 구도에서 다시 보인다.
+        zone6_1_grp = VGroup(z6_1_hdr, ax_c1, zone_mush, curve_t, curve_f, lbl_mush, lbl_ax_c1, z6_1_foot)
+        zone6_2_grp = VGroup(z6_2_hdr, capsule_box, cap_items, leak_arr, leak_stamp, z6_2_foot)
         self.cam_move(
             zoom=1.36,
             center=[-4.08, -0.05, 0],
@@ -504,6 +526,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             zoom=1.36,
             center=[0.0, -0.05, 0],
             anims=[
+                FadeOut(zone6_1_grp, shift=LEFT * 0.10),
                 FadeIn(VGroup(z6_2_hdr, capsule_box, cap_items, z6_2_foot, div_6a_2)),
                 GrowArrow(leak_arr),
                 FadeIn(leak_stamp, scale=1.30),
@@ -516,6 +539,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             zoom=1.36,
             center=[4.08, -0.05, 0],
             anims=[
+                FadeOut(zone6_2_grp, shift=LEFT * 0.10),
                 FadeIn(VGroup(z6_3_hdr, t_lbl_top, t_bar_shell, z6_3_foot)),
                 GrowFromEdge(t_bar_run, LEFT),
                 GrowFromEdge(t_bar_wt, LEFT),
@@ -525,7 +549,14 @@ class Part3DecisionScene(PostLifeBaseScene):
         )
         self.wait(2.30)
 
-        self.reset_cam_2d(anims=[FadeIn(top_res_6, shift=DOWN * 0.08)], rt=1.05)
+        self.reset_cam_2d(
+            anims=[
+                FadeIn(top_res_6, shift=DOWN * 0.08),
+                FadeIn(zone6_1_grp, shift=RIGHT * 0.10),
+                FadeIn(zone6_2_grp, shift=RIGHT * 0.10),
+            ],
+            rt=1.05,
+        )
         beat6a_all = VGroup(
             top_res_6, div_6a_1, div_6a_2,
             z6_1_hdr, ax_c1, zone_mush, curve_t, curve_f, lbl_mush, lbl_ax_c1, z6_1_foot,
@@ -761,7 +792,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             val_t = txt(f"{num(cnt_v)}건", size=10.0, color=col_c, bold=True, z=8).move_to([5.52, cy_r, 0])
             cat_rows.add(VGroup(nm_t, b_bg, b_fg, val_t))
 
-        mkt_foot = fit(txt(f"{TERM['snapshot']} {TERM['trend']} 합계 {num(news_total)}건, 초기 적재는 {TERM['extract_dual']} {TERM['cross_verify']}", size=10.0, color=C_GOLD, bold=True, z=7), max_w=3.94).move_to([3.86, -1.66, 0])
+        mkt_foot = fit(txt(f"{TERM['snapshot']} {TERM['trend']} 합계 {num(news_total)}건", size=10.0, color=C_GOLD, bold=True, z=7), max_w=3.94).move_to([3.86, -1.66, 0])
         mkt_group = VGroup(mkt_card, mkt_title, rule_bar_bg, rule_bar_guard, win_bracket, safe_txt, cat_rows, mkt_foot)
 
         quota_bar = fit(

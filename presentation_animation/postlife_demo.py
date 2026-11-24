@@ -1,4 +1,4 @@
-"""우체국보험 상품·청약 판단 지원 앱 발표 시연 애니메이션 통합 진입 모듈."""
+"""출품작(이름은 `common.ENTRY_NAME`) 발표 시연 애니메이션 통합 진입 모듈."""
 
 from __future__ import annotations
 

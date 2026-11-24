@@ -180,6 +180,8 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         ).move_to([st_xs[3], -1.92, 0])
         st3_4_shell = VGroup(stem3_4, pod3_4, hd3_4, hr3_4)
 
+        # 규칙 A: 상단 자원 바는 카메라와 함께 움직이지 않는 HUD 레이어에 둔다(줌 동안 제목 바 아래로 들어가지 않음).
+        self.add_fixed_in_frame_mobjects(res_strip_3a)
         self.show_initial_hud(
             hl,
             hr,
@@ -189,10 +191,10 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         )
         self.wait(0.80)
 
-        # 좌측 두 병목(①, ②) 스트림 시연
+        # 좌측 두 병목(①, ②) 스트림 시연 (줌 중심은 고정 자원 바 아래, 자막 바 위에 정거장이 들어오게 정함)
         self.cam_move(
             zoom=1.28,
-            center=[-3.05, -0.15, 0],
+            center=[-3.05, 0.0, 0],
             anims=[
                 FadeIn(ic3_1, scale=0.8),
                 FadeIn(st3_1, shift=UP * 0.12),
@@ -209,7 +211,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         date_blade = Line([st_xs[3] - 1.18, 0.02, 0], [st_xs[3] - 1.18, -1.24, 0], color=C_CORAL, stroke_width=4.0).set_z_index(12)
         self.cam_move(
             zoom=1.28,
-            center=[3.00, -0.15, 0],
+            center=[3.00, 0.0, 0],
             anims=[
                 GrowArrow(conduit_links[1]),
                 FadeIn(ic3_3, scale=0.8),
@@ -344,7 +346,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         # 하단 검증 완료 루프 배너
         done_3b_bar = fit(
             pill(
-                f"{num(len(role_stages))}단계 분업 완결: 배치 시점 전체 {TERM['test']} {num(batch_tests)}건 통과, 수집 PDF {num(batch_pdfs)}건 진본과 쪽수 확인 ✓",
+                f"{num(len(role_stages))}단계 분업 완결: 배치 시점 전체 {TERM['test']} {num(batch_tests)}건 통과, 받은 문서 {num(batch_pdfs)}건 모두 PDF 형식, 쪽수 직접 확인 ✓",
                 fg=C_DARK_INK,
                 bg=C_GOLD,
                 border=WHITE,
@@ -368,6 +370,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             rt=1.55,
         )
         self.remove(beat3a_all)
+        self.remove_fixed_in_frame_mobjects(res_strip_3a)
         self.wait(1.75)
 
         self.reset_cam_2d(
@@ -645,7 +648,13 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             pill(f"{num(n_struct)}건 중 기간 외 {num(n_out)}건 제외, 기간 내 {num(n_in_win)}건", fg=C_WHITE, bg=C_CORAL_DIM, border=C_CORAL, size=11.2, z=8),
             max_w=3.55,
         ).move_to([g2_x - 0.08, -2.02, 0])
-        noise_note = fit(txt(f"{excl_lines}, {excl_topics} 등 필터링 (탈락 입자는 예시 그림)", size=10.2, color=C_INK_1, z=7), max_w=3.42).move_to([g3_x + 0.02, -1.66, 0])
+        # 글자를 줄이지 않고 세 행으로 나눈다(720p 한글 높이 11px 이상).
+        noise_note = VGroup(
+            txt(f"{excl_lines},", size=10.4, color=C_INK_1, bold=True, z=7),
+            txt(f"{excl_topics} 등 필터링", size=10.4, color=C_INK_1, bold=True, z=7),
+            txt("(탈락 입자는 예시 그림)", size=10.2, color=C_INK_1, z=7),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.06)
+        noise_note.move_to([5.05, -1.78, 0])
         clean_pool = make_silo_pool([5.42, 0.05, 0], w=1.46, h=2.04, col=C_GOLD, accent=C_MINT, z=4)
         pool_lbl = fit(
             VGroup(
@@ -808,18 +817,22 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         wb1_note1 = fit(txt("초기 적재를 비API 경로로 분리한 근거", size=10.0, color=C_CYAN, bold=True, z=7), max_w=3.50).move_to([-4.08, 0.38, 0])
         wb1_div = Line([-5.78, 0.06, 0], [-2.38, 0.06, 0], color=C_SLATE, stroke_width=1.2).set_z_index(5)
 
-        img_sheet_box = RoundedRectangle(corner_radius=0.06, width=3.36, height=1.12, fill_color="#1B152B", fill_opacity=0.96, stroke_color=C_VIOLET, stroke_width=1.6).move_to([-4.08, -0.68, 0]).set_z_index(5)
+        # 이미지 문서 문구: 글자를 줄이지 않고 네 행으로 나눈다(720p 한글 높이 11px 이상).
+        # image_doc의 pages는 미래에셋생명 요약서 여러 건의 합계이므로 "합계"와 "복수 요약서"를 함께 적는다.
+        img_sheet_box = RoundedRectangle(corner_radius=0.06, width=3.40, height=1.30, fill_color="#1B152B", fill_opacity=0.96, stroke_color=C_VIOLET, stroke_width=1.6).move_to([-4.08, -0.74, 0]).set_z_index(5)
         img_ic_row = VGroup(
-            svg_icon("doc_image", size=0.48, col=C_VIOLET, accent=C_CORAL, z=7).move_to([-5.36, -0.68, 0]),
+            svg_icon("doc_image", size=0.44, col=C_VIOLET, accent=C_CORAL, z=7).move_to([-5.44, -0.74, 0]),
             fit(
                 VGroup(
-                    txt(f"미래에셋 {num(img_pages)}쪽 전체 이미지 문서", size=10.4, color=C_VIOLET, bold=True, z=7),
-                    txt(f"대조 페이지 {TERM['ocr']} {num(ocr_test['chars'])}자 중 누락 {num(ocr_test['missed'])}, 오자 {num(ocr_test['wrong'])}", size=9.8, color=C_CORAL, bold=True, z=7),
-                ).arrange(DOWN, aligned_edge=LEFT, buff=0.06),
-                max_w=2.44,
-            ).move_to([-3.78, -0.68, 0]),
+                    txt(f"미래에셋 요약서 합계 {num(img_pages)}쪽", size=10.6, color=C_VIOLET, bold=True, z=7),
+                    txt("(복수 요약서, 전체 이미지 문서)", size=10.2, color=C_VIOLET, bold=True, z=7),
+                    txt(f"대조 페이지 {TERM['ocr']} {num(ocr_test['chars'])}자 중", size=10.2, color=C_CORAL, bold=True, z=7),
+                    txt(f"누락 {num(ocr_test['missed'])}, 오자 {num(ocr_test['wrong'])}", size=10.2, color=C_CORAL, bold=True, z=7),
+                ).arrange(DOWN, aligned_edge=LEFT, buff=0.05),
+                max_w=2.62,
+            ).move_to([-3.84, -0.74, 0]),
         )
-        wb1_note2 = fit(txt("로컬 OCR(tesseract)은 급부 표 페이지 탐색에만 사용", size=10.0, color=C_INK_1, bold=True, z=7), max_w=3.54).move_to([-4.08, -1.66, 0])
+        wb1_note2 = fit(txt("로컬 OCR(tesseract)은 급부 표 페이지 탐색에만 사용", size=10.0, color=C_INK_1, bold=True, z=7), max_w=3.54).move_to([-4.08, -1.78, 0])
         wb1_grp = VGroup(wb1_box, wb1_hdr, wb1_sub1, q_bg, q_fg, wb1_note1, wb1_div, img_sheet_box, img_ic_row, wb1_note2)
 
         # Column 2 (Center): 수치 직접 추출 오독 인스펙터
@@ -842,7 +855,9 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         cf_w_bef = cf_w_max * (ts_rows["before"] / ts_rows["total"])
         cf_bg = RoundedRectangle(corner_radius=0.04, width=cf_w_max, height=0.26, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_SLATE, stroke_width=1.3).move_to([0.0, -1.16, 0]).set_z_index(5)
         cf_fg = Rectangle(width=cf_w_bef, height=0.20, fill_color=C_AMBER, fill_opacity=0.94, stroke_width=0).move_to([-cf_w_max / 2 + cf_w_bef / 2, -1.16, 0]).set_z_index(6)
-        wb2_foot = fit(txt(f"{TERM['ours']} 상품요약서 {num(ts_rows['total'])}행 중 {num(ts_rows['before'])}행만 확정", size=10.6, color=C_AMBER, bold=True, z=7), max_w=3.50).move_to([0.0, -1.66, 0])
+        # 확정 행 수는 2606 요약서 한 건의 수치(text_switch_confirmed_rows label). 상품 번호는 같은 요약서의 개정 차수 키에서 읽는다.
+        ts_doc_no = rev_new["revision_no"]
+        wb2_foot = fit(txt(f"{TERM['ours']} {ts_doc_no} 요약서 {num(ts_rows['total'])}행 중 {num(ts_rows['before'])}행만 확정", size=10.6, color=C_AMBER, bold=True, z=7), max_w=3.50).move_to([0.0, -1.66, 0])
         wb2_grp = VGroup(wb2_box, wb2_hdr, src_strip, src_strip_t, mis_down_arr, err_strip, err_strip_t, cf_bg, cf_fg, wb2_foot)
 
         # Column 3 (Right): 모의 시트 테스트의 특약 가입한도 삭제 결함
@@ -943,7 +958,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                 txt("모델: 원문 텍스트만 추출 (계산 분리)", size=12.0, color=C_CYAN, bold=True, z=26),
                 pill(f"{rev_new['benefit']} {num(pay_new_mw)}만 원", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD_DEEP, size=10.6, px=0.09, py=0.035, z=26),
                 pill(f"계약일부터 {num(red_months)}개월 이내 {num(red_pct)}% 감액 지급, 면책기간 {num(wait_days)}일", fg=C_WHITE, bg=C_BG_SUB, border=C_SLATE, size=10.2, px=0.09, py=0.035, z=26),
-                txt(f"{TERM['ours']} {num(ts_rows['total'])}행 중 {num(ts_rows['before'])}행 -> {num(ts_rows['after'])}행 확정 ✓", size=10.8, color=C_MINT, bold=True, z=26),
+                txt(f"{TERM['ours']} {ts_doc_no} 요약서 {num(ts_rows['total'])}행 중 {num(ts_rows['before'])}행 -> {num(ts_rows['after'])}행 확정 ✓", size=10.8, color=C_MINT, bold=True, z=26),
             ).arrange(DOWN, buff=0.09),
             max_w=3.38,
         ).move_to(hud_4b_top)
@@ -1178,7 +1193,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
 
         img_summary = fit(
             pill(
-                f"이미지형 요약서 {num(img_pages)}쪽(약 {num(img_chars_man)}만 자) 확정, 과거 한화 자료 모의 {TERM['test']}로 급부ID {num(inh_rows)}행 승계 확인(실제 재추출 미확인) ✓",
+                f"이미지형 요약서 합계 {num(img_pages)}쪽(약 {num(img_chars_man)}만 자) 확정, 과거 한화 자료 모의 {TERM['test']}로 급부ID {num(inh_rows)}행 승계 확인(실제 재추출 미확인) ✓",
                 fg=C_DARK_INK,
                 bg=C_GOLD,
                 border=WHITE,

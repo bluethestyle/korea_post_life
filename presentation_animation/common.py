@@ -136,6 +136,10 @@ C_DARK_INK = "#141B22"
 FONT_KO = "Noto Sans KR"
 TOTAL_CHAPTERS = 9
 
+# 출품작 이름과 화면 제목 (사용자 결정, 2026-11-24). 화면 문구는 모두 이 두 상수를 읽는다.
+ENTRY_NAME = "우체국보험 상품-영업 분석"
+SCREEN_TITLE = "상품-영업 분석"
+
 
 # ---------------------------------------------------------------------------
 # Core Visual Primitives
@@ -1285,7 +1289,7 @@ class PostLifeBaseScene(ThreeDScene):
                 )
             )
         dots.arrange(RIGHT, buff=0.055)
-        app_lbl = txt("우체국보험 상품·청약 판단 지원", size=13.2, color=C_INK_1, z=32)
+        app_lbl = txt(ENTRY_NAME, size=13.2, color=C_INK_1, z=32)
         right = VGroup(app_lbl, dots).arrange(RIGHT, buff=0.16)
         right.move_to([6.18 - right.width / 2, 3.63, 0]).set_z_index(31)
 

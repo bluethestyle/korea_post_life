@@ -21,6 +21,7 @@ from common import (
     C_SLATE,
     C_VIOLET,
     C_WHITE,
+    SCREEN_TITLE,
     PostLifeBaseScene,
     TERM,
     arrow_2d,
@@ -163,7 +164,7 @@ class Part1ServiceScene(PostLifeBaseScene):
 
         bb_hw = bb_badge(
             "한화생명 상품요약서",
-            f"실측 {num(hw_pages)}쪽",
+            f"한 상품 실측 {num(hw_pages)}쪽",
             fg=C_DARK_INK,
             bg=C_GOLD,
             border=WHITE,
@@ -174,7 +175,7 @@ class Part1ServiceScene(PostLifeBaseScene):
 
         bb_img = bb_badge(
             "이미지형 상품요약서",
-            f"미래에셋생명 {num(img_pages)}쪽",
+            f"미래에셋생명 요약서 합계 {num(img_pages)}쪽",
             fg=C_WHITE,
             bg="#261844",
             border=C_VIOLET,
@@ -189,7 +190,7 @@ class Part1ServiceScene(PostLifeBaseScene):
 
         canyon_hud_top = bb_badge(
             f"비교 대상 {TERM['peer']} {num(target_total)}개사(총자산 기사 기준, 공식 순위 미확정) | 현재 우체국 포함 화면 {num(site_org_cnt)}개사, {TERM['snapshot']} {num(prod_org_cnt)}개사",
-            "실측 상품요약서 쪽수 막대 비교 (회색 막대는 예시 그림)",
+            "실측 쪽수 막대: 한화생명은 한 상품, 미래에셋생명은 요약서 합계 (회색 막대는 예시 그림)",
             fg=C_GOLD,
             bg="#091018",
             border=C_GOLD_DEEP,
@@ -434,7 +435,7 @@ class Part1ServiceScene(PostLifeBaseScene):
         dash_title = fit(
             VGroup(
                 svg_icon("hq_console", size=0.42, col=C_GOLD, accent=C_CYAN, z=8),
-                pill("① 본부 상품 비교 분석 화면 (오프라인 단독 HTML)", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.8, z=7),
+                pill(f"① {SCREEN_TITLE} (오프라인 단독 HTML)", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=11.8, z=7),
             ).arrange(RIGHT, buff=0.08),
             max_w=4.96,
         ).move_to([-0.26, 1.62, 0])
@@ -464,7 +465,7 @@ class Part1ServiceScene(PostLifeBaseScene):
                 for k, hcol in enumerate([C_GOLD, C_CYAN, C_GOLD, C_MINT, C_GOLD, C_CORAL, C_MINT, C_CYAN, C_GOLD])
             ]
         )
-        w2_pg = fit(pill(f"{doc_kind} {num(doc_page)}쪽 표시", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=10.4, px=0.08, py=0.03, z=8), max_w=1.54).move_to([-0.26, -0.84, 0])
+        w2_pg = fit(pill(f"{doc_kind} {num(doc_page)}쪽 표시", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=12.0, px=0.08, py=0.03, z=8), max_w=1.56).move_to([-0.26, -0.84, 0])
 
         w3_box = RoundedRectangle(corner_radius=0.06, width=1.56, height=1.92, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_MINT, stroke_width=1.5).move_to([1.42, -0.18, 0]).set_z_index(5)
         w3_h = txt("실제 지급액", size=11.2, color=C_MINT, bold=True, z=7).move_to([1.42, 0.54, 0])
@@ -528,9 +529,10 @@ class Part1ServiceScene(PostLifeBaseScene):
         self.remove(beat1a_all, funnel_drops, *funnel_drops)
         self.wait(2.10)
 
+        # 규칙 A: 본부 화면으로 초점을 옮기는 동안 왼쪽 정제 열(라벨, 깔때기, 시트 박스)이 좌측 가장자리 안에 남도록 중심을 정함
         self.cam_move(
             zoom=1.34,
-            center=[-0.26, 0.04, 0],
+            center=[-0.95, 0.04, 0],
             anims=[
                 GrowArrow(feed_to_dash),
                 FadeIn(VGroup(dash_frame, dash_title, c_age, c_sex, dash_foot)),
@@ -550,9 +552,10 @@ class Part1ServiceScene(PostLifeBaseScene):
 
         print_laser = Line([3.36, 1.92, 0], [6.12, 1.92, 0], color=C_GOLD, stroke_width=4.0).set_z_index(12)
         self.add(print_laser)
+        # 규칙 A: A4 장표로 초점을 옮기는 동안 본부 화면(제목 pill, 인수기준 비교, 나이 칩)이 좌측 가장자리에서 잘리지 않도록 중심과 배율을 정함
         self.cam_move(
-            zoom=1.34,
-            center=[3.92, 0.04, 0],
+            zoom=1.36,
+            center=[1.66, 0.04, 0],
             anims=[
                 GrowArrow(bridge_to_a4),
                 FadeIn(bridge_lbl, scale=0.88),
@@ -676,19 +679,24 @@ class Part1ServiceScene(PostLifeBaseScene):
             f"기준 가입금액 {num(basis_mw)}만 원 예시, 변경 담보 {num(rev_chg_total)}개 연결", wg5,
         )
 
+        # 막대 높이는 work_log_by_result(모든 기관), pill 건수는 work_log_count_site(화면에 올린 기관)라 기준이 달라 문구로 구분
         max_wlog_r = max(wlog_res.values())
-        h_pass = max((wlog_res["통과"] / max_wlog_r) * 0.38, 0.03)
-        h_hold = max((wlog_res["보류"] / max_wlog_r) * 0.38, 0.03)
-        h_rej = max((wlog_res["반려"] / max_wlog_r) * 0.38, 0.03)
-        wg6_bars = VGroup(
-            Rectangle(width=0.20, height=h_pass, fill_color=C_GOLD, fill_opacity=0.95, stroke_width=0).move_to([-1.02, -0.17 + h_pass / 2, 0]),
-            Rectangle(width=0.20, height=h_hold, fill_color=C_CYAN, fill_opacity=0.90, stroke_width=0).move_to([-0.76, -0.17 + h_hold / 2, 0]),
-            Rectangle(width=0.20, height=h_rej, fill_color=C_CORAL, fill_opacity=0.90, stroke_width=0).move_to([-0.50, -0.17 + h_rej / 2, 0]),
-        )
-        wg6 = VGroup(
-            wg6_bars,
-            pill(f"로그 {num(wlog_site)}건 (우체국 포함 {num(site_org_cnt)}개사, 조건 무관)", fg="#93C5FD", bg=C_BG_SUB, border="#93C5FD", size=10.0, px=0.08, py=0.03).move_to([0.52, 0, 0]),
-        )
+        wg6_bar_cols = [C_GOLD, C_CYAN, C_CORAL]
+        wg6_bar_cols_grp = VGroup()
+        for b_idx, (res_name, res_cnt) in enumerate(wlog_res.items()):
+            b_h = max((res_cnt / max_wlog_r) * 0.30, 0.03)
+            b_rect = Rectangle(width=0.20, height=b_h, fill_color=wg6_bar_cols[b_idx % len(wg6_bar_cols)], fill_opacity=0.95, stroke_width=0)
+            b_rect.move_to([b_idx * 0.40, b_h / 2, 0])
+            b_lbl = txt(res_name, size=11.4, color=C_INK_0, bold=True).next_to([b_idx * 0.40, 0, 0], DOWN, buff=0.04)
+            wg6_bar_cols_grp.add(VGroup(b_rect, b_lbl))
+        wg6_base = Line([-0.18, 0, 0], [0.18 + 0.40 * (len(wlog_res) - 1), 0, 0], color=C_SLATE, stroke_width=1.2)
+        wg6_bars = VGroup(wg6_base, wg6_bar_cols_grp)
+        wg6_info = VGroup(
+            pill(f"화면 로그 {num(wlog_site)}건, 조건 무관", fg="#93C5FD", bg=C_BG_SUB, border="#93C5FD", size=11.4, px=0.08, py=0.03),
+            txt(f"우체국 포함 {num(site_org_cnt)}개사 기준", size=11.2, color=C_INK_0, bold=True),
+            txt("막대: 결과별 건수(모든 기관)", size=11.2, color=C_INK_1, bold=True),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.03)
+        wg6 = VGroup(wg6_bars, wg6_info).arrange(RIGHT, buff=0.20)
         m_6 = make_radial_module(4.35, -1.48, "#93C5FD", "cpu_decide", "화면 ⑥", "AI 작업 내역", f"{TERM['extract']}, 코드 대조, 판정, {TERM['review_wait']} 이관 기록 공개", wg6)
 
         self.add(dial_needle)
