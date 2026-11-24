@@ -21,7 +21,8 @@
 근거낱말은 근거쪽 글자에 있어야 하고(machine_checks), 종형명과도 맞아야 한다(title_marks: "2형"처럼 형이나 종 번호를 적은
 낱말이 종형명에 없으면 두 판독이 같아도 확정하지 않는다). 종형마다 맞는 표를 고르는 것이 가장 중요하기 때문이다.
 가입나이가 "20세~(76-납입기간)세"처럼 식으로 적혀 있으면 판독자가 계산한 최고나이와 그 식("76-납입기간")을 함께 적고,
-코드가 식의 숫자가 그 쪽에 있는지와 계산이 맞는지를 본다.
+코드가 식의 숫자가 그 쪽에 있는지와 계산이 맞는지를 본다. 현대해상 사업방법서의 "MIN(85-납입기간,70)"(식과 상한 가운데
+작은 값)과 "(보험기간-납입기간)"(N세만기의 N에서 납입기간의 햇수를 뺀 값)도 같은 꼴로 적는다.
 
 행은 conditions.build_rows로 만든다(조건행ID 규칙 그대로). 주계약 행이므로 특약ID는 비운다.
 
@@ -53,6 +54,10 @@ MAIN_NAME = "주계약"
 _TERM = re.compile(r"^(?:\d+세만기|\d+년만기|\d+년|종신)$")
 _PAY = re.compile(r"^(?:\d+년납|\d+세납|전기납|일시납)$")
 _FORMULA = re.compile(r"^(\d+)-(납입기간|보험기간)$")
+# 현대해상: "MIN(85-납입기간,70)"(식과 상한 가운데 작은 값), "보험기간-납입기간"(N세만기의 N에서 납입기간의 햇수를 뺀다).
+# ids.normalize가 대문자를 소문자로 바꾸므로 "min"으로 본다
+_FORMULA_MIN = re.compile(r"^min\((\d+)-(납입기간|보험기간),(\d+)\)$")
+_FORMULA_END = re.compile(r"^보험기간-납입기간$")
 _SHORT = 20                 # 근거낱말 하나의 길이 한도. 원문 문장을 옮겨 적지 못하게 한다
 _WORDS = 5                  # 근거낱말 수 한도
 _NAME = 10                  # 표 이름 길이 한도
@@ -158,8 +163,9 @@ def check_line(line: Any) -> list[str]:
         if not (_int(line.get(name)) and 0 <= line[name] < 150):
             out.append(f"{name}가 0 이상의 정수가 아님")
     formula = line.get("최고나이식", "")
-    if not isinstance(formula, str) or (formula and not _FORMULA.match(ids.normalize(formula))):
-        out.append(f"최고나이식이 '' 또는 '76-납입기간', '80-보험기간' 꼴이 아님: {formula!r}")
+    if not isinstance(formula, str) or (formula and parse_formula(formula) is None):
+        out.append(f"최고나이식이 '' 또는 '76-납입기간', '80-보험기간', 'MIN(85-납입기간,70)', '보험기간-납입기간' 꼴이 아님: "
+                   f"{formula!r}")
     return out
 
 
@@ -382,13 +388,66 @@ def _years(term: str, pay: str, ref: str) -> int | None:
     return int(by_term.group(1)) if pay == "전기납" and by_term else None
 
 
+@dataclass(frozen=True)
+class Formula:
+    """최고나이식. 최고나이 = min(앞 - 기간의 햇수, 상한). 앞이 None이면 N세만기의 N(보험기간-납입기간), 상한이 None이면 없음."""
+    base: int | None
+    ref: str
+    cap: int | None = None
+
+    @property
+    def head(self) -> str:
+        """쪽 글자에서 찾을 식의 앞부분("76", "보험기간")."""
+        return "보험기간" if self.base is None else str(self.base)
+
+
+def parse_formula(text: Any) -> Formula | None:
+    """최고나이식 글자를 읽는다. "76-납입기간", "80-보험기간", "MIN(85-납입기간,70)", "보험기간-납입기간". 아니면 None."""
+    formula = ids.normalize(text or "")
+    m = _FORMULA.match(formula)
+    if m:
+        return Formula(int(m.group(1)), m.group(2))
+    m = _FORMULA_MIN.match(formula)
+    if m:
+        return Formula(int(m.group(1)), m.group(2), int(m.group(3)))
+    if _FORMULA_END.match(formula):
+        return Formula(None, "납입기간")
+    return None
+
+
 def formula_value(line: Mapping[str, Any]) -> int | None:
-    """최고나이식으로 계산한 최고나이. 식이 없거나 기간의 햇수를 읽지 못하면 None."""
-    m = _FORMULA.match(ids.normalize(line.get("최고나이식") or ""))
-    if not m:
+    """최고나이식으로 계산한 최고나이. 식이 없거나 기간의 햇수(보험기간-납입기간이면 만기 나이도)를 읽지 못하면 None."""
+    formula = parse_formula(line.get("최고나이식"))
+    if formula is None:
         return None
-    years = _years(line["보험기간"], line["납입기간"], m.group(2))
-    return int(m.group(1)) - years if years is not None else None
+    years = _years(line["보험기간"], line["납입기간"], formula.ref)
+    if years is None:
+        return None
+    base = formula.base
+    if base is None:
+        end = re.fullmatch(r"(\d+)세만기", ids.normalize(line["보험기간"]))
+        if not end:
+            return None
+        base = int(end.group(1))
+    value = base - years
+    return value if formula.cap is None else min(value, formula.cap)
+
+
+# "90세/95세/100세만기", "10/15/20/25/30년납"처럼 기간 여럿을 빗금으로 이어 한 칸에 적은 표(현대해상). 쪽 글자로 풀면
+# 칸 안의 줄이 다른 칸의 글자와 섞여 이어진 글자로 남지 않는다
+_PERIOD = re.compile(r"(\d+)(세만기|년만기|년납|세납)")
+
+
+def _period_in(period: str, flat: str) -> bool:
+    """기간 글자가 쪽 글자(_flat)에 있는가. 그대로 없으면, 그 숫자가 빗금 바로 앞이나 뒤에 있고 단위 글자("세만기", "년납")가
+    그 쪽에 있으면 빗금으로 이어 적은 칸의 한 값으로 본다."""
+    if _flat(period) in flat:
+        return True
+    m = _PERIOD.fullmatch(ids.normalize(period))
+    if not m:
+        return False
+    n, unit = m.groups()
+    return unit in flat and re.search(rf"(?<!\d){n}{unit[0]}?/|/{n}{unit[0]}?(?!\d)", flat) is not None
 
 
 # "4,900만"처럼 "만" 뒤에 "원"을 빼고 적은 금액(삼성생명 요약서의 가입한도). 숫자나 천, 백 바로 뒤의 "만"만 본다
@@ -449,21 +508,26 @@ def machine_checks(table: Mapping[str, Any], pages: Mapping[str, Mapping[int, st
         flat = _flat(text)
         if not _age_in(lo, text):
             problems.append(f"나이: {label} 최저나이 {lo}세가 {n}쪽에 없음")
-        formula = ids.normalize(line.get("최고나이식") or "")
-        if formula:
-            base, ref = _FORMULA.match(formula).groups()
+        formula = parse_formula(line.get("최고나이식"))
+        if formula is not None:
+            head_text, ref = formula.head, formula.ref
             # "(N-보험료 납입기간)"처럼 기간 앞에 "보험료"를 붙여 적은 식도 같은 식이다(KB라이프생명 사업방법서)
-            if re.search(rf"(?<!\d){base}-(?:보험료)?{ref[:1]}", flat) is None:
-                problems.append(f"식: {label} 최고나이식의 '{base}-{ref[:1]}…'이 {n}쪽에 없음")
+            if re.search(rf"(?<!\d){head_text}-(?:보험료)?{ref[:1]}", flat) is None:
+                problems.append(f"식: {label} 최고나이식의 '{head_text}-{ref[:1]}…'이 {n}쪽에 없음")
+            # MIN 식의 상한은 쉼표가 떨어진 "…기간70)"으로 남는다
+            if formula.cap is not None and re.search(rf"(?<!\d){formula.cap}\)", flat) is None:
+                problems.append(f"식: {label} 최고나이식의 상한 {formula.cap}이 {n}쪽에 없음")
             value = formula_value(line)
             if value is None:
                 problems.append(f"식: {label} 식이 빼는 {ref}의 햇수를 읽을 수 없음")
             elif value != hi:
                 problems.append(f"식: {label} 최고나이 {hi}세가 식으로 계산한 {value}세와 다름")
+        elif ids.normalize(line.get("최고나이식") or ""):
+            problems.append(f"식: {label} 최고나이식 '{line['최고나이식']}'을 읽을 수 없음")
         elif not _age_in(hi, text):
             problems.append(f"나이: {label} 최고나이 {hi}세가 {n}쪽에 없음")
         for name in ("보험기간", "납입기간"):
-            if _flat(line[name]) not in flat:
+            if not _period_in(line[name], flat):
                 problems.append(f"기간: {label} {name} '{line[name]}'이 {n}쪽에 없음")
     if lines and method:
         last = max(line["쪽"] for line in lines)

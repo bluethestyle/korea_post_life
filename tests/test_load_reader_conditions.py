@@ -262,6 +262,68 @@ def test_method_main_name_reads_the_balanced_parentheses():
     assert LC.names_match("가나(다라)", "가나(다라)보장") and not LC.names_match("마바", "가나(다라)보장")
 
 
+def test_method_main_name_reads_the_name_after_the_main_label_at_line_start():
+    """현대해상 간편심사 상품 형식: 표의 구분 열에 "기본계약"과 담보 이름이 한 줄로 나온다(문구는 지어냄)."""
+    pages = {3: "구 분 보험기간 가입나이\n90세/95세/ 10/15/20/\n기본계약 가나상해(간편가입) 20/25/30년납 (보험기간-납입\n"
+                "100세만기 25/30년납\n기간)세\n나) 의무 특약\n"}
+    assert LC.method_main_name(pages, 3, 3) == "가나상해(간편가입)"
+    assert LC.method_main_name({3: "기본계약 가나상해(간편가입 20년납\n"}, 3, 3) is None      # 괄호가 닫히지 않음
+    # 메리츠화재 형식이 먼저다: 그 줄이 있으면 다른 형식은 보지 않는다
+    both_kinds = {3: "가 ·기본계약(마바보장) 80세만기\n기본계약 가나상해 20년납\n"}
+    assert LC.method_main_name(both_kinds, 3, 3) == "마바보장"
+
+
+HEADED = ("5. 가입나이 표\n가. 가형\n1) 가형 가입나이\n가) 기본계약\n"
+          "보험료\n구 분 보험기간 가입나이\n납입기간\n80세만기 20년납 만15세 ~ (80-납입기간)세\n15년납 만15세 ~\n"
+          "가나사망 90세만기\n20년납 MIN(83-납입기간,65)세\n가나후유장해\n25년납 만15세 ~\n100세만기 30년납 MIN(88-납입기간,65)세\n"
+          "나) 의무 특약\n구 분 보험기간 가입나이\n다라면제 전기납 만15 ~ 70세\n")
+
+
+def test_method_main_name_reads_the_names_in_the_main_table_under_the_heading():
+    """현대해상 일반심사 상품 형식: "가) 기본계약" 소제목 아래 표의 구분 열에 담보 이름이 적히고, 표 읽기 글자에서는 이름이
+    보험기간, 납입기간, 나이 글자와 섞여 나온다. 그 글자를 지우고 남은 이름을 표에 나온 순서대로 쉼표로 잇는다(문구는 지어냄)."""
+    assert LC.method_main_name({2: HEADED}, 2, 2) == "가나사망, 가나후유장해"
+    assert LC.main_names("가나사망, 가나후유장해") == ["가나사망", "가나후유장해"]
+    # 이름도 기간도 아닌 글자가 남으면(표 밖 문구가 섞임) 읽지 않는다
+    assert LC.method_main_name({2: HEADED.replace("가나후유장해\n", "가나후유장해 ※ 가입금액 1천만원\n")}, 2, 2) is None
+    # 소제목 아래 표가 그 쪽에서 끝나지 않으면(다음 소제목이 없음) 읽지 않는다
+    assert LC.method_main_name({2: HEADED.split("나) 의무 특약")[0]}, 2, 2) is None
+    # 이름이 하나도 남지 않으면 None
+    assert LC.method_main_name({2: "가) 기본계약\n구 분 보험기간 가입나이\n80세만기 20년납 만15세 ~ 60세\n나) 선택계약\n"}, 2, 2) is None
+
+
+def test_two_main_covers_sharing_one_age_table_take_the_first_main_row(docs, tmp_path, monkeypatch):
+    """기본계약 담보 둘(요약서 기본계약 표의 행 둘)이 사업방법서의 가입나이 표 하나를 함께 쓰면, 요약서 표 순서의 첫 행을 주계약
+    행으로 쓴다(화면의 main_rider와 급부 적재 뒤 시트의 첫 주계약 행과 같은 행)."""
+    second = "가나후유장해"
+    pieces = {**PIECES, "조각": [
+        piece("가나사망", [cover("가나사망", "상해로 사망한 경우")], "가형", label="기본계약"),
+        piece(second, [cover(second, "상해로 후유장해가 남은 경우")], "가형", label="기본계약"),
+        PIECES["조각"][1]]}
+    page = ("<가형>\n가) 기본계약\n구 분 보험기간 가입나이\n납입기간\n80세만기 20년납 15세∼60세\n가나사망 90세만기\n"
+            "20년납 15세∼65세\n가나후유장해\n나) 의무 특약\n다라면제 전기납 15세∼70세\n")
+    monkeypatch.setattr(L, "read_pieces", lambda pdf, layout: (RR.load_pieces(pieces), {}))
+    monkeypatch.setattr(LC, "read_pages", lambda docs, stem, wanted: {n: page for n in wanted if n == 3})
+    report = LC.load(store_with(), targets(), INDEX, docs, values_file(tmp_path, both()), NOW, dry_run=True)
+    assert VID in report.done and not report.skipped
+    main = next(r for r in report.new_mains if r["종형ID"] == VID)
+    assert main["원시특약명"] == "가나사망" and main["특약ID"] == ids.rider_id(VID, "가나사망")
+    assert report.counts[VID]["사업방법서 기본계약"] == "가나사망, 가나후유장해"
+    assert report.counts[VID]["가입조건"] == 2
+
+
+def test_two_main_rows_with_one_name_on_the_method_page_still_stop(docs, tmp_path, monkeypatch):
+    """사업방법서 표에 이름이 하나뿐인데 요약서 주계약 행 둘이 그 이름에 걸리면 어느 행인지 정하지 못하므로 쓰지 않는다."""
+    pieces = {**PIECES, "조각": [
+        piece("가나사망", [cover("가나사망", "상해로 사망한 경우")], "가형", label="기본계약"),
+        piece("가나사망(갱신형)", [cover("가나사망(갱신형)", "상해로 사망한 경우")], "가형", label="기본계약")]}
+    page = "<가형>\n가 ·기본계약(가나사망) 80세만기 20년납 15세∼60세\n90세만기 20년납 15세∼65세\n"
+    monkeypatch.setattr(L, "read_pieces", lambda pdf, layout: (RR.load_pieces(pieces), {}))
+    monkeypatch.setattr(LC, "read_pages", lambda docs, stem, wanted: {n: page for n in wanted if n == 3})
+    report = LC.load(store_with(), targets(), INDEX, docs, values_file(tmp_path, both()), NOW, dry_run=True)
+    assert report.skipped[VID].startswith(LC.NO_MAIN) and "2개" in report.skipped[VID]
+
+
 def test_read_pages_falls_back_to_the_saved_text(tmp_path):
     (tmp_path / "x.txt").write_text("\n===== 1쪽 =====\n첫 쪽\n\n===== 2쪽 =====\n둘째 쪽", encoding="utf-8")
     assert LC.read_pages(tmp_path, "x", [2, 9]) == {2: "둘째 쪽"}

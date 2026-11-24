@@ -200,6 +200,45 @@ def test_amount_without_won_and_formula_with_premium_word_are_found_on_the_page(
     assert not RC._money_in(5, pages["상품요약서"][4])
 
 
+def test_min_formula_end_age_formula_and_slash_joined_periods_are_checked():
+    # 지어낸 쪽 글자. 손해보험사 문서는 최고나이를 "MIN(85-납입기간,70)"이나 "(보험기간-납입기간)"으로 적고,
+    # 보험기간과 납입기간을 "90세/95세/100세만기", "10/15/20/25/30년납"처럼 한 칸에 이어 적는다(쪽 글자에서는 다른 칸과 섞인다)
+    pages = {"사업방법서": {
+        2: "가) 기본계약\n구 분 보험기간 납입기간 가입나이\n80세만기 10년납 만15세 ~ (80-납입기간)세\n"
+           "15년납 만15세 ~\n가나사망 90세만기\n20년납 MIN(85-납입기간,70)세",
+        3: "구 분 보험기간 보험료 납입기간 가입나이\n만15세~\n90세/95세/ 10/15/20/\n"
+           "기본계약 가나사망(간편) 20/25/30년납 (보험기간-납입\n100세만기 25/30년납\n기간)세"}}
+    capped = {"표": "가", "근거쪽": 2, "근거낱말": ["기본계약"],
+              "줄": [line("90세만기", "10년납", 15, 70, "MIN(85-납입기간,70)", page=2),
+                     line("90세만기", "20년납", 15, 65, "min(85-납입기간, 70)", page=2)],
+              "한도없음": True, "한도": [], "모름": []}
+    assert RC.check_table(capped) == []
+    assert RC.machine_checks(capped, pages, [2, 3]) == ([], [])
+    ended = {"표": "나", "근거쪽": 3, "근거낱말": ["간편"],
+             "줄": [line("95세만기", "15년납", 15, 80, "보험기간-납입기간", page=3),
+                    line("100세만기", "30년납", 15, 70, "보험기간-납입기간", page=3)],
+             "한도없음": True, "한도": [], "모름": []}
+    assert RC.check_table(ended) == []
+    assert RC.machine_checks(ended, pages, [2, 3]) == ([], [])
+    # 상한을 빼고 계산한 값, 쪽에 없는 상한, 빗금 목록에 없는 기간, 만기 나이가 없는 보험기간은 문제로 잡힌다
+    wrong = copy.deepcopy(capped)
+    wrong["줄"][0]["최고나이"] = 75
+    wrong["줄"][1]["최고나이식"] = "MIN(85-납입기간,60)"
+    wrong["줄"][1]["최고나이"] = 60
+    problems = RC.machine_checks(wrong, pages, [2, 3])[0]
+    assert any("75세가 식으로 계산한 70세와 다름" in p for p in problems)
+    assert any("상한 60이 2쪽에 없음" in p for p in problems)
+    other = copy.deepcopy(ended)
+    other["줄"][0]["보험기간"] = "85세만기"
+    other["줄"][1]["납입기간"] = "12년납"
+    other["줄"][1]["보험기간"] = "20년만기"
+    problems = RC.machine_checks(other, pages, [2, 3])[0]
+    assert any("보험기간 '85세만기'이 3쪽에 없음" in p for p in problems)
+    assert any("납입기간 '12년납'이 3쪽에 없음" in p for p in problems)
+    assert any("식이 빼는 납입기간의 햇수를 읽을 수 없음" in p for p in problems)
+    assert RC.check_line(line("90세만기", "10년납", 15, 70, "MAX(85-납입기간,70)")) != []
+
+
 def test_unknown_in_one_reading_needs_judgement_and_reasons_are_not_stored():
     other = reading("opus", 모름=[{"칸": "한도", "이유": "가입한도 절을 찾지 못함"}])
     result = RC.compare_task(task(), {"sonnet": reading(), "opus": other}, ["sonnet", "opus"], PAGES)

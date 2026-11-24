@@ -102,6 +102,9 @@ class Layout:
     # 지급사유 칸 왼쪽의 이름 칸들은 PDF에 적힌 빈칸 글자만 빈칸으로 읽는다. 좁은 이름 칸을 양끝 맞춤으로 채운 줄은 글자 사이가
     # 벌어져 있을 뿐 빈칸 글자가 없다("하 이 클"). 벌어진 자리에 빈칸을 넣으면 같은 이름이 줄 바꿈 자리에 따라 빈칸만 달리 읽힌다
     spaced_names: bool = False
+    # 요약서 뒤쪽에 특약별 면책기간 표("최초계약과 부활(효력회복)계약의 면책기간" 칸)가 따로 있다. 급부 표의 지급사유는 이름 없는
+    # "보장개시일 이후"만 적고 날수는 이 표에만 있다(현대해상). 적재의 기계 검사가 이 표를 칸 단위로 읽어 날수를 대조한다(wait_table)
+    wait_table: bool = False
 
 
 # 삼성화재: "□ 보험금 지급사유 및 지급금액" 절, "◆ 기본계약" 구분, 쉼표로 이은 이름
@@ -159,7 +162,7 @@ HYUNDAI = Layout(
     two_up=True, open_sides=True, group_column=True,
     group_labels=("기본계약", "의무가입특약", "의무부가특약"), group_other="선택계약",
     doubled_names=True, reason_rows=True, name_tails=True, dotted=True, shared_whole=True,
-    cell_fills=True, numbered_names=True, amount_parts=True, spaced_names=True,
+    cell_fills=True, numbered_names=True, amount_parts=True, spaced_names=True, wait_table=True,
 )
 
 LAYOUTS = {layout.name: layout for layout in (SAMSUNGFIRE, MERITZ, KBLIFE, HYUNDAI)}
@@ -1781,3 +1784,423 @@ def rider_blocks_from_pdf(source: Path | str | bytes, first_page: int | None = N
     if variant:
         riders = for_variant(riders, variant)
     return to_blocks(riders, max_covers)
+
+
+# ---------------------------------------------------------------------------
+# 특약별 면책기간 표(Layout.wait_table)
+# ---------------------------------------------------------------------------
+# 현대해상 요약서는 "나. 보험금 지급제한 사항" 뒤에 "구 분 | 최초계약과 부활(효력회복)계약의 면책기간 | 보험금 감액기간 및
+# 감액지급" 표를 싣는다. 급부 표의 지급사유는 이름 없는 "보장개시일 이후"만 적고, 특약마다 면책 날수는 이 표에만 있다.
+# 표는 쪽마다 두 단이고, 특약 이름 칸 하나에 이름 여럿을 쉼표나 줄 바꿈으로 이어 적는다. 이름 칸과 면책기간 칸 사이에
+# 대상 칸(암(유사암 제외), 유사암 따위)이나 세부보장 칸이 더 있는 행이 있고, 그러면 면책기간 칸이 대상마다 갈린다.
+# 병합된 칸은 쪽이나 단을 넘어 이어진다(이어지는 표에는 머리행이 없고 면책기간 칸이 비어 있다).
+
+_WAIT_HEAD = "면책기간"
+_WAIT_VALUE = re.compile(r"(\d+)(?:(일)(?:면책)?|(개월|년)면책)")     # "90일", "90일면책", "1년면책". 날 단위 없는 "5년"은 읽지 않는다
+_CONTINUE_TOP = 120     # 머리행 없이 이어지는 표는 단의 맨 위(쪽 위에서 이만큼 안)에서 시작한다
+_NAME_SEPS = re.compile(r"(,|/|\n)")
+
+
+@dataclass(frozen=True)
+class WaitRow:
+    """면책기간 표의 한 칸(특약 이름 칸 하나와 그 옆 면책기간 칸 하나).
+
+    names_text는 특약 이름 칸의 글자(쪽이나 단을 넘어 이어진 칸은 줄을 바꿔 이어 붙인 것), detail은 이름 칸과 면책기간 칸
+    사이 칸의 글자(대상이나 세부보장. 없으면 ""), wait는 면책기간 칸의 글자다. days는 wait를 줄마다 읽은 날수("-"는 0)이고,
+    읽지 못한 줄이 있으면 None이다. cut과 half는 면책기간 칸 오른쪽의 "보험금 감액기간" 칸과 "50% 감액지급" 칸의 글자다
+    (병합된 칸은 걸치는 행마다 같은 글자. 없으면 "").
+    """
+    page: int
+    part: int
+    names_text: str
+    detail: str
+    wait: str
+    days: tuple[int, ...] | None
+    cut: str = ""
+    half: str = ""
+
+    @property
+    def cut_period(self) -> tuple[int, str] | tuple[()] | None:
+        """감액기간 칸과 50% 감액지급 칸을 읽은 감액(wait_cut_text)."""
+        return wait_cut_text(self.cut, self.half)
+
+
+_CUT_PERIOD = re.compile(r"(?:최초계약일?부터)?(\d+)(년|개월)미만")
+_MARK_YES = ("○", "◯", "O", "o", "〇")
+_MARK_NO = ("X", "x", "×", "-", "–", "−")
+
+
+def wait_cut_text(cut: str, half: str) -> tuple[int, str] | tuple[()] | None:
+    """면책기간 표의 감액 두 칸을 읽는다. 감액기간 칸이 "최초계약일부터 1년미만"(또는 "1년 미만")이고 50% 감액지급 칸이 "○"면
+    (1, "년")처럼 (기간, 단위), 감액기간 칸이 "-"이고 50% 감액지급 칸이 "X"나 "-"면 감액 없음(()), 그 밖의 꼴이나 두 칸이 서로
+    맞지 않으면(기간은 있는데 "X") None."""
+    flat_cut, flat_half = squash(cut), squash(half)
+    if flat_cut in ("-", "–", "−") and flat_half in _MARK_NO:
+        return ()
+    m = _CUT_PERIOD.fullmatch(flat_cut)
+    if m and flat_half in _MARK_YES:
+        return int(m.group(1)), m.group(2)
+    return None
+
+
+def wait_days_text(text: str) -> tuple[int, ...] | None:
+    """면책기간 칸의 글자를 줄마다 날수로. "90일면책", "90일 면책", "1년면책", "10일면책" → 날수, "-" → 0. 빈 줄은 건너뛴다.
+    "5년 90일면책"처럼 꼴을 읽지 못한 줄이 하나라도 있으면 None."""
+    out: list[int] = []
+    # 좁은 칸에서 "90일"과 "면책"이 두 줄로 갈린 것은 한 줄로 잇는다
+    for line in re.sub(r"\n\s*면\s*책", "면책", text or "").split("\n"):
+        flat = squash(line)
+        if not flat:
+            continue
+        if flat in ("-", "–", "−"):
+            out.append(0)
+            continue
+        m = _WAIT_VALUE.fullmatch(flat)
+        if not m:
+            return None
+        n, unit = int(m.group(1)), m.group(2) or m.group(3)
+        out.append(n * 365 if unit == "년" else n * 30 if unit == "개월" else n)
+    return tuple(out)
+
+
+@dataclass
+class _WaitGroup:
+    page: int
+    part: int
+    names: list[str]
+    rows: list[tuple[str, str, str, str]]   # (대상 칸 글자, 면책기간 칸 글자, 감액기간 칸 글자, 50% 감액지급 칸 글자)
+
+
+def _overlap(a: Sequence[float], b: Sequence[float]) -> float:
+    return min(a[3], b[3]) - max(a[1], b[1])
+
+
+# (쪽, 단, 표 상자, [(칸 상자, 칸 글자)], 표 위 글자). 표 위 글자는 같은 단에서 앞 표의 아래(없으면 쪽 위)부터 이 표의 위까지의 글자
+WaitCells = tuple[int, int, Sequence[float], Sequence[tuple[Sequence[float], str]], str]
+
+
+def _wait_subrows(band: Sequence[float], wbox: Sequence[float], wtext: str,
+                  details: Sequence[tuple[Sequence[float], str]],
+                  rights: Sequence[tuple[Sequence[float], str]]) -> list[tuple[str, str, str, str]]:
+    """면책기간 칸 하나의 (대상 칸 글자, 면책기간 칸 글자, 감액기간 칸 글자, 50% 감액지급 칸 글자) 행들.
+
+    감액 두 칸은 면책기간 칸과 위아래로 겹치는 오른쪽 칸을 왼쪽 열부터 읽는다(감액기간 열, 50% 감액지급 열). 감액 칸이
+    여러 면책기간 칸에 걸쳐 병합되어 있으면 그 칸마다 같은 글자를 짝짓는다. 거꾸로 면책기간 칸 하나가 감액기간 칸 여럿에
+    걸쳐 병합되어 있으면(간편맞춤고지 형별 작은 표: "00형, 05형 …"과 "그 외 종형"이 면책은 같고 감액만 다르다) 감액기간 칸마다
+    행을 나누고, 대상 칸도 그 감액기간 칸과 겹치는 것만 짝짓는다.
+    """
+    side = sorted((c for c in rights if _overlap(wbox, c[0]) > _SNAP), key=lambda c: (c[0][0], c[0][1]))
+    columns: list[list[tuple[Sequence[float], str]]] = []
+    for c in side:
+        if columns and c[0][0] - columns[-1][0][0][0] <= 2 * _SNAP:
+            columns[-1].append(c)
+        else:
+            columns.append([c])
+    if len(columns) > 2:
+        # 감액 비율 칸이 여럿인 표(가입금액 10%, 50%, 100% 지급)는 50% 감액지급 꼴이 아니다. 감액 칸을 읽지 못한 것으로 둔다
+        return [(" ".join(squash(d[1]) for d in sorted((d for d in details if _overlap(band, d[0]) > _SNAP),
+                                                        key=lambda d: (d[0][0], d[0][1]))),
+                 wtext, "?", "?")]
+    cut_cells = columns[0] if columns else []
+    bands = [band] if len(cut_cells) <= 1 else \
+        [(0, max(band[1], c[0][1]), 0, min(band[3], c[0][3])) for c in cut_cells]
+
+    def text_in(cells: Sequence[tuple[Sequence[float], str]], area: Sequence[float]) -> str:
+        return "\n".join(t for b, t in cells if _overlap(area, b) > _SNAP)
+
+    out = []
+    for sub in bands:
+        found = sorted((d for d in details if _overlap(sub, d[0]) > _SNAP), key=lambda d: (d[0][0], d[0][1]))
+        cut = text_in(cut_cells, sub) if len(cut_cells) > 1 else (cut_cells[0][1] if cut_cells else "")
+        half = text_in(columns[1], sub) if len(columns) > 1 else ""
+        out.append((" ".join(squash(d[1]) for d in found), wtext, cut, half))
+    return out
+
+
+def wait_rows_from_cells(tables: Iterable[WaitCells]) -> list[WaitRow]:
+    """면책기간 표의 칸들을 행으로 읽는다(PDF 없이 돌아가는 부분).
+
+    tables: 읽는 차례(쪽, 단, 위에서 아래)대로 WaitCells. 상자는 (x0, top, x1, bottom).
+    - 머리행에 "면책기간" 칸이 있는 표: 그 칸의 왼쪽 끝이 면책기간 칸 자리다. 표의 왼쪽 끝에서 시작하는 칸이 특약 이름 칸,
+      그 사이에서 시작하는 칸이 대상 칸이다. 머리행 아래의 칸만 읽는다.
+    - 머리행이 없고 같은 단에서 머리행 표 뒤에 오는 표: 머리행의 면책기간 칸과 같은 자리(쪽 위 좌표)의 칸이 면책기간 칸이고,
+      머리행 표의 왼쪽 끝에서 시작하는 칸이 이름 칸이다. 이름 칸이 없는 행은 이름을 표 위에 가로로 적은 꼴이라(이름 줄 아래에
+      간편맞춤고지 형별 작은 표가 오는 행) 표 위 글자를 이름으로 쓴다.
+    - 머리행이 없는 단의 첫 표이고 단의 맨 위(_CONTINUE_TOP)에서 시작하는 표: 앞 머리행의 면책기간 칸과 같은 자리(표 왼쪽
+      끝에서 같은 거리)에 칸이 있으면 이어지는 표로 본다.
+      맨 위 이름 칸 옆의 면책기간 칸이 모두 비어 있으면 앞 칸이 이어진 것이라 앞 특약 이름 칸에 글자를 잇는다.
+    그 밖의 표는 읽지 않는다. 면책기간 칸 하나마다 그 칸과 위아래로 겹치는 이름 칸, 대상 칸의 글자를 짝짓는다.
+    """
+    groups: list[_WaitGroup] = []
+    offset: float | None = None        # 마지막 머리행에서 면책기간 칸이 표 왼쪽 끝에서 떨어진 거리
+    here: tuple[int, int, float, float] | None = None   # 마지막으로 읽은 표의 (쪽, 단, 이름 칸 x, 면책기간 칸 x)
+    seen_parts: set[tuple[int, int]] = set()
+    for page, part, box, cells, above in tables:
+        first_in_part = (page, part) not in seen_parts
+        seen_parts.add((page, part))
+        head = next((c for c in cells if _wait_head_cell(c[1])), None) if _wait_head(cells) else None
+        continued = False
+        if head is not None:
+            offset = head[0][0] - box[0]
+            body = [c for c in cells if c[0][1] >= head[0][3] - _SNAP]
+            name_x, wait_x = box[0], head[0][0]
+        elif here is not None and here[:2] == (page, part):
+            body = list(cells)
+            name_x, wait_x = here[2], here[3]
+        elif offset is not None and first_in_part and box[1] <= _CONTINUE_TOP:
+            body = list(cells)
+            name_x, wait_x = box[0], box[0] + offset
+            continued = True
+        else:
+            continue
+        waits = sorted((c for c in body if abs(c[0][0] - wait_x) <= 2 * _SNAP), key=lambda c: c[0][1])
+        if head is not None:
+            here = (page, part, name_x, wait_x)      # 머리행만 있는 표 아래에 본문 표가 따로 오기도 한다
+        if not waits:
+            if continued:
+                offset = None
+            continue
+        here = (page, part, name_x, wait_x)
+        names = sorted((c for c in body if abs(c[0][0] - name_x) <= 2 * _SNAP and squash(c[1])), key=lambda c: c[0][1])
+        details = [c for c in body if name_x + 2 * _SNAP < c[0][0] < wait_x - 2 * _SNAP]
+        rights = [c for c in body if c[0][0] > wait_x + 2 * _SNAP]      # 감액기간 칸, 50% 감액지급 칸
+        loose = [w for w in waits if not any(_overlap(n[0], w[0]) > _SNAP for n in names)]
+        if loose and squash(above) and head is None and not continued:
+            names = sorted(names + [((name_x, min(w[0][1] for w in loose), wait_x, max(w[0][3] for w in loose)), above)],
+                           key=lambda c: c[0][1])
+        for i, (nbox, ntext) in enumerate(names):
+            mine = [w for w in waits if _overlap(nbox, w[0]) > _SNAP]
+            if continued and i == 0 and groups and all(not squash(w[1]) for w in mine):
+                groups[-1].names.append(ntext)
+                continue
+            rows = []
+            for wbox, wtext in mine:
+                band = (0, max(nbox[1], wbox[1]), 0, min(nbox[3], wbox[3]))
+                rows.extend(_wait_subrows(band, wbox, wtext, details, rights))
+            groups.append(_WaitGroup(page, part, [ntext], rows))
+    out = []
+    for g in groups:
+        text = "\n".join(g.names)
+        for detail, wait, cut, half in g.rows:
+            out.append(WaitRow(g.page, g.part, text, detail, wait, wait_days_text(wait), cut, half))
+    return out
+
+
+def _wait_page_tables(pdf: Any, number: int) -> list[WaitCells]:
+    page = pdf.pages[number - 1]
+    h, v = _border_edges(page)
+    v = v + _side_edges(h, v)
+    mid = (page.bbox[0] + page.bbox[2]) / 2
+    found = sorted(_find(page, h, v), key=lambda t: (_column_of(t.bbox, page.bbox, True), t.bbox[1]))
+    tables = []
+    floor = {0: page.bbox[1], 1: page.bbox[1]}
+    for t in found:
+        part = _column_of(t.bbox, page.bbox, True)
+        left, right = (page.bbox[0], mid) if part == 0 else (mid, page.bbox[2])
+        above = ""
+        if t.bbox[1] - floor[part] > 2 * _SNAP:
+            above = page.crop((left, floor[part], right, t.bbox[1])).extract_text() or ""
+        floor[part] = max(floor[part], t.bbox[3])
+        cells = [(tuple(c), page.crop(c).extract_text() or "") for row in t.rows for c in row.cells if c]
+        tables.append((number, part, tuple(t.bbox), cells, above))
+    page.flush_cache()
+    return tables
+
+
+_HEAD_CELL = 40         # 머리 칸 글자 수 한도. 급부 표의 지급사유 칸에도 "면책기간", "감액기간"이 나온다
+
+
+def _wait_head_cell(text: str) -> bool:
+    flat = squash(text)
+    return _WAIT_HEAD in flat and len(flat) <= _HEAD_CELL
+
+
+def _wait_head(cells: Sequence[tuple[Sequence[float], str]]) -> bool:
+    """면책기간 표의 머리행이 있는 표인가: 짧은 칸 하나에 "면책기간", 다른 짧은 칸에 "감액기간"이 있다."""
+    flat = [squash(text) for _, text in cells]
+    return (any(_wait_head_cell(t) for t in flat)
+            and any("감액기간" in t and len(t) <= _HEAD_CELL and _WAIT_HEAD not in t for t in flat))
+
+
+def wait_table(source: Path | str | bytes, pages: dict[int, str] | None = None) -> list[WaitRow]:
+    """요약서 PDF에서 특약별 면책기간 표(Layout.wait_table)를 읽는다.
+
+    쪽 글자(pages)에 "면책기"나 "부활(효력"이 든 쪽에서 머리행("면책기간" 칸과 "감액" 칸)이 있는 표를 찾고, 머리행이 있는
+    첫 쪽부터 마지막 쪽의 다음 쪽까지 읽는다(머리행 없이 이어지는 쪽이 사이에 있다. 두 단 쪽 글자는 왼쪽 단과 오른쪽 단의 줄이
+    섞여 머리 글자가 갈리기도 한다). 표 양옆에 테두리가 없어(Layout.open_sides) 가로선 끝 자리에 세로선을 더해 칸을 찾는다.
+    쪽을 두 단으로 나눠 단마다 위에서 아래로 읽는다. 칸의 글자는 칸 상자로 자른 글자(pdfplumber crop)다.
+    """
+    texts = pages if pages is not None else page_texts(source)
+    candidates = sorted(p for p, t in texts.items() if "면책기" in squash(t) or "부활(효력" in squash(t))
+    found: dict[int, list[WaitCells]] = {}
+    with _open(source) as pdf:
+        heads = []
+        for number in candidates:
+            if 0 < number <= len(pdf.pages):
+                found[number] = _wait_page_tables(pdf, number)
+                if any(_wait_head(t[3]) for t in found[number]):
+                    heads.append(number)
+        if not heads:
+            return []
+        for number in range(heads[0], min(heads[-1] + 1, len(pdf.pages)) + 1):
+            if number not in found:
+                found[number] = _wait_page_tables(pdf, number)
+        ordered = [t for number in range(heads[0], min(heads[-1] + 1, len(pdf.pages)) + 1) for t in found[number]]
+    return wait_rows_from_cells(ordered)
+
+
+def name_tokens(text: str) -> tuple[list[str], list[str]]:
+    """특약 이름 칸의 글자를 쉼표, 빗금, 줄 바꿈마다 자른 토막(빈칸을 뗀 글)과 토막 사이의 구분("," "/" "\\n").
+    이름 안의 쉼표와 줄 바꿈 자리에서도 자르므로 이름 하나가 이어진 토막 여럿일 수 있다(wait_name_spans가 다시 잇는다).
+    토막 사이에 구분이 여럿이면(쉼표 뒤 줄 바꿈) 쉼표나 빗금을 남긴다."""
+    parts = _NAME_SEPS.split(text or "")
+    tokens: list[str] = []
+    seps: list[str] = []
+    pending = ""
+    for i, part in enumerate(parts):
+        if i % 2:
+            if pending not in (",", "/"):
+                pending = part
+            continue
+        flat = squash(part)
+        if not flat:
+            continue
+        if tokens:
+            seps.append(pending or "\n")
+        tokens.append(flat)
+        pending = ""
+    return tokens, seps
+
+
+def _top_groups(flat: str) -> tuple[str, list[str]] | None:
+    """이름을 괄호 밖 글자와 맨 바깥 괄호 묶음들로 가른다. 괄호 짝이 맞지 않으면 None."""
+    stem, groups, depth, start = "", [], 0, 0
+    for i, ch in enumerate(flat):
+        if ch == "(":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth < 0:
+                return None
+            if depth == 0:
+                groups.append(flat[start:i + 1])
+        elif depth == 0:
+            stem += ch
+    return (stem, groups) if depth == 0 else None
+
+
+def wait_name_key(name: str) -> str:
+    """면책기간 표의 이름과 급부 표의 특약 이름을 맞춰 보는 열쇠.
+
+    빈칸과 줄 바꿈을 없애고(squash. 가운뎃점 모양도 맞춘다), 전각 괄호를 반각으로 바꾸고, 끝의 쉼표를 뗀다. 괄호 짝이 맞는
+    이름은 괄호 밖 글자 뒤에 맨 바깥 괄호 묶음을 차례와 상관없이(정렬해) 붙인다. 면책기간 표는 같은 특약의 괄호 묶음 차례를
+    급부 표와 다르게 적기도 한다("가나(간편)(연간1회한)"와 "가나(연간1회한)(간편)").
+    """
+    flat = squash(name).replace("（", "(").replace("）", ")").rstrip(",")
+    split = _top_groups(flat)
+    if split is None or not split[1]:
+        return flat
+    stem, groups = split
+    return stem + "".join(sorted(groups))
+
+
+_ATOM_SPLIT = re.compile(r"[(),]")
+
+
+def _top_comma(text: str) -> bool:
+    """괄호 밖에 쉼표가 있는가(이름 둘을 이은 글인가)."""
+    depth = 0
+    for ch in text:
+        if ch in "(（":
+            depth += 1
+        elif ch in ")）":
+            depth -= 1
+        elif ch == "," and depth <= 0:
+            return True
+    return False
+
+
+def wait_name_atoms(name: str) -> str:
+    """괄호 구조가 다른 이름을 맞춰 보는 열쇠: 괄호와 쉼표로 자른 낱말들을 정렬해 이은 글.
+
+    면책기간 표는 같은 특약의 괄호 묶음을 다르게 싸기도 하고("가나(상급종합병원(국립암센터포함),세기조절)치료"와
+    "가나(세기조절)치료(상급종합병원(국립암센터포함))"), 급부 표 쪽 이름에 원문 괄호가 빠지기도 한다
+    ("가나(상급종합병원(국립암센터포함)(치료당)"). 낱말과 그 수가 모두 같으면 같은 이름으로 본다.
+    """
+    flat = squash(name).replace("（", "(").replace("）", ")").rstrip(",")
+    return "|".join(sorted(x for x in _ATOM_SPLIT.split(flat) if x))
+
+
+def wait_name_spans(text: str, names: Iterable[str], most: int = 8,
+                    atoms: bool = True) -> dict[str, list[tuple[int, int]]]:
+    """특약 이름 칸의 글자에서 찾은 names의 이름과 그 토막 범위(시작, 끝+1. name_tokens의 토막 순번).
+
+    이어진 토막을 구분과 함께 이어 붙여(줄 바꿈은 빈 글, 쉼표와 빗금은 그 글자) 이름의 열쇠(wait_name_key)와 같으면 그 이름이다.
+    atoms가 참이면 열쇠가 맞지 않는 토막 이음도 괄호 구조만 다른 이름(wait_name_atoms가 같음)이면 그 이름으로 본다. 단 names
+    안에서 그 열쇠를 가진 이름이 하나뿐이고 이어 붙인 글의 괄호가 닫혀 있을 때만이다.
+    줄 바꿈 자리는 이름 사이일 수도, 이름 가운데일 수도 있다. 이름 첫머리는 칸의 첫 토막이거나, 앞 구분이 쉼표나 빗금이거나,
+    앞 구분이 줄 바꿈이고 이 토막이 괄호로 시작하지 않으며 앞 토막이 ")"로 끝나거나 앞 토막 안의 괄호가 닫혀 있는 자리다
+    ("가나진단" 다음 줄의 "다라진단"). 이름 끝은 칸의 끝 토막이거나,
+    뒤 구분이 쉼표나 빗금이거나, 뒤 구분이 줄 바꿈이고 이어 붙인 글의 괄호가 닫혀 있으며 뒤 토막이 괄호로 시작하지 않는
+    자리다(이름 뒤 줄의 "(갱신형)"은 이름이 이어진 것이다).
+    """
+    tokens, seps = name_tokens(text)
+    names = list(names)
+    keys = {wait_name_key(n): n for n in names if wait_name_key(n)}
+    loose: dict[str, str | None] = {}
+    if atoms:
+        for n in dict.fromkeys(names):
+            a = wait_name_atoms(n)
+            if a:
+                loose[a] = n if a not in loose else None      # 같은 열쇠의 이름이 둘 이상이면 쓰지 않는다
+    out: dict[str, list[tuple[int, int]]] = {}
+
+    def closed(s: str) -> bool:
+        return s.count("(") == s.count(")")
+
+    for i in range(len(tokens)):
+        if i and seps[i - 1] == "\n" and (tokens[i].startswith(("(", ")"))
+                                          or not (tokens[i - 1].endswith(")") or closed(tokens[i - 1]))):
+            continue
+        joined = ""
+        for j in range(i, min(len(tokens), i + most)):
+            joined += ("" if j == i or seps[j - 1] == "\n" else seps[j - 1]) + tokens[j]
+            if j + 1 < len(tokens) and seps[j] == "\n" and (tokens[j + 1].startswith(("(", ")")) or not closed(joined)):
+                continue
+            key = wait_name_key(joined)
+            if key in keys:
+                out.setdefault(keys[key], []).append((i, j + 1))
+            elif atoms and closed(joined) and not _top_comma(joined) and loose.get(wait_name_atoms(joined)):
+                out.setdefault(loose[wait_name_atoms(joined)], []).append((i, j + 1))
+    return out
+
+
+def wait_lines(rows: Iterable[WaitRow], names: Iterable[str]) -> dict[int, str]:
+    """면책기간 표에서 names의 이름마다 "<이름> <N>일면책" 줄을 쪽별로 만든다(면책이 있는 날수만, 같은 줄은 한 번).
+
+    두 단으로 실린 표를 쪽 글자로 풀면 왼쪽 단과 오른쪽 단의 줄이 섞이고 이름이 여러 줄로 갈려, 이름 바로 옆의 날수를 찾는
+    기계 검사(reader_rows.wait_days_on_page)가 표를 읽지 못한다. 적재가 이 줄을 그 쪽 글자 뒤에 붙여 기계 검사에 준다.
+    감액기간 칸과 50% 감액지급 칸에 감액이 있는 행(WaitRow.cut_period)은 "<이름> 감액기간 <N>년미만 50%감액지급" 줄도
+    만든다(reader_rows.wait_cuts_on_pages가 감액의 숫자를 이 줄에서 대조한다).
+    """
+    names = list(dict.fromkeys(names))
+    out: dict[int, list[str]] = {}
+    for row in rows:
+        cut = row.cut_period
+        if not row.days and not cut:
+            continue
+        for name in wait_name_spans(row.names_text, names):
+            for d in sorted(set(row.days or ())):
+                line = f"{name} {d}일면책"     # 날수 바로 뒤에 다음 줄 첫 글자("전이암…")가 붙어 "전"으로 읽히지 않게 한다
+                if d and line not in out.setdefault(row.page, []):
+                    out[row.page].append(line)
+            if cut:
+                line = f"{name} {WAIT_CUT_WORD} {cut[0]}{cut[1]}미만 50%감액지급"
+                if line not in out.setdefault(row.page, []):
+                    out[row.page].append(line)
+    return {p: "\n".join(lines) for p, lines in out.items() if lines}
+
+
+WAIT_CUT_WORD = "감액기간"
