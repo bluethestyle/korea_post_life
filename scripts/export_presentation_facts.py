@@ -288,10 +288,53 @@ DOC_FACTS += [
      ("`site/proto/console4.html` 한 파일(약 6MB)",), "어림값입니다. 화면에는 \"약\"을 붙여 씁니다."),
 ]
 
+# 발표 덱 v3(점검 답 반영)이 범위와 출처를 밝히려고 더 쓰는 문서 값
+PRO_EXTRACT = "급부 추출과 검증 (2026-11-18)"
+PRO_NEXT = "다음 세션에서 이어 할 일 (2026-11-24 오후, 세션을 닫으며)"
+DOC_FACTS += [
+    ("simple_uw_product_short",
+     {"EPOST": "우체국간편한건강보험", "HANWHALIFE": "한화생명 시그니처 H통합보험", "SAMSUNGFIRE": "삼성화재 간편보험 새로고침"},
+     "간편심사 고지사항을 견준 회사별 상품 이름(우체국 상품명 뒤의 개정 코드를 뺀 것)", SUB_SCOPE_DATE, SUB, "2. 풀려는 문제",
+     ("| 우체국간편한건강보험 2606 |", "| 한화생명 시그니처 H통합보험 |", "| 삼성화재 간편보험 새로고침 |"),
+     "우체국 상품명 뒤의 2606 은 개정 코드(2026-06 판매 개시)라 화면에서는 빼고, 노트에는 simple_uw_questions_by_org.EPOST.product 를 씁니다."),
+    ("calibration_score_overlap", {"correct_min": 0.59, "correct_median": 0.91, "wrong_max": 0.68, "wrong_amount_max": 0.49},
+     "경계값 보정(모든 문항을 합친 줄 단위): 맞는 줄의 최저와 중앙값, 틀리게 바꾼 줄의 최고(감액 기간을 바꾼 경우)와 금액을 바꾼 경우의 최고",
+     "2026-11-18", PRO, PRO_EXTRACT,
+     ("맞는 줄의 최저 확률은 0.59, 중앙값 0.91입니다. 틀린 줄은 최고 0.68(감액 기간을 바꾼 경우)이고, 금액을 바꾼 경우는 최고 0.49입니다.",),
+     "맞는 줄의 최저와 틀린 줄의 최고가 겹칩니다. symmetric_choice_probability(0.94, 0.06)는 면책 문항 한 가지의 값입니다."),
+    ("calibration_correct_to_review", {"threshold": 0.75, "rows": 7, "of": 101},
+     "확정 경계 0.75 에서 맞는 줄 가운데 사람 검토로 간 줄 수(전체 맞는 줄 수)", "2026-11-18", PRO, PRO_EXTRACT,
+     ("| 0.75 | 0 / 437 | 7 / 101 |",), "우체국 요약서 2건으로만 맞춘 좁은 표본입니다(같은 절의 한계)."),
+    ("calibration_flip_methods",
+     ["금액 두 배", "다른 줄의 금액", "감액 누락", "감액과 지급액 뒤바꿈", "감액 기간 바꿈", "없는 감액 추가", "면책 뒤집음"],
+     "경계값 보정에서 맞는 줄을 일부러 틀리게 바꾼 방식(scripts/calibrate_verify.py)", "2026-11-18", PRO, PRO_EXTRACT,
+     ("(금액 두 배, 다른 줄의 금액, 감액 누락, 감액과 지급액 뒤바꿈, 감액 기간 바꿈, 없는 감액 추가, 면책 뒤집음)",),
+     "실제 운영에서 생긴 오류가 아니라 일부러 만든 오류입니다."),
+    ("epost_summary_rows_by_doc", {"간편한건강보험 2606": 49, "통합건강보험 2504": 52},
+     "원문 표와 한 줄씩 대조한 우체국 요약서 2건의 급부 줄 수(문서별)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+     ("101줄 모두 일치 (2606 49줄, 통합 2504 52줄)",), "합계는 epost_summary_rows_matched.total 입니다."),
+    ("goldset_item_totals", {"EPOST": 85, "HANWHALIFE": 25, "SAMSUNGFIRE": 50},
+     "회사별 정답셋 전체 항목 수(보장금액, 가입조건, 결합 제약 따위를 합친 수)", SUB_SCOPE_DATE, SUB, "제미나이: 추출기와 따로 보는 교차 확인",
+     ("정답셋(우체국 85항목, 한화생명 25항목, 삼성화재 50항목)",),
+     "보장금액, 면책, 감액 영역의 채점은 goldset_epost_benefit(30항목), goldset_hanwha_benefit(14항목)입니다."),
+    ("goldset_epost_conditions", {"items": 20, "match": 16}, "우체국 정답셋 가입조건 채점(일치 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+     ("| 우체국 정답셋 가입조건 | 20항목 중 16항목 일치",), "1항목은 종형 속성에 들어 있고 나머지는 스키마 밖입니다(같은 표)."),
+    ("goldset_epost_constraints", {"items": 10, "match": 5}, "우체국 정답셋 결합 제약 채점(일치 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+     ("| 우체국 정답셋 결합 제약 | 10항목 중 5항목 일치",), "나머지는 스키마 밖입니다(같은 표)."),
+    ("goldset_not_scored", {"SAMSUNGFIRE": 50}, "아직 채점하지 않은 정답셋(회사와 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+     ("삼성화재 정답셋 50항목 채점",), None),
+    ("samsungfire_benefit_reader", "코드 규칙", "삼성화재 급부표를 읽는 방법(모델을 쓰지 않음)", SUB_SCOPE_DATE, SUB, "작업별 모델 배정",
+     ("| 삼성화재 급부표 | 코드 규칙 |",), "extract/tables.py 와 extract/table_rules.py 입니다."),
+    ("next_load_orgs", {"names": ["교보생명", "현대해상"], "stage": "추출과 원문 표본 대조까지 끝났고 시트 적재 전"},
+     "다음에 시트에 적재할 회사와 지금 단계", "2026-11-24", PRO, PRO_NEXT,
+     ("교보생명과 현대해상의 후속 수정은 워크플로가 끝났지만 커밋하지 않았습니다", "그 뒤 카본 표본, 시트 적재, 매핑 순서로 갑니다."),
+     "사본(data/snapshot)에는 아직 없습니다. 적재하면 product_orgs 에 들어옵니다."),
+]
+
 # git 과 GitHub 에서 센 값. 사본에서 셀 수 없고 커밋할 때마다 바뀌므로 손으로 적고, note 에 다시 세는 명령을 적는다.
 GIT_COUNTED_AT = "2026-11-24"
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
-    ("test_count", 1460, "전체 자동 시험 수", "2026-11-24",
+    ("test_count", 1469, "전체 자동 시험 수", "2026-11-24",
      "메인 세션이 2026-11-24 main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
     ("commit_count", 287, "main 의 커밋 수", GIT_COUNTED_AT,
      "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),
@@ -309,6 +352,21 @@ MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
     ("pages_status", {"status": "built", "url": "https://bluethestyle.github.io/korea_post_life/"},
      "GitHub Pages 배포 상태와 공개 주소", GIT_COUNTED_AT,
      "`gh api repos/bluethestyle/korea_post_life/pages` 의 status 와 html_url 입니다. 데모는 url 뒤에 proto/console4.html 을 붙입니다."),
+    # 사용자가 준 값(2026-11-24). 통화를 바꾸거나 더하지 않고 준 그대로 싣는다
+    ("subscription_claude_usd_per_month", 200, "개발과 초기 적재에 쓴 Claude 구독 요금제의 월 금액(달러)", "2026-11-24",
+     "사용자 확인 2026-11-24. 개발과 초기 적재에 쓴 구독 도구의 요금제 금액이고 매주 자동 실행의 비용이 아닙니다."),
+    ("subscription_gemini_krw_per_month", 119000, "개발과 초기 적재에 쓴 Gemini 구독 요금제(Ultra)의 월 금액(원)", "2026-11-24",
+     "사용자 확인 2026-11-24. 개발과 초기 적재에 쓴 구독 도구의 요금제 금액이고 매주 자동 실행의 비용이 아닙니다. "
+     "Antigravity 의 금액은 사용자 확인 중이라 따로 싣지 않습니다."),
+    # 실무자 응답(사용자가 전달한 값, 2026-11-24). 실무자 1명이 보기에서 고른 답이라 측정값이 아니다
+    ("practice_compare_source", "각 회사 공시실의 상품요약서, 사업방법서, 약관", "실무자가 타사 상품을 비교할 때 주로 보는 자료", "2026-11-24",
+     "실무자 응답(사용자 전달) 2026-11-24. 실무자 1명이 보기에서 고른 답이고 측정값이 아닙니다. 응답자가 늘면 고칩니다."),
+    ("practice_compare_time", "2~3일", "타사 상품 하나를 우리 상품과 담보별로 비교표로 정리하는 데 걸리는 시간(실무자 답)", "2026-11-24",
+     "실무자 응답(사용자 전달) 2026-11-24. 실무자 1명이 보기에서 고른 답이고 측정값이 아닙니다. 응답자가 늘면 고칩니다."),
+    ("practice_compare_frequency", "분기 1~2회", "이런 비교를 하는 빈도(실무자 답)", "2026-11-24",
+     "실무자 응답(사용자 전달) 2026-11-24. 실무자 1명이 보기에서 고른 답이고 측정값이 아닙니다. 응답자가 늘면 고칩니다."),
+    ("practice_respondents", 1, "위 실무자 응답의 응답자 수", "2026-11-24",
+     "실무자 응답(사용자 전달) 2026-11-24. 실무자 1명이 보기에서 고른 답이고 측정값이 아닙니다. 응답자가 늘면 고칩니다."),
 ]
 
 
@@ -862,6 +920,17 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
     if "보장 대분류" not in nodes:
         raise FactsError("관계 그래프에 보장 대분류 노드가 없다")
     out["coverage_major_class_count"] = fact(nodes["보장 대분류"], "보장 대분류 수(관계 그래프의 보장 대분류 노드)", as_of, graph_src)
+    # 회사 노드에는 업계 공통, 감독기관, 시장 동향에 나온 회사도 있다. 계층(회사 → 종형)의 회사는 종형과 판매 엣지로 이어진 노드만 센다
+    sell = ekinds.index("판매")
+    sellers = sorted({e[0] for e in graph["edges"] if e[2] == sell and kinds[graph["nodes"][e[0]][1]] == "회사"
+                      and kinds[graph["nodes"][e[1]][1]] == "종형"})
+    out["graph_company_nodes_with_variants"] = fact(
+        {"count": len(sellers), "names": [graph["nodes"][i][2] for i in sellers]},
+        "관계 그래프에서 종형과 판매 엣지로 이어진 회사 노드(계층의 맨 위)의 수와 이름", as_of,
+        screen_source("edges[] 가운데 판매 엣지의 회사 쪽 노드", GRAPH),
+        "graph_nodes_by_kind.회사 는 업계 공통, 금융위원회, 시장 동향에 나온 회사까지 센 값이라 계층의 회사 수로 쓰지 않습니다. "
+        "특약 노드 수(graph_nodes_by_kind.특약)가 rider_count_site 보다 작은 것은 인수기준만 수집한 종형의 특약을 그래프에 싣지 않기 "
+        "때문입니다(proto_src/graph/build_data.py 의 GATE_ONLY).")
 
     # 담보 관계의 예(넓은 담보마다 좁은 담보)
     rel = [json.loads(line) for line in (root / RELATIONS).read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -987,6 +1056,49 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
     reqs = sorted(p.name for p in (root / REQUESTS).glob("*.md") if re.match(r"\d", p.name) and "부록" not in p.name)
     out["request_doc_count"] = fact(len(reqs), "docs/gemini_requests 의 요청서 수(번호가 붙은 파일, 부록은 본문과 한 건으로 셈)", as_of,
                                     repo_source(REQUESTS.as_posix(), "숫자로 시작하는 .md 파일 가운데 이름에 부록이 없는 것"))
+    # 요청서를 받은 쪽으로 나눈 수(파일 이름의 끝). 이름 끝이 없는 것은 Claude Code 로 옮기기 전후에 제미나이(웹, 구독 패널)에 넘긴 요청문
+    by_to = {"antigravity": sum(1 for n in reqs if n.endswith("_Antigravity.md")),
+             "browser_agent": sum(1 for n in reqs if n.endswith("_브라우저에이전트.md"))}
+    by_to["gemini_web_or_panel"] = len(reqs) - by_to["antigravity"] - by_to["browser_agent"]
+    out["request_docs_by_recipient"] = fact(
+        by_to, "요청서를 받은 쪽으로 나눈 수: Antigravity 지시문, 브라우저 에이전트 점검, 제미나이(웹과 구독 패널) 요청문", as_of,
+        repo_source(REQUESTS.as_posix(), "request_doc_count 의 파일을 이름 끝(_Antigravity, _브라우저에이전트, 그 밖)으로 나눔"),
+        "합계는 request_doc_count 입니다. 브라우저 에이전트 점검도 사용자 PC의 Antigravity 에 붙여 넣은 것이고(README), 제미나이 요청문에는 "
+        "Claude Code 로 옮기기 전 대화 세션에서 쓴 것이 섞여 있습니다.")
+
+    # 데모 화면(시안 4)의 탭. 자료 탭 다섯(sales.json 의 탭, 화면 이름으로)과 관계 그래프 탭
+    tabs = [terms.name(t) for t in sales["탭"]] + [terms.TAB_GRAPH]
+    out["console4_tabs"] = fact({"count": len(tabs), "names": tabs}, "데모 화면(시안 4)의 탭 수와 탭 이름(화면 이름, 탭 차례)", as_of,
+                                dict(code_terms, name="DISPLAY_GROUPS['탭'] 과 TAB_GRAPH (sales.json 탭 차례)"),
+                                "site_screen_count 는 옛 운영 화면(site/index.html)의 화면 수라 이 값과 다릅니다. "
+                                "응대 화법 미리 보기는 탭이 아니라 영업 인사이트 탭 안의 패널입니다.")
+
+    # 워크플로를 시작하는 방법으로 나눔(예약 실행, 푸시, 사람만). 워크플로의 name 으로 적는다
+    trig: dict[str, list[str]] = {"scheduled": [], "on_push": [], "manual_only": []}
+    for wf in sorted((root / WORKFLOWS).glob("*.yml")):
+        text = wf.read_text(encoding="utf-8")
+        name_m = re.search(r"^name:\s*(.+?)\s*$", text, re.M)
+        on_m = re.search(r"^on:\s*\n((?:[ \t]+.*\n|\s*\n)+)", text, re.M)
+        if not name_m or not on_m:
+            raise FactsError(f"{wf.name}: name 이나 on 을 읽지 못했다")
+        keys = set(re.findall(r"^  ([a-z_]+):", on_m.group(1), re.M))
+        group = "scheduled" if "schedule" in keys else ("on_push" if keys & {"push", "pull_request"} else "manual_only")
+        trig[group].append(name_m.group(1))
+    out["workflow_triggers"] = fact(trig, "GitHub Actions 워크플로를 시작하는 방법으로 나눈 이름: 예약 실행, 푸시(시험, 배포), 사람이 실행", as_of,
+                                    repo_source(WORKFLOWS.as_posix(), "워크플로마다 on 의 열쇠(schedule, push, pull_request, workflow_dispatch)"),
+                                    "예약 실행은 시장 동향 수집과 주간 마감(스냅샷 커밋)뿐이고, 공시 문서 수집, 추출, 매핑은 사람이 실행합니다. "
+                                    "화면 배포는 site/ 에 푸시할 때 돌고, 화면 빌드는 사람이 합니다.")
+
+    # 판정 문항 예: 면책기간 문항의 보기(0.94, 0.06 을 잰 문항)
+    from postlife.extract import verify as V
+    verify_text = (root / "src" / "postlife" / "extract" / "verify.py").read_text(encoding="utf-8")
+    if "'○○보장개시일 이후'라는 조건이 들어 있는가" not in verify_text:
+        raise FactsError("verify.py 의 면책기간 문항 글이 바뀌었다")
+    out["symmetric_choice_item"] = fact(
+        {"item": "면책기간", "question": "급부의 지급사유에 '○○보장개시일 이후' 조건이 들어 있는가", "choices": [V.AFTER_START, V.FROM_DAY_ONE]},
+        "symmetric_choice_probability 를 잰 판정 문항: 문항 이름, 묻는 말(줄임), 보기 둘", as_of,
+        {"kind": "code", "file": "src/postlife/extract/verify.py", "name": "checks() 의 면책기간일수 문항, AFTER_START, FROM_DAY_ONE"},
+        "묻는 말은 문항 지시문을 줄인 것입니다. 0.94 와 0.06 은 이 문항 한 가지의 값입니다.")
 
     # 발표 영상의 길이(덱의 영상 장 길이 칩). 정지 화면을 뽑은 렌더 기록을 읽는다. 영상을 다시 렌더하면 기록도 함께 바꾼다
     timing_path = root / VIDEO_TIMINGS
@@ -1026,6 +1138,17 @@ def build(root: Path = ROOT) -> dict[str, Any]:
         facts.update(part)
     for key, value, label, as_of_manual, note in MANUAL_FACTS:
         facts[key] = fact(value, label, as_of_manual, {"kind": "manual"}, note)
+    # 정밀 비교 대상(목표) 가운데 시트에 적재한 회사와 화면에 올린 회사(이름으로 맞춤)
+    names = facts["org_names"]["value"]
+    targets = [n for group in facts["comparison_target_names"]["value"].values() for n in group]
+    sheet = [names[c] for c in facts["product_orgs"]["value"] if c in names and names[c] in targets]
+    site = [names[c] for c in facts["site_orgs"]["value"] if c in names and names[c] in targets]
+    facts["comparison_targets_loaded"] = fact(
+        {"targets": len(targets), "sheet": len(sheet), "site": len(site), "sheet_names": sheet, "site_names": site},
+        "정밀 비교 대상(목표, 우체국 제외) 가운데 시트 사본에 적재한 회사와 화면에 올린 회사", as_of,
+        derived_source(["comparison_target_names", "product_orgs", "site_orgs", "org_names"],
+                       "comparison_target_names 의 이름과 org_names 로 바꾼 product_orgs, site_orgs 의 이름이 같은 것"),
+        "목표는 생명보험 10곳, 손해보험 9곳이고 지금 화면은 우체국과 그 가운데 site 의 회사만 보입니다.")
     bad = [k for k in facts if not re.fullmatch(r"[a-z][a-z0-9_]*", k)]
     if bad:
         raise FactsError(f"열쇠는 영문 소문자 스네이크 표기여야 한다: {bad}")

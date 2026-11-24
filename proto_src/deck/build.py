@@ -15,6 +15,7 @@
     {{ref:열쇠}}, {{ref:열쇠.하위키}}                     refs.json 의 외부 사실. kind 가 press 면 "보도 기준" 배지가 붙고,
                                                        꼬리말에 출처 도메인이 붙는다
     {{todo:내용}}                                       확인 필요 표시(점선 상자 안의 글)
+    {{name:열쇠}}                                       _deck.json 의 names(여러 장이 함께 쓰는 도구와 모델 이름)
     [[용어]]                                            용어 밑줄(풀이는 장의 terms 로 꼬리 위 띠에)
   facts.json, refs.json 에 없는 열쇠가 하나라도 있으면 빌드가 멈춘다.
 - 부품(C1~C20)은 deckparts.py 가 빌드 때 HTML 과 SVG 로 그린다. 글자 수 상한을 넘으면 경고를 적는다(--strict 면 멈춘다).
@@ -134,7 +135,16 @@ class Frame:
             if x < -0.5 or y < -0.5 or x + w > rw + 0.5 or y + h > rh + 0.5:
                 self.ctx.warn(where, f"box {box} 가 도해 영역(0, 0, {P.px(rw)}, {P.px(rh)})을 벗어남")
             inner = P.render(self.ctx, spec, w, h, where)
-            out.append(f'<div class="blk" style="{P.box_style(x, y, w, h)}">{inner}</div>')
+            # build: 장이 열릴 때 블록이 차례로 나타나는 순서(디자인 시스템의 덱 빌드 시퀀스. 1~8, 같은 수는 함께)
+            bld = ""
+            if spec.get("build") is not None:
+                n = spec["build"]
+                if not isinstance(n, int) or not 1 <= n <= P.BUILD_STEPS:
+                    self.ctx.warn(f"{where}.build", f"{n!r}: 1~{P.BUILD_STEPS} 의 정수")
+                else:
+                    bld = f' data-build="{n}"'
+            style = P.box_style(x, y, w, h) + (f";--bd:{spec['build']}" if bld else "")
+            out.append(f'<div class="blk"{bld} style="{style}">{inner}</div>')
         return (f'<div class="dg" data-region="{P.px(rw)}x{P.px(rh)}" style="{P.box_style(rx, ry, rw, rh)}">'
                 f'{"".join(out)}</div>')
 
@@ -143,11 +153,11 @@ class Frame:
         doms = self.ctx.domains.get(self.ctx.slide, [])
         if doms:
             src = (src + " / " if src else "") + "외부 출처: " + ", ".join(doms)
-        # 꼬리말은 한 행(20px, 폭 약 1,560px)에 들어가야 한다. 영문 도메인이 섞여 글자 수 대신 폭 어림으로 본다
-        width = P.text_width(P.plain(src), 20)
+        # 꼬리말은 한 행(22px, 폭 약 1,560px)에 들어가야 한다. 영문 도메인이 섞여 글자 수 대신 폭 어림으로 본다
+        width = P.text_width(P.plain(src), P.AUX_PX)
         if width > P.SOURCE_WIDTH:
             self.ctx.warn("source", f"폭 약 {width:,.0f}px > {P.SOURCE_WIDTH:,}px(외부 출처 도메인 포함, 한글로 약 "
-                                    f"{P.SOURCE_WIDTH // 19}자)")
+                                    f"{int(P.SOURCE_WIDTH // (P.AUX_PX * 0.96))}자)")
         return (f'<footer class="ft"><p class="src">{src}</p>'
                 f'<p class="pg">{s["no"]:02d} / {self.total:02d}</p></footer>')
 
@@ -170,18 +180,18 @@ class Frame:
         bottom = P.BAND_BOTTOM
         fn = s.get("footnote")
         if fn:
-            # 각주: 꼬리말 바로 위 한두 행(20px). 역할별 모델 이름처럼 화면에 작게만 둘 글
+            # 각주: 꼬리말 바로 위 한두 행(22px, 행 높이 30px). 역할별 모델 이름처럼 화면에 작게만 둘 글
             text = self.ctx.t(fn, None)
-            width = P.text_width(P.plain(text), 20) * 0.9
+            width = P.text_width(P.plain(text), P.AUX_PX) * 0.9
             lines = 1 if width <= P.REGION_W else 2
             if width > P.REGION_W * 2:
                 self.ctx.warn("footnote", f"폭 약 {width:,.0f}px > {P.REGION_W * 2:,}px(두 행)")
-            bottom -= 26 * lines + 2
-            html_.append(f'<p class="fn ax" style="top:{bottom}px;height:{26 * lines + 2}px">{text}</p>')
+            bottom -= 30 * lines + 2
+            html_.append(f'<p class="fn ax" style="top:{bottom}px;height:{30 * lines + 2}px">{text}</p>')
             bottom -= 8
         terms = s.get("terms", [])
         if terms:
-            bottom -= 64
+            bottom -= P.GLOSS_H
             html_.append(f'<div class="gl" style="top:{bottom}px">{P.gloss_band(self.ctx, terms, P.REGION_W)}</div>')
         pts = s.get("points", [])
         if len(pts) > P.LIMITS["points"]:
@@ -267,6 +277,9 @@ class Frame:
             self.ctx.warn("diagram", f"강조 {heroes}곳(한 장에 한 곳)")
         if bigs > 3:
             self.ctx.warn("diagram", f"큰 숫자 {bigs}개(한 장에 셋 이하)")
+        icons = P.count_icons(s.get("diagram", []))
+        if icons > P.ICONS_PER_SLIDE:
+            self.ctx.warn("diagram", f"아이콘 {icons}개(한 장에 {P.ICONS_PER_SLIDE}개 이하. 일곱 단계 구조도와 역할 칩은 세지 않음)")
         return getattr(self, "k_" + s.get("kind", "body"))(s)
 
 
@@ -293,7 +306,7 @@ def check_external(doc: str) -> list[str]:
 
 SKIP_DIGIT_KEYS = {"no", "id", "kind", "status", "use", "box", "img", "src", "href", "stills", "legacy", "d", "axis", "frame",
                    "step", "from", "to", "on", "at", "n", "ref", "x", "y", "fig_h", "label_w", "limit", "zone", "chapter",
-                   "tier", "offset", "part"}
+                   "tier", "offset", "part", "vb", "build", "w", "h"}
 
 
 def digits_outside(slides: list[dict]) -> list[str]:
@@ -304,6 +317,10 @@ def digits_outside(slides: list[dict]) -> list[str]:
         if isinstance(o, dict):
             for k, v in o.items():
                 if k in SKIP_DIGIT_KEYS:
+                    continue
+                if k == "svg" and isinstance(v, str):
+                    # 인라인 그림은 좌표가 숫자라 글자(<text> 안)만 본다
+                    walk(" ".join(re.findall(r"<text\b[^>]*>(.*?)</text>", v, flags=re.S)), f"{where}.{k}.text")
                     continue
                 walk(v, f"{where}.{k}")
         elif isinstance(o, list):
@@ -367,6 +384,9 @@ def build_deck(content_dir: Path, facts_path: Path, refs_path: Path, fonts_css: 
     frame = Frame(ctx, total, media_root)
     shown = [s for s in slides if only is None or s["no"] in only]
     slides_html = "\n".join(frame.render(s) for s in shown)
+    if P.ICON_STATE["unknown"]:
+        ctx.errors.append("모르는 아이콘 이름(_deck.json 의 icons 사전, icons/*.svg, deckparts.ICONS 에 없음): "
+                          + ", ".join(P.ICON_STATE["unknown"]))
     if ctx.errors:
         raise SystemExit("빌드를 멈춥니다:\n  " + "\n  ".join(ctx.errors))
 

@@ -17,7 +17,8 @@
     0,
     560,
     430
-   ]
+   ],
+   "scope": "요약서 {{len:epost_summary_rows_by_doc}}건의 급부 줄 전부"
   },
   {
    "use": "C11",
@@ -34,15 +35,16 @@
    ],
    "caption": "우체국 정답표(보장금액, 면책, 감액)",
    "legend": [
-    "자동 일치",
-    "직접 확인"
+    "자동 일치 {{fact:goldset_epost_benefit.auto_match}}",
+    "직접 확인 {{fact:goldset_epost_benefit.manual_match}}"
    ],
    "box": [
     600,
     0,
     560,
     430
-   ]
+   ],
+   "scope": "정답셋 {{fact:goldset_item_totals.EPOST}}항목 중 보장금액 영역"
   },
   {
    "use": "C11",
@@ -54,7 +56,8 @@
     0,
     560,
     430
-   ]
+   ],
+   "scope": "정답셋 {{fact:goldset_item_totals.HANWHALIFE}}항목 중 보장금액 영역"
   },
   {
    "use": "chip",

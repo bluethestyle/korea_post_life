@@ -7,49 +7,64 @@
  "headline": "판정 모델은 글을 쓰지 않고, 보기마다 맞을 확률만 매기는 AI입니다",
  "diagram": [
   {
+   "use": "C2",
+   "mode": "tiny",
+   "on": [
+    3
+   ],
+   "box": [
+    1100,
+    0,
+    660,
+    64
+   ]
+  },
+  {
    "use": "C3",
    "box": [
     0,
-    20,
+    72,
     1760,
-    380
+    350
    ],
    "nodes": [
     {
      "num": "1",
-     "label": "옮긴 값이 원문과 맞나?",
-     "icon": "doc",
-     "sub": "보기: 조건 있음, 조건 없음"
+     "label": "문항과 보기",
+     "fig_h": 170,
+     "figure": {
+      "use": "svg",
+      "vb": [
+       514,
+       170
+      ],
+      "alt": "면책 문항에서 보장개시일 조건이 있는지 묻는 문항 아래에 보기 둘을 객관식처럼 적은 그림",
+      "svg": "<text x='257' y='30' text-anchor='middle' class='b'>보장개시일 조건이 있나?</text><rect x='2' y='50' width='510' height='54' rx='10' class='sv-line'/><circle cx='34' cy='77' r='12' class='sv-ink'/><text x='62' y='86'>{{fact:symmetric_choice_item.choices.0}}</text><rect x='2' y='112' width='510' height='54' rx='10' class='sv-line'/><circle cx='34' cy='139' r='12' class='sv-ink'/><text x='62' y='148'>{{fact:symmetric_choice_item.choices.1}}</text>"
+     },
+     "sub": "코드가 정해서 물음"
     },
     {
      "num": "2",
      "label": "판정 모델",
-     "icon": "ai",
-     "sub": "글은 한 글자도 쓰지 않음"
+     "sub": "글은 한 글자도 쓰지 않음",
+     "note": "{{ref:gemini_decision_release.model}}",
+     "icon": "판정 모델"
     },
     {
      "num": "3",
      "label": "보기마다 확률",
-     "fig_h": 120,
+     "hero": true,
+     "fig_h": 170,
      "figure": {
-      "use": "C7",
-      "size": "mini",
-      "thresholds": [
-       "{{fact:verify_reextract_threshold}}",
-       "{{fact:verify_confirm_threshold}}"
+      "use": "svg",
+      "vb": [
+       514,
+       170
       ],
-      "markers": [
-       {
-        "v": "{{fact:symmetric_choice_probability.flipped_max}}",
-        "label": "오류 값"
-       },
-       {
-        "v": "{{fact:symmetric_choice_probability.correct_min}}",
-        "label": "맞는 값",
-        "hero": true
-       }
-      ]
-     }
+      "alt": "조건 있음 보기의 확률 막대는 길고 조건 없음 보기의 막대는 아주 짧은 그림",
+      "svg": "<text x='257' y='28' text-anchor='middle'>예: 원문에 조건이 있을 때</text><text x='0' y='86'>조건 있음</text><rect x='140' y='63' width='230' height='28' class='sv-deep'/><rect x='0' y='0' width='{{fact:symmetric_choice_probability.correct_min|f2}}' height='1' transform='translate(140 63) scale(230 28)' class='sv-fill-red'/><text x='384' y='86' class='red b'>{{fact:symmetric_choice_probability.correct_min|f2}} 이상</text><text x='0' y='148'>조건 없음</text><rect x='140' y='125' width='230' height='28' class='sv-deep'/><rect x='0' y='0' width='{{fact:symmetric_choice_probability.flipped_max|f2}}' height='1' transform='translate(140 125) scale(230 28)' class='sv-fill-ink'/><text x='384' y='148'>{{fact:symmetric_choice_probability.flipped_max|f2}} 이하</text>"
+     },
+     "sub": "면책 문항에서 잰 값"
     }
    ]
   },
@@ -57,25 +72,52 @@
    "use": "text",
    "size": "m",
    "tone": "ink",
-   "limit": 44,
-   "text": "확률이 높으면 자동 확정, 중간이면 사람이 검수, 낮으면 다시 추출",
+   "text": "확률로 코드가<br>세 구간으로 나눔",
    "box": [
     0,
-    440,
-    1760,
-    48
+    432,
+    300,
+    176
+   ]
+  },
+  {
+   "use": "C7",
+   "box": [
+    300,
+    432,
+    1460,
+    176
+   ],
+   "thresholds": [
+    "{{fact:verify_reextract_threshold}}",
+    "{{fact:verify_confirm_threshold}}"
+   ],
+   "zones": [
+    "다시 추출",
+    "사람이 검수",
+    "자동 확정"
+   ],
+   "markers": [
+    {
+     "v": "{{fact:symmetric_choice_probability.flipped_max}}",
+     "label": "오류 값"
+    },
+    {
+     "v": "{{fact:symmetric_choice_probability.correct_min}}",
+     "label": "맞는 값"
+    }
    ]
   }
  ],
  "points": [
-  "{{ref:gemini_decision_release.date}}에 공개된 새 종류의 AI입니다"
+  "{{ref:gemini_decision_release.date}}에 Google이 공개한 새 AI"
  ],
  "terms": [
   "판정 모델",
   "확률"
  ],
- "source": "출처: 제출 설명 자료의 판정 모델 절, 만든 회사의 공개 문서",
- "notes": "이 앱이 쓴 판정 모델은 Google이 {{ref:gemini_decision_release.date}}에 공개한 {{ref:gemini_decision_release.model}} 하나입니다. 보통의 AI는 답을 문장으로 써 주기 때문에 얼마나 확신하는지 알기 어렵지만, 판정 모델은 글을 한 글자도 쓰지 않고 우리가 정해 준 보기마다 맞을 확률만 돌려줍니다. 문항은 예/아니오, 보기 고르기, 단계 점수 세 종류가 있고, 이 앱은 앞의 두 종류를 씁니다. 왼쪽 막대처럼 면책 조건을 '조건 있음, 조건 없음' 가운데 고르게 물었더니 맞게 옮긴 값은 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 일부러 바꾼 값은 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하로 갈렸습니다. 다만 만든 회사 문서도 밝히듯 확률은 여러 건을 모았을 때의 적중률이지 한 건의 정답을 보증하지 않습니다. 그래서 기준값을 우리 자료의 정답으로 다시 맞췄고, 그 결과는 세 장 뒤에서 보여 드립니다. 사양: 보기 {{ref:gemini_decision_spec.choices_min}}~{{ref:gemini_decision_spec.choices_max}}개, 한 번에 {{ref:gemini_decision_spec.items_max}}문항까지 받고, 내보내는 글자는 {{ref:gemini_decision_spec.output_tokens}}개입니다. 글로 답하는 AI는 문장으로 답해 확신 정도를 알기 어렵지만, 판정 모델은 확률로 답하므로 확신이 낮은 건만 사람에게 넘길 수 있습니다. 비유하면 객관식 채점관입니다.",
+ "source": "출처: 제출 설명 자료의 판정 모델 절, 기준값 시트, 만든 회사의 공개 문서",
+ "notes": "일곱 단계 가운데 3단계(검증)의 이야기입니다. 이 앱이 쓴 판정 모델은 Google이 {{ref:gemini_decision_release.date}}에 공개한 {{ref:gemini_decision_release.model}} 하나입니다. 보통의 AI는 답을 문장으로 써 주기 때문에 얼마나 확신하는지 알기 어렵지만, 판정 모델은 글을 한 글자도 쓰지 않고 우리가 정해 준 보기마다 맞을 확률만 돌려줍니다. 비유하면 객관식 채점관입니다. ① 코드가 문항과 보기를 만듭니다. 예로 든 문항은 면책기간 문항으로, 급부의 지급사유에 '○○보장개시일 이후'라는 조건이 들어 있는지를 '{{fact:symmetric_choice_item.choices.0}}'과 '{{fact:symmetric_choice_item.choices.1}}' 가운데 고르게 묻습니다. ② 판정 모델은 보기마다 확률을 돌려줍니다. ③ 원문에 조건이 있으면 맞게 옮긴 값의 보기는 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 일부러 바꾼 오류 값의 보기는 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하로 갈렸습니다. 막대의 두 값은 면책 문항 한 가지에서 잰 값이고, 다른 문항의 값이 아닙니다. 아래 막대가 세 구간 분기입니다. 옮긴 값의 보기가 받은 확률이 {{fact:verify_confirm_threshold|f2}} 이상이면 자동 확정, {{fact:verify_reextract_threshold|f2}} 미만이면 다른 AI로 다시 추출, 그 사이면 사람이 검수합니다. 이 두 기준값은 담당자가 시트에서 정하는 값입니다. 다만 만든 회사 문서도 밝히듯 확률은 여러 건을 모았을 때의 적중률이지 한 건의 정답을 보증하지 않습니다. 그래서 기준값을 우리 자료의 정답으로 다시 맞췄고, 그 결과는 세 장 뒤에서 보여 드립니다. 문항은 예/아니오, 보기 고르기, 단계 점수 세 종류가 있고, 이 앱은 앞의 두 종류를 씁니다. 사양: 보기 {{ref:gemini_decision_spec.choices_min}}~{{ref:gemini_decision_spec.choices_max}}개, 한 번에 {{ref:gemini_decision_spec.items_max}}문항까지 받고, 내보내는 글자는 {{ref:gemini_decision_spec.output_tokens}}개입니다. 확률로 답하므로 확신이 낮은 건만 사람에게 넘길 수 있습니다.",
  "frame": {
   "top": 240
  }

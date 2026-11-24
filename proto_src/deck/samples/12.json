@@ -72,7 +72,8 @@
    "nodes": [
     {
      "label": "지시문 예시 글자",
-     "sub": "\"{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}} / {{fact:example_text_to_number.text.amount}}\""
+     "sub": "\"{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}} / {{fact:example_text_to_number.text.amount}}\"",
+     "note": "{{fact:models.extract}}"
     },
     {
      "label": "코드가 읽음",
@@ -85,7 +86,8 @@
     },
     {
      "label": "원문과 대조",
-     "icon": "check"
+     "icon": "check",
+     "note": "{{fact:samsungfire_benefit_reader}}(삼성화재)"
     }
    ]
   }
