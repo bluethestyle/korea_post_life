@@ -53,5 +53,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
+      # 업로드 직후에는 배포 단계가 아티팩트 목록을 조회하지 못하는 경우가 있어 잠시 기다린다(2026-11-24에 두 번 연속 실패)
+      - name: 아티팩트 반영 대기
+        run: sleep 20
       - id: deployment
         uses: actions/deploy-pages@v5
