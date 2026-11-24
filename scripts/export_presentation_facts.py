@@ -334,7 +334,7 @@ DOC_FACTS += [
 # git 과 GitHub 에서 센 값. 사본에서 셀 수 없고 커밋할 때마다 바뀌므로 손으로 적고, note 에 다시 세는 명령을 적는다.
 GIT_COUNTED_AT = "2026-11-24"
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
-    ("test_count", 1507, "전체 자동 시험 수", "2026-11-25",
+    ("test_count", 1512, "전체 자동 시험 수", "2026-11-25",
      "메인 세션이 2026-11-25(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
     ("commit_count", 287, "main 의 커밋 수", GIT_COUNTED_AT,
      "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),

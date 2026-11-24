@@ -241,6 +241,83 @@ def test_waiting_days_from_a_waiting_table_beside_the_name():
     assert RR.machine_checks(c, {**v, "면책일수": 365}, None, {4: table})[0] != []
 
 
+NOTICE_ITEM = ("마. 회사는 이 계약의 내용을 충분히 설명함.\n"
+               "⑦ 갱신형 가나진단비(2년 대기형)보장특약 및 가나진단비(2년 대기형)보장특약에 관한 사항\n"
+               "계약자 안내를 위해 다음 내용을 상품설명서에 적고 안내함\n"
+               "1) 가입당시 보험나이가 15세 이상인 경우 가나 관련 보장의 90일 면책기간 적용\n"
+               "2) 가나진단보장은 직전 진단확정일부터 2년이 지나\n고 진단 받은 경우에 지급함\n"
+               "⑧ 다라치료비보장특약에 관한 사항\n"
+               "다라치료비보장특약은 보장의 30일 면책기간을 적용함\n")
+
+
+def test_waiting_days_from_a_notice_item_whose_head_names_the_rider():
+    # 머리 줄의 "갱신형 <이름>보장특약 및 <이름>보장특약에 관한 사항"에서 두 이름 모두 그 항목 본문의 날수와 짝짓는다
+    assert RR.wait_days_on_page(["가나진단비(2년 대기형)"], NOTICE_ITEM) == {90}
+    assert RR.wait_days_on_page(["갱신형 가나진단비(2년 대기형)"], NOTICE_ITEM) == {90}
+    assert RR.wait_days_on_page(["다라치료비"], NOTICE_ITEM) == {30}
+    c = RR.CoverView("R009-1", "가나진단비(2년 대기형)", "가나보장개시일 이후 가나병으로 진단확정시", "가입금액", 3)
+    v = reading("R009-1", 면책일수=90, 보장개시일="가나보장개시일", 면책근거쪽=7)
+    page = {7: NOTICE_ITEM + "가나보장개시일은 직전 진단확정일부터 2년이 지난 날의 다음날\n"}
+    assert RR.machine_checks(c, v, None, page)[0] == []
+    assert RR.machine_checks(c, {**v, "면책일수": 30}, None, page)[0] != []
+
+
+def test_waiting_days_from_a_notice_item_stay_narrow():
+    # 이름이 본문에만 있으면 받지 않는다
+    body_only = "⑦ 계약자 안내 강화에 관한 사항\n가나진단비보장특약은 보장의 90일 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], body_only) == set()
+    # 그 항목 본문에 날수가 없으면 다음 항목의 날수를 가져오지 않는다(원문자 번호로 시작하는 줄과 다음 머리 줄에서 끊는다)
+    next_mark = "⑦ 가나진단비보장특약에 관한 사항\n안내를 강화함\n⑧ 다라 관련 안내\n보장의 90일 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], next_mark) == set()
+    next_head = "⑦ 가나진단비보장특약에 관한 사항\n안내를 강화함\n다라치료비보장특약에 관한 사항\n보장의 90일 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], next_head) == set()
+    # 본문이 길이 한도를 넘으면 그 뒤의 날수는 보지 않는다
+    long_body = "⑦ 가나진단비보장특약에 관한 사항\n" + "안내함" * (RR._ITEM_REACH // 3) + "\n보장의 90일 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], long_body) == set()
+    # 본문에 서로 다른 날수의 면책기간이 둘이면 어느 것인지 알 수 없어 받지 않는다
+    two = "⑦ 가나진단비보장특약에 관한 사항\n1) 가나 보장의 90일 면책기간 적용\n2) 다라 보장의 1년 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], two) == set()
+    # 다른 이름의 일부로 들어 있는 이름은 세지 않는다. 이름 뒤에 꼬리말이 아닌 글이 붙어도 그 이름이 아니다
+    part = "⑦ 다라가나진단비보장특약에 관한 사항\n보장의 90일 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], part) == set()
+    assert RR.wait_days_on_page(["다라가나진단비"], part) == {90}
+    assert RR.wait_days_on_page(["가나진단비"], NOTICE_ITEM) == set()
+    # 머리 줄이 "에 관한 사항"으로 끝나지 않으면 안내 항목으로 보지 않는다
+    other_head = "⑦ 가나진단비보장특약 안내\n보장의 90일 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], other_head) == set()
+    # 날수가 적힌 줄이 특약을 따로 가리키면 머리 줄 특약의 날수로 받지 않는다
+    for line in ("- 다라특약: 90일 면책기간", "※ 다라특별약관의 경우 90일 면책기간 적용"):
+        other_rider = f"⑦ 가나진단비보장특약에 관한 사항\n- 가입금액 한도\n{line}\n"
+        assert RR.wait_days_on_page(["가나진단비"], other_rider) == set(), line
+
+
+def test_waiting_days_from_a_notice_item_skip_negated_waiting():
+    # 본문에 면책기간을 두지 않는다는 문구가 있으면 날수를 받지 않는다
+    for body in ("이 특약은 90일 면책기간을 적용하지 않습니다", "보장은 90일 면책기간 미적용",
+                 "갱신계약은 면책기간 없음. 최초계약은 90일 면책기간", "90일 면책기간 적용 대상에서 제외함"):
+        assert RR.wait_days_on_page(["가나진단비"], f"⑦ 가나진단비보장특약에 관한 사항\n{body}\n") == set(), body
+
+
+def test_waiting_days_from_a_notice_item_skip_heads_of_several_riders():
+    # 머리 줄에 서로 다른 특약이 둘이면 본문의 날수가 어느 특약의 것인지 알 수 없어 어느 이름으로도 받지 않는다
+    two = "⑦ 가나진단비보장특약 및 다라치료비보장특약에 관한 사항\n1) 가나 보장의 90일 면책기간 적용\n2) 다라 보장은 따로 정함\n"
+    assert RR.wait_days_on_page(["다라치료비"], two) == set()
+    assert RR.wait_days_on_page(["가나진단비"], two) == set()
+    # 같은 특약의 갱신형과 비갱신형만 든 머리는 하나로 센다
+    same = "⑦ 갱신형 가나진단비보장특약, 가나진단비특약에 관한 사항\n보장의 90일 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], same) == {90}
+
+
+def test_waiting_days_from_a_notice_item_end_at_other_item_marks():
+    # 다음 항목이 원문자 번호가 아닌 머리 부호나 "2.", "가." 같은 번호로 시작해도 본문은 거기서 끝난다
+    for mark in ("■ 다라치료비보장특약 및 마바보장특약", "2. 기타 사항", "나. 기타 사항", "◦ 다라 안내"):
+        text = f"⑦ 가나진단비보장특약에 관한 사항\n안내를 강화함\n{mark}\n1) 보험나이 15세 이상 90일 면책기간 적용\n"
+        assert RR.wait_days_on_page(["가나진단비"], text) == set(), mark
+    # 본문 안의 "1)" 세부 번호와 "※" 줄, 숫자로 시작하는 줄바꿈(1.5배 등)에서는 끊지 않는다
+    inner = "⑦ 가나진단비보장특약에 관한 사항\n※ 안내를 강화함\n1.5배 보장\n1) 보험나이 15세 이상 90일 면책기간 적용\n"
+    assert RR.wait_days_on_page(["가나진단비"], inner) == {90}
+
+
 def test_appended_remark_is_not_the_line_evidence():
     remark = "\n※ 가나보장개시일은 계약일부터 90일이 지난 다음날"
     plain = RR.CoverView("R009-1", "가나 치료비", "보험기간 중 다라병으로 치료를 받은 경우" + remark, "가입금액", 3)

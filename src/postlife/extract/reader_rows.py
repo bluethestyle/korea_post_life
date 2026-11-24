@@ -1004,11 +1004,88 @@ def _listed_days(flat: str, end: int) -> int | None:
     return T._days(int(m.group(1)), m.group(2)) if m else None
 
 
+_ITEM_HEAD_END = "에관한사항"
+_ITEM_HEAD_MAX = 150        # 안내 항목 머리 줄의 길이 한도(빈칸 뗀 글자 수). 넘으면 문장으로 보고 머리로 보지 않는다
+_ITEM_REACH = 600           # 안내 항목 본문에서 날수를 찾는 길이 한도(빈칸 뗀 글자 수)
+# 안내 항목 본문의 끝: 원문자 번호, 네모와 동그라미 같은 머리 부호, "2."나 "가." 같은 번호로 시작하는 줄.
+# 본문 안의 "1)", "2)" 같은 세부 번호와 "※" 줄에서는 끊지 않는다
+_ITEM_MARK = re.compile(r"^\s*(?:[①-⑳■□◆◇●○◦▶▷►]|\d+\.(?!\d)|[가나다라마바사아자차카타파하]\.)")
+_ITEM_NAME_TAIL = re.compile(rf"(?:보장특별약관|특별약관|보장특약|특약)?(?:및|,|{_ITEM_HEAD_END}\Z)")
+_ITEM_RIDER_TAIL = re.compile(r"(?:보장특별약관|특별약관|보장특약|특약)\Z")
+_ITEM_WAIT = re.compile(r"(?<!\d)(\d+)(일|개월|년)면책기간")
+# 면책기간을 두지 않는다는 문구("면책기간을 적용하지 않음", "면책기간 없음", "면책기간 미적용", "면책기간 제외").
+# 숫자(다음 세부 번호)를 넘어가지 않는 가까운 거리만 본다
+_ITEM_NO_WAIT = re.compile(r"면책기간[^\d.]{0,15}?(?:않|없|미적용|제외|아니)")
+# 날수가 적힌 줄이 머리 줄의 특약이 아닌 특약을 따로 가리키면("다라특약: 90일 면책기간") 머리 줄 특약의 날수라고 볼 수 없다
+_ITEM_OTHER_RIDER = re.compile(r"특약|특별약관")
+
+
+def _item_head(line: str) -> bool:
+    flat = _squash(line)
+    return flat.endswith(_ITEM_HEAD_END) and len(flat) <= _ITEM_HEAD_MAX
+
+
+def _head_riders(head: str) -> set[str]:
+    """안내 항목 머리 줄(빈칸 뗀 글)에 든 특약 이름들. "갱신형"과 꼬리말("보장특약" 등)을 떼어 같은 특약은 하나로 센다."""
+    body = re.sub(r"^[^가-힣A-Za-z0-9(]+", "", head[: -len(_ITEM_HEAD_END)])
+    out = set()
+    for part in re.split(r"및|,", body):
+        part = _ITEM_RIDER_TAIL.sub("", part.removeprefix("갱신형"))
+        if part:
+            out.add(part)
+    return out
+
+
+def _head_names(head: str, key: str) -> bool:
+    """안내 항목 머리 줄(빈칸 뗀 글)에 이름 key가 한 특약의 이름으로 들어 있는가.
+
+    이름 앞은 _boundary의 경계(줄 첫머리, 원문자 번호, "및", 쉼표)여야 하고 "갱신형"이 붙어도 된다. 이름 뒤는 꼬리말("보장특약",
+    "특약", "특별약관")을 지나 "및", 쉼표, 끝의 "에 관한 사항"이어야 한다. "다라가나진단비보장특약에 관한 사항" 속의
+    "가나진단비"나 "가나진단비(2년 대기형)보장특약" 속의 "가나진단비"는 세지 않는다.
+    """
+    for m in re.finditer(re.escape(key), head):
+        start = m.start() - 3 if head.endswith("갱신형", 0, m.start()) else m.start()
+        if _boundary(head, start) and _ITEM_NAME_TAIL.match(head, m.end()):
+            return True
+    return False
+
+
+def _item_days(keys: Sequence[str], text: str) -> set[int]:
+    """안내 항목 형식의 날수(wait_days_on_page의 네 번째 형식)."""
+    lines = text.split("\n")
+    out: set[int] = set()
+    for i, line in enumerate(lines):
+        if not _item_head(line):
+            continue
+        head = _squash(line)
+        if not any(_head_names(head, k) for k in keys):
+            continue
+        # 머리 줄에 서로 다른 특약이 둘 이상이면 본문의 날수가 어느 특약의 것인지 알 수 없어 받지 않는다
+        # (같은 특약의 갱신형과 비갱신형 이름만 나열한 머리는 하나로 센다)
+        if len(_head_riders(head)) != 1:
+            continue
+        body = []
+        for nxt in lines[i + 1:]:
+            if _ITEM_MARK.match(nxt) or _item_head(nxt):
+                break
+            body.append(_squash(nxt))
+        flat_body = "".join(body)[:_ITEM_REACH]
+        if _ITEM_NO_WAIT.search(flat_body):
+            continue
+        rider = next(iter(_head_riders(head)))
+        if any(_ITEM_WAIT.search(b) and _ITEM_OTHER_RIDER.search(b) and rider not in b for b in body):
+            continue
+        found ={T._days(int(n), unit) for n, unit in _ITEM_WAIT.findall(flat_body)}
+        if len(found) == 1:
+            out |= found
+    return out
+
+
 def wait_days_on_page(names: str | Sequence[str], page_text: str) -> set[int]:
     """쪽 글자에서 이름과 짝지어 적힌 날수. 이름이 없으면 빈 집합.
 
     메리츠화재 요약서는 보장개시일의 날수를 표 밖(쪽 아래 ※ 줄, 다른 쪽)에 적기도 해서 조각에 없을 수 있다.
-    판독자가 적은 면책근거쪽의 글자에서 세 가지 꼴을 본다.
+    판독자가 적은 면책근거쪽의 글자에서 네 가지 형식을 본다.
     - 정의 문장: "<보장개시일 이름>은 … N일이 지난 다음날"
     - 나열 문장: "가보장개시일, 나보장개시일 및 다보장개시일은 … 90일 …, 라보장개시일은 … 1년 …". 이름마다 그 이름이 든
       나열의 "은/는" 뒤에 처음 나오는 날수와 짝짓는다. "유사암보장개시일" 속의 "암보장개시일"은 세지 않는다.
@@ -1016,15 +1093,25 @@ def wait_days_on_page(names: str | Sequence[str], page_text: str) -> set[int]:
       ("가보장개시일 및 나보장개시일의 경우 그 보장개시일은 … 90일").
     - 표: 면책기간 표의 "<보장명> 90일"처럼 이름 바로 옆 칸에 날수가 있다(글자로 풀면 이름 바로 뒤). 표의 칸은 글자로
       풀면 앞 칸에 붙으므로, 원문에서 이름 앞이 빈칸이나 줄바꿈이면 경계로 본다.
+    - 안내 항목: "⑩ 갱신형 가나진단비보장특약 및 가나진단비보장특약에 관한 사항"처럼 "에 관한 사항"으로 끝나는 머리 줄에
+      이름이 한 특약의 이름으로 들어 있고(_head_names: 앞은 경계나 "갱신형", 뒤는 꼬리말 "보장특약", "특약", "특별약관"을
+      지나 "및", 쉼표, "에 관한 사항"), 그 항목의 본문(다음 줄부터 원문자 번호 ①~⑳, "■" 같은 머리 부호, "2.", "가."
+      같은 번호로 시작하는 줄이나 다음 머리 줄 전까지, 빈칸 뗀 글자 _ITEM_REACH자까지)에 "N일 면책기간"(N일, N개월, N년)이
+      있으면 N. 다음은 받지 않는다: 본문에 서로 다른 날수의 "면책기간"이 둘 이상, 본문에 면책기간을 두지 않는다는 문구
+      ("적용하지 않음", "없음", "미적용", "제외"), 머리 줄에 서로 다른 특약이 둘 이상(같은 특약의 갱신형과 비갱신형은 하나로
+      센다), 날수가 적힌 줄이 다른 특약을 따로 가리킴("다라특약: 90일 면책기간"), 이름이 본문에만 있음(메리츠화재 요약서의
+      특약별 안내 항목).
     names에는 보장개시일 이름과 세부보장명, 특약명을 준다.
     """
     text = page_text or ""
     flat, pos = _flat_map(text)
     out: set[int] = set()
+    keys = []
     for name in ([names] if isinstance(names, str) else names):
         key = _squash(_word(name))
         if len(key) < 3:
             continue
+        keys.append(key)
         for m in re.finditer(re.escape(key), flat):
             spaced = m.start() > 0 and text[pos[m.start()] - 1].isspace()
             if _boundary(flat, m.start(), spaced):
@@ -1037,7 +1124,7 @@ def wait_days_on_page(names: str | Sequence[str], page_text: str) -> set[int]:
             beside = re.match(r"(\d+)(일|개월|년)(?!\d)", flat[m.end():])
             if beside and not flat[m.end() + beside.end():].startswith(("이", "경과", "미만", "이내", "전", "후")):
                 out.add(T._days(int(beside.group(1)), beside.group(2)))
-    return out
+    return out | _item_days(keys, text)
 
 
 def leftovers(v: Mapping[str, Any], cover: CoverView) -> list[str]:
