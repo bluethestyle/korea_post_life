@@ -166,7 +166,7 @@ def test_graph_kinds_are_exported_with_screen_names(committed):
 def test_user_picks_are_set_in_one_place():
     """사용자가 승인한 이름은 terms 에서만 정한다(이름이 바뀌면 이 값만 바꾸고 자료를 다시 만든다)."""
     assert set(terms.USER_PICKS) == {1, 3, 5, 8, 9, 40, 83, 120, 121, 122, 123, 128}
-    assert terms.USER_PICKS == {1: "상품 비교 분석", 3: "요약", 5: "인수기준 비교", 8: "관계 그래프", 9: "고객군별 가입 가능 현황",
+    assert terms.USER_PICKS == {1: "상품-영업 분석", 3: "요약", 5: "인수기준 비교", 8: "관계 그래프", 9: "고객군별 가입 가능 현황",
                                 40: "인수기준 차이", 83: "단순 비교 불가", 120: "우위 담보", 121: "열위 담보",
                                 122: "미보유 담보", 123: "관련 담보", 128: "응대 화법"}
     d = terms.DISPLAY
