@@ -64,14 +64,26 @@ u.g { border-bottom: 3px solid var(--border-default); }
 .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 .ic { display: block; flex: none; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 
-/* 무대: 1920x1080 을 창에 맞춰 비율을 지키며 줄이고 늘린다 */
+/* 무대: 1920x1080 을 창에 맞춰 비율을 지키며 줄이고 늘린다.
+   #stage 는 보이는 화면에 고정한 틀이다. 1920px 무대가 문서의 폭을 넓히면 태블릿과 휴대폰 브라우저가
+   레이아웃 뷰포트를 키워 innerWidth 가 실제 화면보다 커지고 무대가 잘린다. 그래서 틀 안에서 자르고,
+   배율과 위치는 틀의 크기(clientWidth, clientHeight)로 계산한다. */
+#stage {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
 #deck {
   position: absolute;
-  left: 50%;
-  top: 50%;
+  left: 0;
+  top: 0;
   width: 1920px;
   height: 1080px;
-  transform: translate(-50%, -50%) scale(var(--scale, 1));
+  transform-origin: 0 0;
+  transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(var(--scale, 1));
   background: var(--bg-base);
   overflow: hidden;
 }
@@ -628,6 +640,7 @@ u.g { border-bottom: 3px solid var(--border-default); }
 @media print {
   @page { size: 1920px 1080px; margin: 0; }
   html, body { height: auto; overflow: visible; background: #ffffff; }
+  #stage { position: static; overflow: visible; }
   #deck { position: static; transform: none; width: 1920px; height: auto; overflow: visible; }
   .slide {
     position: relative; opacity: 1 !important; visibility: visible !important; transform: none !important; transition: none !important;
@@ -643,9 +656,11 @@ u.g { border-bottom: 3px solid var(--border-default); }
 </head>
 <body>
 <!--__SPRITE__-->
+<div id="stage">
 <main id="deck" aria-roledescription="발표 자료" aria-label="__HTML_TITLE__">
 <!--__SLIDES__-->
 </main>
+</div>
 <div id="progress" class="ui" aria-hidden="true"></div>
 <div id="help" class="ui">← → 이동, O 전체 장 보기, N 발표자 노트, F 전체 화면</div>
 <section id="notes-panel" class="ui" aria-label="발표자 노트"><p class="nh"></p><div class="nb"></div></section>
@@ -665,9 +680,14 @@ u.g { border-bottom: 3px solid var(--border-default); }
   var live = document.getElementById("live");
   var swiped = false;
 
+  var stage = document.getElementById("stage");
   function fit() {
-    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    var w = stage.clientWidth || document.documentElement.clientWidth;
+    var h = stage.clientHeight || document.documentElement.clientHeight;
+    var s = Math.min(w / 1920, h / 1080);
     deck.style.setProperty("--scale", String(s));
+    deck.style.setProperty("--tx", ((w - 1920 * s) / 2) + "px");
+    deck.style.setProperty("--ty", ((h - 1080 * s) / 2) + "px");
   }
 
   function hashIndex() {
@@ -841,6 +861,8 @@ u.g { border-bottom: 3px solid var(--border-default); }
   });
 
   window.addEventListener("resize", fit);
+  window.addEventListener("orientationchange", function () { setTimeout(fit, 200); });
+  if (window.visualViewport) { window.visualViewport.addEventListener("resize", fit); }
   window.addEventListener("hashchange", function () {
     var h = hashIndex();
     if (h !== null) { go(h); }
