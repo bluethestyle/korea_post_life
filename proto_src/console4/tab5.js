@@ -528,9 +528,8 @@ App.registerTab((function () {
     if (!p || !(c.base['포인트'] || []).includes(id)) return null;
     const sid = p['표준담보ID'];
     const relOk = sid && App.cover && App.cover.hasRow(c.baseId, sid);
-    const tv = relOk ? App.cover.verdictOf(c.baseId, sid) : null;
-    const peers = App.cover && relOk ? App.cover.peerCols(c.baseId).slice(1) : [];
-    const tvItems = tv ? tv.map((v, i) => (v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(peers[i]), '과'))}</span>${ui.verdict(v.kind, v.text, v.why)}</span>` : '')).filter(Boolean) : [];
+    const pvList = relOk && App.cover.peerVerdicts ? App.cover.peerVerdicts(c.baseId, sid, c) : null;
+    const tvItems = pvList ? pvList.map(({ peer, v }) => (v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(peer), '과'))}</span>${App.cover.chip(v)}</span>` : '')).filter(Boolean) : [];
     const tableV = tvItems.length <= 4
       ? tvItems.join(' ')
       : `${tvItems.slice(0, 3).join(' ')}<details class="zr-det" style="margin-top:6px"><summary><span>나머지 상대 ${fmt(tvItems.length - 3)}개 종형 판정 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b"><div class="cv-bds">${tvItems.slice(3).join(' ')}</div></div></details>`;

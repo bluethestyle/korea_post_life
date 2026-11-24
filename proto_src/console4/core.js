@@ -680,7 +680,7 @@
       const perCounts = (B['판정상대수'] && B['판정상대수'][sid]) || {};
       const cntOf = vdKey => (isAll ? (perCounts[vdKey] || 0) : inScope(perCodes[vdKey], s));
       const bCnt = cntOf('나음');
-      const nCnt = cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의');
+      const nCnt = cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의') + cntOf('지급 형태 다름') + cntOf('관계 담보로 덮음');
       const wCnt = cntOf('못함');
       const wtCnt = cntOf('검토 대기') + cntOf('판정 보류');
       const mCnt = cntOf('우체국에 없음');
@@ -692,6 +692,33 @@
       stg.sum += bCnt + nCnt + wCnt + wtCnt + mCnt;
     });
     return stages;
+  }
+
+  function scopedPairs(baseId, pickSet) {
+    const base = S['기준별'] && S['기준별'][baseId];
+    const p = base && base['보류요약'];
+    if (!p) return null;
+    if (!pickSet) {
+      return {
+        total: p['공통담보쌍'] || 0,
+        wait: p['뺀쌍'] || 0,
+        cmp: p['견준쌍'] || 0,
+        why: Object.assign({}, p['사유별'] || {}),
+      };
+    }
+    const byOrg = p['기관별'] || {};
+    let total = 0, wait = 0, cmp = 0;
+    const why = {};
+    for (const [org, per] of Object.entries(byOrg)) {
+      if (!pickSet.has(org) || !per) continue;
+      total += per['공통담보쌍'] || 0;
+      wait += per['뺀쌍'] || 0;
+      cmp += per['견준쌍'] || 0;
+      for (const [rk, rv] of Object.entries(per['사유별'] || {})) {
+        if (rv) why[rk] = (why[rk] || 0) + rv;
+      }
+    }
+    return { total, wait, cmp, why };
   }
 
   function mapOf(renewal) { return S['지도'][MAP_KEY[renewal]] || S['지도']['전체']; }
@@ -1290,11 +1317,9 @@
     }).join('') + (relPeers.length > 3 ? `<span class="it" title="${esc(restPeerNames)}" data-tip="${esc(restPeerNames)}">+${fmt(relPeers.length - 3)}</span>` : '') + (!relPeers.length ? `<span class="it">${esc(cp('condPeerNone'))}</span>` : '');
     let pairTot = r['비교쌍'], pairWait = r['뺀비교쌍'], pairScoped = true;
     if (st.peerScope !== 'all') {
-      if (window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
-        const sp = App.cover.scopedPairs(st.base, pSet);
-        if (sp) { pairTot = sp.total; pairWait = sp.wait; }
-        else pairScoped = false;
-      } else pairScoped = false;
+      const sp = scopedPairs(st.base, pSet);
+      if (sp) { pairTot = sp.total; pairWait = sp.wait; }
+      else pairScoped = false;
     }
     const line1 = `<div class="scope-l"><span class="k">${esc(cp('scopeTitle'))}</span>
       <span class="it"><b style="font-weight:600" title="${esc(bi ? bi['전체이름'] : '')}">${esc(vname(st.base))}</b> <span class="d">${esc(bi ? bi['적용시작일'] : '')}</span></span>
@@ -1371,10 +1396,10 @@
       }
     }
 
-    // 3. 담보 비교: 고른 비교 범위 안의 견준 쌍 / 공통 담보 쌍
+    // 3. 담보 비교: 고른 비교 범위 안의 견준 쌍 / 공통 담보 쌍(보류요약.기관별 합산)
     let raCmp = vRa['견준쌍'] || 0, raTot = vRa['공통담보쌍'] || 0;
-    if (curC.peerScope !== 'all' && window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
-      const sp = App.cover.scopedPairs(curC.baseId, pSet);
+    if (curC.peerScope !== 'all') {
+      const sp = scopedPairs(curC.baseId, pSet);
       if (sp) { raCmp = sp.cmp; raTot = sp.total; }
     }
 
@@ -3275,7 +3300,7 @@
     aim: { set: setAimTarget, hide: hideAimReticle, showTip: showHudTip, hideTip: hideHudTip },
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
     ui: UI, txt: TXT, mode, motionOn, motionRich, motionScale,
-    cellOf, cellCounts, gateFlowRows, coverStageStacks, firstSentence,
+    cellOf, cellCounts, gateFlowRows, coverStageStacks, scopedPairs, firstSentence,
     segPatch, segPatchText, samePatch, activePeerOrgs, activeOrgs, orgSector, inScope, filterScopeCodes, ringTabMetrics,
     limitOf, mapOf, condSummary, condSegOnly, scopeLine, asofText,
     copyText, copyRows, copyTable, print, toast, fitSel,

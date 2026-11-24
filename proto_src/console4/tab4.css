@@ -79,6 +79,7 @@
 .cvs-box.is-empty{border:1px dashed var(--ink-2)}
 .cvs-box.is-miss{border:1px dashed var(--ink-2);background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
 .cvs-box.is-stack{border:1px solid var(--ink-0);overflow:hidden}
+.cvs-box.is-stack.no-ours{border-style:dashed;border-color:var(--ink-2)}
 .cvs-seg{display:block;width:100%;flex:none}
 .cvs-seg + .cvs-seg{border-top:1px solid var(--ink-0)}
 .cvs-seg.s-gold{background:var(--gold);border-color:var(--gold-line);position:relative}
@@ -86,6 +87,7 @@
 .cvs-seg.s-neutral{background:var(--neutral-pil)}
 .cvs-seg.s-worse{background:var(--worse)}
 .cvs-seg.s-hatch{background:repeating-linear-gradient(135deg,var(--hatch) 0 1.2px,transparent 1.2px 4.5px)}
+.cvs-seg.s-miss{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
 .cvs-dia-w{display:grid;place-items:center;width:100%;height:100%}
 .cvs-dia{display:block;background:var(--gold);border:1.2px solid var(--gold-line);transform:rotate(45deg)}
 .cvp-foot-tk{display:block;width:1px;height:5px;background:var(--axis);margin-top:0;flex:none}
