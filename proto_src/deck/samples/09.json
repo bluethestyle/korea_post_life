@@ -25,26 +25,30 @@
     {
      "id": "cc",
      "tier": 1,
-     "label": "Claude Code",
-     "sub": "지휘와 최종 검수"
+     "label": "지휘하는 AI",
+     "sub": "지휘와 최종 검수",
+     "note": "{{name:claude_code}}"
     },
     {
      "id": "sa",
      "tier": 2,
      "label": "서브에이전트",
-     "sub": "구현, 점검, 단순 점검"
+     "sub": "구현, 점검, 단순 점검",
+     "note": "{{name:opus}}, {{name:sonnet}}, {{name:haiku}}"
     },
     {
      "id": "gm",
      "tier": 2,
-     "label": "제미나이 구독 패널",
-     "sub": "자료 조사, 설계 의견"
+     "label": "조사하는 AI",
+     "sub": "자료 조사, 설계 의견",
+     "note": "{{name:gemini_panel}}"
     },
     {
      "id": "ag",
      "tier": 2,
-     "label": "Antigravity",
-     "sub": "화면 구현과 브라우저 점검"
+     "label": "화면을 만드는 AI",
+     "sub": "화면 구현과 브라우저 점검",
+     "note": "{{name:antigravity}}"
     },
     {
      "id": "gh",

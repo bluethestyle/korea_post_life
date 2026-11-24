@@ -8,8 +8,11 @@
 - 장 번호는 쉼표나 공백으로 여럿, 범위(12-14), all 을 받는다. --html 을 주지 않으면 build.py 로 그 장들만 빌드한다
   (--content-dir, --facts, --refs, --deck 은 build.py 와 같다. 결과는 <out-dir>/index.html).
 - 장마다 <out-dir>/NN.png 를 쓰고, 문제를 장마다 적는다. 문제가 하나라도 있으면 1로 끝난다.
-  small      글자 크기가 18px 미만
-  label      본문 라벨이 22px 미만(보조 라벨 표시 .ax 따위가 붙은 곳은 18px 까지 허용)
+- --size 로 창 크기를 바꾼다(기본 1920x1080. 태블릿 점검은 --size 1180x820).
+  글자 크기 기준(2026-11-24 상향, 1920x1080 무대 기준): 내용을 전하는 글 26px 이상, 보조 글 22px 이상.
+  small      글자 크기가 22px 미만(어느 글이든)
+  label      내용을 전하는 글이 26px 미만(아래 AUX 의 보조 글 클래스 안이면 22px 까지 허용)
+  tiny       창에 보이는 글자 높이(글자 크기 x 무대 배율)가 13px 미만(태블릿 크기 1180x820 에서 보는 기준)
   overlap    글자 상자 둘이 겹침(조상과 자손 사이는 빼고)
   overflow   부품 상자(.blk) 밖으로 그림이나 글자가 나감
   clipped    잘림(스크롤 크기가 상자보다 큼)
@@ -25,8 +28,20 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
 
+# 글자 크기 기준(1920x1080 무대의 px). COMPONENTS.md 1.4절, tpl.html 머리 주석과 같다
+SMALL_PX = 22          # 이보다 작은 글자는 슬라이드 안에 두지 않는다
+LABEL_PX = 26          # 내용을 전하는 글(본문 라벨, 표의 값, 도해의 라벨, 요점)의 하한
+TABLET = (1180, 820)   # 태블릿 점검 크기. 여기서 창에 보이는 글자 높이가 MIN_VISIBLE_PX 아래면 tiny
+MIN_VISIBLE_PX = 13
+# 보조 글로 치는 클래스(22px 까지 허용). tpl.html 의 CSS 에서 22~25px 로 둔 클래스는 모두 여기에 있어야 한다
+AUX = (".ax, .c14, .gl, .ft, .fn, .hd, .cb, .notes, .c9-leg, .c9-li, .c9-gn, .c7.mini, .pb, .bd-um, .c8-tag, .c8-tick, .c8-src, "
+       ".c19, .c12-lb i, .c12-mk, .c12-zk, .c5-k, .c5-hd, .c5-tag, .c5-note, .c3-note, .c9-note, .c10-sc, .c11-sc, .c11-lg, "
+       ".c11-t span, .c16-todo, .c16-hd, .c15-todo b, .c15-todo.sm, .todo-i b, .c2t, .badge, .cm .l, .c1-n, .c3-num, .pill, .org, "
+       ".c6-chip, .vchip, .lk-l, .qt-cite, .qt-gist, .svgb .aux")
+
 PROBE = """
-(no) => {
+(arg) => {
+  const no = arg.no, minvis = arg.minvis;
   const s = document.querySelector('.slide[data-no="' + no + '"]');
   if (!s) return [{kind: 'missing'}];
   const deck = document.getElementById('deck');
@@ -34,7 +49,8 @@ PROBE = """
   const base = s.getBoundingClientRect();
   const R = (el) => { const r = el.getBoundingClientRect(); return {x0: (r.left - base.left) / scale, y0: (r.top - base.top) / scale,
                        x1: (r.right - base.left) / scale, y1: (r.bottom - base.top) / scale}; };
-  const AUX = '.ax, .c14, .c9-leg, .c7.mini, .pb, .c8-tag, .c19, .c12-lb i, .c5-k, .c9-gn, .gl, .ft, .c16-todo, .c15-todo b, .todo-i b, .c11-lg, .cb, .c2t, .hd, .notes, .bd-um';
+  // 보조 글(22px 까지 허용): 축 눈금, 꼬리말과 쪽 번호, 각주, 용어 풀이, 칩과 배지, 범례, 작은 회색 한 줄(note, scope)
+  const AUX = AUX_SELECTORS;
   const out = [];
   const name = (el) => el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\\s+/).join('.') : '');
   const txt = (el) => (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 30);
@@ -47,8 +63,20 @@ PROBE = """
     const r = R(el);
     if (r.x1 - r.x0 < 1 || r.y1 - r.y0 < 1) continue;
     const fs = parseFloat(getComputedStyle(el).fontSize);
-    if (fs < 18) out.push({kind: 'small', el: name(el), px: fs, text: txt(el)});
-    else if (fs < 22 && !el.closest(AUX)) out.push({kind: 'label', el: name(el), px: fs, text: txt(el)});
+    if (fs < SMALL_PX) out.push({kind: 'small', el: name(el), px: fs, text: txt(el)});
+    else if (fs < LABEL_PX && !el.closest(AUX)) out.push({kind: 'label', el: name(el), px: fs, text: txt(el)});
+    // svg 안의 글자는 viewBox 배율까지 곱한 크기로 본다(인라인 그림 블록)
+    let vis = fs * scale;
+    const svg = el.closest('svg');
+    if (svg && svg.getAttribute('viewBox')) {
+      const vb = svg.viewBox.baseVal, sr = svg.getBoundingClientRect();
+      if (vb && vb.width && vb.height) {
+        const k = Math.min(sr.width / vb.width, sr.height / vb.height);
+        vis = fs * k;
+        if (vis / scale < SMALL_PX - 0.01) out.push({kind: 'small', el: name(el), px: Math.round(vis / scale * 10) / 10, text: txt(el)});
+      }
+    }
+    if (minvis && vis < minvis) out.push({kind: 'tiny', el: name(el), px: Math.round(vis * 10) / 10, text: txt(el)});
     if (el.tagName !== 'text') texts.push({el, r});
     const cs = getComputedStyle(el);
     if (cs.overflow !== 'visible' && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1))
@@ -111,7 +139,10 @@ PROBE = """
   }
   return out;
 }
-"""
+""".replace("AUX_SELECTORS", json.dumps(AUX)).replace("SMALL_PX", str(SMALL_PX)).replace("LABEL_PX", str(LABEL_PX))
+
+# 사진은 최종 상태를 찍는다. 장 안의 등장 애니메이션(블록의 build 순서 포함)은 끈다
+NO_ANIM = ".slide .dg, .slide .pts, .slide .blk { animation: none !important; }"
 
 
 def parse_numbers(args: list[str]) -> list[int] | None:
@@ -144,7 +175,9 @@ def inspect(html: Path, numbers: list[int] | None, out_dir: Path, size: tuple[in
         page.on("console", lambda m: report["console_errors"].append(m.text) if m.type == "error" else None)
         page.on("pageerror", lambda e: report["console_errors"].append(str(e)))
         page.goto(html.resolve().as_uri())
+        page.add_style_tag(content=NO_ANIM)
         page.wait_for_timeout(1200)
+        minvis = MIN_VISIBLE_PX if tuple(size) == TABLET else 0
         # 키보드 안내(#help)는 실제 화면에서 첫 이동이나 5초 뒤에 사라진다. 사진에는 넣지 않는다
         page.evaluate("var h = document.getElementById('help'); if (h) { h.classList.add('off'); }")
         present =page.evaluate("Array.from(document.querySelectorAll('.slide')).map(s => +s.dataset.no)")
@@ -158,7 +191,7 @@ def inspect(html: Path, numbers: list[int] | None, out_dir: Path, size: tuple[in
             page.wait_for_timeout(700)
             if shoot:
                 page.screenshot(path=str(out_dir / f"{n:02d}.png"))
-            found = page.evaluate(PROBE, n)
+            found = page.evaluate(PROBE, {"no": n, "minvis": minvis})
             if found:
                 report["issues"][n] = found
         browser.close()
@@ -175,7 +208,9 @@ def main() -> None:
     ap.add_argument("--refs", default=None)
     ap.add_argument("--assets", action="append", default=None)
     ap.add_argument("--out-dir", default="shots")
+    ap.add_argument("--size", default="1920x1080", help="창 크기(예: 1366x768, 태블릿 1180x820)")
     a = ap.parse_args()
+    size = tuple(int(x) for x in a.size.lower().split("x"))
     nums = parse_numbers(a.numbers)
     out_dir = Path(a.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -197,7 +232,7 @@ def main() -> None:
         if r.returncode:
             print(r.stderr.strip(), file=sys.stderr)
             raise SystemExit(r.returncode)
-    rep = inspect(html, nums, out_dir)
+    rep = inspect(html, nums, out_dir, size)
     bad = sum(len(v) for v in rep["issues"].values()) + len(rep["external"]) + len(rep["console_errors"])
     for n, found in rep["issues"].items():
         print(f"[{n:02d}] 문제 {len(found)}건")

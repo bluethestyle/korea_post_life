@@ -15,6 +15,7 @@ from __future__ import annotations
 import html
 import math
 import re
+from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlparse
 
@@ -25,8 +26,13 @@ REGION_TOP_ONE_LINE = 240              # 헤드라인이 한 줄일 때
 BAND_BOTTOM = 984                      # 요점과 용어 풀이 띠의 아래 끝(꼬리말 위)
 FOOTER_TOP = 1000
 SOURCE_WIDTH = 1560                    # 꼬리말 출처 한 행의 폭(px)
+# 글자 크기 기준(2026-11-24 상향). tpl.html 의 CSS 와 tools/shot.py 의 SMALL_PX, LABEL_PX 와 같다
+LABEL_PX = 26                          # 내용을 전하는 글의 하한
+AUX_PX = 22                            # 보조 글(축 눈금, 꼬리말, 각주, 용어 풀이, 칩과 배지)의 하한, 슬라이드 안 글자의 하한
+GLOSS_H = 72                           # 용어 풀이 띠의 높이(22px 두 행)
+BUILD_STEPS = 8                        # 블록 등장 순서(build)의 최대 단계. 디자인 시스템 덱 빌드 예산(8단계, 4초 이하)
 
-PH = re.compile(r"\{\{(fact|len|asof|ref|todo):([^{}|]+?)(?:\|([a-z0-9]+))?\}\}")
+PH = re.compile(r"\{\{(fact|len|asof|ref|todo|name):([^{}|]+?)(?:\|([a-z0-9]+))?\}\}")
 TERM = re.compile(r"\[\[([^\[\]]+)\]\]")
 
 # 장 단위 상한
@@ -67,6 +73,7 @@ class Ctx:
         self.img_used: list[str] = []
         self.slide = "덱"
         self.terms_on_slide: list[str] = []
+        icon_reset(deck.get("icons"))
 
     # 값 찾기
     @staticmethod
@@ -129,6 +136,13 @@ class Ctx:
             kind, path, spec = m.group(1), m.group(2).strip(), m.group(3)
             if kind == "todo":
                 return f'<span class="todo-i"><b>확인 필요</b> {esc(path)}</span>'
+            if kind == "name":
+                # 여러 장이 함께 쓰는 도구와 모델 이름(_deck.json 의 names). 철자를 한 곳에서 정한다
+                names = self.deck.get("names", {})
+                if path == "about" or not isinstance(names.get(path), str):
+                    self.errors.append(f"[{self.slide}] {m.group(0)}: _deck.json names 에 열쇠 없음: {path}")
+                    return m.group(0)
+                return esc(names[path])
             key = path.split(".")[0]
             try:
                 v = self.value(kind, path)
@@ -208,6 +222,13 @@ class Ctx:
 
 # ---------------------------------------------------------------------------
 # C18 아이콘 세트(한 번 정의하고 <use> 로 다시 씀)
+# 아이콘은 두 묶음이다.
+# - 덱 자체 아이콘(ICONS, 48 격자, 선 3): 디자인 시스템에 같은 뜻의 도안이 없는 것(AI, 코드, 사람, 문서 더미, 표, A4 따위)
+# - 디자인 시스템 "발표용(우체국)"의 Lucide 아이콘 55종(icons/*.svg, 24 격자, 선 2, ISC 라이선스는 icons/LICENSE.txt)
+# 장 파일의 "icon" 에는 덱 아이콘 사전(_deck.json 의 icons, 개념 → 아이콘 이름)의 개념 이름, Lucide 이름, 덱 자체 이름
+# 가운데 하나를 쓴다. 같은 개념은 덱 전체에서 같은 아이콘이 되도록 개념 이름을 먼저 쓴다.
+# 덱 자체 이름 가운데 디자인 시스템에 같은 뜻의 도안이 있는 것(ICON_ALIASES)은 디자인 시스템 도안으로 그린다.
+# 빌드는 장에서 실제로 쓴 아이콘만 스프라이트에 심는다(sprite()).
 # ---------------------------------------------------------------------------
 ICONS = {
     "doc": '<path d="M12 5h17l9 9v29H12z"/><path d="M29 5v9h9"/><path d="M18 24h14M18 31h14M18 38h9"/>',
@@ -233,10 +254,63 @@ ICONS = {
     "dot": '<circle cx="24" cy="24" r="13" fill="currentColor"/>',
     "square": '<rect x="11" y="11" width="26" height="26" fill="currentColor"/>',
 }
+# 덱 자체 아이콘 가운데 디자인 시스템 사전(reference/icons-logos.md 5절)에 같은 뜻의 도안이 있는 것: 디자인 시스템 것을 쓴다
+ICON_ALIASES = {"doc": "file-text", "check": "badge-check", "graph": "network"}
+ICON_DIR = Path(__file__).resolve().parent / "icons"
+LUCIDE_STROKE = 2          # 디자인 시스템 규칙: 24 격자에 선 2
+
+
+def _load_lucide() -> dict[str, str]:
+    """icons/*.svg(lucide-static)의 안쪽 도형만 읽는다. 주석과 바깥 <svg> 는 버린다."""
+    out: dict[str, str] = {}
+    if not ICON_DIR.is_dir():
+        return out
+    for p in sorted(ICON_DIR.glob("*.svg")):
+        text = re.sub(r"<!--.*?-->", "", p.read_text(encoding="utf-8"), flags=re.S)
+        m = re.search(r"<svg\b[^>]*>(.*)</svg>", text, flags=re.S)
+        if m:
+            out[p.stem] = re.sub(r"\s+", " ", m.group(1)).replace("> <", "><").strip()
+    return out
+
+
+LUCIDE = _load_lucide()
+
+# 빌드 한 번의 아이콘 상태(Ctx 가 만들어질 때 비운다): 덱 아이콘 사전, 쓴 아이콘, 모르는 이름
+ICON_STATE: dict[str, Any] = {"dict": {}, "used": [], "unknown": []}
+
+
+def icon_reset(deck_icons: dict | None) -> None:
+    ICON_STATE["dict"] = {k: v for k, v in (deck_icons or {}).items() if not k.startswith("_")}
+    ICON_STATE["used"] = []
+    ICON_STATE["unknown"] = []
+
+
+def resolve_icon(name: str) -> str | None:
+    """개념 이름(덱 아이콘 사전), Lucide 이름, 덱 자체 이름을 스프라이트 id 로. 모르면 None."""
+    name = str(name).strip()
+    name = ICON_STATE["dict"].get(name, name)
+    name = ICON_ALIASES.get(name, name)
+    if name in LUCIDE:
+        return f"ic-{name}"
+    if name in ICONS:
+        return f"i-{name}"
+    return None
+
+
+def mark_icon(sid: str) -> None:
+    if sid not in ICON_STATE["used"]:
+        ICON_STATE["used"].append(sid)
 
 
 def sprite() -> str:
-    syms = "".join(f'<symbol id="i-{k}" viewBox="0 0 48 48">{v}</symbol>' for k, v in ICONS.items())
+    """패턴과 화살촉, 그리고 이번 빌드에서 쓴 아이콘만(이름순으로 늘 같은 바이트)."""
+    syms = []
+    for sid in sorted(ICON_STATE["used"]):
+        kind, name = sid.split("-", 1)
+        if kind == "ic":
+            syms.append(f'<symbol id="{sid}" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="{LUCIDE_STROKE}" stroke-linecap="round" stroke-linejoin="round">{LUCIDE[name]}</g></symbol>')
+        else:
+            syms.append(f'<symbol id="{sid}" viewBox="0 0 48 48">{ICONS[name]}</symbol>')
     return ('<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false"><defs>'
             '<pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
             '<rect width="10" height="10" fill="#ffffff"/><path d="M0 0v10" stroke="#3d3935" stroke-width="3"/></pattern>'
@@ -246,15 +320,19 @@ def sprite() -> str:
             '<path d="M0 0L10 5L0 10z" fill="#5c5650"/></marker>'
             '<marker id="ah-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
             '<path d="M0 0L10 5L0 10z" fill="#da291c"/></marker>'
-            f'</defs>{syms}</svg>')
+            f'</defs>{"".join(syms)}</svg>')
 
 
 def icon(name: str, size: int = 48, cls: str = "") -> str:
-    if name not in ICONS:
-        name = "doc"
+    sid = resolve_icon(name)
+    if sid is None:
+        if name not in ICON_STATE["unknown"]:
+            ICON_STATE["unknown"].append(str(name))
+        sid = "i-doc"
+    mark_icon(sid)
     extra = f" {cls}" if cls and cls != "ic" else ""
     return (f'<svg class="ic{extra}" width="{size}" height="{size}" viewBox="0 0 48 48" aria-hidden="true">'
-            f'<use href="#i-{name}"/></svg>')
+            f'<use href="#{sid}"/></svg>')
 
 
 def text_width(text: str, size: float) -> float:
@@ -491,7 +569,7 @@ def c2(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         x0, x1 = (bw + gap) * (a - 1), (bw + gap) * (b - 1) + bw
         svg.append(f'<path d="M{px(x0)} {px(y)}v14H{px(x1)}v-14M{px((x0 + x1) / 2)} {px(y + 14)}v10" class="c2-br"/>')
         label = ctx.t(br["label"], 24, f"{where}.bracket.label")
-        lw = min(w, max(x1 - x0, text_width(plain(label), 24) + 16))
+        lw = min(w, max(x1 - x0, text_width(plain(label), 26) + 16))
         lx = min(max((x0 + x1) / 2 - lw / 2, 0), w - lw)
         boxes.append(f'<p class="c2-brl" style="left:{px(lx)}px;width:{px(lw)}px;top:{px(y + 30)}px">{label}</p>')
     return (f'<div class="c2" style="height:{px(h)}px"><svg class="c2-svg" width="{px(w)}" height="{px(h)}" aria-hidden="true">'
@@ -508,7 +586,7 @@ def c20(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 # ---------------------------------------------------------------------------
 # C3 흐름 화살표
 # ---------------------------------------------------------------------------
-def flow_node(ctx: Ctx, nd: dict, where: str, fig_w: float, compact: bool = False, sub_limit: int = 24,
+def flow_node(ctx: Ctx, nd: dict, where: str, fig_w: float, compact: bool = False, sub_limit: int = 22,
               cls: str = "c3-n") -> str:
     hero = " hero" if nd.get("hero") else ""
     num = f'<span class="c3-num">{ctx.t(nd["num"], 4, f"{where}.num")}</span>' if nd.get("num") else ""
@@ -520,11 +598,13 @@ def flow_node(ctx: Ctx, nd: dict, where: str, fig_w: float, compact: bool = Fals
         fig = icon(nd["icon"], 48 if compact else 64, "c3-ic")
     sub = f'<p class="c3-s">{ctx.t(nd["sub"], sub_limit, f"{where}.sub")}</p>' if nd.get("sub") else ""
     label = f'<p class="c3-l">{ctx.t(nd.get("label", ""), 18, f"{where}.label")}</p>' if nd.get("label") else ""
-    return f'<div class="{cls}{hero}">{num}{fig}{label}{sub}</div>'
+    # note: 보조 글 아래 작은 회색 한 줄(22px). 단계마다 쓰는 모델 이름처럼 작게만 덧붙일 글
+    note = f'<p class="c3-note ax">{ctx.t(nd["note"], 26, f"{where}.note")}</p>' if nd.get("note") else ""
+    return f'<div class="{cls}{hero}">{num}{fig}{label}{sub}{note}</div>'
 
 
 def flow_row(ctx: Ctx, nodes: list[dict], where: str, w: float, direction: str = "h", compact: bool = False,
-             arrows: bool = True, joiner: str = "", sub_limit: int = 24, cls: str = "c3-n") -> str:
+             arrows: bool = True, joiner: str = "", sub_limit: int = 22, cls: str = "c3-n") -> str:
     """노드를 한 줄로. arrows 가 거짓이면 화살표 없이 같은 크기 카드로 놓고(순서가 없는 묶음),
     joiner 가 있으면 화살표 자리에 그 글(예: "또는")을 둔다(서로 대안인 경로)."""
     n = max(1, len(nodes))
@@ -558,8 +638,10 @@ def c3(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         d = spec.get("dir", "h")
         arrows = spec.get("arrows", True) is not False
         cls = "c3-n" if arrows or spec.get("joiner") else "c3-n card"
+        if spec.get("align") == "top":      # 번호와 아이콘의 높이를 카드끼리 맞춘다(아래 글 줄 수가 달라도)
+            cls += " top"
         row = flow_row(ctx, nodes, where, w, d, bool(spec.get("compact")), arrows, spec.get("joiner", ""),
-                       int(spec.get("sub_limit", 24 if arrows else 40)), cls)
+                       int(spec.get("sub_limit", 22 if arrows else 36)), cls)
         return f'<div class="c3" style="height:{px(h)}px">{row}</div>'
     # 분기: 앞 노드들 → 마름모 → 위 경로와 아래 경로
     at = int(br.get("at", len(nodes)))
@@ -578,7 +660,7 @@ def c3(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     hero = " hero" if br.get("hero") else ""
     dia_html = (f'<div class="c3-dia{hero}" style="{box_style(dx, cy - dia / 2, dia, dia)}"><svg width="{dia}" height="{dia}" aria-hidden="true">'
                 f'<path d="M{dia / 2} 3L{dia - 3} {dia / 2}L{dia / 2} {dia - 3}L3 {dia / 2}z"/></svg>'
-                f'<p>{ctx.t(br.get("label", ""), 10, f"{where}.branch.label")}</p></div>')
+                f'<p>{ctx.t(br.get("label", ""), 8, f"{where}.branch.label")}</p></div>')
     rows = (f'<div class="c3-br" style="{box_style(right_x, 0, right_w, rh)}">{flow_row(ctx, up, f"{where}.branch.up", right_w, "h", True)}</div>'
             f'<div class="c3-br" style="{box_style(right_x, rh + 24, right_w, rh)}">{flow_row(ctx, down, f"{where}.branch.down", right_w, "h", True)}</div>')
     yu, yd = rh / 2, rh + 24 + rh / 2
@@ -589,7 +671,7 @@ def c3(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     lab = []
     for key, yy in (("up_label", yu), ("down_label", yd)):
         if br.get(key):
-            lab.append(f'<span class="c3-bl ax" style="left:{px(dx + dia + 32)}px;top:{px(yy - 32)}px">{ctx.t(br[key], 6, f"{where}.branch.{key}")}</span>')
+            lab.append(f'<span class="c3-bl ax" style="left:{px(dx + dia + 32)}px;top:{px(yy - 40)}px">{ctx.t(br[key], 6, f"{where}.branch.{key}")}</span>')
     return (f'<div class="c3" style="height:{px(h)}px"><svg class="c3-svg" width="{px(w)}" height="{px(h)}" aria-hidden="true">{"".join(lines)}</svg>'
             f'{pre_html}{dia_html}{rows}{"".join(lab)}</div>')
 
@@ -602,15 +684,15 @@ def c4(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     if spec.get("mode") == "result":
         out = []
         if spec.get("cond"):
-            out.append(f'<p class="c4r-cond">{ctx.t(spec["cond"], 24, f"{where}.cond")}</p>')
+            out.append(f'<p class="c4r-cond">{ctx.t(spec["cond"], 22, f"{where}.cond")}</p>')
         for i, r in enumerate(spec.get("rows", [])):
             st = r.get("state", "closed")
             name = "가입 가능" if st == "open" else "가입 제한"
             hero = " hero" if r.get("hero") else ""
             out.append(f'<div class="c4r-r{hero}">{org_chip(ctx, r.get("org", ""))}{state_mark(st)}'
-                       f'<span class="c4r-st">{name}</span><span class="c4r-t">{ctx.t(r.get("text", ""), 24, f"{where}.rows[{i}].text")}</span></div>')
+                       f'<span class="c4r-st">{name}</span><span class="c4r-t">{ctx.t(r.get("text", ""), 20, f"{where}.rows[{i}].text")}</span></div>')
         if spec.get("note"):
-            out.append(f'<p class="c4r-note ax">{ctx.t(spec["note"], 34, f"{where}.note")}</p>')
+            out.append(f'<p class="c4r-note ax">{ctx.t(spec["note"], 30, f"{where}.note")}</p>')
         return f'<div class="c4r">{"".join(out)}</div>'
     cols = spec.get("cols", [])
     label_w = float(spec.get("label_w", 240))
@@ -621,7 +703,7 @@ def c4(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     rows.append(f'<div class="c4-r c4-hr" style="{grid}"><span></span>' + "".join(f'<span>{org_chip(ctx, c)}</span>' for c in cols) + "</div>")
     for i, r in enumerate(spec.get("rows", [])):
         hero = " hero" if r.get("hero") else ""
-        label = f'<span class="c4-l">{ctx.t(r.get("label", ""), 10, f"{where}.rows[{i}].label")}</span>'
+        label = f'<span class="c4-l">{ctx.t(r.get("label", ""), 9, f"{where}.rows[{i}].label")}</span>'
         vals = r.get("values", [])
         vlim = int(r.get("limit", spec.get("limit", 18)))
         if r.get("same"):
@@ -641,7 +723,7 @@ def c4(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
             cells = "".join(cl)
         rows.append(f'<div class="c4-r{hero}" style="{grid}">{label}{cells}</div>')
     if spec.get("tag"):
-        rows.append(f'<p class="c4-tag">{ctx.t(spec["tag"], 40, f"{where}.tag")}</p>')
+        rows.append(f'<p class="c4-tag">{ctx.t(spec["tag"], 36, f"{where}.tag")}</p>')
     return f'<div class="c4">{"".join(rows)}</div>'
 
 
@@ -667,23 +749,30 @@ def c5(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
                         f'<div class="c5v-card{hero}{has_ic}">{ic}<span class="c5-k ax">{esc(labels[1])}</span>'
                         f'<p>{ctx.t(r.get("after", ""), 32, f"{where}.rows[{i}].after")}</p>'
                         + (f'<p class="c5-tag ax">{ctx.t(r["tag"], 28, f"{where}.rows[{i}].tag")}</p>' if r.get("tag") else "")
+                        + (f'<p class="c5-note ax">{ctx.t(r["note"], 36, f"{where}.rows[{i}].note")}</p>' if r.get("note") else "")
                         + "</div></div>")
         return f'<div class="c5v" style="grid-template-columns:repeat({len(rows)},1fr)">{"".join(cols)}</div>'
     has_head = any(r.get("head") for r in rows)
     merged = spec.get("before_merged")
     badge = spec.get("badgeCol")
-    tmpl = ([ "280px"] if has_head else []) + ["1fr", "72px", "1.35fr"] + (["200px"] if badge else [])
+    # badgeCol.once: 행마다 배지를 되풀이하지 않고 오른쪽 열 머리에 배지 하나만 둔다(열은 없앰)
+    once = bool(badge and badge.get("once"))
+    tmpl = ([ "280px"] if has_head else []) + ["1fr", "72px", "1.35fr"] + (["200px"] if badge and not once else [])
     grid = f"grid-template-columns:{' '.join(tmpl)}"
+    after_hd = esc(labels[1])
+    if once:
+        after_hd = (f'<span class="c5-hdr">{after_hd}<span class="c5-hdb">{esc(badge.get("label", ""))}'
+                    f'{badge_html("unmeasured", badge.get("badge", "측정 전"))}</span></span>')
     head = (["<span></span>"] if has_head else []) + [f'<span class="c5-hd">{esc(labels[0])}</span>', "<span></span>",
-                                                       f'<span class="c5-hd">{esc(labels[1])}</span>']
-    if badge:
+                                                       f'<span class="c5-hd">{after_hd}</span>']
+    if badge and not once:
         head.append(f'<span class="c5-hd">{esc(badge.get("label", ""))}</span>')
     cells = []
     n = len(rows)
     for i, r in enumerate(rows):
         row = i + 2
         if has_head:
-            cells.append(f'<span class="c5-rh" style="grid-row:{row}">{ctx.t(r.get("head", ""), 14, f"{where}.rows[{i}].head")}</span>')
+            cells.append(f'<span class="c5-rh" style="grid-row:{row}">{ctx.t(r.get("head", ""), 13, f"{where}.rows[{i}].head")}</span>')
         if merged:
             if i == 0:
                 ic = icon(merged["icon"], 64, "c5-mic") if merged.get("icon") else ""
@@ -696,10 +785,12 @@ def c5(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         cells.append(f'<div class="c5-a" style="grid-row:{row}">{chevron("r", 36)}</div>')
         hero = " hero" if r.get("hero") else ""
         tag = f'<p class="c5-tag ax">{ctx.t(r["tag"], 28, f"{where}.rows[{i}].tag")}</p>' if r.get("tag") else ""
+        # note: 꼬리표 아래 작은 회색 한 줄(22px). 역할마다 쓴 모델 등급처럼 작게만 덧붙일 글
+        tag += f'<p class="c5-note ax">{ctx.t(r["note"], 36, f"{where}.rows[{i}].note")}</p>' if r.get("note") else ""
         cells.append(f'<div class="c5-c{hero}" style="grid-row:{row}"><p>{ctx.t(r.get("after", ""), 32, f"{where}.rows[{i}].after")}</p>{tag}</div>')
-        if badge:
+        if badge and not once:
             cells.append(f'<div class="c5-bd" style="grid-row:{row}">{badge_html("unmeasured", badge.get("badge", "측정 전"))}</div>')
-    foot = f'<p class="c5-foot ax">{ctx.t(badge["note"], 40, f"{where}.badgeCol.note")}</p>' if badge and badge.get("note") else ""
+    foot = f'<p class="c5-foot ax">{ctx.t(badge["note"], 36, f"{where}.badgeCol.note")}</p>' if badge and badge.get("note") else ""
     gh = h - (40 if foot else 0)
     rows_css = f";height:{px(gh)}px;grid-template-rows:auto repeat({max(1, n)}, minmax(0, 1fr))" if spec.get("fill", True) else ""
     return f'<div class="c5" style="{grid}{rows_css}">{"".join(head)}{"".join(cells)}</div>{foot}'
@@ -746,7 +837,7 @@ def c6(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         figs = p.get("figures") or ([p["figure"]] if p.get("figure") else [])
         fig = panel_figures(ctx, figs, pw - 40, fig_h, f"{where}.panels[{i}]")
         chip = f'<span class="c6-chip">{ctx.t(p["chip"], 12, f"{where}.panels[{i}].chip")}</span>' if p.get("chip") else ""
-        src = f'<p class="c6-src ax">{ctx.t(p["src"], 40, f"{where}.panels[{i}].src")}</p>' if p.get("src") else ""
+        src = f'<p class="c6-src ax">{ctx.t(p["src"], 36, f"{where}.panels[{i}].src")}</p>' if p.get("src") else ""
         out.append(f'<div class="c6-p" style="{box_style((pw + gap) * i, 0, pw, h)}"><p class="c6-h">{esc(heads[i])}</p>'
                    f'<div class="c6-fig" style="height:{px(fig_h)}px">{fig}</div>'
                    f'<div class="c6-chipr" style="height:{chip_h}px">{chip}</div>'
@@ -792,7 +883,7 @@ def c7(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     st = spec.get("stack")
     if st and not mini:
         sy, sh = 40, 56
-        html_.append(f'<p class="c7-sl" style="left:{pad}px;top:0">{ctx.t(st.get("label", ""), 24, f"{where}.stack.label")}</p>')
+        html_.append(f'<p class="c7-sl" style="left:{pad}px;top:0">{ctx.t(st.get("label", ""), 22, f"{where}.stack.label")}</p>')
         x = pad
         for i, sg in enumerate(st.get("segments", [])):
             pct = ctx.num(sg.get("pct", 0), f"{where}.stack.segments[{i}].pct") if sg.get("pct") is not None else 0.0
@@ -802,7 +893,7 @@ def c7(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
             if sw > 0:
                 svg.append(f'<rect x="{px(x)}" y="{sy}" width="{px(sw)}" height="{sh}" class="c7-s{z}{hatch}"/>')
             if sg.get("text"):
-                txt = ctx.t(sg["text"], 12, f"{where}.stack.segments[{i}].text")
+                txt = ctx.t(sg["text"], 11, f"{where}.stack.segments[{i}].text")
                 if sw > text_width(plain(txt), 24) + 24:      # 막대 안 가운데
                     style, cls = f"left:{px(x + sw / 2)}px;top:{px(sy + 13)}px", "mid" + (" in" if z == 0 else "")
                 else:                                          # 막대 위, 구간 끝에 오른쪽을 맞춤
@@ -820,7 +911,7 @@ def c7(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         x = pad + bw * v
         hero = " hero" if mk.get("hero") else ""
         svg.append(f'<circle cx="{px(x)}" cy="{px(bar_y + bar_h / 2)}" r="{9 if mini else 12}" class="c7-mk{hero}"/>')
-        ml = ctx.t(mk.get("label", ""), 14, f"{where}.markers[{i}].label")
+        ml = ctx.t(mk.get("label", ""), 13, f"{where}.markers[{i}].label")
         mx = clamp_center(x, plain(ml), 20, w)
         html_.append(f'<span class="c7-ml ax{hero}" style="left:{px(mx)}px;top:{px(bar_y - 30)}px">{ml}</span>')
     inner = f'<svg width="{px(w)}" height="{px(h - oy)}" aria-hidden="true">{"".join(svg)}</svg>{"".join(html_)}'
@@ -840,6 +931,14 @@ def short_date(ctx: Ctx, d: Any) -> str:
     return f"{m.group(2)}-{m.group(3)}" if m.group(3) else f"{m.group(1)}-{m.group(2)}"
 
 
+def dot_tag(ctx: Ctx, dt: dict, where: str) -> str:
+    """점 연표의 작은 태그(예: "이 앱이 씀"). 강조 점이면 빨강 바탕, 아니면 회색 바탕."""
+    if not dt.get("tag"):
+        return ""
+    who = "hum" if dt.get("hero") else "ai"
+    return f'<span class="c8-tag c8-{who}">{ctx.t(dt["tag"], 8, f"{where}.tag")}</span>'
+
+
 @part("C8")
 def c8(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     if spec.get("dots") and (spec.get("dir") == "v" or (spec.get("dir") != "h" and w < 700)):
@@ -854,10 +953,11 @@ def c8(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
             hero = " hero" if dt.get("hero") else ""
             svg.append(f'<circle cx="14" cy="{px(cy)}" r="10" class="c8-dot{hero}"/>')
             date = plain(ctx.sub(str(dt.get("d", ""))))
-            src = f'<p class="c8-src ax">{ctx.t(dt["src"], 24, f"{where}.dots[{i}].src")}</p>' if dt.get("src") else ""
+            src = f'<p class="c8-src ax">{ctx.t(dt["src"], 20, f"{where}.dots[{i}].src")}</p>' if dt.get("src") else ""
             press = badge_html("press") if dt.get("press") else ""
+            press += dot_tag(ctx, dt, f"{where}.dots[{i}]")
             out.append(f'<div class="c8-db v{hero}" style="left:40px;width:{px(w - 40)}px;top:{px(cy)}px">'
-                       f'<p class="c8-dd">{esc(date)}</p><p class="c8-dl">{ctx.t(dt.get("label", ""), 34, f"{where}.dots[{i}].label")}</p>'
+                       f'<p class="c8-dd">{esc(date)}</p><p class="c8-dl">{ctx.t(dt.get("label", ""), 30, f"{where}.dots[{i}].label")}</p>'
                        f'{src}{press}</div>')
         return f'<div class="c8" style="height:{px(h)}px"><svg width="{px(w)}" height="{px(h)}" aria-hidden="true">{"".join(svg)}</svg>{"".join(out)}</div>'
     if spec.get("dots"):
@@ -885,11 +985,12 @@ def c8(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
                 bw_ = min(380, cw - 20)
                 bx = min(max(cx - bw_ / 2, 0), w - bw_)
             date = plain(ctx.sub(str(dt.get("d", ""))))
-            src = f'<p class="c8-src ax">{ctx.t(dt["src"], 24, f"{where}.dots[{i}].src")}</p>' if dt.get("src") else ""
+            src = f'<p class="c8-src ax">{ctx.t(dt["src"], 20, f"{where}.dots[{i}].src")}</p>' if dt.get("src") else ""
             press = badge_html("press") if dt.get("press") else ""
+            press += dot_tag(ctx, dt, f"{where}.dots[{i}]")
             pos = f"top:{px(y)}px" if below else f"bottom:{px(h - ay + 26)}px"
             out.append(f'<div class="c8-db{hero}" style="left:{px(bx)}px;width:{px(bw_)}px;{pos}">'
-                       f'<p class="c8-dd">{esc(date)}</p><p class="c8-dl">{ctx.t(dt.get("label", ""), 34, f"{where}.dots[{i}].label")}</p>'
+                       f'<p class="c8-dd">{esc(date)}</p><p class="c8-dl">{ctx.t(dt.get("label", ""), 30, f"{where}.dots[{i}].label")}</p>'
                        f'{src}{press}</div>')
         return f'<div class="c8" style="height:{px(h)}px"><svg width="{px(w)}" height="{px(h)}" aria-hidden="true">{"".join(svg)}</svg>{"".join(out)}</div>'
     axis = spec.get("axis", [])
@@ -942,16 +1043,23 @@ def c8(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         bh = max_bar * v / vmax if vmax else 0
         bar_tops[d] = ay - bh
         svg.append(f'<rect x="{px(cx - bw_ / 2)}" y="{px(ay - bh)}" width="{px(bw_)}" height="{px(bh)}" class="c8-bar"/>')
-        out.append(f'<span class="c8-bv" style="left:{px(cx)}px;top:{px(ay - bh - 32)}px">{ctx.fmt(int(v) if v.is_integer() else v, None)}</span>')
+        # bar_unit: 막대 위 숫자 뒤에 붙일 단위(예: "건"). 숫자만 보이면 무엇을 센 값인지 모르므로
+        unit = ctx.t(spec["bar_unit"], 4, f"{where}.bar_unit") if spec.get("bar_unit") else ""
+        out.append(f'<span class="c8-bv" style="left:{px(cx)}px;top:{px(ay - bh - 32)}px">{ctx.fmt(int(v) if v.is_integer() else v, None)}{unit}</span>')
     for idx, f, cx, bx, lv in placed:
         y = (nlv - 1 - lv) * (fh + 18)
         d = plain(ctx.sub(str(f.get("d", ""))))
         y_end = bar_tops.get(d, ay) - (36 if d in bar_tops else 0)
+        # 같은 날의 아래층 상자가 세로선 위에 있으면 선을 그 상자의 윗변에서 멈춘다(선이 다른 상자 뒤로 지나가지 않게)
+        below = [(nlv - 1 - olv) * (fh + 18) for _i, _f, ocx, obx, olv in placed
+                 if olv < lv and abs(ocx - cx) < 1 and obx - 1 <= cx <= obx + fw + 1]
+        if below:
+            y_end = min(y_end, min(below))
         hero = " hero" if f.get("hero") else ""
         svg.append(f'<path d="M{px(cx)} {px(y + fh)}V{px(y_end)}" class="c8-fl{hero}"/>')
         who = "hum" if f.get("who", "ai") in ("human", "사람") else "ai"
-        tag = f'<span class="c8-tag c8-{who}">{ctx.t(f["tag"], 14, f"{where}.flags[{idx}].tag")}</span>' if f.get("tag") else ""
-        out.append(f'<div class="c8-fb{hero}" style="{box_style(bx, y, fw, fh)}"><p>{ctx.t(f.get("label", ""), 22, f"{where}.flags[{idx}].label")}</p>{tag}</div>')
+        tag = f'<span class="c8-tag c8-{who}">{ctx.t(f["tag"], 12, f"{where}.flags[{idx}].tag")}</span>' if f.get("tag") else ""
+        out.append(f'<div class="c8-fb{hero}" style="{box_style(bx, y, fw, fh)}"><p>{ctx.t(f.get("label", ""), 20, f"{where}.flags[{idx}].label")}</p>{tag}</div>')
     return f'<div class="c8" style="height:{px(h)}px"><svg width="{px(w)}" height="{px(h)}" aria-hidden="true">{"".join(svg)}</svg>{"".join(out)}</div>'
 
 
@@ -960,9 +1068,9 @@ def c8(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 # ---------------------------------------------------------------------------
 def node_html(ctx: Ctx, nd: dict, where: str, x: float, y: float, w: float, h: float, cls: str = "c9-n") -> str:
     hero = " hero" if nd.get("hero") else ""
-    sub = f'<span class="c9-s ax">{ctx.t(nd["sub"], 30, f"{where}.sub")}</span>' if nd.get("sub") else ""
+    sub = f'<span class="c9-s ax">{ctx.t(nd["sub"], 28, f"{where}.sub")}</span>' if nd.get("sub") else ""
     # note: 보조 글 아래 작은 회색 한 줄(모델 이름처럼 작게만 덧붙일 글)
-    note = f'<span class="c9-note ax">{ctx.t(nd["note"], 30, f"{where}.note")}</span>' if nd.get("note") else ""
+    note = f'<span class="c9-note ax">{ctx.t(nd["note"], 26, f"{where}.note")}</span>' if nd.get("note") else ""
     return (f'<div class="{cls}{hero}" style="{box_style(x, y, w, h)}"><span class="c9-l">{ctx.t(nd.get("label", ""), 14, f"{where}.label")}</span>'
             f'{sub}{note}</div>')
 
@@ -1001,7 +1109,7 @@ def c9(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         y0 = (h - (ch * n + gap * (n - 1))) / 2
         for i, c in enumerate(cards):
             y = y0 + i * (ch + gap)
-            text = f'<p>{ctx.t(c["text"], int(c.get("limit", 60)), f"{where}.cards[{i}].text")}</p>' if c.get("text") else ""
+            text = f'<p>{ctx.t(c["text"], int(c.get("limit", 50)), f"{where}.cards[{i}].text")}</p>' if c.get("text") else ""
             chip = org_chip(ctx, c["org"]) if c.get("org") else ""      # 회사가 없는 카드는 칩 자리를 두지 않는다
             out.append(f'<div class="c9-card" style="{box_style(0, y, cw, ch)}">{chip}{text}</div>')
             yc = y + ch / 2
@@ -1011,7 +1119,7 @@ def c9(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         target = dict(target, hero=target.get("hero", True))
         out.append(node_html(ctx, target, f"{where}.target", tx, ty, tw, th, "c9-n tgt" + small))
         if spec.get("chip"):
-            out.append(f'<p class="c9-chip ax" style="{box_style(tx - 40, ty + th + 14, tw + 40, 80)}">{ctx.t(spec["chip"], 40, f"{where}.chip")}</p>')
+            out.append(f'<p class="c9-chip ax" style="{box_style(tx - 40, ty + th + 14, tw + 40, 90)}">{ctx.t(spec["chip"], 34, f"{where}.chip")}</p>')
         return f'<div class="c9" style="height:{px(h)}px"><svg width="{px(w)}" height="{px(h)}" aria-hidden="true">{"".join(svg)}</svg>{"".join(out)}</div>'
     if lay == "legend":
         side = w >= 480
@@ -1026,7 +1134,7 @@ def c9(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         for i, k in enumerate(spec.get("edge_kinds", [])):
             eitems.append(f'<span class="c9-li"><i class="c9-ls ls-{esc(k.get("style", "solid"))}"></i>{ctx.t(k.get("label", ""), 8, f"{where}.edge_kinds[{i}]")}</span>')
         caps = spec.get("captions", ["", ""])
-        out.append(f'<div class="c9-leg" style="left:0;top:0;width:{px(lw)}px;max-height:{px(lh)}px"><p class="c9-cap">{ctx.t(caps[0], 16, f"{where}.captions[0]")}</p>'
+        out.append(f'<div class="c9-leg" style="left:0;top:0;width:{px(lw)}px;max-height:{px(lh)}px"><p class="c9-cap">{ctx.t(caps[0], 14, f"{where}.captions[0]")}</p>'
                    f'<div class="c9-lg">{"".join(items)}</div><div class="c9-lg">{"".join(eitems)}</div></div>')
         gx, gy = (lw + 24, 0) if side else (0, lh + 16)
         gw, gh = (w - lw - 24, h) if side else (w, h - lh - 16)
@@ -1044,12 +1152,21 @@ def c9(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
             dash = {"dash": ' stroke-dasharray="6 5"', "dot": ' stroke-dasharray="1 6" stroke-linecap="round" stroke-width="3.5"'}.get(
                 e.get("style", "solid"), "")
             svg.append(f'<path d="M{px(gx + ax_ * gw)} {px(gy + top_pad + ay_ * (gh - top_pad - 20))}L{px(gx + bx_ * gw)} {px(gy + top_pad + by_ * (gh - top_pad - 20))}" class="c9-e"{dash}/>')
+        downs: dict[int, list[bool]] = {}
+        for e in g.get("edges", []):
+            a, b = ids.get(e.get("from")), ids.get(e.get("to"))
+            if a is None or b is None:
+                continue
+            downs.setdefault(a, []).append(pos[b][1] > pos[a][1])
+            downs.setdefault(b, []).append(pos[a][1] > pos[b][1])
         for i, nd in enumerate(gn):
             x, y = pos[i]
             shape = nd.get("shape", "circle")
-            out.append(f'<span class="c9-gn sh-{esc(shape)}{" hero" if nd.get("hero") else ""}" style="left:{px(gx + x * gw)}px;top:{px(gy + top_pad + y * (gh - top_pad - 20))}px">'
+            # 선이 모두 아래로 나가는 점은 이름을 점 위에 둔다(선이 이름 글자를 지나지 않게)
+            up = " up" if downs.get(i) and all(downs[i]) else ""
+            out.append(f'<span class="c9-gn sh-{esc(shape)}{up}{" hero" if nd.get("hero") else ""}" style="left:{px(gx + x * gw)}px;top:{px(gy + top_pad + y * (gh - top_pad - 20))}px">'
                        f'<i></i><b class="ax">{ctx.t(nd.get("label", ""), 8, f"{where}.graph.nodes[{i}].label")}</b></span>')
-        out.append(f'<p class="c9-cap" style="{box_style(gx, gy, gw, 30)}">{ctx.t(caps[1] if len(caps) > 1 else "", 16, f"{where}.captions[1]")}</p>')
+        out.append(f'<p class="c9-cap" style="{box_style(gx, gy, gw, 30)}">{ctx.t(caps[1] if len(caps) > 1 else "", 14, f"{where}.captions[1]")}</p>')
         large = " lg" if spec.get("size") == "large" else ""
         return f'<div class="c9{large}" style="height:{px(h)}px"><svg width="{px(w)}" height="{px(h)}" aria-hidden="true">{"".join(svg)}</svg>{"".join(out)}</div>'
 
@@ -1098,7 +1215,7 @@ def c9(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
             lx, ly = x2, my
         svg.append(f'<path d="{d}" class="c9-e" marker-end="url(#ah)"/>')
         if e.get("label"):
-            out.append(f'<span class="c9-el ax" style="left:{px(lx)}px;top:{px(ly)}px">{ctx.t(e["label"], 14, f"{where}.edges[{i}].label")}</span>')
+            out.append(f'<span class="c9-el ax" style="left:{px(lx)}px;top:{px(ly)}px">{ctx.t(e["label"], 13, f"{where}.edges[{i}].label")}</span>')
     for i, nd in enumerate(nodes):
         if nd.get("id") in geo:
             x, y, nw, nh2 = geo[nd["id"]]
@@ -1114,7 +1231,7 @@ def c9(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
                    f'S{px(sx - 40)} {px(y + nh2 + 40)} {px(sx)} {px(y + nh2 + 8)}" class="c9-ring{hero}" '
                    f'marker-end="url(#ah{"-r" if hero else ""})"/>')
         out.append(f'<span class="c9-rl{hero}" style="right:{px(w - bulge + 16)}px;top:{px(y + nh2 / 2)}px">'
-                   f'{ctx.t(ring.get("label", ""), 22, f"{where}.ring.label")}</span>')
+                   f'{ctx.t(ring.get("label", ""), 18, f"{where}.ring.label")}</span>')
     return f'<div class="c9" style="height:{px(h)}px"><svg width="{px(w)}" height="{px(h)}" aria-hidden="true">{"".join(svg)}</svg>{"".join(out)}</div>'
 
 
@@ -1126,9 +1243,18 @@ def c10(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     small = " small" if spec.get("size") == "small" else ""
     small += " center" if spec.get("align") == "center" else ""
     hero = " hero" if spec.get("hero") else ""
+    # tile: 디자인 시스템의 큰 숫자 타일(KPI 타일). 테두리 상자, 머리에 아이콘 칩과 이름 한 줄. 강조 타일은 빨강 면에 흰 글자
+    tile = " tile" if spec.get("tile") else ""
+    head = ""
+    if tile and (spec.get("icon") or spec.get("tile_label")):
+        ic = f'<span class="c10-ic">{icon(spec["icon"], 36)}</span>' if spec.get("icon") else ""
+        tl = f'<span>{ctx.t(spec["tile_label"], 12, f"{where}.tile_label")}</span>' if spec.get("tile_label") else ""
+        head = f'<p class="c10-tl">{ic}{tl}</p>'
     unit = f'<span class="c10-u">{ctx.t(spec["unit"], 6, f"{where}.unit")}</span>' if spec.get("unit") else ""
     cap = f'<p class="c10-c">{ctx.t(spec["caption"], 20, f"{where}.caption")}</p>' if spec.get("caption") else ""
-    return (f'<div class="c10{small}{hero}"><p class="c10-r"><span class="c10-v">{ctx.t(spec.get("value", ""), 8, f"{where}.value")}</span>{unit}</p>'
+    # scope: 설명 아래 작은 회색 한 줄(22px). 그 숫자를 잰 범위(어느 문서, 몇 건, 어떤 표본)
+    cap += f'<p class="c10-sc ax">{ctx.t(spec["scope"], 26, f"{where}.scope")}</p>' if spec.get("scope") else ""
+    return (f'<div class="c10{small}{hero}{tile}">{head}<p class="c10-r"><span class="c10-v">{ctx.t(spec.get("value", ""), 8, f"{where}.value")}</span>{unit}</p>'
             f'{cap}</div>')
 
 
@@ -1154,9 +1280,11 @@ def c11(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
                     f'stroke-dashoffset="{px(-circ * start)}" transform="rotate(-90 {c} {c})"/>')
         start += frac
     cap = f'<p class="c11-c">{ctx.t(spec["caption"], 22, f"{where}.caption")}</p>' if spec.get("caption") else ""
+    # scope: 설명 아래 작은 회색 한 줄(22px). 대조한 범위(어느 문서의 몇 항목)
+    cap += f'<p class="c11-sc ax">{ctx.t(spec["scope"], 26, f"{where}.scope")}</p>' if spec.get("scope") else ""
     legend = ""
     if spec.get("legend"):
-        legend = "".join(f'<span class="c11-lg ax"><i class="{"h" if i else "v"}"></i>{ctx.t(t, 14, f"{where}.legend[{i}]")}</span>'
+        legend = "".join(f'<span class="c11-lg ax"><i class="{"h" if i else "v"}"></i>{ctx.t(t, 13, f"{where}.legend[{i}]")}</span>'
                          for i, t in enumerate(spec["legend"]))
         legend = f'<p class="c11-lgs">{legend}</p>'
     return (f'<div class="c11{" small" if small else ""}"><div class="c11-ring" style="width:{d}px;height:{d}px">'
@@ -1170,30 +1298,51 @@ def c11(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 # ---------------------------------------------------------------------------
 @part("C12")
 def c12(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
+    """화면 캡처에 번호를 붙여 짚는다. marks 는 점(번호 원), zones 는 구역(빨강 테두리 상자와 번호 칩, 디자인 시스템의
+    an-zone). 둘 다 오른쪽 라벨 열(300px)에 번호와 라벨을 단다. 번호는 합쳐 넷 이하."""
     cls = ctx.img(spec.get("img", ""), f"{where}.img")
-    marks = spec.get("marks", [])
-    if len(marks) > 4:
-        ctx.warn(where, f"번호 {len(marks)}개(넷 이하)")
-    label_w = 300 if marks else 0
+    marks = [dict(m, _kind="mark") for m in spec.get("marks", [])]
+    zones = [dict(z, _kind="zone") for z in spec.get("zones", [])]
+    for j, m in enumerate(marks):
+        m["_idx"], m["_y"] = j, float(m.get("y", 0.5))
+    for j, z in enumerate(zones):
+        z["_idx"], z["_y"] = j, float(z.get("y", 0.1)) + float(z.get("h", 0.3)) / 2
+    # 라벨 칸은 짚는 곳의 높이 순서로 놓는다(리더 선이 서로 엇갈리지 않게)
+    items = sorted(marks + zones, key=lambda m: m["_y"])
+    if len(items) > 4:
+        ctx.warn(where, f"번호 {len(items)}개(점과 구역을 합쳐 넷 이하)")
+    label_w = 300 if items else 0
     cap_h = 34 if spec.get("caption") else 0
-    iw = min(w - label_w - (24 if marks else 0), (h - cap_h) * 16 / 9)
+    iw = min(w - label_w - (24 if items else 0), (h - cap_h) * 16 / 9)
     ih = iw * 9 / 16
-    ix = 0 if marks else (w - iw) / 2
+    ix = 0 if items else (w - iw) / 2
     img = (f'<div class="c12-im {cls}" role="img" aria-label="{esc(plain(ctx.sub(spec.get("alt", "화면 캡처"))))}" '
            f'style="{box_style(ix, 0, iw, ih)}"></div>')
     out = []
     svg = []
     lx = iw + 24
-    gap = (ih - 56 * len(marks)) / max(1, len(marks) + 1) if marks else 0
-    for i, mk in enumerate(marks):
-        mx, my = iw * float(mk.get("x", 0.5)), ih * float(mk.get("y", 0.5))
+    gap = (ih - 56 * len(items)) / max(1, len(items) + 1) if items else 0
+    for i, mk in enumerate(items):
+        n = esc(mk.get("n", i + 1))
+        kind, idx = mk["_kind"], mk["_idx"]
         ly = gap + i * (56 + gap) + 28
-        svg.append(f'<path d="M{px(mx + 22)} {px(my)}H{px(mx + 22 + (lx - mx - 22) * 0.5)}V{px(ly)}H{px(lx)}" class="c12-ld"/>')
-        out.append(f'<span class="c12-mk" style="left:{px(mx)}px;top:{px(my)}px">{esc(mk.get("n", i + 1))}</span>')
+        if kind == "zone":
+            zx, zy = iw * float(mk.get("x", 0.1)), ih * float(mk.get("y", 0.1))
+            zw, zh = iw * float(mk.get("w", 0.3)), ih * float(mk.get("h", 0.3))
+            zx, zy = max(0.0, min(zx, iw - 8)), max(0.0, min(zy, ih - 8))
+            zw, zh = min(zw, iw - zx), min(zh, ih - zy)
+            svg.append(f'<rect x="{px(zx)}" y="{px(zy)}" width="{px(zw)}" height="{px(zh)}" class="c12-zn"/>')
+            sx, sy = zx + zw, zy + zh / 2
+            svg.append(f'<path d="M{px(sx)} {px(sy)}H{px(sx + (lx - sx) * 0.5)}V{px(ly)}H{px(lx)}" class="c12-ld"/>')
+            out.append(f'<span class="c12-zk" style="left:{px(zx)}px;top:{px(zy)}px">{n}</span>')
+        else:
+            mx, my = iw * float(mk.get("x", 0.5)), ih * float(mk.get("y", 0.5))
+            svg.append(f'<path d="M{px(mx + 22)} {px(my)}H{px(mx + 22 + (lx - mx - 22) * 0.5)}V{px(ly)}H{px(lx)}" class="c12-ld"/>')
+            out.append(f'<span class="c12-mk" style="left:{px(mx)}px;top:{px(my)}px">{n}</span>')
         out.append(f'<span class="c12-lb" style="left:{px(lx)}px;top:{px(ly)}px;width:{px(label_w)}px">'
-                   f'<i>{esc(mk.get("n", i + 1))}</i>{ctx.t(mk.get("label", ""), 12, f"{where}.marks[{i}].label")}</span>')
+                   f'<i>{n}</i>{ctx.t(mk.get("label", ""), 10, f"{where}.{kind}s[{idx}].label")}</span>')
     if spec.get("caption"):
-        out.append(f'<p class="c12-cap ax" style="{box_style(ix, ih + 6, iw, 28)}">{ctx.t(spec["caption"], 30, f"{where}.caption")}</p>')
+        out.append(f'<p class="c12-cap ax" style="{box_style(ix, ih + 6, iw, 28)}">{ctx.t(spec["caption"], 28, f"{where}.caption")}</p>')
     return (f'<div class="c12" style="height:{px(h)}px">{img}<svg width="{px(w)}" height="{px(h)}" aria-hidden="true">{"".join(svg)}</svg>'
             f'{"".join(out)}</div>')
 
@@ -1231,7 +1380,7 @@ def badge_html(kind: str, text: str | None = None) -> str:
 def c15(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     kind = spec.get("kind", "todo")
     if kind == "todo":
-        return f'<div class="c15-todo"><b>확인 필요</b> {ctx.t(spec.get("text", ""), 60, f"{where}.text")}</div>'
+        return f'<div class="c15-todo"><b>확인 필요</b> {ctx.t(spec.get("text", ""), 50, f"{where}.text")}</div>'
     if kind == "unmeasured":
         return f'<div class="c15-b">{badge_html("unmeasured", plain(ctx.t(spec.get("text") or "측정 전", 10, f"{where}.text")))}</div>'
     return f'<div class="c15-b">{badge_html("press")}</div>'
@@ -1249,8 +1398,8 @@ def c16(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         items = spec.get("items", [])
         rows = []
         for i, it in enumerate(items):
-            todo = f'<span class="c16-todo"><b>확인 필요</b> {ctx.t(it["todo"], 16, f"{where}.items[{i}].todo")}</span>' if it.get("todo") else ""
-            note = f'<span class="c16-n ax">{ctx.t(it["note"], 22, f"{where}.items[{i}].note")}</span>' if it.get("note") else ""
+            todo = f'<span class="c16-todo"><b>확인 필요</b> {ctx.t(it["todo"], 13, f"{where}.items[{i}].todo")}</span>' if it.get("todo") else ""
+            note = f'<span class="c16-n ax">{ctx.t(it["note"], 20, f"{where}.items[{i}].note")}</span>' if it.get("note") else ""
             rows.append(f'<div class="c16-r"><span class="c16-l">{ctx.t(it.get("label", ""), 22, f"{where}.items[{i}].label")}{note}{todo}</span>'
                         f'<span class="c16-w">{ctx.t(it.get("won", ""), 8, f"{where}.items[{i}].won")}</span></div>')
         total = (f'<div class="c16-t"><span>{esc(spec.get("total_label", "합계"))}</span>'
@@ -1263,7 +1412,7 @@ def c16(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
                    f'<path d="M1 1H{px(rw - 1)}V{px(rh - 1)}{zig}Z" class="c16-paper"/></svg>'
                    f'<div class="c16-in"><p class="c16-hd">{esc(spec.get("title", "주간 운영 비용"))}</p>{"".join(rows)}{total}</div></div>')
         if spec.get("caption"):
-            out.append(f'<p class="c16-cap ax" style="{box_style(0, rh + 8, rw, 30)}">{ctx.t(spec["caption"], 24, f"{where}.caption")}</p>')
+            out.append(f'<p class="c16-cap ax" style="{box_style(0, rh + 8, rw, 30)}">{ctx.t(spec["caption"], 22, f"{where}.caption")}</p>')
     if partname in ("both", "week") and spec.get("week"):
         wk = spec["week"]
         x0 = rw + 80 if partname == "both" else 0
@@ -1280,15 +1429,22 @@ def c16(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
                          f'<b>{dname}</b><span class="c16-mk">{marks}</span></div>')
         daily, sun = wk.get("daily", {}), wk.get("sun", {})
         leg = (f'<p class="c16-lg" style="{box_style(x0, 170, ww, 36)}">{icon("dot", 24, "c16-dot")}'
-               f'<b>{ctx.t(daily.get("time", ""), 6, f"{where}.week.daily.time")}</b> {ctx.t(daily.get("label", ""), 16, f"{where}.week.daily.label")}</p>'
+               f'<b>{ctx.t(daily.get("time", ""), 6, f"{where}.week.daily.time")}</b> {ctx.t(daily.get("label", ""), 15, f"{where}.week.daily.label")}</p>'
                f'<p class="c16-lg" style="{box_style(x0, 214, ww, 36)}">{icon("square", 24, "c16-sq")}'
-               f'<b>{ctx.t(sun.get("time", ""), 6, f"{where}.week.sun.time")}</b> {ctx.t(sun.get("label", ""), 16, f"{where}.week.sun.label")}</p>')
+               f'<b>{ctx.t(sun.get("time", ""), 6, f"{where}.week.sun.time")}</b> {ctx.t(sun.get("label", ""), 15, f"{where}.week.sun.label")}</p>')
+        # manual: 예약 실행이 아니라 필요할 때 사람이 실행하는 일(셋째 범례 줄, 사람 아이콘). 있으면 끝 화살표 글을 한 줄 내린다
+        manual = wk.get("manual")
+        if manual:
+            leg += (f'<p class="c16-lg" style="{box_style(x0, 258, ww, 36)}">{icon("person", 24, "c16-dot")}'
+                    f'<b>{ctx.t(manual.get("label", ""), 10, f"{where}.week.manual.label")}</b> '
+                    f'{ctx.t(manual.get("text", ""), 28, f"{where}.week.manual.text")}</p>')
         after = ""
         if wk.get("after"):
             ax_ = x0 + cw * 6.5
+            ay_ = 310 if manual else 266
             after = (f'<svg class="c16-svg" style="left:0;top:0" width="{px(w)}" height="{px(h)}" aria-hidden="true">'
-                     f'<path d="M{px(ax_)} 152V266" class="c16-arw" marker-end="url(#ah)"/></svg>'
-                     f'<p class="c16-after" style="right:0;top:276px">{ctx.t(wk["after"], 22, f"{where}.week.after")}</p>')
+                     f'<path d="M{px(ax_)} 152V{ay_}" class="c16-arw" marker-end="url(#ah)"/></svg>'
+                     f'<p class="c16-after" style="right:0;top:{ay_ + 10}px">{ctx.t(wk["after"], 20, f"{where}.week.after")}</p>')
         out.append("".join(cells) + leg + after)
     return f'<div class="c16" style="height:{px(h)}px">{"".join(out)}</div>'
 
@@ -1325,7 +1481,7 @@ def c17(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 @part("C18")
 def c18(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     name = spec.get("icon", "doc")
-    label = f'<p class="c18-l">{ctx.t(spec["label"], 14, f"{where}.label")}</p>' if spec.get("label") else ""
+    label = f'<p class="c18-l">{ctx.t(spec["label"], 13, f"{where}.label")}</p>' if spec.get("label") else ""
     lab_h = 44 if label else 0
     if name != "stack" or spec.get("pages") is None:
         size = int(min(w, h - lab_h, spec.get("size", 64)))
@@ -1359,10 +1515,10 @@ def c19(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     cw, ch = cw * k, ch * k
     hero = " hero" if spec.get("hero") else ""
     blocks = spec.get("blocks", ["인수기준", "구성 요약", "예상 질문과 답"])
-    tiny = cw < 160          # 글자를 넣을 수 없는 작은 카드는 회색 막대만
+    tiny = cw < 220          # 글자(22px)를 넣을 수 없는 작은 카드는 회색 막대만(작은 판 180px 은 늘 막대만)
     parts_ = []
     for i, b in enumerate(blocks):
-        label = "" if tiny else "<span>" + ctx.t(b, 8, f"{where}.blocks[{i}]") + "</span>"
+        label = "" if tiny else "<span>" + ctx.t(b, 7, f"{where}.blocks[{i}]") + "</span>"
         parts_.append(f'<div class="c19-bk">{label}<i></i><i></i></div>')
     bl = "".join(parts_)
     head = "" if tiny else esc(spec.get("header", "대외 배포 금지"))
@@ -1377,7 +1533,7 @@ def c19(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 def p_text(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     size = spec.get("size", "m")
     tone = spec.get("tone", "ink")
-    limit = int(spec.get("limit", {"l": 30, "m": 40, "s": 60}.get(size, 40)))
+    limit = int(spec.get("limit", {"l": 30, "m": 40, "s": 50}.get(size, 40)))
     return f'<p class="tx tx-{esc(size)} tone-{esc(tone)}">{ctx.t(spec.get("text", ""), limit, f"{where}.text")}</p>'
 
 
@@ -1401,7 +1557,7 @@ def p_button(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 @part("links")
 def p_links(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     rows = "".join(f'<p class="lk-l">{ctx.t(x.get("l", ""), 8, f"{where}.items[{i}].l")}</p>'
-                   f'<p class="lk-v">{ctx.t(x.get("v", ""), 60, f"{where}.items[{i}].v")}</p>'
+                   f'<p class="lk-v">{ctx.t(x.get("v", ""), 56, f"{where}.items[{i}].v")}</p>'
                    for i, x in enumerate(spec.get("items", [])))
     return f'<div class="lk">{rows}</div>'
 
@@ -1409,6 +1565,126 @@ def p_links(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 # ---------------------------------------------------------------------------
 # 강조와 큰 숫자 세기(장 단위 규칙)
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 인용(디자인 시스템의 인용 슬라이드 SlideQuote 를 블록으로)
+# ---------------------------------------------------------------------------
+@part("quote")
+def p_quote(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
+    """실무자의 말 한 문장을 크게. kind 는 "verbatim"(그대로 옮긴 말, 빨강 큰따옴표) 또는 "gist"(요지, "응답 요지" 칩).
+    실제로 한 말만 verbatim 으로 쓴다. 원문을 저장소에 옮기지 않은 응답은 gist 로 쓴다. 말한 사람은 실명 대신 역할로."""
+    kind = spec.get("kind", "gist")
+    if kind not in ("verbatim", "gist"):
+        ctx.warn(f"{where}.kind", f"{kind!r}: verbatim 이나 gist")
+        kind = "gist"
+    size = " m" if spec.get("size") == "m" else ""
+    hero = " hero" if spec.get("hero") else ""
+    lead = ('<span class="qt-mark" aria-hidden="true">“</span>' if kind == "verbatim"
+            else f'<span class="qt-gist">{ctx.t(spec.get("gist_label", "응답 요지"), 8, f"{where}.gist_label")}</span>')
+    text = ctx.t(spec.get("text", ""), int(spec.get("limit", 60)), f"{where}.text")
+    who = ctx.t(spec.get("who", ""), 24, f"{where}.who")
+    src = ctx.t(spec.get("src", ""), 36, f"{where}.src")
+    cite = " / ".join(x for x in (who, src) if x)
+    ic = f'<span class="qt-ic">{icon(spec["icon"], 40)}</span>' if spec.get("icon") else ""
+    return (f'<figure class="qt{size}{hero}" style="height:{px(h)}px">{lead}<blockquote class="qt-t">{text}</blockquote>'
+            + (f'<figcaption class="qt-cite">{ic}<span>{cite}</span></figcaption>' if cite or ic else "") + '</figure>')
+
+
+# ---------------------------------------------------------------------------
+# 인라인 그림(장 파일 안에 작은 SVG 를 직접 적는 블록)
+# ---------------------------------------------------------------------------
+TOKEN_COLORS = {"#3d3935", "#da291c", "#b92217", "#fdf1ef", "#f6f4f1", "#e9e4dc", "#ffffff", "#fff", "#161616", "#5c5650",
+                "#c9c3be", "#e8e2dd", "none", "currentcolor", "transparent", "url"}
+SVG_FORBIDDEN = [
+    (re.compile(r"<\s*(script|foreignobject|image|iframe|a|style|svg|object|embed)\b", re.I), "쓸 수 없는 요소"),
+    (re.compile(r"\son[a-z]+\s*=", re.I), "이벤트 속성"),
+    (re.compile(r"javascript:|@import|<!", re.I), "스크립트나 외부 참조"),
+    (re.compile(r"url\(\s*(?!#)", re.I), "url() 은 #id 만"),
+    (re.compile(r"""(?:xlink:)?href\s*=\s*["'](?!#)""", re.I), "href 는 #id 만(외부 주소 금지)"),
+]
+ICON_PH = re.compile(r"\{\{icon:([^{}]+)\}\}")
+
+
+@part("svg")
+def p_svg(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
+    """장 파일의 "svg"(도형 마크업, 바깥 <svg> 없이)를 box 크기의 <svg> 안에 넣는다. "vb": [폭, 높이] 는 좌표계(기본은 box 크기).
+    - 글자: <text> 기본 26px(class="aux" 면 22px, 회색). 좌표계 배율을 곱한 화면 크기가 26px(보조 글 22px) 아래면 경고.
+      <text> 하나의 글자 수 상한은 "limit"(기본 24). 자리 표시({{fact:}} 따위)를 쓸 수 있다.
+    - 아이콘: <use href="{{icon:공시 문서}}" x=".." y=".." width="48" height="48"/>(덱 아이콘 사전의 개념 이름이나 아이콘 이름).
+    - 색: class 로 토큰 색(sv-ink, sv-red, sv-muted, sv-line, sv-paper, sv-deep, sv-redbg, 글자는 red, muted, b). 그 밖의 색 값은 경고.
+    - 외부 주소, 스크립트, 이벤트 속성, 이미지, 중첩 <svg> 는 빌드를 멈춘다."""
+    raw = str(spec.get("svg", ""))
+
+    def icon_ref(m: re.Match) -> str:
+        sid = resolve_icon(m.group(1))
+        if sid is None:
+            ctx.errors.append(f"[{ctx.slide}] {where}.svg: 모르는 아이콘 {m.group(1)!r}")
+            return "#i-doc"
+        mark_icon(sid)
+        return "#" + sid
+
+    body = ICON_PH.sub(icon_ref, raw)
+    for rx, why in SVG_FORBIDDEN:
+        m = rx.search(body)
+        if m:
+            ctx.errors.append(f"[{ctx.slide}] {where}.svg: {why}: {body[max(0, m.start() - 10):m.end() + 20]!r}")
+            return ""
+    for m in re.finditer(r"""href=["']#((?:ic|i)-[a-z0-9-]+)["']""", body):
+        sid = m.group(1)
+        kind_, name = sid.split("-", 1)
+        if (kind_ == "ic" and name not in LUCIDE) or (kind_ == "i" and name not in ICONS):
+            ctx.errors.append(f"[{ctx.slide}] {where}.svg: 모르는 아이콘 {sid!r}")
+        else:
+            mark_icon(sid)
+    body = ctx.sub(body)
+    vw, vh = (float(x) for x in spec.get("vb", [w, h]))
+    k = min(w / vw, h / vh) if vw and vh else 1.0
+    limit = int(spec.get("limit", 24))
+    for i, m in enumerate(re.finditer(r"<text\b([^>]*)>(.*?)</text>", body, flags=re.S)):
+        attrs, inner = m.group(1), m.group(2)
+        aux = re.search(r"""class=["'][^"']*\baux\b""", attrs) is not None
+        fs = re.search(r"""font-size\s*[:=]\s*["']?\s*([\d.]+)""", attrs)
+        size = float(fs.group(1)) if fs else (AUX_PX if aux else LABEL_PX)
+        shown = size * k
+        text = plain(inner)
+        if shown < AUX_PX - 0.01:
+            ctx.warn(f"{where}.text[{i}]", f"글자 {shown:.1f}px < {AUX_PX}px: {text[:16]}")
+        elif shown < LABEL_PX - 0.01 and not aux:
+            ctx.warn(f"{where}.text[{i}]", f"글자 {shown:.1f}px < {LABEL_PX}px(보조 글이면 class=\"aux\"): {text[:16]}")
+        if len(text) > limit:
+            ctx.warn(f"{where}.text[{i}]", f"{len(text)}자 > {limit}자: {text[:24]}")
+    for m in re.finditer(r"""font-size\s*[:=]\s*["']?\s*([\d.]+)""", re.sub(r"<text\b[^>]*>", "", body)):
+        if float(m.group(1)) * k < AUX_PX - 0.01:
+            ctx.warn(f"{where}.svg", f"글자 {float(m.group(1)) * k:.1f}px < {AUX_PX}px")
+    for m in re.finditer(r"""(?:fill|stroke|color|stop-color)\s*[:=]\s*["']?\s*(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|[a-z]+)""", body):
+        if m.group(1).lower() not in TOKEN_COLORS:
+            ctx.warn(f"{where}.svg", f"토큰 밖의 색 {m.group(1)}(class 의 토큰 색을 쓴다)")
+    alt = plain(ctx.sub(spec.get("alt", "")))
+    label = f'role="img" aria-label="{esc(alt)}"' if alt else 'aria-hidden="true"'
+    return (f'<svg class="svgb" width="{px(w)}" height="{px(h)}" viewBox="0 0 {px(vw)} {px(vh)}" {label}>{body}</svg>')
+
+
+ICONS_PER_SLIDE = 6        # 디자인 시스템 규칙: 한 화면에 아이콘 6개 이하
+
+
+def count_icons(spec: Any) -> int:
+    """장 파일이 직접 놓은 아이콘 수("icon" 값, 인라인 그림 블록의 아이콘 참조). C2(일곱 단계)와 C20(역할 칩)은 빼고 센다."""
+    if isinstance(spec, dict):
+        if spec.get("use") in ("C2", "C20"):
+            return 0
+        n = 0
+        for k, v in spec.items():
+            if k == "icon" and isinstance(v, str):
+                n += 1
+            elif k == "svg" and isinstance(v, str):
+                n += len(re.findall(r"""href=["']#(?:ic|i)-[a-z0-9-]+""", v)) + len(re.findall(r"\{\{icon:[^{}]+\}\}", v))
+            elif k != "legacy":
+                n += count_icons(v)
+        return n
+    if isinstance(spec, list):
+        return sum(count_icons(v) for v in spec)
+    return 0
+
+
 def count_marks(spec: Any) -> tuple[int, int]:
     """(강조 수, 큰 숫자 수). 강조는 hero 가 참인 곳, 큰 숫자는 C10, C11 블록과 C7 의 big."""
     heroes, bigs = 0, 0

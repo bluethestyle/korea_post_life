@@ -26,7 +26,7 @@
     {
      "label": "자동 실행(GitHub Actions)",
      "won": "{{fact:operating_cost_won}}원",
-     "todo": "무료 범위 확인"
+     "note": "{{ref:github_actions_public_free.short}}"
     },
     {
      "label": "공개 주소(GitHub Pages)",
@@ -44,16 +44,20 @@
      "time": "{{fact:schedule_weekly_close_kst.time}}",
      "label": "주간 마감과 스냅샷"
     },
-    "after": "화면 빌드 → 공개 주소 갱신"
+    "after": "스냅샷을 저장소에 커밋",
+    "manual": {
+     "label": "사람이 실행",
+     "text": "공시 문서 수집, 추출, 매핑, 화면 빌드"
+    }
    }
   },
   {
    "use": "C3",
    "box": [
     640,
-    400,
+    384,
     1120,
-    150
+    190
    ],
    "nodes": [
     {
@@ -66,7 +70,8 @@
      "sub": "인터넷 없이도 볼 수 있음",
      "icon": "doc"
     }
-   ]
+   ],
+   "compact": true
   }
  ],
  "terms": [

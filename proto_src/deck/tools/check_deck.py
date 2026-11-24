@@ -3,8 +3,9 @@
 실행(playwright 가 든 파이썬):
     python tools/check_deck.py <out/index.html> <캡처 폴더>
 
-1920x1080 과 1366x768 두 해상도에서 장마다 PNG 를 남긴다(<폴더>/<해상도>/NN.png). 장마다의 점검 항목은
-tools/shot.py 의 PROBE 와 같다(small, label, overlap, overflow, clipped, outside). 이어서 키보드 이동(→, End, Home),
+1920x1080, 1366x768, 태블릿 크기 1180x820 세 해상도에서 장마다 PNG 를 남긴다(<폴더>/<해상도>/NN.png). 장마다의
+점검 항목은 tools/shot.py 의 PROBE 와 같다(small 22px 미만, label 내용 글 26px 미만, overlap, overflow, clipped, outside,
+태블릿 크기에서는 tiny: 창에 보이는 글자 높이 13px 미만). 이어서 키보드 이동(→, End, Home),
 전체 장 보기(O), 발표자 노트(N)를 눌러 보고, 인쇄(PDF) 쪽수를 잰다.
 """
 import json
@@ -12,7 +13,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from shot import inspect  # noqa: E402
+from shot import TABLET, inspect  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 
@@ -20,7 +21,7 @@ def main(html: str, out: str) -> None:
     path = Path(html)
     out_dir = Path(out)
     report = {}
-    for w, h in ((1920, 1080), (1366, 768)):
+    for w, h in ((1920, 1080), (1366, 768), TABLET):
         report[f"{w}x{h}"] = inspect(path, None, out_dir / f"{w}x{h}", (w, h))
     url = path.resolve().as_uri()
     with sync_playwright() as p:

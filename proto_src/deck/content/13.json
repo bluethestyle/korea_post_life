@@ -4,12 +4,12 @@
  "kind": "video",
  "chapter": 3,
  "status": "video",
- "headline": "회사마다 다른 문서를 하루 무료 한도 안에서 모았습니다",
+ "headline": "공시 문서는 공시실에서 자동으로 받고, 시장 동향은 검색 AI 무료 한도 안에서 모았습니다",
  "video": {
   "part": 2,
   "src": "media/part2.mp4",
   "dur": "{{fact:video_length_label.part2}}",
-  "q": "첫 수집에서 들어온 소식 {{fact:first_collect_news.structured}}건 가운데 {{fact:first_collect_news.out_of_window}}건은 기간 밖이라 코드가 걸렀습니다",
+  "q": "시장 동향(타사 신상품, 개정 보도) {{fact:first_collect_news.structured}}건 중 {{fact:first_collect_news.out_of_window}}건은 기간 밖이라 코드가 걸렀습니다",
   "stills": [
    "part2_1"
   ]
@@ -18,5 +18,5 @@
  "points": [],
  "terms": [],
  "source": "영상: 발표용 애니메이션 2부, 출처: 제출 설명 자료 5, 6절, 진행 기록. 자료 기준 {{asof:image_doc}}",
- "notes": "두 번째 영상은 앞의 두 장에서 말한 원칙이 실제 작업에서 어떻게 움직였는지 보여 줍니다. 앞부분은 쓸 수 있는 자원과 겪은 문제입니다. 검색 AI는 하루 {{fact:daily_limit_search}}회까지만 쓸 수 있었고, 한화손해보험 공시실은 자동 접속을 막았으며, 첫 수집에서는 정형화한 소식 {{fact:first_collect_news.structured}}건 가운데 {{fact:first_collect_news.out_of_window}}건이 수집 기간 밖이라 코드가 버렸습니다. 가운데는 수집 분업입니다. 한 회사로 시범을 만든 뒤 {{fact:disclosure_batch_org_count}}개사의 공시실 접속을 서브에이전트에 나눠 맡기고, 따로 점검했습니다. 끝부분은 글자가 그림인 문서를 서로 다른 AI 둘이 따로 옮겨 맞춰 본 장면으로, {{fact:image_doc.pages}}쪽에서 금액이 어긋난 곳은 {{fact:image_doc.amount_mismatches}}곳이었습니다."
+ "notes": "두 번째 영상은 앞의 두 장에서 말한 원칙이 실제 작업에서 어떻게 움직였는지 보여 줍니다. 모으는 것은 두 가지입니다. 공시 문서(상품요약서와 사업방법서)는 회사마다 공시실 구조가 달라 회사별 접속 모듈(공시실에서 문서를 자동으로 내려받는 프로그램)로 받고, 시장 동향(타사 신상품과 개정 보도)은 검색 AI로 모읍니다. 앞부분은 쓸 수 있는 자원과 겪은 문제입니다. 하루 {{fact:daily_limit_search}}회라는 무료 한도는 시장 동향을 찾는 검색 AI({{fact:models.search}})의 한도이고, 공시 문서 수집과는 관계가 없습니다. 한화손해보험 공시실은 자동 접속을 막았고, 차단을 우회하지 않기로 해 이 회사 문서는 사람이 공시실에서 내려받습니다. 첫 수집에서는 정형화한 시장 동향 {{fact:first_collect_news.structured}}건 가운데 {{fact:first_collect_news.out_of_window}}건이 수집 기간 밖이라 코드의 날짜 확인이 걸렀습니다. 가운데는 수집 분업입니다. {{fact:disclosure_pilot_org}} 한 곳으로 접속 모듈을 시범으로 만들어 검수한 뒤, 나머지 {{fact:disclosure_batch_org_count}}개 회사의 접속 모듈을 서브에이전트에 나눠 맡기고 따로 점검했습니다. 끝부분은 11장에서 본 서로 다른 두 AI의 이중 추출을 글자가 그림인 문서에 적용한 장면입니다."
 }
