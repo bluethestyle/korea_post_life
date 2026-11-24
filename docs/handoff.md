@@ -120,6 +120,22 @@ Antigravity가 이어받을 수 있는 일은 `docs/gemini_requests/20_이어받
 
 - 가입조건 추출을 고칠 때는 실제 추출을 되돌려 돌리는 재현으로 행이 그대로인지 확인합니다(로컬 자료 꾸러미의 `replay/`).
 
+### 삼성생명, KB라이프생명 (행 패키지로 적재)
+
+- Actions 러너에서 두 회사 공시실 접속이 실패합니다(2026-11-24 실행 45308408466, 45308470752. 삼성생명은 목록 조회는 되지만 PDF 다운로드가 417 Expectation Failed, KB라이프생명은 목록 조회 응답이 JSON이 아님). 이 서버에서는 같은 코드가 정상 동작하므로 해외 IP 차단으로 추정하지만 확인하지는 못했습니다. `docs_run`도 Actions에서 문서를 받아야 해서 해결되지 않습니다.
+- 그래서 로컬에서 받은 문서로 행을 만들어 행 패키지(`data/backfill_rows/<회사>_benefits.json`, `<회사>_conditions.json`)로 커밋하고, Actions는 문서 없이 패키지를 검증한 뒤 시트에 씁니다. 패키지는 시트에 들어갈 행 그대로이고(원문 구절 열은 `sys_급부`의 지급횟수제한, 감액예외로 다른 회사와 같음), 대상 설정과 값 파일의 sha256, 문서별 sha256, 행 수를 담습니다. 실행 시각과 로그ID는 쓸 때 채웁니다.
+- 읽는 쪽(`--rows-in`)은 대상 설정과 값 파일의 해시가 체크아웃과 다르면 멈추고, 형식 검사, ID 겹침, 시트의 기존 행과의 관계(가입 한도 잇기, 시트에 있던 주계약 행 쓰기, 빠지는 행 보고)는 문서로 돌 때와 같은 코드(`finish`)로 봅니다. 대상 설정(`data/targets/<회사>.json`)이나 값 파일(`data/crosscheck/<회사>_*_2reader.jsonl`)을 고치면 패키지를 다시 만들어 함께 커밋합니다(`tests/test_row_package.py`가 어긋남을 잡습니다).
+
+```bash
+# 로컬: 패키지 만들기 (문서 폴더는 fetch_disclosure.py --org <회사>의 결과, 시트에 쓰지 않음)
+python scripts/load_reader_product.py --docs <문서 폴더> --org samsunglife --targets data/targets/samsunglife.json --rows-out data/backfill_rows/samsunglife_benefits.json
+python scripts/load_reader_conditions.py --docs <문서 폴더> --org samsunglife --targets data/targets/samsunglife.json --rows-out data/backfill_rows/samsunglife_conditions.json
+# 로컬: 패키지로 흐름 보기 (--dry-run, 또는 --snapshot data/snapshot. 가입조건은 --seed-rows로 급부 패키지를 쓴 뒤의 시트를 볼 수 있음)
+python scripts/load_reader_product.py --rows-in data/backfill_rows/samsunglife_benefits.json --org samsunglife --targets data/targets/samsunglife.json --snapshot data/snapshot
+# Actions: rows_in을 켜고 돌림 (only와 함께 쓰지 않음)
+gh api -X POST repos/bluethestyle/korea_post_life/actions/workflows/extract.yml/dispatches -f ref=main -f 'inputs[org]=samsunglife' -F 'inputs[rows_in]=true'
+```
+
 ## 6. 제미나이와 나눠 한 방식
 
 잘 통한 방식만 적습니다. 요청문 틀은 `docs/gemini_requests/`, 받은 결과는 `data/crosscheck/`.

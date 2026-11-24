@@ -1,4 +1,4 @@
-"""초기 적재의 두 판독(교차 확인)이 판정을 마친 급부 값을, 판정 모델 없이 시트에 쓴다. 첫 회사는 메리츠화재다.
+r"""초기 적재의 두 판독(교차 확인)이 판정을 마친 급부 값을, 판정 모델 없이 시트에 쓴다. 첫 회사는 메리츠화재다.
 
 초기 적재(2026-11-20 결정)는 Gemini API와 판정 모델을 쓰지 않는다. 두 판독자(sonnet, opus)가 표 읽기(extract/tables.py)의
 조각을 따로 읽고, 코드가 둘을 견주고 원문과 대조해, 메인 세션이 판정을 마친 값을 값 파일(data/crosscheck/<회사>_<공시상품코드>_
@@ -41,11 +41,22 @@ benefits_2reader.jsonl, 꼴은 data/crosscheck/README.md)에 둔다. 이 스크�
 --docs는 scripts/fetch_disclosure.py --org <회사>의 결과 폴더다(index.json과 <저장이름>.pdf). 시트 접속 정보가 없어도
 --dry-run은 끝까지 돈다(빈 시트로 본다). --result에는 조각의 문장을 싣지 않는다. --rows(결과물)에는 만들어질 행과 행없음 줄의
 정보가 들어가며, 행의 원문 구절 열(지급횟수제한, 감액예외)이 들어 있으므로 리포에 두지 않는다.
+
+행 패키지(src/postlife/extract/row_package.py). Actions 러너에서 공시실 접속이 막히는 회사(삼성생명, KB라이프생명)는 로컬에서
+받은 문서로 행을 만들어 패키지로 커밋하고, Actions는 문서 없이 패키지를 검증해 쓴다. 패키지는 build(문서로 행 만들기)의 결과이고,
+읽는 길은 build 대신 패키지를 읽어 기존 길과 같은 finish(가입 한도 잇기, 형식 검사, ID 겹침, 작업 기록, 시트에서 빠지는 행)를
+거친다. 패키지의 sys_급부 행에는 시트와 같은 원문 구절 열(지급횟수제한, 감액예외)이 들어 있다. 행없음 줄의 정보는 넣지 않는다.
+
+  python scripts/load_reader_product.py --docs out --org samsunglife --targets data/targets/samsunglife.json \
+      --rows-out data/backfill_rows/samsunglife_benefits.json                                   # 로컬: 패키지 만들기(쓰지 않음)
+  python scripts/load_reader_product.py --rows-in data/backfill_rows/samsunglife_benefits.json --org samsunglife \
+      --targets data/targets/samsunglife.json --result r.json                                   # Actions: 패키지로 시트에 쓰기
 """
 from __future__ import annotations
 
 import argparse
 import collections
+import copy
 import json
 import os
 import sys
@@ -61,6 +72,7 @@ from load_table_product import _drop_bad_benefits, snapshot_store  # noqa: E402 
 from postlife.extract import blocks, job, tables, variants  # noqa: E402
 from postlife.extract import reader_rows as RR  # noqa: E402
 from postlife.extract import rerun as R  # noqa: E402
+from postlife.extract import row_package as P  # noqa: E402
 from postlife.sheets_io import MemoryBackend, SheetStore  # noqa: E402
 from postlife.snapshot import KST  # noqa: E402
 from postlife.validate import NO_AMOUNT_BASES, check_rows  # noqa: E402
@@ -136,6 +148,8 @@ class Loaded(job.Report):
     dropped: dict[str, int] = field(default_factory=dict)                # 탭 → 시트에 있었는데 이번에 빠지는 행 수
     gate_done: set[str] = field(default_factory=set)
     no_amount: dict[str, str] = field(default_factory=dict)              # 금액 없는 급부ID → 작업 로그 사유(판독 사유, 번호, 내용 지문)
+    cover_names: dict[str, list[str]] = field(default_factory=dict)      # 공시상품명 → 급부를 다시 뽑은 종형ID(종형별 다시 뽑음 기록)
+    package: str | None = None                                           # 행 패키지에서 읽었으면 그 경로
 
 
 def value_lines(path: Path) -> list[dict[str, Any]]:
@@ -263,7 +277,17 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
     급부 행의 형식 오류는 그 행만 빼고 쓴다. 상품종형이나 특약에 형식 오류나 ID 겹침이 남거나 dry_run이면 쓰지 않는다.
     대상 설정의 종형에 읽을종이 있으면 그 종이 아닌 조각과 세부보장은 그 종형의 행을 만들지 않는다(variant_pieces). 값 파일에도
     그 줄은 없다(묶음 나누기가 같은 규칙으로 뺀다).
+
+    문서로 행을 만드는 단계(build)와 시트에 맞춰 쓰는 단계(finish)로 나뉜다. 행 패키지(--rows-out)는 build의 결과이고,
+    패키지로 쓰는 길(--rows-in)은 build 대신 패키지를 읽어 같은 finish를 거친다.
     """
+    return finish(store, build(targets, index, docs, values, only, layout), now, dry_run)
+
+
+def build(targets: dict[str, Any], index: list[dict[str, Any]], docs: Path, values: Mapping[str, Path],
+          only: Sequence[str] | None = None, layout: Layout = tables.MERITZ) -> Loaded:
+    """문서와 값 파일로 행을 만든다. 시트를 읽지 않고 실행 시각을 쓰지 않는다(같은 입력이면 같은 행).
+    가입 한도 잇기, 형식 검사, 작업 기록, 시트 쓰기는 finish가 한다."""
     report = Loaded()
     found, problems = variants.build(targets, index)
     report.notes += problems
@@ -271,8 +295,6 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
         found = [v for v in found if v.row["공시상품코드"] in only]
     product = products_of(targets)
     kind_of = kinds_of(targets)
-    sheet = store.read(["sys_특약", "sys_급부", "sys_상품종형", "sys_작업로그"])
-    on_sheet = {r["특약ID"]: r for r in sheet["sys_특약"]}
 
     precise = [v for v in found if not v.gate_only]
     for v in found:
@@ -325,9 +347,6 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
             banned = [x["특약명"] for x in settings.get("갱신형특약제외") or []]
             built = RR.build_rows(v.id, mine, readings, renewal_years(mine, v.plain_renewal_years, banned), pages, other)
             main_renewal(built.riders, v)
-            for r in built.riders:          # 표는 가입 한도를 모른다. 시트에 있던 값을 잇는다(job.run과 같다)
-                old = on_sheet.get(r["특약ID"], {})
-                r.update({c: old.get(c) for c in job.LIMIT_COLUMNS if r.get(c) is None})
             report.rows["sys_상품종형"].append(v.row)
             report.rows["sys_특약"] += built.riders
             report.rows["sys_급부"] += built.benefits
@@ -341,18 +360,25 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
     report.clashes = {tab: sorted(k for k, n in collections.Counter(r[key] for r in report.rows[tab]).items() if n > 1)
                       for tab, key in (("sys_상품종형", "종형ID"), ("sys_특약", "특약ID"), ("sys_급부", "급부ID"))}
     report.clashes = {t: ids for t, ids in report.clashes.items() if ids}
+    for g in report.groups:
+        for v in g.variants:
+            report.cover_names.setdefault(v.row["공시상품명"], []).append(v.id)
+    return report
+
+
+def finish(store: SheetStore, report: Loaded, now: datetime, dry_run: bool = False) -> Loaded:
+    """build(또는 행 패키지)의 행을 시트에 맞춰 쓴다. 시트에 있던 가입 한도를 잇고, 형식 검사에 걸린 급부 행을 빼고, 작업 기록
+    (금액 없는 급부의 추출 기록, 검토 대기 풀기, 종형별 다시 뽑음 기록)을 만들고, 시트에서 빠지는 행을 센다."""
+    sheet = store.read(["sys_특약", "sys_급부", "sys_상품종형", "sys_작업로그"])
+    on_sheet = {r["특약ID"]: r for r in sheet["sys_특약"]}
+    for r in report.rows["sys_특약"]:       # 표는 가입 한도를 모른다. 시트에 있던 값을 잇는다(job.run과 같다)
+        old = on_sheet.get(r["특약ID"], {})
+        r.update({c: old.get(c) for c in job.LIMIT_COLUMNS if r.get(c) is None})
     _drop_bad_benefits(report, now)
 
     log = WorkLog(now, "sys_급부")
-    for b in report.rows["sys_급부"]:       # 금액 없는 급부: 판독의 세부 사유는 시트 값이 아니라 이 기록에 남긴다
-        if b["급부ID"] in report.no_amount and b.get("지급기준구분") in NO_AMOUNT_BASES:
-            log.add("추출", b["급부ID"], "통과", report.no_amount[b["급부ID"]], model=MODEL, column=NO_AMOUNT_COLUMN,
-                    after=b["지급기준구분"])
-    by_name: dict[str, list[str]] = {}
-    for g in report.groups:
-        for v in g.variants:
-            by_name.setdefault(v.row["공시상품명"], []).append(v.id)
-    coverage = [row for name, vids in by_name.items() for row in R.coverage_logs(now, vids, name)]
+    no_amount_logs(log, report)
+    coverage = [row for name, vids in report.cover_names.items() for row in R.coverage_logs(now, vids, name)]
     # 쓴 뒤의 시트에서 검토 대기로 보일 줄(시트에서 검토 대기였던 줄 따위)에 판정 통과를 남긴다. 화면과 재추출은 가장 나중 실행만 본다
     touched = report.done | report.gate_done
     after = [r for r in sheet["sys_상품종형"] if r["종형ID"] not in touched] + report.rows["sys_상품종형"]
@@ -388,6 +414,14 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
 
 
 NO_AMOUNT_COLUMN = "지급기준구분"
+
+
+def no_amount_logs(log: WorkLog, report: Loaded) -> None:
+    """금액 없는 급부: 판독의 세부 사유는 시트 값이 아니라 작업 기록(작업단계 추출, 대상열 지급기준구분)에 남긴다."""
+    for b in report.rows["sys_급부"]:
+        if b["급부ID"] in report.no_amount and b.get("지급기준구분") in NO_AMOUNT_BASES:
+            log.add("추출", b["급부ID"], "통과", report.no_amount[b["급부ID"]], model=MODEL, column=NO_AMOUNT_COLUMN,
+                    after=b["지급기준구분"])
 
 
 def no_amount_reasons(built: RR.Built, readings: Mapping[str, Mapping[str, Any]],
@@ -511,9 +545,73 @@ def result_of(report: Loaded) -> dict[str, Any]:
     }
 
 
+PACKAGE_TABS = TABS_WRITTEN          # 급부 패키지의 행 탭(종형, 특약, 급부)
+_UNSTAMPED = datetime(2000, 1, 1, tzinfo=KST)   # 패키지의 작업 기록을 만들 때만 쓰는 시각. 로그ID와 실행일시는 비워 둔다
+
+
+def package_of(report: Loaded, org: str, targets: Path, value_files: Sequence[Path], index: Sequence[Mapping[str, Any]],
+               root: Path = ROOT) -> dict[str, Any]:
+    """build의 결과를 행 패키지로. 시트에 맞추는 일(가입 한도 잇기, 형식 검사, 검토 대기 풀기, 종형별 다시 뽑음 기록)은 쓸 때
+    finish가 한다. 작업 기록은 금액 없는 급부의 추출 기록만 담고, 로그ID와 실행일시는 비운다(쓸 때 채운다)."""
+    rows = {t: copy.deepcopy(report.rows[t]) for t in PACKAGE_TABS}
+    log = WorkLog(_UNSTAMPED, "sys_급부")
+    no_amount_logs(log, report)
+    logs = [{**r, "로그ID": None, "실행일시": None} for r in log.rows]
+    return {
+        **P.header(P.BENEFITS, org, targets, value_files, index, root),
+        "행수": {**{t: len(rows[t]) for t in PACKAGE_TABS}, "sys_작업로그": len(logs)},
+        "정밀비교종형": sorted(report.done), "관문전용종형": sorted(report.gate_done),
+        "다시뽑은종형": report.cover_names,
+        "종형별": report.counts, "갱신형특약제외": report.excluded,
+        "쓰지않은줄": {g.code: dict(reason_counts(g)) for g in report.groups},
+        "주의": report.notes,
+        "행": rows, "작업로그": logs,
+    }
+
+
+def from_package(package: Mapping[str, Any]) -> Loaded:
+    """행 패키지를 finish에 넣을 Loaded로. 행의 형식 검사는 finish가 하고, ID 겹침은 여기서 다시 센다(패키지 값을 믿지 않는다)."""
+    report = Loaded()
+    rows = package.get("행") or {}
+    for t in PACKAGE_TABS:
+        if not isinstance(rows.get(t), list):
+            raise P.PackageError(f"행 패키지에 {t} 행이 없음")
+        report.rows[t] = copy.deepcopy(rows[t])
+    logs = package.get("작업로그") or []
+    P.check_counts(package, {**{t: len(report.rows[t]) for t in PACKAGE_TABS}, "sys_작업로그": len(logs)})
+    report.done = set(package.get("정밀비교종형") or [])
+    report.gate_done = set(package.get("관문전용종형") or [])
+    on_rows = {r.get("종형ID") for r in report.rows["sys_상품종형"]}
+    if not (report.done | report.gate_done) <= on_rows:
+        raise P.PackageError(f"행 패키지의 종형 목록에 종형 행이 없는 종형이 있음: {sorted((report.done | report.gate_done) - on_rows)}")
+    report.cover_names = {k: list(v) for k, v in (package.get("다시뽑은종형") or {}).items()}
+    report.counts = dict(package.get("종형별") or {})
+    report.excluded = dict(package.get("갱신형특약제외") or {})
+    report.no_amount = {r["대상행ID"]: r["사유"] for r in logs if r.get("작업단계") == "추출" and r.get("대상열") == NO_AMOUNT_COLUMN}
+    report.notes = list(package.get("주의") or [])
+    report.clashes = {tab: sorted(k for k, n in collections.Counter(r.get(key) for r in report.rows[tab]).items() if n > 1)
+                      for tab, key in (("sys_상품종형", "종형ID"), ("sys_특약", "특약ID"), ("sys_급부", "급부ID"))}
+    report.clashes = {t: ids for t, ids in report.clashes.items() if ids}
+    return report
+
+
+def read_package(path: Path, org: str, targets: Path, root: Path = ROOT) -> Loaded:
+    """행 패키지를 읽어 체크아웃된 저장소와 맞춰 본다(row_package.read). 그 회사의 값 파일 묶음이 패키지를 만들 때와 같아야 한다."""
+    try:
+        head = json.loads(Path(path).read_text(encoding="utf-8"))
+        codes = {d.get("상품코드") for d in head.get("문서") or []}
+    except (OSError, ValueError, AttributeError, TypeError):
+        codes = set()                   # 읽지 못하는 패키지는 row_package.read가 사유를 들어 멈춘다
+    expected = [p for p in default_values(org, [{"상품코드": c} for c in codes], root / "data" / "crosscheck").values()
+                if p.exists()]
+    report = from_package(P.read(path, P.BENEFITS, org, targets, root, expected))
+    report.package = str(path)
+    return report
+
+
 def parse(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("--docs", type=Path, required=True, help="fetch_disclosure.py의 결과 폴더(index.json과 요약서 PDF)")
+    p.add_argument("--docs", type=Path, help="fetch_disclosure.py의 결과 폴더(index.json과 요약서 PDF). --rows-in이 없으면 꼭 준다")
     p.add_argument("--targets", type=Path, default=TARGETS)
     p.add_argument("--values", action="append", default=[], metavar="코드=경로",
                    help="공시상품코드의 값 파일. 비우면 data/crosscheck/<회사>_<코드>_benefits_2reader.jsonl")
@@ -524,17 +622,28 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--snapshot", type=Path, help="시트 대신 이 사본 폴더를 읽는다. 시트에 쓰지 않는다")
     p.add_argument("--result", type=Path, help="종형별 줄 수와 쓰지 않은 줄의 사유를 JSON으로 남길 경로")
     p.add_argument("--rows", type=Path, help="만들어질 행과 행없음 줄의 정보를 JSON으로 남길 경로(원문 구절 열이 들어 있음)")
-    return p.parse_args(argv)
+    p.add_argument("--rows-out", type=Path, metavar="패키지",
+                   help="문서로 만든 행을 행 패키지로 남긴다(보통 data/backfill_rows/<회사>_benefits.json). 시트에 쓰지 않는다")
+    p.add_argument("--rows-in", type=Path, metavar="패키지",
+                   help="문서 없이 이 행 패키지의 행을 검증해 쓴다(--docs, --only, --values와 함께 쓰지 않는다)")
+    args = p.parse_args(argv)
+    if args.rows_in and (args.docs or args.only or args.values or args.rows_out):
+        p.error("--rows-in은 --docs, --only, --values, --rows-out과 함께 쓰지 않습니다")
+    if not args.rows_in and not args.docs:
+        p.error("--docs나 --rows-in이 필요합니다")
+    if args.rows_out and args.only:
+        p.error("행 패키지는 회사 전체를 담습니다. --rows-out은 --only와 함께 쓰지 않습니다")
+    return args
 
 
-def default_values(org: str, index: list[dict[str, Any]]) -> dict[str, Path]:
+def default_values(org: str, index: list[dict[str, Any]], folder: Path = CROSSCHECK) -> dict[str, Path]:
     codes = {e["상품코드"] for e in index}
-    return {c: CROSSCHECK / f"{org}_{c}_benefits_2reader.jsonl" for c in sorted(codes)}
+    return {c: folder / f"{org}_{c}_benefits_2reader.jsonl" for c in sorted(codes)}
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse(argv)
-    dry_run = args.dry_run or bool(args.snapshot)
+    dry_run = args.dry_run or bool(args.snapshot) or bool(args.rows_out)
     if args.snapshot:
         store = snapshot_store(args.snapshot)
     else:
@@ -548,14 +657,29 @@ def main(argv: list[str] | None = None) -> int:
             store = SheetStore(RestBackend.from_env())
         else:
             store = SheetStore(MemoryBackend())
-    targets = json.loads(args.targets.read_text(encoding="utf-8"))
-    index = json.loads((args.docs / "index.json").read_text(encoding="utf-8"))
-    values = default_values(args.org, index)
-    for item in args.values:
-        code, _, path = item.partition("=")
-        values[code] = Path(path)
-    report = load(store, targets, index, args.docs, values, datetime.now(KST), dry_run=dry_run, only=args.only,
-                  layout=LAYOUTS[args.org])
+    if args.rows_in:
+        try:
+            built = read_package(args.rows_in, args.org, args.targets)
+        except P.PackageError as e:
+            print("행 패키지를 쓰지 않고 멈춥니다:", e)
+            return 1
+        built.notes.insert(0, f"행 패키지 {args.rows_in}에서 읽음(문서를 받지 않음)")
+    else:
+        targets = json.loads(args.targets.read_text(encoding="utf-8"))
+        index = json.loads((args.docs / "index.json").read_text(encoding="utf-8"))
+        values = default_values(args.org, index)
+        for item in args.values:
+            code, _, path = item.partition("=")
+            values[code] = Path(path)
+        built = build(targets, index, args.docs, values, only=args.only, layout=LAYOUTS[args.org])
+        if args.rows_out:
+            try:
+                package = package_of(built, args.org, args.targets, [p for p in values.values() if p.exists()], index)
+            except P.PackageError as e:
+                print("행 패키지를 만들지 못했습니다:", e)
+                return 1
+            dry_run = True
+    report = finish(store, built, datetime.now(KST), dry_run=dry_run)
 
     text = markdown(report)
     print(text)
@@ -580,6 +704,10 @@ def main(argv: list[str] | None = None) -> int:
     if not (report.done or report.gate_done):
         print("처리한 종형이 없습니다.")
         return 1
+    if args.rows_out:
+        P.write(args.rows_out, package)
+        print(f"행 패키지를 씀: {args.rows_out} ({json.dumps(package['행수'], ensure_ascii=False)})")
+        return 0
     if report.written:
         rows = report.rows
         print(f"시트에 씀: 종형 {len(rows['sys_상품종형'])}, 특약 {len(rows['sys_특약'])}, 급부 {len(rows['sys_급부'])}, "

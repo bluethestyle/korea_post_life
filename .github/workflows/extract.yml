@@ -16,6 +16,12 @@ name: 추출·검증
 # 요약서는 쪽을 넘어 이어지는 표 하나라 tables.py로 조각을 다시 만든다(scripts/dump_tables.py --org kblife와 같다). 한 요약서를
 # 간편심사형(331000106)과 일반심사형(335000106)이 함께 쓰고 값 파일은 코드마다 따로라, 같은 요약서를 쓰는 코드의 값 파일을 이어 쓴다.
 # 입원 특약의 "1일당"은 약관에만 있어(값 파일 판정값의 지급단위근거) 공시 수집이 kblife는 약관도 받는다. 받지 못하면 그 줄만 빠진다.
+# rows_in(행 패키지로 적재): 이 러너에서 공시실 접속이 막히는 회사(samsunglife는 PDF 다운로드가 417, kblife는 목록 응답이 JSON이
+# 아님. 2026-11-24 실행 45308408466, 45308470752)는 문서를 받지 않고, 로컬에서 받은 문서로 만들어 커밋한 행 패키지
+# (data/backfill_rows/<회사>_benefits.json, <회사>_conditions.json)를 읽어 쓴다. 두 적재 스크립트가 --rows-in으로 패키지의 대상
+# 설정 해시와 값 파일 해시를 체크아웃의 파일과 맞춰 보고(다르면 멈춤), 형식 검사, ID 겹침, 시트의 기존 행과의 관계(가입 한도 잇기,
+# 시트에 있던 주계약 행, 빠지는 행 보고)를 문서로 돌 때와 같은 규칙으로 본다. samsunglife와 kblife는 rows_in을 켜고 돌린다.
+# rows_in은 meritz, samsunglife, kblife만 받고 only는 함께 쓰지 않는다(패키지는 회사 전체를 담는다).
 # pdfplumber는 버전을 고정한다. 표 읽기 결과(조각 순번과 글자)가 버전에 따라 달라지면 meritz의 조각 지문과 samsungfire의 대조 자료
 # 번호가 어긋난다. 두 회사의 조각과 대조 자료를 만든 버전(0.11.10)이다. samsunglife와 kblife의 조각도 같은 버전으로 만들었다.
 on:
@@ -39,6 +45,10 @@ on:
       docs_run:
         description: "이미 끝난 '공시 문서 수집' 실행 번호. 주면 공시 사이트에 다시 접속하지 않고 그 실행이 남긴 문서를 쓴다 (사이트가 막혔을 때)"
         required: false
+      rows_in:
+        description: "행 패키지로 적재(data/backfill_rows/<회사>_benefits.json, _conditions.json). 공시 문서를 받지 않는다. samsunglife, kblife는 켜고 돌린다(러너에서 공시실 접속이 막힘). meritz, samsunglife, kblife만, only와 함께 쓰지 않음"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -61,6 +71,7 @@ jobs:
       INPUT_DRY_RUN: ${{ inputs.dry_run }}
       INPUT_PARTS: ${{ inputs.parts }}
       INPUT_DOCS_RUN: ${{ inputs.docs_run }}
+      INPUT_ROWS_IN: ${{ inputs.rows_in }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -70,6 +81,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt pdfplumber==0.11.10
       - name: 공시 문서 받기
+        if: ${{ inputs.rows_in != true }}
         run: |
           if [ -n "$INPUT_DOCS_RUN" ]; then
             gh run download "$INPUT_DOCS_RUN" --repo "$GITHUB_REPOSITORY" -n disclosure -D out
@@ -82,6 +94,18 @@ jobs:
           args=()
           for code in $INPUT_ONLY; do args+=(--only "$code"); done
           if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          if [ "$INPUT_ROWS_IN" = "true" ]; then
+            case "$INPUT_ORG" in
+              meritz|samsunglife|kblife) ;;
+              *) echo "rows_in은 meritz, samsunglife, kblife만 받습니다: $INPUT_ORG"; exit 1 ;;
+            esac
+            if [ -n "$INPUT_ONLY" ]; then echo "rows_in은 only와 함께 쓰지 않습니다(패키지는 회사 전체를 담음)"; exit 1; fi
+            benefits_src=(--rows-in "data/backfill_rows/${INPUT_ORG}_benefits.json")
+            conditions_src=(--rows-in "data/backfill_rows/${INPUT_ORG}_conditions.json")
+          else
+            benefits_src=(--docs out)
+            conditions_src=(--docs out)
+          fi
           if [ "$INPUT_ORG" = "samsungfire" ]; then
             parts=",${INPUT_PARTS// /},"
             if [ "$parts" = ",," ]; then parts=",급부,"; fi
@@ -100,11 +124,11 @@ jobs:
             if [ "$parts" = ",," ]; then parts=",급부,가입조건,"; fi
             ran=0
             if [[ "$parts" == *",급부,"* ]]; then
-              python scripts/load_reader_product.py --docs out --org "$INPUT_ORG" --targets "data/targets/$INPUT_ORG.json" --result result/extract.json --rows result/rows.json "${args[@]}"
+              python scripts/load_reader_product.py "${benefits_src[@]}" --org "$INPUT_ORG" --targets "data/targets/$INPUT_ORG.json" --result result/extract.json --rows result/rows.json "${args[@]}"
               ran=1
             fi
             if [[ "$parts" == *",가입조건,"* ]]; then
-              python scripts/load_reader_conditions.py --docs out --org "$INPUT_ORG" --targets "data/targets/$INPUT_ORG.json" --result result/conditions.json --rows result/condition_rows.json "${args[@]}"
+              python scripts/load_reader_conditions.py "${conditions_src[@]}" --org "$INPUT_ORG" --targets "data/targets/$INPUT_ORG.json" --result result/conditions.json --rows result/condition_rows.json "${args[@]}"
               ran=1
             fi
             if [ "$ran" = 0 ]; then echo "${INPUT_ORG}에서 돌릴 수 있는 부분은 급부, 가입조건입니다: $INPUT_PARTS"; exit 1; fi
