@@ -241,7 +241,7 @@ App.registerTab((function () {
     }
     const why = shownOrgs.slice(0, 4).map(o => txt.stateWhy(o, cell['회사'][o])).filter(Boolean);
     const rep = cell['대표'] && cell['대표'] !== c.baseId ? ` 이 고객군의 우체국 대표 종형은 ${kindN(cell['대표'])}입니다.` : '';
-    return `${who}: ${cell['라벨']}${cell['보조'] ? `(${cell['보조']})` : ''}. ${st}.${rep}${why.length ? ` ${why.join(' ')}.` : ''}${g.sexNote ? ` ${g.sexNote}.` : ''}`;
+    return `${who}: ${dispMap[cell['라벨']] || cell['라벨']}${cell['보조'] ? `(${cell['보조']})` : ''}. ${st}.${rep}${why.length ? ` ${why.join(' ')}.` : ''}${g.sexNote ? ` ${g.sexNote}.` : ''}`;
   }
 
   function composeLine(c) {
@@ -654,7 +654,22 @@ App.registerTab((function () {
       if (ck.checked) sel.add(id); else sel.delete(id);
       body.querySelectorAll(`input[data-act="ins-pick"][data-id="${CSS.escape(id)}"]`).forEach(x => { x.checked = ck.checked; });
       updateRightPreviewWithToggle(id, ck.checked);
-      App.toast(ck.checked ? '응대 화법에 추가했습니다' : '응대 화법에서 제외했습니다');
+      if (innerWidth < 1000) {
+        App.toast(ck.checked ? `응대 화법에 추가했습니다(${fmt(sel.size)}건)` : `응대 화법에서 제외했습니다(${fmt(sel.size)}건)`, {
+          actLabel: '보기',
+          onAct: () => {
+            if (App.state.sel.insight != null) App.unselect({ restoreFocus: false, animate: false });
+            const zr = document.getElementById('z-right');
+            if (zr) {
+              const top = Math.max(0, Math.round(window.scrollY + zr.getBoundingClientRect().top - 36));
+              const beh = (App.motionOn() && Math.abs(top - window.scrollY) <= 1400) ? 'smooth' : 'auto';
+              window.scrollTo({ top, behavior: beh });
+            }
+          },
+        });
+      } else {
+        App.toast(ck.checked ? '응대 화법에 추가했습니다' : '응대 화법에서 제외했습니다');
+      }
     });
 
     body.addEventListener('toggle', e => {
@@ -688,14 +703,16 @@ App.registerTab((function () {
       const zr = document.getElementById('z-right');
       if (zr) {
         const top = Math.max(0, Math.round(window.scrollY + zr.getBoundingClientRect().top - 36));
-        window.scrollTo({ top, behavior: App.motionOn() ? 'smooth' : 'auto' });
+        const beh = (App.motionOn() && Math.abs(top - window.scrollY) <= 1400) ? 'smooth' : 'auto';
+        window.scrollTo({ top, behavior: beh });
       }
     } else if (act === 'ins-go-top') {
       e.stopPropagation();
       const vwEl = document.getElementById('view-insight');
       if (vwEl) {
         const top = Math.max(0, Math.round(window.scrollY + vwEl.getBoundingClientRect().top - 36));
-        window.scrollTo({ top, behavior: App.motionOn() ? 'smooth' : 'auto' });
+        const beh = (App.motionOn() && Math.abs(top - window.scrollY) <= 1400) ? 'smooth' : 'auto';
+        window.scrollTo({ top, behavior: beh });
       }
     }
   });

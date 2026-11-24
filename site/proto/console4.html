@@ -204,7 +204,7 @@ button{cursor:pointer}
   font:600 16px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);letter-spacing:-.03em}
 .tht-val small{font-size:13px;font-weight:600;color:var(--ink-0);margin-left:0}
 @media (max-width:1599px){
-  .top-head{grid-template-columns:minmax(180px,280px) minmax(0,1fr) auto;gap:6px 14px;padding:2px 0 5px}
+  .top-head{grid-template-columns:minmax(180px,410px) minmax(0,1fr) auto;gap:6px 14px;padding:2px 0 5px}
   .th-title{font-size:29px}
   .th-act-btns .btn.sm{padding:0 8px}
   .scope-tgl{padding:0 8px}
@@ -323,7 +323,7 @@ button{cursor:pointer}
 .rtabs{position:relative;display:grid;grid-template-columns:auto repeat(5,minmax(0,1fr));
   background:transparent;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
 .rtabs[hidden]{display:none!important}
-.rtabs.from-home{animation:rtabsShrinkIn 240ms var(--ease)}
+.rtabs.from-home{animation:rtabsShrinkIn 240ms var(--ease-panel)}
 @keyframes rtabsShrinkIn{
   from{opacity:.55;transform:translateY(10px) scaleY(1.12);transform-origin:top center}
   to{opacity:1;transform:none}
@@ -428,6 +428,11 @@ button{cursor:pointer}
 .z-left[hidden]{display:none!important}
 .z-center{position:relative;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;
   scrollbar-width:thin;background:transparent;container-type:inline-size;container-name:zcenter}
+.zc-scroll-cue{position:absolute;left:0;right:0;height:24px;pointer-events:none;z-index:4;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;
+  background:linear-gradient(180deg,transparent 0%,var(--fog-1) 92%);
+  font:600 13px/1 var(--f-ko);color:var(--ink-1)}
+.zc-scroll-cue[hidden]{display:none!important}
 
 /* 화면 전환 시 가로 기준축 높이를 이어 주는 다리 */
 .axis-bridge{position:fixed;left:0;top:0;width:100vw;height:2px;background:var(--axis);pointer-events:none;z-index:28;transform-origin:left top}
@@ -812,9 +817,13 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 .legend dt,.legend dd{margin:0}
 
 .toast{position:fixed;left:50%;bottom:24px;z-index:70;transform:translate(-50%,16px);opacity:0;pointer-events:none;
+  display:inline-flex;align-items:center;gap:10px;
   background:var(--slate-solid);color:#fff;padding:10px 16px;font:600 14px/1.4 var(--f-ko);border-top:3px solid #fff;
   transition:opacity 200ms,transform 200ms var(--ease);max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.on.has-act{pointer-events:auto}
+.toast-act{flex:none;border:1px solid rgba(255,255,255,.55);background:transparent;color:#fff;padding:2px 8px;font:600 13px/1.2 var(--f-ko)}
+.toast-act:hover,.toast-act:focus-visible{background:#fff;color:var(--slate-solid);border-color:#fff}
 body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 .foot{margin-top:8px;padding:6px 0;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
 .foot-disc{min-width:0;flex:1 1 auto}
@@ -1665,7 +1674,9 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   padding:6px 16px;background:var(--panel-lo);border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2);font:600 13px/1.3 var(--f-ko);color:var(--ink-0)}
 #data-modal .cv-tw-bar[hidden]{display:none!important}
 #data-modal .cv-tw-btns{display:inline-flex;align-items:center;gap:6px}
-:is(.cv-modal-root,#print-root) .cv-tw{position:relative;overflow-x:auto;padding:0 10px 6px}
+:root{--cv-sticky-bg:#EAEEF2;--cv-sticky-hover:#DCE2E8}
+:root[data-theme="dark"]{--cv-sticky-bg:#161D25;--cv-sticky-hover:#1F2933}
+:is(.cv-modal-root,#print-root) .cv-tw{position:relative;overflow-x:auto;margin:0 10px;padding:0 0 6px}
 :is(.cv-modal-root,#print-root) .cv-t{width:max-content;min-width:100%}
 :is(.cv-modal-root,#print-root) .cv-t th,:is(.cv-modal-root,#print-root) .cv-t td{padding:7px 7px;vertical-align:middle}
 :is(.cv-modal-root,#print-root) .cv-t thead th{white-space:nowrap}
@@ -1678,7 +1689,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n .sub{margin-left:6px;font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n .flag{left:-6px;top:0}
 @media (min-width:1280px){
-  #data-modal .cv-tw:has(.cv-t.is-compact-orgs){overflow-x:hidden;padding:0 8px 6px}
+  #data-modal .cv-tw:has(.cv-t.is-compact-orgs){overflow-x:hidden;margin:0 8px;padding:0 0 6px}
   #data-modal .cv-t.is-compact-orgs{width:100%;min-width:0;table-layout:fixed}
   #data-modal .cv-t.is-compact-orgs th,#data-modal .cv-t.is-compact-orgs td{padding:6px 5px}
   #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){width:17%;min-width:0}
@@ -1689,18 +1700,18 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   #data-modal .cv-t.is-compact-orgs .cv-vd .vd{padding:0 5px;font-size:13px;max-width:100%;white-space:normal;height:auto;min-height:24px;line-height:1.2}
   #data-modal .cv-t.is-compact-orgs .cv-v{grid-template-columns:minmax(0,1.12fr) auto minmax(0,0.88fr);gap:2px 6px}
 }
-#data-modal .cv-t.is-many-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--panel-t);min-width:178px;max-width:210px}
-#data-modal .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){position:sticky;right:0;z-index:3;background:var(--panel-t);min-width:196px;max-width:244px;padding-right:26px}
+#data-modal .cv-t.is-many-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--cv-sticky-bg);min-width:178px;max-width:210px}
+#data-modal .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){position:sticky;right:0;z-index:3;background:var(--cv-sticky-bg);min-width:196px;max-width:244px;padding-right:26px}
 #data-modal .cv-t.is-many-orgs thead :is(th.cv-n,th.cv-vd-sticky){z-index:4}
 #data-modal .cv-tw.has-more-l .cv-t.is-many-orgs :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
 #data-modal .cv-tw.has-more-r .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){box-shadow:-6px 0 12px -4px rgba(21,29,36,.28);border-left:1px solid var(--line-2)}
-#data-modal .cv-t.is-many-orgs tr.pick:hover :is(td.cv-n,td.cv-vd-sticky){background:var(--panel-lo)}
+#data-modal .cv-t.is-many-orgs tr.pick:hover :is(td.cv-n,td.cv-vd-sticky){background:var(--cv-sticky-hover)}
 #data-modal .cv-gh-pin{position:sticky;left:14px;display:inline-block}
 @media (max-width:1279px){
-  #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--panel-t);min-width:140px;max-width:180px}
+  #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--cv-sticky-bg);min-width:140px;max-width:180px}
   #data-modal .cv-t.is-compact-orgs thead th.cv-n{z-index:4}
   #data-modal .cv-tw.has-more-l .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
-  #data-modal .cv-t.is-compact-orgs tr.pick:hover td.cv-n{background:var(--panel-lo)}
+  #data-modal .cv-t.is-compact-orgs tr.pick:hover td.cv-n{background:var(--cv-sticky-hover)}
 }
 @media (max-width:999px){
   #data-modal .cv-tw-bar{top:-12px;padding:6px 10px}
@@ -1711,10 +1722,10 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   #data-modal .cv-t.is-many-orgs tr.pick:hover td.cv-vd-sticky{background:var(--hover)}
   #data-modal .cv-t :is(th.cv-n,td.cv-n),
   #data-modal .cv-t.is-many-orgs :is(th.cv-n,td.cv-n),
-  #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--panel-t);min-width:112px;max-width:128px}
+  #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--cv-sticky-bg);min-width:112px;max-width:128px}
   #data-modal .cv-t thead th.cv-n{z-index:4}
   #data-modal .cv-tw.has-more-l .cv-t :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
-  #data-modal .cv-t tr.pick:hover td.cv-n{background:var(--panel-lo)}
+  #data-modal .cv-t tr.pick:hover td.cv-n{background:var(--cv-sticky-hover)}
   #data-modal .cv-t td.cv-n .nm{overflow-wrap:anywhere}
   #data-modal .cv-t :is(th.cv-c,td.cv-c){min-width:164px}
 }
@@ -1731,7 +1742,8 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(.cv-modal-root,#print-root) .cv-v .wv{text-align:right}
 :is(.cv-modal-root,#print-root) .cv-v .rv{text-align:left}
 :is(.cv-modal-root,#print-root) .cv-v.hd span{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
-:is(.cv-modal-root,#print-root) .cv-v.has-x .pv::after{content:"";display:inline-block;width:5px;height:5px;margin-left:4px;vertical-align:2px;border:1px solid currentColor;transform:rotate(45deg)}
+:is(.cv-modal-root,#print-root) .cv-v .pv-nw{white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-v .pv-x{display:inline-block;width:5px;height:5px;margin-left:4px;vertical-align:2px;border:1px solid currentColor;transform:rotate(45deg)}
 :is(.cv-modal-root,#print-root) .cv-x{display:inline-block;padding:1px 8px;font:400 13px/1.6 var(--f-body);color:var(--ink-1);border:1px dashed var(--dash);
   background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
 :is(.cv-modal-root,#print-root) .cv-x.wait{background:transparent;border-color:var(--unknown-edge);color:var(--unknown-ink)}
@@ -1834,7 +1846,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(#z-right,.ev) .rl-lb.rep{border-width:2px;border-color:var(--ink-0)}
 
 @media print{
-  #print-root .cvj-w,#print-root .cv-tw,#print-root .cv-pd-t{overflow:visible;padding:0}
+  #print-root .cvj-w,#print-root .cv-tw,#print-root .cv-pd-t{overflow:visible;margin:0;padding:0}
   #print-root .cvj{min-width:0;grid-template-columns:110px repeat(6,minmax(0,1fr))}
   #print-root .cvj-c{min-height:0;padding:4px 6px;background:#fff!important;box-shadow:inset 0 0 0 1px #ccc}
   #print-root .cvj-ch,#print-root .cv-ch,#print-root .lrow-chev,#print-root .cv-tools{display:none!important}
@@ -3740,7 +3752,10 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (innerEl && innerEl._bandAnim) { innerEl._bandAnim.cancel(); innerEl._bandAnim = null; }
     for (const b of (list || [])) {
       if (b && b._bandShiftAnim) { b._bandShiftAnim.cancel(); b._bandShiftAnim = null; }
+      if (b) b.style.transformOrigin = '';
     }
+    const bd = $('#board');
+    if (bd) bd.style.overflow = '';
   }
 
   function animateTopBand(el, innerSel, open) {
@@ -3753,26 +3768,41 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       el._closingBand = false;
       el.hidden = !open;
       placeGuides();
+      syncZcScrollCue();
       requestAnimationFrame(() => updateSelLink(false));
       return;
     }
+    const bd = $('#board');
     if (open) {
       el._closingBand = false;
-      const beforeTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      const beforeBox = new Map(below.map(b => {
+        const r = b.getBoundingClientRect();
+        return [b, { top: r.top, height: r.height, bot: r.bottom }];
+      }));
       el.hidden = false;
+      const afterBox = new Map(below.map(b => {
+        const r = b.getBoundingClientRect();
+        return [b, { top: r.top, height: r.height, bot: r.bottom }];
+      }));
       let maxShift = el.offsetHeight || 0;
-      const dyMap = new Map();
+      const deltaMap = new Map();
       for (const b of below) {
-        const dy = beforeTop.get(b) - b.getBoundingClientRect().top;
-        dyMap.set(b, dy);
-        if (Math.abs(dy) > maxShift) maxShift = Math.abs(dy);
+        const bef = beforeBox.get(b);
+        const aft = afterBox.get(b);
+        const dy = bef.top - aft.top;
+        const dbot = bef.bot - aft.bot;
+        const sy = (aft.height > 1 && bef.height > 1 && Math.abs(bef.height - aft.height) >= 0.5)
+          ? (bef.height / aft.height) : 1;
+        deltaMap.set(b, { dy, sy });
+        maxShift = Math.max(maxShift, Math.abs(dy), Math.abs(dbot));
       }
       const { dur, easing } = panelTiming(true, maxShift);
-      if (!dur) { placeGuides(); requestAnimationFrame(() => updateSelLink(false)); return; }
+      if (!dur) { placeGuides(); syncZcScrollCue(); requestAnimationFrame(() => updateSelLink(false)); return; }
+      if (bd && !bd.hidden) bd.style.overflow = 'visible';
       el._bandAnim = el.animate([
         { clipPath: 'inset(0% 0% 100% 0%)' },
         { clipPath: 'inset(0% 0% 0% 0%)' },
-      ], { duration: dur, easing });
+      ], { duration: dur, easing, fill: 'forwards' });
       if (innerEl && typeof innerEl.animate === 'function') {
         innerEl._bandAnim = innerEl.animate([
           { opacity: 0, offset: 0 },
@@ -3781,65 +3811,82 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         ], { duration: dur, easing });
       }
       for (const b of below) {
-        const dy = dyMap.get(b) || 0;
-        if (Math.abs(dy) >= 0.5 && typeof b.animate === 'function') {
+        const { dy, sy } = deltaMap.get(b) || { dy: 0, sy: 1 };
+        if ((Math.abs(dy) >= 0.5 || Math.abs(sy - 1) >= 0.002) && typeof b.animate === 'function') {
+          b.style.transformOrigin = '0 0';
           b._bandShiftAnim = b.animate([
-            { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
-            { transform: 'translate3d(0,0,0)' },
+            { transform: `translate3d(0,${dy.toFixed(2)}px,0) scaleY(${sy.toFixed(5)})` },
+            { transform: 'translate3d(0,0,0) scaleY(1)' },
           ], { duration: dur, easing });
         }
       }
       el._bandAnim.onfinish = () => {
         if (token !== el._bandTok) return;
-        el._bandAnim = null;
+        cancelBandAnims(el, innerEl, below);
         placeGuides();
         updateSelLink(false);
+        syncZcScrollCue();
       };
       placeGuides();
       requestAnimationFrame(() => updateSelLink(false));
     } else {
       if (el.hidden) return;
       el._closingBand = true;
-      const curTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      const curBox = new Map(below.map(b => {
+        const r = b.getBoundingClientRect();
+        return [b, { top: r.top, height: r.height, bot: r.bottom }];
+      }));
       const prevH = el.offsetHeight || 0;
       el.hidden = true;
-      const targetTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      const targetBox = new Map(below.map(b => {
+        const r = b.getBoundingClientRect();
+        return [b, { top: r.top, height: r.height, bot: r.bottom }];
+      }));
       el.hidden = false;
       let maxShift = prevH;
+      const deltaMap = new Map();
       for (const b of below) {
-        const dy = (targetTop.get(b) || 0) - (curTop.get(b) || 0);
-        if (Math.abs(dy) > maxShift) maxShift = Math.abs(dy);
+        const cur = curBox.get(b);
+        const tgt = targetBox.get(b);
+        const dy = tgt.top - cur.top;
+        const dbot = tgt.bot - cur.bot;
+        const sy = (cur.height > 1 && tgt.height > 1 && Math.abs(tgt.height - cur.height) >= 0.5)
+          ? (tgt.height / cur.height) : 1;
+        deltaMap.set(b, { dy, sy });
+        maxShift = Math.max(maxShift, Math.abs(dy), Math.abs(dbot));
       }
       const { dur, easing } = panelTiming(false, maxShift);
-      if (!dur) { el._closingBand = false; el.hidden = true; placeGuides(); return; }
+      if (!dur) { el._closingBand = false; el.hidden = true; placeGuides(); syncZcScrollCue(); return; }
+      if (bd && !bd.hidden) bd.style.overflow = 'visible';
       el._bandAnim = el.animate([
         { clipPath: 'inset(0% 0% 0% 0%)' },
         { clipPath: 'inset(0% 0% 100% 0%)' },
-      ], { duration: dur, easing });
+      ], { duration: dur, easing, fill: 'forwards' });
       if (innerEl && typeof innerEl.animate === 'function') {
         innerEl._bandAnim = innerEl.animate([
           { opacity: 1, offset: 0 },
           { opacity: 0, offset: 0.55 },
           { opacity: 0, offset: 1 },
-        ], { duration: dur, easing });
+        ], { duration: dur, easing, fill: 'forwards' });
       }
       for (const b of below) {
-        const dy = targetTop.get(b) - curTop.get(b);
-        if (Math.abs(dy) >= 0.5 && typeof b.animate === 'function') {
+        const { dy, sy } = deltaMap.get(b) || { dy: 0, sy: 1 };
+        if ((Math.abs(dy) >= 0.5 || Math.abs(sy - 1) >= 0.002) && typeof b.animate === 'function') {
+          b.style.transformOrigin = '0 0';
           b._bandShiftAnim = b.animate([
-            { transform: 'translate3d(0,0,0)' },
-            { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
-          ], { duration: dur, easing });
+            { transform: 'translate3d(0,0,0) scaleY(1)' },
+            { transform: `translate3d(0,${dy.toFixed(2)}px,0) scaleY(${sy.toFixed(5)})` },
+          ], { duration: dur, easing, fill: 'forwards' });
         }
       }
       el._bandAnim.onfinish = () => {
         if (token !== el._bandTok) return;
         el._closingBand = false;
-        el._bandAnim = null;
-        cancelBandAnims(null, innerEl, below);
+        cancelBandAnims(el, innerEl, below);
         el.hidden = true;
         placeGuides();
         updateSelLink(false);
+        syncZcScrollCue();
       };
     }
   }
@@ -4419,7 +4466,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const nav = $('#lpath');
     if (!nav) return;
     if (st.tab === 'brief') {
-      nav.innerHTML = `<span class="lp-cur">${esc(cp('homePathRoot'))}</span>`;
+      nav.innerHTML = `<span class="lp-cur" title="${esc(cp('homePathRoot'))}">${esc(cp('homePathRoot'))}</span>`;
       return;
     }
     const t = tabs[st.tab];
@@ -4435,7 +4482,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }
     nav.innerHTML = parts.map((label, idx) => {
       const last = idx === parts.length - 1;
-      if (last) return `<span class="lp-cur">${esc(label)}</span>`;
+      if (last) return `<span class="lp-cur" title="${esc(label)}">${esc(label)}</span>`;
       return `<button type="button" class="lp-b" data-path-idx="${idx}">${esc(label)}</button><span class="lp-sep" aria-hidden="true">&gt;</span>`;
     }).join('');
   }
@@ -4526,18 +4573,53 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     document.documentElement.style.setProperty('--bg-px', `${(idx - 1) * -12}px`);
   }
 
+  let tabOutToken = 0;
+  let tabOutCleanups = [];
+  function clearTabOutStyle(el) {
+    if (!el) return;
+    el.style.position = '';
+    el.style.left = '';
+    el.style.right = '';
+    el.style.top = '';
+    el.style.width = '';
+    el.style.removeProperty('height');
+    el.style.pointerEvents = '';
+    el.style.zIndex = '';
+    el.style.overflow = '';
+  }
+  function cleanupTabOutAnims() {
+    tabOutToken++;
+    const list = tabOutCleanups;
+    tabOutCleanups = [];
+    for (const fn of list) {
+      try { fn(); } catch (e) { /* */ }
+    }
+  }
+
   function renderActiveScreen(c, why) {
+    cleanupTabOutAnims();
     const curC = c || ctx();
     const isTabSwitch = why === 'tab' && booted && activeRenderedTab !== st.tab;
     const snap = isTabSwitch ? snapScreenTransition(activeRenderedTab, st.tab) : null;
     activeRenderedTab = st.tab;
-    applyBgParallax(st.tab);
-    renderRingTabs(curC, snap);
     const isHome = st.tab === 'brief';
     const homePanel = $('#home-panel');
     const board = $('#board');
-    homePanel.hidden = !isHome;
-    board.hidden = isHome;
+    const canTabOut = !!(snap && motionOn());
+    const outClose = canTabOut ? panelTiming(false) : null;
+    const outDur = outClose ? Math.max(90, Math.min(200, Math.round(outClose.dur * 0.6))) : 0;
+    const outEase = outClose ? outClose.easing : 'linear';
+    const hpRect = (canTabOut && snap.fromTab === 'brief' && !isHome && homePanel && !homePanel.hidden)
+      ? homePanel.getBoundingClientRect() : null;
+    const bdRect = (canTabOut && snap.fromTab !== 'brief' && isHome && board && !board.hidden)
+      ? board.getBoundingClientRect() : null;
+    const fadeOutHome = !!(hpRect && hpRect.height > 0 && outDur > 0 && typeof homePanel.animate === 'function');
+    const fadeOutBoard = !!(bdRect && bdRect.height > 0 && outDur > 0 && typeof board.animate === 'function');
+
+    applyBgParallax(st.tab);
+    renderRingTabs(curC, snap);
+    if (!fadeOutHome) homePanel.hidden = !isHome;
+    if (!fadeOutBoard) board.hidden = isHome;
 
     if (isHome) {
       hideEv();
@@ -4549,10 +4631,34 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       syncHeaderAndPath(curC);
       renderActBar(curC);
       placeGuides();
+      syncZcScrollCue();
+      if (fadeOutBoard) {
+        const tok = tabOutToken;
+        board.hidden = false;
+        board.style.position = 'fixed';
+        board.style.left = `${bdRect.left}px`;
+        board.style.top = `${bdRect.top}px`;
+        board.style.width = `${bdRect.width}px`;
+        board.style.setProperty('height', `${bdRect.height}px`, 'important');
+        board.style.pointerEvents = 'none';
+        board.style.zIndex = '2';
+        board.style.overflow = 'hidden';
+        const finishBoardOut = () => {
+          if (board._tabOutAnim) { board._tabOutAnim.cancel(); board._tabOutAnim = null; }
+          clearTabOutStyle(board);
+          if (st.tab === 'brief') board.hidden = true;
+        };
+        tabOutCleanups.push(finishBoardOut);
+        board._tabOutAnim = board.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
+        board._tabOutAnim.onfinish = () => {
+          if (tok !== tabOutToken) return;
+          finishBoardOut();
+        };
+      }
       if (snap) {
         if (motionOn() && typeof homePanel.animate === 'function') {
           const { dur, easing } = panelTiming(true);
-          if (dur > 0) homePanel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+          if (dur > 0) homePanel.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: dur, easing });
         }
         playAxisBridge(snap.axis, findVisibleMainAxis('brief'));
         playReturnRingToHome(snap);
@@ -4560,17 +4666,49 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       return;
     }
 
-    if (!isHome && homePanel.innerHTML) homePanel.innerHTML = '';
+    if (!isHome && !fadeOutHome && homePanel.innerHTML) homePanel.innerHTML = '';
+    if (fadeOutHome) {
+      const tok = tabOutToken;
+      homePanel.hidden = false;
+      homePanel.style.position = 'fixed';
+      homePanel.style.left = `${hpRect.left}px`;
+      homePanel.style.top = `${hpRect.top}px`;
+      homePanel.style.width = `${hpRect.width}px`;
+      homePanel.style.height = `${hpRect.height}px`;
+      homePanel.style.pointerEvents = 'none';
+      homePanel.style.zIndex = '2';
+      homePanel.style.overflow = 'hidden';
+      const finishHomeOut = () => {
+        if (homePanel._tabOutAnim) { homePanel._tabOutAnim.cancel(); homePanel._tabOutAnim = null; }
+        clearTabOutStyle(homePanel);
+        if (st.tab !== 'brief') {
+          homePanel.hidden = true;
+          homePanel.innerHTML = '';
+        }
+      };
+      tabOutCleanups.push(finishHomeOut);
+      homePanel._tabOutAnim = homePanel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
+      homePanel._tabOutAnim.onfinish = () => {
+        if (tok !== tabOutToken) return;
+        finishHomeOut();
+      };
+    }
+
+    ensureLegacySections();
+    const prevTabId = (canTabOut && snap.fromTab !== 'brief' && snap.fromTab !== st.tab && outDur > 0) ? snap.fromTab : null;
+    const prevView = prevTabId ? viewOf(prevTabId) : null;
+    const pvRect = (prevView && !prevView.hidden) ? prevView.getBoundingClientRect() : null;
+    const fadeOutView = !!(prevView && pvRect && pvRect.height > 0 && typeof prevView.animate === 'function');
+
     const lay = boardLayoutFor(st.tab);
     board.dataset.layout = lay;
     board.dataset.tab = st.tab;
     const zl = $('#z-left');
     if (zl) zl.hidden = lay !== 'three';
 
-    ensureLegacySections();
     for (const x of SCREEN_IDS) {
       const v = viewOf(x);
-      if (v) v.hidden = x !== st.tab;
+      if (v) v.hidden = x !== st.tab && !(fadeOutView && x === prevTabId);
     }
 
     const id = st.tab;
@@ -4622,14 +4760,38 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     applySelectionState(false, curC);
     renderActBar(curC);
     placeGuides();
+    syncZcScrollCue();
+    if (fadeOutView) {
+      const tok = tabOutToken;
+      prevView.hidden = false;
+      prevView.style.position = 'absolute';
+      prevView.style.left = '0';
+      prevView.style.top = '0';
+      prevView.style.width = `${pvRect.width}px`;
+      prevView.style.height = `${pvRect.height}px`;
+      prevView.style.overflow = 'hidden';
+      prevView.style.pointerEvents = 'none';
+      prevView.style.zIndex = '0';
+      const finishViewOut = () => {
+        if (prevView._tabOutAnim) { prevView._tabOutAnim.cancel(); prevView._tabOutAnim = null; }
+        clearTabOutStyle(prevView);
+        if (st.tab !== prevTabId) prevView.hidden = true;
+      };
+      tabOutCleanups.push(finishViewOut);
+      prevView._tabOutAnim = prevView.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
+      prevView._tabOutAnim.onfinish = () => {
+        if (tok !== tabOutToken) return;
+        finishViewOut();
+      };
+    }
     if (snap) {
       if (motionOn()) {
         const { dur, easing } = panelTiming(true);
         if (dur > 0) {
-          if (sec && typeof sec.animate === 'function') sec.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+          if (sec && typeof sec.animate === 'function') sec.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: dur, easing });
           const zr = $('#z-right');
-          if (zr && !zr.hidden && typeof zr.animate === 'function') zr.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
-          if (zl && !zl.hidden && typeof zl.animate === 'function') zl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+          if (zr && !zr.hidden && typeof zr.animate === 'function') zr.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: dur, easing });
+          if (zl && !zl.hidden && typeof zl.animate === 'function') zl.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: dur, easing });
         }
       }
       playAxisBridge(snap.axis, findVisibleMainAxis(id));
@@ -4685,6 +4847,35 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (!body || !more) return;
     const over = body.scrollHeight - body.clientHeight > 6 && body.scrollTop + body.clientHeight < body.scrollHeight - 6;
     more.hidden = !over;
+  }
+
+  function syncZcScrollCue() {
+    const board = $('#board'), zc = $('#z-center');
+    if (!board) return;
+    let cue = $('#zc-scroll-cue', board);
+    const show = !!(
+      st.tab === 'cover' &&
+      mode() !== 'sheet' &&
+      !board.hidden &&
+      zc &&
+      zc.scrollHeight - zc.clientHeight > 2 &&
+      zc.scrollTop + zc.clientHeight < zc.scrollHeight - 3
+    );
+    if (!show) {
+      if (cue) cue.hidden = true;
+      return;
+    }
+    if (!cue) {
+      cue = document.createElement('div');
+      cue.className = 'zc-scroll-cue';
+      cue.id = 'zc-scroll-cue';
+      cue.hidden = true;
+      cue.setAttribute('aria-hidden', 'true');
+      cue.innerHTML = '<span>아래로 스크롤해 기준선과 이름표 보기</span>';
+      board.appendChild(cue);
+    }
+    cue.style.top = (zc.offsetTop + zc.clientHeight - 24) + 'px';
+    cue.hidden = false;
   }
 
   function hideSelGlide() {
@@ -4869,6 +5060,16 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   }
 
   let evAnimToken = 0;
+  function clearUnselStyle(unsel) {
+    if (!unsel) return;
+    unsel.style.position = '';
+    unsel.style.inset = '';
+    unsel.style.left = '';
+    unsel.style.right = '';
+    unsel.style.top = '';
+    unsel.style.pointerEvents = '';
+    unsel.style.zIndex = '';
+  }
   function cancelEvAnims(zr, zrIn, body) {
     const unsel = $('#ev-unselected'), zc = $('#z-center');
     if (zr && zr._evAnim) { zr._evAnim.cancel(); zr._evAnim = null; }
@@ -4884,12 +5085,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       zr.style.top = '';
       zr.style.zIndex = '';
     }
-    if (unsel) {
-      unsel.style.position = '';
-      unsel.style.inset = '';
-      unsel.style.pointerEvents = '';
-      unsel.style.zIndex = '';
-    }
+    clearUnselStyle(unsel);
     if (zc) zc.style.clipPath = '';
   }
 
@@ -4905,13 +5101,19 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const isBand = !!(board && board.dataset.layout === 'band' && mode() !== 'sheet');
     const beforeZrTop = (!wasPicked && isBand && canAnim) ? zr.getBoundingClientRect().top : null;
     const beforeZcH = (!wasPicked && isBand && canAnim && zc) ? zc.getBoundingClientRect().height : null;
-    const fadeUnsel = !wasPicked && !isBand && canAnim && unsel && !unsel.hidden && typeof unsel.animate === 'function';
+    const fadeUnsel = !wasPicked && canAnim && unsel && !unsel.hidden && typeof unsel.animate === 'function';
     zr.classList.remove('has-default-panel');
     zr.classList.add('is-picked');
     if (unsel) {
       if (fadeUnsel) {
         unsel.style.position = 'absolute';
-        unsel.style.inset = '0';
+        if (isBand) {
+          unsel.style.left = '0';
+          unsel.style.right = '0';
+          unsel.style.top = '-2px';
+        } else {
+          unsel.style.inset = '0';
+        }
         unsel.style.pointerEvents = 'none';
         unsel.style.zIndex = '0';
       } else {
@@ -4951,14 +5153,26 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
           }
           const kfZr = Math.abs(rawDy) >= 1
             ? [
-                { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 100% 0)' },
+                { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 calc(100% - 36px) 0)' },
                 { transform: 'translate3d(0,0,0)', clipPath: 'inset(0 0 0% 0)' },
               ]
             : [
-                { clipPath: 'inset(0 0 100% 0)' },
+                { clipPath: 'inset(0 0 calc(100% - 36px) 0)' },
                 { clipPath: 'inset(0 0 0% 0)' },
               ];
           zr._evAnim = zr.animate(kfZr, { duration: dur, easing });
+          if (fadeUnsel) {
+            unsel._evAnim = unsel.animate([
+              { opacity: 1 },
+              { opacity: 0 },
+            ], { duration: Math.min(220, Math.round(dur * 0.4)), easing, fill: 'forwards' });
+            unsel._evAnim.onfinish = () => {
+              if (token !== evAnimToken) return;
+              if (unsel._evAnim) { unsel._evAnim.cancel(); unsel._evAnim = null; }
+              unsel.hidden = true;
+              clearUnselStyle(unsel);
+            };
+          }
           zrIn._evAnim = zrIn.animate([
             { transform: 'scaleY(0)', opacity: 0 },
             { transform: 'scaleY(1)', opacity: 1 },
@@ -4966,7 +5180,9 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
           zrIn._evAnim.onfinish = () => {
             if (token !== evAnimToken) return;
             cancelEvAnims(zr, zrIn, body);
+            if (unsel) unsel.hidden = true;
             syncRightScrollCue();
+            syncZcScrollCue();
             updateSelLink(false);
           };
         } else {
@@ -4974,15 +5190,12 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
             unsel._evAnim = unsel.animate([
               { opacity: 1, transform: 'translate3d(0,0,0)' },
               { opacity: 0, transform: 'translate3d(-10px,0,0)' },
-            ], { duration: dur, easing });
+            ], { duration: dur, easing, fill: 'forwards' });
             unsel._evAnim.onfinish = () => {
               if (token !== evAnimToken) return;
-              unsel._evAnim = null;
+              if (unsel._evAnim) { unsel._evAnim.cancel(); unsel._evAnim = null; }
               unsel.hidden = true;
-              unsel.style.position = '';
-              unsel.style.inset = '';
-              unsel.style.pointerEvents = '';
-              unsel.style.zIndex = '';
+              clearUnselStyle(unsel);
             };
           }
           zrIn._evAnim = zrIn.animate([
@@ -4998,21 +5211,15 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       } else {
         if (fadeUnsel && unsel) {
           unsel.hidden = true;
-          unsel.style.position = '';
-          unsel.style.inset = '';
-          unsel.style.pointerEvents = '';
-          unsel.style.zIndex = '';
+          clearUnselStyle(unsel);
         }
         staggerEvLines(zrIn);
       }
     } else if (fadeUnsel && unsel) {
       unsel.hidden = true;
-      unsel.style.position = '';
-      unsel.style.inset = '';
-      unsel.style.pointerEvents = '';
-      unsel.style.zIndex = '';
+      clearUnselStyle(unsel);
     }
-    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(animate === true); });
+    requestAnimationFrame(() => { syncRightScrollCue(); syncZcScrollCue(); updateSelLink(animate === true); });
   }
 
   function unselectedConclusion(c) {
@@ -5084,13 +5291,20 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         unsel.hidden = false;
         const targetTop = zr.getBoundingClientRect().top;
         const zcTargetH = zc ? zc.getBoundingClientRect().height : 0;
-        unsel.hidden = true;
         zrIn.hidden = false;
         zr.classList.add('is-picked');
         const rawDy = targetTop - curTop;
         const zcGrow = zcTargetH - zcCurH;
         const closeDist = Math.max(zr.offsetHeight || 0, Math.abs(rawDy));
-        const { dur: bandDur, easing: bandEasing } = panelTiming(false, closeDist);
+        const { dur: rawBandDur, easing: bandEasing } = panelTiming(false, closeDist);
+        const bandDur = Math.min(585, rawBandDur);
+        unsel.hidden = false;
+        unsel.style.position = 'absolute';
+        unsel.style.left = '0';
+        unsel.style.right = '0';
+        unsel.style.top = '-2px';
+        unsel.style.pointerEvents = 'none';
+        unsel.style.zIndex = '0';
         if (Math.abs(rawDy) >= 1 && zc && zcGrow >= 1) {
           const bTop = board.getBoundingClientRect().top;
           zr.style.position = 'absolute';
@@ -5101,27 +5315,46 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
           zc._evAnim = zc.animate([
             { clipPath: `inset(0 0 ${zcGrow.toFixed(2)}px 0)` },
             { clipPath: 'inset(0 0 0px 0)' },
-          ], { duration: bandDur, easing: bandEasing });
+          ], { duration: bandDur, easing: bandEasing, fill: 'forwards' });
         }
         const kfZr = Math.abs(rawDy) >= 1
           ? [
               { transform: 'translate3d(0,0,0)', clipPath: 'inset(0 0 0% 0)' },
-              { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 100% 0)' },
+              { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 calc(100% - 36px) 0)' },
             ]
           : [
               { clipPath: 'inset(0 0 0% 0)' },
-              { clipPath: 'inset(0 0 100% 0)' },
+              { clipPath: 'inset(0 0 calc(100% - 36px) 0)' },
             ];
-        zr._evAnim = zr.animate(kfZr, { duration: bandDur, easing: bandEasing });
+        zr._evAnim = zr.animate(kfZr, { duration: bandDur, easing: bandEasing, fill: 'forwards' });
         zrIn._evAnim = zrIn.animate([
           { transform: 'scaleY(1)', opacity: 1 },
           { transform: 'scaleY(0)', opacity: 0 },
-        ], { duration: bandDur, easing: bandEasing });
+        ], { duration: bandDur, easing: bandEasing, fill: 'forwards' });
+        if (typeof unsel.animate === 'function') {
+          unsel._evAnim = unsel.animate([
+            { opacity: 0, offset: 0 },
+            { opacity: 0, offset: 0.45 },
+            { opacity: 1, offset: 1 },
+          ], { duration: bandDur, easing: bandEasing, fill: 'forwards' });
+        }
       } else {
+        unsel.hidden = false;
+        unsel.style.position = 'absolute';
+        unsel.style.inset = '0';
+        unsel.style.pointerEvents = 'none';
+        unsel.style.zIndex = '0';
+        if (typeof unsel.animate === 'function') {
+          unsel._evAnim = unsel.animate([
+            { opacity: 0, offset: 0 },
+            { opacity: 0, offset: 0.45 },
+            { opacity: 1, offset: 1 },
+          ], { duration: dur, easing, fill: 'forwards' });
+        }
         zrIn._evAnim = zrIn.animate([
           { opacity: 1, transform: 'translate3d(0,0,0)' },
           { opacity: 0, transform: 'translate3d(16px,0,0)' },
-        ], { duration: dur, easing });
+        ], { duration: dur, easing, fill: 'forwards' });
       }
       zrIn._evAnim.onfinish = () => {
         if (token !== evAnimToken) return;
@@ -5131,10 +5364,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         syncEvBackBtn();
         zrIn.hidden = true;
         unsel.hidden = false;
-        populateUnselectedEv(zr, unsel, ctx());
-        if (typeof unsel.animate === 'function' && motionOn()) {
-          unsel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: Math.min(200, dur), easing });
-        }
+        syncZcScrollCue();
       };
       return;
     }
@@ -5146,6 +5376,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (zrIn) zrIn.hidden = true;
     unsel.hidden = false;
     populateUnselectedEv(zr, unsel, curC);
+    syncZcScrollCue();
   }
 
   function showEv(spec, o = {}) {
@@ -5283,6 +5514,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       hideEv();
     }
     syncHeaderAndPath(curC);
+    syncZcScrollCue();
   }
 
   function select(key, o = {}) {
@@ -5468,24 +5700,46 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     return true;
   }
 
+  let actMenuTok = 0;
   function closeActMenu(immediate) {
     const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn'), box = $('#th-act-btns');
     if (!wrap || !wrap.classList.contains('is-open')) return false;
+    if (wrap._closingMenu) {
+      actMenuTok++;
+      wrap._closingMenu = false;
+      if (box && box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
+      wrap.classList.remove('is-open');
+      if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
+      return false;
+    }
+    actMenuTok++;
+    const tok = actMenuTok;
+    if (box && box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
     if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
     const { dur, easing } = panelTiming(false);
     if (!immediate && dur > 0 && box && typeof box.animate === 'function') {
-      const anim = box.animate([{ opacity: 1, transform: 'translate3d(0,0,0)' }, { opacity: 0, transform: 'translate3d(0,-8px,0)' }], { duration: dur, easing });
-      anim.onfinish = () => wrap.classList.remove('is-open');
+      wrap._closingMenu = true;
+      box._actAnim = box.animate([{ opacity: 1, transform: 'translate3d(0,0,0)' }, { opacity: 0, transform: 'translate3d(0,-8px,0)' }], { duration: dur, easing, fill: 'forwards' });
+      box._actAnim.onfinish = () => {
+        if (tok !== actMenuTok) return;
+        if (box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
+        wrap._closingMenu = false;
+        wrap.classList.remove('is-open');
+      };
       return true;
     }
+    wrap._closingMenu = false;
     wrap.classList.remove('is-open');
     return true;
   }
 
   function syncActMenu() {
-    const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn');
+    const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn'), box = $('#th-act-btns');
     if (!wrap || !btnEl) return;
     if (innerWidth > 1139 && wrap.classList.contains('is-open')) {
+      actMenuTok++;
+      wrap._closingMenu = false;
+      if (box && box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
       wrap.classList.remove('is-open');
       btnEl.setAttribute('aria-expanded', 'false');
     }
@@ -5670,9 +5924,29 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     setTimeout(() => { if (document.body.classList.contains('printing') && !matchMedia('print').matches) done(); }, 1500);
   }
   let toastT = 0;
-  function toast(msg) {
-    const t = $('#toast'); t.textContent = msg; t.classList.add('on');
-    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600);
+  function toast(msg, opts) {
+    const t = $('#toast');
+    if (!t) return;
+    clearTimeout(toastT);
+    if (opts && opts.actLabel && typeof opts.onAct === 'function') {
+      t.innerHTML = `<span class="toast-msg">${esc(msg)}</span> <button type="button" class="toast-act">${esc(opts.actLabel)}</button>`;
+      t.classList.add('has-act');
+      const btnEl = $('.toast-act', t);
+      if (btnEl) {
+        btnEl.addEventListener('click', () => {
+          clearTimeout(toastT);
+          t.classList.remove('on', 'has-act');
+          opts.onAct();
+        }, { once: true });
+      }
+      t.classList.add('on');
+      toastT = setTimeout(() => t.classList.remove('on', 'has-act'), opts.duration || 4200);
+    } else {
+      t.classList.remove('has-act');
+      t.textContent = msg;
+      t.classList.add('on');
+      toastT = setTimeout(() => t.classList.remove('on'), (opts && opts.duration) || 2600);
+    }
   }
 
   // ---------- 안내선 ----------
@@ -6398,14 +6672,17 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       if (innerWidth > 1139) return;
       const wrap = $('#th-act-wrap'), box = $('#th-act-btns');
       if (wrap) {
-        const opening = !wrap.classList.contains('is-open');
+        const opening = !wrap.classList.contains('is-open') || wrap._closingMenu;
         if (opening) {
+          actMenuTok++;
+          wrap._closingMenu = false;
+          if (box && box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
           closeHelp(false, true);
           wrap.classList.add('is-open');
           am.setAttribute('aria-expanded', 'true');
           const { dur, easing } = panelTiming(true);
           if (dur > 0 && box && typeof box.animate === 'function') {
-            box.animate([{ opacity: 0, transform: 'translate3d(0,-8px,0)' }, { opacity: 1, transform: 'translate3d(0,0,0)' }], { duration: dur, easing });
+            box._actAnim = box.animate([{ opacity: 0, transform: 'translate3d(0,-8px,0)' }, { opacity: 1, transform: 'translate3d(0,0,0)' }], { duration: dur, easing });
           }
         } else {
           closeActMenu();
@@ -6414,7 +6691,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       return;
     }
     if (!e.target.closest('#th-act-wrap')) closeActMenu();
-    else if (e.target.closest('#th-act-btns button')) setTimeout(closeActMenu, 0);
+    else if (e.target.closest('#th-act-btns button') && !e.target.closest('[data-layer-up]')) setTimeout(closeActMenu, 0);
 
     const detSum = e.target.closest('details.zr-det > summary');
     if (detSum && motionOn()) {
@@ -6429,16 +6706,16 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
           const { dur, easing } = panelTiming(true, bodyEl.offsetHeight || 160);
           if (dur > 0) {
             det._detAnim = bodyEl.animate([
-              { opacity: 0, transform: 'scaleY(0)' },
-              { opacity: 1, transform: 'scaleY(1)' },
+              { opacity: 0, clipPath: 'inset(0 0 100% 0)' },
+              { opacity: 1, clipPath: 'inset(0 0 0% 0)' },
             ], { duration: dur, easing });
           }
         } else {
           const { dur, easing } = panelTiming(false, bodyEl.offsetHeight || 160);
           if (dur > 0) {
             det._detAnim = bodyEl.animate([
-              { opacity: 1, transform: 'scaleY(1)' },
-              { opacity: 0, transform: 'scaleY(0)' },
+              { opacity: 1, clipPath: 'inset(0 0 0% 0)' },
+              { opacity: 0, clipPath: 'inset(0 0 100% 0)' },
             ], { duration: dur, easing });
             det._detAnim.onfinish = () => {
               det._detAnim = null;
@@ -6725,7 +7002,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (rtCueL && rtabsEl) rtCueL.addEventListener('click', () => rtabsEl.scrollBy({ left: -160, behavior: motionOn() ? 'smooth' : 'auto' }));
     if (rtCueR && rtabsEl) rtCueR.addEventListener('click', () => rtabsEl.scrollBy({ left: 160, behavior: motionOn() ? 'smooth' : 'auto' }));
     const zc = $('#z-center');
-    if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
+    if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); syncZcScrollCue(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
     const evBody = $('#ev-body'), zrMore = $('#zr-more');
     if (evBody) {
       evBody.addEventListener('scroll', syncRightScrollCue, { passive: true });
@@ -6750,22 +7027,22 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         syncActMenu();
         syncEvBackBtn();
         closeHelp(false); hideAimReticle(); hideHudTip();
-        syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
+        syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); syncZcScrollCue(); emit('resize', m);
       }, 80);
     });
 
     booted = true;
     try { history.replaceState({ c4: 1 }, '', encodeHash()); } catch (e) { /* */ }
     renderActiveScreen(ctx(), 'tab');
-    setTimeout(() => { placeGuides(); updateSelLink(false); syncRightScrollCue(); }, 50);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(false); });
+    setTimeout(() => { placeGuides(); updateSelLink(false); syncRightScrollCue(); syncZcScrollCue(); }, 50);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(false); syncZcScrollCue(); });
   }
 
   window.App = {
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
     set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal, scrollInZone, panelTiming,
-    openModal, closeModal, updateSelLink, flipElement, countUp,
+    openModal, closeModal, updateSelLink, syncZcScrollCue, flipElement, countUp,
     aim: { set: setAimTarget, hide: hideAimReticle, showTip: showHudTip, hideTip: hideHudTip },
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
     ui: UI, txt: TXT, mode, motionOn, motionRich, motionScale,
@@ -9543,6 +9820,35 @@ function animateZoomBarsFromTicks(stageEl, baseDelayMs = 0, prePlotRect = null, 
   });
 }
 
+function scrollSelectedBarIntoCenter() {
+  if (App.state.tab !== 'cover' || innerWidth < 1000) return;
+  const zc = document.getElementById('z-center');
+  if (!zc) return;
+  if (!App.state.sel.cover) {
+    if (zc.scrollTop > 0) zc.scrollTop = 0;
+    if (App.syncZcScrollCue) App.syncZcScrollCue();
+    return;
+  }
+  const selSlot = zc.querySelector('.cvp-slot.is-sel');
+  if (selSlot && zc.scrollHeight > zc.clientHeight + 2) {
+    const zcRect = zc.getBoundingClientRect();
+    const barEl = selSlot.querySelector('.cvp-bar') || selSlot;
+    const bRect = barEl.getBoundingClientRect();
+    if (bRect.bottom + 8 > zcRect.bottom - 24) {
+      const maxDelta = Math.max(0, bRect.top - (zcRect.top + 4));
+      const need = (bRect.bottom + 8) - (zcRect.bottom - 24);
+      const delta = Math.min(need, maxDelta);
+      if (delta > 0) {
+        zc.scrollTop = Math.min(zc.scrollHeight - zc.clientHeight, Math.round(zc.scrollTop + delta));
+      }
+    } else if (bRect.top < zcRect.top + 6) {
+      zc.scrollTop = Math.max(0, Math.round(zc.scrollTop - ((zcRect.top + 6) - bRect.top)));
+    }
+  }
+  if (App.syncZcScrollCue) App.syncZcScrollCue();
+  App.updateSelLink(false);
+}
+
 function switchCoverStep(nextStep, opts = {}) {
   const c = App.ctx();
   const m = model(c.baseId);
@@ -9620,7 +9926,7 @@ function switchCoverStep(nextStep, opts = {}) {
       try { target.focus({ preventScroll: true }); } catch (ex) { /* */ }
     }
   }
-  requestAnimationFrame(() => App.updateSelLink(false));
+  requestAnimationFrame(() => { scrollSelectedBarIntoCenter(); App.updateSelLink(false); });
 }
 
 function ensureSidInView(sid, c) {
@@ -9745,7 +10051,7 @@ function renderStage(center, c) {
 
   const stageEl = center.querySelector('#cv-pillar-stage');
   syncCoverSelectionAndFilter(stageEl);
-  requestAnimationFrame(() => positionOvBracket(stageEl, false));
+  requestAnimationFrame(() => { positionOvBracket(stageEl, false); scrollSelectedBarIntoCenter(); });
 }
 
 function applyCoverFiltersInPlace(stageEl) {
@@ -10468,12 +10774,21 @@ function tableBand(c, m, byName, peerN) {
     note: `판정 칸 ${total}개 가운데 넷을 크게 보였습니다. 나머지(같음, 우열을 매기지 않음, 검토 대기, 판정 보류, ${BOTH_NONE_TEXT})는 아래 줄에 수를 적었습니다.` });
 }
 
+function payHTML(text, hasExtra) {
+  if (!hasExtra) return esc(text);
+  const s = String(text);
+  const m = s.match(/^(.*\s)(\S+)$/);
+  return m
+    ? `${esc(m[1])}<span class="pv-nw">${esc(m[2])}<i class="pv-x" aria-hidden="true"></i></span>`
+    : `<span class="pv-nw">${esc(s)}<i class="pv-x" aria-hidden="true"></i></span>`;
+}
+
 function compCell(row, k, vid) {
   const c = row.cells[k];
   if (has(c)) {
     const b = repOf(c);
     const extra = [c.n > 1 ? `같은 담보 급부 ${c.n}개 가운데 대표 급부` : '', c.o ? `대표와 조건이 다른 줄 ${c.o}개` : '', c.w ? `매핑 대기 ${c.w}줄` : ''].filter(Boolean).join(', ');
-    return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${esc(payText(b))}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red, b))}</span></span></td>`;
+    return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${payHTML(payText(b), !!extra)}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red, b))}</span></span></td>`;
   }
   const t = c && c.w ? `검토 대기 ${c.w}줄` : c && c.c ? `없음, ${txt.josa(c.c[0], '으로')} 덮음` : '없음';
   return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-x${c && c.w ? ' wait' : ''}">${esc(t)}</span></td>`;
@@ -10950,6 +11265,8 @@ App.on('select', tab => {
   if (!curSel) lastSyncedSelKey = `${App.state.base}|`;
   const stageEl = document.getElementById('cv-pillar-stage');
   syncCoverSelectionAndFilter(stageEl);
+  scrollSelectedBarIntoCenter();
+  requestAnimationFrame(() => scrollSelectedBarIntoCenter());
 });
 App.on('resize', () => {
   cachedHostW = 0;
@@ -11225,7 +11542,7 @@ App.registerTab((function () {
     }
     const why = shownOrgs.slice(0, 4).map(o => txt.stateWhy(o, cell['회사'][o])).filter(Boolean);
     const rep = cell['대표'] && cell['대표'] !== c.baseId ? ` 이 고객군의 우체국 대표 종형은 ${kindN(cell['대표'])}입니다.` : '';
-    return `${who}: ${cell['라벨']}${cell['보조'] ? `(${cell['보조']})` : ''}. ${st}.${rep}${why.length ? ` ${why.join(' ')}.` : ''}${g.sexNote ? ` ${g.sexNote}.` : ''}`;
+    return `${who}: ${dispMap[cell['라벨']] || cell['라벨']}${cell['보조'] ? `(${cell['보조']})` : ''}. ${st}.${rep}${why.length ? ` ${why.join(' ')}.` : ''}${g.sexNote ? ` ${g.sexNote}.` : ''}`;
   }
 
   function composeLine(c) {
@@ -11638,7 +11955,22 @@ App.registerTab((function () {
       if (ck.checked) sel.add(id); else sel.delete(id);
       body.querySelectorAll(`input[data-act="ins-pick"][data-id="${CSS.escape(id)}"]`).forEach(x => { x.checked = ck.checked; });
       updateRightPreviewWithToggle(id, ck.checked);
-      App.toast(ck.checked ? '응대 화법에 추가했습니다' : '응대 화법에서 제외했습니다');
+      if (innerWidth < 1000) {
+        App.toast(ck.checked ? `응대 화법에 추가했습니다(${fmt(sel.size)}건)` : `응대 화법에서 제외했습니다(${fmt(sel.size)}건)`, {
+          actLabel: '보기',
+          onAct: () => {
+            if (App.state.sel.insight != null) App.unselect({ restoreFocus: false, animate: false });
+            const zr = document.getElementById('z-right');
+            if (zr) {
+              const top = Math.max(0, Math.round(window.scrollY + zr.getBoundingClientRect().top - 36));
+              const beh = (App.motionOn() && Math.abs(top - window.scrollY) <= 1400) ? 'smooth' : 'auto';
+              window.scrollTo({ top, behavior: beh });
+            }
+          },
+        });
+      } else {
+        App.toast(ck.checked ? '응대 화법에 추가했습니다' : '응대 화법에서 제외했습니다');
+      }
     });
 
     body.addEventListener('toggle', e => {
@@ -11672,14 +12004,16 @@ App.registerTab((function () {
       const zr = document.getElementById('z-right');
       if (zr) {
         const top = Math.max(0, Math.round(window.scrollY + zr.getBoundingClientRect().top - 36));
-        window.scrollTo({ top, behavior: App.motionOn() ? 'smooth' : 'auto' });
+        const beh = (App.motionOn() && Math.abs(top - window.scrollY) <= 1400) ? 'smooth' : 'auto';
+        window.scrollTo({ top, behavior: beh });
       }
     } else if (act === 'ins-go-top') {
       e.stopPropagation();
       const vwEl = document.getElementById('view-insight');
       if (vwEl) {
         const top = Math.max(0, Math.round(window.scrollY + vwEl.getBoundingClientRect().top - 36));
-        window.scrollTo({ top, behavior: App.motionOn() ? 'smooth' : 'auto' });
+        const beh = (App.motionOn() && Math.abs(top - window.scrollY) <= 1400) ? 'smooth' : 'auto';
+        window.scrollTo({ top, behavior: beh });
       }
     }
   });

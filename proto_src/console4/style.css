@@ -183,7 +183,7 @@ button{cursor:pointer}
   font:600 16px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);letter-spacing:-.03em}
 .tht-val small{font-size:13px;font-weight:600;color:var(--ink-0);margin-left:0}
 @media (max-width:1599px){
-  .top-head{grid-template-columns:minmax(180px,280px) minmax(0,1fr) auto;gap:6px 14px;padding:2px 0 5px}
+  .top-head{grid-template-columns:minmax(180px,410px) minmax(0,1fr) auto;gap:6px 14px;padding:2px 0 5px}
   .th-title{font-size:29px}
   .th-act-btns .btn.sm{padding:0 8px}
   .scope-tgl{padding:0 8px}
@@ -302,7 +302,7 @@ button{cursor:pointer}
 .rtabs{position:relative;display:grid;grid-template-columns:auto repeat(5,minmax(0,1fr));
   background:transparent;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
 .rtabs[hidden]{display:none!important}
-.rtabs.from-home{animation:rtabsShrinkIn 240ms var(--ease)}
+.rtabs.from-home{animation:rtabsShrinkIn 240ms var(--ease-panel)}
 @keyframes rtabsShrinkIn{
   from{opacity:.55;transform:translateY(10px) scaleY(1.12);transform-origin:top center}
   to{opacity:1;transform:none}
@@ -407,6 +407,11 @@ button{cursor:pointer}
 .z-left[hidden]{display:none!important}
 .z-center{position:relative;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;
   scrollbar-width:thin;background:transparent;container-type:inline-size;container-name:zcenter}
+.zc-scroll-cue{position:absolute;left:0;right:0;height:24px;pointer-events:none;z-index:4;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;
+  background:linear-gradient(180deg,transparent 0%,var(--fog-1) 92%);
+  font:600 13px/1 var(--f-ko);color:var(--ink-1)}
+.zc-scroll-cue[hidden]{display:none!important}
 
 /* 화면 전환 시 가로 기준축 높이를 이어 주는 다리 */
 .axis-bridge{position:fixed;left:0;top:0;width:100vw;height:2px;background:var(--axis);pointer-events:none;z-index:28;transform-origin:left top}
@@ -791,9 +796,13 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 .legend dt,.legend dd{margin:0}
 
 .toast{position:fixed;left:50%;bottom:24px;z-index:70;transform:translate(-50%,16px);opacity:0;pointer-events:none;
+  display:inline-flex;align-items:center;gap:10px;
   background:var(--slate-solid);color:#fff;padding:10px 16px;font:600 14px/1.4 var(--f-ko);border-top:3px solid #fff;
   transition:opacity 200ms,transform 200ms var(--ease);max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.on.has-act{pointer-events:auto}
+.toast-act{flex:none;border:1px solid rgba(255,255,255,.55);background:transparent;color:#fff;padding:2px 8px;font:600 13px/1.2 var(--f-ko)}
+.toast-act:hover,.toast-act:focus-visible{background:#fff;color:var(--slate-solid);border-color:#fff}
 body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 .foot{margin-top:8px;padding:6px 0;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
 .foot-disc{min-width:0;flex:1 1 auto}
