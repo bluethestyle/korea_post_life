@@ -25,6 +25,84 @@ def num(n) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Clinical Insurance & IT Terminology Constants (실무 용어 상수 및 표시 매핑)
+# ---------------------------------------------------------------------------
+TERM: dict[str, str] = {
+    "master": "마스터 데이터",
+    "sheet_master": "구글 시트 마스터 데이터",
+    "snapshot": "스냅샷",
+    "snapshot_first": "스냅샷(특정 시점의 데이터 복사본)",
+    "uw": "인수기준",
+    "uw_first": "인수기준(가입 심사 기준)",
+    "uw_cmp": "인수기준 비교",
+    "uw_only": "인수기준만 수집",
+    "open": "가입 가능",
+    "closed": "가입 제한",
+    "ours_only": "우체국 간편만 가입 가능",
+    "open_both": "함께 가입 가능",
+    "ours_closed": "우체국 간편심사 가입 제한",
+    "ours_closed_short": "우체국 간편 가입 제한",
+    "all_closed": "간편 모두 가입 제한",
+    "ours": "우체국",
+    "peer": "타사",
+    "extract": "추출",
+    "extract_init": "초기 추출",
+    "extract_dual": "이중 추출",
+    "cross_verify": "교차 검증",
+    "ocr": "문자 인식(OCR)",
+    "extractor": "추출 모델",
+    "test": "테스트",
+    "mock_test": "모의 시트 테스트",
+    "batch_query": "일괄 질의",
+    "unit_first": "특약 단위(추출 단위)",
+    "unit": "특약 단위",
+    "verdict": "우열 판정",
+    "verdict_hold": "판정 보류",
+    "unheld_cov": "미보유 담보",
+    "review_wait": "검수 대기",
+    "map_wait": "매핑 검수 대기",
+    "trend": "시장 동향",
+    "rider_cond": "특약 부가 조건",
+    "disc_item": "고지항목",
+    "disc_range": "고지 범위",
+    "base_cond": "기본 조건",
+    "seg_status": "고객군별 가입 가능 현황",
+    "script_doc": "응대 화법",
+    "main_limit": "주계약 가입한도",
+    "rider_limit": "특약 가입한도",
+    "rel_cov": "관련 담보",
+    "ins_uw": "인수기준 차이",
+    "ins_strength": "강점 담보",
+    "ins_defense": "조건 열위 응대",
+    "ins_revise": "개정 검토 대상",
+    "use_news_filter": "시장 동향 선별",
+    "use_news_merge": "중복 동향 병합",
+}
+
+_FACT_DISPLAY_MAP: dict[str, str] = {
+    fact("segment_map_labels", 0): TERM["ours_only"],
+    fact("segment_map_labels", 1): TERM["open_both"],
+    fact("segment_map_labels", 2): TERM["ours_closed_short"],
+    fact("segment_map_labels", 3): TERM["all_closed"],
+    fact("sales_insight_categories", 0): TERM["ins_uw"],
+    fact("sales_insight_categories", 1): TERM["ins_strength"],
+    fact("sales_insight_categories", 3): TERM["ins_defense"],
+    fact("sales_insight_categories", 4): TERM["ins_revise"],
+    fact("decision_model_uses", 2): TERM["use_news_filter"],
+    fact("decision_model_uses", 3): TERM["use_news_merge"],
+    fact("unpinned_agent_incident"): "모델 미지정 구현 에이전트의 최상위 모델 실행",
+    fact("not_yet_measured", 2): "신상품 비교표 작성 시간 단축 폭",
+}
+
+
+def label_ko(raw: str) -> str:
+    """자료 파일의 내부 라벨을 화면용 보험과 IT 실무 표기로 변환한다."""
+    if raw in _FACT_DISPLAY_MAP:
+        return _FACT_DISPLAY_MAP[raw]
+    return raw.replace("수술만", "통원수술").replace("넘음이나 없음", "초과 또는 없음")
+
+
+# ---------------------------------------------------------------------------
 # Color Palette
 # ---------------------------------------------------------------------------
 C_BG = "#070B10"
