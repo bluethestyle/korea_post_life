@@ -37,9 +37,18 @@ from common import (
     num,
     pill,
     pillar_3d_sliced,
+    set_3d_tier,
     txt,
 )
 from infographics import svg_icon
+
+
+def make_3d_leader(anchor_pt: list[float], badge_mob: Mobject, col: str) -> VGroup:
+    ln = Line(anchor_pt, badge_mob.get_center(), color=col, stroke_width=1.8, stroke_opacity=0.88)
+    set_3d_tier(ln, 12.0, sub=0, sort_3d=False)
+    tip = Prism(dimensions=[0.07, 0.07, 0.07], fill_color=col, fill_opacity=1.0, stroke_color=WHITE, stroke_width=0.8).move_to(anchor_pt)
+    set_3d_tier(tip, 13.0, sub=0, sort_3d=True)
+    return VGroup(ln, tip)
 
 
 class Part3DecisionScene(PostLifeBaseScene):
@@ -85,7 +94,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             corner_radius=0.09, width=7.56, height=1.88, fill_color=C_PANEL, fill_opacity=0.96, stroke_color=C_SLATE, stroke_width=2.0
         ).move_to([-2.12, 1.38, 0]).set_z_index(3)
         gen_hdr = fit(pill("비교 기준: 일반 텍스트 생성 호출 (생성형 방식)", fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=11.4), max_w=4.40).move_to([-3.42, 1.98, 0]).set_z_index(6)
-        gen_tag = pill("문장 출력 토큰 연속 소모", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.2, px=0.10, py=0.035, z=6).move_to([0.22, 1.98, 0])
+        gen_tag = pill("문장 출력 토큰 연속 소모", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.8, px=0.10, py=0.035, z=6).move_to([0.22, 1.98, 0])
 
         sw_c = np.array([-5.12, 1.15, 0.0])
         sw_ring, sw_hand = make_stopwatch(sw_c, r=0.28, col=C_AMBER, z=7)
@@ -96,10 +105,10 @@ class Part3DecisionScene(PostLifeBaseScene):
                 pill('"검수"', fg=C_WHITE, bg=C_PANEL_HI, border=C_SLATE, size=11.2, px=0.10, py=0.04),
                 arrow_2d([0, 0, 0], [0.24, 0, 0], color=C_AMBER, sw=1.8, tip=0.07),
                 pill('"생성..."', fg=C_AMBER, bg=C_PANEL_HI, border=C_AMBER, size=11.2, px=0.10, py=0.04),
-                pill("(예시 그림)", fg=C_INK_1, bg=C_BG_SUB, border=C_SLATE, size=9.8, px=0.08, py=0.035),
+                pill("(예시 그림)", fg=C_INK_1, bg=C_BG_SUB, border=C_SLATE, size=10.8, px=0.08, py=0.035),
             ).arrange(RIGHT, buff=0.08),
-            max_w=4.55,
-        ).move_to([-2.22, 1.24, 0]).set_z_index(6)
+            max_w=5.10,
+        ).move_to([-2.06, 1.24, 0]).set_z_index(6)
         wob_fn = ParametricFunction(
             lambda u: np.array([-4.48 + u * 5.65, 0.72 + 0.10 * math.sin(10.0 * u), 0.0]),
             t_range=[0, 1, 0.02],
@@ -108,7 +117,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         ).set_z_index(6)
 
         vs_down = arrow_2d([-2.12, 0.38, 0], [-2.12, -0.02, 0], color=C_GOLD, sw=3.0, tip=0.12, z=8)
-        vs_pill = pill("텍스트 생성 생략 -> 확률 직접 반환", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.4, px=0.12, py=0.035, z=9).move_to([-2.12, 0.18, 0])
+        vs_pill = pill("텍스트 생성 생략 -> 확률 직접 반환", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.8, px=0.12, py=0.035, z=9).move_to([-2.12, 0.18, 0])
 
         dec_lane = RoundedRectangle(
             corner_radius=0.09, width=7.56, height=2.24, fill_color=C_PANEL, fill_opacity=0.97, stroke_color=C_GOLD, stroke_width=2.4
@@ -170,7 +179,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             use_nodes.add(VGroup(u_box, ic_m, lb_m))
             use_links.add(arrow_2d([1.88, uy, 0], [2.16, uy, 0], color=u_col, sw=2.0, tip=0.09, z=6))
         use_foot = fit(
-            txt(f"(기존 상품 초기 적재는 {TERM['extract_dual']} {TERM['cross_verify']})", size=10.0, color=C_INK_1, bold=True, z=7),
+            txt(f"(기존 상품 초기 적재는 {TERM['extract_dual']} {TERM['cross_verify']})", size=10.8, color=C_INK_1, bold=True, z=7),
             max_w=3.86,
         ).move_to([4.06, -1.96, 0])
 
@@ -255,7 +264,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             fit(
                 VGroup(
                     txt(f"{TERM['unit']} 원문 텍스트", size=11.0, color=C_WHITE, bold=True, z=7),
-                    txt("호출당 단일 원문 동시 전달", size=9.8, color=C_INK_1, bold=True, z=7),
+                    txt("호출당 단일 원문 동시 전달", size=10.6, color=C_INK_1, bold=True, z=7),
                 ).arrange(DOWN, aligned_edge=LEFT, buff=0.04),
                 max_w=2.44,
             ).move_to([-3.72, 0.74, 0]),
@@ -263,14 +272,14 @@ class Part3DecisionScene(PostLifeBaseScene):
         plus_badge = pill("+", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.0, px=0.10, py=0.02, z=8).move_to([-4.12, -0.02, 0])
 
         pkt_bot = RoundedRectangle(corner_radius=0.06, width=3.32, height=1.56, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_GOLD, stroke_width=1.5).move_to([-4.12, -1.04, 0]).set_z_index(5)
-        pkt_bot_t = fit(txt(f"검증 문항 최대 {num(d_spec['items_per_call'])}개 (호출당 사양)", size=10.6, color=C_GOLD, bold=True, z=7), max_w=3.10).move_to([-4.12, -0.52, 0])
+        pkt_bot_t = fit(txt(f"검증 문항 최대 {num(d_spec['items_per_call'])}개 (호출당 사양)", size=10.8, color=C_GOLD, bold=True, z=7), max_w=3.14).move_to([-4.12, -0.52, 0])
         q_dots = VGroup(
             *[
                 Dot([-5.12 + (k % 9) * 0.25, -0.96 - (k // 9) * 0.26, 0], radius=0.050, color=C_GOLD if k % 2 == 0 else C_MINT).set_z_index(7)
                 for k in range(18)
             ]
         )
-        pkt_ex_note = txt("(문항 배열 예시 그림)", size=9.6, color=C_INK_1, z=7).move_to([-4.12, -1.58, 0])
+        pkt_ex_note = txt("(문항 배열 예시 그림)", size=10.6, color=C_INK_1, bold=True, z=7).move_to([-4.12, -1.58, 0])
         st5_left = VGroup(pkt_box, pkt_hdr, pkt_top, pkt_top_c, plus_badge, pkt_bot, pkt_bot_t, q_dots, pkt_ex_note)
 
         # Stage 2 (Center): 비생성 선택지 채점 코어 & 2가지 정형 판정 사양
@@ -282,14 +291,14 @@ class Part3DecisionScene(PostLifeBaseScene):
             VGroup(
                 txt(decide_model, size=12.4, color=C_GOLD, bold=True, z=9),
                 txt(f"출력 토큰 {num(d_spec['output_tokens'])}", size=11.0, color=C_MINT, bold=True, z=9),
-                txt(f"하루 {num(lim_decide)}회 무료", size=10.2, color=C_INK_0, bold=True, z=9),
+                txt(f"하루 {num(lim_decide)}회 무료", size=10.8, color=C_INK_0, bold=True, z=9),
             ).arrange(DOWN, buff=0.04),
             max_w=1.74,
         ).move_to(d1_c + DOWN * 0.30)
 
         modes_3 = [
-            pill("예 / 아니오 양자 판정", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=10.6, px=0.11, py=0.05, z=8),
-            pill(f"{num(d_spec['choices_min'])}~{num(d_spec['choices_max'])}지선다 매핑", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=10.6, px=0.11, py=0.05, z=8),
+            pill("예 / 아니오 양자 판정", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=10.8, px=0.11, py=0.05, z=8),
+            pill(f"{num(d_spec['choices_min'])}~{num(d_spec['choices_max'])}지선다 매핑", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=10.8, px=0.11, py=0.05, z=8),
         ]
         modes_row = fit(VGroup(*modes_3).arrange(DOWN, buff=0.12), max_w=3.20).move_to([0.0, -1.62, 0])
         modes_hdr = fit(txt(f"② {num(len(modes_3))}가지 정형 선택지 사양", size=11.4, color=C_VIOLET, bold=True, z=8), max_w=3.20).move_to([0.0, 1.72, 0])
@@ -317,12 +326,12 @@ class Part3DecisionScene(PostLifeBaseScene):
             fit(
                 VGroup(
                     txt(f"오류 행 {cal_band['wrong_caught_pct']}% 검출", size=11.0, color=C_MINT, bold=True, z=7),
-                    txt("타 모델 재추출 구간으로 이관 ✓", size=10.4, color=C_WHITE, bold=True, z=7),
+                    txt("타 모델 재추출 구간으로 이관 ✓", size=10.8, color=C_WHITE, bold=True, z=7),
                 ).arrange(DOWN, aligned_edge=LEFT, buff=0.06),
                 max_w=2.42,
             ).move_to([4.50, -0.82, 0]),
         )
-        cal_foot = fit(txt(f"{TERM['ours']} 상품요약서 소규모 표본 기준 보정 결과", size=10.2, color=C_INK_1, bold=True, z=7), max_w=3.48).move_to([4.12, -1.74, 0])
+        cal_foot = fit(txt(f"{TERM['ours']} 상품요약서 소규모 표본 기준 보정 결과", size=10.8, color=C_INK_1, bold=True, z=7), max_w=3.54).move_to([4.12, -1.74, 0])
         st5_right = VGroup(cal_box, cal_hdr, cal_r1, cal_r1_c, cal_r2, cal_r2_c, cal_foot)
 
         link_5b_l = arrow_2d([-2.18, 0.14, 0], [-1.30, 0.14, 0], color=C_CYAN, sw=2.8, tip=0.12, z=8)
@@ -345,12 +354,13 @@ class Part3DecisionScene(PostLifeBaseScene):
         self.play(LaggedStart(*[Indicate(d, color=WHITE, scale_factor=1.45) for d in q_dots], lag_ratio=0.025), run_time=0.95)
         self.wait(1.90)
 
-        # 오른쪽 패널로 줌하는 동안 왼쪽 패널은 화면 가장자리에 반만 걸리므로 잠시 내렸다가 전체 구도에서 다시 보인다.
+        # 오른쪽 패널로 줌하는 동안 왼쪽 패널은 화면 경계에 반만 걸리므로 잠시 내렸다가 전체 구도에서 다시 보인다.
         self.cam_move(
             zoom=1.28,
             center=[2.15, 0.0, 0],
             anims=[
                 FadeOut(st5_left, shift=LEFT * 0.10),
+                FadeOut(link_5b_l, shift=LEFT * 0.10),
                 GrowArrow(link_5b_r),
                 FadeIn(st5_right, shift=LEFT * 0.12),
             ],
@@ -359,7 +369,14 @@ class Part3DecisionScene(PostLifeBaseScene):
         self.play(Circumscribe(cal_r1, color=C_GOLD, stroke_width=2.4, buff=0.03), run_time=0.80)
         self.wait(1.90)
 
-        self.reset_cam_2d(anims=[FadeIn(tl_bar, shift=DOWN * 0.08), FadeIn(st5_left, shift=RIGHT * 0.10)], rt=1.10)
+        self.reset_cam_2d(
+            anims=[
+                FadeIn(tl_bar, shift=DOWN * 0.08),
+                FadeIn(st5_left, shift=RIGHT * 0.10),
+                FadeIn(link_5b_l, shift=RIGHT * 0.10),
+            ],
+            rt=1.10,
+        )
         ch5_stage = VGroup(tl_bar, st5_left, link_5b_l, st5_center, link_5b_r, st5_right)
         self.check_bounds(ch5_stage, "CH5B PACKET ARCHITECTURE")
         self.wait(3.80)
@@ -430,16 +447,16 @@ class Part3DecisionScene(PostLifeBaseScene):
             color=C_CORAL,
             stroke_width=3.0,
         ).set_z_index(7)
-        lbl_mush = pill(f"{tf_rng['low']:.2f}~{tf_rng['high']:.2f} 중첩 (예시 그림)", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.2, px=0.09, py=0.035, z=8).move_to([zone_mush.get_center()[0], mush_top + 0.14, 0])
+        lbl_mush = pill(f"{tf_rng['low']:.2f}~{tf_rng['high']:.2f} 중첩 (예시 그림)", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.8, px=0.09, py=0.035, z=8).move_to([zone_mush.get_center()[0], mush_top + 0.14, 0])
         lbl_ax_c1 = VGroup()
         for tick_v in (p_ax_min, tf_rng["low"], tf_rng["high"], p_ax_max):
             tick_m = Line([ax_x(tick_v), ax_y, 0], [ax_x(tick_v), ax_y - 0.08, 0], color=C_INK_1, stroke_width=1.6).set_z_index(6)
-            tick_t = txt(f"{tick_v:.1f}", size=10.2, color=C_INK_1, z=6).next_to(tick_m, DOWN, buff=0.05)
+            tick_t = txt(f"{tick_v:.1f}", size=10.6, color=C_INK_1, bold=True, z=6).next_to(tick_m, DOWN, buff=0.05)
             lbl_ax_c1.add(VGroup(tick_m, tick_t))
         z6_1_foot = fit(
             VGroup(
-                txt("면책 조건 참/거짓 질의 시", size=10.6, color=C_INK_0, bold=True, z=7),
-                txt(f"정상 행도 {tf_rng['low']:.2f}~{tf_rng['high']:.2f} 구간 분포", size=10.2, color=C_AMBER, bold=True, z=7),
+                txt("면책 조건 참/거짓 질의 시", size=10.8, color=C_INK_0, bold=True, z=7),
+                txt(f"정상 행도 {tf_rng['low']:.2f}~{tf_rng['high']:.2f} 구간 분포", size=10.6, color=C_AMBER, bold=True, z=7),
             ).arrange(DOWN, buff=0.06),
             max_w=3.70,
         ).move_to([-4.08, -1.74, 0])
@@ -453,26 +470,26 @@ class Part3DecisionScene(PostLifeBaseScene):
             max_w=3.80,
         ).move_to([0.0, 1.70, 0])
         capsule_box = DashedVMobject(
-            RoundedRectangle(corner_radius=0.18, width=2.36, height=2.14, fill_opacity=0.0, stroke_color=C_AMBER, stroke_width=2.4).move_to([-0.54, 0.08, 0]),
+            RoundedRectangle(corner_radius=0.18, width=2.42, height=2.22, fill_opacity=0.0, stroke_color=C_AMBER, stroke_width=2.4).move_to([-0.55, 0.08, 0]),
             num_dashes=26,
         ).set_z_index(6)
         cap_items = VGroup(
-            pill("정상 특약 (예시) ✓", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.0, px=0.08, py=0.03, z=7),
-            pill("정상 특약 (예시) ✓", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.0, px=0.08, py=0.03, z=7),
-            pill("오매칭 특약 ×", fg=C_WHITE, bg=C_CORAL_DIM, border=C_CORAL, size=10.0, px=0.08, py=0.03, z=7),
-            pill("오매칭 특약 ×", fg=C_WHITE, bg=C_CORAL_DIM, border=C_CORAL, size=10.0, px=0.08, py=0.03, z=7),
-        ).arrange(DOWN, buff=0.10).move_to([-0.54, 0.08, 0])
-        leak_arr = arrow_2d([0.70, 0.08, 0], [1.08, 0.08, 0], color=C_CORAL, sw=2.6, tip=0.10, z=7)
+            pill("정상 특약 (예시) ✓", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.6, px=0.08, py=0.03, z=7),
+            pill("정상 특약 (예시) ✓", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.6, px=0.08, py=0.03, z=7),
+            pill("오매칭 특약 ×", fg=C_WHITE, bg=C_CORAL_DIM, border=C_CORAL, size=10.6, px=0.08, py=0.03, z=7),
+            pill("오매칭 특약 ×", fg=C_WHITE, bg=C_CORAL_DIM, border=C_CORAL, size=10.6, px=0.08, py=0.03, z=7),
+        ).arrange(DOWN, buff=0.09).move_to([-0.55, 0.08, 0])
+        leak_arr = arrow_2d([0.70, 0.08, 0], [1.06, 0.08, 0], color=C_CORAL, sw=2.6, tip=0.10, z=7)
         leak_t_grp = VGroup(
             txt(f"{bnd_chk['bundled_probability']:.2f}", size=11.0, color=WHITE, bold=True, z=9),
-            txt("통과?!", size=10.2, color=WHITE, bold=True, z=9),
+            txt("통과?!", size=10.6, color=WHITE, bold=True, z=9),
         ).arrange(DOWN, buff=0.04)
         leak_bg = RoundedRectangle(corner_radius=0.08, width=leak_t_grp.width + 0.24, height=leak_t_grp.height + 0.16, fill_color=C_CORAL, fill_opacity=0.98, stroke_color=WHITE, stroke_width=1.6).set_z_index(8)
         leak_stamp = VGroup(leak_bg, leak_t_grp.move_to(leak_bg)).move_to([1.52, 0.08, 0])
         z6_2_foot = fit(
             VGroup(
-                txt(f"{TERM['rider_cond']} {TERM['batch_query']} 시", size=10.6, color=C_INK_0, bold=True, z=7),
-                txt(f"오매칭 특약 {num(bnd_chk['wrong_riders'])}건 통과", size=10.2, color=C_CORAL, bold=True, z=7),
+                txt(f"{TERM['rider_cond']} {TERM['batch_query']} 시", size=10.8, color=C_INK_0, bold=True, z=7),
+                txt(f"오매칭 특약 {num(bnd_chk['wrong_riders'])}건 통과", size=10.6, color=C_CORAL, bold=True, z=7),
             ).arrange(DOWN, buff=0.06),
             max_w=3.70,
         ).move_to([0.0, -1.74, 0])
@@ -496,17 +513,17 @@ class Part3DecisionScene(PostLifeBaseScene):
         t_bar_shell = RoundedRectangle(corner_radius=0.06, width=bar_6a_w, height=0.52, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_VIOLET, stroke_width=1.8).move_to([4.08, 0.16, 0]).set_z_index(5)
         t_bar_run = Rectangle(width=w_run_part, height=0.44, fill_color="#2B214A", fill_opacity=0.96, stroke_width=0).move_to([4.08 - bar_6a_w / 2 + w_run_part / 2, 0.16, 0]).set_z_index(6)
         t_bar_wt = Rectangle(width=w_wt_part, height=0.44, fill_color=C_AMBER, fill_opacity=0.96, stroke_width=0).move_to([4.08 + bar_6a_w / 2 - w_wt_part / 2, 0.16, 0]).set_z_index(6)
-        t_lbl_wt = fit(pill(f"분당 토큰 한도 대기 약 {num(wt_min)}분 예상", fg=C_AMBER, bg="#261A0B", border=C_AMBER, size=10.4, z=8), max_w=3.44).move_to([4.08, -0.58, 0])
+        t_lbl_wt = fit(pill(f"분당 토큰 한도 대기 약 {num(wt_min)}분 예상", fg=C_AMBER, bg="#261A0B", border=C_AMBER, size=10.6, px=0.12, z=8), max_w=3.56).move_to([4.08, -0.58, 0])
         z6_3_foot = fit(
             VGroup(
-                txt(f"한화 {TERM['map_wait']} {num(m_req['rows'])}행", size=10.6, color=C_INK_0, bold=True, z=7),
-                txt("재질의 실행 전 예상치", size=10.2, color=C_VIOLET, bold=True, z=7),
+                txt(f"한화 {TERM['map_wait']} {num(m_req['rows'])}행", size=10.8, color=C_INK_0, bold=True, z=7),
+                txt("재질의 실행 전 예상치", size=10.6, color=C_VIOLET, bold=True, z=7),
             ).arrange(DOWN, buff=0.06),
             max_w=3.70,
         ).move_to([4.08, -1.74, 0])
 
         # Zone 1 -> Zone 2 -> Zone 3 시연
-        # 패널 하나로 줌하는 동안 왼쪽 이웃 패널은 가장자리에 반만 걸리므로 잠시 내렸다가 전체 구도에서 다시 보인다.
+        # 패널 하나로 줌하는 동안 왼쪽 이웃 패널은 화면 경계에 반만 걸리므로 잠시 내렸다가 전체 구도에서 다시 보인다.
         zone6_1_grp = VGroup(z6_1_hdr, ax_c1, zone_mush, curve_t, curve_f, lbl_mush, lbl_ax_c1, z6_1_foot)
         zone6_2_grp = VGroup(z6_2_hdr, capsule_box, cap_items, leak_arr, leak_stamp, z6_2_foot)
         self.cam_move(
@@ -577,18 +594,18 @@ class Part3DecisionScene(PostLifeBaseScene):
         sep_p0, sep_p1 = bnd_chk["separated_probabilities"]
 
         batch_card = RoundedRectangle(
-            corner_radius=0.09, width=3.92, height=4.18, fill_color="#091018", fill_opacity=0.97, stroke_color=C_CYAN, stroke_width=2.2
+            corner_radius=0.09, width=3.98, height=4.18, fill_color="#091018", fill_opacity=0.97, stroke_color=C_CYAN, stroke_width=2.2
         ).move_to([-4.22, 0.06, 0]).set_z_index(25)
-        batch_hdr = fit(txt("해결 ① 단일 원문 입력, 문항별 개별 질의", size=12.4, color=C_CYAN, bold=True, z=26), max_w=3.62).move_to([-4.22, 1.76, 0])
-        in_node_6b = pill("단일 원문", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.4, px=0.10, py=0.04, z=26).move_to([-5.42, 0.20, 0])
+        batch_hdr = fit(txt("해결 ① 단일 원문 입력, 문항별 개별 질의", size=12.4, color=C_CYAN, bold=True, z=26), max_w=3.68).move_to([-4.22, 1.76, 0])
+        in_node_6b = pill("단일 원문", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.8, px=0.09, py=0.04, z=26).move_to([-5.46, 0.20, 0])
         fan_targets = VGroup(
-            fit(pill("지급액, 감액, 면책 개별 질의", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.2, px=0.08, py=0.035, z=26), max_w=2.48).move_to([-3.50, 1.06, 0]),
-            fit(pill(f"표준담보 {num(cov_in_use)}개 매핑", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.2, px=0.08, py=0.035, z=26), max_w=2.48).move_to([-3.50, 0.48, 0]),
-            fit(pill(f"{TERM['rider_cond']} 개별 질의 ({sep_p0:.2f}, {sep_p1:.2f})", fg=C_GOLD, bg="#383016", border=C_GOLD, size=10.0, px=0.08, py=0.035, z=26), max_w=2.50).move_to([-3.50, -0.10, 0]),
-            fit(pill(f"{TERM['trend']} 선별, 병합", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=10.2, px=0.08, py=0.035, z=26), max_w=2.48).move_to([-3.50, -0.68, 0]),
+            fit(pill("지급액, 감액, 면책 개별 질의", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.8, px=0.08, py=0.035, z=26), max_w=2.52).move_to([-3.50, 1.06, 0]),
+            fit(pill(f"표준담보 {num(cov_in_use)}개 매핑", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.8, px=0.08, py=0.035, z=26), max_w=2.52).move_to([-3.50, 0.48, 0]),
+            fit(pill(f"{TERM['rider_cond']} 개별 질의 ({sep_p0:.2f}, {sep_p1:.2f})", fg=C_GOLD, bg="#383016", border=C_GOLD, size=10.8, px=0.08, py=0.035, z=26), max_w=2.52).move_to([-3.50, -0.10, 0]),
+            fit(pill(f"{TERM['trend']} 선별, 병합", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=10.8, px=0.08, py=0.035, z=26), max_w=2.52).move_to([-3.50, -0.68, 0]),
         )
         fan_arrows = VGroup(*[arrow_2d(in_node_6b.get_right(), ft.get_left(), color=C_GOLD if idx == 2 else C_CYAN, sw=1.9, tip=0.08, z=26) for idx, ft in enumerate(fan_targets)])
-        batch_foot = fit(txt("원문 일치 항목은 질의 생략, 부가 조건은 개별 분리", size=10.4, color=C_INK_0, z=26), max_w=3.64).move_to([-4.22, -1.62, 0])
+        batch_foot = fit(txt("원문 일치 항목은 질의 생략, 부가 조건은 개별 분리", size=10.8, color=C_INK_0, bold=True, z=26), max_w=3.68).move_to([-4.22, -1.62, 0])
 
         hud_6b_top = fit(
             pill(
@@ -600,7 +617,7 @@ class Part3DecisionScene(PostLifeBaseScene):
                 z=25,
             ),
             max_w=12.00,
-        ).move_to([0.0, 2.58, 0])
+        ).move_to([0.0, 2.74, 0])
         calib_chip = fit(
             pill(
                 f"임계값 보정: 인위적 오류 반전 {num(cal_flip['rows'])}행 중 확정 통과 {num(cal_flip['passed'])}행 ({TERM['ours']} 요약서 소규모 표본 기준) ✓",
@@ -611,51 +628,64 @@ class Part3DecisionScene(PostLifeBaseScene):
                 z=25,
             ),
             max_w=12.00,
-        ).move_to([0.0, -2.68, 0])
+        ).move_to([0.0, -2.76, 0])
         hud_6b_grp = VGroup(hud_6b_top, batch_card, batch_hdr, in_node_6b, fan_targets, fan_arrows, batch_foot, calib_chip)
 
-        pb_z0 = -0.22
-        pb_h = 1.76
-        pb_cx = 1.65
-        pb_floor = floor_grid_3d(-1.35, 4.65, -1.10, 1.10, z_val=pb_z0, step_x=1.50, step_y=1.10, col=C_CYAN_DIM)
+        pb_z0 = -0.20
+        pb_h = 1.56
+        pb_cx = 1.40
+        pb_floor = floor_grid_3d(-1.15, 3.95, -0.95, 0.95, z_val=pb_z0, step_x=1.275, step_y=0.95, col=C_CYAN_DIM)
 
         z_plane_75 = pb_z0 + v_conf * pb_h
         z_plane_40 = pb_z0 + v_reex * pb_h
-        plane_75 = glass_plane_3d(pb_cx, 0.0, z_plane_75, 6.00, 2.28, C_GOLD, fill_op=0.16, sw=2.3, tier=2.0)
-        plane_40 = glass_plane_3d(pb_cx, 0.0, z_plane_40, 6.00, 2.28, C_CORAL, fill_op=0.15, sw=2.1, tier=-2.0)
+        plane_75 = glass_plane_3d(pb_cx, 0.0, z_plane_75, 5.10, 1.96, C_GOLD, fill_op=0.16, sw=2.3, tier=2.0)
+        plane_40 = glass_plane_3d(pb_cx, 0.0, z_plane_40, 5.10, 1.96, C_CORAL, fill_op=0.15, sw=2.1, tier=-2.0)
         pb_cuts = [(z_plane_40, -4.0), (z_plane_75, 0.0)]
 
-        y_bef, y_aft = 0.56, -0.48
-        x_p = [-0.60, 0.90, 2.40, 3.90]
+        y_bef, y_aft = 0.52, -0.46
+        x_p = [-0.55, 0.75, 2.05, 3.35]
 
         p_bef_bars = VGroup(
-            pillar_3d_sliced(x_p[0], y_bef, 0.66, 0.52, tf_rng["low"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_AMBER, opacity=0.76, stroke_col=C_AMBER),
-            pillar_3d_sliced(x_p[1], y_bef, 0.66, 0.52, tf_rng["high"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_AMBER, opacity=0.80, stroke_col=WHITE),
-            pillar_3d_sliced(x_p[2], y_bef, 0.66, 0.52, bnd_chk["bundled_probability"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CORAL, opacity=0.86, stroke_col=WHITE),
+            pillar_3d_sliced(x_p[0], y_bef, 0.56, 0.44, tf_rng["low"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_AMBER, opacity=0.76, stroke_col=C_AMBER),
+            pillar_3d_sliced(x_p[1], y_bef, 0.56, 0.44, tf_rng["high"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_AMBER, opacity=0.80, stroke_col=WHITE),
+            pillar_3d_sliced(x_p[2], y_bef, 0.56, 0.44, bnd_chk["bundled_probability"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CORAL, opacity=0.86, stroke_col=WHITE),
         )
 
         p_aft_bars = VGroup(
-            pillar_3d_sliced(x_p[0], y_aft, 0.66, 0.52, sym_prob["correct_min"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_GOLD, opacity=0.92, stroke_col=WHITE, sw=1.6),
-            pillar_3d_sliced(x_p[1], y_aft, 0.66, 0.52, sym_prob["correct_min"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_GOLD, opacity=0.92, stroke_col=WHITE, sw=1.6),
-            pillar_3d_sliced(x_p[2] - 0.22, y_aft, 0.35, 0.48, sep_p0 * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CYAN, opacity=0.88, stroke_col=WHITE, sw=1.4),
-            pillar_3d_sliced(x_p[2] + 0.22, y_aft, 0.35, 0.48, sep_p1 * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CYAN, opacity=0.88, stroke_col=WHITE, sw=1.4),
-            pillar_3d_sliced(x_p[3], y_aft, 0.66, 0.52, sym_prob["flipped_max"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CORAL, opacity=0.90, stroke_col=C_CORAL, sw=1.4),
+            pillar_3d_sliced(x_p[0], y_aft, 0.56, 0.44, sym_prob["correct_min"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_GOLD, opacity=0.92, stroke_col=WHITE, sw=1.6),
+            pillar_3d_sliced(x_p[1], y_aft, 0.56, 0.44, sym_prob["correct_min"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_GOLD, opacity=0.92, stroke_col=WHITE, sw=1.6),
+            pillar_3d_sliced(x_p[2] - 0.19, y_aft, 0.30, 0.40, sep_p0 * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CYAN, opacity=0.88, stroke_col=WHITE, sw=1.4),
+            pillar_3d_sliced(x_p[2] + 0.19, y_aft, 0.30, 0.40, sep_p1 * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CYAN, opacity=0.88, stroke_col=WHITE, sw=1.4),
+            pillar_3d_sliced(x_p[3], y_aft, 0.56, 0.44, sym_prob["flipped_max"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CORAL, opacity=0.90, stroke_col=C_CORAL, sw=1.4),
         )
 
-        bb_pl_75 = bb_badge(f"확정 기준면 {v_conf:.2f}", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.8).move_to([4.55, 1.08, z_plane_75 + 0.16])
-        bb_pl_40 = bb_badge(f"재추출 기준면 {v_reex:.2f}", fg=C_WHITE, bg="#3B1219", border=C_CORAL, size=11.8).move_to([4.55, 1.08, z_plane_40 - 0.08])
-        bb_y_bef = bb_badge(f"후면: 변경 전 (참/거짓, {TERM['batch_query']})", fg=C_AMBER, bg="#1A1206", border=C_AMBER, size=10.8).move_to([-0.38, y_bef + 0.68, pb_z0 + 0.14])
-        bb_y_aft = bb_badge("전면: 변경 후 (대칭, 개별 질의)", fg=C_GOLD, bg="#181408", border=C_GOLD, size=10.6).move_to([1.35, -1.48, pb_z0 - 0.18])
+        bb_y_bef = bb_badge(f"후면: 변경 전 (참/거짓, {TERM['batch_query']})", fg=C_AMBER, bg="#1A1206", border=C_AMBER, size=11.0).move_to([-0.55, y_bef + 0.88, pb_z0 + 2.86])
+        bb_bef_rng = bb_badge(f"참/거짓 {tf_rng['low']:.2f}~{tf_rng['high']:.2f}", fg=C_AMBER, bg="#1A1206", border=C_AMBER, size=11.4).move_to([0.92, y_bef + 0.48, pb_z0 + 2.12])
+        bb_bef_bnd = bb_badge(f"{TERM['batch_query']} {bnd_chk['bundled_probability']:.2f} 오류 통과 ×", fg=C_WHITE, bg="#3B1219", border=C_CORAL, size=11.4).move_to([4.25, y_bef + 0.65, pb_z0 + 2.48])
+        bb_pl_75 = bb_badge(f"확정 기준면 {v_conf:.2f}", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.8).move_to([5.52, 0.52, z_plane_75 + 0.82])
+        bb_pl_40 = bb_badge(f"재추출 기준면 {v_reex:.2f}", fg=C_WHITE, bg="#3B1219", border=C_CORAL, size=11.8).move_to([5.56, -0.02, z_plane_40 + 0.38])
 
-        bb_bef_rng = bb_badge(f"참/거짓 {tf_rng['low']:.2f}~{tf_rng['high']:.2f}", fg=C_AMBER, bg="#1A1206", border=C_AMBER, size=11.4).move_to([x_p[1] + 0.05, y_bef + 0.36, pb_z0 + tf_rng["high"] * pb_h + 0.48])
-        bb_bef_bnd = bb_badge(f"{TERM['batch_query']} {bnd_chk['bundled_probability']:.2f} 오류 통과 ×", fg=C_WHITE, bg="#3B1219", border=C_CORAL, size=11.4).move_to([x_p[2] + 0.45, y_bef + 0.28, pb_z0 + bnd_chk["bundled_probability"] * pb_h + 0.32])
+        bb_aft_corr = bb_badge(f"정상 값 {sym_prob['correct_min']:.2f}↑", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=12.4).move_to([-1.42, y_aft - 0.15, pb_z0 + 1.98])
+        bb_y_aft = bb_badge("전면: 변경 후 (대칭, 개별 질의)", fg=C_GOLD, bg="#181408", border=C_GOLD, size=11.0).move_to([0.18, -2.02, pb_z0 - 0.56])
+        bb_aft_sep = bb_badge(f"개별 질의 {sep_p0:.2f}, {sep_p1:.2f} 검출 ✓", fg=C_CYAN, bg="#07131C", border=C_CYAN, size=11.4).move_to([3.35, -1.52, pb_z0 - 0.08])
+        bb_aft_flip = bb_badge(f"반전 오류값 {sym_prob['flipped_max']:.2f}↓", fg=C_CORAL, bg="#2A0F14", border=C_CORAL, size=11.4).move_to([5.68, -0.52, pb_z0 + 0.62])
 
-        bb_aft_corr = bb_badge(f"정상 값 {sym_prob['correct_min']:.2f}↑", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=12.4).move_to([x_p[0] - 0.15, y_aft - 0.16, pb_z0 + sym_prob["correct_min"] * pb_h + 0.28])
-        bb_aft_sep = bb_badge(f"개별 질의 {sep_p0:.2f}, {sep_p1:.2f} 검출 ✓", fg=C_CYAN, bg="#07131C", border=C_CYAN, size=11.4).move_to([x_p[2] + 0.18, y_aft - 0.02, pb_z0 + sep_p1 * pb_h + 0.50])
-        bb_aft_flip = bb_badge(f"반전 오류값 {sym_prob['flipped_max']:.2f}↓", fg=C_CORAL, bg="#2A0F14", border=C_CORAL, size=11.4).move_to([x_p[3] - 0.12, y_aft + 0.08, pb_z0 + sym_prob["flipped_max"] * pb_h + 0.42])
+        leaders_6b_init = VGroup(
+            make_3d_leader([x_p[0], y_bef + 0.22, pb_z0 + tf_rng["low"] * pb_h], bb_y_bef, C_AMBER),
+            make_3d_leader([x_p[1], y_bef, pb_z0 + tf_rng["high"] * pb_h], bb_bef_rng, C_AMBER),
+            make_3d_leader([x_p[2], y_bef, pb_z0 + bnd_chk["bundled_probability"] * pb_h], bb_bef_bnd, C_CORAL),
+            make_3d_leader([3.95, 0.25, z_plane_75], bb_pl_75, C_GOLD),
+            make_3d_leader([3.95, -0.10, z_plane_40], bb_pl_40, C_CORAL),
+        )
+        leaders_6b_aft = VGroup(
+            make_3d_leader([x_p[0], y_aft, pb_z0 + sym_prob["correct_min"] * pb_h], bb_aft_corr, C_GOLD),
+            make_3d_leader([x_p[0], y_aft - 0.22, pb_z0], bb_y_aft, C_GOLD),
+            make_3d_leader([x_p[2] + 0.19, y_aft - 0.20, pb_z0 + sep_p1 * pb_h * 0.5], bb_aft_sep, C_CYAN),
+            make_3d_leader([x_p[3] + 0.28, y_aft, pb_z0 + 0.04], bb_aft_flip, C_CORAL),
+        )
 
-        bbs_6b_init = [bb_pl_75, bb_pl_40, bb_y_bef, bb_y_aft, bb_bef_rng, bb_bef_bnd]
-        bbs_6b_aft = [bb_aft_corr, bb_aft_sep, bb_aft_flip]
+        bbs_6b_init = [bb_y_bef, bb_bef_rng, bb_bef_bnd, bb_pl_75, bb_pl_40]
+        bbs_6b_aft = [bb_aft_corr, bb_y_aft, bb_aft_sep, bb_aft_flip]
         all_6b_bbs = [*bbs_6b_init, *bbs_6b_aft]
 
         self.register_billboards(*all_6b_bbs)
@@ -664,9 +694,9 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         self.cam_move(
             phi=58 * DEGREES,
-            theta=-62 * DEGREES,
-            zoom=0.92,
-            center=[0.55, 0.0, 0.22],
+            theta=-68 * DEGREES,
+            zoom=0.80,
+            center=[-0.25, -0.05, 0.30],
             anims=[
                 FadeOut(beat6a_all, shift=UP * 0.10),
                 FadeIn(VGroup(hud_6b_top, batch_card, batch_hdr, in_node_6b, batch_foot), shift=RIGHT * 0.08),
@@ -675,6 +705,7 @@ class Part3DecisionScene(PostLifeBaseScene):
                 FadeIn(pb_floor),
                 FadeIn(VGroup(plane_40, plane_75)),
                 LaggedStart(*[FadeIn(pb, shift=OUT * 0.35) for pb in p_bef_bars], lag_ratio=0.09),
+                FadeIn(leaders_6b_init),
                 FadeIn(VGroup(*bbs_6b_init)),
             ],
             rt=1.65,
@@ -684,12 +715,13 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         self.add_fixed_in_frame_mobjects(calib_chip)
         self.cam_move(
-            phi=50 * DEGREES,
-            theta=-30 * DEGREES,
-            zoom=0.90,
-            center=[0.58, -0.02, 0.24],
+            phi=52 * DEGREES,
+            theta=-52 * DEGREES,
+            zoom=0.78,
+            center=[-0.18, -0.08, 0.28],
             anims=[
                 LaggedStart(*[FadeIn(pa, shift=OUT * 0.45) for pa in p_aft_bars], lag_ratio=0.08),
+                FadeIn(leaders_6b_aft),
                 FadeIn(VGroup(*bbs_6b_aft)),
                 FadeIn(calib_chip, shift=UP * 0.08),
             ],
@@ -698,7 +730,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         self.check_bounds(hud_6b_grp, "CH6B HUD")
         self.wait(4.40)
 
-        prob_3d_all = VGroup(pb_floor, plane_40, plane_75, p_bef_bars, p_aft_bars)
+        prob_3d_all = VGroup(pb_floor, plane_40, plane_75, p_bef_bars, p_aft_bars, leaders_6b_init, leaders_6b_aft)
 
         # -------------------------------------------------------------------
         # Beat 6C: 정밀 NPU 3갈래 라우터 스위치보드 + 60초 토큰 윈도우 & 시장 동향 실측 가로 막대 차트
@@ -733,26 +765,26 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         z_top = RoundedRectangle(corner_radius=0.08, width=3.18, height=0.92, fill_color="#232B1E", fill_opacity=0.96, stroke_color=C_GOLD, stroke_width=2.2).move_to([-0.14, 1.84, 0]).set_z_index(4)
         zt_ic = svg_icon("database_master", size=0.44, col=C_GOLD, accent=C_MINT, z=7).move_to([-1.36, 1.84, 0])
-        zt_lbl = fit(VGroup(txt(f"{v_conf:.2f} 이상: 자동 확정", size=12.4, color=C_GOLD, bold=True, z=6), txt(f"{TERM['master']} 시트 반영", size=10.8, color=C_INK_0, z=6)).arrange(DOWN, aligned_edge=LEFT, buff=0.04), max_w=2.36).move_to([0.22, 1.84, 0])
+        zt_lbl = fit(VGroup(txt(f"{v_conf:.2f} 이상: 자동 확정", size=12.4, color=C_GOLD, bold=True, z=6), txt(f"{TERM['master']} 시트 반영", size=10.8, color=C_INK_0, bold=True, z=6)).arrange(DOWN, aligned_edge=LEFT, buff=0.04), max_w=2.36).move_to([0.22, 1.84, 0])
 
         z_mid = RoundedRectangle(corner_radius=0.08, width=3.18, height=0.96, fill_color=C_PANEL_HI, fill_opacity=0.96, stroke_color=C_CYAN, stroke_width=2.2).move_to([-0.14, 0.46, 0]).set_z_index(4)
         zm_ic = svg_icon("doc_check", size=0.44, col=C_CYAN, accent=C_WHITE, z=7).move_to([-1.36, 0.46, 0])
-        zm_lbl = fit(VGroup(txt(f"{v_reex:.2f}~{v_conf:.2f}: {TERM['review_wait']} 이관", size=12.0, color=C_WHITE, bold=True, z=6), txt("원문 근거와 함께 표시", size=10.6, color=C_CYAN, z=6)).arrange(DOWN, aligned_edge=LEFT, buff=0.04), max_w=2.36).move_to([0.22, 0.46, 0])
+        zm_lbl = fit(VGroup(txt(f"{v_reex:.2f}~{v_conf:.2f}: {TERM['review_wait']} 이관", size=12.0, color=C_WHITE, bold=True, z=6), txt("원문 근거와 함께 표시", size=10.6, color=C_CYAN, bold=True, z=6)).arrange(DOWN, aligned_edge=LEFT, buff=0.04), max_w=2.36).move_to([0.22, 0.46, 0])
 
-        z_bot = RoundedRectangle(corner_radius=0.08, width=3.18, height=0.96, fill_color="#281419", fill_opacity=0.96, stroke_color=C_CORAL, stroke_width=2.1).move_to([-0.14, -1.10, 0]).set_z_index(4)
+        z_bot = RoundedRectangle(corner_radius=0.08, width=3.26, height=0.96, fill_color="#281419", fill_opacity=0.96, stroke_color=C_CORAL, stroke_width=2.1).move_to([-0.10, -1.10, 0]).set_z_index(4)
         zb_ic = svg_icon("agent_bot", size=0.44, col=C_CORAL, accent=C_VIOLET, z=7).move_to([-1.36, -1.10, 0])
         excl_lbl = fit(
             VGroup(
                 txt(f"{v_reex:.2f} 미만: 타 모델 재추출", size=11.8, color=C_CORAL, bold=True, z=6),
-                txt(f"오류 행 {cal_band['wrong_caught_pct']}% 이관 ({TERM['ours']} 소규모 표본)", size=9.8, color=C_INK_0, z=6),
+                txt(f"오류 행 {cal_band['wrong_caught_pct']}% 이관 ({TERM['ours']} 소규모 표본)", size=10.6, color=C_INK_0, bold=True, z=6),
             ).arrange(DOWN, aligned_edge=LEFT, buff=0.04),
-            max_w=2.38,
-        ).move_to([0.22, -1.10, 0])
+            max_w=2.50,
+        ).move_to([0.24, -1.10, 0])
 
         retry_arc = CubicBezier(
             np.array([-1.73, -1.10, 0]), np.array([-2.30, -2.06, 0]), np.array([-4.30, -2.06, 0]), np.array([-4.98, -0.36, 0]), color=C_VIOLET, stroke_width=2.3
         ).set_z_index(4)
-        retry_lbl = pill("보조, 상위 모델 재추출 루프", fg=C_VIOLET, bg=C_PANEL, border=C_VIOLET, size=10.4, px=0.10, py=0.035).move_to([-3.38, -1.96, 0]).set_z_index(7)
+        retry_lbl = pill("보조, 상위 모델 재추출 루프", fg=C_VIOLET, bg=C_PANEL, border=C_VIOLET, size=10.8, px=0.10, py=0.035).move_to([-3.38, -1.96, 0]).set_z_index(7)
 
         # 우측: 60초 토큰 슬라이딩 윈도우 + 시장 동향 7분류 실측 가로 막대 차트
         mkt_card = RoundedRectangle(
@@ -764,17 +796,17 @@ class Part3DecisionScene(PostLifeBaseScene):
                 txt(f"{num(win_sec)}초 토큰 윈도우와 {TERM['trend']} {num(cat_cnt)}분류", size=11.8, color=C_VIOLET, bold=True, z=7),
             ).arrange(RIGHT, buff=0.08),
             max_w=3.96,
-        ).move_to([3.86, 2.08, 0])
+        ).move_to([3.86, 2.12, 0])
 
         rule_bar_w = 3.72
         guard_bar_w = rule_bar_w * (guard_tok / lim_tok)
-        rule_bar_bg = RoundedRectangle(corner_radius=0.04, width=rule_bar_w, height=0.26, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_SLATE, stroke_width=1.4).move_to([3.86, 1.62, 0]).set_z_index(6)
-        rule_bar_guard = RoundedRectangle(corner_radius=0.03, width=guard_bar_w, height=0.18, fill_color="#1A5642", fill_opacity=0.88, stroke_color=C_MINT, stroke_width=1.2).move_to([3.86 - rule_bar_w / 2 + guard_bar_w / 2, 1.62, 0]).set_z_index(7)
-        win_bracket = RoundedRectangle(corner_radius=0.04, width=1.18, height=0.34, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=2.2).move_to([2.68, 1.62, 0]).set_z_index(8)
-        safe_txt = fit(
-            txt(f"대기 기준: 최근 {num(win_sec)}초 추정치 {num(guard_tok)} / 한도 {num(lim_tok)} (여유 {num(win_margin)}%, 실측 아님)", size=9.8, color=C_MINT, bold=True, z=8),
-            max_w=3.94,
-        ).move_to([3.86, 1.26, 0])
+        rule_bar_bg = RoundedRectangle(corner_radius=0.04, width=rule_bar_w, height=0.26, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_SLATE, stroke_width=1.4).move_to([3.86, 1.68, 0]).set_z_index(6)
+        rule_bar_guard = RoundedRectangle(corner_radius=0.03, width=guard_bar_w, height=0.18, fill_color="#1A5642", fill_opacity=0.88, stroke_color=C_MINT, stroke_width=1.2).move_to([3.86 - rule_bar_w / 2 + guard_bar_w / 2, 1.68, 0]).set_z_index(7)
+        win_bracket = RoundedRectangle(corner_radius=0.04, width=1.18, height=0.34, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=2.2).move_to([2.68, 1.68, 0]).set_z_index(8)
+        safe_txt = VGroup(
+            txt(f"대기 기준: 최근 {num(win_sec)}초 추정치 {num(guard_tok)} / 한도 {num(lim_tok)}", size=10.6, color=C_MINT, bold=True, z=7),
+            txt(f"(여유 {num(win_margin)}%, 실측 아님)", size=10.6, color=C_MINT, bold=True, z=7),
+        ).arrange(DOWN, buff=0.03).move_to([3.86, 1.25, 0])
 
         max_cat_v = max(cats_by_cnt.values())
         cat_bar_max_w = 1.62
@@ -782,17 +814,17 @@ class Part3DecisionScene(PostLifeBaseScene):
         cat_colors = [C_GOLD, C_MINT, C_CYAN, C_CORAL, C_VIOLET, C_AMBER, C_INK_0]
         sorted_cats = sorted(cat_list, key=lambda nm: cats_by_cnt[nm], reverse=True)
         for idx, c_nm in enumerate(sorted_cats):
-            cy_r = 0.86 - idx * 0.34
+            cy_r = 0.84 - idx * 0.34
             cnt_v = cats_by_cnt[c_nm]
             bw_c = max(0.08, cat_bar_max_w * (cnt_v / max_cat_v))
             col_c = cat_colors[idx % len(cat_colors)]
-            nm_t = fit(txt(c_nm, size=10.0, color=C_INK_0, bold=True, z=7), max_w=1.42).move_to([2.68, cy_r, 0])
+            nm_t = fit(txt(c_nm, size=10.8, color=C_INK_0, bold=True, z=7), max_w=1.42).move_to([2.68, cy_r, 0])
             b_bg = RoundedRectangle(corner_radius=0.03, width=cat_bar_max_w, height=0.18, fill_color=C_BG_SUB, fill_opacity=0.95, stroke_width=0).move_to([3.52 + cat_bar_max_w / 2, cy_r, 0]).set_z_index(6)
             b_fg = RoundedRectangle(corner_radius=0.03, width=bw_c, height=0.18, fill_color=col_c, fill_opacity=0.92, stroke_width=0).move_to([3.52 + bw_c / 2, cy_r, 0]).set_z_index(7)
-            val_t = txt(f"{num(cnt_v)}건", size=10.0, color=col_c, bold=True, z=8).move_to([5.52, cy_r, 0])
+            val_t = txt(f"{num(cnt_v)}건", size=10.6, color=col_c, bold=True, z=8).move_to([5.52, cy_r, 0])
             cat_rows.add(VGroup(nm_t, b_bg, b_fg, val_t))
 
-        mkt_foot = fit(txt(f"{TERM['snapshot']} {TERM['trend']} 합계 {num(news_total)}건", size=10.0, color=C_GOLD, bold=True, z=7), max_w=3.94).move_to([3.86, -1.66, 0])
+        mkt_foot = fit(txt(f"{TERM['snapshot']} {TERM['trend']} 합계 {num(news_total)}건", size=10.8, color=C_GOLD, bold=True, z=7), max_w=3.94).move_to([3.86, -1.66, 0])
         mkt_group = VGroup(mkt_card, mkt_title, rule_bar_bg, rule_bar_guard, win_bracket, safe_txt, cat_rows, mkt_foot)
 
         quota_bar = fit(
@@ -805,6 +837,8 @@ class Part3DecisionScene(PostLifeBaseScene):
             ),
             max_w=12.00,
         ).move_to([0.0, -2.58, 0]).set_z_index(9)
+
+        router_left_grp = VGroup(router_hub, meter_bar, line_75, line_40, knob_75, knob_40, retry_arc, retry_lbl)
 
         self.reset_cam_2d(
             anims=[
@@ -820,19 +854,18 @@ class Part3DecisionScene(PostLifeBaseScene):
                 FadeIn(VGroup(z_top, zt_ic, zt_lbl, z_mid, zm_ic, zm_lbl, z_bot, zb_ic, excl_lbl)),
                 Create(retry_arc),
                 FadeIn(retry_lbl),
-                FadeIn(VGroup(mkt_card, mkt_title, rule_bar_bg, rule_bar_guard, win_bracket, safe_txt, mkt_foot), shift=LEFT * 0.14),
-                LaggedStart(*[FadeIn(cr) for cr in cat_rows], lag_ratio=0.06),
             ],
-            rt=1.35,
+            rt=1.25,
         )
         self.clear_billboards(*all_6b_bbs)
         self.remove_fixed_in_frame_mobjects(hud_6b_grp)
         self.remove(prob_3d_all, hud_6b_grp)
-        self.wait(1.20)
+        self.wait(1.00)
 
         p_start = router_hub_box.get_right()
         particles, mkt_pulses = VGroup(), VGroup()
         stream_anims = []
+        mkt_pulse_anims = []
         for k in range(5):
             end_y = 1.66 + (k % 3) * 0.18
             pt = glow_dot(p_start, color=C_GOLD, r=0.060, z=12)
@@ -847,57 +880,66 @@ class Part3DecisionScene(PostLifeBaseScene):
             stream_anims.append(
                 Succession(Wait(0.15 + k * 0.16), MoveAlongPath(pt, CubicBezier(p_start, p_start + RIGHT * 0.9, np.array([-2.3, end_y, 0]), np.array([-1.73, end_y, 0])), run_time=1.35))
             )
-        for k, sy in enumerate([0.86, 0.52, 0.18]):
+        for k, sy in enumerate([0.84, 0.50, 0.16]):
             mp = glow_dot([1.45, 1.84, 0], color=C_VIOLET, r=0.060, z=13)
             mkt_pulses.add(mp)
-            stream_anims.append(
+            mkt_pulse_anims.append(
                 Succession(
-                    Wait(0.30 + k * 0.22),
-                    MoveAlongPath(mp, CubicBezier(np.array([1.45, 1.84, 0]), np.array([1.72, sy + 0.3, 0]), np.array([1.72, sy, 0]), np.array([1.95, sy, 0])), run_time=1.20),
+                    Wait(0.16 + k * 0.18),
+                    MoveAlongPath(mp, CubicBezier(np.array([1.45, 1.84, 0]), np.array([1.72, sy + 0.3, 0]), np.array([1.72, sy, 0]), np.array([1.95, sy, 0])), run_time=1.05),
                 )
             )
 
         rescue_pt = glow_dot(p_start, color=C_VIOLET, r=0.064, z=13)
-        self.add(particles, mkt_pulses, rescue_pt)
+        self.add(particles, rescue_pt)
 
+        # 좌측 라우터 줌에서는 우측 카드가 화면 경계에 걸리지 않도록 아직 표시하지 않는다.
         self.cam_move(
             zoom=1.26,
             center=[-1.85, -0.10, 0],
             anims=[
                 *stream_anims,
-                MoveAlongPath(rescue_pt, CubicBezier(p_start, p_start + RIGHT * 0.85, np.array([-2.3, -1.10, 0]), np.array([-1.73, -1.10, 0])), run_time=1.20),
+                Succession(
+                    MoveAlongPath(rescue_pt, CubicBezier(p_start, p_start + RIGHT * 0.85, np.array([-2.3, -1.10, 0]), np.array([-1.73, -1.10, 0])), run_time=0.88),
+                    MoveAlongPath(rescue_pt, retry_arc, run_time=0.87),
+                ),
             ],
             rt=1.75,
         )
         self.wait(1.75)
 
+        # 우측 차트 줌에서는 좌측 라우터 요소를 잠시 내렸다가 전체 구도에서 다시 복원한다.
+        self.add(mkt_pulses)
         self.cam_move(
             zoom=1.30,
             center=[2.75, 0.28, 0],
             anims=[
-                FadeOut(mkt_pulses, scale=0.4),
-                MoveAlongPath(rescue_pt, retry_arc, run_time=1.15),
-                win_bracket.animate.move_to([4.92, 1.62, 0]),
-                LaggedStart(*[Indicate(cr[2], color=WHITE, scale_factor=1.08) for cr in cat_rows[:4]], lag_ratio=0.10),
+                FadeOut(router_left_grp, shift=LEFT * 0.10),
+                FadeOut(particles, scale=0.4),
+                FadeOut(rescue_pt, scale=0.4),
+                FadeIn(VGroup(mkt_card, mkt_title, rule_bar_bg, rule_bar_guard, win_bracket, safe_txt, mkt_foot), shift=LEFT * 0.14),
+                LaggedStart(*[FadeIn(cr, shift=LEFT * 0.08) for cr in cat_rows], lag_ratio=0.05),
+                *mkt_pulse_anims,
             ],
-            rt=1.50,
+            rt=1.45,
+        )
+        self.remove(particles, *particles, rescue_pt)
+        self.play(
+            win_bracket.animate.move_to([4.92, 1.68, 0]),
+            LaggedStart(*[Indicate(cr[2], color=WHITE, scale_factor=1.08) for cr in cat_rows[:4]], lag_ratio=0.10),
+            FadeOut(mkt_pulses, scale=0.4),
+            run_time=0.80,
         )
         self.remove(mkt_pulses, *mkt_pulses)
         self.wait(1.80)
 
         self.reset_cam_2d(
             anims=[
-                MoveAlongPath(
-                    rescue_pt,
-                    CubicBezier(np.array([-4.98, -0.36, 0]), np.array([-3.4, 1.84, 0]), np.array([-2.3, 1.84, 0]), np.array([-1.73, 1.84, 0])),
-                ),
-                FadeOut(particles, scale=0.4),
+                FadeIn(router_left_grp, shift=RIGHT * 0.10),
                 FadeIn(quota_bar, shift=UP * 0.08),
             ],
             rt=1.15,
         )
-        self.play(FadeOut(rescue_pt, scale=0.4), run_time=0.25)
-        self.remove(particles, *particles, rescue_pt)
 
         ch6_stage = VGroup(
             router_hub, meter_bar, line_75, line_40, knob_75, knob_40,

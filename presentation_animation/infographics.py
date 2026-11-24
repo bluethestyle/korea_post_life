@@ -368,7 +368,7 @@ def make_claude_orchestrator_hub(
     )
     lbl_items: list[Mobject] = [txt(title_s, size=11.6, color=C_GOLD, bold=True, z=z + 4)]
     if sub_s:
-        lbl_items.append(txt(sub_s, size=10.2, color=C_WHITE, bold=True, z=z + 4))
+        lbl_items.append(txt(sub_s, size=10.8, color=C_WHITE, bold=True, z=z + 4))
     lbl_grp = fit(VGroup(*lbl_items).arrange(DOWN, buff=0.04), max_w=radius * 1.56).move_to(
         pt + DOWN * (radius * 0.34 if sub_s else radius * 0.30)
     )
@@ -428,7 +428,7 @@ def make_dark_a4_sheet(
     ).set_z_index(z + 2)
 
     top_accent = Line([left + 0.02, top - 0.02, 0], [right - fold, top - 0.02, 0], color=C_CORAL, stroke_width=4.6).set_z_index(z + 2)
-    bdg = fit(pill(badge_s, fg=C_WHITE, bg=C_CORAL, border=C_CORAL, size=10.4, px=0.10, py=0.035, z=z + 3), max_w=w - 0.36).move_to(
+    bdg = fit(pill(badge_s, fg=C_WHITE, bg=C_CORAL, border=C_CORAL, size=11.0, px=0.10, py=0.035, z=z + 3), max_w=w - 0.32).move_to(
         [x0 - fold * 0.18, top - 0.36, 0]
     )
     hdr = fit(txt(title_s, size=13.8, color=C_GOLD, bold=True, z=z + 3), max_w=w - 0.28).move_to([x0, top - 0.80, 0])

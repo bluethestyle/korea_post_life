@@ -113,21 +113,21 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             fill_opacity=0.96,
             stroke_color=C_GOLD_DEEP,
             stroke_width=1.8,
-        ).move_to([0.0, 2.72, 0]).set_z_index(4)
-        spec_hdr_7 = pill(f"{TERM['master']}와 배포 조건", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.8, px=0.12, py=0.05, z=7)
+        ).move_to([0.0, 2.72, 0]).set_z_index(24)
+        spec_hdr_7 = pill(f"{TERM['master']}와 배포 조건", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.8, px=0.12, py=0.05, z=25)
         sp_chip_1 = VGroup(
-            svg_icon("database_master", size=0.38, col=C_CYAN, accent=C_GOLD, z=7),
-            txt(f"{TERM['sheet_master']} {num(sheet_tabs)}탭", size=10.6, color=C_CYAN, bold=True, z=7),
+            svg_icon("database_master", size=0.38, col=C_CYAN, accent=C_GOLD, z=25),
+            txt(f"{TERM['sheet_master']} {num(sheet_tabs)}탭", size=10.8, color=C_CYAN, bold=True, z=25),
         ).arrange(RIGHT, buff=0.08)
         sp_chip_2 = VGroup(
-            svg_icon("hq_console", size=0.38, col=C_MINT, accent=C_GOLD, z=7),
-            txt(f"{TERM['snapshot']} 내장 단일 HTML (점검 오류, 외부 요청 {num(br_problems)}건)", size=10.4, color=C_MINT, bold=True, z=7),
+            svg_icon("hq_console", size=0.38, col=C_MINT, accent=C_GOLD, z=25),
+            txt(f"{TERM['snapshot']} 내장 단일 HTML (점검 오류, 외부 요청 {num(br_problems)}건)", size=10.8, color=C_MINT, bold=True, z=25),
         ).arrange(RIGHT, buff=0.08)
         sp_chip_3 = VGroup(
-            svg_icon("shield_check", size=0.38, col=C_GOLD, accent=C_MINT, z=7),
-            txt(f"운영 비용 {num(op_cost)}원(무료 설계)", size=10.6, color=C_GOLD, bold=True, z=7),
+            svg_icon("shield_check", size=0.38, col=C_GOLD, accent=C_MINT, z=25),
+            txt(f"운영 비용 {num(op_cost)}원(무료 설계)", size=10.8, color=C_GOLD, bold=True, z=25),
         ).arrange(RIGHT, buff=0.08)
-        spec_items_7 = fit(VGroup(spec_hdr_7, sp_chip_1, sp_chip_2, sp_chip_3).arrange(RIGHT, buff=0.22), max_w=11.52).move_to(spec_bar_7)
+        spec_items_7 = fit(VGroup(spec_hdr_7, sp_chip_1, sp_chip_2, sp_chip_3).arrange(RIGHT, buff=0.20), max_w=11.52).move_to(spec_bar_7)
         top_spec_7 = VGroup(spec_bar_7, spec_items_7)
         # 규칙 A: 배포 규격 바는 카메라와 함께 움직이지 않는 HUD 레이어에 두고, 열 단위 줌에서 열 머리보다 위(제목 바 아래)에 남긴다.
         self.add_fixed_in_frame_mobjects(top_spec_7)
@@ -150,21 +150,21 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         # Col 1 (x = -4.02): 종형명, 지급방식, 통합 대 분리 구조 상이
         c7_f1, c7_h1 = make_diag_col_7(-4.02, 3.76, C_AMBER, "git_lineage", "① 명칭, 지급방식, 구조 상이")
-        m7_l1 = fit(pill(base_var_name, fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.0, px=0.09, py=0.04, z=7), max_w=1.54).move_to([-4.98, 0.44, 0])
-        m7_r1 = fit(pill(peer0_name, fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD, size=9.8, px=0.09, py=0.04, z=7), max_w=1.54).move_to([-3.06, 0.44, 0])
-        m7_l2 = fit(pill("수술 회당 지급", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.0, px=0.09, py=0.04, z=7), max_w=1.54).move_to([-4.98, -0.18, 0])
-        m7_r2 = fit(pill("연간 일회 지급", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.0, px=0.09, py=0.04, z=7), max_w=1.54).move_to([-3.06, -0.18, 0])
+        m7_l1 = fit(pill(base_var_name, fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.6, px=0.08, py=0.04, z=7), max_w=1.44).move_to([-5.08, 0.44, 0])
+        m7_r1 = fit(pill(peer0_name, fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD, size=10.6, px=0.08, py=0.04, z=7), max_w=1.84).move_to([-3.14, 0.44, 0])
+        m7_l2 = fit(pill("수술 회당 지급", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.6, px=0.09, py=0.04, z=7), max_w=1.54).move_to([-4.98, -0.18, 0])
+        m7_r2 = fit(pill("연간 일회 지급", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.6, px=0.09, py=0.04, z=7), max_w=1.54).move_to([-3.06, -0.18, 0])
         m7_neqs = VGroup(
-            txt("≠", size=15.5, color=C_CORAL, bold=True, z=8).move_to([-4.02, 0.44, 0]),
+            txt("≠", size=15.5, color=C_CORAL, bold=True, z=8).move_to([-4.22, 0.44, 0]),
             txt("≠", size=15.5, color=C_CORAL, bold=True, z=8).move_to([-4.02, -0.18, 0]),
         )
-        int_chip = fit(pill(f"{TERM['peer']} 통합특약 ◆", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=10.0, px=0.09, py=0.04, z=7), max_w=1.54).move_to([-4.98, -0.82, 0])
+        int_chip = fit(pill(f"{TERM['peer']} 통합특약 ◆", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=10.6, px=0.09, py=0.04, z=7), max_w=1.54).move_to([-4.98, -0.82, 0])
         int_arr = arrow_2d([-4.16, -0.82, 0], [-3.84, -0.82, 0], color=C_CORAL, sw=2.2, tip=0.10, z=8)
-        false_stamp = fit(pill("미보유 오판 ×", fg=WHITE, bg=C_CORAL, border=WHITE, size=10.0, px=0.09, py=0.04, z=8), max_w=1.54).move_to([-3.04, -0.82, 0])
+        false_stamp = fit(pill("미보유 오판 ×", fg=WHITE, bg=C_CORAL, border=WHITE, size=10.6, px=0.09, py=0.04, z=8), max_w=1.54).move_to([-3.04, -0.82, 0])
         c7_cap1 = fit(
             VGroup(
-                txt("단순 문자열과 금액 직접 대조 불가능", size=10.2, color=C_INK_0, bold=True, z=7),
-                txt(f"{TERM['ours']} 분리특약 누락 위험 발생", size=10.0, color=C_AMBER, bold=True, z=7),
+                txt("단순 문자열과 금액 직접 대조 불가능", size=10.8, color=C_INK_0, bold=True, z=7),
+                txt(f"{TERM['ours']} 분리특약 누락 위험 발생", size=10.8, color=C_AMBER, bold=True, z=7),
             ).arrange(DOWN, buff=0.05),
             max_w=3.46,
         ).move_to([-4.02, -1.66, 0])
@@ -182,7 +182,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ]
         pend_tracks, pend_fills = VGroup(), VGroup()
         for py, p_lbl, p_val, p_col in pend_specs:
-            lbl_m = fit(txt(p_lbl, size=10.0, color=p_col if p_col != C_AMBER else C_INK_0, bold=True, z=7), max_w=3.36).move_to([0.0, py + 0.18, 0])
+            lbl_m = fit(txt(p_lbl, size=10.8, color=p_col if p_col != C_AMBER else C_INK_0, bold=True, z=7), max_w=3.48).move_to([0.0, py + 0.18, 0])
             trk = RoundedRectangle(
                 corner_radius=0.04,
                 width=bar_track_w,
@@ -205,8 +205,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             pend_tracks.add(VGroup(lbl_m, trk))
             pend_fills.add(fl)
         c7_cap2 = fit(
-            pill(f"사전 확장 전 {TERM['map_wait']}를 미보유로 오인할 위험 ×", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=10.0, px=0.10, py=0.05, z=7),
-            max_w=3.50,
+            pill(f"사전 확장 전 {TERM['map_wait']}를 미보유로 오인할 위험 ×", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=10.8, px=0.09, py=0.05, z=7),
+            max_w=3.62,
         ).move_to([0.0, -1.68, 0])
         col7_2_base = VGroup(c7_f2, c7_h2, pend_tracks, c7_cap2)
         col7_2_full = VGroup(col7_2_base, pend_fills)
@@ -214,8 +214,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         # Col 3 (x = +4.02): 공시 문서 내 특약별 보험료 부재와 추정 배제 원칙
         c7_f3, c7_h3 = make_diag_col_7(4.02, 3.76, C_VIOLET, "doc_text", "③ 공시 문서 내 특약 보험료 부재")
         src_docs_7 = VGroup(
-            pill("상품요약서", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.2, px=0.12, py=0.05, z=7),
-            pill("사업방법서", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.2, px=0.12, py=0.05, z=7),
+            pill("상품요약서", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.8, px=0.12, py=0.05, z=7),
+            pill("사업방법서", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.8, px=0.12, py=0.05, z=7),
         ).arrange(RIGHT, buff=0.16).move_to([4.02, 0.44, 0])
         src_arr_7 = arrow_2d([4.02, 0.18, 0], [4.02, -0.12, 0], color=C_VIOLET, sw=2.2, tip=0.10, z=7)
         no_prem_box = DashedVMobject(
@@ -226,14 +226,14 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             VGroup(
                 svg_icon("alert_warn", size=0.36, col=C_CORAL, accent=C_GOLD, tile=False, z=7),
                 VGroup(
-                    txt(f"특약별 보험료 예시: {TERM['snapshot']} {num(prem_rows)}행", size=10.4, color=C_CORAL, bold=True, z=7),
-                    txt("차기 단계 과제로 분리", size=9.8, color=C_AMBER, bold=True, z=7),
+                    txt(f"특약별 보험료 예시: {TERM['snapshot']} {num(prem_rows)}행", size=10.8, color=C_CORAL, bold=True, z=7),
+                    txt("차기 단계 과제로 분리", size=10.6, color=C_AMBER, bold=True, z=7),
                 ).arrange(DOWN, aligned_edge=LEFT, buff=0.04),
             ).arrange(RIGHT, buff=0.12),
-            max_w=3.08,
+            max_w=3.12,
         ).move_to([4.02, -0.62, 0])
         c7_cap3 = fit(
-            pill("원문에 없는 보험료 추정 표시 제외 ✓", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.2, px=0.12, py=0.05, z=7),
+            pill("원문에 없는 보험료 추정 표시 제외 ✓", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.8, px=0.12, py=0.05, z=7),
             max_w=3.46,
         ).move_to([4.02, -1.68, 0])
         col7_3_full = VGroup(c7_f3, c7_h3, src_docs_7, src_arr_7, no_prem_box, no_prem_inner, c7_cap3)
@@ -254,8 +254,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             rt=1.05,
         )
         self.play(
-            m7_l1.animate.shift(RIGHT * 0.10),
-            m7_r1.animate.shift(LEFT * 0.10),
+            m7_l1.animate.shift(RIGHT * 0.08),
+            m7_r1.animate.shift(LEFT * 0.08),
             m7_l2.animate.shift(RIGHT * 0.10),
             m7_r2.animate.shift(LEFT * 0.10),
             rate_func=there_and_back,
@@ -291,7 +291,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.wait(1.60)
 
         self.reset_cam_2d(rt=0.95)
-        beat7a_all = VGroup(top_spec_7, col7_1_full, col7_2_full, col7_3_full)
+        beat7a_cols = VGroup(col7_1_full, col7_2_full, col7_3_full)
+        beat7a_all = VGroup(top_spec_7, beat7a_cols)
         self.check_bounds(beat7a_all, "CH7A ONTOLOGY DIAGNOSTIC")
         self.wait(2.50)
 
@@ -304,18 +305,18 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             rt=0.45,
         )
 
-        p3d_x = 1.50
-        z_f1, z_f2, z_f3 = -1.12, 0.12, 1.36
-        plane_fct_3d = glass_plane_3d(p3d_x, 0.0, z_f1, 5.65, 2.85, C_CYAN, fill_op=0.16, sw=2.2, tier=-6.0)
-        plane_std_3d = glass_plane_3d(p3d_x, 0.0, z_f2, 5.65, 2.85, C_GOLD, fill_op=0.16, sw=2.2, tier=-2.0)
-        plane_der_3d = glass_plane_3d(p3d_x, 0.0, z_f3, 5.65, 2.85, C_VIOLET, fill_op=0.16, sw=2.2, tier=2.0)
+        p3d_x = 1.25
+        z_f1, z_f2, z_f3 = -0.92, 0.22, 1.36
+        plane_fct_3d = glass_plane_3d(p3d_x, 0.0, z_f1, 5.10, 2.45, C_CYAN, fill_op=0.16, sw=2.2, tier=-6.0)
+        plane_std_3d = glass_plane_3d(p3d_x, 0.0, z_f2, 5.10, 2.45, C_GOLD, fill_op=0.16, sw=2.2, tier=-2.0)
+        plane_der_3d = glass_plane_3d(p3d_x, 0.0, z_f3, 5.10, 2.45, C_VIOLET, fill_op=0.16, sw=2.2, tier=2.0)
 
         nodes_3d, edges_floor_3d, shafts_3d, pulses_3d = VGroup(), VGroup(), VGroup(), VGroup()
         shaft_xy = [
-            (p3d_x - 2.05, -0.72, C_CYAN),
-            (p3d_x - 0.68, 0.68, C_GOLD),
-            (p3d_x + 0.68, -0.58, C_MINT),
-            (p3d_x + 2.05, 0.62, C_VIOLET),
+            (p3d_x - 1.80, -0.60, C_CYAN),
+            (p3d_x - 0.60, 0.56, C_GOLD),
+            (p3d_x + 0.60, -0.48, C_MINT),
+            (p3d_x + 1.80, 0.52, C_VIOLET),
         ]
         for k in range(len(shaft_xy) - 1):
             x0, y0, _ = shaft_xy[k]
@@ -343,20 +344,26 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             pulses_3d.add(p_mob)
 
         bb_7b_f1 = fit(
-            bb_badge(f"원천 {TERM['snapshot']}: 화면 {num(site_org_cnt)}개사", f"급부 {num(ben_cnt_site)}건", fg=C_CYAN, bg="#060B11", border=C_CYAN, size=11.6, sub_size=10.2, sub_col=C_WHITE),
+            bb_badge(f"원천 {TERM['snapshot']}: 화면 {num(site_org_cnt)}개사", f"급부 {num(ben_cnt_site)}건", fg=C_CYAN, bg="#060B11", border=C_CYAN, size=11.6, sub_size=11.0, sub_col=C_WHITE),
             max_w=2.44,
-        ).move_to([p3d_x + 2.30, 0.55, z_f1 + 0.34])
+        ).move_to([p3d_x + 4.42, 0.35, z_f1 + 0.36])
         bb_7b_f2 = fit(
-            bb_badge(f"표준담보 {num(cov_use)}개", f"{rel_kinds_str} 관계 {num(rel_cnt)}건", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.6, sub_size=10.2, sub_col=C_DARK_INK),
+            bb_badge(f"표준담보 {num(cov_use)}개", f"{rel_kinds_str} 관계 {num(rel_cnt)}건", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.6, sub_size=11.0, sub_col=C_DARK_INK),
             max_w=2.44,
-        ).move_to([p3d_x + 2.30, 0.55, z_f2 + 0.34])
+        ).move_to([p3d_x + 4.42, 0.35, z_f2 + 0.36])
         bb_7b_f3 = fit(
-            bb_badge("빌드 시 비교 연산", f"단독 HTML, A4 {TERM['script_doc']}", fg=WHITE, bg="#261E42", border=C_VIOLET, size=11.6, sub_size=10.2, sub_col=C_MINT),
+            bb_badge("빌드 시 비교 연산", f"단독 HTML, A4 {TERM['script_doc']}", fg=WHITE, bg="#261E42", border=C_VIOLET, size=11.6, sub_size=11.0, sub_col=C_MINT),
             max_w=2.44,
-        ).move_to([p3d_x + 2.30, 0.55, z_f3 + 0.36])
+        ).move_to([p3d_x + 4.42, 0.35, z_f3 + 0.36])
         bbs_7b = [bb_7b_f1, bb_7b_f2, bb_7b_f3]
 
-        stack_3d_grp = VGroup(plane_fct_3d, plane_std_3d, plane_der_3d, edges_floor_3d, shafts_3d, nodes_3d)
+        leaders_7b = VGroup()
+        for z_fk, bb_m, lcol in [(z_f1, bb_7b_f1, C_CYAN), (z_f2, bb_7b_f2, C_GOLD), (z_f3, bb_7b_f3, C_VIOLET)]:
+            ln = Line([p3d_x + 2.55, 0.35, z_fk], bb_m.get_center(), color=lcol, stroke_width=1.8, stroke_opacity=0.88)
+            set_3d_tier(ln, 12.0, sub=0, sort_3d=False)
+            leaders_7b.add(ln)
+
+        stack_3d_grp = VGroup(plane_fct_3d, plane_std_3d, plane_der_3d, edges_floor_3d, shafts_3d, nodes_3d, leaders_7b)
 
         z_lbl_3d = VGroup(
             fit(pill("상단 계층: 비교, 인사이트 (빌드 시 연산해 적재하고 화면이 표시)", fg=C_VIOLET, bg=C_PANEL_HI, border=C_VIOLET, size=11.2), max_w=4.44).move_to([-4.06, 1.45, 0]),
@@ -367,12 +374,13 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.register_billboards(*bbs_7b)
         self.add_fixed_in_frame_mobjects(z_lbl_3d)
         self.cam_move(
-            phi=60 * DEGREES,
-            theta=-58 * DEGREES,
-            zoom=0.92,
-            center=[0.35, 0.0, 0.12],
+            phi=58 * DEGREES,
+            theta=-60 * DEGREES,
+            zoom=0.86,
+            center=[0.35, -0.05, 0.05],
             anims=[
-                FadeOut(beat7a_all, shift=UP * 0.10),
+                FadeOut(beat7a_cols, shift=UP * 0.10),
+                FadeOut(top_spec_7, shift=UP * 0.10),
                 FadeIn(stack_3d_grp),
                 FadeIn(VGroup(*bbs_7b)),
                 FadeIn(z_lbl_3d, shift=RIGHT * 0.12),
@@ -380,17 +388,17 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             rt=1.45,
         )
         self.remove_fixed_in_frame_mobjects(top_spec_7)
-        self.remove(beat7a_all)
+        self.remove(beat7a_all, beat7a_cols, top_spec_7)
         self.wait(1.60)
 
         for p in pulses_3d:
             p.add_updater(lambda m: set_3d_tier(m, -3.0 if m.get_center()[2] < z_f2 else (1.0 if m.get_center()[2] < z_f3 - 0.04 else 3.5)))
         self.add(pulses_3d)
         self.cam_move(
-            phi=52 * DEGREES,
-            theta=-26 * DEGREES,
-            zoom=0.94,
-            center=[0.35, 0.0, 0.25],
+            phi=50 * DEGREES,
+            theta=-34 * DEGREES,
+            zoom=0.84,
+            center=[0.42, -0.18, -0.18],
             anims=[*[MoveAlongPath(pulses_3d[k], Line([shaft_xy[k][0], shaft_xy[k][1], z_f1], [shaft_xy[k][0], shaft_xy[k][1], z_f3])) for k in range(len(shaft_xy))]],
             rt=2.20,
         )
@@ -530,15 +538,15 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         xs = np.array([raw_pos[i][0] for i in range(total_v)])
         ys = np.array([raw_pos[i][1] for i in range(total_v)])
         zs = np.array([raw_pos[i][2] for i in range(total_v)])
-        xs = (xs - xs.mean()) / (xs.max() - xs.min() + 1e-6) * 9.8
-        ys = (ys - ys.mean()) / (ys.max() - ys.min() + 1e-6) * 3.85 - 0.08
-        zs = (zs - zs.mean()) / (zs.max() - zs.min() + 1e-6) * 3.10
+        xs = (xs - xs.mean()) / (xs.max() - xs.min() + 1e-6) * 5.80
+        ys = (ys - ys.mean()) / (xs.max() - ys.min() + 1e-6) * 2.80
+        zs = (zs - zs.mean()) / (zs.max() - zs.min() + 1e-6) * 2.10
         net_pts = {i: np.array([xs[i], ys[i], zs[i]]) for i in range(total_v)}
 
         radar_bg = VGroup(
-            *[Circle(radius=rad, fill_opacity=0.0, stroke_color=C_CYAN, stroke_width=0.9, stroke_opacity=0.18).move_to([0, -0.08, 0]) for rad in [1.15, 2.30, 3.45, 4.65]],
-            Line([-5.8, -0.08, 0], [5.8, -0.08, 0], color=C_CYAN, stroke_width=0.8, stroke_opacity=0.14),
-            Line([0, -2.85, 0], [0, 2.75, 0], color=C_CYAN, stroke_width=0.8, stroke_opacity=0.14),
+            *[Circle(radius=rad, fill_opacity=0.0, stroke_color=C_CYAN, stroke_width=0.9, stroke_opacity=0.18).move_to([0, 0, 0]) for rad in [0.85, 1.70, 2.55, 3.40]],
+            Line([-3.80, 0, 0], [3.80, 0, 0], color=C_CYAN, stroke_width=0.8, stroke_opacity=0.14),
+            Line([0, -2.10, 0], [0, 2.10, 0], color=C_CYAN, stroke_width=0.8, stroke_opacity=0.14),
         ).set_z_index(1)
         set_3d_tier(radar_bg, -15.0, sub=0, sort_3d=False)
 
@@ -590,7 +598,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 size=11.4,
             ),
             max_w=11.85,
-        ).move_to([0, 2.70, 0]).set_z_index(25)
+        ).move_to([0, 2.78, 0]).set_z_index(25)
         build_legend = fit(
             VGroup(
                 pill(f"◆ 포함 {num(rel_by_k['포함'])}, 통합 {num(rel_by_k['통합'])} (합계 {num(rel_cnt)}건)", fg=C_GOLD, bg=C_PANEL, border=C_GOLD_DEEP, size=11.4),
@@ -598,7 +606,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 pill(f"●- -● {TERM['review_wait']} {num(ms_site['대기'])}건 (미보유 오판 방지)", fg=C_AMBER, bg=C_PANEL, border=C_AMBER, size=11.4),
             ).arrange(RIGHT, buff=0.14),
             max_w=11.85,
-        ).move_to([0, -2.70, 0]).set_z_index(25)
+        ).move_to([0, -2.78, 0]).set_z_index(25)
 
         self.add_fixed_in_frame_mobjects(build_banner, build_legend)
         self.register_billboards(*billboard_nodes)
@@ -607,8 +615,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.cam_move(
             phi=56 * DEGREES,
             theta=-64 * DEGREES,
-            zoom=0.98,
-            center=[0.0, -0.05, 0.0],
+            zoom=0.88,
+            center=[0.0, 0.0, 0.0],
             anims=[
                 FadeOut(beat7b_all, shift=UP * 0.10),
                 FadeIn(radar_bg),
@@ -625,7 +633,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         )
         self.remove(beat7b_all)
 
-        self.cam_move(phi=48 * DEGREES, theta=-24 * DEGREES, zoom=1.04, center=[0.0, -0.05, 0.0], rt=2.60)
+        self.cam_move(phi=48 * DEGREES, theta=-26 * DEGREES, zoom=0.86, center=[0.0, 0.0, -0.06], rt=2.60)
         self.wait(1.90)
 
         all_net_lines = VGroup(intra_edges, dag_edges, confirmed_bridge_edges, waiting_dashed_edges)
@@ -641,13 +649,31 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).move_to([-4.32, 1.72, 0])
         z1_old = fit(pill(f"직전 개정 ({rev_old_no})", fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=11.8, z=7), max_w=2.98).move_to([-4.32, 0.92, 0])
         z1_new = fit(pill(f"현행 개정 ({rev_new_no})", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=12.0, z=7), max_w=2.98).move_to([-4.32, -0.14, 0])
+        z1_scope_box = RoundedRectangle(
+            corner_radius=0.07,
+            width=3.06,
+            height=0.52,
+            fill_color=C_PANEL_HI,
+            fill_opacity=0.97,
+            stroke_color=C_CYAN,
+            stroke_width=1.6,
+        ).move_to([-4.32, -0.84, 0]).set_z_index(6)
+        z1_scope_txt = fit(
+            VGroup(
+                txt(f"{TERM['ours']} 포함 {num(site_org_cnt)}개사 ({TERM['snapshot']} {num(prod_org_cnt)}개사)", size=10.8, color=C_CYAN, bold=True, z=7),
+                txt(f"-> 비교 {TERM['peer']} {num(target_total)}개사", size=10.8, color=C_WHITE, bold=True, z=7),
+            ).arrange(DOWN, buff=0.04),
+            max_w=2.92,
+        ).move_to(z1_scope_box)
+        z1_scope_badge = VGroup(z1_scope_box, z1_scope_txt)
         z1_foot = fit(
             VGroup(
-                txt("타사 선정: 총자산 기사 기준(공식 순위 미확정)", size=9.8, color=C_INK_0, bold=True, z=7),
-                txt(f"급부ID {num(inh_rows)}행 승계(과거 자료 모의 {TERM['test']}, 실제 미확인)", size=9.8, color=C_INK_1, z=7),
-            ).arrange(DOWN, buff=0.04),
-            max_w=3.08,
-        ).move_to([-4.32, -1.58, 0])
+                txt("타사 선정: 총자산 기사 기준(공식 순위 미확정)", size=10.6, color=C_INK_0, bold=True, z=7),
+                txt(f"급부ID {num(inh_rows)}행 승계: 과거 자료 모의 {TERM['test']}", size=10.6, color=C_INK_1, bold=True, z=7),
+                txt("(실제 재추출에서는 미확인)", size=10.6, color=C_INK_1, bold=True, z=7),
+            ).arrange(DOWN, buff=0.03),
+            max_w=3.10,
+        ).move_to([-4.32, -1.62, 0])
         exp_left = VGroup(
             z1_card,
             z1_hdr,
@@ -655,7 +681,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             z1_new,
             arrow_2d(z1_old.get_bottom(), z1_new.get_top(), color=C_GOLD, sw=2.4, tip=0.12, z=7),
             pill("특약계보키 연결", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD_DEEP, size=10.8, px=0.10, py=0.04, z=8).move_to([-4.32, 0.39, 0]),
-            fit(pill(f"{TERM['ours']} 포함 {num(site_org_cnt)}개사({TERM['snapshot']} {num(prod_org_cnt)}개사) -> 비교 {TERM['peer']} {num(target_total)}개사", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=10.4, z=7), max_w=3.08).move_to([-4.32, -0.84, 0]),
+            z1_scope_badge,
             z1_foot,
         )
 
@@ -667,7 +693,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             ).arrange(RIGHT, buff=0.08),
             max_w=4.12,
         ).move_to([0.0, 1.72, 0])
-        z2_sub = fit(txt(f"{num(surv_orgs)}개사 요약서 급부명 조사 (약관 미대조, 사용 {num(cov_use)}개)", size=10.6, color=C_INK_0, bold=True, z=7), max_w=4.10).move_to([0.0, 1.24, 0])
+        z2_sub = fit(txt(f"{num(surv_orgs)}개사 요약서 급부명 조사 (약관 미대조, 사용 {num(cov_use)}개)", size=10.8, color=C_INK_0, bold=True, z=7), max_w=4.14).move_to([0.0, 1.24, 0])
 
         hub_centers_4c = [np.array([-1.22, 0.02, 0.0]), np.array([0.0, 0.32, 0.0]), np.array([1.22, 0.02, 0.0])]
         hub_names_4c = [
@@ -689,8 +715,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         new_hubs_4c, new_hub_lbls = VGroup(), VGroup()
         for h_idx, (hc, h_nm) in enumerate(zip(hub_centers_4c, hub_names_4c)):
             new_hubs_4c.add(Square(side_length=0.26, fill_color=C_MINT if h_idx != 1 else C_GOLD, fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.6).rotate(PI / 4).move_to(hc).set_z_index(9))
-            new_hub_lbls.add(fit(txt(h_nm, size=10.4, color=C_MINT if h_idx != 1 else C_GOLD, bold=True, z=9), max_w=1.56).move_to(hc + (DOWN * 0.72 if h_idx != 1 else UP * 0.62)))
-        ex_diag_note = txt("(사전 수록 담보 연결 예시 그림)", size=9.8, color=C_INK_1, z=8).move_to([0.0, -1.08, 0])
+            new_hub_lbls.add(fit(txt(h_nm, size=10.8, color=C_MINT if h_idx != 1 else C_GOLD, bold=True, z=9), max_w=1.62).move_to(hc + (DOWN * 0.72 if h_idx != 1 else UP * 0.62)))
+        ex_diag_note = txt("(사전 수록 담보 연결 예시 그림)", size=10.6, color=C_INK_1, bold=True, z=8).move_to([0.0, -1.08, 0])
         remap_ok = fit(
             pill(f"일차 확장 +{num(dict_add1)}행({num(dict_exp2['before'])}행), 이차 확장 {num(cov_rows)}행 ✓", fg=C_DARK_INK, bg=C_MINT, border=WHITE, size=11.0, z=9),
             max_w=4.10,
@@ -706,7 +732,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).move_to([4.32, 1.72, 0])
         z3_rule1 = fit(pill(f"{TERM['ours']} 보유 또는 요약서 {num(add_rule['min_holder_orgs'])}개사 이상 보유", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=10.8, z=7), max_w=3.02).move_to([4.32, 0.85, 0])
         z3_rule2 = fit(pill("기존 표준담보와 비중복 시 사전에 추가", fg=C_MINT, bg=C_PANEL_HI, border=C_MINT, size=10.8, z=7), max_w=3.02).move_to([4.32, 0.02, 0])
-        z3_todo = fit(pill(f"차기 과제: {TERM['trend']}과 사전 후보 연결", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=10.6, z=7), max_w=3.02).move_to([4.32, -0.88, 0])
+        z3_todo = fit(pill(f"차기 과제: {TERM['trend']}과 사전 후보 연결", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=10.8, z=7), max_w=3.06).move_to([4.32, -0.88, 0])
         exp_right = VGroup(
             z3_card,
             z3_hdr,
@@ -714,7 +740,13 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             z3_rule2,
             z3_todo,
             arrow_2d(z3_rule1.get_bottom(), z3_rule2.get_top(), color=C_GOLD, sw=2.0, tip=0.10, z=6),
-            fit(txt(f"{TERM['trend']}을 사전 후보로 자동 연결하는 기능은 미구현", size=10.2, color=C_INK_0, bold=True, z=7), max_w=3.06).move_to([4.32, -1.62, 0]),
+            fit(
+                VGroup(
+                    txt(f"{TERM['trend']}을 사전 후보로", size=10.6, color=C_INK_0, bold=True, z=7),
+                    txt("자동 연결하는 기능은 미구현", size=10.6, color=C_INK_0, bold=True, z=7),
+                ).arrange(DOWN, buff=0.04),
+                max_w=3.06,
+            ).move_to([4.32, -1.62, 0]),
         )
 
         self.cam_move(
@@ -849,7 +881,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         e_hop3_b = Line(pt_ep2, pt_epost, color=C_SLATE, stroke_width=2.4)
 
         bb_peer = fit(
-            bb_badge(f"{peer_pair_str}", "통합특약 보유", fg=C_CYAN, bg="#060B11", border=C_CYAN, size=11.4, sub_size=10.0, sub_col=C_WHITE, px=0.14, py=0.07),
+            bb_badge(f"{peer_pair_str}", "통합특약 보유", fg=C_CYAN, bg="#060B11", border=C_CYAN, size=11.4, sub_size=10.8, sub_col=C_WHITE, px=0.14, py=0.07),
             max_w=2.30,
         ).move_to(pt_peer + OUT * 0.46)
         bb_hub = fit(
@@ -873,7 +905,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             max_w=1.86,
         ).move_to(pt_ep2 + OUT * 0.36)
         bb_epost = fit(
-            bb_badge(f"{TERM['ours']} {rev_new_no}", "분리 보유 확인 ✓", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.6, sub_size=10.2, sub_col=C_DARK_INK, px=0.14, py=0.07),
+            bb_badge(f"{TERM['ours']} {rev_new_no}", "분리 보유 확인 ✓", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.6, sub_size=10.8, sub_col=C_DARK_INK, px=0.14, py=0.07),
             max_w=2.36,
         ).move_to(pt_epost + OUT * 0.46)
 
@@ -1040,19 +1072,19 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             has_focus_in_row = any(c["label"] == seg_lbls[1] and c["gate_only"] for c in grp[0]["cells"])
             r_col = C_GOLD if has_focus_in_row else C_INK_0
             if r0_s == r1_s:
-                r_mob = fit(txt(r0_s, size=10.2, color=r_col, bold=True, z=7), max_w=2.04).move_to([-4.82, ry, 0])
+                r_mob = fit(txt(r0_s, size=10.8, color=r_col, bold=True, z=7), max_w=2.24).move_to([-4.76, ry, 0])
             else:
                 r_mob = fit(
                     VGroup(
-                        txt(f"{r0_s} ~", size=10.0, color=r_col, bold=True, z=7),
-                        txt(f"{r1_s} ({num(grp_n)}구간)", size=9.8, color=r_col, bold=True, z=7),
+                        txt(f"{r0_s} ~", size=10.6, color=r_col, bold=True, z=7),
+                        txt(f"{r1_s} ({num(grp_n)}구간)", size=10.6, color=r_col, bold=True, z=7),
                     ).arrange(DOWN, buff=0.03),
-                    max_w=2.04,
-                ).move_to([-4.82, ry, 0])
+                    max_w=2.24,
+                ).move_to([-4.76, ry, 0])
             pm_cells.add(r_mob)
             for c_i, c_info in enumerate(grp[0]["cells"]):
-                cw_p = 1.60 if c_i == 0 else 2.22
-                cx = -2.86 if c_i == 0 else -0.84
+                cw_p = 1.62 if c_i == 0 else 2.16
+                cx = -2.75 if c_i == 0 else -0.80
                 raw_lbl = c_info["label"]
                 disp_lbl = label_ko(raw_lbl)
                 is_open = raw_lbl in (seg_lbls[0], seg_lbls[1])
@@ -1069,38 +1101,38 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 ).move_to([cx, ry, 0]).set_z_index(4)
                 cell_col = C_GOLD if is_hi else (C_CYAN if is_open else C_INK_1)
                 if is_gate:
-                    ct = fit(txt(disp_lbl, size=10.0, color=cell_col, bold=True, z=7), max_w=cw_p - 0.14).move_to(cell_r.get_center() + UP * 0.14)
-                    gt = fit(pill(f"{TERM['peer']}: {TERM['uw_only']}", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=9.6, px=0.06, py=0.02, z=8), max_w=cw_p - 0.14).move_to(cell_r.get_center() + DOWN * 0.15)
+                    ct = fit(txt(disp_lbl, size=10.6, color=cell_col, bold=True, z=7), max_w=cw_p - 0.10).move_to(cell_r.get_center() + UP * 0.14)
+                    gt = fit(pill(f"{TERM['peer']}: {TERM['uw_only']}", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=10.6, px=0.06, py=0.02, z=8), max_w=cw_p - 0.10).move_to(cell_r.get_center() + DOWN * 0.15)
                     cell_grp = VGroup(cell_r, ct, gt)
                 else:
-                    ct = fit(txt(disp_lbl, size=10.2, color=cell_col, bold=is_open, z=7), max_w=cw_p - 0.14).move_to(cell_r)
+                    ct = fit(txt(disp_lbl, size=10.8, color=cell_col, bold=is_open, z=7), max_w=cw_p - 0.12).move_to(cell_r)
                     cell_grp = VGroup(cell_r, ct)
                 if is_hi:
                     focus_cell = cell_r
                 pm_cells.add(cell_grp)
 
         pm_age_hdr = VGroup(
-            pill(seg_cols[0], fg=C_INK_0, bg=C_BG_SUB, border=C_SLATE, size=10.4, px=0.12, py=0.04, z=7).move_to([-2.86, 1.54, 0]),
-            pill(seg_cols[1], fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.4, px=0.12, py=0.04, z=7).move_to([-0.84, 1.54, 0]),
+            pill(seg_cols[0], fg=C_INK_0, bg=C_BG_SUB, border=C_SLATE, size=10.8, px=0.12, py=0.04, z=7).move_to([-2.75, 1.54, 0]),
+            pill(seg_cols[1], fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.8, px=0.12, py=0.04, z=7).move_to([-0.80, 1.54, 0]),
         )
         pm_foot = fit(
             VGroup(
                 txt(
                     f"집계: {TERM['open_both']} {num(seg_open_tog)}개, {TERM['ours_closed_short']} {num(seg_closed)}개, {TERM['ours_only']} {num(seg_ours_only)}개 고객군",
-                    size=9.8,
+                    size=10.6,
                     color=C_INK_0,
                     bold=True,
                     z=7,
                 ),
                 txt(
                     f"(별도 집계: {TERM['peer']}가 {TERM['uw_only']} 종형으로만 가입 가능한 고객군 {num(seg_gate_only)}개)",
-                    size=9.8,
+                    size=10.6,
                     color=C_AMBER,
                     bold=True,
                     z=7,
                 ),
             ).arrange(DOWN, buff=0.04),
-            max_w=6.04,
+            max_w=6.08,
         ).move_to([-2.78, -1.94, 0])
 
         assert focus_cell is not None
@@ -1157,7 +1189,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                     VGroup(
                         slot_bg,
                         txt(f"{num(s_cnt)}개", size=12.6, color=C_CORAL, bold=True, z=7).move_to(slot_bg.get_center() + UP * 0.15),
-                        fit(txt(TERM["unheld_cov"], size=9.8, color=C_CORAL, bold=True, z=7), max_w=0.72).move_to(slot_bg.get_center() + DOWN * 0.24),
+                        fit(txt(TERM["unheld_cov"], size=10.6, color=C_CORAL, bold=True, z=7), max_w=0.76).move_to(slot_bg.get_center() + DOWN * 0.24),
                     )
                 )
             cj_nodes.add(txt(s_nm, size=10.8, color=C_CORAL if s_cnt == 0 else C_INK_0, bold=True, z=7).move_to([sx, cj_base_y - 0.22, 0]))
@@ -1176,9 +1208,28 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             ).arrange(RIGHT, buff=0.10),
             max_w=5.00,
         ).move_to([3.30, -0.62, 0])
-        nd_main = fit(pill(f"{TERM['main_limit']} {num(main_lim_mw)}만", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=10.0, px=0.09, py=0.05, z=7), max_w=1.54).move_to([1.54, -1.28, 0])
-        nd_rider = fit(pill(f"기준 {num(basis_mw)}만 -> 지급 {num(pay_new_mw)}만", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=10.0, px=0.09, py=0.05, z=7), max_w=1.74).move_to([3.34, -1.28, 0])
-        nd_excl = fit(pill(f"{TERM['rider_cond']} {num(comb_cnt)}건", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=10.0, px=0.09, py=0.05, z=7), max_w=1.42).move_to([5.12, -1.28, 0])
+        def make_rc_badge(cx: float, w_b: float, col: str, l1: str, l2: str, bg_c: str = C_PANEL_HI) -> VGroup:
+            bx = RoundedRectangle(
+                corner_radius=0.07,
+                width=w_b,
+                height=0.52,
+                fill_color=bg_c,
+                fill_opacity=0.97,
+                stroke_color=col,
+                stroke_width=1.6,
+            ).move_to([cx, -1.28, 0]).set_z_index(6)
+            tg = fit(
+                VGroup(
+                    txt(l1, size=10.8, color=col, bold=True, z=7),
+                    txt(l2, size=10.8, color=C_WHITE, bold=True, z=7),
+                ).arrange(DOWN, buff=0.04),
+                max_w=w_b - 0.12,
+            ).move_to(bx)
+            return VGroup(bx, tg)
+
+        nd_main = make_rc_badge(1.52, 1.54, C_GOLD, TERM["main_limit"], f"{num(main_lim_mw)}만 원")
+        nd_rider = make_rc_badge(3.32, 1.72, C_CYAN, f"기준 {num(basis_mw)}만 원", f"-> 지급 {num(pay_new_mw)}만 원")
+        nd_excl = make_rc_badge(5.10, 1.44, C_CORAL, TERM["rider_cond"], f"{num(comb_cnt)}건 반영", bg_c=C_CORAL_DIM)
         constraint_grp = VGroup(
             rc_box,
             rc_hdr,
@@ -1187,7 +1238,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             nd_excl,
             arrow_2d(nd_main.get_right(), nd_rider.get_left(), color=C_MINT, sw=2.0, tip=0.09, z=7),
             arrow_2d(nd_rider.get_right(), nd_excl.get_left(), color=C_CORAL, sw=2.0, tip=0.09, z=7),
-            fit(txt("주계약 연동 가입한도와 선행, 동시 가입 제한 규칙 반영 ✓", size=10.4, color=C_INK_0, bold=True, z=7), max_w=5.00).move_to([3.30, -1.94, 0]),
+            fit(txt("주계약 연동 가입한도와 선행, 동시 가입 제한 규칙 반영 ✓", size=10.8, color=C_INK_0, bold=True, z=7), max_w=5.04).move_to([3.30, -1.94, 0]),
         )
         beat8b_all = VGroup(phase_map_grp, care_journey_grp, constraint_grp)
 
@@ -1226,6 +1277,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             zoom=1.28,
             center=[3.30, -0.05, 0],
             anims=[
+                FadeOut(phase_map_grp, shift=LEFT * 0.10),
                 FadeIn(cj_frame),
                 FadeIn(cj_title, shift=DOWN * 0.06),
                 Create(cj_axis),
@@ -1247,7 +1299,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.wait(2.20)
 
         # Step 3: Pull back to connect the full 2D Dashboard
-        self.reset_cam_2d(rt=1.00)
+        self.reset_cam_2d(anims=[FadeIn(phase_map_grp, shift=RIGHT * 0.10)], rt=1.00)
         self.check_bounds(beat8b_all, "CH8B PHASE & CARE CHARTS")
         self.wait(3.00)
 
@@ -1283,8 +1335,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).move_to([-1.82, -0.10, 0]).set_z_index(2)
         app_hdr_ic = svg_icon("hq_console", size=0.42, col=C_CYAN, accent=C_GOLD, z=7)
         app_hdr_t = txt(f"{SCREEN_TITLE} (오프라인 단독 HTML)", size=12.0, color=C_WHITE, bold=True, z=7)
-        app_hdr_sum = pill(f"{num(n_ins_cats)}분류 합계 {num(ins_total)}건 ({base_var_name})", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.4, px=0.12, py=0.04, z=7)
-        app_win_hdr = fit(VGroup(app_hdr_ic, app_hdr_t, app_hdr_sum).arrange(RIGHT, buff=0.14), max_w=7.86).move_to([-1.82, 1.94, 0])
+        app_hdr_sum = pill(f"{num(n_ins_cats)}분류 합계 {num(ins_total)}건 ({base_var_name})", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.8, px=0.12, py=0.04, z=7)
+        app_win_hdr = fit(VGroup(app_hdr_ic, app_hdr_t, app_hdr_sum).arrange(RIGHT, buff=0.14), max_w=7.92).move_to([-1.82, 1.94, 0])
 
         # 번호와 색은 분류(sales_insight_categories의 차례)에 고정해 콘솔과 A4 장표가 같은 분류에 같은 번호, 같은 색을 쓴다.
         cat_mark = {c_k: chr(ord("①") + c_i) for c_i, c_k in enumerate(ins_cats)}
@@ -1299,7 +1351,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 cat_tag(ins_cats[0]),
                 ins_by_cat[ins_cats[0]],
                 f"{num(ins_by_cat[ins_cats[0]])}건",
-                f"{TERM['disc_item']} 상이 {TERM['peer']} {num(q_diff_peers)}개사 ({TERM['ours_only']} {num(seg_ours_only)}개 고객군)",
+                f"{TERM['disc_item']} 상이 {TERM['peer']} {num(q_diff_peers)}개사({TERM['ours_only']} {num(seg_ours_only)}개 고객군)",
             ),
             (
                 cat_col[ins_cats[1]],
@@ -1332,7 +1384,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ]
 
         ins_row_Shells, ins_row_Bars = VGroup(), VGroup()
-        bar_max_8c = 1.24
+        bar_max_8c = 0.88
         for r_idx, (r_col, r_cat_s, r_cnt, r_cnt_s, r_desc_s) in enumerate(ins_row_specs):
             ry = 1.28 - r_idx * 0.58
             r_bg = RoundedRectangle(
@@ -1355,10 +1407,10 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 fill_opacity=0.96,
                 stroke_color=C_SLATE,
                 stroke_width=1.0,
-            ).move_to([-3.00, ry, 0]).set_z_index(5)
-            cnt_lbl = fit(txt(r_cnt_s, size=10.0, color=C_WHITE if r_cnt > 0 else C_INK_1, bold=True, z=7), max_w=0.84).move_to([-1.88, ry, 0])
-            desc_lbl = fit(txt(r_desc_s, size=10.2, color=C_INK_0, bold=True, z=7), max_w=3.24)
-            desc_lbl.move_to([-1.34 + desc_lbl.width / 2, ry, 0])
+            ).move_to([-3.22, ry, 0]).set_z_index(5)
+            cnt_lbl = fit(txt(r_cnt_s, size=10.6, color=C_WHITE if r_cnt > 0 else C_INK_1, bold=True, z=7), max_w=0.80).move_to([-2.26, ry, 0])
+            desc_lbl = fit(txt(r_desc_s, size=10.6, color=C_INK_0, bold=True, z=7), max_w=3.84)
+            desc_lbl.move_to([-1.76 + desc_lbl.width / 2, ry, 0])
             ins_row_Shells.add(VGroup(r_bg, cat_lbl, trk, cnt_lbl, desc_lbl))
 
             if r_cnt > 0:
@@ -1376,10 +1428,10 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         guard_strip_8c = fit(
             VGroup(
-                pill(f"금지 표현 {num(forb_cnt)}개 빌드 차단 ✓, 근거 문서와 쪽수 표시", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.4, px=0.11, py=0.05, z=7),
-                pill("차기 과제(다음 버전): 자연어 조건 검색 입력 연동", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.2, px=0.11, py=0.05, z=7),
-            ).arrange(RIGHT, buff=0.14),
-            max_w=7.86,
+                pill(f"금지 표현 {num(forb_cnt)}개 빌드 차단 ✓, 근거 문서와 쪽수 표시", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=10.8, px=0.10, py=0.05, z=7),
+                pill("차기 과제(다음 버전): 자연어 조건 검색 입력 연동", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=10.8, px=0.10, py=0.05, z=7),
+            ).arrange(RIGHT, buff=0.12),
+            max_w=7.96,
         ).move_to([-1.82, -2.04, 0])
 
         # A4 장표는 card_category_order 차례로 싣되, 번호와 색은 콘솔과 같은 분류 고정 값을 쓴다.
@@ -1417,12 +1469,14 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.wait(2.40)
 
         # Step 2: Pan right and project into the Dark-Slate & Gold A4 Script Sheet with laser sweep
+        console_8c_grp = VGroup(app_window, app_win_hdr, ins_row_Shells, ins_row_Bars, guard_strip_8c)
         a4_laser = Line([2.98, 2.28, 0], [5.98, 2.28, 0], color=C_GOLD, stroke_width=3.6).set_z_index(12)
         self.add(a4_laser)
         self.cam_move(
             zoom=1.22,
-            center=[2.95, -0.10, 0],
+            center=[3.95, -0.10, 0],
             anims=[
+                FadeOut(console_8c_grp, shift=LEFT * 0.10),
                 GrowArrow(proj_beam),
                 FadeIn(VGroup(*a4_full[:7])),
                 a4_laser.animate.move_to([4.48, -2.48, 0]),
@@ -1434,10 +1488,10 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.remove(a4_laser)
         self.wait(1.90)
 
-        self.reset_cam_2d(rt=0.95)
+        self.reset_cam_2d(anims=[FadeIn(console_8c_grp, shift=RIGHT * 0.10)], rt=0.95)
         ch8_stage = VGroup(app_window, app_win_hdr, ins_row_Shells, ins_row_Bars, guard_strip_8c, proj_beam, a4_full)
         self.check_bounds(ch8_stage, "CH8C CONSOLE & CARD")
-        self.wait(3.20)
+        self.wait(4.10)
 
         # ===================================================================
         # 9장: 기존 수작업 병목 대비 4단계 엔드투엔드 자동화 시스템 아키텍처
@@ -1475,16 +1529,16 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 stroke_color=C_CORAL,
                 stroke_width=1.9,
             ).move_to([cx, 1.84, 0]).set_z_index(4)
-            ic = svg_icon(ic_nm, size=0.44, col=C_CORAL, accent=C_AMBER, bg=C_CORAL_DIM, z=7)
+            ic = svg_icon(ic_nm, size=0.42, col=C_CORAL, accent=C_AMBER, bg=C_CORAL_DIM, z=7)
             tx = VGroup(
                 txt(t1, size=10.8, color=C_CORAL, bold=True, z=7),
-                txt(t2, size=9.8, color=C_INK_0, bold=True, z=7),
+                txt(t2, size=10.6, color=C_INK_0, bold=True, z=7),
             ).arrange(DOWN, aligned_edge=LEFT, buff=0.05)
-            grp = fit(VGroup(ic, tx).arrange(RIGHT, buff=0.12), max_w=3.48).move_to(bx)
+            grp = fit(VGroup(ic, tx).arrange(RIGHT, buff=0.10), max_w=3.54).move_to(bx)
             return VGroup(bx, grp)
 
         mb9_1 = make_manual_bottleneck_9(-4.02, "doc_text", "기존 수작업 ① 서술형 공시 대조", "회사별 고지 범위, 지급기준 표기 상이")
-        mb9_2 = make_manual_bottleneck_9(0.00, "doc_image", f"기존 수작업 ② {num(img_pages)}쪽 이미지 요약서", "수치 직접 추출 오독 및 특약명 불일치")
+        mb9_2 = make_manual_bottleneck_9(0.00, "doc_image", f"기존 수작업 ② 합계 {num(img_pages)}쪽 이미지 요약서", "수치 직접 추출 오독 및 특약명 불일치")
         mb9_3 = make_manual_bottleneck_9(4.02, "alert_warn", "기존 수작업 ③ 문장 속 조건 차이", "감액기간, 면책기간, 지급 배수를 손으로 대조")
         manual_row_9 = VGroup(mb9_1, mb9_2, mb9_3)
 
@@ -1492,7 +1546,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         down_bridges_9 = VGroup(
             arrow_2d([-4.02, 1.28, 0], [-4.02, 0.86, 0], color=C_CYAN, sw=2.6, tip=0.12, z=6),
             arrow_2d([4.02, 1.28, 0], [4.02, 0.86, 0], color=C_MINT, sw=2.6, tip=0.12, z=6),
-            pill("개념검증 구현 아키텍처로 전환 ✓", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.2, px=0.14, py=0.04, z=8).move_to([0.0, 1.07, 0]),
+            pill("개념검증 구현 아키텍처로 전환 ✓", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.8, px=0.14, py=0.04, z=8).move_to([0.0, 1.07, 0]),
         )
 
         # 중앙: 4단계 엔드투엔드 자동화 파이프라인 노드
@@ -1511,17 +1565,17 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                     svg_icon(ic_nm, size=0.44, col=col, accent=C_WHITE, z=8),
                     txt(title_s, size=11.4, color=col, bold=True, z=8),
                 ).arrange(RIGHT, buff=0.09),
-                max_w=2.48,
+                max_w=2.50,
             ).move_to([cx, 0.44, 0])
             rule = Line([cx - 1.18, 0.12, 0], [cx + 1.18, 0.12, 0], color=col, stroke_width=1.2, stroke_opacity=0.55).set_z_index(6)
             body_t = fit(
                 VGroup(
-                    txt(l1, size=10.0, color=C_WHITE, bold=True, z=8),
-                    txt(l2, size=9.8, color=C_INK_1, bold=True, z=8),
+                    txt(l1, size=10.8, color=C_WHITE, bold=True, z=8),
+                    txt(l2, size=10.6, color=C_INK_1, bold=True, z=8),
                 ).arrange(DOWN, buff=0.06),
-                max_w=2.48,
+                max_w=2.54,
             ).move_to([cx, -0.34, 0])
-            chip = fit(pill(chip_s, fg=chip_fg, bg=chip_bg, border=col, size=9.8, px=0.09, py=0.04, z=8), max_w=2.50).move_to([cx, -1.00, 0])
+            chip = fit(pill(chip_s, fg=chip_fg, bg=chip_bg, border=col, size=10.6, px=0.08, py=0.04, z=8), max_w=2.54).move_to([cx, -1.00, 0])
             return VGroup(card, hdr, rule, body_t, chip)
 
         st9_1 = make_pipe_stage_9(
@@ -1584,11 +1638,11 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 size=10.8,
                 z=9,
             ),
-            max_w=11.85,
+            max_w=11.90,
         ).move_to([0.0, -1.96, 0])
         nym_ribbon = fit(
-            pill(f"미측정 과제: {', '.join(nym_list)}", fg=C_INK_1, bg=C_BG_SUB, border=C_SLATE, size=10.0, px=0.14, py=0.05, z=9),
-            max_w=11.85,
+            pill(f"미측정 과제: {', '.join(nym_list)}", fg=C_INK_1, bg=C_BG_SUB, border=C_SLATE, size=10.8, px=0.12, py=0.05, z=9),
+            max_w=12.10,
         ).move_to([0.0, -2.58, 0])
 
         # Step 1: 상단 수작업 병목 제시
@@ -1603,9 +1657,10 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.add(p9_a)
         self.cam_move(
             zoom=1.20,
-            center=[-2.95, 0.05, 0],
+            center=[-3.02, 0.05, 0],
             anims=[
-                FadeIn(down_bridges_9, shift=DOWN * 0.08),
+                FadeOut(mb9_3, shift=RIGHT * 0.08),
+                FadeIn(VGroup(down_bridges_9[0], down_bridges_9[2]), shift=DOWN * 0.08),
                 FadeIn(st9_1, shift=UP * 0.12),
                 GrowArrow(pipe_conns_9[0]),
                 MoveAlongPath(p9_a, Line(st9_1[0].get_right(), st9_2[0].get_left())),
@@ -1617,12 +1672,16 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.wait(2.10)
 
         # Step 3: 우측 파이프라인 Stage ③ -> ④ 스포트라이트 점화
+        left_p9_grp = VGroup(mb9_1, down_bridges_9[0], st9_1, pipe_conns_9[0])
         p9_b = glow_dot(st9_2[0].get_right(), color=C_MINT, r=0.065, z=12)
         self.add(p9_b)
         self.cam_move(
             zoom=1.20,
-            center=[2.95, 0.05, 0],
+            center=[3.02, 0.05, 0],
             anims=[
+                FadeOut(left_p9_grp, shift=LEFT * 0.08),
+                FadeIn(mb9_3, shift=LEFT * 0.08),
+                FadeIn(down_bridges_9[1], shift=DOWN * 0.08),
                 GrowArrow(pipe_conns_9[1]),
                 MoveAlongPath(p9_b, Line(st9_2[0].get_right(), st9_4[0].get_left())),
                 FadeIn(st9_3, shift=UP * 0.12),
@@ -1637,6 +1696,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         # Step 4: 전체 엔드투엔드 파이프라인 + 하단 점검 도크 통합 연결
         self.reset_cam_2d(
             anims=[
+                FadeIn(left_p9_grp, shift=RIGHT * 0.08),
                 FadeIn(finale_ribbon, shift=UP * 0.06),
                 FadeIn(nym_ribbon, shift=UP * 0.05),
                 LaggedStart(*[Circumscribe(st[0], color=C_GOLD, stroke_width=2.2, buff=0.03) for st in [st9_1, st9_2, st9_3, st9_4]], lag_ratio=0.10),
