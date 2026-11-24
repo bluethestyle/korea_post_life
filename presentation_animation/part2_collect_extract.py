@@ -1096,7 +1096,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         scan_sheet_3d = Prism(dimensions=[0.09, 2.84, z_top_sh - z_bot_sh], fill_color=C_MINT, fill_opacity=0.34, stroke_color=C_MINT, stroke_width=1.9).move_to([-2.30, -0.05, 0.0])
         set_3d_tier(scan_sheet_3d, 0.0, sub=1, sort_3d=True)
 
-        bb_sh_top = bb_badge(f"상단 {TERM['extract']}: 제미나이 구독 패널", fg=C_CYAN, bg="#07131C", border=C_CYAN, size=12.4).move_to([-3.55, 0.58, z_top_sh])
+        bb_sh_top = bb_badge(f"상단 {TERM['extract']}: 제미나이 구독 패널", fg=C_CYAN, bg="#07131C", border=C_CYAN, size=12.4).move_to([-3.75, 0.12, z_top_sh])
         bb_sh_bot = bb_badge(f"하단 {TERM['extract']}: sonnet 에이전트", fg=C_GOLD, bg="#181408", border=C_GOLD, size=12.4).move_to([-3.55, -0.58, z_bot_sh])
         bb_sh_diff = bb_badge("불일치 행 -> Claude 대조 검증", "(예시 그림)", fg=C_DARK_INK, bg=C_AMBER, border=WHITE, size=12.2, sub_size=10.6, sub_col=C_DARK_INK).move_to([diff_x3 + 1.75, diff_y3, 0.25])
         bbs_4c = [bb_sh_top, bb_sh_bot, bb_sh_diff]
