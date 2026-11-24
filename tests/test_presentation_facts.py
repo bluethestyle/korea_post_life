@@ -96,3 +96,47 @@ def test_missing_quote_stops_the_build(tmp_path, monkeypatch):
     monkeypatch.setattr(epf, "DOC_FACTS", [("k", 3, "값", "2026-11-23", "docs/x.md", "3. 다", ("값은 3입니다.",), None)])
     with pytest.raises(epf.FactsError, match="절 제목"):
         epf.doc_facts(tmp_path)
+
+
+def test_segment_map_grid_counts_match_the_count_keys():
+    """칸마다의 값(segment_map_grid)을 센 수가 브리핑에서 옮긴 칸 수 열쇠와 같아야 한다(영상의 지도 그림과 푸터가 어긋나지 않게)."""
+    from postlife.site.sales import GENERAL_NOTE, LABELS
+
+    facts = _committed()["facts"]
+    grid = facts["segment_map_grid"]["value"]
+    assert [r["row"] for r in grid] == facts["segment_map_rows"]["value"]
+    for r in grid:
+        assert [c["column"] for c in r["cells"]] == facts["segment_map_columns"]["value"], r["row"]
+    cells = [c for r in grid for c in r["cells"]]
+    labels = facts["segment_map_labels"]["value"]
+    assert set(labels) == set(LABELS.values())
+    assert {c["label"] for c in cells} <= set(labels)
+
+    def count(label: str) -> int:
+        return sum(1 for c in cells if c["label"] == label)
+
+    only_open, both_open, only_closed, all_closed, no_data = LABELS.values()
+    assert len(cells) == facts["segment_map_cell_count"]["value"]
+    assert count(both_open) == facts["segment_map_open_together_cells"]["value"]
+    assert count(only_open) == facts["segment_map_ours_only_open_cells"]["value"]
+    closed_general = sum(1 for c in cells if c["label"] == only_closed and c["sub"] == GENERAL_NOTE)
+    assert closed_general == facts["segment_map_ours_closed_cells"]["value"]
+    assert sum(1 for c in cells if c["gate_only"]) == facts["segment_map_gate_only_cells"]["value"]
+    base = facts["briefing_by_base_variant"]["value"][facts["default_base_variant"]["value"]["name"]]["segment_map"]
+    assert count(all_closed) == base["all_closed"]
+    assert count(no_data) == base["no_data"]
+
+
+def test_relation_covered_reads_only_cells_without_held_or_pending_benefits():
+    sales = {"기준종형": [{"종형ID": "B"}], "표준담보": {k: {"이름": f"{k} 이름"} for k in ("A", "C", "D", "E", "W")}}
+    cover = {"b": {"B": {"cols": ["B", "P"], "rows": [
+        ["A", [{"c": ["넓은 담보", ["W"], False]}, 0], {}],                                     # 관계 담보로만 덮음
+        ["C", [{"r": 0, "i": [0], "n": 1, "c": ["넓은 담보", ["W"], False]}, 0], {}],           # 확정 급부가 있으면 세지 않음
+        ["D", [{"r": None, "i": [], "n": 0, "w": 1, "c": ["부분 담보", ["W"], True]}, 0], {}],  # 매핑 대기가 있으면 세지 않음
+        ["E", [0, {"r": 1, "i": [1], "n": 1}], {}],                                             # 없음
+    ]}}}
+    value = epf.cover_facts(sales, cover, "2026-11-23")["relation_covered_coverages"]["value"]
+    assert value == {"count": 1, "items": [{"id": "A", "name": "A 이름", "kind": "넓은 담보", "via": ["W 이름"], "partial": False}]}
+    cover["b"]["B"]["cols"] = ["P", "B"]
+    with pytest.raises(epf.FactsError, match="첫 열"):
+        epf.cover_facts(sales, cover, "2026-11-23")

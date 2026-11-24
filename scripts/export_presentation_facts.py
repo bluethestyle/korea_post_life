@@ -9,8 +9,8 @@
 값의 출처는 넷이다(항목마다 source.kind 에 적는다).
 - snapshot, config, schema, seed, code: 사본(data/snapshot), 설정(src/postlife/config.py), 시트 정의(src/postlife/schema.py),
   시드(data/seed), 화면 코드의 상수에서 이 스크립트가 센다. as_of 는 사본 기준일이다.
-- screen_data: 시안 4의 화면 자료(proto_src/console4/sales.json)에 이미 계산돼 있는 값을 그대로 옮긴다. 다시 계산하지 않는다.
-  화면 자료의 자료 시각이 사본과 다르면 멈춘다(scripts/export_app_data.py 를 먼저 돌린다).
+- screen_data: 시안 4의 화면 자료(proto_src/console4/sales.json, 담보 비교 자료 cover.json)에 이미 계산돼 있는 값을 그대로
+  옮긴다. 다시 계산하지 않는다. 화면 자료의 자료 시각이 사본과 다르면 멈춘다(scripts/export_app_data.py 를 먼저 돌린다).
 - document: 사본에서 셀 수 없고 문서에만 있는 값. 아래 DOC_FACTS 표에 손으로 적었고, 값마다 문서 경로, 절 제목, 근거 문구를 둔다.
   근거 문구가 그 절에 글자 그대로 없으면 멈춘다(문서가 바뀌었으니 값을 다시 확인하라는 뜻). as_of 는 그 문서나 절의 기준일이다.
 - manual: 실행해서 얻지 않고 적어 둔 값(전체 시험 수). note 에 다시 세는 방법을 적는다.
@@ -40,6 +40,7 @@ from postlife.validate import NO_AMOUNT_BASES  # noqa: E402
 OUT = Path("presentation_animation") / "facts.json"
 SNAPSHOT = Path("data") / "snapshot"
 SALES = Path("proto_src") / "console4" / "sales.json"
+COVER = Path("proto_src") / "console4" / "cover.json"
 RELATIONS = Path("data") / "seed" / "표준담보_관계.jsonl"
 
 FORMAT = 1
@@ -347,8 +348,8 @@ def snap_source(file: str, method: str) -> dict[str, str]:
     return {"kind": "snapshot", "file": (SNAPSHOT / file).as_posix(), "method": method}
 
 
-def screen_source(path: str) -> dict[str, str]:
-    return {"kind": "screen_data", "file": SALES.as_posix(), "path": path}
+def screen_source(path: str, file: Path = SALES) -> dict[str, str]:
+    return {"kind": "screen_data", "file": file.as_posix(), "path": path}
 
 
 def config_source(name: str) -> dict[str, str]:
@@ -691,12 +692,49 @@ def screen_facts(sales: dict[str, Any], as_of: str) -> dict[str, dict[str, Any]]
     out["segment_map_rows"] = fact([r["이름"] for r in m["행"]], "고객군 지도의 행(입원과 수술 이력)", as_of, screen_source("지도.전체.행[].이름"))
     out["segment_map_columns"] = fact([f"{c['lo']}~{c['hi']}세" for c in m["열"]], "고객군 지도의 열(가입나이 구간)", as_of,
                                       screen_source("지도.전체.열[].lo, hi"))
+    out["segment_map_grid"] = fact(segment_grid(m), "고객군 지도의 칸마다의 값(행은 segment_map_rows, 칸은 segment_map_columns 차례). "
+                                   "label 은 칸의 라벨, sub 는 칸의 보조 줄, gate_only 는 그 칸의 상대가 우리에게 없는 고지 유형"
+                                   "(관문만 수집한 종형)으로만 열렸는지", as_of,
+                                   screen_source("지도.전체.칸[행][열].라벨, 보조, 관문만수집(비지 않으면 gate_only 참)"))
     news = sales["시장소식"]
     out["screen_market_news"] = fact({"week": news["주차"], "count": news["건수"]}, "화면 1이 싣는 이번 주차와 그 주차의 시장 소식 건수", as_of,
                                      screen_source("시장소식.주차, 건수"))
     out["revision_changes"] = fact(dict(sales["개정변동"]["수"]), "직전 개정과 견주어 달라진 담보 수(신설, 변경, 종료, 전체)", as_of,
                                    screen_source("개정변동.수"))
     return out
+
+
+def segment_grid(m: dict[str, Any]) -> list[dict[str, Any]]:
+    """고객군 지도(sales.json 의 지도.전체)의 칸을 행마다 옮긴다. 라벨과 보조 줄은 그대로, gate_only 는 칸의 관문만수집이 비었는지다
+    (브리핑 (가)의 관문만칸수가 세는 칸과 같다). 다시 판정하지 않는다."""
+    cols = [f"{c['lo']}~{c['hi']}세" for c in m["열"]]
+    if any(len(line) != len(cols) for line in m["칸"]) or len(m["칸"]) != len(m["행"]):
+        raise FactsError("고객군 지도의 칸이 행과 열의 수와 맞지 않는다")
+    return [{"row": r["이름"], "cells": [{"column": col, "label": x["라벨"], "sub": x.get("보조"), "gate_only": bool(x.get("관문만수집"))}
+                                       for col, x in zip(cols, line)]}
+            for r, line in zip(m["행"], m["칸"])]
+
+
+def cover_facts(sales: dict[str, Any], cover: dict[str, Any], as_of: str) -> dict[str, dict[str, Any]]:
+    """담보 비교 자료(cover.json)에서 옮기는 값. 기준 종형의 칸(rows[k][1][0])을 읽기만 한다."""
+    first = sales["기준종형"][0]["종형ID"]
+    base = cover["b"][first]
+    if base["cols"][0] != first:
+        raise FactsError(f"cover.json 의 첫 열이 기준 종형({first})이 아니다")
+    names = sales["표준담보"]
+    items = []
+    for sid, cells, *_ in base["rows"]:
+        ours = cells[0]
+        # 우리 칸이 객체이고 확정 급부(i)도 매핑 대기(w)도 없이 관계 담보(c)만 있으면 관계 담보로 덮는 담보다(API.md)
+        if isinstance(ours, dict) and not ours.get("i") and not ours.get("w") and ours.get("c"):
+            kind, via, partial = ours["c"]
+            items.append({"id": sid, "name": names[sid]["이름"], "kind": kind, "via": [names[v]["이름"] for v in via], "partial": partial})
+    return {"relation_covered_coverages": fact(
+        {"count": len(items), "items": items},
+        "기준 종형이 그 담보의 확정 급부도 매핑 대기 급부도 없이 관계 담보(넓은 담보, 부분 담보)로만 덮는 표준담보 "
+        "(화면이 처음 여는 기준 종형). via 는 덮는 우리 담보, partial 은 부분 담보 가운데 일부만 가졌는지", as_of,
+        screen_source("b[기준종형[0].종형ID].rows[k][1][0] 가운데 i, w 없이 c 만 있는 칸", COVER),
+        "보유 담보 수(held_coverage_count)에 들지 않습니다. 관계 담보로 덮는 것이지 그 담보를 가진 것은 아닙니다.")}
 
 
 # ---------------------------------------------------------------------------
@@ -708,11 +746,16 @@ def build(root: Path = ROOT) -> dict[str, Any]:
     if sales.get("자료시각") != snapshot_at:
         raise FactsError(f"화면 자료의 자료 시각({sales.get('자료시각')})이 사본({snapshot_at})과 다르다. "
                          "python scripts/export_app_data.py 를 먼저 돌린다")
+    cover = json.loads((root / COVER).read_text(encoding="utf-8"))
+    if cover.get("t") != snapshot_at:
+        raise FactsError(f"담보 비교 자료의 자료 시각({cover.get('t')})이 사본({snapshot_at})과 다르다. "
+                         "python scripts/export_app_data.py 를 먼저 돌린다")
     tables = read_snapshot(root / SNAPSHOT)
     facts: dict[str, dict[str, Any]] = {}
     facts["snapshot_at"] = fact(snapshot_at, "자료 기준 시각(사본을 뜬 시각)", as_of, {"kind": "snapshot", "file": (SNAPSHOT / "meta.json").as_posix(),
                                                                           "method": "snapshot_at"})
-    for part in (snapshot_facts(root, tables, as_of), config_facts(as_of), screen_facts(sales, as_of), doc_facts(root)):
+    for part in (snapshot_facts(root, tables, as_of), config_facts(as_of), screen_facts(sales, as_of), cover_facts(sales, cover, as_of),
+                 doc_facts(root)):
         dup = set(part) & set(facts)
         if dup:
             raise FactsError(f"열쇠가 겹친다: {sorted(dup)}")

@@ -26,7 +26,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'src'))
 from postlife.snapshot import read_snapshot  # noqa: E402
-from postlife.config import INSTITUTIONS  # noqa: E402
+from postlife.config import ALL_ORGS  # noqa: E402
 from postlife.site import orgs as site_orgs  # noqa: E402
 from postlife.site import sales  # noqa: E402
 from postlife.site.model import Data  # noqa: E402
@@ -164,7 +164,7 @@ def build(snap_dir: Path = SNAP, orgs=None) -> tuple[dict, dict, list]:
         edges.append({'s': s, 't': t, 'k': kind, 'p': {k: v for k, v in props.items() if v is not None}})
 
     def org_node(code):
-        return node('ORG:' + code, '회사', INSTITUTIONS.get(code, code), code, 기관코드=code)
+        return node('ORG:' + code, '회사', ALL_ORGS.get(code, code), code, 기관코드=code)
 
     type_ids = set()
     for v in types:
