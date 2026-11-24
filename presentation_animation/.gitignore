@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+media/
+smoke/
+*.pyc
+*.mp4
+concat_list.txt
