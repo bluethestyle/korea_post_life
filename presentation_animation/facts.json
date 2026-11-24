@@ -4133,9 +4133,9 @@
     "video_seconds": {
       "value": {
         "part1": 75,
-        "part2": 85,
-        "part3": 76,
-        "part4": 100
+        "part2": 82,
+        "part3": 68,
+        "part4": 103
       },
       "label": "발표 영상(part1~part4)의 길이(초, 반올림)",
       "as_of": "2026-11-24",
@@ -4148,9 +4148,9 @@
     "video_length_label": {
       "value": {
         "part1": "1분 15초",
-        "part2": "1분 25초",
-        "part3": "1분 16초",
-        "part4": "1분 40초"
+        "part2": "1분 22초",
+        "part3": "1분 8초",
+        "part4": "1분 43초"
       },
       "label": "발표 영상의 길이를 화면에 적는 글(분과 초)",
       "as_of": "2026-11-24",
@@ -4161,13 +4161,13 @@
       }
     },
     "test_count": {
-      "value": 1469,
+      "value": 1470,
       "label": "전체 자동 시험 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-25",
       "source": {
         "kind": "manual"
       },
-      "note": "메인 세션이 2026-11-24 main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."
+      "note": "메인 세션이 2026-11-25(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."
     },
     "commit_count": {
       "value": 287,

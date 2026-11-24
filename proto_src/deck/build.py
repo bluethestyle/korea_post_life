@@ -23,7 +23,9 @@
   덱 폴더 바로 위에 stills/ 가 있으면(작업 폴더 구성) 그 JPEG 도 이름으로 부를 수 있다. --assets 를 여러 번 줄 수 있다.
 - 글꼴은 fonts_v4.css 에서 PLKo(SUIT 서브셋) @font-face 만 골라 넣는다.
 - 결과 HTML 에 외부 주소를 부르는 src, href, url(), @import 가 있으면 멈춘다.
-- 영상 장은 out 폴더에 media/partN.mp4 가 있을 때만 <video> 를 넣는다. mp4 를 out/media/ 에 넣은 뒤 다시 빌드한다.
+- 영상 장은 영상 폴더(--media-root, 기본은 --out 의 폴더)에 media/partN.mp4 가 있을 때만 <video> 를 넣는다.
+  배포본은 site/deck/media/ 에 영상을 두고 --out site/deck/index.html 로 빌드한다. 다른 곳에 빌드해 배포본과 비교할 때는
+  --media-root site/deck 을 준다(테스트가 그렇게 바이트 일치를 본다). 영상 폴더에 파일이 없으면 정지 화면만 남는다.
 - 같은 입력이면 같은 바이트가 나온다(시각, 난수를 쓰지 않는다).
 - 덱이 쓴 facts 와 refs 열쇠를 장마다 facts_used.json 에 적는다.
 """
@@ -421,6 +423,8 @@ def main() -> None:
     ap.add_argument("--tpl", default=str(HERE / "tpl.html"))
     ap.add_argument("--assets", action="append", default=None, help="사진 폴더(여러 번 줄 수 있음. 기본: assets, 위 폴더의 stills)")
     ap.add_argument("--out", default=str(HERE / "out" / "index.html"))
+    ap.add_argument("--media-root", default=None,
+                    help="영상(media/partN.mp4)을 찾을 폴더(기본: --out 의 폴더). 다른 곳에 빌드해 배포본과 비교할 때 site/deck")
     ap.add_argument("--used", default=None, help="쓴 열쇠 목록(기본: --content-dir 가 기본값일 때만 facts_used.json)")
     ap.add_argument("--only", default=None, help="이 장들만 빌드(예: 7,12-14). 쪽 번호는 전체 기준")
     ap.add_argument("--strict", action="store_true", help="글자 수 상한 경고가 있으면 1로 끝낸다")
@@ -439,7 +443,8 @@ def main() -> None:
     out = Path(a.out)
     assets = [Path(x) for x in a.assets] if a.assets else [HERE / "assets"] + (
         [HERE.parent / "stills"] if (HERE.parent / "stills").is_dir() else [])
-    res = build_deck(Path(a.content_dir), facts_path, Path(a.refs), fonts_path, Path(a.tpl), assets, out.parent,
+    media_root = Path(a.media_root) if a.media_root else out.parent
+    res = build_deck(Path(a.content_dir), facts_path, Path(a.refs), fonts_path, Path(a.tpl), assets, media_root,
                      Path(a.deck) if a.deck else None, parse_only(a.only))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(res.html.encode("utf-8"))

@@ -20,11 +20,11 @@ $PY tools/check_deck.py out/index.html check  # 전 장을 1920x1080, 1366x768, 
 $PY tools/check_glyphs.py out/index.html      # 심은 글꼴(PLKo)에 없는 글자 찾기
 ```
 
-- 리포 안에서는 `python proto_src/deck/build.py --out site/deck/index.html` 이 배포본을 만들고 `facts_used.json`을 고친다(테스트가 바이트 일치를 본다).
-- `build.py` 인자: `--content-dir`(장 폴더), `--deck`(덱 공통 설정, 기본은 장 폴더의 `_deck.json`, 없으면 `content/_deck.json`), `--facts`, `--refs`, `--fonts-css`, `--assets`, `--out`, `--used`, `--only`, `--strict`, `--digits`(자리 표시 밖 숫자를 모두 보기).
+- 리포 안에서는 `python proto_src/deck/build.py --out site/deck/index.html` 이 배포본을 만들고 `facts_used.json`을 고친다(테스트가 바이트 일치를 본다). 배포본의 영상은 `site/deck/media/partN.mp4`에 두고 같은 명령으로 넣는다.
+- `build.py` 인자: `--content-dir`(장 폴더), `--deck`(덱 공통 설정, 기본은 장 폴더의 `_deck.json`, 없으면 `content/_deck.json`), `--facts`, `--refs`, `--fonts-css`, `--assets`, `--out`, `--media-root`(영상 폴더, 기본은 `--out`의 폴더), `--used`, `--only`, `--strict`, `--digits`(자리 표시 밖 숫자를 모두 보기).
 - 장 파일을 고친 뒤에는 `tools/shot.py`로 그 장을 찍어 직접 본다. 문제 0건이 나와야 한다.
 - 작업 폴더의 `stills/`(영상 정지 화면 JPEG)는 빌드가 사진 폴더로 함께 읽는다. 장에서 `"stills": ["part1_1"]`처럼 파일 이름으로 부른다(한 컷)(덱에 심을 사진은 장당 250KB 이하).
-- 영상은 HTML 옆 `media/` 에 있어야 재생된다. 작업 폴더에서는 `mkdir -p out && ln -s ../../media out/media` 로 이어 두면 `out/index.html` 빌드에 `<video>`가 들어간다. 파일이 없으면 정지 화면이나 안내 글만 보인다.
+- 영상은 HTML 옆 `media/` 에 있어야 재생된다. 작업 폴더에서는 `mkdir -p out && ln -s ../../media out/media` 로 이어 두면 `out/index.html` 빌드에 `<video>`가 들어간다. 파일이 없으면 정지 화면이나 안내 글만 보인다. 다른 곳에 빌드해 배포본과 견줄 때는 `--media-root site/deck` 으로 영상 폴더를 가리킨다.
 - 여러 담당자가 같은 폴더를 쓰므로, 자기 챕터의 `content/NN.json`만 고친다. `_deck.json`, `deckparts.py`, `tpl.html`을 고칠 일이 생기면 고친 내용과 이유를 따로 적어 넘긴다. 공통 파일을 고치지 않고 그림을 보태려면 인라인 그림 블록(`svg`, 2절 보조 블록)을 쓴다.
 
 ## 1. 장 파일의 형식(content/NN.json)
@@ -272,7 +272,7 @@ $PY tools/check_glyphs.py out/index.html      # 심은 글꼴(PLKo)에 없는 �
 
 ### C13 영상 슬롯
 
-장의 `kind: video`와 `video` 항목으로 쓴다(1.1절). 앞뒤 장과 같은 밝은 바탕에 영상 칩과 길이 칩, 헤드라인, 한 줄 요약(`q`, 청자가 영상에서 볼 곳이나 핵심 한 문장), 가운데 1280x720 어두운 영상 자리. `out/media/partN.mp4`가 있을 때만 `<video>`를 넣는다. 영상이 없거나 인쇄할 때는 정지 화면 한 컷(`stills`, assets 이름 하나)을 어둡고 흐리게 깔고 가운데에 재생 표시와 "발표 때 이 자리에서 영상이 재생됩니다"를 둔다. 정지 화면 안의 작은 글자는 화면에서 읽히지 않으므로 컷을 여럿 늘어놓지 않는다(2026-11-24 화면 점검, 두 컷 이상이면 경고). 상한: 헤드라인 50자, 질문 50자. 쓰는 장: 5, 13, 16, 21.
+장의 `kind: video`와 `video` 항목으로 쓴다(1.1절). 앞뒤 장과 같은 밝은 바탕에 영상 칩과 길이 칩, 헤드라인, 한 줄 요약(`q`, 청자가 영상에서 볼 곳이나 핵심 한 문장), 가운데 1280x720 어두운 영상 자리. 영상 폴더(HTML 옆, 다른 곳이면 `--media-root`)에 `media/partN.mp4`가 있을 때만 `<video>`를 넣는다. 배포본의 영상은 `site/deck/media/`의 네 편이고 한 편 10MB, 합계 40MB 이하로 둔다(테스트가 본다). 영상이 없거나 인쇄할 때는 정지 화면 한 컷(`stills`, assets 이름 하나)을 어둡고 흐리게 깔고 가운데에 재생 표시와 "발표 때 이 자리에서 영상이 재생됩니다"를 둔다. 정지 화면 안의 작은 글자는 화면에서 읽히지 않으므로 컷을 여럿 늘어놓지 않는다(2026-11-24 화면 점검, 두 컷 이상이면 경고). 상한: 헤드라인 50자, 질문 50자. 쓰는 장: 5, 13, 16, 21.
 
 ### C14 용어 풀이 칩
 
