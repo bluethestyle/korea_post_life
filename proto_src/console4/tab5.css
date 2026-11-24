@@ -3,7 +3,7 @@
    주인공 도형: 위 2.5px 금색 선의 짙은 결과 카드(acs_22)와 분류별 묶음(번호 01~05, 메뉴 목록) */
 #view-insight .vbody{container-type:inline-size}
 #view-insight .ins-ref{margin:-4px 0 18px;padding:6px 0 6px 14px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:transparent;box-shadow:inset 2px 0 0 var(--ink-1);word-break:keep-all}
-#view-insight .ins-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,0.62fr);gap:var(--gap);align-items:start}
+#view-insight .ins-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(308px,0.62fr);gap:var(--gap);align-items:start}
 #view-insight .ins-l{display:flex;flex-direction:column;gap:20px;min-width:0}
 
 /* 목적 거르개와 복사(사각 면 제거) */
@@ -14,8 +14,11 @@
 #view-insight .ins-pn{font:400 13px/1.45 var(--f-body);color:var(--ink-1);word-break:keep-all}
 
 /* 분류 바로가기 메뉴(번호 13px 이상, 사각 면 대신 가로 축 선) */
-#view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-#view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 6px;background:transparent;border-bottom:2px solid var(--axis);color:var(--ink-0);text-decoration:none}
+#view-insight .ins-jump{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;border-bottom:2px solid var(--axis);padding-bottom:2px}
+#view-insight .ins-jump a{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 6px;background:transparent;border-bottom:0;color:var(--ink-0);text-decoration:none}
+#view-insight .vbody.ins-enter .ins-cat{animation:insCatIn 360ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
+:root[data-motion="calm"] #view-insight .vbody.ins-enter .ins-cat{animation-duration:200ms}
+@keyframes insCatIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 #view-insight .ins-jump a:hover{background:var(--hover)}
 :root[data-theme="dark"] #view-insight .ins-jump a{background:transparent}
 :root[data-theme="dark"] #view-insight .ins-jump a:hover{background:var(--hover)}
@@ -123,6 +126,8 @@
 .ins-card .icd-w{margin:0 0 4px;font:400 13px/1.55 var(--f-body);color:#C3C8CD}
 .ins-card .icd-f{margin:2px 0 0}
 .ins-card .flag-t{color:#FF8A85}
+.ins-card .tag{color:#E8EAEB;border-color:rgba(255,255,255,.45)}
+.ins-card .icd-mk{white-space:normal;word-break:keep-all}
 .ins-card .icd-nb{margin:0;padding:0 0 0 16px;font:400 13px/1.6 var(--f-body);color:#C3C8CD}
 .ins-card .icd-nb li{margin:0 0 2px;word-break:keep-all}
 .ins-card .icd-new{animation:icdNew 700ms var(--ease)}
@@ -157,8 +162,18 @@
   #print-root .ins-card .flag-t .tri i{background:#000}
 }
 
-/* 본문이 좁으면(중간 폭에서 근거 기둥이 열렸을 때 포함) 카드를 목록 아래로 */
-@container (max-width:1060px){
+/* 중간 폭(1280px 전후)에서도 목록과 카드 두 열을 유지하면서 내부 바로가기를 정돈하고, 520px 미만에서만 아래로 접는다(3-1) */
+@container (max-width:940px){
+  #view-insight .ins-jump{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  #view-insight .ins-jump a{min-height:42px;padding:0 4px}
+  #view-insight .ins-jump b{font-size:21px}
+}
+@container (max-width:860px){
+  #view-insight .ins-grid{grid-template-columns:minmax(0,1.08fr) minmax(252px,0.92fr);gap:14px}
+  #view-insight .ins-card{padding:16px 14px 12px}
+  #view-insight .ins-card .sec{margin-right:-10px}
+}
+@container (max-width:520px){
   #view-insight .ins-grid{grid-template-columns:minmax(0,1fr)}
   #view-insight .ins-r{position:static;max-height:none;overflow:visible}
 }

@@ -11,12 +11,12 @@ App.registerTab((function () {
   const CB = T3 ? T3['구성'] : null;
   const ORGS = txt.ORG_ORDER;
   const BASE_IDS = S['기준종형'].map(b => b['종형ID']);
-  const TYPE_ORDER = ['진단', '수술', '치료', '입원', '통원'];
+  const TYPE_ORDER = (Object.values(S['기준별'] || {})[0] && Object.values(S['기준별'] || {})[0]['치료여정'] && Object.values(S['기준별'] || {})[0]['치료여정']['열']) || [];
   const KIND_T = { only: '우리만 열림', open: '열림', review: '심사로 확인', nodata: '자료 없음', closed: '닫힘' };
   const KIND_IC = { only: ui.IC.open, open: ui.IC.open, review: ui.IC.check, nodata: ui.IC.hatch, closed: ui.IC.lock };
   let purpose = CB ? CB['P'][0] : '암';
 
-  ui.registerLegend('gate', 'legendVerdictTitle', () => `<dl class="legend">
+  ui.registerLegend('gate', 'legendVerdictTitle', () => `<p class="note" style="margin:0 0 8px">간편심사 종형은 마지막 입원이나 수술이 질문 기간보다 오래되면 질문에 걸리지 않습니다.</p><dl class="legend">
       <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>채운 기둥: 그 관문까지 통과한 상대 회사의 비율(바깥 실선 윤곽은 그 유형의 전체 상대 수)</dd>
       <dt>${ui.IC.hatch}</dt><dd>빗금 기둥: 고객 조건으로 받지 않는 전제 관문(최근 소견, 중대질병)</dd>
       <dt>${ui.IC.check}</dt><dd>점선 빈 윤곽과 끊긴 선: 통과한 상대가 0곳이 된 관문과 그 뒤 구간</dd>
@@ -113,7 +113,7 @@ App.registerTab((function () {
   }
 
   // ---------- 새 무대: 관문 차례 가로축(5개) x 고지 유형 줄 x 통과 기둥(44x44px) ----------
-  function pillarCellSVG(passN, totalN, isPremise) {
+  function pillarCellSVG(passN, totalN, isPremise, delayMs) {
     const S0 = 44;
     const stoppedAll = totalN <= 0 || passN <= 0;
     const ratio = totalN > 0 ? Math.max(0, Math.min(1, passN / totalN)) : 0;
@@ -124,11 +124,49 @@ App.registerTab((function () {
     const meniscus = (!stoppedAll && fillH > 0 && fillH < S0)
       ? `<line x1="1" y1="${fy}" x2="${S0 - 1}" y2="${fy}" stroke="var(--ink-0)" stroke-width="1.3"/>`
       : '';
+    const fillGroup = fillH > 0
+      ? `<g class="gtf-fill-g" style="--gd:${delayMs || 0}ms"><rect class="${fillCls}" x="1" y="${fy}" width="${S0 - 2}" height="${fillH - 1}"/>${meniscus}</g>`
+      : '';
     return `<svg class="gtf-svg" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
-      ${fillH > 0 ? `<rect class="${fillCls}" x="1" y="${fy}" width="${S0 - 2}" height="${fillH - 1}"/>` : ''}
+      ${fillGroup}
       <rect class="${outCls}" x="0.5" y="0.5" width="${S0 - 1}" height="${S0 - 1}"/>
-      ${meniscus}
     </svg>`;
+  }
+
+  let lastGateSelRowKey = null;
+  function syncGateHot(aimEl, redrawSel) {
+    const root = document.getElementById('gt-flow-stage');
+    if (!root) return;
+    const hotR = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridR != null ? +aimEl.dataset.gridR : -1;
+    const hotC = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridC != null ? +aimEl.dataset.gridC : -1;
+    const sel = App.state.sel.gate || '';
+    let selRowKey = '';
+    if (sel.startsWith('gf:')) selRowKey = sel.slice(3, sel.lastIndexOf('|'));
+    else if (sel.startsWith('g:')) {
+      const f = info(sel.slice(2));
+      if (f) selRowKey = f['고지유형열쇠'] || '';
+    }
+    root.querySelectorAll('.gtf-acol[data-col]').forEach(el => {
+      el.classList.toggle('is-hot', +el.dataset.col === hotC);
+    });
+    root.querySelectorAll('.gtf-cell[data-sel-anchor]').forEach(el => el.removeAttribute('data-sel-anchor'));
+    root.querySelectorAll('.gtf-row[data-row]').forEach(el => {
+      const r = +el.dataset.row;
+      const rk = el.dataset.typeKey || '';
+      const hasSel = !!(selRowKey && rk === selRowKey);
+      el.classList.toggle('is-hot', r === hotR);
+      el.classList.toggle('has-row-sel', hasSel);
+      if (hasSel && sel.startsWith('g:')) {
+        const cells = el.querySelectorAll('.gtf-cell');
+        if (cells.length) cells[cells.length - 1].setAttribute('data-sel-anchor', '1');
+      }
+      if (redrawSel && hasSel && App.motionOn() && rk !== lastGateSelRowKey) {
+        el.classList.remove('gtf-row-redraw');
+        void el.offsetWidth;
+        el.classList.add('gtf-row-redraw');
+      }
+    });
+    lastGateSelRowKey = selRowKey || null;
   }
 
   function renderStage(center, c) {
@@ -142,7 +180,7 @@ App.registerTab((function () {
 
     const axisCols = steps.map((stNm, k) => {
       const prem = premiseSet.has(stNm);
-      return `<div class="gtf-acol${prem ? ' is-prem' : ''}">
+      return `<div class="gtf-acol${prem ? ' is-prem' : ''}" data-col="${k}">
         <span class="gtf-anm">${esc(stNm)}</span>
         <i class="gtf-atk" aria-hidden="true"></i>
       </div>`;
@@ -164,35 +202,50 @@ App.registerTab((function () {
         const passN = row.pass[k] != null ? row.pass[k] : 0;
         const prevPass = k === 0 ? row.total : (row.pass[k - 1] != null ? row.pass[k - 1] : 0);
         const isPrem = premiseSet.has(stNm);
+        const isNoData = row.total <= 0;
         const pk = `gf:${row.key}|${k}`;
         const connBefore = k > 0
-          ? `<span class="gtf-conn${prevPass > 0 ? (passN > 0 ? ' is-on' : ' is-cut') : ' is-off'}" aria-hidden="true"></span>`
+          ? `<span class="gtf-conn${prevPass > 0 ? (passN > 0 ? ' is-on' : ' is-cut') : ' is-off'}" style="--cd:${k * 45}ms" aria-hidden="true"></span>`
           : '';
         const ratioTxt = `${fmt(passN)}/${fmt(row.total)}`;
+        const tipTitle = `${row.key}, ${stNm}`;
+        const tipSub = isNoData
+          ? App.t('peerEmptyHint')
+          : `통과 ${ratioTxt}곳${ours ? `, ${txt.orgShort('EPOST')} ${ours.state}` : ''}${isPrem ? ' (전제 관문)' : ''}`;
+        const chipKind = isNoData
+          ? 'unknown'
+          : (ours && ours.state === '열림' && row.finalPass === 0)
+            ? 'only'
+            : (ours && ours.state === '닫힘' && row.finalPass > 0)
+              ? 'worse'
+              : passN === 0 ? 'none' : 'same';
         const tip = `${row.key}, ${stNm}: 통과 ${ratioTxt}곳${isPrem ? ' (전제 관문)' : ''}`;
-        return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" aria-pressed="false" aria-label="${esc(tip)}">
-          <span class="gtf-pil" data-link-pt="1">${pillarCellSVG(passN, row.total, isPrem)}</span>
-          <span class="gtf-cnt num">${esc(ratioTxt)}</span>
+        const delayMs = Math.min(340, rIdx * 24 + k * 42);
+        const quietCnt = flowRows.length > 8 && k > 0 && k < steps.length - 1 && passN === prevPass;
+        return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-aim="rect"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}">
+          <span class="gtf-pil" data-link-pt="1" data-aim-box="1">${pillarCellSVG(passN, row.total, isPrem, delayMs)}</span>
+          <span class="gtf-cnt num${quietCnt ? ' is-quiet' : ''}">${esc(ratioTxt)}</span>
         </button>`;
       }).join('');
 
       const rowHeadTxt = `${row.key} (${fmt(row.total)})`;
-      return `<div class="gtf-row${ours && ours.isBase ? ' is-base' : ''}">
+      return `<div class="gtf-row${ours && ours.isBase ? ' is-base' : ''}" data-row="${rIdx}" data-type-key="${esc(row.key)}">
         <div class="gtf-rh">
           <span class="gtf-rkey num">${esc(rowHeadTxt)}</span>
           ${oursChip}
         </div>
-        <div class="gtf-track">${nodesHTML}</div>
+        <div class="gtf-track" data-scrub-row="1">${nodesHTML}</div>
       </div>`;
     }).join('');
 
-    center.innerHTML = `<div class="gtf-stage" id="gt-flow-stage">
-      <div class="gtf-axis-head">
+    center.innerHTML = `<div class="gtf-stage${flowRows.length > 8 ? ' is-dense' : ''}" id="gt-flow-stage">
+      <div class="gtf-axis-head" data-main-axis="1">
         <span class="gtf-corner"></span>
         <div class="gtf-acols">${axisCols}</div>
       </div>
       <div class="gtf-rows" id="gt-flow-rows">${rowsHTML}</div>
     </div>`;
+    syncGateHot(null, false);
   }
 
   // ---------- 구성 예시 자료 찾기 ----------
@@ -366,13 +419,14 @@ App.registerTab((function () {
     return { ids, extra, other };
   }
 
-  function pointRow(id, now) {
+  function pointRow(id, now, c) {
     const p = S['포인트'][id];
+    const badge = c && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
     return `<li class="lrow gt-pt" data-pick="p:${esc(id)}">
       <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${p['세부이름'] || p['분류']} 근거 보기`)}"></button>
       ${p['원문대조'] ? ui.flag(p['원문대조글'] || ui.FLAG_TEXT) : ''}
       <div class="selbar gt-pth">${ui.tag(p['세부이름'] || p['분류'])}${now ? ui.scope('now') : ui.scope('base')}</div>
-      <p class="gt-ptx">${esc(p['문장'])}</p>
+      <p class="gt-ptx">${esc(p['문장'])}${badge}</p>
       <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span>
     </li>`;
   }
@@ -381,7 +435,7 @@ App.registerTab((function () {
     const rows = [c.baseId].concat(c.peerIds).map(v => qRow(v, c)).join('');
     const gp = gatePoints(c, g);
     const simple = c.baseInfo && c.baseInfo['심사'] === '간편심사';
-    const list = gp.ids.map(id => pointRow(id, false)).concat(gp.extra.map(id => pointRow(id, true))).join('');
+    const list = gp.ids.map(id => pointRow(id, false, c)).concat(gp.extra.map(id => pointRow(id, true, c))).join('');
     return `<section class="panel tbl-wrap gt-q" id="gt-q" aria-labelledby="gt-q-h">
       <div class="panel-h">
         <div><span class="k">${ui.scope('base')}</span><h2 id="gt-q-h">고지 질문 비교</h2></div>
@@ -393,7 +447,7 @@ App.registerTab((function () {
       <p class="gt-flagn">${ui.flagText()} 값은 사업방법서에서 옮겼습니다. 사업방법서: 쪽 번호 자료 없음, 원문의 해당 조항과 견줘 봐야 합니다.</p>
       <div class="gt-pts">
         <h3>관문 차이 ${fmt(gp.ids.length + gp.extra.length)}건</h3>
-        <p class="note">질문 범위 차이는 고객 조건과 무관해 조건을 바꿔도 그대로입니다. 지금 조건에서만 생기는 관문 차이에는 "지금 조건" 표지를 붙입니다.</p>
+        <p class="note">간편심사 종형은 마지막 입원이나 수술이 질문 기간보다 오래되면 질문에 걸리지 않습니다. 질문 범위 차이는 고객 조건과 무관해 조건을 바꿔도 그대로입니다. 지금 조건에서만 생기는 관문 차이에는 "지금 조건" 표지를 붙입니다.</p>
         ${list ? `<ul class="lrows">${list}</ul>` : `<p class="note">${simple ? '맞붙는 종형과 같은 기간의 질문에서 범위나 질병 수가 다른 곳이 없습니다.' : '일반심사 종형이라 간편 고지 질문을 견주지 않았습니다.'}</p>`}
         ${gp.other ? `<p class="note">지금 조건의 지도 칸은 대표 종형 ${esc(txt.josa(vk(gp.other), '으로'))} 관문 포인트를 셌습니다. ${esc(vk(gp.other))}의 포인트는 기준 종형을 바꾸면 보입니다.</p><div class="live">${ui.btn(`기준 종형을 ${txt.josa(vk(gp.other), '으로')} 바꾸기`, { sm: true, chev: true, attrs: `data-act="base-to" data-v="${esc(gp.other)}"` })}</div>` : ''}
       </div>
@@ -699,7 +753,7 @@ App.registerTab((function () {
       allPtIds.length
         ? `<ul class="evl">${allPtIds.map(id => {
           const p = S['포인트'][id];
-          return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p></li>`;
+          return `<li><span class="tag">${esc(p['세부이름'] || p['분류'])}</span> ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p></li>`;
         }).join('')}</ul>`
         : '<p class="note">선택한 비교 범위에서 나온 관문 차이 문장이 없습니다.</p>'
     );
@@ -747,15 +801,17 @@ App.registerTab((function () {
     body += sec('구조', `<dl class="kv"><dt>갱신</dt><dd>${esc(f['갱신'] || '')}${f['갱신주기'] ? ` ${esc(f['갱신주기'])}년` : ''}</dd><dt>환급</dt><dd>${esc(f['환급'] || '')}</dd></dl>${structDiff ? `<p class="note">${esc(txt.josa(`기준 종형 ${vk(c.baseId)}의 구조(${bi['갱신']}, ${bi['환급']})`, '와'))} 다릅니다.</p>` : ''}`);
     let act = '';
     if (f['회사'] === 'EPOST' && vid !== c.baseId && BASE_IDS.includes(vid)) act = ui.btn(`기준 종형을 ${txt.josa(vk(vid), '으로')} 바꾸기`, { main: true, chev: true, attrs: `data-act="base-to" data-v="${esc(vid)}"` });
-    body += sec('근거 문서와 쪽', `<p class="note">${esc(full)}${startT}. 사업방법서: 쪽 번호 자료 없음.</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}`, true);
+    const grBtn = `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="var:${esc(vid)}"` })}</div>`;
+    body += sec('근거 문서와 쪽', `<p class="note">${esc(full)}${startT}. 사업방법서: 쪽 번호 자료 없음.</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}${grBtn}`, true);
     return { kicker: `${txt.orgShort(f['회사'])} 종형`, title: vk(vid), badges: [ui.scope('now'), `<span class="tag gt-k k-${k}">${esc(stT)}</span>`].concat(vid === c.baseId ? [ui.tag('기준')] : []).concat(f['관문전용'] ? [ui.tag('관문만 수집(담보 미수집)')] : []), body };
   }
 
-  function pointSpec(id) {
+  function pointSpec(id, c) {
     const p = S['포인트'][id]; if (!p) return null;
     const head = p['머리말'] != null ? S['글'][p['머리말']] : '';
-    let body = sec('', `<p>${esc(p['문장'])}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}`);
-    body += sec('견준 범위', `${head ? `<p class="note">${esc(head)}</p>` : ''}${p['구조다름'] ? `<p class="note">${ui.tag('구조 다름')} 갱신이나 환급 구조가 다른 상대와 견줬습니다.</p>` : ''}`);
+    const scBadge = c && c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
+    let body = sec('', `<p>${esc(p['문장'])}${scBadge}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}`);
+    body += sec('견준 범위', `${head ? `<p class="note">${esc(head)}${scBadge}</p>` : ''}${p['구조다름'] ? `<p class="note">${ui.tag('구조 다름')} 갱신이나 환급 구조가 다른 상대와 견줬습니다.</p>` : ''}`);
     const noPage = (p['근거'] || []).some(e => e['쪽'] == null);
     body += sec('근거 문서와 쪽', `<ul class="evl">${(p['근거'] || []).map(e => `<li><b>${esc(txt.orgShort((txt.vinfo(e['종형ID']) || {})['기관코드'] || ''))} ${esc(vk(e['종형ID']))}</b> ${ui.tag(txt.pageText(e['문서'], e['쪽']))}</li>`).join('')}</ul>${noPage ? `<p class="note">${esc(txt.PAGE_WHY)}.</p>` : ''}<p class="note">창구 말투의 문답은 영업 인사이트 탭의 응대 카드 미리 보기에서만 씁니다.</p>`, true);
     return { kicker: `${p['분류']}, ${p['세부이름'] || p['세부']}`, title: p['세부이름'] || p['분류'], badges: [ui.scope('base')], body };
@@ -812,6 +868,18 @@ App.registerTab((function () {
   }
 
   function focus(key) {
+    if (key && key.startsWith('g:')) {
+      let vid = key.slice(2);
+      if (!info(vid)) {
+        const curC = App.ctx();
+        const vinf = txt.vinfo(vid);
+        const org = vinf && vinf['기관코드'];
+        const byOrg = org && G && G['V'] ? G['V'].find(v => info(v) && info(v)['회사'] === org) : null;
+        vid = byOrg || curC.baseId;
+      }
+      if (info(vid)) App.select('g:' + vid, { focus: false });
+      return;
+    }
     if (key === 'tree' || key === 'q' || key === 'limit' || key === 'combo') {
       App.openModal({
         trigger: document.getElementById('gt-btn-tbl'),
@@ -851,6 +919,8 @@ App.registerTab((function () {
     }
   });
 
+  App.on('aim', aimEl => { if (App.state.tab === 'gate') syncGateHot(aimEl, false); });
+  App.on('select', tab => { if (tab === 'gate') syncGateHot(null, true); });
   App.on('change', () => publish());
   publish();
 

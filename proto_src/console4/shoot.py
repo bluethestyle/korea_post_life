@@ -21,6 +21,10 @@ from playwright.async_api import async_playwright
 
 PAGE = Path(__file__).resolve().parents[2] / 'site/proto/console4.html'
 raw_args = sys.argv[1:]
+FRAMES_ONLY = False
+if '--frames' in raw_args:
+    raw_args.remove('--frames')
+    FRAMES_ONLY = True
 if '--html' in raw_args:
     hi = raw_args.index('--html')
     PAGE = Path(raw_args[hi + 1]).resolve()
@@ -108,7 +112,6 @@ COUNTS_JS = r"""() => {
       const s = getComputedStyle(a);
       if (a.hidden || s.display === 'none' || s.visibility === 'hidden' || +s.opacity < 0.05) { hidden = true; break; }
       if (a.tagName === 'DETAILS' && !a.open && !el.closest('summary')) { hidden = true; break; }
-      if (a.getAttribute && a.getAttribute('aria-hidden') === 'true' && a.closest('svg')) { hidden = true; break; }
       a = a.parentElement;
     }
     if (hidden) continue;
@@ -191,17 +194,20 @@ COUNTS_JS = r"""() => {
         const ps = getComputedStyle(pa);
         if (pa.hidden || ps.display === 'none' || ps.visibility === 'hidden' || +ps.opacity < 0.05) { phid = true; break; }
         if (pa.tagName === 'DETAILS' && !pa.open && !pel.closest('summary')) { phid = true; break; }
-        if (pa.getAttribute && pa.getAttribute('aria-hidden') === 'true' && pa.closest('svg')) { phid = true; break; }
         pa = pa.parentElement;
       }
       if (phid) continue;
+      const sr = document.createRange();
+      sr.selectNodeContents(sn);
+      const sb = sr.getBoundingClientRect();
+      if (sb.width < 1 || sb.height < 1) continue;
       stageNodes += 1;
       const m = txt.match(/\.(?=\s|$)/g);
       if (m) sentences += m.length;
     }
     const checkEls = [stageEl, ...stageEl.querySelectorAll('*')];
     for (const cel of checkEls) {
-      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb')) continue;
+      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb,.cvp-bar,.cv-tick,.gr-node,.cv-flt-btn.is-on,.gr-tr-btn.is-cur,.gr-preset.is-on,.gr-search-in')) continue;
       let ca = cel, chid = false;
       while (ca && ca !== document.body) {
         const cs2 = getComputedStyle(ca);
@@ -302,7 +308,8 @@ STAGE_NODE_LIMITS = {
     'brief': 30,
     'market': 60,
     'gate': 80,
-    'cover': 30,
+    'cover': 60,
+    'graph': 70,
 }
 
 
@@ -357,6 +364,297 @@ async def shot(pg, name, report, dark=False, full=False):
     print(f'{name}: 흰 {m.get("white_pct")}% 빨강 {m.get("red_pct")}% 최저 명암비 {m.get("min_contrast")} 본문 최저 {m.get("body_min")} 넘침 {ov["sw"] - ov["cw"]}px {ov["bad"][:2]}{z_str}{warn_str}')
 
 
+LAYOUT_ANIM_JS = r"""() => {
+  const BAD_PROPS = new Set([
+    'all', 'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
+    'top', 'left', 'right', 'bottom', 'inset', 'inset-block', 'inset-inline',
+    'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+    'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+    'border-width', 'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+    'font-size', 'line-height', 'gap', 'column-gap', 'row-gap', 'flex', 'flex-basis', 'flex-grow',
+    'grid-template-columns', 'grid-template-rows',
+  ]);
+  const BAD_CAMEL = new Set([
+    'width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
+    'top', 'left', 'right', 'bottom', 'inset',
+    'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
+    'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'borderWidth', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'fontSize', 'lineHeight', 'gap', 'columnGap', 'rowGap', 'flex', 'flexBasis', 'flexGrow',
+    'gridTemplateColumns', 'gridTemplateRows',
+  ]);
+  const sheetBad = [];
+  function walkRules(rules) {
+    if (!rules) return;
+    for (const r of rules) {
+      if (r.cssRules) walkRules(r.cssRules);
+      if (r.type === 1 && r.style) {
+        const tp = r.style.transitionProperty;
+        const td = r.style.transitionDuration;
+        if (tp && td && !/^0m?s(\s*,\s*0m?s)*$/.test(td.trim())) {
+          for (const raw of tp.split(',')) {
+            const p = raw.trim().toLowerCase();
+            if (BAD_PROPS.has(p)) sheetBad.push({ kind: 'transition', sel: r.selectorText, prop: p });
+          }
+        } else if (r.cssText && /transition\s*:/.test(r.cssText)) {
+          const m = r.cssText.match(/transition\s*:\s*([^;}]+)/i);
+          if (m && !/^\s*(none|0m?s)\b/i.test(m[1])) {
+            for (const seg of m[1].split(',')) {
+              const tok = seg.trim().split(/\s+/)[0].toLowerCase();
+              if (BAD_PROPS.has(tok)) sheetBad.push({ kind: 'transition-var', sel: r.selectorText, prop: tok });
+            }
+          }
+        }
+      } else if (r.type === 7 && r.cssRules) {
+        for (const kf of r.cssRules) {
+          if (!kf.style) continue;
+          for (let i = 0; i < kf.style.length; i++) {
+            const p = kf.style[i].toLowerCase();
+            if (BAD_PROPS.has(p)) sheetBad.push({ kind: 'keyframes', name: r.name, prop: p });
+          }
+        }
+      }
+    }
+  }
+  for (const ss of document.styleSheets) {
+    try { walkRules(ss.cssRules); } catch (e) { /* */ }
+  }
+  const animBad = (window.__activeAnimLog && Array.isArray(window.__activeAnimLog.bad)) ? window.__activeAnimLog.bad.slice() : [];
+  const seenKeys = new Set(animBad.map(x => `${x.anim}|${x.prop}`));
+  if (document.getAnimations) {
+    for (const a of document.getAnimations({ subtree: true })) {
+      try {
+        const kfs = a.effect && a.effect.getKeyframes ? a.effect.getKeyframes() : [];
+        for (const kf of kfs) {
+          for (const k of Object.keys(kf)) {
+            if (BAD_CAMEL.has(k)) {
+              const nm = a.animationName || a.id || 'waapi';
+              const key = `${nm}|${k}`;
+              if (!seenKeys.has(key)) { seenKeys.add(key); animBad.push({ anim: nm, prop: k }); }
+            }
+          }
+        }
+      } catch (e) { /* */ }
+    }
+  }
+  return {
+    count: sheetBad.length + animBad.length,
+    sheet: sheetBad,
+    active: animBad,
+    observed_animations: (window.__activeAnimLog && window.__activeAnimLog.total) || 0,
+  };
+}"""
+
+RAF_HOOK_JS = r"""() => {
+  const BAD_CAMEL = new Set([
+    'width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
+    'top', 'left', 'right', 'bottom', 'inset',
+    'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
+    'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'borderWidth', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'fontSize', 'lineHeight', 'gap', 'columnGap', 'rowGap', 'flex', 'flexBasis', 'flexGrow',
+    'gridTemplateColumns', 'gridTemplateRows',
+  ]);
+  window.__activeAnimLog = { total: 0, bad: [], seen: new Set() };
+  function collectRunningAnims(tag) {
+    if (!document.getAnimations) return;
+    const list = document.getAnimations({ subtree: true });
+    window.__activeAnimLog.total += list.length;
+    for (const a of list) {
+      try {
+        const kfs = a.effect && a.effect.getKeyframes ? a.effect.getKeyframes() : [];
+        for (const kf of kfs) {
+          for (const k of Object.keys(kf)) {
+            if (BAD_CAMEL.has(k)) {
+              const nm = a.animationName || a.id || 'waapi';
+              const uKey = `${tag}|${nm}|${k}`;
+              if (!window.__activeAnimLog.seen.has(uKey)) {
+                window.__activeAnimLog.seen.add(uKey);
+                window.__activeAnimLog.bad.push({ action: tag, anim: nm, prop: k });
+              }
+            }
+          }
+        }
+      } catch (e) { /* */ }
+    }
+  }
+  window.__startRaf = (actionTag, sampleAnims = true) => {
+    const ts = [];
+    let active = true;
+    const tag = actionTag || 'act';
+    if (sampleAnims) setTimeout(() => { if (active) collectRunningAnims(tag); }, 16);
+    const iv = sampleAnims ? setInterval(() => { if (active) collectRunningAnims(tag); }, 50) : 0;
+    function tick(t) {
+      ts.push(t);
+      if (active) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    window.__stopRaf = () => {
+      if (sampleAnims) collectRunningAnims(tag);
+      active = false;
+      if (iv) clearInterval(iv);
+      const dts = [];
+      for (let i = 2; i < ts.length; i++) dts.push(+(ts[i] - ts[i - 1]).toFixed(2));
+      dts.sort((a, b) => a - b);
+      const n = dts.length;
+      return {
+        frames: n,
+        p50_ms: n ? dts[Math.floor(n * 0.5)] : 0,
+        p95_ms: n ? dts[Math.min(n - 1, Math.floor(n * 0.95))] : 0,
+        max_ms: n ? dts[n - 1] : 0,
+        over_33ms: dts.filter(x => x > 33.0).length,
+      };
+    };
+  };
+}"""
+
+
+async def sample_action(pg, act_coro, dur_ms=620, tag='act', sample_anims=True):
+    await pg.evaluate(f"window.__startRaf({json.dumps(tag)}, {'true' if sample_anims else 'false'})")
+    await pg.wait_for_timeout(40)
+    ok = await act_coro()
+    if ok is False:
+        await pg.evaluate("window.__stopRaf()")
+        return None
+    await pg.wait_for_timeout(dur_ms)
+    return await pg.evaluate("window.__stopRaf()")
+
+
+async def measure_frames_once(b, cpu_rate=1) -> dict:
+    ctx, pg, errs, ext = await page_for(b, 1920, 1080, skin='light', motion='on')
+    # 여는 화면(boot-loader)이 끝날 때까지 대기
+    await pg.wait_for_timeout(1100)
+    await pg.evaluate(RAF_HOOK_JS)
+    cdp = None
+    if cpu_rate > 1:
+        cdp = await ctx.new_cdp_session(pg)
+        await cdp.send('Emulation.setCPUThrottlingRate', {'rate': cpu_rate})
+
+    out = {}
+    sa = (cpu_rate <= 1)
+
+    # 1. 탭 전환(첫 화면 -> 고객군과 시장)
+    async def act_tab():
+        await pg.locator('#tab-market').first.click()
+    out['tab_switch'] = await sample_action(pg, act_tab, 680, 'tab_switch', sa)
+
+    # 2. 고객군 고리 고르기
+    async def act_market_pick():
+        await pg.locator('#z-center .mk-ring[data-grid-r="0"][data-grid-c="1"]').click()
+        await pg.wait_for_timeout(180)
+        await pg.locator('#z-center .mk-ring[data-grid-r="1"][data-grid-c="2"]').click()
+    out['market_pick'] = await sample_action(pg, act_market_pick, 460, 'market_pick', sa)
+
+    # 3. 읽기 영역 열고 닫기
+    async def act_reading():
+        await pg.keyboard.press('Escape')
+        await pg.wait_for_timeout(180)
+        await pg.locator('#z-center .mk-ring[data-grid-r="1"][data-grid-c="1"]').click()
+    out['reading_toggle'] = await sample_action(pg, act_reading, 460, 'reading_toggle', sa)
+
+    # 4. 가입 관문 칸 고르기
+    await pg.evaluate("App.set({tab:'gate'})")
+    await pg.wait_for_timeout(380)
+
+    async def act_gate_pick():
+        cells = pg.locator('#z-center .gtf-cell')
+        if await cells.count() < 2:
+            return False
+        await cells.nth(0).click()
+        await pg.wait_for_timeout(180)
+        await cells.nth(min(6, (await cells.count()) - 1)).click()
+    out['gate_pick'] = await sample_action(pg, act_gate_pick, 460, 'gate_pick', sa)
+
+    # 5. 담보 기둥 고르기
+    await pg.evaluate("App.set({tab:'cover'})")
+    await pg.wait_for_timeout(380)
+
+    async def act_cover_pick():
+        pils = pg.locator('#z-center .cvp-slot, #z-center .cvp-btn')
+        cnt = await pils.count()
+        if cnt < 2:
+            return False
+        await pils.nth(1).click()
+        await pg.wait_for_timeout(180)
+        await pils.nth(min(4, cnt - 1)).click()
+    out['cover_pick'] = await sample_action(pg, act_cover_pick, 460, 'cover_pick', sa)
+
+    # 6. 담보 비교 단계 바꾸기(전체 띠 구간 전환)
+    async def act_cover_step():
+        segs = pg.locator('#z-center [data-cv-step] .cv-ov-sh')
+        if await segs.count() < 2:
+            segs = pg.locator('#z-center [data-cv-step]')
+        if await segs.count() < 2:
+            return False
+        await segs.nth(1).click()
+    out['cover_step'] = await sample_action(pg, act_cover_step, 520, 'cover_step', sa)
+
+    # 7. 담보 비교 문지르기(포인터 좌우 이동)
+    async def act_cover_scrub():
+        stage = pg.locator('#z-center #cv-zoom-axis, #z-center #cv-pillar-axis').first
+        if await stage.count() == 0:
+            return False
+        box = await stage.bounding_box()
+        if not box:
+            return False
+        y = box['y'] + box['height'] * 0.55
+        x0 = box['x'] + 24
+        x1 = box['x'] + min(box['width'] - 24, 720)
+        for k in range(12):
+            xk = x0 + (x1 - x0) * (k / 11)
+            await pg.mouse.move(xk, y)
+            await pg.wait_for_timeout(24)
+    out['cover_scrub'] = await sample_action(pg, act_cover_scrub, 260, 'cover_scrub', sa)
+
+    # 8. 담보 비교 -> 관계 지도 탭 전환(1-10 재현 구간)
+    async def act_cover_to_graph():
+        await pg.locator('#tab-graph').first.click()
+    out['cover_to_graph'] = await sample_action(pg, act_cover_to_graph, 620, 'cover_to_graph', sa)
+
+    # 9. 관계 지도 펼침
+    await pg.wait_for_timeout(120)
+
+    async def act_graph_expand():
+        dom_btn = pg.locator('#z-center [data-gr-node^="CAT:"]').first
+        if await dom_btn.count() == 0:
+            return False
+        await dom_btn.click()
+        await pg.wait_for_timeout(260)
+        std_btn = pg.locator('#z-center [data-gr-node^="STD_"]').first
+        if await std_btn.count() > 0:
+            await std_btn.click()
+    out['graph_expand'] = await sample_action(pg, act_graph_expand, 520, 'graph_expand', sa)
+
+    layout_anim = await pg.evaluate(LAYOUT_ANIM_JS)
+    if cdp:
+        await cdp.send('Emulation.setCPUThrottlingRate', {'rate': 1})
+    await ctx.close()
+    return {'metrics': out, 'layout_anim': layout_anim, 'errors': errs, 'external': ext}
+
+
+async def run_frame_bench(b) -> dict:
+    r1 = await measure_frames_once(b, cpu_rate=1)
+    r4 = await measure_frames_once(b, cpu_rate=4)
+    print(
+        '레이아웃 유발 전환/애니메이션:',
+        r1['layout_anim']['count'],
+        f"(표본 {r1['layout_anim'].get('observed_animations', 0)}건)",
+        r1['layout_anim']['sheet'][:6],
+        r1['layout_anim']['active'][:6],
+    )
+    for k in r1['metrics']:
+        m1 = r1['metrics'][k]
+        m4 = r4['metrics'][k]
+        s1 = f"p50={m1['p50_ms']}ms p95={m1['p95_ms']}ms >33ms={m1['over_33ms']}/{m1['frames']}" if m1 else '미구현'
+        s4 = f"p50={m4['p50_ms']}ms p95={m4['p95_ms']}ms >33ms={m4['over_33ms']}/{m4['frames']}" if m4 else '미구현'
+        print(f'  프레임 [{k}]: 보통({s1}) | CPU4배느림({s4})')
+    return {
+        'cpu_1x': r1['metrics'],
+        'cpu_4x': r4['metrics'],
+        'layout_animations': r1['layout_anim'],
+    }
+
+
 async def page_for(b, vw, vh, skin='light', motion='off', hash_=''):
     ctx = await b.new_context(viewport={'width': vw, 'height': vh}, device_scale_factor=1)
     await ctx.add_init_script(f"try{{localStorage.setItem('postlife-c4-skin','{skin}');localStorage.setItem('postlife-c4-motion','{motion}')}}catch(e){{}}")
@@ -379,6 +677,14 @@ async def run():
     ]
     async with async_playwright() as pw:
         b = await pw.chromium.launch()
+        if FRAMES_ONLY:
+            report['frame_benchmark'] = await run_frame_bench(b)
+            await b.close()
+            (OUT / 'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding='utf-8')
+            print('프레임 측정 저장:', OUT / 'report.json')
+            return
+        if not ONLY or 'w1920' in ONLY:
+            report['frame_benchmark'] = await run_frame_bench(b)
         for vw, vh, tag in SIZES:
             if ONLY and not any(ONLY in f'{tag}-{s}' for s in shot_names):
                 continue
@@ -446,7 +752,7 @@ async def run():
                         await pg.keyboard.press('Escape')
                         await pg.wait_for_timeout(180)
                 elif tid == 'cover':
-                    await pg.locator('#z-center .cvp-btn').nth(1).click()
+                    await pg.locator('#z-center .cvp-slot, #z-center .cvp-btn').nth(1).click()
                     await pg.wait_for_timeout(220)
                     await shot(pg, f'{tag}-cover-sel', report)
                     await pg.keyboard.press('Escape')

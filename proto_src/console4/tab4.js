@@ -5,16 +5,16 @@ const CV = {"t":"2026-11-23T16:40:16+09:00","ben":[["암수술보험금(암\u00b
 const { ui, txt } = App;
 const { esc, fmt } = ui;
 const S = App.S;
-const STEPS = ['진단', '수술', '치료', '입원', '통원'];
+const STEPS = (Object.values(S['기준별'] || {})[0] && Object.values(S['기준별'] || {})[0]['치료여정'] && Object.values(S['기준별'] || {})[0]['치료여정']['열']) || [];
 const ROMAN = { 'Ⅰ': 'I', 'Ⅱ': 'II', 'Ⅲ': 'III', 'Ⅳ': 'IV', 'Ⅴ': 'V' };
 const fixG = s => String(s == null ? '' : s).replace(/[ⅠⅡⅢⅣⅤ]/g, m => ROMAN[m]);
 const nf = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 });
 const N = n => nf.format(n);
 
-ui.registerLegend('cover', 'legendVerdictTitle', () => `<dl class="legend">
+ui.registerLegend('cover', 'legendVerdictTitle', () => `<p class="note" style="margin:0 0 8px">같은 담보를 둘 다 가지면 대표 급부끼리 면책, 감액, 지급 형태로 판정하고, 한쪽에만 있으면 누구에게 없는지 적습니다. 기둥의 높이는 같은 담보를 가졌거나 관계 담보로 덮는 상대의 비율입니다. 담보 비교는 나이 조건 없이 대표 급부끼리 견준 값이고, 기준 종형을 바꿀 때만 다시 셉니다.</p><dl class="legend">
     <dt>${ui.verdict('better')}</dt><dd>금색 층(이중 상단선): 같은 담보를 견줘 우체국 조건이 나은 상대</dd>
-    <dt>${ui.verdict('only')}</dt><dd>축 위 금색 마름모: 상대는 아무도 안 가졌고 우체국만 가진 담보</dd>
-    <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>중립 층: 조건이 같거나 엇갈림, 단정 주의로 우열을 매기지 않은 상대</dd>
+    <dt>${ui.verdict('only')}</dt><dd>축 위 금색 마름모: 같은 담보를 가졌거나 관계 담보로 덮는 상대가 없고 우체국만 가진 담보</dd>
+    <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>중립 층: 조건이 같거나 엇갈림, 단정 주의, 지급 형태 다름, 관계 담보로 덮음으로 우열을 매기지 않은 상대</dd>
     <dt>${ui.verdict('worse')}</dt><dd>먹색 층: 같은 담보를 견줘 우체국 조건이 못한 상대</dd>
     <dt>${ui.verdict('unknown')}</dt><dd>빗금 층: 검토 대기나 판정 보류로 아직 견주지 않은 상대</dd>
     <dt>${ui.verdict('none')}</dt><dd>점선 윤곽과 옅은 빗금 기둥: 상대에게는 있고 우체국에는 없는 담보</dd>
@@ -32,7 +32,7 @@ const stdN = sid => std(sid)['이름'] || sid;
 const VID_RE = /\b[A-Z0-9]+_[A-Za-z0-9]+_[A-Za-z0-9]+\b/g;
 const reasonText = list => [...new Set((Array.isArray(list) ? list : [list]).map(x => String(x).replace(VID_RE, m => fullN(m))))].join(', ');
 
-// ---------- 급부와 특약(CV 의 번호) ----------
+// ---------- 급부와 특약(CV 의 번호) 및 금액 없는 급부 규약 ----------
 function ben(i) {
   const b = CV && CV.ben[i];
   return b ? { i, name: fixG(b[0]), rid: b[1], role: b[2], pay: b[3], base: b[4], ratio: !!b[5], wait: b[6] || 0, red: b[7] || [],
@@ -44,18 +44,48 @@ function won(m) {
   if (m >= 10000) { const e = Math.floor(m / 10000), r = Math.round((m - e * 10000) * 100) / 100; return r ? `${N(e)}억 ${N(r)}만원` : `${N(e)}억원`; }
   return `${N(m)}만원`;
 }
+const nonMonKind = b => (b && CV && CV['지급기준'] && CV['지급기준'][String(b.i)]) || null;
+const nonMonWhy = kind => (kind && CV && CV['지급기준글'] && CV['지급기준글'][kind]) || '';
+const nonMonCopy = key => (CV && CV['금액없음글'] && CV['금액없음글'][key]) || '';
 const rateOf = b => (b.base ? b.pay * 100 / b.base : b.pay);
-const payText = b => (b.pay == null ? '자료 없음' : b.ratio ? `가입금액의 ${N(rateOf(b))}%` : won(b.pay));
-const baseText = b => (b.ratio ? '가입금액 대비 비율로 적힌 급부' : b.base != null ? `기준 가입금액 ${won(b.base)}일 때` : '기준 가입금액 자료 없음');
+const payText = b => {
+  if (!b) return '없음';
+  const nm = nonMonKind(b);
+  if (nm) return nm;
+  return b.pay == null ? '자료 없음' : b.ratio ? `가입금액의 ${N(rateOf(b))}%` : won(b.pay);
+};
+const baseText = b => {
+  if (!b) return '없음';
+  if (nonMonKind(b)) return nonMonCopy('기준') || '금액 하나로 적을 수 없는 급부';
+  return b.ratio ? '가입금액 대비 비율로 적힌 급부' : b.base != null ? `기준 가입금액 ${won(b.base)}일 때` : '기준 가입금액 자료 없음';
+};
 const waitText = w => `${N(w || 0)}일`;
 const monthsText = m => (m % 12 === 0 ? `${m / 12}년` : `${m}개월`);
-const redText = red => (red && red.length ? red.map(([m, r]) => `${monthsText(m)} 안 ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '감액 없음');
-const redShort = red => (red && red.length ? red.map(([m, r]) => `${monthsText(m)} ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '없음');
+const redText = (red, b) => {
+  if (b && nonMonKind(b)) return nonMonCopy('감액') || '원문 확인';
+  return red && red.length ? red.map(([m, r]) => `${monthsText(m)} 안 ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '감액 없음';
+};
+const redShort = (red, b) => {
+  if (b && nonMonKind(b)) return nonMonCopy('감액') || '원문 확인';
+  return red && red.length ? red.map(([m, r]) => `${monthsText(m)} ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '없음';
+};
+const tagsStr = b => {
+  if (!b || !b.tags) return '';
+  return Array.isArray(b.tags) ? b.tags.join(', ') : String(b.tags);
+};
+const formText = (b, hasAnyNonMon) => {
+  if (!b) return null;
+  const nm = nonMonKind(b);
+  if (nm) return nm;
+  const ts = tagsStr(b);
+  if (hasAnyNonMon) return ts ? `정액 지급(${ts})` : '정액 지급';
+  return ts || '문구 없음';
+};
 const has = c => !!(c && c.i && c.i.length);
 const repOf = c => (has(c) ? ben(c.r != null ? c.r : c.i[0]) : null);
 
-// ---------- 판정 모형(기준 종형마다 한 번) ----------
-const V_KIND = { '같음': 'same', '나음': 'better', '못함': 'worse', '엇갈림': 'diff', '판정 보류': 'unknown' };
+// ---------- 판정 모형(자료의 쌍판정과 판정표, 보류요약.기관별을 그대로 읽는다) ----------
+const BOTH_NONE_TEXT = (CV && Array.isArray(CV['판정차례']) && CV['판정차례'][CV['판정차례'].length - 1]) || '둘 다 없음';
 const cache = {};
 function model(baseId) {
   if (cache[baseId]) return cache[baseId];
@@ -67,29 +97,18 @@ function model(baseId) {
   const pts = by((base['포인트'] || []).map(id => S['포인트'][id]).filter(Boolean), '표준담보ID');
   const omit = by(base['뺀포인트'], '표준담보ID');
   const rows = B.rows.map(r => {
-    const row = { sid: r[0], cells: r[1], prs: r[2] || {}, ins: r[3] || [], major: std(r[0])['대분류'] || '', type: std(r[0])['급부유형'] || '',
+    const row = { sid: r[0], cells: r[1], prs: r[2] || {}, major: std(r[0])['대분류'] || '', type: std(r[0])['급부유형'] || '',
       cau: cau[r[0]] || [], pts: pts[r[0]] || [], omit: omit[r[0]] || [] };
-    row.verd = B.cols.slice(1).map((_, i) => verdictOf(row, B.cols, i + 1));
-    if (row.verd.some(v => !v || v.kind !== 'only')) row.verd.forEach((v, i) => { if (v && v.kind === 'only') v.text = `${orgN(B.cols[i + 1])}에 없음`; });
-    row.same = row.verd.every(v => !v || v.kind === 'same');
+    row.verd = B.cols.slice(1).map((_, i) => verdictOf(B, row, B.cols, i + 1));
+    if (row.verd.some(v => !v || v.cause !== '상대에 없음')) {
+      row.verd.forEach((v, i) => { if (v && v.cause === '상대에 없음') v.text = `${orgN(B.cols[i + 1])}에 없음`; });
+    }
     return row;
   });
   return (cache[baseId] = { baseId, cols: B.cols, rows, byId: Object.fromEntries(rows.map(r => [r.sid, r])), pairs: B.pairs, dropped: B.dropped });
 }
 function scopedPairs(baseId, pickSet) {
-  const B = CV && CV.b[baseId];
-  if (!B) return null;
-  let total = 0, wait = 0;
-  B.rows.forEach(r => {
-    const prs = r[2] || {};
-    for (const [peer, q] of Object.entries(prs)) {
-      if (!pickSet || pickSet.has(orgOf(peer))) {
-        total++;
-        if (q && q.x) wait++;
-      }
-    }
-  });
-  return { total, wait, cmp: total - wait };
+  return App.scopedPairs(baseId, pickSet);
 }
 function peerIdxOf(m, c) {
   if (!m) return [];
@@ -100,131 +119,637 @@ function peerIdxOf(m, c) {
 }
 function verdFor(row, m, i, pIdxs) {
   const v = row.verd[i];
-  if (!v || v.kind !== 'only') return v;
-  const allOnly = pIdxs.length > 0 && pIdxs.every(idx => row.verd[idx] && row.verd[idx].kind === 'only');
-  return Object.assign({}, v, { text: allOnly ? null : `${orgN(m.cols[i + 1])}에 없음` });
+  if (!v || v.cause !== '상대에 없음') return v;
+  const allOnly = pIdxs.length > 0 && pIdxs.every(idx => row.verd[idx] && row.verd[idx].cause === '상대에 없음');
+  return Object.assign({}, v, { text: allOnly ? v.name : `${orgN(m.cols[i + 1])}에 없음` });
 }
-function verdictOf(row, cols, k) {
-  const peer = cols[k], b = row.cells[0], c = row.cells[k];
-  const bh = has(b), ch = has(c), po = orgN(peer);
-  const cau = row.cau.find(x => (x['상대종형ID'] || []).includes(peer));
-  const drops = row.ins.filter(x => x.drop && (x.p || []).includes(peer));
-  if (bh && ch) {
-    const q = row.prs[peer] || null;
-    if (cau) {
-      const d = q && q.it ? q.it.filter(t => t[3] === '나음' || t[3] === '못함').map(t => `${t[0]} ${t[1]} 대 ${t[2]}`).join(', ') : '';
-      return { kind: 'diff', why: `${cau['문장']}${d ? ` 대표 급부끼리 다른 항목(${d})이 있지만 우열에 넣지 않았습니다.` : ''}`, caution: cau['종류'], q };
-    }
-    if (!q) return { kind: 'unknown', text: '모름', why: '견준 기록이 없습니다', q };
-    if (q.x) return { kind: 'unknown', text: '검토 대기', why: `검토 대기라 견주지 않았습니다: ${reasonText(q.x)}`, q };
-    if (q.f === '다름' && q.v === '같음') return { kind: 'diff', why: '지급 형태가 달라 우열을 매기지 않았습니다', q };
-    const kind = V_KIND[q.v] || 'unknown';
-    if (q.v === '판정 보류') return { kind, text: '판정 보류', why: `판정을 미뤘습니다: ${(q.hs || []).join(', ') || '사유 자료 없음'}`, q };
-    if (q.v === '엇갈림') return { kind, why: '면책, 감액, 지급 형태의 우열이 항목마다 엇갈려 우열을 매기지 않았습니다', q };
-    return { kind, q };
-  }
-  if (bh && !ch) {
-    if (c && c.w) return { kind: 'unknown', text: '검토 대기', why: `${txt.josa(po, '은')} 매핑 검토 대기 급부 ${c.w}줄만 있어 견주지 않았습니다` };
-    if (drops.length) return { kind: 'unknown', text: '검토 대기', why: reasonText(drops.flatMap(d => d.drop)) };
-    if (c && c.c) return { kind: 'diff', why: `${txt.josa(po, '은')} ${c.c[0]}인 ${txt.josa(c.c[1].map(stdN).join(', '), '으로')} 덮습니다` };
-    return { kind: 'only', why: `${po}에는 이 담보가 없습니다` };
-  }
-  if (!bh && ch) {
-    if (b && b.w) return { kind: 'unknown', text: '검토 대기', why: `우체국에 매핑 검토 대기 급부 ${b.w}줄이 있어 견주지 않았습니다` };
-    const d2 = row.ins.filter(x => x.drop);
-    if (d2.length) return { kind: 'unknown', text: '검토 대기', why: reasonText(d2.flatMap(d => d.drop)) };
+function verdictOf(B, row, cols, k) {
+  const pv = B && B['쌍판정'] && B['쌍판정'][row.sid] ? B['쌍판정'][row.sid][k - 1] : null;
+  if (!pv) return null;
+  const cause = pv[0];
+  const reasons = Array.isArray(pv[1]) ? pv[1] : [];
+  const meta = (CV && CV['판정표'] && CV['판정표'][cause]) || { '판정': cause, '칩': 'unknown' };
+  const peer = cols[k], po = orgN(peer);
+  const q = row.prs[peer] || null;
+  let why = '';
+  if (cause === '단정 주의') {
+    const cau = row.cau.find(x => (x['상대종형ID'] || []).includes(peer));
+    const d = q && q.it ? q.it.filter(t => t[3] === '나음' || t[3] === '못함').map(t => `${t[0]} ${t[1]} 대 ${t[2]}`).join(', ') : '';
+    why = cau ? `${cau['문장']}${d ? ` 대표 급부끼리 다른 항목(${d})이 있지만 우열에 넣지 않았습니다.` : ''}` : reasonText(reasons);
+  } else if (cause === '검토 대기') {
+    why = reasons.length ? `검토 대기라 견주지 않았습니다: ${reasonText(reasons)}` : '검토 대기라 견주지 않았습니다';
+  } else if (cause === '판정 보류') {
+    why = `판정을 미뤘습니다: ${reasons.length ? reasonText(reasons) : '사유 자료 없음'}`;
+  } else if (cause === '지급 형태 다름') {
+    why = '지급 형태가 달라 우열을 매기지 않았습니다';
+  } else if (cause === '엇갈림') {
+    why = '면책, 감액, 지급 형태의 우열이 항목마다 엇갈려 우열을 매기지 않았습니다';
+  } else if (cause === '관계 담보로 덮음') {
+    const c = row.cells[k];
+    why = c && c.c ? `${txt.josa(po, '은')} ${c.c[0]}인 ${txt.josa(c.c[1].map(stdN).join(', '), '으로')} 덮습니다` : `${txt.josa(po, '은')} 관계 담보로 덮습니다`;
+  } else if (cause === '우체국에 없음') {
+    const b = row.cells[0];
     const rel = b && b.c ? `우체국은 ${b.c[0]}인 ${txt.josa(b.c[1].map(stdN).join(', '), '이')} 관련 보장을 합니다` : '';
-    return { kind: 'none', why: rel || `${po}에는 있고 우체국에는 없는 담보입니다`, related: !!(b && b.c) };
+    why = rel || `${po}에는 있고 우체국에는 없는 담보입니다`;
+  } else if (cause === '상대에 없음') {
+    why = `${po}에는 이 담보가 없습니다`;
   }
-  if ((b && b.w) || (c && c.w)) return { kind: 'unknown', text: '검토 대기', why: '매핑 검토 대기 급부만 있어 견주지 않았습니다' };
-  return null;
+  return { cause, name: meta['판정'], kind: meta['칩'], text: meta['판정'], reasons, why, q };
 }
-const chip = (v, title) => (v ? ui.verdict(v.kind, v.text, title || v.why) : '<span class="cv-both">둘 다 없음</span>');
-const chipText = v => (v ? (v.text || { better: '우체국 나음', only: '우체국에만 있음', worse: '우체국 못함', same: '같음', diff: '우열을 매기지 않음', none: '우체국에 없음', unknown: '모름' }[v.kind]) : '둘 다 없음');
+const chip = (v, title) => (v ? ui.verdict(v.kind, v.text || v.name, title || v.why) : `<span class="cv-both">${esc(BOTH_NONE_TEXT)}</span>`);
+const chipText = v => (v ? (v.text || v.name) : BOTH_NONE_TEXT);
 
-// ---------- 새 무대: 전폭 가로 기준축 + 치료 단계 다섯 구간 + 담보별 판정 적층 기둥 ----------
-function pillarSVG(row, B, c, totPeerOrgs) {
+// ---------- 두 층 담보 비교: 위 전체 띠(79개 눈금 + 거르개 셋) + 아래 고른 단계 확대 구역 ----------
+const FILTERS = [
+  { k: 'miss', label: '우체국에 없는 담보' },
+  { k: 'split', label: '조건이 다른 담보' },
+  { k: 'only', label: '우체국만 가진 담보' },
+];
+let curStepByBase = {};
+let curPageByStep = {};
+let lastSyncedSelKey = '';
+const activeFilters = new Set();
+let stepSwitchToken = 0;
+let lastStageHost = null;
+let cachedHostW = 0;
+let lastHotSid = '';
+let pressedTickEl = null;
+
+function truncLabel(str, maxChars) {
+  const s = String(str || '').trim();
+  const arr = Array.from(s);
+  if (arr.length <= maxChars) return s;
+  return arr.slice(0, maxChars - 1).join('').trimEnd() + '…';
+}
+
+function rowStackMetrics(row, m, B, c, totPeerOrgs) {
   const sid = row.sid;
   const oursHas = has(row.cells[0]);
   const isAll = c.peerScope === 'all';
-  const ownCodes = (B['보유기관코드'] && B['보유기관코드'][sid]) || [];
-  const ownN = isAll ? ownCodes.length : c.inScope(ownCodes);
-  const W = 14, MAX_H = 200;
-
-  // 1. 상대는 아무도 안 가졌고 우체국만 가진 담보: 축 위 금색 마름모
-  if (ownN <= 0 && oursHas) {
-    return {
-      h: 16,
-      ownN: 0,
-      oursHas: true,
-      svg: `<svg class="cvp-svg is-dia" width="14" height="16" viewBox="0 0 14 16" aria-hidden="true" focusable="false">
-        <polygon class="pil-fill-gold" points="7,2 13,8 7,14 1,8"/>
-      </svg>`,
-    };
-  }
-  // 2. 범위 내 누구도 갖지 않은 담보: 낮은 점선 윤곽
-  if (ownN <= 0 && !oursHas) {
-    return {
-      h: 12,
-      ownN: 0,
-      oursHas: false,
-      svg: `<svg class="cvp-svg" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true" focusable="false">
-        <rect class="pil-empty" x="0.5" y="0.5" width="13" height="11"/>
-      </svg>`,
-    };
-  }
-
-  const totH = Math.max(12, Math.round((ownN / Math.max(1, totPeerOrgs)) * MAX_H));
-
-  // 3. 우체국에 없는 담보: 기둥 전체를 1px 점선 윤곽과 옅은 빗금으로
-  if (!oursHas) {
-    return {
-      h: totH,
-      ownN,
-      oursHas: false,
-      svg: `<svg class="cvp-svg" width="${W}" height="${totH}" viewBox="0 0 ${W} ${totH}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-        <rect class="pil-hatch-pale" x="0.5" y="0.5" width="${W - 1}" height="${totH - 1}"/>
-      </svg>`,
-    };
-  }
-
-  // 4. 우체국과 상대가 함께 가진 담보: 판정상대수 / 판정기관코드 비율로 아래부터 쌓기
   const perCodes = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
   const perCnts = (B['판정상대수'] && B['판정상대수'][sid]) || {};
   const cntOf = vdKey => (isAll ? (perCnts[vdKey] || 0) : c.inScope(perCodes[vdKey]));
-
-  const layers = [
-    { v: cntOf('나음'), cls: 'pil-fill-gold', goldCap: true },
-    { v: cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의'), cls: 'pil-fill-neutral' },
-    { v: cntOf('못함'), cls: 'pil-fill-worse' },
-    { v: cntOf('검토 대기') + cntOf('판정 보류'), cls: 'pil-hatch' },
-  ].filter(l => l.v > 0);
-
-  let curY = totH;
-  let remV = layers.reduce((a, l) => a + l.v, 0) || ownN;
-  let remH = totH;
-  const rects = [];
-  layers.forEach((l, li) => {
-    const lh = li === layers.length - 1 ? remH : Math.max(3, Math.round((l.v / remV) * remH));
-    const y = Math.max(0, curY - lh);
-    rects.push(`<rect class="${l.cls}" x="0.5" y="${y + 0.5}" width="${W - 1}" height="${Math.max(2, lh - 0.5)}"/>`);
-    if (l.goldCap && lh >= 5) {
-      rects.push(`<line x1="1.5" y1="${y + 2.5}" x2="${W - 1.5}" y2="${y + 2.5}" stroke="var(--gold-edge)" stroke-width="1.2"/>`);
-    }
-    curY = y;
-    remV = Math.max(1, remV - l.v);
-    remH = Math.max(0, remH - lh);
+  const better = cntOf('나음');
+  const same = cntOf('같음');
+  const coverN = cntOf('관계 담보로 덮음');
+  const diff = cntOf('엇갈림') + cntOf('단정 주의') + cntOf('지급 형태 다름') + coverN;
+  const worse = cntOf('못함');
+  const wait = cntOf('검토 대기') + cntOf('판정 보류');
+  const miss = cntOf('우체국에 없음');
+  const stackN = better + same + diff + worse + wait + miss;
+  const pIdxs = peerIdxOf(m, c);
+  const hasSplit = pIdxs.some(i => {
+    const v = row.verd[i];
+    return !!(v && (v.name === '우체국 나음' || v.name === '우체국 못함' || v.name === '우열을 매기지 않음'));
   });
-
+  const isMiss = miss > 0;
+  const isOnly = oursHas && stackN === 0;
+  let domChip = 'same';
+  if (isOnly) domChip = 'only';
+  else if (miss > 0 && better + same + diff + worse === 0) domChip = 'none';
+  else if (stackN <= 0) domChip = 'unknown';
+  else if (worse > 0 && better === 0) domChip = 'worse';
+  else if (better > 0 && worse === 0) domChip = 'better';
+  else if (worse > 0 || better > 0 || diff > 0) domChip = 'diff';
+  else if (wait > 0 && same === 0) domChip = 'unknown';
   return {
-    h: totH,
-    ownN,
-    oursHas: true,
-    svg: `<svg class="cvp-svg" width="${W}" height="${totH}" viewBox="0 0 ${W} ${totH}" preserveAspectRatio="none" aria-hidden="true" focusable="false">${rects.join('')}</svg>`,
+    oursHas, stackN, coverN, totPeerOrgs, better, same, diff, worse, wait, miss,
+    isMiss, isOnly, hasSplit, domChip,
   };
 }
 
+function pillarSubText(rm, rawPeerOrgs) {
+  if (rawPeerOrgs <= 0) return rm.oursHas ? '우체국 보유, 선택한 비교 상대 없음' : '선택한 비교 상대 없음';
+  if (rm.oursHas) {
+    if (rm.stackN <= 0) return '우체국만 가진 담보';
+    if (rm.coverN > 0 && rm.stackN === rm.coverN) return `우체국 보유, 관계 담보로 덮는 상대 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
+    if (rm.coverN > 0) return `우체국 보유, 같은 담보나 관계 담보 상대 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
+    return `우체국 보유, 같은 담보 상대 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
+  }
+  if (rm.miss > 0) return `우체국에 없음, 상대 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
+  if (rm.wait > 0) return `검토 대기, 상대 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
+  return BOTH_NONE_TEXT;
+}
+
+function matchesCoverFilter(rm) {
+  if (!activeFilters.size) return true;
+  if (activeFilters.has('miss') && rm.isMiss) return true;
+  if (activeFilters.has('split') && rm.hasSplit) return true;
+  if (activeFilters.has('only') && rm.isOnly) return true;
+  return false;
+}
+
+/** 작은 눈금과 큰 기둥이 함께 쓰는 적층 도형 생성 함수(SVG 패턴 재래스터화 없이 GPU 합성 레이어로 구성) */
+function stackedShapeHTML(rm, w, maxH, minH) {
+  if (rm.stackN <= 0 && rm.oursHas) {
+    const d = Math.max(4, Math.min(12, w - 1));
+    return {
+      h: d + 4,
+      html: `<span class="cvs-dia-w"><i class="cvs-dia" style="width:${d}px;height:${d}px"></i></span>`,
+    };
+  }
+  if (rm.stackN <= 0 && !rm.oursHas) {
+    const h = Math.max(5, Math.round(minH * 0.75));
+    return {
+      h,
+      html: `<span class="cvs-box is-empty"></span>`,
+    };
+  }
+  const totH = Math.max(minH, Math.round((rm.stackN / Math.max(1, rm.totPeerOrgs)) * maxH));
+  if (rm.miss === rm.stackN) {
+    return {
+      h: totH,
+      html: `<span class="cvs-box is-miss"></span>`,
+    };
+  }
+  const layers = [
+    { v: rm.better, cls: 's-gold', goldCap: true },
+    { v: rm.same + rm.diff, cls: 's-neutral' },
+    { v: rm.worse, cls: 's-worse' },
+    { v: rm.wait, cls: 's-hatch' },
+    { v: rm.miss, cls: 's-miss' },
+  ].filter(l => l.v > 0);
+  let remV = layers.reduce((a, l) => a + l.v, 0) || rm.stackN;
+  let remH = totH;
+  const segsBottomUp = [];
+  const minSeg = maxH <= 32 ? 2 : 3;
+  layers.forEach((l, li) => {
+    const lh = li === layers.length - 1 ? remH : Math.max(minSeg, Math.round((l.v / remV) * remH));
+    const capCls = l.goldCap && w >= 10 && lh >= 5 ? ' has-cap' : '';
+    segsBottomUp.push(`<i class="cvs-seg ${l.cls}${capCls}" style="height:${Math.max(1, lh)}px"></i>`);
+    remV = Math.max(1, remV - l.v);
+    remH = Math.max(0, remH - lh);
+  });
+  segsBottomUp.reverse();
+  return {
+    h: totH,
+    html: `<span class="cvs-box is-stack${rm.oursHas ? '' : ' no-ours'}">${segsBottomUp.join('')}</span>`,
+  };
+}
+
+function defaultStepFor(m, B, c) {
+  let bestStep = STEPS[0], bestPairSum = -1, bestCovCnt = -1;
+  STEPS.forEach(stNm => {
+    const stRows = m.rows.filter(r => r.type === stNm);
+    if (!stRows.length) return;
+    let pairSum = 0, covCnt = 0;
+    const isAll = c.peerScope === 'all';
+    stRows.forEach(r => {
+      const sid = r.sid;
+      const pc = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
+      const ps = (B['판정상대수'] && B['판정상대수'][sid]) || {};
+      const w = isAll ? (ps['못함'] || 0) : c.inScope(pc['못함']);
+      const miss = isAll ? (ps['우체국에 없음'] || 0) : c.inScope(pc['우체국에 없음']);
+      pairSum += w + miss;
+      if (w > 0 || miss > 0) covCnt++;
+    });
+    if (pairSum > bestPairSum || (pairSum === bestPairSum && covCnt > bestCovCnt)) {
+      bestPairSum = pairSum;
+      bestCovCnt = covCnt;
+      bestStep = stNm;
+    }
+  });
+  return bestStep;
+}
+
+function domainOrderOf(c) {
+  const j = c.base && c.base['치료여정'];
+  return (j && Array.isArray(j['행']) && j['행'].length) ? j['행'] : ['암보장', '뇌혈관보장', '심장보장', '뇌심장보장', '공통보장'];
+}
+
+function buildDomainGroups(stRows, domOrder) {
+  const map = new Map();
+  domOrder.forEach(d => map.set(d, []));
+  stRows.forEach(r => {
+    const d = r.major || '기타';
+    if (!map.has(d)) map.set(d, []);
+    map.get(d).push(r);
+  });
+  const out = [];
+  for (const [dom, items] of map.entries()) {
+    if (items.length) out.push({ dom, items });
+  }
+  return out;
+}
+
+function domMinWidth(domNm, isMobile) {
+  const len = Array.from(String(domNm || '')).length;
+  return Math.max(isMobile ? 48 : 56, Math.ceil(len * (isMobile ? 11.5 : 12.5) + 12));
+}
+
+function measureZoomLayout(hostEl, stRows, domOrder) {
+  const vw = innerWidth;
+  if (!cachedHostW && hostEl && hostEl.clientWidth > 120) cachedHostW = hostEl.clientWidth;
+  const hostW = cachedHostW > 120 ? cachedHostW : Math.max(320, vw - (vw >= 1600 ? 96 : vw >= 1000 ? 64 : 32));
+  const isMobile = vw < 700;
+  const rulerW = isMobile ? 22 : 30;
+  const rightPad = isMobile ? 82 : 108;
+  const domGap = isMobile ? 14 : 20;
+  const usableW = Math.max(150, hostW - rulerW - rightPad);
+  const minPitch = 32;
+  const maxPitch = isMobile ? 48 : 64;
+  const maxBarH = isMobile ? 96 : (innerHeight <= 820 ? 128 : 168);
+  const minBarH = isMobile ? 10 : 12;
+
+  const rawGroups = buildDomainGroups(stRows, domOrder);
+  const grpMinW = g => Math.max(g.items.length * minPitch, domMinWidth(g.dom, isMobile));
+  const totalNeed = rawGroups.reduce((acc, g) => acc + grpMinW(g), 0) + Math.max(0, rawGroups.length - 1) * domGap;
+  let pages = [];
+  if (totalNeed <= usableW || stRows.length <= 1) {
+    pages = [{ groups: rawGroups, count: stRows.length }];
+  } else {
+    const maxColsPerChunk = Math.max(3, Math.floor(usableW / minPitch));
+    const chunks = [];
+    rawGroups.forEach(g => {
+      if (g.items.length <= maxColsPerChunk && grpMinW(g) <= usableW) {
+        chunks.push({ dom: g.dom, items: g.items });
+      } else {
+        const parts = Math.max(2, Math.ceil(g.items.length / maxColsPerChunk));
+        const per = Math.ceil(g.items.length / parts);
+        for (let p = 0; p < parts; p++) {
+          const sl = g.items.slice(p * per, (p + 1) * per);
+          if (sl.length) chunks.push({ dom: `${g.dom} ${p + 1}/${parts}`, items: sl });
+        }
+      }
+    });
+    let cur = { groups: [], count: 0, widthUsed: 0 };
+    chunks.forEach(ch => {
+      const chW = grpMinW(ch);
+      const addGap = cur.groups.length ? domGap : 0;
+      const addW = addGap + chW;
+      if (cur.groups.length && cur.widthUsed + addW > usableW) {
+        pages.push(cur);
+        cur = { groups: [ch], count: ch.items.length, widthUsed: chW };
+      } else {
+        cur.groups.push(ch);
+        cur.count += ch.items.length;
+        cur.widthUsed += addW;
+      }
+    });
+    if (cur.groups.length) pages.push(cur);
+  }
+  return { hostW, rulerW, rightPad, domGap, usableW, minPitch, maxPitch, maxBarH, minBarH, isMobile, pages };
+}
+
+function positionOvBracket(stageEl, animate, preMetric) {
+  if (!stageEl) return;
+  const wrap = stageEl.querySelector('#cv-ov-segs');
+  const brk = stageEl.querySelector('#cv-ov-brk');
+  const activeSeg = wrap && wrap.querySelector('.cv-ov-seg.is-on');
+  if (!wrap || !brk || (!activeSeg && !preMetric)) return;
+  const x = preMetric ? preMetric.x : activeSeg.offsetLeft;
+  const w = preMetric ? preMetric.w : Math.max(16, activeSeg.offsetWidth);
+  const bl = brk.querySelector('.b-b');
+  const br = brk.querySelector('.b-r');
+  const prevX = brk._lastX;
+  const prevW = brk._lastW;
+  brk.hidden = false;
+  brk.style.transform = `translate3d(${x}px,0,0)`;
+  if (bl) bl.style.transform = `scaleX(${(w / 100).toFixed(4)})`;
+  if (br) br.style.transform = `translate3d(${Math.max(0, w - 2)}px,0,0)`;
+  if (animate && App.motionOn() && prevX != null && prevW != null && (Math.abs(prevX - x) > 1 || Math.abs(prevW - w) > 1)) {
+    const dur = Math.max(90, Math.round(280 * App.motionScale()));
+    const ease = 'cubic-bezier(0.65, 0, 0.35, 1)';
+    if (brk._anim) brk._anim.cancel();
+    brk._anim = brk.animate([{ transform: `translate3d(${prevX}px,0,0)` }, { transform: `translate3d(${x}px,0,0)` }], { duration: dur, easing: ease });
+    if (bl && bl.animate) bl.animate([{ transform: `scaleX(${(prevW / 100).toFixed(4)})` }, { transform: `scaleX(${(w / 100).toFixed(4)})` }], { duration: dur, easing: ease });
+    if (br && br.animate) br.animate([{ transform: `translate3d(${Math.max(0, prevW - 2)}px,0,0)` }, { transform: `translate3d(${Math.max(0, w - 2)}px,0,0)` }], { duration: dur, easing: ease });
+  }
+  brk._lastX = x;
+  brk._lastW = w;
+}
+
+function syncCoverSelectionAndFilter(stageEl) {
+  if (!stageEl) return;
+  const sel = App.state.sel.cover || '';
+  const selSid = sel.startsWith('s:') ? sel.slice(2) : (sel.startsWith('c:') ? sel.slice(2) : '');
+  const prevTk = stageEl.querySelector('.cv-tick.is-sel');
+  if (prevTk && prevTk.dataset.cvTick !== selSid) prevTk.classList.remove('is-sel');
+  if (selSid) {
+    const nextTk = stageEl.querySelector(`.cv-tick[data-cv-tick="${CSS.escape(selSid)}"]`);
+    if (nextTk) nextTk.classList.add('is-sel');
+  }
+  const slots = Array.from(stageEl.querySelectorAll('.cvp-slot[data-sid]'));
+  let selSlotIdx = slots.findIndex(s => s.dataset.sid === selSid);
+  if (selSlotIdx < 0) selSlotIdx = 0;
+  slots.forEach((sl, idx) => {
+    const on = sl.dataset.sid === selSid;
+    sl.classList.toggle('is-sel', on);
+    if (on) sl.setAttribute('data-sel-anchor', '1');
+    else sl.removeAttribute('data-sel-anchor');
+    sl.setAttribute('aria-pressed', String(on));
+    sl.tabIndex = idx === selSlotIdx ? 0 : -1;
+  });
+}
+
+function syncCoverAimHot(aimEl) {
+  const stageEl = document.getElementById('cv-pillar-stage');
+  if (!stageEl) return;
+  let sid = '';
+  let slotEl = null;
+  if (aimEl && stageEl.contains(aimEl)) {
+    if (aimEl.dataset.sid) { sid = aimEl.dataset.sid; slotEl = aimEl; }
+    else if (aimEl.dataset.cvTick) sid = aimEl.dataset.cvTick;
+  }
+  if (sid !== lastHotSid) {
+    if (lastHotSid) {
+      stageEl.querySelectorAll('.is-hot').forEach(el => el.classList.remove('is-hot'));
+    }
+    lastHotSid = sid;
+    if (sid) {
+      const tk = stageEl.querySelector(`.cv-tick[data-cv-tick="${CSS.escape(sid)}"]`);
+      if (tk) tk.classList.add('is-hot');
+      const sl = stageEl.querySelector(`.cvp-slot[data-sid="${CSS.escape(sid)}"]`);
+      if (sl) { sl.classList.add('is-hot'); if (!slotEl) slotEl = sl; }
+    }
+  }
+  const hair = stageEl.querySelector('#cv-hairline');
+  if (hair) {
+    if (slotEl) {
+      const ph = parseInt(slotEl.style.getPropertyValue('--ph'), 10) || 14;
+      const plotEl = stageEl.querySelector('#cv-plot-area');
+      const plotH = plotEl ? (parseInt(plotEl.style.getPropertyValue('--plot-h'), 10) || 196) : 196;
+      const hy = Math.max(0, plotH - ph);
+      hair.style.setProperty('--hy', hy + 'px');
+      hair.hidden = false;
+    } else {
+      hair.hidden = true;
+    }
+  }
+}
+
+function buildZoomedHTML(c, m, B, curStep, pageIdx, pIdxs, totPeerOrgs, rawPeerOrgs, pSet, hostEl) {
+  const stRows = m.rows.filter(r => r.type === curStep);
+  const domOrder = domainOrderOf(c);
+  const lay = measureZoomLayout(hostEl, stRows, domOrder);
+  const pCount = lay.pages.length;
+  const safePage = Math.max(0, Math.min(pCount - 1, pageIdx || 0));
+  curPageByStep[c.baseId + '|' + curStep] = safePage;
+  const pageObj = lay.pages[safePage] || { groups: [], count: 0 };
+  const gapTotal = Math.max(0, pageObj.groups.length - 1) * lay.domGap;
+  // 좁은 보장 분야(1~2개 담보)가 최소 이름 폭을 차지하는 만큼을 빼고 나머지 기둥 간격을 고르게 분배한다.
+  let fixedW = 0, flexCount = 0;
+  pageObj.groups.forEach(g => {
+    const mw = domMinWidth(g.dom, lay.isMobile);
+    if (g.items.length * lay.maxPitch <= mw) fixedW += mw;
+    else flexCount += g.items.length;
+  });
+  let rawPitch = flexCount > 0 ? Math.floor((lay.usableW - gapTotal - fixedW) / flexCount) : lay.maxPitch;
+  let pitch = Math.max(lay.minPitch, Math.min(lay.maxPitch, rawPitch));
+  // 검증: 혹시라도 합계 폭이 usableW 를 넘으면 한 단계 더 줄여 0px 초과도 막는다.
+  const sumAtPitch = p => pageObj.groups.reduce((a, g) => a + Math.max(g.items.length * p, domMinWidth(g.dom, lay.isMobile)), 0) + gapTotal;
+  while (pitch > lay.minPitch && sumAtPitch(pitch) > lay.usableW) pitch--;
+  const barW = Math.max(12, Math.min(28, pitch - 12));
+  const maxChars = lay.isMobile ? 10 : 14;
+
+  let slotSeq = 0;
+  let curGrpLeft = lay.rulerW;
+  const groupsHTML = pageObj.groups.map(grp => {
+    const grpW = Math.max(grp.items.length * pitch, domMinWidth(grp.dom, lay.isMobile));
+    const slotW = grp.items.length === 1 ? grpW : pitch;
+    const slotsTotalW = grp.items.length * slotW;
+    const slotsOffset = curGrpLeft + (grpW - slotsTotalW) / 2;
+    curGrpLeft += grpW + lay.domGap;
+    const slotsHTML = grp.items.map((r, j) => {
+      const idxInPage = slotSeq++;
+      const bcx = slotsOffset + j * slotW + slotW / 2;
+      const rm = rowStackMetrics(r, m, B, c, totPeerOrgs);
+      const passFilter = matchesCoverFilter(rm);
+      const pil = stackedShapeHTML(rm, barW, lay.maxBarH, lay.minBarH);
+      const hasFlag = r.pts.some(p => p['원문대조'] && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o))));
+      const pk = `s:${r.sid}`;
+      const fullNm = stdN(r.sid);
+      const shortLbl = truncLabel(fullNm, maxChars);
+      const ownDesc = pillarSubText(rm, rawPeerOrgs);
+      const aria = `${fullNm} (${grp.dom}, ${curStep}, ${ownDesc})`;
+      const isNoData = !rm.oursHas && rm.stackN <= 0;
+      const layerVec = `${rm.better},${rm.same + rm.diff},${rm.worse},${rm.wait},${rm.miss}`;
+      return `<button type="button" class="cvp-slot${rm.oursHas ? '' : ' is-miss'}${passFilter ? '' : ' is-filtered-out'}" style="width:${slotW}px;--bw:${barW}px;--ph:${pil.h}px;--pd:${Math.min(260, idxInPage * 11)}ms" data-bcx="${bcx.toFixed(1)}" data-bw="${barW}" data-ph="${pil.h}" data-stack-n="${rm.stackN}" data-layers="${layerVec}" data-pick="${esc(pk)}" data-sid="${esc(r.sid)}" data-toggle="1" data-aim="rect"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-tip-title="${esc(fullNm)}" data-tip-sub="${esc(`${grp.dom} / ${ownDesc}`)}" data-tip-chip="${rm.domChip}" aria-pressed="false" aria-label="${esc(aria)}">
+        <span class="cvp-upper" style="height:${lay.maxBarH + 28}px">
+          <span class="cvp-stem" aria-hidden="true"><i class="cvp-dia"></i></span>
+          ${hasFlag ? '<i class="cvp-flg" aria-hidden="true"></i>' : ''}
+          <span class="cvp-bar" data-link-pt="1" data-aim-box="1">${pil.html}</span>
+        </span>
+        <i class="cvp-foot-tk" aria-hidden="true"></i>
+        <span class="cvp-lbl-box" aria-hidden="true"><span class="cvp-lbl">${esc(shortLbl)}</span></span>
+      </button>`;
+    }).join('');
+
+    return `<div class="cv-dom-grp" style="width:${grpW}px">
+      <div class="cv-dom-slots">${slotsHTML}</div>
+      <div class="cv-dom-brk" aria-hidden="true"><i class="db-l"></i><span class="db-nm">${esc(grp.dom)}</span><i class="db-r"></i></div>
+    </div>`;
+  }).join('');
+
+  const pagerHTML = pCount > 1
+    ? `<div class="cv-pager" role="navigation" aria-label="보장 분야 쪽 이동">
+        <button type="button" class="btn sm ghost" data-cv-page="${safePage - 1}"${safePage <= 0 ? ' disabled' : ''}>${ui.IC.chevL}<span>앞 묶음</span></button>
+        <span class="cv-page-ind num">${safePage + 1}/${pCount}</span>
+        <button type="button" class="btn sm ghost" data-cv-page="${safePage + 1}"${safePage >= pCount - 1 ? ' disabled' : ''}><span>다음 묶음</span>${ui.IC.chevR}</button>
+      </div>`
+    : '';
+
+  const stageOursCnt = stRows.filter(r => has(r.cells[0])).length;
+  const stageFilteredCnt = activeFilters.size
+    ? stRows.filter(r => matchesCoverFilter(rowStackMetrics(r, m, B, c, totPeerOrgs))).length
+    : stRows.length;
+  const subInfo = activeFilters.size
+    ? `거르개 통과 ${fmt(stageFilteredCnt)}/${fmt(stRows.length)}개`
+    : `우체국 보유 ${fmt(stageOursCnt)}/${fmt(stRows.length)}개`;
+
+  return `<div class="cv-zoom-head">
+      <div class="cv-zh-l">
+        <span class="cv-zh-step">${esc(curStep)} 단계 확대</span>
+        <span class="cv-zh-sub num">${esc(subInfo)}</span>
+      </div>
+      ${pagerHTML}
+    </div>
+    <div class="cv-plot-wrap" id="cv-plot-area" style="--plot-h:${lay.maxBarH + 28}px;--lbl-h:${lay.isMobile ? 96 : 120}px;--ruler-w:${lay.rulerW}px;--rpad:${lay.rightPad}px">
+      <div class="ax-ruler cv-ruler" style="height:${lay.maxBarH}px;top:28px" aria-hidden="true"><span>100</span><span>50</span><span>0</span></div>
+      <div class="ax-hairline" id="cv-hairline" hidden aria-hidden="true"></div>
+      <div class="cv-stage-axis" data-main-axis="1" style="top:${lay.maxBarH + 28}px" aria-hidden="true"></div>
+      <div class="cv-dom-row" id="cv-zoom-axis" data-scrub-row="1" style="gap:${lay.domGap}px">${groupsHTML}</div>
+    </div>`;
+}
+
+function captureSinkGhostHTML(zoomBox) {
+  const plot = zoomBox && zoomBox.querySelector('#cv-plot-area');
+  if (!plot) return '';
+  const slots = plot.querySelectorAll('.cvp-slot[data-bcx]');
+  const parts = [];
+  slots.forEach(sl => {
+    const bar = sl.querySelector('.cvp-bar');
+    if (!bar) return;
+    const bcx = parseFloat(sl.dataset.bcx) || 0;
+    const bw = parseFloat(sl.dataset.bw) || 18;
+    const ph = parseFloat(sl.dataset.ph) || 14;
+    if (bw < 2 || ph < 2) return;
+    const x = (bcx - bw / 2).toFixed(1);
+    parts.push(`<span class="cv-ghost-bar" style="left:${x}px;width:${bw.toFixed(1)}px;height:${ph.toFixed(1)}px">${bar.innerHTML}</span>`);
+  });
+  return parts.join('');
+}
+
+function animateZoomBarsFromTicks(stageEl, baseDelayMs = 0, prePlotRect = null, preTickMap = null) {
+  if (!stageEl || !App.motionOn()) return;
+  const plot = stageEl.querySelector('#cv-plot-area');
+  const slots = Array.from(stageEl.querySelectorAll('.cvp-slot[data-sid]'));
+  if (!plot || !slots.length) return;
+  const mScale = App.motionScale();
+  const pRect = prePlotRect || plot.getBoundingClientRect();
+  const axisY = pRect.top + (parseFloat(plot.style.getPropertyValue('--plot-h')) || 196);
+
+  // 모든 좌표를 사전 계산값 또는 일괄 측정값으로 결합하여 DOM 교체 뒤 강제 동기 레이아웃을 0으로 유지한다
+  slots.forEach((sl, idx) => {
+    const sid = sl.dataset.sid;
+    const bar = sl.querySelector('.cvp-bar');
+    if (!bar || typeof bar.animate !== 'function') return;
+    const bcx = parseFloat(sl.dataset.bcx) || 32;
+    const bw = parseFloat(sl.dataset.bw) || 18;
+    const ph = parseFloat(sl.dataset.ph) || 14;
+    const bCx = pRect.left + bcx;
+    const bCy = axisY - ph / 2;
+    const tRect = preTickMap ? preTickMap.get(sid) : null;
+    const dly = Math.round((baseDelayMs + Math.min(100, idx * 5)) * mScale);
+    if (tRect && tRect.width >= 1 && tRect.height >= 1) {
+      const dx = (tRect.left + tRect.width / 2) - bCx;
+      const dy = (tRect.top + tRect.height / 2) - bCy;
+      const sx = Math.max(0.15, Math.min(1, tRect.width / bw));
+      const sy = Math.max(0.12, Math.min(1, tRect.height / ph));
+      bar.animate([
+        { transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(${sx.toFixed(3)},${sy.toFixed(3)})`, opacity: baseDelayMs ? 0 : 0.55 },
+        { transform: 'translate3d(0,0,0) scale(1,1)', opacity: 1 },
+      ], {
+        duration: Math.max(100, Math.round(290 * mScale)),
+        delay: dly,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'backwards',
+      });
+    } else {
+      bar.animate([
+        { transform: 'scaleY(0.08)', opacity: baseDelayMs ? 0 : 0.25 },
+        { transform: 'scaleY(1)', opacity: 1 },
+      ], {
+        duration: Math.max(90, Math.round(270 * mScale)),
+        delay: dly,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'backwards',
+      });
+    }
+  });
+}
+
+function switchCoverStep(nextStep, opts = {}) {
+  const c = App.ctx();
+  const m = model(c.baseId);
+  const B = CV && CV.b[c.baseId];
+  const stageEl = document.getElementById('cv-pillar-stage');
+  if (!m || !B || !stageEl || !STEPS.includes(nextStep)) return;
+  const prevStep = curStepByBase[c.baseId];
+  curStepByBase[c.baseId] = nextStep;
+  if (opts.page != null) curPageByStep[c.baseId + '|' + nextStep] = opts.page;
+
+  const zoomBox = stageEl.querySelector('#cv-zoom-box');
+  if (!zoomBox) return;
+
+  // 1단계(읽기 전용): 어떤 클래스나 DOM 도 바꾸기 전에 필요한 모든 기하 좌표를 먼저 읽는다(강제 레이아웃 0)
+  const nextSegEl = stageEl.querySelector(`.cv-ov-seg[data-cv-step="${CSS.escape(nextStep)}"]`);
+  const preSegMetric = nextSegEl ? { x: nextSegEl.offsetLeft, w: Math.max(16, nextSegEl.offsetWidth) } : null;
+  const oldPlot = zoomBox.querySelector('#cv-plot-area');
+  const prePlotRect = oldPlot ? oldPlot.getBoundingClientRect() : null;
+  const canSink = opts.animate !== false && App.motionOn() && prevStep && prevStep !== nextStep;
+  const ghostBarsHTML = canSink ? captureSinkGhostHTML(zoomBox) : '';
+  const preTickMap = new Map();
+  if (opts.animate !== false && App.motionOn() && nextSegEl) {
+    nextSegEl.querySelectorAll('.cv-tick[data-cv-tick]').forEach(tk => {
+      preTickMap.set(tk.dataset.cvTick, tk.getBoundingClientRect());
+    });
+  }
+
+  // 2단계(쓰기 전용): 모든 DOM/스타일/WAAPI 애니메이션을 단번에 기록한다
+  stageEl.querySelectorAll('.cv-ov-seg[data-cv-step]').forEach(seg => {
+    const on = seg === nextSegEl;
+    seg.classList.toggle('is-on', on);
+    seg.setAttribute('aria-pressed', String(on));
+  });
+  positionOvBracket(stageEl, opts.animate !== false, preSegMetric);
+
+  const pIdxs = peerIdxOf(m, c);
+  const rawPeerOrgs = new Set(pIdxs.map(i => orgOf(m.cols[i + 1]))).size;
+  const totPeerOrgs = Math.max(1, rawPeerOrgs);
+  const pSet = new Set(c.activePeerOrgs || []);
+
+  stepSwitchToken++;
+  const pg = curPageByStep[c.baseId + '|' + nextStep] || 0;
+  zoomBox.innerHTML = buildZoomedHTML(c, m, B, nextStep, pg, pIdxs, totPeerOrgs, rawPeerOrgs, pSet, stageEl);
+  syncCoverSelectionAndFilter(stageEl);
+
+  if (opts.animate !== false && App.motionOn()) {
+    let ghostEl = null;
+    if (ghostBarsHTML) {
+      const plot = zoomBox.querySelector('#cv-plot-area');
+      if (plot) {
+        ghostEl = document.createElement('div');
+        ghostEl.className = 'cv-sink-ghost';
+        ghostEl.setAttribute('aria-hidden', 'true');
+        ghostEl.innerHTML = ghostBarsHTML;
+        plot.appendChild(ghostEl);
+      }
+    }
+    animateZoomBarsFromTicks(stageEl, ghostEl ? 105 : 0, prePlotRect, preTickMap);
+    if (ghostEl && typeof ghostEl.animate === 'function') {
+      const sinkDur = Math.max(70, Math.round(160 * App.motionScale()));
+      ghostEl.animate([
+        { transform: 'scaleY(1)', opacity: 0.92 },
+        { transform: 'scaleY(0.03)', opacity: 0 },
+      ], {
+        duration: sinkDur,
+        easing: 'cubic-bezier(0.7, 0, 0.84, 0)',
+        fill: 'forwards',
+      });
+    }
+  }
+  if (opts.focusEdge) {
+    const slots = Array.from(zoomBox.querySelectorAll('.cvp-slot[data-sid]'));
+    const target = opts.focusEdge === 'last' ? slots[slots.length - 1] : slots[0];
+    if (target) {
+      slots.forEach(s => { s.tabIndex = s === target ? 0 : -1; });
+      try { target.focus({ preventScroll: true }); } catch (ex) { /* */ }
+    }
+  }
+  requestAnimationFrame(() => App.updateSelLink(false));
+}
+
+function ensureSidInView(sid, c) {
+  const m = model(c.baseId);
+  if (!m || !m.byId[sid]) return false;
+  const row = m.byId[sid];
+  const stNm = row.type;
+  if (!STEPS.includes(stNm)) return false;
+  const curStep = curStepByBase[c.baseId];
+  if (curStep === stNm && document.querySelector(`#cv-zoom-box .cvp-slot[data-sid="${CSS.escape(sid)}"]`)) {
+    return false;
+  }
+  const stageEl = document.getElementById('cv-pillar-stage');
+  const stRows = m.rows.filter(r => r.type === stNm);
+  const lay = measureZoomLayout(stageEl, stRows, domainOrderOf(c));
+  let hitPage = 0;
+  lay.pages.forEach((p, pi) => {
+    if (p.groups.some(g => g.items.some(it => it.sid === sid))) hitPage = pi;
+  });
+  const curPage = curPageByStep[c.baseId + '|' + stNm] || 0;
+  if (curStep !== stNm || curPage !== hitPage) {
+    curPageByStep[c.baseId + '|' + stNm] = hitPage;
+    switchCoverStep(stNm, { page: hitPage, animate: true });
+    return true;
+  }
+  return false;
+}
+
 function renderStage(center, c) {
+  lastStageHost = center;
+  lastHotSid = '';
+  cachedHostW = center && center.clientWidth > 120 ? center.clientWidth : 0;
   const m = model(c.baseId);
   const B = CV && CV.b[c.baseId];
   if (!m || !B) {
@@ -232,75 +757,94 @@ function renderStage(center, c) {
     return;
   }
   const pIdxs = peerIdxOf(m, c);
-  const totPeerOrgs = Math.max(1, new Set(pIdxs.map(i => orgOf(m.cols[i + 1]))).size);
+  const rawPeerOrgs = new Set(pIdxs.map(i => orgOf(m.cols[i + 1]))).size;
+  const totPeerOrgs = Math.max(1, rawPeerOrgs);
   const pSet = new Set(c.activePeerOrgs || []);
 
-  let gCol = 0;
-  const segsHTML = STEPS.map((stNm, sIdx) => {
+  // 담보를 새로 고른 순간에만 해당 단계로 옮기고, 거르개 토글이나 창 크기 변경 때는 사람이 펼친 단계를 유지한다(2-3)
+  const selRaw = c.st.sel.cover || '';
+  const selSid = selRaw.startsWith('s:') ? selRaw.slice(2) : (selRaw.startsWith('c:') ? selRaw.slice(2) : '');
+  const selSig = `${c.baseId}|${selRaw}`;
+  if (selSig !== lastSyncedSelKey) {
+    lastSyncedSelKey = selSig;
+    if (selSid && m.byId[selSid] && STEPS.includes(m.byId[selSid].type)) {
+      curStepByBase[c.baseId] = m.byId[selSid].type;
+    }
+  }
+  if (!curStepByBase[c.baseId] || !STEPS.includes(curStepByBase[c.baseId])) {
+    curStepByBase[c.baseId] = defaultStepFor(m, B, c);
+  }
+  const curStep = curStepByBase[c.baseId];
+
+  const tickW = innerWidth >= 1600 ? 6 : innerWidth >= 1000 ? 4 : innerWidth < 480 ? 2 : 3;
+  let totalPassCnt = 0;
+  m.rows.forEach(r => {
+    if (matchesCoverFilter(rowStackMetrics(r, m, B, c, totPeerOrgs))) totalPassCnt++;
+  });
+
+  const ovSegsHTML = STEPS.map(stNm => {
     const stRows = m.rows.filter(r => r.type === stNm);
     const oursCnt = stRows.filter(r => has(r.cells[0])).length;
     const totCnt = stRows.length;
-    const ratioStr = `${fmt(oursCnt)}/${fmt(totCnt)}`;
-
-    const pils = stRows.map(r => {
-      const colIdx = gCol++;
-      const pil = pillarSVG(r, B, c, totPeerOrgs);
-      const hasFlag = r.pts.some(p => p['원문대조'] && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o))));
-      const pk = `s:${r.sid}`;
-      const ownDesc = pil.oursHas
-        ? (pil.ownN > 0 ? `우체국 보유, 상대 ${fmt(pil.ownN)}/${fmt(totPeerOrgs)}곳` : '우체국 단독 보유')
-        : `우체국 없음, 상대 ${fmt(pil.ownN)}/${fmt(totPeerOrgs)}곳`;
-      const lbl = `${stdN(r.sid)} (${stNm}, ${ownDesc})`;
-      return `<button type="button" class="cvp-btn${pil.oursHas ? '' : ' is-miss'}" data-pick="${esc(pk)}" data-toggle="1" data-grid-r="0" data-grid-c="${colIdx}" data-cv-nm="${esc(stdN(r.sid))}" data-cv-sub="${esc(ownDesc)}" aria-pressed="false" aria-label="${esc(lbl)}">
-        <span class="cvp-stem" aria-hidden="true"><i class="cvp-dia"></i></span>
-        ${hasFlag ? '<i class="cvp-flg" aria-hidden="true"></i>' : ''}
-        <span class="cvp-bar" data-link-pt="1" style="--ph:${pil.h}px">${pil.svg}</span>
-      </button>`;
+    const on = stNm === curStep;
+    const ticksHTML = stRows.map(r => {
+      const rm = rowStackMetrics(r, m, B, c, totPeerOrgs);
+      const pass = matchesCoverFilter(rm);
+      const tk = stackedShapeHTML(rm, tickW, innerWidth < 700 ? 22 : 28, 4);
+      const fullNm = stdN(r.sid);
+      const ownDesc = pillarSubText(rm, rawPeerOrgs);
+      const layerVec = `${rm.better},${rm.same + rm.diff},${rm.worse},${rm.wait},${rm.miss}`;
+      return `<span class="cv-tick${pass ? '' : ' is-filtered-out'}" data-aim="rect" data-cv-tick="${esc(r.sid)}" data-cv-step-of="${esc(stNm)}" data-stack-n="${rm.stackN}" data-layers="${layerVec}" data-tip-title="${esc(fullNm)}" data-tip-sub="${esc(`${stNm} / ${ownDesc}`)}" data-tip-chip="${rm.domChip}" style="width:${tickW}px;--th:${tk.h}px">${tk.html}<i class="cv-tk-sel"></i></span>`;
     }).join('');
 
-    return `<div class="cvp-seg" data-step="${esc(stNm)}">
-      <div class="cvp-sh">
-        <span class="cvp-ring">${ui.miniRingSVG(oursCnt, Math.max(1, totCnt), '')}</span>
-        <span class="cvp-snm">${esc(stNm)}</span>
-        <span class="cvp-scnt num">${esc(ratioStr)}</span>
-      </div>
-      <div class="cvp-row">${pils}</div>
-    </div>`;
+    return `<button type="button" class="cv-ov-seg${on ? ' is-on' : ''}" style="--seg-n:${Math.max(4, totCnt)}" data-cv-step="${esc(stNm)}" data-cv-ov="1" aria-pressed="${on}" aria-label="${esc(`${stNm} 단계 펼치기 (${oursCnt}/${totCnt})`)}">
+      <span class="cv-ov-sh">
+        <span class="cv-ov-ring">${ui.miniRingSVG(oursCnt, Math.max(1, totCnt), '')}</span>
+        <span class="cv-ov-nm">${esc(stNm)}</span>
+        <span class="cv-ov-cnt num">${esc(`${fmt(oursCnt)}/${fmt(totCnt)}`)}</span>
+      </span>
+      <span class="cv-ov-ticks">${ticksHTML}</span>
+    </button>`;
   }).join('');
 
-  center.innerHTML = `<div class="cvp-stage" id="cv-pillar-stage">
-    <div class="cvp-hover-bar" id="cv-hover-bar" aria-live="polite"></div>
-    <div class="cvp-axis" id="cv-pillar-axis">${segsHTML}</div>
-  </div>`;
+  const filterBtnsHTML = FILTERS.map(f => {
+    const on = activeFilters.has(f.k);
+    return `<button type="button" class="cv-flt-btn${on ? ' is-on' : ''}" data-cv-flt="${f.k}" aria-pressed="${on}">${esc(f.label)}</button>`;
+  }).join('');
+  const activeFilterNames = FILTERS.filter(f => activeFilters.has(f.k)).map(f => f.label).join(', ');
+  const filterCountHTML = activeFilters.size
+    ? `<span class="cv-flt-stat num" aria-live="polite">${esc(activeFilterNames)}: <b>${fmt(totalPassCnt)}</b>/${fmt(m.rows.length)}개</span>`
+    : `<span class="cv-flt-stat num" aria-live="polite">전체 <b>${fmt(m.rows.length)}</b>개</span>`;
 
-  const axisEl = center.querySelector('#cv-pillar-axis');
-  const hoverBar = center.querySelector('#cv-hover-bar');
-  if (axisEl && hoverBar) {
-    const showHover = btnEl => {
-      if (!btnEl) { hoverBar.innerHTML = ''; return; }
-      const nm = btnEl.dataset.cvNm || '';
-      const sub = btnEl.dataset.cvSub || '';
-      const aBox = axisEl.getBoundingClientRect();
-      const bBox = btnEl.getBoundingClientRect();
-      const leftPx = Math.max(0, Math.min(Math.max(0, aBox.width - 240), Math.round(bBox.left - aBox.left - 8)));
-      hoverBar.innerHTML = `<span class="cvp-hlbl" style="transform:translateX(${leftPx}px)"><b>${esc(nm)}</b> <span>${esc(sub)}</span></span>`;
-    };
-    axisEl.addEventListener('pointerover', e => {
-      const b = e.target.closest && e.target.closest('.cvp-btn');
-      if (b) showHover(b);
-    });
-    axisEl.addEventListener('pointerleave', () => {
-      const f = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cv-pillar-axis .cvp-btn');
-      showHover(f || null);
-    });
-    axisEl.addEventListener('focusin', e => {
-      const b = e.target.closest && e.target.closest('.cvp-btn');
-      if (b) showHover(b);
-    });
-    axisEl.addEventListener('focusout', e => {
-      if (!axisEl.contains(e.relatedTarget)) showHover(null);
+  // 만약 선택된 담보가 현재 단계의 다른 쪽에 있으면 그 쪽으로 맞춤
+  let initPage = curPageByStep[c.baseId + '|' + curStep] || 0;
+  if (selSid && m.byId[selSid] && m.byId[selSid].type === curStep) {
+    const stRows = m.rows.filter(r => r.type === curStep);
+    const lay = measureZoomLayout(center, stRows, domainOrderOf(c));
+    lay.pages.forEach((p, pi) => {
+      if (p.groups.some(g => g.items.some(it => it.sid === selSid))) initPage = pi;
     });
   }
+
+  const zoomHTML = buildZoomedHTML(c, m, B, curStep, initPage, pIdxs, totPeerOrgs, rawPeerOrgs, pSet, center);
+
+  center.innerHTML = `<div class="cvp-stage" id="cv-pillar-stage">
+    <div class="cv-ov-top">
+      <div class="cv-ov-strip" id="cv-ov-strip">
+        <div class="cv-ov-segs" id="cv-ov-segs">${ovSegsHTML}</div>
+        <div class="cv-ov-brk" id="cv-ov-brk" hidden aria-hidden="true"><i class="b-l"></i><i class="b-b"></i><i class="b-r"></i></div>
+      </div>
+      <div class="cv-flt-bar" role="group" aria-label="담보 거르개">
+        ${filterBtnsHTML}
+        ${filterCountHTML}
+      </div>
+    </div>
+    <div class="cv-zoom-box" id="cv-zoom-box">${zoomHTML}</div>
+  </div>`;
+
+  const stageEl = center.querySelector('#cv-pillar-stage');
+  syncCoverSelectionAndFilter(stageEl);
+  requestAnimationFrame(() => positionOvBracket(stageEl, false));
 }
 
 // ---------- 관계도(직각 꺾은선, 갈림 자리 9px 마름모). 탭 5 도 쓴다 ----------
@@ -448,42 +992,140 @@ function drawRel(el, baseId, sid) {
   if (App.motionOn()) { el.classList.remove('rl-in'); void el.offsetWidth; el.classList.add('rl-in'); }
 }
 
-// ---------- 조건 비교와 근거(고른 회사 셋까지 나란히, 나머지는 목록) ----------
+// ---------- 조건 비교와 근거(상대 셋 이하는 나란히, 넷 이상이면 우체국 + 판정별 묶음 접기) ----------
 function condTable(m, row, c) {
   const allPIdxs = peerIdxOf(m, c);
-  const topPIdxs = allPIdxs.slice(0, 3);
-  const restPIdxs = allPIdxs.slice(3);
-  const colIdxs = [0].concat(topPIdxs.map(i => i + 1));
-  const cols = colIdxs.map(k => m.cols[k]);
-  const reps = colIdxs.map(k => repOf(row.cells[k]));
+  const B = CV && CV.b[c.baseId];
+  const allColIdxs = [0].concat(allPIdxs.map(i => i + 1));
+  const hasAnyNonMon = allColIdxs.some(k => {
+    const rp = repOf(row.cells[k]);
+    return !!(rp && nonMonKind(rp));
+  });
   const items = [
-    ['지급', b => payText(b)], ['기준 가입금액', b => baseText(b)], ['면책', b => waitText(b.wait)], ['감액', b => redText(b.red)],
-    ['지급 형태', b => b.tags || '문구 없음'],
+    ['지급', b => payText(b)],
+    ['기준 가입금액', b => baseText(b)],
+    ['면책', b => waitText(b.wait)],
+    ['감액', b => redText(b.red, b)],
+    ['지급 형태', b => formText(b, hasAnyNonMon)],
   ];
-  const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
-  const body = items.map(([lab, f]) => {
+
+  // 상대가 넷 이상이면 우체국 + 판정기관코드 기준 판정 묶음으로 접고 누르면 회사별 줄을 펼친다
+  if (allPIdxs.length >= 4) {
+    const oursHas = has(row.cells[0]);
+    const oursRep = repOf(row.cells[0]);
+    const perCodes = (B && B['판정기관코드'] && B['판정기관코드'][row.sid]) || {};
+    const pSet = new Set(c.activePeerOrgs || []);
+    const scopedCodes = list => {
+      if (!Array.isArray(list)) return [];
+      return c.peerScope === 'all' ? list.slice() : list.filter(code => pSet.has(code));
+    };
+    const peerIdxsByOrg = {};
+    allPIdxs.forEach(i => {
+      const code = orgOf(m.cols[i + 1]);
+      (peerIdxsByOrg[code] = peerIdxsByOrg[code] || []).push(i);
+    });
+    const buckets = [
+      { key: 'better', label: '우체국 나음', vd: 'better', codes: scopedCodes(perCodes['나음']) },
+      { key: 'same', label: '같음', vd: 'same', codes: scopedCodes(perCodes['같음']) },
+      { key: 'worse', label: '우체국 못함', vd: 'worse', codes: scopedCodes(perCodes['못함']) },
+      { key: 'diff', label: '우열을 매기지 않음', vd: 'diff', codes: [...new Set([].concat(scopedCodes(perCodes['엇갈림']), scopedCodes(perCodes['단정 주의']), scopedCodes(perCodes['지급 형태 다름']), scopedCodes(perCodes['관계 담보로 덮음'])))] },
+      { key: 'wait', label: '검토 대기', vd: 'unknown', codes: scopedCodes(perCodes['검토 대기']) },
+      { key: 'hold', label: '판정 보류', vd: 'unknown', codes: scopedCodes(perCodes['판정 보류']) },
+      { key: 'miss', label: '우체국에 없음', vd: 'none', codes: scopedCodes(perCodes['우체국에 없음']) },
+    ].filter(bk => bk.codes.length > 0);
+
+    const inStackCodes = new Set(Object.keys(perCodes).flatMap(k => scopedCodes(perCodes[k])));
+    const absentPeerOrgs = [...new Set(allPIdxs.map(i => orgOf(m.cols[i + 1])))].filter(code => !inStackCodes.has(code));
+
+    const onlyChip = (oursHas && inStackCodes.size === 0 && allPIdxs.length > 0) ? `${ui.verdict('only', '우체국에만 있음')} ` : '';
+    const absentLabel = oursHas ? '상대에 없음' : BOTH_NONE_TEXT;
+    const summaryChips = onlyChip + buckets.map(bk => `<span class="cv-vg-chip">${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)}</span>`).join(' ')
+      + (absentPeerOrgs.length ? ` <span class="tag">${esc(absentLabel)} ${fmt(absentPeerOrgs.length)}곳</span>` : '');
+
+    const oursCells = items.map(([lab, f]) => `<div class="cv-ours-kv"><span>${esc(lab)}</span><b>${oursRep ? esc(f(oursRep)) : '없음'}</b></div>`).join('');
+
+    const groupsAccordion = buckets.map((bk, bIdx) => {
+      const pRows = [];
+      bk.codes.forEach(code => {
+        const matchIdxs = peerIdxsByOrg[code] || [];
+        if (matchIdxs.length) {
+          matchIdxs.forEach(i => {
+            const k = i + 1;
+            const vid = m.cols[k];
+            const c2 = row.cells[k];
+            const rp = repOf(c2);
+            const v = verdFor(row, m, i, allPIdxs);
+            const emptyPay = c2 && c2.w ? `<span class="cv-na">검토 대기 ${c2.w}줄</span>` : c2 && c2.c ? `<span class="cv-na">없음(${esc(c2.c[0])} 덮음)</span>` : '<span class="cv-na">없음</span>';
+            pRows.push(`<tr>
+              <th scope="row" title="${esc(fullN(vid))}">${esc(orgN(vid))} <span class="note">${esc(txt.shortName(kindN(vid)).short)}</span></th>
+              <td>${rp ? esc(payText(rp)) : emptyPay}</td>
+              <td>${rp ? esc(waitText(rp.wait)) : '-'}</td>
+              <td>${rp ? esc(redText(rp.red, rp)) : '-'}</td>
+              <td>${rp ? esc(formText(rp, hasAnyNonMon)) : '-'}</td>
+              <td>${chip(v)}</td>
+            </tr>`);
+          });
+        } else {
+          pRows.push(`<tr><th scope="row">${esc(txt.orgShort(code))}</th><td colspan="5" class="note">해당 회사 보유</td></tr>`);
+        }
+      });
+      return `<details class="zr-det cv-vg-det"${bIdx === 0 ? ' open' : ''}>
+        <summary><span>${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)} <span class="note">${esc(txt.peerNamesEtc(bk.codes.map(txt.orgShort), 4))}</span></span>${ui.IC.chevD}</summary>
+        <div class="zr-det-b"><div class="cv-ct-w"><table class="cv-ct">
+          <tr><th scope="col">상대 회사</th><th scope="col">지급</th><th scope="col">면책</th><th scope="col">감액</th><th scope="col">지급 형태</th><th scope="col">판정</th></tr>
+          ${pRows.join('')}
+        </table></div></div>
+      </details>`;
+    }).join('');
+
+    return `<div class="cv-ct-w"><table class="cv-ct cv-ct-fold">
+        <tr><th scope="col">${esc(orgN(m.cols[0]))} (기준)</th><th scope="col">판정별로 묶은 상대 (${fmt(allPIdxs.length)}개 종형)</th></tr>
+        <tr><td><div class="cv-ours-grid">${oursCells}</div></td><td><div class="cv-vg-sum">${summaryChips || '<span class="note">보유 상대 없음</span>'}</div></td></tr>
+      </table></div>
+      <div class="cv-vg-list">${groupsAccordion}</div>
+      <p class="note">상대가 넷 이상이라 우체국과 판정별 상대 묶음으로 접었습니다. 묶음을 누르면 그 회사들의 줄이 펼쳐집니다.</p>`;
+  }
+
+  const cols = allColIdxs.map(k => m.cols[k]);
+  const reps = allColIdxs.map(k => repOf(row.cells[k]));
+  const nonMonRedLbl = nonMonCopy('감액') || '원문 확인';
+  const nonMonBaseLbl = nonMonCopy('기준') || '금액 하나로 적을 수 없는 급부';
+  const payRuleTxt = hasAnyNonMon && nonMonCopy('지급액판정')
+    ? `${nonMonCopy('지급액판정')} 및 기준 가입금액이 회사마다 달라 지급액은 판정에 넣지 않았습니다.`
+    : '지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.';
+  const summaries = items.map(([lab, f]) => {
     const vals = {};
-    [0].concat(allPIdxs.map(i => i + 1)).forEach(k => {
+    allColIdxs.forEach(k => {
       const rp = repOf(row.cells[k]);
       vals[orgOf(m.cols[k])] = rp ? f(rp) : null;
     });
-    return `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(txt.sameSummary(vals))}</td></tr>`;
-  }).join('');
+    const eqFn = hasAnyNonMon && (lab === '감액' || lab === '기준 가입금액')
+      ? (a, b) => a === b && a !== nonMonRedLbl && a !== nonMonBaseLbl
+      : undefined;
+    return [lab, txt.sameSummary(vals, eqFn)];
+  });
 
-  let restHTML = '';
-  if (restPIdxs.length) {
-    const lis = restPIdxs.map(i => {
-      const k = i + 1;
-      const vid = m.cols[k];
-      const rp = repOf(row.cells[k]);
-      const v = verdFor(row, m, i, allPIdxs);
-      const condStr = rp ? `지급 ${payText(rp)}, 면책 ${waitText(rp.wait)}, 감액 ${redText(rp.red)}` : '이 담보 없음';
-      return `<li><b>${esc(orgN(vid))}</b> ${chip(v)} <span class="note">${esc(condStr)}</span></li>`;
+  // 좁은 창(380px 등)에서는 열이 눌리거나 안쪽 가로 스크롤이 생기지 않게 회사를 줄로 세워 보여 준다(요청 30의 7-2)
+  if (innerWidth <= 560) {
+    const mobRows = cols.map((v, k) => {
+      const rp = reps[k];
+      const detail = rp
+        ? items.map(([lab, f]) => `<span class="cv-ours-kv"><span>${esc(lab)}</span><b>${esc(f(rp))}</b></span>`).join('')
+        : '<span class="cv-na">없음</span>';
+      return `<tr><th scope="row" title="${esc(fullN(v))}">${esc(orgN(v))}</th><td><div class="cv-ours-grid">${detail}</div></td></tr>`;
     }).join('');
-    restHTML = `<details class="zr-det" style="margin-top:8px"><summary><span>나머지 상대 회사 ${fmt(restPIdxs.length)}곳 조건 목록</span>${ui.IC.chevD}</summary><div class="zr-det-b"><ul class="cv-evl">${lis}</ul></div></details>`;
+    const sumDetail = summaries.map(([lab, sm]) => `<span class="cv-ours-kv"><span>${esc(lab)}</span><b>${esc(sm)}</b></span>`).join('');
+    return `<div class="cv-ct-w"><table class="cv-ct cv-ct-mob">
+      <tr><th scope="col">회사</th><th scope="col">대표 급부 조건</th></tr>
+      ${mobRows}
+      <tr><th scope="row">요약</th><td class="sm"><div class="cv-ours-grid">${sumDetail}</div></td></tr>
+    </table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
   }
 
-  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div>${restHTML}<p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, 지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.</p>`;
+  const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
+  const body = items.map(([lab, f], idx) => `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(summaries[idx][1])}</td></tr>`).join('');
+
+  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
 }
 
 function evidenceList(m, row, extra, c) {
@@ -493,7 +1135,10 @@ function evidenceList(m, row, extra, c) {
     const b = repOf(row.cells[k]);
     if (!b) return '';
     const rd = rider(b.rid);
-    return `<li><b>${esc(orgN(v))}</b> ${ui.tag(txt.pageText(b.doc, b.page))} <span title="${esc(b.name)}">${esc(b.name)}</span>${rd ? `<br><span class="note">특약: ${esc(rd.name)}</span>` : ''}</li>`;
+    const nm = nonMonKind(b);
+    const nmDesc = nonMonWhy(nm);
+    const nmHTML = nmDesc ? `<br><span class="note"><b>${esc(nm)}:</b> ${esc(nmDesc)}</span>` : '';
+    return `<li><b>${esc(orgN(v))}</b> ${ui.tag(txt.pageText(b.doc, b.page))} <span title="${esc(b.name)}">${esc(b.name)}</span>${rd ? `<br><span class="note">특약: ${esc(rd.name)}</span>` : ''}${nmHTML}</li>`;
   }).join('');
   return `<ul class="cv-evl">${items}${extra || ''}</ul>`;
 }
@@ -501,30 +1146,39 @@ function evidenceList(m, row, extra, c) {
 function rowEvidence(c, sid, mode) {
   const m = model(c.baseId); const row = m && m.byId[sid];
   if (!row) return null;
+  const B = CV && CV.b[c.baseId];
   const pIdxs = peerIdxOf(m, c);
   const pSet = new Set(c.activePeerOrgs || []);
   const scopedCau = c.peerScope === 'all' ? row.cau : row.cau.filter(x => (x['상대종형ID'] || []).some(v => pSet.has(orgOf(v))));
   const st = std(sid);
+  const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
   let judge = '';
   if (mode === 'caution' && scopedCau.length) {
-    judge += scopedCau.map(x => `<p>${ui.verdict('diff')} <span class="note">${esc(x['종류'])}</span></p><p>${esc(x['문장'])}</p>`).join('');
+    judge += scopedCau.map(x => `<p>${ui.verdict('diff')} <span class="note">${esc(x['종류'])}</span></p><p>${esc(x['문장'])}${scBadge}</p>`).join('');
   }
-  judge += pIdxs.slice(0, 3).map(i => {
+  const renderPeerJudge = i => {
     const peer = m.cols[i + 1];
     const v = verdFor(row, m, i, pIdxs);
     const q = v && v.q;
     const noRank = !v || (v.kind !== 'better' && v.kind !== 'worse');
     const word = t => (t === '나음' || t === '못함') ? (noRank ? '다름' : t === '나음' ? '우체국 나음' : '우체국 못함') : t;
-    const its = q && q.it ? `<table class="cv-it"><tr><th scope="col">항목</th><th scope="col">우체국</th><th scope="col">${esc(orgN(peer))}</th><th scope="col">비교</th></tr>${q.it.map(t => `<tr><th scope="row">${esc(t[0])}</th><td>${esc(t[1])}</td><td>${esc(t[2])}</td><td>${esc(word(t[3]))}${t[4] ? `<br><span class="note">${esc(t[4])}</span>` : ''}</td></tr>`).join('')}</table>` : '';
+    const its = q && q.it ? `<div class="cv-ct-w"><table class="cv-it"><tr><th scope="col">항목</th><th scope="col">우체국</th><th scope="col">${esc(orgN(peer))}</th><th scope="col">비교</th></tr>${q.it.map(t => `<tr><th scope="row">${esc(t[0])}</th><td>${esc(t[1])}</td><td>${esc(t[2])}</td><td>${esc(word(t[3]))}${t[4] ? `<br><span class="note">${esc(t[4])}</span>` : ''}</td></tr>`).join('')}</table></div>` : '';
     return `<div class="cv-jd"><p><b>${esc(txt.josa(fullN(peer), '과'))} 견줌</b> ${chip(v)}</p>${v && v.why ? `<p class="note">${esc(v.why)}</p>` : ''}${noRank && q && q.it && q.it.some(t => t[3] === '나음' || t[3] === '못함') ? `<p class="note">대표 급부끼리는 조건이 다른 항목이 있지만, 위 까닭으로 우열을 매기지 않았습니다. 아래 표는 "다름"으로만 적습니다.</p>` : ''}${its}</div>`;
-  }).join('');
+  };
+  judge += pIdxs.slice(0, 3).map(renderPeerJudge).join('');
+  if (pIdxs.length > 3) {
+    const restIdxs = pIdxs.slice(3);
+    const restNames = txt.peerNamesEtc(restIdxs.map(i => orgN(m.cols[i + 1])), 4);
+    judge += `<details class="zr-det cv-vg-det" style="margin-top:8px"><summary><span>나머지 상대 ${fmt(restIdxs.length)}개 종형의 판정 표 보기 (${esc(restNames)})</span>${ui.IC.chevD}</summary><div class="zr-det-b">${restIdxs.map(renderPeerJudge).join('')}</div></details>`;
+  }
   const scopedPts = c.peerScope === 'all' ? row.pts : row.pts.filter(p => (p['관련기관코드'] || []).some(o => pSet.has(o)));
-  const pts = scopedPts.map(p => `<li>${ui.tag(p['분류'])} ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}</p>${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}</p>` : ''}</li>`).join('');
+  const pts = scopedPts.map(p => `<li>${ui.tag(p['분류'])} ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}${scBadge}</p>${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}</li>`).join('');
   const cauEv = mode === 'caution' ? scopedCau.flatMap(x => (x['근거'] || []).filter(g => g['종형ID'] === c.baseId || c.peerScope === 'all' || pSet.has(orgOf(g['종형ID']))).map(g => `<li><b>${esc(orgN(g['종형ID']))}</b> ${ui.tag(txt.pageText(g['문서'], g['쪽']))} ${g['구분'] ? ui.tag(g['구분']) : ''} <span>${esc(fixG(g['급부명'] || ''))}</span></li>`)).join('') : '';
   const out = [];
   pIdxs.forEach(i => { const v = row.verd[i]; if (v && v.kind === 'unknown') out.push(`${orgN(m.cols[i + 1])}: ${v.why || v.text}`); });
   row.omit.filter(o => c.peerScope === 'all' || (o['비교종형ID'] || []).some(v => pSet.has(orgOf(v)))).forEach(o => out.push(`${o['분류']}(${o['세부']}): ${reasonText(o['사유'])}`));
-  const body = `<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}</div>
+  const graphJump = `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>`;
+  const body = `<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}${graphJump}</div>
     <div class="ev-sec"><h3>판정과 인사이트</h3>${judge || `<p class="note">${esc(App.t('peerEmptyHint'))}</p>`}${pts ? `<ul class="cv-pts" style="margin-top:8px">${pts}</ul>` : ''}</div>
     <details class="zr-det"><summary><span>관계도와 근거 문서 쪽 번호 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b">
       <div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}
@@ -532,13 +1186,45 @@ function rowEvidence(c, sid, mode) {
       ${mode === 'caution' && cauEv ? `<ul class="cv-evl">${cauEv}</ul><p class="note">"대표 밖"은 대표 급부 밖에 조건이 다른 급부입니다.</p>` : evidenceList(m, row, '', c)}
       ${out.length ? `<h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">뺀 것</h3><ul class="cv-evl">${out.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
     </div></details>`;
-  const verdBadges = pIdxs.slice(0, 3).map(i => { const v = verdFor(row, m, i, pIdxs); return v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(v)}</span>` : ''; }).join('');
+
+  let verdBadges = '';
+  if (pIdxs.length >= 4 && B) {
+    // 쌍판정(row.verd)과 판정차례로 모든 판정 이름을 빠짐없이 모아 표지의 곳 수 합이 상대 수(및 판정상대수 합)와 정확히 같게 한다(2-1)
+    const countsByName = new Map();
+    const chipByName = new Map();
+    pIdxs.forEach(i => {
+      const v = row.verd[i];
+      const nm = v ? v.name : BOTH_NONE_TEXT;
+      countsByName.set(nm, (countsByName.get(nm) || 0) + 1);
+      if (v && !chipByName.has(nm)) chipByName.set(nm, v.kind);
+    });
+    const orderList = (CV && Array.isArray(CV['판정차례']) && CV['판정차례'].length)
+      ? CV['판정차례']
+      : ['우체국 나음', '우체국 못함', '같음', '우열을 매기지 않음', '우체국에만 있음', '우체국에 없음', '검토 대기', '판정 보류', BOTH_NONE_TEXT];
+    const allOnly = (countsByName.get('우체국에만 있음') || 0) === pIdxs.length && pIdxs.length > 0;
+    const badgeParts = [];
+    orderList.forEach(nm => {
+      const cnt = countsByName.get(nm) || 0;
+      if (!cnt) return;
+      if (nm === '우체국에만 있음') {
+        if (allOnly) badgeParts.push(ui.verdict('only', `우체국에만 있음 ${fmt(cnt)}곳`));
+        else badgeParts.push(`<span class="tag">상대에 없음 ${fmt(cnt)}곳</span>`);
+      } else if (nm === BOTH_NONE_TEXT) {
+        badgeParts.push(`<span class="tag">${esc(BOTH_NONE_TEXT)} ${fmt(cnt)}곳</span>`);
+      } else {
+        badgeParts.push(ui.verdict(chipByName.get(nm) || 'unknown', `${nm} ${fmt(cnt)}곳`));
+      }
+    });
+    verdBadges = badgeParts.join(' ');
+  } else {
+    verdBadges = pIdxs.slice(0, 3).map(i => { const v = verdFor(row, m, i, pIdxs); return v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(v)}</span>` : ''; }).join('');
+  }
   return {
     kicker: mode === 'caution' ? '단정 주의, 선택 종형' : '담보 비교, 선택 종형', title: stdN(sid),
-    badges: [ui.scope('base'), ui.tag(`${st['대분류'] || ''} ${st['급부유형'] || ''}`.trim()), verdBadges],
+    badges: [ui.scope('base'), ui.tag(`${st['대분류'] || ''} ${st['급부유형'] || ''}`.trim()), verdBadges].filter(Boolean),
     body,
     after(el) {
-      const detEl = el.querySelector('.zr-det');
+      const detEl = el.querySelector('.zr-det:not(.cv-vg-det)');
       const relEl = el.querySelector('.cv-rel');
       if (detEl && relEl) {
         detEl.addEventListener('toggle', () => { if (detEl.open && !relEl.innerHTML) drawRel(relEl, c.baseId, sid); });
@@ -556,6 +1242,12 @@ function journeyData(c) {
   const peerCols = c.peerScope === 'all' ? cols.slice(1) : c.peerIds.map(v => byVid[v]).filter(Boolean);
   return { j, cols: [byVid[c.baseId] || cols[0], ...peerCols].filter(Boolean) };
 }
+function journeyTone(idx) {
+  if (idx === 0) return { bar: 'ours', lg: 'lg0' };
+  if (idx === 1) return { bar: 'other', lg: 'lg1' };
+  if (idx === 2) return { bar: 'other hollow', lg: 'lg2' };
+  return { bar: 'other dashed', lg: 'lg3' };
+}
 function journeyHTML(c) {
   const { j, cols } = journeyData(c);
   const rowsG = j['행'];
@@ -568,8 +1260,7 @@ function journeyHTML(c) {
   const maxT = Math.max(1, ...cols.flatMap(x => STEPS.map(s => x['합계'][s] || 0)));
   const rowSum = (x, g) => STEPS.reduce((a, s) => a + ((x['칸'][g] || {})[s] || 0), 0);
   const maxR = Math.max(1, ...cols.flatMap(x => rowsG.map(g => rowSum(x, g))));
-  const CLS = ['', 'other', 'other hollow', 'other'];
-  const bars = (vals, mx) => dispVals(vals).map((n, i) => `<span class="cvj-b"><span class="hbar"><i class="${CLS[i] || 'other'}" style="width:${(n / mx * 100).toFixed(1)}%"></i></span><b class="num">${n}</b></span>`).join('');
+  const bars = (vals, mx) => dispVals(vals).map((n, i) => `<span class="cvj-b"><span class="hbar"><i class="${journeyTone(i).bar}" style="width:100%;transform:scaleX(${(n / mx).toFixed(4)})"></i></span><b class="num">${n}</b></span>`).join('');
   const lab = dispLabels.map(d => `<span class="cvj-l" title="${esc(d.title)}">${esc(d.nm)}</span>`).join('');
   let h = `<div class="cvj-h cvj-c0"></div>${STEPS.map(s => `<div class="cvj-h">${esc(s)}</div>`).join('')}<div class="cvj-h cvj-t">대분류 합계</div>`;
   rowsG.forEach(g => {
@@ -588,14 +1279,15 @@ function journeyHTML(c) {
   h += `<div class="cvj-c cvj-t cvj-all">${dispLabels.map((d, i) => `<span class="cvj-b"><span class="cvj-l2">${esc(d.nm)}</span><b class="num">${dispVals(cols.map(x => x['전체']))[i]}</b></span>`).join('')}</div>`;
   const ours = cols[0];
   const parts = STEPS.map(s => ({ t: s, n: ours['합계'][s] || 0 })).concat(ours['기타'] ? [{ t: '기타', n: ours['기타'] }] : []);
-  const etc = txt.peerNamesEtc(cols.map(x => `${orgN(x['종형ID'])} ${x['기타'] || 0}`), 4);
+  const etcList = cols.map(x => `${orgN(x['종형ID'])} ${x['기타'] || 0}개`);
+  const etc = etcList.length <= 4 ? etcList.join(', ') : txt.peerNamesEtc(etcList, 4);
   return `<section class="panel cv-jr" id="cover-journey" aria-labelledby="cover-journey-h">
     <div class="panel-h"><div><span class="k">${ui.scope('base')} 보장 대분류와 치료 단계마다 표준담보를 셉니다</span><h2 id="cover-journey-h"><span>치료 여정 격자</span>${ui.help('journey-grid', '치료 여정 격자')}</h2></div>
-      <div class="r"><span class="cvj-lg"><span><i class="lg0"></i>${esc(dispLabels[0].nm)}</span>${dispLabels.slice(1).map((d, i) => `<span><i class="lg${Math.min(2, i + 1)}"></i>${esc(d.nm)}</span>`).join('')}<span><i class="lgz"></i>우체국 0인 칸</span></span>
+      <div class="r"><span class="cvj-lg">${dispLabels.map((d, i) => `<span><i class="${journeyTone(i).lg}"></i>${esc(d.nm)}</span>`).join('')}<span><i class="lgz"></i>우체국 0인 칸</span></span>
       <span class="live">${ui.btn('격자 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-journey"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-journey" data-title="치료 여정 격자"' })}</span></div></div>
     <div class="cvj-w"><div class="cvj" role="group" aria-label="치료 여정 격자">${h}</div></div>
     <div class="panel-f">${ui.eq({ total: { t: `${orgN(ours['종형ID'])} 담보`, n: ours['전체'] }, parts, tail: '개' })}
-      <div class="nadd">기타(주요 단계 밖의 급부유형)는 ${esc(etc)}개입니다. 칸 하나에 담보 하나만 셉니다. 회사별 수는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>
+      <div class="nadd">기타(주요 단계 밖의 급부유형)는 ${esc(etc)}입니다. 칸 하나에 담보 하나만 셉니다. 회사별 수는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>
       <p class="note" style="margin:6px 0 0">막대 길이는 칸끼리(합계 줄은 합계끼리) 견준 것입니다. 칸을 누르면 그 칸의 담보 목록이 아래 읽기 띠에 뜹니다. 우열은 이 격자에 매기지 않고 아래 비교표에서 봅니다.</p></div>
   </section>`;
 }
@@ -605,20 +1297,70 @@ function journeyPick(c, key) {
   const lists = cols.map(x => ((x['담보'][g] || {})[s] || []));
   const all = [...new Set(lists.flat())];
   const m = model(c.baseId);
+  const B = CV && CV.b[c.baseId];
   const pIdxs = peerIdxOf(m, c);
   const order = m ? Object.fromEntries(m.rows.map((r, i) => [r.sid, i])) : {};
   all.sort((a, b) => (order[a] ?? 999) - (order[b] ?? 999));
-  const rows = all.map(sid => {
-    const row = m && m.byId[sid];
-    const marks = cols.slice(0, 5).map((x, i) => lists[i].includes(sid) ? '<td class="ok">있음</td>' : '<td class="no">없음</td>').join('');
-    const v = row ? pIdxs.slice(0, 3).map(i => { const vv = verdFor(row, m, i, pIdxs); return vv ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(vv)}</span>` : ''; }).join('') : '';
-    return `<tr><th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}<div class="cv-bds">${v}</div></th>${marks}</tr>`;
-  }).join('');
+  const peerCols = cols.slice(1);
+  const foldPeers = peerCols.length >= 4;
+  let tblHTML = '<p>이 칸에는 비교 대상 회사 모두 담보가 없습니다.</p>';
+  if (all.length) {
+    if (foldPeers) {
+      const rows = all.map(sid => {
+        const row = m && m.byId[sid];
+        const oursHas = lists[0].includes(sid);
+        const heldNames = [], absentNames = [];
+        peerCols.forEach((x, idx) => {
+          const nm = orgN(x['종형ID']);
+          if (lists[idx + 1].includes(sid)) heldNames.push(nm);
+          else absentNames.push(nm);
+        });
+        let vHTML = '';
+        if (B) {
+          const pc = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
+          const cntCode = k => (c.peerScope === 'all' ? ((pc[k] || []).length) : c.inScope(pc[k]));
+          const bks = [
+            ['better', '우체국 나음', cntCode('나음')],
+            ['same', '같음', cntCode('같음')],
+            ['worse', '우체국 못함', cntCode('못함')],
+            ['diff', '우열을 매기지 않음', cntCode('엇갈림') + cntCode('단정 주의') + cntCode('지급 형태 다름') + cntCode('관계 담보로 덮음')],
+            ['unknown', '검토 대기', cntCode('검토 대기')],
+            ['unknown', '판정 보류', cntCode('판정 보류')],
+            ['none', '우체국에 없음', cntCode('우체국에 없음')],
+          ].filter(x => x[2] > 0);
+          if (!bks.length && oursHas && pIdxs.length > 0) {
+            vHTML = ui.verdict('only', '우체국에만 있음');
+          } else {
+            vHTML = bks.map(([vd, lb, n]) => ui.verdict(vd, `${lb} ${fmt(n)}곳`)).join(' ');
+          }
+        }
+        const peerDetail = `<details class="zr-det cv-vg-det" style="border-top:0"><summary style="padding:2px 0"><span>보유 <b class="num">${fmt(heldNames.length)}</b>/${fmt(peerCols.length)}개 종형</span>${ui.IC.chevD}</summary><div class="zr-det-b" style="padding:4px 0 2px"><div class="note"><b>있음(${fmt(heldNames.length)}):</b> ${heldNames.length ? esc(heldNames.join(', ')) : '없음'}</div><div class="note"><b>없음(${fmt(absentNames.length)}):</b> ${absentNames.length ? esc(absentNames.join(', ')) : '없음'}</div></div></details>`;
+        return `<tr>
+          <th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}${vHTML ? `<div class="cv-bds">${vHTML}</div>` : ''}</th>
+          <td class="${oursHas ? 'ok' : 'no'}">${oursHas ? '있음' : '없음'}</td>
+          <td>${peerDetail}</td>
+        </tr>`;
+      }).join('');
+      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정 묶음</th><th scope="col">${esc(orgN(cols[0]['종형ID']))}</th><th scope="col">상대 보유 현황 (${fmt(peerCols.length)}개 종형)</th></tr>${rows}</table></div><p class="note">상대가 넷 이상이라 판정 묶음과 보유 수로 접었습니다. 상대 보유 현황을 누르면 회사별 있음과 없음 전체 목록이 펼쳐집니다.</p>`;
+    } else {
+      const rows = all.map(sid => {
+        const row = m && m.byId[sid];
+        const marks = cols.map((x, i) => lists[i].includes(sid) ? '<td class="ok">있음</td>' : '<td class="no">없음</td>').join('');
+        const v = row ? pIdxs.map(i => { const vv = verdFor(row, m, i, pIdxs); return vv ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(vv)}</span>` : ''; }).join('') : '';
+        return `<tr><th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}<div class="cv-bds">${v}</div></th>${marks}</tr>`;
+      }).join('');
+      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">담보 이름을 누르면 해당 기둥과 상세로 이동합니다.</p>`;
+    }
+  }
+  const cntItems = cols.map((x, i) => `${orgN(x['종형ID'])} ${lists[i].length}개`);
+  const cntLine = cntItems.length <= 5
+    ? `<p>${esc(cntItems.join(', '))}</p>`
+    : `<p>${esc(txt.peerNamesEtc(cntItems, 5))}</p><details class="zr-det cv-vg-det"><summary><span>전체 ${fmt(cntItems.length)}개 종형 담보 수 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b"><p class="note">${esc(cntItems.join(', '))}</p></div></details>`;
   return {
     kicker: '치료 여정 격자, 선택 종형', title: `${g} ${s}`, badges: [ui.scope('base')],
-    body: `<div class="ev-sec"><h3>칸의 담보 수</h3><p>${esc(txt.peerNamesEtc(cols.map((x, i) => `${orgN(x['종형ID'])} ${lists[i].length}`), 5))}</p>
+    body: `<div class="ev-sec"><h3>칸의 담보 수</h3>${cntLine}
         <div class="nadd">같은 담보를 회사마다 센 수라 서로 더하지 않습니다. 이 칸에 한 회사라도 가진 담보는 ${all.length}개입니다.</div></div>
-      <div class="ev-sec"><h3>담보 목록</h3>${all.length ? `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.slice(0, 5).map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">담보 이름을 누르면 해당 기둥과 상세로 이동합니다.</p>` : '<p>이 칸에는 비교 대상 회사 모두 담보가 없습니다.</p>'}</div>`,
+      <div class="ev-sec"><h3>담보 목록</h3>${tblHTML}</div>`,
   };
 }
 
@@ -645,7 +1387,7 @@ function cautionHTML(c) {
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${x['담보']}, ${k.k}. 근거 보기`)}"></button>
         <div class="cv-crh selbar">${ui.verdict('diff')}<span class="cv-cn">${esc(x['담보'])}</span></div>
         <p class="cv-cpe">상대 ${esc(peerName(x))}</p>
-        <p class="cv-ctx">${esc(x['문장'])}</p>
+        <p class="cv-ctx">${esc(x['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>
         <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`).join('')}</ul>`).join('') || '<p class="placeholder">단정 주의에 든 담보가 없습니다.</p>'}
   </section>`;
 }
@@ -653,42 +1395,53 @@ function pendingHTML(c) {
   const p = c.base['보류요약'];
   const pSet = new Set(c.activePeerOrgs || []);
   const peers = c.peerScope === 'all' ? (p['맞붙는종형'] || c.peerIds) : c.peerIds;
-  const sp = c.peerScope === 'all' ? { total: p['공통담보쌍'], wait: p['뺀쌍'], cmp: p['견준쌍'] } : (scopedPairs(c.baseId, pSet) || { total: 0, wait: 0, cmp: 0 });
-  const why = p['사유별'] || {};
+  const sp = (c.peerScope === 'all' ? scopedPairs(c.baseId, null) : scopedPairs(c.baseId, pSet)) || { total: 0, wait: 0, cmp: 0, why: {} };
+  const why = sp.why || {};
   const whySum = Object.values(why).reduce((a, b) => a + b, 0);
-  const B = CV && CV.b[c.baseId];
   const shownPeers = peers.slice(0, 6);
+  const restPeers = peers.slice(6);
   const rows = (p['대분류'] || []).map(x => {
-    let rowTot = x['공통담보쌍'], rowWait = x['뺀쌍'], rowCmp = x['견준쌍'];
-    if (c.peerScope !== 'all' && B) {
-      rowTot = 0; rowWait = 0;
-      B.rows.forEach(r => {
-        if ((std(r[0])['대분류'] || '') !== x['대분류']) return;
-        for (const [peer, q] of Object.entries(r[2] || {})) {
-          if (pSet.has(orgOf(peer))) { rowTot++; if (q && q.x) rowWait++; }
-        }
-      });
-      rowCmp = rowTot - rowWait;
+    let rowTot = x['공통담보쌍'] || 0, rowWait = x['뺀쌍'] || 0, rowCmp = x['견준쌍'] || 0;
+    const waitByPeer = Object.assign({}, x['상대별'] || {});
+    if (c.peerScope !== 'all') {
+      rowTot = 0; rowWait = 0; rowCmp = 0;
+      const byOrg = x['기관별'] || {};
+      for (const [org, per] of Object.entries(byOrg)) {
+        if (!pSet.has(org) || !per) continue;
+        rowTot += per['공통담보쌍'] || 0;
+        rowWait += per['뺀쌍'] || 0;
+        rowCmp += per['견준쌍'] || 0;
+      }
     }
-    return [`<span class="nw">${esc(x['대분류'])}</span>`, `<span class="num">${rowTot}</span>`, `<span class="num">${rowCmp}</span>`, `<span class="num">${rowWait}</span>`,
-      ...shownPeers.map(v => `<span class="num">${(x['상대별'] || {})[v] || 0}</span>`)];
+    const restWait = restPeers.reduce((acc, v) => acc + (waitByPeer[v] || 0), 0);
+    const peerCells = shownPeers.map(v => `<span class="num">${waitByPeer[v] || 0}</span>`);
+    if (restPeers.length) peerCells.push(`<span class="num" title="${esc(restPeers.map(orgN).join(', '))}">${restWait}</span>`);
+    return [`<span class="nw">${esc(x['대분류'])}</span>`, `<span class="num">${rowTot}</span>`, `<span class="num">${rowCmp}</span>`, `<span class="num">${rowWait}</span>`, ...peerCells];
   });
+  const headCols = ['보장 대분류', '공통 쌍', '견줌', '검토 대기', ...shownPeers.map(v => `${esc(orgN(v))} 대기`)];
+  const numCols = [1, 2, 3, ...shownPeers.map((_, i) => i + 4)];
+  if (restPeers.length) {
+    headCols.push(`그 밖 ${fmt(restPeers.length)}곳 대기`);
+    numCols.push(headCols.length - 1);
+  }
+  const sumNote = restPeers.length
+    ? `상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 앞의 ${fmt(shownPeers.length)}개 열과 그 밖 ${fmt(restPeers.length)}곳 열을 더하면 그 줄의 검토 대기 쌍과 같습니다.`
+    : '상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 선택한 상대를 더하면 그 줄의 검토 대기 쌍과 같습니다.';
   const cellsBar = sp.total <= 80 ? ui.cells(Array(sp.cmp).fill('cmp').concat(Array(sp.wait).fill('wait'))) : '';
   return `<section class="panel tbl-wrap cv-pd" id="cover-pending" aria-labelledby="cover-pending-h">
     <div class="panel-h"><div><span class="k">${ui.scope('base')} 공통 담보 쌍 가운데 검토 대기로 뺀 쌍</span><h2 id="cover-pending-h">검토 대기 보류 요약</h2></div>
       <div class="r"><span class="live">${ui.btn('표 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="cover-pd-tbl" data-title="검토 대기 보류 요약"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-pending" data-title="검토 대기 보류 요약"' })}</span></div></div>
     <div class="cv-pd-eq">${ui.eq({ total: { t: '공통 담보', n: sp.total }, parts: [{ t: '견줌', n: sp.cmp }, { t: '검토 대기로 뺌', n: sp.wait }], tail: '쌍' })}
       ${cellsBar}
-      ${c.peerScope === 'all' && Object.keys(why).length ? `<div class="nadd">뺀 사유는 ${esc(Object.entries(why).map(([a, b]) => `${a} ${b}`).join(', '))}쌍입니다. ${whySum > p['뺀쌍'] ? `한 쌍에 두 사유가 함께 들 수 있어 더하면 ${esc(txt.josa(String(whySum), '으로'))} ${p['뺀쌍']}보다 큽니다.` : `사유를 더하면 ${whySum}쌍입니다.`}</div>` : ''}</div>
-    <div class="cv-pd-t">${ui.table({ id: 'cover-pd-tbl', head: ['보장 대분류', '공통 쌍', '견줌', '검토 대기', ...shownPeers.map(v => `${esc(orgN(v))} 대기`)], rows, num: [1, 2, 3, ...shownPeers.map((_, i) => i + 4)] })}</div>
-    <div class="panel-f">${cellsBar ? '띠의 칸 하나가 한 쌍입니다: <span class="kd-l"><i class="cq cmp"></i>견준 쌍</span> <span class="kd-l"><i class="cq wait"></i>검토 대기로 뺀 쌍</span>. ' : ''}상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 선택한 상대를 더하면 그 줄의 검토 대기 쌍과 같습니다.</div>
+      ${sp.wait > 0 && Object.keys(why).length ? `<div class="nadd">뺀 사유는 ${esc(Object.entries(why).map(([a, b]) => `${a} ${b}`).join(', '))}쌍입니다. ${whySum > sp.wait ? `한 쌍에 두 사유가 함께 들 수 있어 더하면 ${esc(txt.josa(String(whySum), '으로'))} ${sp.wait}보다 큽니다.` : `사유를 더하면 ${whySum}쌍입니다.`}</div>` : ''}</div>
+    <div class="cv-pd-t">${ui.table({ id: 'cover-pd-tbl', head: headCols, rows, num: numCols })}</div>
+    <div class="panel-f">${cellsBar ? '띠의 칸 하나가 한 쌍입니다: <span class="kd-l"><i class="cq cmp"></i>견준 쌍</span> <span class="kd-l"><i class="cq wait"></i>검토 대기로 뺀 쌍</span>. ' : ''}${esc(sumNote)}</div>
   </section>`;
 }
 
 function midBand(c) {
-  const p = c.base['보류요약'];
   const pSet = new Set(c.activePeerOrgs || []);
-  const sp = c.peerScope === 'all' ? { total: p['공통담보쌍'], wait: p['뺀쌍'], cmp: p['견준쌍'] } : (scopedPairs(c.baseId, pSet) || { total: 0, wait: 0, cmp: 0 });
+  const sp = (c.peerScope === 'all' ? scopedPairs(c.baseId, null) : scopedPairs(c.baseId, pSet)) || { total: 0, wait: 0, cmp: 0 };
   const cau = scopedCaution(c);
   const kinds = {};
   cau.forEach(x => { kinds[x['종류']] = (kinds[x['종류']] || 0) + 1; });
@@ -698,13 +1451,36 @@ function midBand(c) {
   return ui.band({ kicker: '우열을 단정하지 않은 것과 견주지 못한 것', title: '단정 주의와 검토 대기', help: 'caution-pending', sc: 'base', stats,
     note: `단정 주의 ${cau.length}건은 견준 쌍 안에서 우열 문장을 내지 않은 담보이고, 검토 대기로 뺀 쌍과는 다른 수라 더하지 않습니다.` });
 }
-function tableBand(c, m, cnt, peerN) {
+
+function chipKindByName(nm) {
+  const tbl = (CV && CV['판정표']) || {};
+  for (const v of Object.values(tbl)) {
+    if (v && v['판정'] === nm) return v['칩'];
+  }
+  return 'unknown';
+}
+
+function sumVerdictSummary(B, c) {
+  const order = (CV && Array.isArray(CV['판정차례'])) ? CV['판정차례'] : ['우체국 나음', '우체국 못함', '같음', '우열을 매기지 않음', '우체국에만 있음', '우체국에 없음', '검토 대기', '판정 보류', BOTH_NONE_TEXT];
+  const byName = Object.fromEntries(order.map(nm => [nm, 0]));
+  const vs = (B && B['판정요약']) || {};
+  const pSet = new Set(c.activePeerOrgs || []);
+  for (const [org, per] of Object.entries(vs)) {
+    if (c.peerScope !== 'all' && !pSet.has(org)) continue;
+    for (const [nm, n] of Object.entries(per || {})) {
+      byName[nm] = (byName[nm] || 0) + (n || 0);
+    }
+  }
+  return { order, byName };
+}
+
+function tableBand(c, m, byName, peerN) {
   const total = m.rows.length * peerN;
   const denom = Math.max(1, total);
-  const st = (k, l, cls) => ({ n: cnt[k], d: total, l, bar: [cnt[k], denom, cls] });
+  const st = (nm, cls) => ({ n: byName[nm] || 0, d: total, l: nm, bar: [byName[nm] || 0, denom, cls] });
   return ui.band({ kicker: `우체국 ${kindN(c.baseId)} 기준, 담보 ${m.rows.length}줄과 상대 ${peerN}곳`, title: '담보 비교표의 판정', sc: 'base',
-    stats: [st('better', '우체국 나음', 'gold'), st('only', '우체국에만 있음', 'gold'), st('worse', '우체국 못함', ''), st('none', '우체국에 없음', 'other')],
-    note: `판정 칸 ${total}개 가운데 넷을 크게 보였습니다. 나머지(같음, 우열을 매기지 않음, 검토 대기, 둘 다 없음)는 아래 줄에 수를 적었습니다.` });
+    stats: [st('우체국 나음', 'gold'), st('우체국에만 있음', 'gold'), st('우체국 못함', ''), st('우체국에 없음', 'other')],
+    note: `판정 칸 ${total}개 가운데 넷을 크게 보였습니다. 나머지(같음, 우열을 매기지 않음, 검토 대기, 판정 보류, ${BOTH_NONE_TEXT})는 아래 줄에 수를 적었습니다.` });
 }
 
 function compCell(row, k, vid) {
@@ -712,7 +1488,7 @@ function compCell(row, k, vid) {
   if (has(c)) {
     const b = repOf(c);
     const extra = [c.n > 1 ? `같은 담보 급부 ${c.n}개 가운데 대표 급부` : '', c.o ? `대표와 조건이 다른 줄 ${c.o}개` : '', c.w ? `매핑 대기 ${c.w}줄` : ''].filter(Boolean).join(', ');
-    return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${esc(payText(b))}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red))}</span></span></td>`;
+    return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${esc(payText(b))}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red, b))}</span></span></td>`;
   }
   const t = c && c.w ? `검토 대기 ${c.w}줄` : c && c.c ? `없음, ${txt.josa(c.c[0], '으로')} 덮음` : '없음';
   return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-x${c && c.w ? ' wait' : ''}">${esc(t)}</span></td>`;
@@ -742,17 +1518,19 @@ function tableRows(c) {
 }
 function tableHTML(c) {
   const m = model(c.baseId);
-  if (!m) return `<section class="panel"><p class="placeholder">비교 자료 없음: 이 기준 종형의 비교쌍 자료가 tab4 자료에 없습니다.</p></section>`;
+  const B = CV && CV.b[c.baseId];
+  if (!m || !B) return `<section class="panel"><p class="placeholder">비교 자료 없음: 이 기준 종형의 비교쌍 자료가 tab4 자료에 없습니다.</p></section>`;
   const pIdxs = peerIdxOf(m, c);
   const colIdxs = [0].concat(pIdxs.map(i => i + 1));
   const peerN = pIdxs.length;
   const totCells = m.rows.length * peerN;
   const groups = [...new Set(m.rows.map(r => r.major))];
   const t = tableRows(c);
-  const cnt = { better: 0, worse: 0, same: 0, diff: 0, only: 0, none: 0, unknown: 0 };
-  m.rows.forEach(r => pIdxs.forEach(i => { const v = verdFor(r, m, i, pIdxs); if (v) cnt[v.kind]++; }));
+  const { order, byName } = sumVerdictSummary(B, c);
+  const chipNames = order.filter(nm => nm !== BOTH_NONE_TEXT);
+  const sumChipsHTML = chipNames.map(nm => `${ui.verdict(chipKindByName(nm), nm)} <b class="num" data-sum-name="${esc(nm)}">${byName[nm] || 0}</b>`).join(' ');
   const head2 = '<span class="cv-v hd"><span class="pv">지급</span><span class="wv">면책</span><span class="rv">감액</span></span>';
-  return `${tableBand(c, m, cnt, peerN)}<section class="panel tbl-wrap cv-tb" id="cover-table" aria-labelledby="cover-table-h">
+  return `${tableBand(c, m, byName, peerN)}<section class="panel tbl-wrap cv-tb" id="cover-table" aria-labelledby="cover-table-h">
     <div class="panel-h"><div><span class="k">${ui.scope('base')} 표준담보마다 대표 급부끼리, 우체국 기준</span><h2 id="cover-table-h">담보 비교표</h2></div>
       <div class="r"><span class="live">${ui.btn('표 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-table"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-table" data-title="담보 비교표"' })}</span></div></div>
     <div class="cv-tools">
@@ -763,13 +1541,13 @@ function tableHTML(c) {
       <button type="button" class="sw" role="switch" aria-checked="${diffOnly}" data-act="cv-diff"><i></i>다른 것만 보기</button>
       <span class="cv-cnt" aria-live="polite">${t.n === t.total ? `${t.total}줄` : `${t.total}줄 가운데 ${t.n}줄`}</span>
     </div>
-    <div class="cv-sum">판정 칸 ${totCells}개(담보 ${m.rows.length}줄, 상대 ${peerN}곳): ${['better', 'worse', 'same', 'diff', 'only', 'none', 'unknown'].map(k => `${ui.verdict(k, k === 'unknown' ? '검토 대기, 판정 보류' : null)} <b class="num">${cnt[k]}</b>`).join(' ')} <span class="note">나머지 ${totCells - Object.values(cnt).reduce((a, b) => a + b, 0)}칸은 둘 다 없음</span></div>
+    <div class="cv-sum">판정 칸 ${totCells}개(담보 ${m.rows.length}줄, 상대 ${peerN}곳): ${sumChipsHTML} <span class="note">나머지 <b class="num" data-sum-name="${esc(BOTH_NONE_TEXT)}">${byName[BOTH_NONE_TEXT] || 0}</b>칸은 ${esc(BOTH_NONE_TEXT)}</span></div>
     <div class="cv-tw"><table class="tbl cv-t" id="cover-tbl">
       <thead><tr><th scope="col" rowspan="2" class="cv-n">담보</th>${colIdxs.map(k => { const v = m.cols[k]; return `<th scope="col" class="cv-c k${k}" title="${esc(fullN(v))}">${esc(orgN(v))} <span class="sub">${esc(txt.shortName(kindN(v)).short)}</span>${k ? '' : ' ' + ui.tag('기준')}</th>`; }).join('')}
         ${pIdxs.map(i => { const v = m.cols[i + 1]; return `<th scope="col" class="cv-vd" rowspan="2">${esc(txt.josa(orgN(v), '과'))} 견줌<br><span class="sub">우체국 기준</span></th>`; }).join('')}<th rowspan="2" class="cv-ch"><span class="sr">고르기</span></th></tr>
         <tr class="cv-h2">${colIdxs.map(k => `<th scope="col" class="cv-c k${k}">${head2}</th>`).join('')}</tr></thead>
       <tbody>${t.html}</tbody></table></div>
-    <div class="panel-f">대표 급부는 같은 담보의 급부 가운데 주급부, 금액이 큰 줄, 조건이 엄격한 줄 차례로 고릅니다. 줄을 누르면 아래 읽기 띠에 조건 비교, 관계도, 근거 문서와 쪽이 열립니다. 지급액은 기준 가입금액에서의 금액이라 회사끼리 바로 견주지 않습니다.</div>
+    <div class="panel-f">같은 담보를 둘 다 가지면 대표 급부끼리 면책, 감액, 지급 형태로 판정하고, 한쪽에만 있으면 누구에게 없는지 적습니다. 대표 급부는 같은 담보의 급부 가운데 주급부, 금액이 큰 줄, 조건이 엄격한 줄 차례로 고릅니다. 담보 비교는 나이 조건 없이 대표 급부끼리 견준 값이고, 기준 종형을 바꿀 때만 다시 셉니다. 지급액은 기준 가입금액에서의 금액이라 회사끼리 바로 견주지 않습니다.</div>
   </section>`;
 }
 function refreshTable(body, c) {
@@ -815,7 +1593,7 @@ function copyTable() {
     const out = [r.major, stdN(r.sid), r.type];
     colIdxs.forEach(k => {
       const c2 = r.cells[k], b = repOf(c2);
-      if (b) out.push(payText(b), waitText(b.wait), redShort(b.red));
+      if (b) out.push(payText(b), waitText(b.wait), redShort(b.red, b));
       else out.push(c2 && c2.w ? `검토 대기 ${c2.w}줄` : c2 && c2.c ? `없음(${c2.c[0]})` : '없음', '', '');
     });
     pIdxs.forEach(i => out.push(chipText(verdFor(r, m, i, pIdxs))));
@@ -826,10 +1604,9 @@ function copyTable() {
 
 function concl(c) {
   const bRa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '라');
-  if (bRa) return `<p class="concl">${esc(bRa['문장'])}</p>`;
-  const p = c.base['보류요약'];
+  if (c.peerScope === 'all' && bRa) return `<p class="concl">${esc(bRa['문장'])}</p>`;
   const pSet = new Set(c.activePeerOrgs || []);
-  const sp = c.peerScope === 'all' ? { total: p['공통담보쌍'], wait: p['뺀쌍'], cmp: p['견준쌍'] } : (scopedPairs(c.baseId, pSet) || { total: 0, wait: 0, cmp: 0 });
+  const sp = (c.peerScope === 'all' ? scopedPairs(c.baseId, null) : scopedPairs(c.baseId, pSet)) || { total: 0, wait: 0, cmp: 0 };
   const j = journeyData(c).cols[0];
   const cau = scopedCaution(c);
   return `<p class="concl">공통 담보 ${sp.total}쌍 가운데 ${sp.cmp}쌍을 견줬고(검토 대기 ${sp.wait}쌍 뺌), 우체국 ${esc(kindN(c.baseId))}의 담보 ${j['전체']}개는 ${STEPS.map(s => `${s} ${j['합계'][s] || 0}`).join(', ')}입니다. 우열을 단정하지 않은 담보는 ${cau.length}건입니다.</p>`;
@@ -858,6 +1635,17 @@ function renderFullTablesModal(c) {
 }
 
 function conclusion(c) {
+  if (c.peerScope !== 'all') {
+    const pSet = new Set(c.activePeerOrgs || []);
+    const sp = scopedPairs(c.baseId, pSet) || { total: 0, wait: 0, cmp: 0 };
+    const j = journeyData(c).cols[0];
+    const cau = scopedCaution(c);
+    return {
+      text: `공통 담보 ${sp.total}쌍 가운데 ${sp.cmp}쌍을 견줬고(검토 대기 ${sp.wait}쌍 뺌), 우체국 ${kindN(c.baseId)}의 담보 ${j['전체']}개 가운데 우열을 단정하지 않은 담보는 ${cau.length}건입니다.`,
+      flag: '',
+      scoped: true,
+    };
+  }
   const bRa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '라');
   if (bRa) return { text: App.firstSentence(bRa['문장']), flag: '' };
   return { text: '', flag: '' };
@@ -870,11 +1658,142 @@ function actions() {
   ].join('');
 }
 
+function findNearestTick(ovSegEl, clientX) {
+  const ticks = Array.from(ovSegEl.querySelectorAll('.cv-tick[data-cv-tick]'));
+  if (!ticks.length) return null;
+  let best = null, bestDist = Infinity;
+  for (const tk of ticks) {
+    const r = tk.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const d = Math.abs(cx - clientX);
+    if (d < bestDist) { bestDist = d; best = tk; }
+  }
+  return best;
+}
+
+function clearPressedTick() {
+  if (pressedTickEl) {
+    pressedTickEl.classList.remove('is-press');
+    pressedTickEl = null;
+  }
+}
+
+function syncOvPointer(e) {
+  if (App.state.tab !== 'cover' || e.pointerType === 'touch') return;
+  const ov = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (!ov) return;
+  const tk = findNearestTick(ov, e.clientX);
+  if (tk) {
+    if (pressedTickEl && pressedTickEl !== tk) {
+      pressedTickEl.classList.remove('is-press');
+      if (e.buttons & 1) {
+        pressedTickEl = tk;
+        tk.classList.add('is-press');
+      } else {
+        pressedTickEl = null;
+      }
+    }
+    App.aim.set(tk);
+    App.aim.showTip(tk);
+    syncCoverAimHot(tk);
+  }
+}
+
+document.addEventListener('pointerover', syncOvPointer, { passive: true });
+document.addEventListener('pointermove', syncOvPointer, { passive: true });
+
+document.addEventListener('pointerdown', e => {
+  if (App.state.tab !== 'cover' || e.pointerType === 'touch') return;
+  const ov = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (!ov) return;
+  const tk = findNearestTick(ov, e.clientX);
+  if (tk) {
+    clearPressedTick();
+    pressedTickEl = tk;
+    tk.classList.add('is-press');
+    App.aim.set(tk);
+    const ret = document.getElementById('aim-reticle');
+    if (ret && !ret.hidden) ret.classList.add('is-press');
+  }
+}, { passive: true });
+
+document.addEventListener('pointerup', clearPressedTick, { passive: true });
+document.addEventListener('pointercancel', clearPressedTick, { passive: true });
+
+document.addEventListener('pointerout', e => {
+  if (App.state.tab !== 'cover') return;
+  const fromOv = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (fromOv && (!e.relatedTarget || !fromOv.contains(e.relatedTarget))) {
+    clearPressedTick();
+    syncCoverAimHot(null);
+    const nextOv = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-cv-ov]');
+    if (!nextOv) {
+      App.aim.hide();
+      App.aim.hideTip();
+    }
+  }
+});
+
 document.addEventListener('click', e => {
   const mb = e.target.closest && e.target.closest('[data-cv-modal]');
   if (mb) {
     e.stopPropagation();
     App.openModal({ trigger: mb, render: renderFullTablesModal });
+    return;
+  }
+  const flt = e.target.closest && e.target.closest('[data-cv-flt]');
+  if (flt) {
+    e.stopPropagation();
+    const k = flt.dataset.cvFlt;
+    if (activeFilters.has(k)) activeFilters.delete(k);
+    else activeFilters.add(k);
+    if (lastStageHost && App.state.tab === 'cover') renderStage(lastStageHost, App.ctx());
+    return;
+  }
+  const pgBtn = e.target.closest && e.target.closest('[data-cv-page]');
+  if (pgBtn) {
+    e.stopPropagation();
+    if (pgBtn.disabled) return;
+    const c = App.ctx();
+    const curStep = curStepByBase[c.baseId] || STEPS[0];
+    switchCoverStep(curStep, { page: +pgBtn.dataset.cvPage, animate: true });
+    return;
+  }
+  // 구간 이름표 줄(.cv-ov-sh)을 누르면 고른 담보를 바꾼 채로 덮어쓰지 않고 해당 단계만 펼친다(2-3)
+  const inSegHead = e.target.closest && e.target.closest('.cv-ov-sh');
+  const stBtn = e.target.closest && e.target.closest('[data-cv-step]');
+  if (inSegHead && stBtn) {
+    e.stopPropagation();
+    const nextStep = stBtn.dataset.cvStep;
+    const c = App.ctx();
+    if (curStepByBase[c.baseId] !== nextStep) {
+      switchCoverStep(nextStep, { page: 0, animate: true });
+    }
+    return;
+  }
+  // 눈금 줄을 누르면 가장 가까운 눈금의 단계를 펼치고 그 담보를 바로 고른다(4-1)
+  const ovTrack = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (ovTrack) {
+    e.stopPropagation();
+    const tk = findNearestTick(ovTrack, e.clientX);
+    if (tk && tk.dataset.cvTick) {
+      const sid = tk.dataset.cvTick;
+      const stNm = tk.dataset.cvStepOf;
+      const c = App.ctx();
+      lastSyncedSelKey = `${c.baseId}|s:${sid}`;
+      if (stNm) switchCoverStep(stNm, { page: 0, animate: true });
+      ensureSidInView(sid, c);
+      App.select('s:' + sid, { focus: false });
+      return;
+    }
+  }
+  if (stBtn) {
+    e.stopPropagation();
+    const nextStep = stBtn.dataset.cvStep;
+    const c = App.ctx();
+    if (curStepByBase[c.baseId] !== nextStep) {
+      switchCoverStep(nextStep, { page: 0, animate: true });
+    }
     return;
   }
   const a = e.target.closest && e.target.closest('[data-act]');
@@ -891,14 +1810,91 @@ document.addEventListener('click', e => {
       const sid = a.dataset.sid;
       App.closeModal(false);
       if (App.state.tab !== 'cover') App.go('cover');
-      setTimeout(() => { App.select('s:' + sid, { focus: true }); }, 30);
+      setTimeout(() => {
+        ensureSidInView(sid, App.ctx());
+        App.select('s:' + sid, { focus: true });
+      }, 30);
     }
   }
 });
 
+document.addEventListener('keydown', e => {
+  if (App.state.tab !== 'cover') return;
+  const slot = e.target.closest && e.target.closest('#cv-zoom-box .cvp-slot[data-sid]');
+  if (!slot || !['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+  const zoomBox = document.getElementById('cv-zoom-box');
+  if (!zoomBox) return;
+  const slots = Array.from(zoomBox.querySelectorAll('.cvp-slot[data-sid]'));
+  const idx = slots.indexOf(slot);
+  if (idx < 0) return;
+  e.preventDefault();
+  if (e.key === 'Home') {
+    slots.forEach((s, k) => { s.tabIndex = k === 0 ? 0 : -1; });
+    slots[0].focus();
+    return;
+  }
+  if (e.key === 'End') {
+    const last = slots.length - 1;
+    slots.forEach((s, k) => { s.tabIndex = k === last ? 0 : -1; });
+    slots[last].focus();
+    return;
+  }
+  const dir = e.key === 'ArrowRight' ? 1 : -1;
+  const nextIdx = idx + dir;
+  if (nextIdx >= 0 && nextIdx < slots.length) {
+    slots.forEach((s, k) => { s.tabIndex = k === nextIdx ? 0 : -1; });
+    slots[nextIdx].focus();
+    return;
+  }
+  // 단계 안의 쪽 끝이나 단계 끝에 닿으면 다음/앞 쪽 또는 옆 단계로 이동
+  const c = App.ctx();
+  const m = model(c.baseId);
+  if (!m) return;
+  const curStep = curStepByBase[c.baseId] || STEPS[0];
+  const stageEl = document.getElementById('cv-pillar-stage');
+  const stRows = m.rows.filter(r => r.type === curStep);
+  const lay = measureZoomLayout(stageEl, stRows, domainOrderOf(c));
+  const curPage = curPageByStep[c.baseId + '|' + curStep] || 0;
+  if (dir > 0 && curPage < lay.pages.length - 1) {
+    switchCoverStep(curStep, { page: curPage + 1, animate: true, focusEdge: 'first' });
+    return;
+  }
+  if (dir < 0 && curPage > 0) {
+    switchCoverStep(curStep, { page: curPage - 1, animate: true, focusEdge: 'last' });
+    return;
+  }
+  const nonEmptySteps = STEPS.filter(stNm => m.rows.some(r => r.type === stNm));
+  const sPos = nonEmptySteps.indexOf(curStep);
+  if (sPos < 0 || nonEmptySteps.length < 2) return;
+  const nextStep = nonEmptySteps[(sPos + dir + nonEmptySteps.length) % nonEmptySteps.length];
+  let targetPage = 0;
+  if (dir < 0) {
+    const prevRows = m.rows.filter(r => r.type === nextStep);
+    const prevLay = measureZoomLayout(stageEl, prevRows, domainOrderOf(c));
+    targetPage = Math.max(0, prevLay.pages.length - 1);
+  }
+  switchCoverStep(nextStep, { page: targetPage, animate: true, focusEdge: dir > 0 ? 'first' : 'last' });
+});
+
 function pick(key, c) {
-  if (key.startsWith('s:')) return rowEvidence(c, key.slice(2), 'row');
-  if (key.startsWith('c:')) return rowEvidence(c, key.slice(2), 'caution');
+  if (key.startsWith('s:')) {
+    const sid = key.slice(2);
+    const sig = `${c.baseId}|${key}`;
+    if (sig !== lastSyncedSelKey) {
+      lastSyncedSelKey = sig;
+      ensureSidInView(sid, c);
+    }
+    return rowEvidence(c, sid, 'row');
+  }
+  if (key.startsWith('c:')) {
+    const sid = key.slice(2);
+    const sig = `${c.baseId}|${key}`;
+    if (sig !== lastSyncedSelKey) {
+      lastSyncedSelKey = sig;
+      ensureSidInView(sid, c);
+    }
+    return rowEvidence(c, sid, 'caution');
+  }
   if (key.startsWith('j:')) return journeyPick(c, key);
   return null;
 }
@@ -917,22 +1913,58 @@ function focus(key) {
         return spec;
       },
     });
+    return;
+  }
+  if (key && key.startsWith('s:')) {
+    ensureSidInView(key.slice(2), App.ctx());
+    App.select(key, { focus: true });
+  } else if (key && model(App.state.base) && model(App.state.base).byId[key]) {
+    ensureSidInView(key, App.ctx());
+    App.select('s:' + key, { focus: true });
   }
 }
 
 function enter(body) {
-  const ax = body && body.querySelector('#cv-pillar-axis');
-  if (!ax || !App.motionOn()) return;
-  ax.classList.remove('cvp-anim'); void ax.offsetWidth; ax.classList.add('cvp-anim');
-  clearTimeout(ax._t); ax._t = setTimeout(() => ax.classList.remove('cvp-anim'), 500);
+  const stageEl = body && body.querySelector('#cv-pillar-stage');
+  if (!stageEl) return;
+  positionOvBracket(stageEl, false);
+  if (!App.motionOn()) return;
+  stageEl.classList.remove('cvp-anim');
+  void stageEl.offsetWidth;
+  stageEl.classList.add('cvp-anim');
+  clearTimeout(stageEl._t);
+  stageEl._t = setTimeout(() => stageEl.classList.remove('cvp-anim'), 700);
 }
+
+App.on('aim', aimEl => { if (App.state.tab === 'cover') syncCoverAimHot(aimEl); });
+App.on('select', tab => {
+  if (tab !== 'cover') return;
+  const curSel = App.state.sel.cover || '';
+  if (!curSel) lastSyncedSelKey = `${App.state.base}|`;
+  const stageEl = document.getElementById('cv-pillar-stage');
+  syncCoverSelectionAndFilter(stageEl);
+});
+App.on('resize', () => {
+  cachedHostW = 0;
+  if (App.state.tab !== 'cover' || !lastStageHost) return;
+  renderStage(lastStageHost, App.ctx());
+});
 
 // 탭 5 와 core.js, tab1.js 가 쓰는 것
 App.cover = {
   rawB: baseId => (CV && CV.b ? CV.b[baseId] || null : null),
-  model, scopedPairs, verdictOf: (baseId, sid) => { const m = model(baseId); const r = m && m.byId[sid]; return r ? r.verd : null; },
-  rel: drawRel, relLegend, chipText, hasRow: (baseId, sid) => { const m = model(baseId); return !!(m && m.byId[sid]); },
+  rawMeta: () => ({ table: (CV && CV['판정표']) || {}, order: (CV && CV['판정차례']) || [] }),
+  model, scopedPairs, chip, chipText, verdFor,
+  verdictOf: (baseId, sid) => { const m = model(baseId); const r = m && m.byId[sid]; return r ? r.verd : null; },
+  peerVerdicts: (baseId, sid, c) => {
+    const m = model(baseId); const r = m && m.byId[sid];
+    if (!m || !r) return null;
+    const pIdxs = peerIdxOf(m, c || App.ctx());
+    return pIdxs.map(i => ({ peer: m.cols[i + 1], v: verdFor(r, m, i, pIdxs) }));
+  },
+  rel: drawRel, relLegend, hasRow: (baseId, sid) => { const m = model(baseId); return !!(m && m.byId[sid]); },
   peerCols: baseId => { const m = model(baseId); return m ? m.cols : []; },
+  switchStep: switchCoverStep,
 };
 
 App.registerTab({ id: 'cover', layout: 'band', kicker: '좁혀 확인한다, 담보', renderStage, conclusion, pick, actions, copySummary: copyTable, focus, enter });

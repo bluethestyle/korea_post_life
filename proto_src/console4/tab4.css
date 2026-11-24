@@ -1,82 +1,148 @@
-/* 탭 4 담보 비교 전용: 전폭 가로 기준축(66% 지점) + 치료 단계 5구간 + 담보별 판정 적층 기둥 + 아래 읽기 띠.
+/* 탭 4 담보 비교 전용: 위 전체 띠(79개 눈금 + 거르개 셋 + 미끄러지는 2px 단계 꺾쇠) + 아래 확대 구역(보장 분야 묶음, 45도 담보 이름) + 읽기 띠.
    [표로 보기] 전체 모달에서는 치료 여정 격자(통원과 합계 열 포함)와 담보 비교표(상대 회사 지급, 면책, 감액 열 포함)가 잘림 없이 열린다. */
 
-.cvp-stage{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:368px;padding-top:10px}
-.cvp-hover-bar{position:relative;min-height:26px;margin-bottom:4px;overflow:hidden;pointer-events:none}
-.cvp-hlbl{display:inline-flex;align-items:baseline;gap:8px;font:400 13.5px/1.3 var(--f-body);color:var(--ink-0);white-space:nowrap}
-.cvp-hlbl b{font:600 14.5px/1.3 var(--f-ko);color:var(--ink-0)}
-.cvp-hlbl span{color:var(--ink-1);font-size:13px}
+.cvp-stage{position:relative;display:flex;flex-direction:column;gap:12px;padding-top:4px}
 
-/* 전폭 가로 기준축(2px 선): 치료 단계 다섯 구간이 28px 여백과 1px 세로 눈금선으로 나뉜다 */
-.cvp-axis{position:relative;display:flex;align-items:stretch;justify-content:space-between;width:100%;
-  border-bottom:2px solid var(--axis)}
-.cvp-seg{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;
-  min-width:0;padding:4px 14px 0}
-.cvp-seg:first-child{padding-left:0}
-.cvp-seg:last-child{padding-right:0}
-.cvp-seg + .cvp-seg{border-left:1px solid var(--line-2)}
-.cvp-seg + .cvp-seg::after{content:"";position:absolute;left:-1px;bottom:-5px;width:1px;height:10px;background:var(--axis)}
+/* ---------- 1. 위쪽 전체 띠(.cv-ov-top) ---------- */
+.cv-ov-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px;
+  padding-bottom:8px;border-bottom:1px solid var(--line)}
+.cv-ov-strip{position:relative;padding-bottom:6px;max-width:100%}
+.cv-ov-segs{display:inline-flex;align-items:flex-end;gap:16px;max-width:100%}
+.cv-ov-seg{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:28px;
+  padding:2px 0 4px;border:0;border-bottom:1px solid var(--line-2);background:transparent;color:var(--ink-0);text-align:left}
+.cv-ov-seg:hover{background:var(--hover)}
+.cv-ov-sh{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.cv-ov-ring{width:20px;height:20px;flex:none;display:block}
+.cv-ov-ring svg{width:100%;height:100%;display:block}
+.cv-ov-nm{font:700 13.5px/1.15 var(--f-ko);color:var(--ink-1)}
+.cv-ov-seg.is-on .cv-ov-nm{color:var(--ink-0)}
+.cv-ov-cnt{font:600 13px/1.15 var(--f-num);color:var(--ink-2)}
+.cv-ov-seg.is-on .cv-ov-cnt{color:var(--ink-0)}
 
-.cvp-sh{display:inline-flex;align-items:center;gap:7px;margin-bottom:16px}
-.cvp-ring{width:28px;height:28px;flex:none;display:block}
-.cvp-ring svg{width:100%;height:100%;display:block}
-.cvp-snm{font:600 15px/1.2 var(--f-ko);color:var(--ink-0);white-space:nowrap}
-.cvp-scnt{font:600 13.5px/1 var(--f-num);color:var(--ink-1);white-space:nowrap}
+.cv-ov-ticks{display:inline-flex;align-items:flex-end;gap:3px;height:30px;padding-top:2px}
+.cv-tick{position:relative;display:flex;align-items:flex-end;height:var(--th,14px);flex:none;
+  transition:opacity 180ms var(--ease-in),transform 120ms var(--ease-in)}
+.cv-tick .cvp-svg{width:100%;height:100%;display:block;overflow:visible}
+.cv-tick:is(.is-hot,.is-aim){transform:translateY(-2px)}
+.cv-tick:is(.is-hot,.is-aim) :is(.cvs-box,.cvs-dia){box-shadow:inset 0 0 0 1px var(--ink-0)}
+.cv-tick.is-press{transform:translateY(1px)!important;transition-duration:80ms!important}
+.cv-tick .cv-tk-sel{display:none;position:absolute;left:50%;top:-6px;width:5px;height:5px;margin-left:-2.5px;background:var(--red);transform:rotate(45deg)}
+.cv-tick.is-sel .cv-tk-sel{display:block}
+.cv-tick.is-sel::after{content:"";position:absolute;left:-1px;right:-1px;bottom:-3px;height:2px;background:var(--red)}
+.cv-tick.is-filtered-out{opacity:.18!important}
 
-/* 1920x1080 기준: 기둥 폭 14px, 사이 8px, 최대 높이 200px, 최소 12px */
-.cvp-row{display:flex;align-items:flex-end;gap:8px;min-height:224px}
-.cvp-btn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-  width:14px;min-height:224px;padding:0;border:0;background:transparent;color:var(--ink-0)}
-.cvp-stem{position:relative;width:1px;height:14px;margin-bottom:4px;background:transparent;transition:height 140ms var(--ease),background 140ms var(--ease)}
-.cvp-dia{position:absolute;left:-3px;top:-7px;width:7px;height:7px;border:1px solid transparent;background:transparent;transform:rotate(45deg)}
-.cvp-flg{position:absolute;top:0;left:50%;width:5px;height:5px;margin-left:-2.5px;background:var(--red);clip-path:polygon(50% 0,100% 100%,0 100%)}
-.cvp-bar{display:flex;align-items:flex-end;width:14px;height:var(--ph,14px)}
-.cvp-svg{width:100%;height:100%;display:block;overflow:visible}
-.cvp-svg.is-dia{height:16px}
+/* 고른 단계 구간을 감싸며 미끄러지는 2px 먹색 꺾쇠(양 끝 7px + 아랫변 2px) */
+.cv-ov-brk{position:absolute;left:0;bottom:0;height:8px;pointer-events:none;z-index:2;transform-origin:left bottom}
+.cv-ov-brk[hidden]{display:none!important}
+.cv-ov-brk .b-l,.cv-ov-brk .b-r{position:absolute;left:0;bottom:0;width:2px;height:7px;background:var(--axis)}
+.cv-ov-brk .b-b{position:absolute;left:0;bottom:0;width:100px;height:2px;background:var(--axis);transform-origin:left center}
 
-.cvp-btn:hover .cvp-stem,.cvp-btn:focus-visible .cvp-stem{height:20px;background:var(--ink-0)}
-.cvp-btn:hover .cvp-dia,.cvp-btn:focus-visible .cvp-dia{border-color:var(--ink-0);background:var(--ink-0)}
-.cvp-btn.is-sel .cvp-stem{height:24px;background:var(--red)}
-.cvp-btn.is-sel .cvp-dia{border-color:var(--red);background:var(--red)}
-.cvp-btn.is-sel .cvp-bar{outline:2px solid var(--red);outline-offset:1px}
+/* 오른쪽 위 거르개 단추 셋 + 남은 담보 수 */
+.cv-flt-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cv-flt-btn{height:28px;padding:0 10px;border:1px solid var(--line-2);background:transparent;color:var(--ink-1);
+  font:600 13px/1 var(--f-ko);white-space:nowrap}
+.cv-flt-btn:hover{background:var(--hover);color:var(--ink-0)}
+.cv-flt-btn.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent;box-shadow:inset 0 2px 0 var(--top-line)}
+.cv-flt-stat{font:400 13px/1.2 var(--f-body);color:var(--ink-1);margin-left:4px;white-space:nowrap}
+.cv-flt-stat b{font-weight:700;color:var(--ink-0)}
 
-.cvp-anim .cvp-bar{transform-origin:bottom center;animation:cvBarGrow 280ms var(--ease) both}
-@keyframes cvBarGrow{from{transform:scaleY(.15);opacity:.4}to{transform:none;opacity:1}}
+/* ---------- 2. 아래쪽 확대 구역(.cv-zoom-box) ---------- */
+.cv-zoom-box{display:flex;flex-direction:column;gap:4px;width:100%}
+.cv-zoom-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;min-height:28px}
+.cv-zh-l{display:inline-flex;align-items:baseline;gap:10px}
+.cv-zh-step{font:600 15px/1.2 var(--f-ko);color:var(--ink-0)}
+.cv-zh-sub{font:600 13px/1.2 var(--f-body);color:var(--ink-1)}
+.cv-pager{display:inline-flex;align-items:center;gap:6px}
+.cv-page-ind{font:600 13px/1 var(--f-num);color:var(--ink-1);min-width:32px;text-align:center}
 
-/* 1600px, 1280px, 380px 해상도별 기둥 폭과 간격(도형 영역 안쪽 가로 스크롤 0) */
-@media (max-width:1799px) and (min-width:1440px){
-  .cvp-seg{padding:4px 11px 0}
-  .cvp-row{gap:6px;min-height:204px}
-  .cvp-btn{width:12px;min-height:204px}
-  .cvp-bar{width:12px}
-}
-@media (max-width:1439px) and (min-width:1000px){
-  /* 1280px 기준: 기둥 폭 9px, 사이 5px */
-  .cvp-stage{min-height:310px}
-  .cvp-seg{padding:4px 9px 0}
-  .cvp-sh{gap:5px;margin-bottom:10px}
-  .cvp-ring{width:24px;height:24px}
-  .cvp-snm{font-size:14px}
-  .cvp-row{gap:5px;min-height:186px}
-  .cvp-btn{width:9px;min-height:186px}
-  .cvp-bar{width:9px;max-height:164px}
+.cv-plot-wrap{position:relative;width:100%;padding-left:var(--ruler-w,30px);padding-right:var(--rpad,104px);padding-bottom:6px;overflow:visible}
+.cv-ruler{bottom:auto}
+.cv-stage-axis{position:absolute;left:0;right:0;height:2px;background:var(--axis);pointer-events:none;z-index:2}
+
+.cv-dom-row{position:relative;display:flex;align-items:flex-start;justify-content:flex-start;width:100%}
+.cv-dom-grp{display:flex;flex-direction:column;align-items:stretch;flex:none;min-width:0}
+.cv-dom-slots{display:flex;align-items:flex-start;justify-content:center}
+.cv-sink-ghost{position:absolute;left:0;right:0;top:0;height:var(--plot-h,196px);pointer-events:none;z-index:1;transform-origin:center bottom;backface-visibility:hidden}
+.cv-ghost-bar{position:absolute;bottom:0;display:flex;align-items:flex-end}
+
+/* 기둥 한 칸(.cvp-slot): 폭 전체(32~64px, 최소 32px >= 24px)가 가리키고 문지르는 자리 */
+.cvp-slot{position:relative;display:flex;flex-direction:column;align-items:center;padding:0;border:0;background:transparent;
+  color:var(--ink-0);flex:none;transition:opacity 180ms var(--ease-in),transform 100ms var(--ease-in)}
+.cvp-slot.is-filtered-out{opacity:.18!important}
+.cvp-upper{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.cvp-stem{position:relative;width:1px;height:20px;margin-bottom:4px;background:transparent;
+  transform-origin:bottom center;transform:scaleY(.55);
+  transition:transform 120ms var(--ease-in)}
+.cvp-dia{position:absolute;left:-3px;top:-7px;width:7px;height:7px;border:1px solid transparent;background:transparent;transform:rotate(45deg);
+  transition:transform 120ms var(--ease-in)}
+.cvp-flg{position:absolute;top:2px;left:50%;width:6px;height:6px;margin-left:-3px;background:var(--red);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.cvp-bar{position:relative;display:flex;align-items:flex-end;width:var(--bw,20px);height:var(--ph,14px);transform-origin:center bottom;backface-visibility:hidden}
+.cvs-box{display:flex;flex-direction:column;width:100%;height:100%}
+.cvs-box.is-empty{border:1px dashed var(--ink-2)}
+.cvs-box.is-miss{border:1px dashed var(--ink-2);background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
+.cvs-box.is-stack{border:1px solid var(--ink-0);overflow:hidden}
+.cvs-box.is-stack.no-ours{border-style:dashed;border-color:var(--ink-2)}
+.cvs-seg{display:block;width:100%;flex:none}
+.cvs-seg + .cvs-seg{border-top:1px solid var(--ink-0)}
+.cvs-seg.s-gold{background:var(--gold);border-color:var(--gold-line);position:relative}
+.cvs-seg.s-gold.has-cap::after{content:"";position:absolute;left:1px;right:1px;top:2px;height:1.2px;background:var(--gold-edge)}
+.cvs-seg.s-neutral{background:var(--neutral-pil)}
+.cvs-seg.s-worse{background:var(--worse)}
+.cvs-seg.s-hatch{background:repeating-linear-gradient(135deg,var(--hatch) 0 1.2px,transparent 1.2px 4.5px)}
+.cvs-seg.s-miss{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
+.cvs-dia-w{display:grid;place-items:center;width:100%;height:100%}
+.cvs-dia{display:block;background:var(--gold);border:1.2px solid var(--gold-line);transform:rotate(45deg)}
+.cvp-foot-tk{display:block;width:1px;height:5px;background:var(--axis);margin-top:0;flex:none}
+
+/* 기준축 아래 45도 기울인 담보 이름(13px, 120px 영역 안, 14자 이하는 잘리지 않고 14자 초과 시 말줄임 + 가리킬 때 전체) */
+.cvp-lbl-box{position:relative;width:100%;height:var(--lbl-h,124px);pointer-events:none;overflow:visible}
+.cvp-lbl{position:absolute;left:50%;top:4px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:600 13px/1.15 var(--f-ko);color:var(--ink-2);transform-origin:0 0;transform:rotate(45deg)}
+
+/* 보장 분야 묶음 꺾쇠 선 + 13px 이름 */
+.cv-dom-brk{position:relative;display:flex;align-items:center;justify-content:center;min-height:22px;margin-top:2px;
+  border-top:1.5px solid var(--ink-1);padding-top:3px}
+.cv-dom-brk .db-l,.cv-dom-brk .db-r{position:absolute;top:-5px;width:1.5px;height:5px;background:var(--ink-1)}
+.cv-dom-brk .db-l{left:0}
+.cv-dom-brk .db-r{right:0}
+.cv-dom-brk .db-nm{font:600 13px/1.2 var(--f-ko);color:var(--ink-0);white-space:nowrap;padding:0 2px}
+
+/* 가리킴 / 고름 반응(레이아웃 변경 없이 box-shadow 와 transform 만으로 윤곽 두께와 꼭지선 성장) */
+.cvp-slot:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim,.is-hot) .cvp-stem{transform:scaleY(.92);background:var(--ink-0)}
+.cvp-slot:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim,.is-hot) .cvp-dia{border-color:var(--ink-0);background:var(--ink-0)}
+.cvp-slot:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim,.is-hot) .cvs-box,
+.cvp-slot:not([data-nodata="1"]):is(:hover,:focus-visible,.is-aim,.is-hot) .cvs-dia{box-shadow:inset 0 0 0 1px var(--ink-0)}
+.cvp-slot:is(:hover,:focus-visible,.is-aim,.is-hot) .cvp-lbl{color:var(--ink-0)}
+
+.cvp-slot.is-sel .cvp-stem{transform:scaleY(1);background:var(--red)}
+.cvp-slot.is-sel .cvp-dia{border-color:var(--red);background:var(--red)}
+.cvp-slot.is-sel .cvp-bar{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff}
+.cvp-slot.is-sel .cvp-lbl{color:var(--red-ink)}
+
+.cvp-anim .cvp-bar{animation:cvBarGrow 340ms var(--ease-in) both;animation-delay:var(--pd,0ms)}
+:root[data-motion="calm"] .cvp-anim .cvp-bar{animation-duration:190ms}
+@keyframes cvBarGrow{from{transform:scaleY(.08);opacity:.25}to{transform:none;opacity:1}}
+
+/* 해상도별 전체 띠 눈금 간격(1600+: 6px/3px, 1280~1599: 4px/2px, <700: 3px/1px) */
+@media (max-width:1599px) and (min-width:1000px){
+  .cv-ov-ticks{gap:2px}
 }
 @media (max-width:999px){
-  /* 380px: 다섯 치료 단계를 세로로 쌓고 단계마다 가로 기준축을 두어 가로 넘침과 안쪽 스크롤이 모두 0 */
-  .cvp-stage{min-height:0;padding-top:2px}
-  .cvp-hover-bar{display:none}
-  .cvp-axis{flex-direction:column;border-bottom:0;gap:14px}
-  .cvp-seg{padding:4px 0 0;border-left:0!important;border-bottom:2px solid var(--axis);width:100%}
-  .cvp-seg + .cvp-seg::after{display:none}
-  .cvp-sh{margin-bottom:6px}
-  .cvp-row{gap:4px;min-height:112px;width:100%}
-  .cvp-btn{width:11px;min-height:112px}
-  .cvp-bar{width:11px;max-height:94px}
+  .cv-ov-top{flex-direction:column;align-items:stretch;gap:8px}
+  .cv-ov-segs{display:flex;gap:5px;justify-content:space-between;width:100%}
+  .cv-ov-seg{flex:var(--seg-n,4) 1 0;min-width:28px;padding:2px 0 4px}
+  .cv-ov-ring{display:none}
+  .cv-ov-sh{flex-direction:column;align-items:flex-start;gap:1px}
+  .cv-ov-nm{font-size:13px}
+  .cv-ov-cnt{font-size:13px}
+  .cv-ov-ticks{gap:1px;height:24px;max-width:100%}
+  .cvp-lbl{max-width:96px}
 }
 
 /* ---------- [표로 보기] 전체 모달 안의 치료 여정 격자, 단정 주의, 보류 요약, 담보 비교표 ---------- */
+.cv-modal-root,.cv-modal-root .dm-sec,.cv-modal-root .panel,.gt-modal-root,.gt-modal-root .dm-sec,.gt-modal-root .panel{min-width:0;max-width:100%}
 .cv-modal-root .cv-ref{margin:0 0 14px;padding:8px 14px;font:400 14px/1.6 var(--f-body);color:var(--ink-0);background:var(--panel-lo);box-shadow:inset 3px 0 0 var(--ink-1)}
-:is(.cv-modal-root,#print-root) .cvj-w{overflow-x:auto;padding:2px 18px 16px}
+:is(.cv-modal-root,#print-root) .cvj-w{position:relative;overflow-x:auto;padding:2px 18px 16px}
 :is(.cv-modal-root,#print-root) .cvj{display:grid;grid-template-columns:minmax(156px,1.1fr) repeat(5,minmax(108px,1fr)) minmax(112px,1fr);gap:4px;min-width:860px}
 :is(.cv-modal-root,#print-root) .cvj-h{padding:6px 10px 4px;font:600 13px/1.3 var(--f-ko);color:var(--ink-2);white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cvj-h.cvj-t{color:var(--ink-1)}
@@ -97,6 +163,7 @@
 :is(.cv-modal-root,#print-root) .cvj-b .hbar{min-width:0}
 :is(.cv-modal-root,#print-root) .cvj-b b{font:600 13px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);text-align:right}
 :is(.cv-modal-root,#print-root) .hbar > i.hollow{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+:is(.cv-modal-root,#print-root) .hbar > i.dashed{background:transparent;border:1.5px dashed var(--ink-1);box-sizing:border-box}
 :is(.cv-modal-root,#print-root) .cvj-ch{position:absolute;right:8px;top:50%;width:8px;height:14px;margin-top:-7px;color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cvj-all{gap:4px}
 :is(.cv-modal-root,#print-root) .cvj-all .cvj-b{grid-template-columns:minmax(0,1fr) 30px}
@@ -107,6 +174,7 @@
 :is(.cv-modal-root,#print-root) .cvj-lg .lg0{background:var(--ink-0)}
 :is(.cv-modal-root,#print-root) .cvj-lg .lg1{background:var(--ink-2)}
 :is(.cv-modal-root,#print-root) .cvj-lg .lg2{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cvj-lg .lg3{border:1.5px dashed var(--ink-1);box-sizing:border-box}
 :is(.cv-modal-root,#print-root) .cvj-lg .lgz{height:12px;width:14px;background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 4px);outline:1px solid var(--line-2)}
 
 :is(.cv-modal-root,#print-root) .cv-mid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--gap);align-items:start}
@@ -120,7 +188,7 @@
 :is(.cv-modal-root,#print-root) .cv-ctx{margin:0;padding:2px 36px 10px 0;font:400 14px/1.6 var(--f-body);color:var(--ink-0);word-break:keep-all}
 :is(.cv-modal-root,#print-root) .cv-pd-eq{padding:0 20px 10px}
 :is(.cv-modal-root,#print-root) .cv-pd-eq .nadd{margin-top:6px}
-:is(.cv-modal-root,#print-root) .cv-pd-t{padding:0 12px 4px;overflow-x:auto}
+:is(.cv-modal-root,#print-root) .cv-pd-t{position:relative;padding:0 12px 4px;overflow-x:auto}
 :is(.cv-modal-root,#print-root) .cv-pd-t .nw{white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-pd-eq .cqs{margin-top:8px;gap:3px}
 :is(.cv-modal-root,#print-root) .cv-pd-eq .cq{width:14px;height:14px}
@@ -135,20 +203,23 @@
 :is(.cv-modal-root,#print-root) .cv-cnt{margin-left:auto;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cv-sum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 20px 12px;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cv-sum b{font:600 14px/1 var(--f-num);color:var(--ink-0);margin-right:8px}
-:is(.cv-modal-root,#print-root) .cv-tw{overflow-x:auto;padding:0 12px 6px}
-:is(.cv-modal-root,#print-root) .cv-t{min-width:1000px}
+:is(.cv-modal-root,#print-root) .cv-tw{position:relative;overflow-x:auto;padding:0 12px 6px}
+:is(.cv-modal-root,#print-root) .cv-t{width:max-content;min-width:100%}
 :is(.cv-modal-root,#print-root) .cv-t th,:is(.cv-modal-root,#print-root) .cv-t td{padding:8px 9px;vertical-align:middle}
 :is(.cv-modal-root,#print-root) .cv-t thead th{white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-t thead .sub{font:400 13px/1.2 var(--f-body);color:var(--ink-2)}
 :is(.cv-modal-root,#print-root) .cv-t .cv-h2 th{padding-top:0}
 :is(.cv-modal-root,#print-root) .cv-t th.cv-n,:is(.cv-modal-root,#print-root) .cv-t td.cv-n{min-width:168px}
+:is(.cv-modal-root,#print-root) .cv-t th.cv-c,:is(.cv-modal-root,#print-root) .cv-t td.cv-c{min-width:196px}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n{position:relative}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n .nm{font:600 14px/1.35 var(--f-ko);color:var(--ink-0)}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n .sub{margin-left:6px;font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-n .flag{left:-8px;top:0}
-:is(.cv-modal-root,#print-root) .cv-v .pv,:is(.cv-modal-root,#print-root) .cv-v .wv{white-space:nowrap}
+:is(.cv-modal-root,#print-root) .cv-v > span{min-width:0}
+:is(.cv-modal-root,#print-root) .cv-v .pv{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;line-height:1.3}
+:is(.cv-modal-root,#print-root) .cv-v .wv{white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-v .rv{word-break:keep-all;line-height:1.35}
-:is(.cv-modal-root,#print-root) .cv-v{display:grid;grid-template-columns:minmax(64px,max-content) 40px minmax(56px,1fr);align-items:center;gap:4px 10px;font:400 13.5px/1.3 var(--f-body)}
+:is(.cv-modal-root,#print-root) .cv-v{display:grid;grid-template-columns:minmax(84px,1.15fr) minmax(38px,max-content) minmax(56px,1fr);align-items:center;gap:4px 10px;font:400 13.5px/1.3 var(--f-body)}
 :is(.cv-modal-root,#print-root) .cv-v .pv{text-align:right;font-weight:600}
 :is(.cv-modal-root,#print-root) .cv-v .wv{text-align:right}
 :is(.cv-modal-root,#print-root) .cv-v .rv{text-align:left}
@@ -158,7 +229,7 @@
   background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px)}
 :is(.cv-modal-root,#print-root) .cv-x.wait{background:transparent;border-color:var(--unknown-edge);color:var(--unknown-ink)}
 :is(.cv-modal-root,#print-root) .cv-t td.cv-vd{min-width:136px}
-:is(.cv-modal-root,#print-root) .cv-t .cv-ch{width:24px;padding-left:0;color:var(--ink-1)}
+:is(.cv-modal-root,#print-root) .cv-t .cv-ch{position:relative;width:24px;padding-left:0;color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cv-both{font:400 13px/1 var(--f-body);color:var(--ink-2);white-space:nowrap}
 :is(.cv-modal-root,#print-root) .cv-t tr.cv-gh th{padding:8px 14px;font:600 14px/1.3 var(--f-ko);color:#fff;border-bottom:0;background:var(--slate)}
 :is(.cv-modal-root,#print-root) .cv-t tr.cv-gh .num{font:600 15px/1 var(--f-num);color:#fff}
@@ -169,7 +240,16 @@
 :is(#z-right,.ev) .cv-jd .vd{margin-left:6px}
 :is(#z-right,.ev) .cv-ct-w{overflow-x:auto}
 :is(#z-right,.ev) .cv-ct,:is(#z-right,.ev) .cv-it,:is(#z-right,.ev) .cv-jt{width:100%;border-collapse:collapse;font:400 13px/1.45 var(--f-body);color:var(--ink-0)}
-:is(#z-right,.ev) .cv-ct th,:is(#z-right,.ev) .cv-ct td,:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td,:is(#z-right,.ev) .cv-jt th,:is(#z-right,.ev) .cv-jt td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+:is(#z-right,.ev) .cv-ct th,:is(#z-right,.ev) .cv-ct td,:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td,:is(#z-right,.ev) .cv-jt th,:is(#z-right,.ev) .cv-jt td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;word-break:keep-all}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob){min-width:max-content}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) th,:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) td{min-width:78px}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) tr:first-child th{white-space:nowrap}
+:is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) td.sm{min-width:88px;white-space:nowrap}
+:is(#z-right,.ev) .cv-ct.cv-ct-mob th{min-width:82px;white-space:nowrap}
+:is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td{min-width:56px}
+@media (max-width:560px){
+  :is(#z-right,.ev) .cv-ct.cv-ct-fold tr{display:flex;flex-direction:column}
+}
 :is(#z-right,.ev) .cv-ct thead th,:is(#z-right,.ev) .cv-ct tr:first-child th,:is(#z-right,.ev) .cv-it tr:first-child th,:is(#z-right,.ev) .cv-jt tr:first-child th{font:600 13px/1.3 var(--f-ko);color:var(--ink-2);border-bottom-color:var(--line-2)}
 :is(#z-right,.ev) .cv-ct th[scope="row"],:is(#z-right,.ev) .cv-it th[scope="row"]{font:600 13px/1.45 var(--f-ko);color:var(--ink-1);white-space:nowrap}
 :is(#z-right,.ev) .cv-ct td.sm{color:var(--ink-1)}
@@ -188,6 +268,14 @@
 :is(#z-right,.ev) .cv-evl li:first-child,:is(#z-right,.ev) .cv-pts li:first-child{border-top:0;padding-top:0}
 :is(#z-right,.ev) .cv-pts li p{margin:5px 0 0}
 :is(#z-right,.ev) .cv-both{font:400 13px/1 var(--f-body);color:var(--ink-2)}
+:is(#z-right,.ev) .cv-ours-grid{display:flex;flex-wrap:wrap;gap:6px 14px}
+:is(#z-right,.ev) .cv-ours-kv{display:inline-flex;align-items:baseline;gap:5px;font:400 13px/1.4 var(--f-body)}
+:is(#z-right,.ev) .cv-ours-kv span{color:var(--ink-2)}
+:is(#z-right,.ev) .cv-ours-kv b{font-weight:600;color:var(--ink-0)}
+:is(#z-right,.ev) .cv-vg-sum{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+:is(#z-right,.ev) .cv-vg-list{margin-top:6px;border-top:1px solid var(--line)}
+:is(#z-right,.ev) .cv-vg-det summary{padding:7px 8px}
+:is(#z-right,.ev) .cv-vg-det .zr-det-b{padding:4px 8px 10px}
 
 /* 관계도 */
 :is(#z-right,.ev) .cv-rel,:is(#z-right,.ev) .ins-rel{min-height:40px;margin:2px 0 8px}

@@ -19,6 +19,7 @@
     skinLight: '밝은 화면',
     motionWord: '움직임',
     motionOn: '켬',
+    motionCalm: '절제',
     motionOff: '끔',
     condAria: '조건 줄',
     condOpenBtn: '조건 바꾸기',
@@ -186,7 +187,7 @@
     stepIncSuffix: ' 하나 늘리기',
 
     // 첫 화면(전체 요약)과 상단 고리 탭 문구
-    homeListHead: '전체 결론 다섯 줄',
+    homeListHeadTpl: '전체 결론 {n}줄',
     homeListHint: '줄을 누르면 해당 화면으로 들어갑니다',
     homeRevBadgeTpl: '개정 {n}',
     briefRowGa: '고객군 지형',
@@ -221,7 +222,7 @@
     mkCenterTitle: '고객군 시간축과 고리',
     mkTimeOver5: '5년+',
     mkUnknownSym: '?',
-    mkOursOpenRatioTpl: '우리 열림 {open}/6',
+    mkOursOpenRatioTpl: '우리 열림 {open}/{total}',
     mkPartialOnlyMark: '일부 나이만',
     mkPartialHeadTpl: '일부 나이에서만 열리는 상대 {n}곳',
     mkPartialSpanTpl: '{org} {spans}세만 열림',
@@ -305,19 +306,18 @@
     mkMissingSegWhyTpl: '지금 조건의 칸이 이 지도에 없습니다. {why}',
 
     // 관계 지도(graph) 문구
-    grLeftHead: '노드 종류',
+    grLeftHead: '보는 틀',
     grKindOrg: '회사',
-    grKindVar: '상품 종형',
+    grKindVar: '종형',
     grKindStd: '표준담보',
     grKindPt: '영업 포인트',
-    grKindNews: '시장 소식',
-    grCenterDesc: '회사, 상품 종형, 특약, 급부, 표준담보의 연결 구조를 한 홉씩 펼쳐 탐색하는 관계 지도입니다.',
-    grOpenProtoBtn: '관계 지도 시안(graph2.html) 열기',
-    grEvTitle: '지식그래프 관계 지도',
-    grEvBodyTpl: '수집 회사 {orgs}곳, 종형 {vars}개, 표준담보 {stds}개, 영업 포인트 {pts}건, 시장 소식 {news}건이 노드와 엣지로 이어집니다.',
-    grLegendTitle: '관계 지도 안내',
-    grLgNode: '사각 노드: 회사, 종형, 특약, 급부, 표준담보 단위',
-    grLgEdge: '연결선: 판매, 포함, 매핑 해당, 상위 담보 관계',
+    grKindNews: '소식',
+    grCenterDesc: '소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야의 일곱 열을 한 홉씩 펼쳐 비교합니다.',
+    grEvTitle: '관계 지도',
+    grEvBodyTpl: '노드를 눌러 옆 열의 이웃을 펼치거나, 연결선을 눌러 검토상태와 급부역할 같은 관계 속성을 확인합니다.',
+    grLegendTitle: '관계 지도 도형과 선 안내',
+    grLgNode: '직각 칸: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽, 비교 종형에 연결이 없는 담보는 옅은 단선 윤곽), 보장분야(넓은 띠), 소식(날짜). 우체국은 왼쪽 3px 변',
+    grLgEdge: '연결선: 판매와 포함(실선), 해당(승인 및 수정은 굵은 실선), 속함(가는 선), 관계(이중선), 일으킴(점선)',
   };
 
   function cp(key, vars) {
@@ -636,10 +636,24 @@
     });
   }
 
-  const STAGE_ORDER = ['진단', '수술', '치료', '입원', '통원'];
+  function stageOrderOf(baseId) {
+    const b = S['기준별'] && S['기준별'][baseId || st.base];
+    const cols = b && b['치료여정'] && b['치료여정']['열'];
+    if (Array.isArray(cols) && cols.length) return cols;
+    for (const v of Object.values(S['기준별'] || {})) {
+      const c2 = v && v['치료여정'] && v['치료여정']['열'];
+      if (Array.isArray(c2) && c2.length) return c2;
+    }
+    const seen = [];
+    for (const info of Object.values(S['표준담보'] || {})) {
+      const tp = info && info['급부유형'];
+      if (tp && !seen.includes(tp)) seen.push(tp);
+    }
+    return seen;
+  }
   function coverStageStacks(baseId, s = st) {
     const B = window.App && App.cover && typeof App.cover.rawB === 'function' ? App.cover.rawB(baseId) : null;
-    const stages = STAGE_ORDER.map(nm => ({
+    const stages = stageOrderOf(baseId).map(nm => ({
       name: nm,
       oursCnt: 0,
       totalCnt: 0,
@@ -666,7 +680,7 @@
       const perCounts = (B['판정상대수'] && B['판정상대수'][sid]) || {};
       const cntOf = vdKey => (isAll ? (perCounts[vdKey] || 0) : inScope(perCodes[vdKey], s));
       const bCnt = cntOf('나음');
-      const nCnt = cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의');
+      const nCnt = cntOf('같음') + cntOf('엇갈림') + cntOf('단정 주의') + cntOf('지급 형태 다름') + cntOf('관계 담보로 덮음');
       const wCnt = cntOf('못함');
       const wtCnt = cntOf('검토 대기') + cntOf('판정 보류');
       const mCnt = cntOf('우체국에 없음');
@@ -678,6 +692,33 @@
       stg.sum += bCnt + nCnt + wCnt + wtCnt + mCnt;
     });
     return stages;
+  }
+
+  function scopedPairs(baseId, pickSet) {
+    const base = S['기준별'] && S['기준별'][baseId];
+    const p = base && base['보류요약'];
+    if (!p) return null;
+    if (!pickSet) {
+      return {
+        total: p['공통담보쌍'] || 0,
+        wait: p['뺀쌍'] || 0,
+        cmp: p['견준쌍'] || 0,
+        why: Object.assign({}, p['사유별'] || {}),
+      };
+    }
+    const byOrg = p['기관별'] || {};
+    let total = 0, wait = 0, cmp = 0;
+    const why = {};
+    for (const [org, per] of Object.entries(byOrg)) {
+      if (!pickSet.has(org) || !per) continue;
+      total += per['공통담보쌍'] || 0;
+      wait += per['뺀쌍'] || 0;
+      cmp += per['견준쌍'] || 0;
+      for (const [rk, rv] of Object.entries(per['사유별'] || {})) {
+        if (rv) why[rk] = (why[rk] || 0) + rv;
+      }
+    }
+    return { total, wait, cmp, why };
   }
 
   function mapOf(renewal) { return S['지도'][MAP_KEY[renewal]] || S['지도']['전체']; }
@@ -765,7 +806,33 @@
   function on(ev, fn) { (listeners[ev] || (listeners[ev] = [])).push(fn); }
   function emit(ev, ...args) { for (const fn of (listeners[ev] || [])) { try { fn(...args); } catch (e) { console.error(e); } } }
   const mode = () => (innerWidth >= 1600 ? 'wide' : innerWidth >= 1000 ? 'push' : 'sheet');
-  const motionOn = () => st.motion === 'on';
+  const motionOn = () => st.motion !== 'off';
+  const motionRich = () => st.motion === 'on';
+  const motionScale = () => (st.motion === 'on' ? 1 : st.motion === 'calm' ? 0.55 : 0);
+
+  function countUp(root) {
+    if (!motionRich()) return;
+    const els = $$('[data-count-to]', root || document);
+    if (!els.length) return;
+    const dur = 480;
+    const t0 = performance.now();
+    const targets = els.map(el => ({
+      el,
+      to: +el.dataset.countTo || 0,
+      suffix: el.dataset.countSuffix || '',
+    }));
+    targets.forEach(x => { x.el.textContent = fmt(0) + x.suffix; });
+    function tick(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      for (const x of targets) {
+        if (!x.el.isConnected) continue;
+        x.el.textContent = fmt(Math.round(x.to * eased)) + x.suffix;
+      }
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
 
   // ---------- 주소(#)와 뒤로 가기 ----------
   function encodeHash() {
@@ -841,7 +908,7 @@
     same: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5h7M1.5 6.5h7" stroke="currentColor" stroke-width="1.6"/></svg>',
     diff: '<svg viewBox="0 0 12 10" aria-hidden="true"><path d="M1 3h9M7.5 1L10 3 7.5 5M11 7H2M4.5 5L2 7l2.5 2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
     none: '<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="1.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1.5"/></svg>',
-    unknown: '<svg viewBox="0 0 10 10" aria-hidden="true"><text x="5" y="8.2" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor">?</text></svg>',
+    unknown: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3.2 3.3a1.85 1.65 0 1 1 2.7 1.45c-.6.35-.9.68-.9 1.35" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="square"/><rect x="4.3" y="7.4" width="1.4" height="1.4" fill="currentColor"/></svg>',
     lock: '<svg width="12" height="13" viewBox="0 0 12 13" aria-hidden="true"><rect x="1.5" y="5.5" width="9" height="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 5.5V4a2.5 2.5 0 0 1 5 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
     copy: '<svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><rect x="4" y="4" width="7.5" height="7.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 4V1.5H1.5V9H4" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
     print: '<svg width="14" height="13" viewBox="0 0 14 13" aria-hidden="true"><path d="M3.5 4V1.5h7V4M3.5 9.5H1.5V5h11v4.5h-2M3.5 7.5h7v4h-7Z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
@@ -950,8 +1017,8 @@
     }
   }
   function hbar(v, max, cls) {
-    const p = max > 0 ? Math.max(0, Math.min(100, (v / max) * 100)) : 0;
-    return `<span class="hbar" aria-hidden="true"><i class="${cls || ''}" style="width:${p.toFixed(1)}%"></i></span>`;
+    const p = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
+    return `<span class="hbar" aria-hidden="true"><i class="${cls || ''}" style="width:100%;transform:scaleX(${p.toFixed(4)})"></i></span>`;
   }
   function btn(text, o = {}) {
     const cls = ['btn', o.main ? 'btn-main' : '', o.sm ? 'sm' : '', o.ghost ? 'ghost' : '', o.cls || ''].filter(Boolean).join(' ');
@@ -993,7 +1060,7 @@
     const list = (S['주석'] || []).filter(n => !tabName || (n['탭'] || []).includes(tabName));
     if (!list.length) return '';
     return `<aside class="snotes" aria-label="${esc((tabName || '') + cp('notesAriaSuffix'))}">
-      <h3 class="snotes-h">${esc(cp('notesTitle'))}</h3>
+      <h3 class="snotes-h">${esc(cp('notesTitle'))}${st.peerScope !== 'all' ? ' ' + fullScopeTag() : ''}</h3>
       <ul class="snotes-l">${list.map(n => {
         const hk = NOTE_HEAD[n['열쇠']];
         const hd = hk ? cp(hk) : n['열쇠'];
@@ -1107,7 +1174,7 @@
   const pageText = (doc, page) => (page != null && page !== '' ? `${doc || cp('docFallback')} ${page}${cp('pageSuffix')}` : `${doc || cp('docFallback')}${cp('pageMissingSuffix')}`);
   const PAGE_WHY = cp('pageWhy');
 
-  const UI = { esc, fmt, firstSentence, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
+  const UI = { esc, fmt, firstSentence, t: cp, IC, verdict, flag, flagText, FLAG_TEXT, scope, fullScopeTag, tag, name, title, big, ring, drawRings, countUp, hbar, btn, table, RCHEV, band, eq, fadeBand, cells, MAP_CLS, swatch, chevSel, stepper, help, legendBtn, registerLegend, notes };
   const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, orgSector, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, PEER_ORGS, ORG_SHORT, firstSentence };
 
   // ---------- 진행 추적기 머리와 접히는 조건 편집 판 ----------
@@ -1241,19 +1308,18 @@
     const bi = vinfo(st.base);
     const pSet = new Set(activePeerOrgs());
     const relPeers = st.peerScope === 'all' ? r['상대'] : r['상대'].filter(p => pSet.has((vinfo(p['종형ID']) || {})['기관코드']));
+    const restPeerNames = relPeers.slice(3).map(p => vname(p['종형ID'])).join(', ');
     const peers = relPeers.slice(0, 3).map(p => {
       const v = vinfo(p['종형ID']);
       const why = p['머리말'] != null ? S['글'][p['머리말']] : '';
       const sd = (why.split(` / ${cp('scopeDiffStruct')}: `)[1] || '');
       return `<span class="it"><span title="${esc(v ? v['전체이름'] : '')}">${esc(vname(p['종형ID']))}</span> <span class="d">${esc(v ? v['적용시작일'] : '')}</span>${p['구조다름'] ? ' ' + tag(cp('scopeDiffStruct'), sd ? cp('scopeDiffStruct') + ': ' + sd : cp('scopeDiffStructHint')) : ''}</span>`;
-    }).join('') + (relPeers.length > 3 ? `<span class="it">+${fmt(relPeers.length - 3)}</span>` : '') + (!relPeers.length ? `<span class="it">${esc(cp('condPeerNone'))}</span>` : '');
+    }).join('') + (relPeers.length > 3 ? `<span class="it" title="${esc(restPeerNames)}" data-tip="${esc(restPeerNames)}">+${fmt(relPeers.length - 3)}</span>` : '') + (!relPeers.length ? `<span class="it">${esc(cp('condPeerNone'))}</span>` : '');
     let pairTot = r['비교쌍'], pairWait = r['뺀비교쌍'], pairScoped = true;
     if (st.peerScope !== 'all') {
-      if (window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
-        const sp = App.cover.scopedPairs(st.base, pSet);
-        if (sp) { pairTot = sp.total; pairWait = sp.wait; }
-        else pairScoped = false;
-      } else pairScoped = false;
+      const sp = scopedPairs(st.base, pSet);
+      if (sp) { pairTot = sp.total; pairWait = sp.wait; }
+      else pairScoped = false;
     }
     const line1 = `<div class="scope-l"><span class="k">${esc(cp('scopeTitle'))}</span>
       <span class="it"><b style="font-weight:600" title="${esc(bi ? bi['전체이름'] : '')}">${esc(vname(st.base))}</b> <span class="d">${esc(bi ? bi['적용시작일'] : '')}</span></span>
@@ -1267,10 +1333,11 @@
     } else {
       const c = g.cell;
       const shownOrgs = activeOrgs().filter(o => o in c['회사']);
+      const restOrgStates = shownOrgs.slice(4).map(o => `${orgShort(o)} ${c['회사'][o]}`).join(', ');
       const states = shownOrgs.slice(0, 4).map(o => {
         const s = c['회사'][o];
         return `<span class="it">${esc(orgShort(o))} <span style="display:inline-flex;align-items:center;gap:4px">${STATE_IC[s] || ''}${esc(s)}</span></span>`;
-      }).join('') + (shownOrgs.length > 4 ? `<span class="it">+${fmt(shownOrgs.length - 4)}</span>` : '');
+      }).join('') + (shownOrgs.length > 4 ? `<span class="it" title="${esc(restOrgStates)}" data-tip="${esc(restOrgStates)}">+${fmt(shownOrgs.length - 4)}</span>` : '');
       const why = shownOrgs.slice(0, 4).map(o => stateWhy(o, c['회사'][o])).filter(Boolean);
       const rep = c['대표'];
       const repT = rep ? `<span class="it">${esc(cp('scopeOurRep'))} <b style="font-weight:600">${esc(vkind(rep))}</b></span>` : '';
@@ -1329,10 +1396,10 @@
       }
     }
 
-    // 3. 담보 비교: 고른 비교 범위 안의 견준 쌍 / 공통 담보 쌍
+    // 3. 담보 비교: 고른 비교 범위 안의 견준 쌍 / 공통 담보 쌍(보류요약.기관별 합산)
     let raCmp = vRa['견준쌍'] || 0, raTot = vRa['공통담보쌍'] || 0;
-    if (curC.peerScope !== 'all' && window.App && App.cover && typeof App.cover.scopedPairs === 'function') {
-      const sp = App.cover.scopedPairs(curC.baseId, pSet);
+    if (curC.peerScope !== 'all') {
+      const sp = scopedPairs(curC.baseId, pSet);
       if (sp) { raCmp = sp.cmp; raTot = sp.total; }
     }
 
@@ -1414,17 +1481,23 @@
 
   function rtabRingSVG(m, withDiag) {
     if (m.isGraph) return graphGlyphSVG();
-    const r = 34, C = +(2 * Math.PI * r).toFixed(2);
+    const r = 34;
+    const arcD = `M 0 -${r} A ${r} ${r} 0 1 1 -0.01 -${r}`;
     const max = Math.max(0.0001, m.max || 1);
-    let off = 0, sum = 0;
-    const arcs = (m.segs || []).filter(s => s.v > 0).map(s => {
-      sum += s.v;
-      const len = +(C * Math.min(1, s.v / max)).toFixed(2);
-      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
-      off += len;
-      return el;
+    let cum = 0;
+    const validSegs = (m.segs || []).filter(s => s.v > 0);
+    const segSpecs = validSegs.map(s => {
+      cum = Math.min(1, cum + s.v / max);
+      const endPct = +(cum * 100).toFixed(2);
+      const off = +(100 - endPct).toFixed(2);
+      return { cls: s.cls || '', off };
+    });
+    // 뒤쪽 누적 호부터 먼저 깔고 앞쪽 주 호를 위에 얹어 stroke-dashoffset 만으로 전환한다(4-3)
+    const arcs = segSpecs.slice().reverse().map((sp, revIdx) => {
+      const sw = revIdx === segSpecs.length - 1 && segSpecs.length > 1 ? 4.5 : 4.4;
+      return `<path class="rt-arc${sp.cls ? ' ' + sp.cls : ''}" d="${arcD}" pathLength="100" fill="none" stroke-width="${sw}" stroke-dasharray="100 200" stroke-dashoffset="${sp.off}" data-doff="${sp.off}"/>`;
     }).join('');
-    const f = Math.min(1, sum / max);
+    const f = cum;
     let ticks = '';
     if (f < 0.999) {
       const N = 24, r1 = r - 2.6, r2 = r + 2.6;
@@ -1449,31 +1522,207 @@
   }
 
   function miniRingSVG(v, max, cls) {
-    const r = 15, C = +(2 * Math.PI * r).toFixed(2);
+    const r = 15;
+    const arcD = `M 0 -${r} A ${r} ${r} 0 1 1 -0.01 -${r}`;
     const f = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
-    const len = +(C * f).toFixed(2);
+    const off = +(100 - f * 100).toFixed(2);
     return `<svg viewBox="-20 -20 40 40" aria-hidden="true" focusable="false">
       <circle class="rt-trk" r="${r}" fill="none" stroke-width="1.8"/>
-      ${f > 0 ? `<circle class="rt-arc${cls ? ' ' + cls : ''}" r="${r}" fill="none" stroke-width="2.8" stroke-dasharray="${len} ${C}" transform="rotate(-90)"/>` : ''}
+      ${f > 0 ? `<path class="rt-arc${cls ? ' ' + cls : ''}" d="${arcD}" pathLength="100" fill="none" stroke-width="2.8" stroke-dasharray="100 200" stroke-dashoffset="${off}"/>` : ''}
     </svg>`;
   }
   UI.miniRingSVG = miniRingSVG;
   UI.graphGlyphSVG = graphGlyphSVG;
 
-  function renderRingTabs(c) {
+  // ---------- 화면 간 연속 전환(기준축 다리, 작은 고리 <-> 머리 큰 고리, 고른 탭 면 미끄러짐) ----------
+  let axisBridgeToken = 0;
+  let ringFlyEl = null;
+
+  function findVisibleMainAxis(tabId) {
+    const scopeRoot = tabId === 'brief' ? $('#home-panel') : (viewOf(tabId) || $('#z-center'));
+    if (!scopeRoot || scopeRoot.hidden) return null;
+    const el = $('[data-main-axis]', scopeRoot)
+      || $('.hm-axis-wrap, .cv-stage-axis, .cv-axis-line, .gtf-axis-head, .mk-thead, .gr-head-bar, .ins-jump', scopeRoot);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 10) return null;
+    return { el, left: Math.round(r.left), width: Math.round(r.width), y: Math.round(r.bottom - 2) };
+  }
+
+  function snapScreenTransition(fromTab, toTab) {
+    const out = { fromTab, toTab, axis: null, pill: null, bigRing: null, bigRingHTML: '', srcRing: null };
+    out.axis = findVisibleMainAxis(fromTab);
     const nav = $('#rtabs');
+    if (nav && !nav.hidden) {
+      const act = $('.rtab[aria-selected="true"]', nav);
+      if (act) out.pill = { left: act.offsetLeft, width: act.offsetWidth };
+      if (toTab !== 'brief') {
+        const nextBtn = $('#tab-' + toTab + ' .rt-ring', nav);
+        if (nextBtn) {
+          const r = nextBtn.getBoundingClientRect();
+          if (r.width > 4) out.srcRing = r;
+        }
+      }
+    } else if (fromTab === 'brief' && toTab !== 'brief') {
+      const hm = $(`#home-panel #tab-${toTab} .hm-head`) || $(`#home-panel #tab-${toTab}`);
+      if (hm) {
+        const r = hm.getBoundingClientRect();
+        if (r.width > 4) out.srcRing = { left: r.left, top: r.top, width: Math.min(84, r.width), height: Math.min(84, r.height) };
+      }
+    }
+    const thRing = $('#th-total .tht-ring');
+    if (thRing && !$('#th-total').hidden) {
+      const r = thRing.getBoundingClientRect();
+      if (r.width > 4) {
+        out.bigRing = r;
+        out.bigRingHTML = thRing.outerHTML;
+      }
+    }
+    return out;
+  }
+
+  function playAxisBridge(prevAxis, nextAxis) {
+    const bridge = $('#axis-bridge');
+    if (!bridge) return;
+    if (!motionOn()) {
+      document.body.classList.remove('axis-bridging');
+      bridge.hidden = true;
+      return;
+    }
+    if (prevAxis && nextAxis && Math.abs(prevAxis.y - nextAxis.y) >= 1) {
+      const token = ++axisBridgeToken;
+      const vw = Math.max(1, innerWidth);
+      const dur = Math.round(380 * motionScale());
+      bridge.hidden = false;
+      document.body.classList.add('axis-bridging');
+      if (bridge._anim) bridge._anim.cancel();
+      const t0 = `translate3d(${prevAxis.left}px,${prevAxis.y}px,0) scaleX(${(prevAxis.width / vw).toFixed(4)})`;
+      const t1 = `translate3d(${nextAxis.left}px,${nextAxis.y}px,0) scaleX(${(nextAxis.width / vw).toFixed(4)})`;
+      bridge.style.transform = t1;
+      bridge._anim = bridge.animate([{ transform: t0 }, { transform: t1 }], {
+        duration: dur,
+        easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+      });
+      bridge._anim.onfinish = () => {
+        if (token !== axisBridgeToken) return;
+        document.body.classList.remove('axis-bridging');
+        bridge.hidden = true;
+      };
+    } else if (nextAxis && nextAxis.el) {
+      document.body.classList.remove('axis-bridging');
+      bridge.hidden = true;
+      nextAxis.el.classList.remove('axis-draw');
+      void nextAxis.el.offsetWidth;
+      nextAxis.el.classList.add('axis-draw');
+    }
+  }
+
+  function flipElement(el, fromRect, durMs, easing) {
+    if (!el || !fromRect || !motionOn() || typeof el.animate !== 'function') return;
+    const toRect = el.getBoundingClientRect();
+    if (toRect.width < 2 || toRect.height < 2) return;
+    const dx = (fromRect.left + fromRect.width / 2) - (toRect.left + toRect.width / 2);
+    const dy = (fromRect.top + fromRect.height / 2) - (toRect.top + toRect.height / 2);
+    const sx = Math.max(0.35, Math.min(2.4, fromRect.width / toRect.width));
+    const sy = Math.max(0.35, Math.min(2.4, fromRect.height / toRect.height));
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.03) return;
+    if (el._flipAnim) el._flipAnim.cancel();
+    el._flipAnim = el.animate([
+      { transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(${sx.toFixed(3)},${sy.toFixed(3)})` },
+      { transform: 'translate3d(0,0,0) scale(1,1)' },
+    ], {
+      duration: Math.max(80, Math.round(durMs * motionScale())),
+      easing: easing || 'cubic-bezier(0.16, 1, 0.3, 1)',
+    });
+  }
+
+  function drawHeaderRingArcs(root) {
+    if (!motionOn()) return;
+    for (const c of $$('.rt-arc[data-doff]', root)) {
+      const doff = c.dataset.doff;
+      c.style.transition = 'none';
+      c.setAttribute('stroke-dashoffset', '100');
+      void c.getBoundingClientRect();
+      c.style.transition = '';
+      c.setAttribute('stroke-dashoffset', doff);
+    }
+  }
+
+  function playReturnRingToHome(snap) {
+    if (!motionOn() || !snap || !snap.bigRing || !snap.bigRingHTML) return;
+    const target = $(`#home-panel #tab-${snap.fromTab} .hm-head`) || $(`#home-panel #tab-${snap.fromTab}`);
+    if (!target) return;
+    const tr = target.getBoundingClientRect();
+    if (tr.width < 4) return;
+    if (!ringFlyEl) {
+      ringFlyEl = document.createElement('div');
+      ringFlyEl.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;z-index:29;transform-origin:top left';
+      document.body.appendChild(ringFlyEl);
+    }
+    ringFlyEl.innerHTML = snap.bigRingHTML;
+    ringFlyEl.hidden = false;
+    const br = snap.bigRing;
+    const sc = Math.max(0.45, Math.min(1, 52 / Math.max(1, br.height)));
+    if (ringFlyEl._anim) ringFlyEl._anim.cancel();
+    ringFlyEl._anim = ringFlyEl.animate([
+      { transform: `translate3d(${br.left.toFixed(1)}px,${br.top.toFixed(1)}px,0) scale(1)`, opacity: 0.95 },
+      { transform: `translate3d(${tr.left.toFixed(1)}px,${tr.top.toFixed(1)}px,0) scale(${sc.toFixed(3)})`, opacity: 0 },
+    ], {
+      duration: Math.max(90, Math.round(320 * motionScale())),
+      easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+    });
+    ringFlyEl._anim.onfinish = () => { if (ringFlyEl) { ringFlyEl.hidden = true; ringFlyEl.innerHTML = ''; } };
+  }
+
+  function syncRtabsCue(scrollActive) {
+    const nav = $('#rtabs');
+    const cueL = $('#rt-cue-l'), cueR = $('#rt-cue-r');
+    if (!nav || nav.hidden) {
+      if (cueL) cueL.hidden = true;
+      if (cueR) cueR.hidden = true;
+      return;
+    }
+    if (scrollActive) {
+      const act = $('.rtab[aria-selected="true"]', nav);
+      if (act && nav.scrollWidth > nav.clientWidth + 4) {
+        const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
+        nav.scrollLeft = Math.max(0, Math.min(maxLeft, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2)));
+      }
+    }
+    const actPill = $('.rtab[aria-selected="true"]', nav);
+    const pill = $('#rtab-bg', nav);
+    if (pill && actPill) {
+      const toX = actPill.offsetLeft, toS = Math.max(0.1, actPill.offsetWidth / 100);
+      pill.style.transform = `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})`;
+    }
+    const over = nav.scrollWidth > nav.clientWidth + 4;
+    const moreL = over && nav.scrollLeft > 4;
+    const moreR = over && (nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
+    nav.classList.toggle('has-more-l', moreL);
+    nav.classList.toggle('has-more-r', moreR);
+    if (cueL) cueL.hidden = !moreL;
+    if (cueR) cueR.hidden = !moreR;
+  }
+
+  function renderRingTabs(c, snap) {
+    const nav = $('#rtabs');
+    const wrap = $('#rtabs-wrap');
     const thTotal = $('#th-total');
     if (!nav) return;
     const isHome = st.tab === 'brief';
     if (isHome) {
       nav.hidden = true;
+      if (wrap) wrap.hidden = true;
+      nav.classList.remove('has-pill', 'has-more-l', 'has-more-r');
       nav.innerHTML = '';
       if (thTotal) { thTotal.hidden = true; thTotal.innerHTML = ''; }
+      syncRtabsCue(false);
       lastRenderedTab = 'brief';
       return;
     }
     const enteredFromHome = lastRenderedTab === 'brief' && motionOn();
     lastRenderedTab = st.tab;
+    if (wrap) wrap.hidden = false;
     nav.hidden = false;
     if (enteredFromHome) {
       nav.classList.remove('from-home');
@@ -1481,6 +1730,7 @@
       nav.classList.add('from-home');
     }
     const metrics = ringTabMetrics(c || ctx());
+    const pillHTML = '<i class="rtab-bg" id="rtab-bg" aria-hidden="true"></i>';
     const homeBtn = `<button class="rtab rtab-home" type="button" role="tab" id="tab-brief" data-rtab="brief" aria-selected="false" tabindex="-1">${IC.chevL}<span>${esc(cp('homePathRoot'))}</span></button>`;
     const tabsHTML = SCREEN_IDS.map(id => {
       const m = metrics[id];
@@ -1492,17 +1742,40 @@
         <span class="rt-txt"><span class="rt-name"><span>${esc(m.name)}</span>${badge}</span>${sub}</span>
       </button>`;
     }).join('');
-    nav.innerHTML = homeBtn + tabsHTML;
+    nav.classList.add('has-pill');
+    nav.innerHTML = pillHTML + homeBtn + tabsHTML;
 
     const act = $('.rtab[aria-selected="true"]', nav);
-    if (act && nav.scrollWidth > nav.clientWidth + 4) {
-      nav.scrollLeft = Math.max(0, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2));
+    syncRtabsCue(true);
+    const pill = $('#rtab-bg', nav);
+    if (pill && act) {
+      const toX = act.offsetLeft, toS = Math.max(0.1, act.offsetWidth / 100);
+      pill.style.transform = `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})`;
+      if (snap && snap.pill && motionOn() && typeof pill.animate === 'function' && (Math.abs(snap.pill.left - toX) > 1 || Math.abs(snap.pill.width - act.offsetWidth) > 1)) {
+        const fromS = Math.max(0.1, snap.pill.width / 100);
+        pill.animate([
+          { transform: `translate3d(${snap.pill.left}px,0,0) scaleX(${fromS.toFixed(4)})` },
+          { transform: `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})` },
+        ], {
+          duration: Math.max(90, Math.round(280 * motionScale())),
+          easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+        });
+      }
     }
 
     if (thTotal) {
       const curM = metrics[st.tab] || metrics.market;
       thTotal.hidden = false;
       thTotal.innerHTML = `<div class="tht-ring">${rtabRingSVG(curM, true)}${curM.numHTML ? `<span class="tht-val num">${curM.numHTML}</span>` : ''}</div>`;
+      if (snap && motionOn()) {
+        const thRing = $('.tht-ring', thTotal);
+        if (thRing && snap.srcRing) flipElement(thRing, snap.srcRing, 420, 'cubic-bezier(0.16, 1, 0.3, 1)');
+        drawHeaderRingArcs(thTotal);
+        if (snap.fromTab && snap.fromTab !== 'brief' && snap.fromTab !== st.tab && snap.bigRing) {
+          const prevSmall = $(`#tab-${snap.fromTab} .rt-ring`, nav);
+          if (prevSmall) flipElement(prevSmall, snap.bigRing, 320, 'cubic-bezier(0.65, 0, 0.35, 1)');
+        }
+      }
     }
   }
 
@@ -1607,9 +1880,24 @@
     return 'three';
   }
 
+  let activeRenderedTab = 'brief';
+
+  function applyBgParallax(tabId) {
+    if (!motionRich()) {
+      document.documentElement.style.setProperty('--bg-px', '0px');
+      return;
+    }
+    const idx = Math.max(0, TAB_IDS.indexOf(tabId));
+    document.documentElement.style.setProperty('--bg-px', `${(idx - 1) * -12}px`);
+  }
+
   function renderActiveScreen(c, why) {
     const curC = c || ctx();
-    renderRingTabs(curC);
+    const isTabSwitch = why === 'tab' && booted && activeRenderedTab !== st.tab;
+    const snap = isTabSwitch ? snapScreenTransition(activeRenderedTab, st.tab) : null;
+    activeRenderedTab = st.tab;
+    applyBgParallax(st.tab);
+    renderRingTabs(curC, snap);
     const isHome = st.tab === 'brief';
     const homePanel = $('#home-panel');
     const board = $('#board');
@@ -1619,11 +1907,17 @@
     if (isHome) {
       hideEv();
       clearSelLink();
+      hideSelGlide();
+      board.classList.remove('has-sel');
       const tb = tabs.brief;
-      if (tb && tb.renderHome) tb.renderHome(homePanel, curC);
+      if (tb && tb.renderHome) tb.renderHome(homePanel, curC, why || 'render');
       syncHeaderAndPath(curC);
       renderActBar(curC);
       placeGuides();
+      if (snap) {
+        playAxisBridge(snap.axis, findVisibleMainAxis('brief'));
+        playReturnRingToHome(snap);
+      }
       return;
     }
 
@@ -1687,10 +1981,13 @@
     applySelectionState(false, curC);
     renderActBar(curC);
     placeGuides();
+    if (snap) playAxisBridge(snap.axis, findVisibleMainAxis(id));
   }
 
-  // ---------- 읽기 영역(.z-right)과 1px 연결선(#sel-link) ----------
+  // ---------- 읽기 영역(.z-right), 고른 표지 미끄러짐(#sel-glide), 1px 연결선(#sel-link) ----------
   const EV = { open: false };
+  let selGlideToken = 0;
+
   function syncRightScrollCue() {
     const body = $('#ev-body'), more = $('#zr-more');
     if (!body || !more) return;
@@ -1698,13 +1995,76 @@
     more.hidden = !over;
   }
 
-  function clearSelLink() {
-    const p = $('#sel-link-p'), dot = $('#sel-link-dot');
-    if (p) p.setAttribute('d', '');
-    if (dot) dot.hidden = true;
+  function hideSelGlide() {
+    const g = $('#sel-glide');
+    if (!g) return;
+    selGlideToken++;
+    if (g._anim) g._anim.cancel();
+    g.hidden = true;
   }
 
-  function updateSelLink() {
+  function measureSelBox(tabId) {
+    const id = tabId || st.tab;
+    if (id === 'brief' || st.sel[id] == null) return null;
+    const root = viewOf(id) || $('#z-center');
+    const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
+    if (!selEl) return null;
+    const target = selEl.querySelector('[data-aim-box]') || selEl.querySelector('[data-link-pt]') || selEl;
+    const r = target.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    return {
+      key: String(st.sel[id]),
+      left: r.left,
+      top: r.top,
+      width: r.width,
+      height: r.height,
+      shape: selEl.dataset.aim === 'circle' ? 'circle' : 'rect',
+    };
+  }
+
+  function playSelGlide(prevBox, nextBox) {
+    const g = $('#sel-glide'), board = $('#board');
+    if (!g || !board || board.hidden || !prevBox || !nextBox || !motionOn() || typeof g.animate !== 'function') {
+      hideSelGlide();
+      return;
+    }
+    if (prevBox.key === nextBox.key) return;
+    const bBox = board.getBoundingClientRect();
+    const token = ++selGlideToken;
+    const w1 = Math.max(6, Math.round(nextBox.width));
+    const h1 = Math.max(6, Math.round(nextBox.height));
+    const sx0 = Math.max(0.25, prevBox.width / w1);
+    const sy0 = Math.max(0.25, prevBox.height / h1);
+    const x0 = prevBox.left - bBox.left;
+    const y0 = prevBox.top - bBox.top;
+    const x1 = nextBox.left - bBox.left;
+    const y1 = nextBox.top - bBox.top;
+    g.dataset.shape = nextBox.shape;
+    g.style.width = w1 + 'px';
+    g.style.height = h1 + 'px';
+    g.style.transform = `translate3d(${x1.toFixed(1)}px,${y1.toFixed(1)}px,0)`;
+    g.hidden = false;
+    if (g._anim) g._anim.cancel();
+    g._anim = g.animate([
+      { transform: `translate3d(${x0.toFixed(1)}px,${y0.toFixed(1)}px,0) scale(${sx0.toFixed(3)},${sy0.toFixed(3)})`, opacity: 0.96 },
+      { transform: `translate3d(${x1.toFixed(1)}px,${y1.toFixed(1)}px,0) scale(1,1)`, opacity: 0.96 },
+    ], {
+      duration: Math.max(80, Math.round(220 * motionScale())),
+      easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+    });
+    g._anim.onfinish = () => {
+      if (token !== selGlideToken) return;
+      g.hidden = true;
+    };
+  }
+
+  function clearSelLink() {
+    const p = $('#sel-link-p'), dot = $('#sel-link-dot');
+    if (p) { if (p._anim) p._anim.cancel(); p.setAttribute('d', ''); }
+    if (dot) { dot.setAttribute('hidden', ''); dot.style.display = 'none'; }
+  }
+
+  function updateSelLink(drawLine) {
     const p = $('#sel-link-p'), dot = $('#sel-link-dot'), board = $('#board'), zr = $('#z-right');
     if (!p || !board || board.hidden || !zr || !zr.classList.contains('is-picked') || mode() === 'sheet') {
       clearSelLink();
@@ -1713,10 +2073,12 @@
     const root = viewOf(st.tab) || $('#z-center');
     const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
     if (!selEl) { clearSelLink(); return; }
-    const anchor = selEl.querySelector('[data-link-pt]') || selEl;
+    const anchor = selEl.querySelector('[data-link-pt]') || selEl.querySelector('[data-aim-box]') || selEl;
+    const zc = $('#z-center');
     const bBox = board.getBoundingClientRect();
     const sBox = anchor.getBoundingClientRect();
     const rBox = zr.getBoundingClientRect();
+    const zcBox = zc ? zc.getBoundingClientRect() : sBox;
     if (!sBox.width || !sBox.height || !rBox.width || !rBox.height) { clearSelLink(); return; }
     const lay = board.dataset.layout || 'side';
     let d = '', dx = 0, dy = 0;
@@ -1729,27 +2091,96 @@
         dx = sx; dy = sy;
       }
     } else {
-      const sx = Math.round(sBox.right - bBox.left);
-      const sy = Math.round(sBox.top + sBox.height / 2 - bBox.top);
       const ex = Math.round(rBox.left - bBox.left);
       const ey = Math.round(Math.max(rBox.top + 22, Math.min(rBox.bottom - 22, sBox.top + sBox.height / 2)) - bBox.top);
-      if (ex > sx + 2) {
-        const mx = Math.round(sx + (ex - sx) * 0.55);
-        d = Math.abs(ey - sy) <= 3 ? `M${sx} ${sy}H${ex}` : `M${sx} ${sy}H${mx}V${ey}H${ex}`;
-        dx = sx; dy = sy;
+      const zcRight = Math.round(zcBox.right - bBox.left);
+      const gutterX = Math.max(zcRight + 2, Math.min(ex - 4, Math.round((zcRight + ex) / 2)));
+      const fullSelBox = selEl.getBoundingClientRect();
+      const midY = sBox.top + sBox.height / 2;
+      // 같은 줄 오른쪽에 다른 도형이나 글자가 있으면 줄 사이 빈 틈으로 내려서 꺾어 보낸다(요청 30의 2-1)
+      let blockedRight = false;
+      const track = selEl.closest('.mk-track, .gtf-track');
+      if (track) {
+        let sib = selEl.nextElementSibling;
+        while (sib) {
+          if (sib.matches('[data-pick], .mk-ring, .gtf-cell')) { blockedRight = true; break; }
+          sib = sib.nextElementSibling;
+        }
+      } else {
+        for (const other of $$('[data-pick], [data-gr-node]', root)) {
+          if (other === selEl || selEl.contains(other) || other.contains(selEl)) continue;
+          const ob = other.getBoundingClientRect();
+          if (ob.width < 2 || ob.height < 2) continue;
+          if (ob.left >= fullSelBox.right - 2 && midY >= ob.top - 4 && midY <= ob.bottom + 4) {
+            blockedRight = true;
+            break;
+          }
+        }
+      }
+      if (blockedRight) {
+        const cx = Math.round(sBox.left + sBox.width / 2 - bBox.left);
+        const by = Math.round(sBox.bottom - bBox.top);
+        const drop = st.tab === 'gate' ? 5 : st.tab === 'market' ? 9 : 7;
+        const corrY = by + drop;
+        if (ex > cx + 4) {
+          const turnX = Math.max(cx + 6, gutterX);
+          d = Math.abs(ey - corrY) <= 2
+            ? `M${cx} ${by}V${corrY}H${ex}`
+            : `M${cx} ${by}V${corrY}H${turnX}V${ey}H${ex}`;
+          dx = cx; dy = by;
+        }
+      } else {
+        const rightStart = Math.max(sBox.right, fullSelBox.right);
+        const sx = Math.round(rightStart - bBox.left);
+        const sy = Math.round(midY - bBox.top);
+        if (ex > sx + 2) {
+          const turnX = Math.max(sx + 4, Math.min(ex - 3, gutterX));
+          d = Math.abs(ey - sy) <= 3 ? `M${sx} ${sy}H${ex}` : `M${sx} ${sy}H${turnX}V${ey}H${ex}`;
+          dx = sx; dy = sy;
+        }
       }
     }
     p.setAttribute('d', d);
-    if (dot) {
-      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.hidden = false; }
-      else dot.hidden = true;
+    if (d && drawLine === true && motionOn() && typeof p.animate === 'function') {
+      if (p._anim) p._anim.cancel();
+      p._anim = p.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], {
+        duration: Math.max(90, Math.round(240 * motionScale())),
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      });
     }
+    if (dot) {
+      if (d) { dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.removeAttribute('hidden'); dot.style.display = ''; }
+      else { dot.setAttribute('hidden', ''); dot.style.display = 'none'; }
+    }
+  }
+
+  function staggerEvLines(zrIn) {
+    const targets = [];
+    const h2 = $('#ev-t', zrIn);
+    if (h2) targets.push(h2);
+    const b = $('#ev-b', zrIn);
+    if (b && b.children.length) targets.push(b);
+    const body = $('#ev-body', zrIn);
+    if (body) {
+      for (const child of Array.from(body.children)) {
+        if (child.classList.contains('ev-sec')) {
+          for (const sub of Array.from(child.children)) targets.push(sub);
+        } else {
+          targets.push(child);
+        }
+      }
+    }
+    targets.slice(0, 10).forEach((el, idx) => {
+      el.style.setProperty('--ld', `${Math.round(Math.min(idx, 5) * 30 * motionScale())}ms`);
+      el.classList.add('ev-line-in');
+    });
   }
 
   function setEvPicked(spec, animate) {
     const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
     if (!zr || !zrIn || !k || !body) return;
+    const wasPicked = zr.classList.contains('is-picked') && !zrIn.hidden;
     zr.classList.add('is-picked');
     if (unsel) unsel.hidden = true;
     zrIn.hidden = false;
@@ -1759,9 +2190,16 @@
     body.innerHTML = typeof spec.body === 'string' ? spec.body : '';
     if (spec.body && typeof spec.body !== 'string') body.appendChild(spec.body);
     body.scrollTop = 0;
-    if (animate && motionOn()) { zrIn.classList.remove('ev-anim'); void zrIn.offsetWidth; zrIn.classList.add('ev-anim'); }
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
-    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(); });
+    if (animate && motionOn()) {
+      if (!wasPicked) {
+        zrIn.classList.remove('ev-anim');
+        void zrIn.offsetWidth;
+        zrIn.classList.add('ev-anim');
+      }
+      staggerEvLines(zrIn);
+    }
+    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(animate === true); });
   }
 
   function unselectedConclusion(c) {
@@ -1800,8 +2238,10 @@
     zr.classList.remove('is-picked');
     if (zrIn) zrIn.hidden = true;
     unsel.hidden = false;
-    const info = unselectedConclusion(c);
-    unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}</p>` : '';
+    const curC = c || ctx();
+    const info = unselectedConclusion(curC);
+    const scopeBadge = (curC.peerScope !== 'all' && st.tab !== 'graph' && !(info && info.scoped)) ? ' ' + fullScopeTag() : '';
+    unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}${scopeBadge}</p>` : '';
     clearSelLink();
   }
 
@@ -1855,12 +2295,30 @@
       if (selIdx < 0) selIdx = 0;
       gridItems.forEach((b, k) => { b.tabIndex = k === selIdx ? 0 : -1; });
     }
+    const insRows = $$('#view-insight .lrow[data-pick]');
+    if (insRows.length) {
+      let selIdx = insRows.findIndex(li => li.classList.contains('is-sel'));
+      if (selIdx < 0) selIdx = 0;
+      insRows.forEach((li, k) => {
+        const hit = $('.lrow-hit', li);
+        if (hit) hit.tabIndex = k === selIdx ? 0 : -1;
+        $$('input[data-act="ins-pick"]', li).forEach(ck => { ck.tabIndex = -1; });
+      });
+    }
+    const insJumps = $$('#view-insight .ins-jump a');
+    if (insJumps.length) {
+      let onIdx = insJumps.findIndex(a => a === document.activeElement);
+      if (onIdx < 0) onIdx = 0;
+      insJumps.forEach((a, k) => { a.tabIndex = k === onIdx ? 0 : -1; });
+    }
   }
 
   function remark(id) {
     const v = viewOf(id) || $('#z-center');
-    if (!v) return;
+    const board = $('#board');
     const key = st.sel[id];
+    if (board) board.classList.toggle('has-sel', id !== 'brief' && key != null);
+    if (!v) return;
     for (const el of $$('[data-pick]', v)) {
       const on = key != null && el.dataset.pick === String(key);
       el.classList.toggle('is-sel', on);
@@ -1889,10 +2347,12 @@
       } else {
         delete st.sel[id];
         remark(id);
+        hideSelGlide();
         showUnselectedEv(curC);
         hideEv();
       }
     } else {
+      hideSelGlide();
       showUnselectedEv(curC);
       hideEv();
     }
@@ -1904,10 +2364,13 @@
     if (key == null) return unselect(o);
     const same = st.sel[st.tab] === String(key);
     if (same && o.toggleOff) return unselect(o);
+    const prevBox = (!same && o.animate !== false) ? measureSelBox(st.tab) : null;
     st.sel[st.tab] = String(key);
     if (o.push !== false && booted && !same) pushHistory(new Set(['pick']));
     const curC = ctx();
     applySelectionState(o.animate !== false, curC);
+    const nextBox = (!same && o.animate !== false && prevBox) ? measureSelBox(st.tab) : null;
+    if (prevBox && nextBox) playSelGlide(prevBox, nextBox);
     if (st.sel[st.tab] != null && mode() === 'sheet' && o.open !== false) openEv();
     const root = viewOf(st.tab) || $('#z-center');
     const el = root && $(`[data-pick="${CSS.escape(String(key))}"]`, root);
@@ -1915,9 +2378,10 @@
       const hit = el.matches('button,tr,[tabindex]') ? el : ($('.lrow-hit', el) || el);
       try { hit.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
+    if (curAimEl && el) refreshAimReticle();
     if (el && o.reveal !== false && mode() === 'sheet') setTimeout(() => reveal(el), 240);
     placeGuides();
-    requestAnimationFrame(updateSelLink);
+    requestAnimationFrame(() => updateSelLink(o.animate !== false && !same));
     emit('select', st.tab, String(key));
   }
 
@@ -1926,6 +2390,7 @@
     const had = prevKey != null;
     delete st.sel[st.tab];
     delete st.sub[st.tab];
+    hideSelGlide();
     if (o.push !== false && booted && had) pushHistory(new Set(['pick']));
     const curC = ctx();
     applySelectionState(false, curC);
@@ -2163,18 +2628,35 @@
     const topY = Math.round(rtBox.top);
     const botY = H - 72;
     const centers = [Math.round(rtBox.left), Math.round(rtBox.right)];
+    let staticBox = $('.gl-static', g);
+    let redTk = $('.tk.red', g);
+    if (!staticBox) {
+      g.innerHTML = '<div class="gl-static"></div><i class="tk red" hidden></i>';
+      staticBox = $('.gl-static', g);
+      redTk = $('.tk.red', g);
+    }
     let html = `<i class="hl" style="top:${topY}px"></i><i class="hl" style="top:${botY}px"></i>`;
     for (const c of centers) {
       if (c < 0 || c > W) continue;
       html += `<i class="gl c" style="left:${c}px"></i>`;
       html += `<i class="tk" style="left:${c}px;top:${topY}px"></i><i class="tk" style="left:${c}px;top:${botY}px"></i>`;
     }
+    staticBox.innerHTML = html;
     const activeTab = st.tab !== 'brief' ? $('#rtabs #tab-' + st.tab) : null;
-    if (activeTab) {
-      const ab = activeTab.getBoundingClientRect();
-      html += `<i class="tk red" style="left:${Math.round(ab.left + 14)}px;top:${topY}px"></i>`;
+    if (redTk) {
+      if (activeTab) {
+        const ab = activeTab.getBoundingClientRect();
+        const tx = Math.round(ab.left + 14);
+        const wasHidden = redTk.hidden;
+        if (wasHidden) redTk.style.transition = 'none';
+        redTk.style.top = topY + 'px';
+        redTk.style.setProperty('--tx', tx + 'px');
+        redTk.hidden = false;
+        if (wasHidden) { void redTk.offsetWidth; redTk.style.transition = ''; }
+      } else {
+        redTk.hidden = true;
+      }
     }
-    g.innerHTML = html;
   }
 
   function applySkin() {
@@ -2184,7 +2666,14 @@
   }
   function applyMotion() {
     document.documentElement.dataset.motion = st.motion;
-    const b = $('#motion'); if (b) { b.innerHTML = `${esc(cp('motionWord'))} <b>${esc(st.motion === 'on' ? cp('motionOn') : cp('motionOff'))}</b>`; b.setAttribute('aria-pressed', String(st.motion === 'on')); }
+    applyBgParallax(st.tab);
+    const b = $('#motion');
+    if (b) {
+      const label = st.motion === 'on' ? cp('motionOn') : st.motion === 'calm' ? cp('motionCalm') : cp('motionOff');
+      b.innerHTML = `${esc(cp('motionWord'))} <b>${esc(label)}</b>`;
+      b.dataset.motionMode = st.motion;
+      b.setAttribute('aria-pressed', String(st.motion !== 'off'));
+    }
     store.set(LS_MOTION, st.motion);
   }
   const asofText = () => String(S['자료시각'] || '').replace('T', ' ').slice(0, 16);
@@ -2278,57 +2767,252 @@
     positionPop(pop, btnEl);
   }
 
-  let tipAnchor = null, touchTimer = 0, scrollMuteUntil = 0;
-  function showHudTip(el) {
-    const tip = $('#hud-tip');
-    const text = el && el.dataset && el.dataset.tip;
-    if (!tip || !text) return;
-    const r = el.getBoundingClientRect();
-    const minTop = 30;
-    if (r.width < 1 || r.bottom <= minTop || r.top >= innerHeight) { hideHudTip(); return; }
-    tipAnchor = el;
-    tip.textContent = text;
-    tip.hidden = false;
-    const tw = tip.offsetWidth || 220, th = tip.offsetHeight || 36;
-    const left = Math.max(10, Math.min(innerWidth - tw - 10, Math.round(r.left + r.width / 2 - tw / 2)));
-    const top = r.top - th - 8 >= minTop ? Math.round(r.top - th - 8) : Math.min(innerHeight - th - 8, Math.max(minTop, Math.round(r.bottom + 8)));
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
+  // ---------- 이름표(#hud-tip), 조준 표식(#aim-reticle), 문지르기([data-scrub-row]) ----------
+  let tipAnchor = null, curAimEl = null, scrollMuteUntil = 0, suppressClickUntil = 0;
+  let touchScrub = null;
+
+  function buildTipHTML(el) {
+    if (!el || !el.dataset) return '';
+    const ttl = el.dataset.tipTitle;
+    const sub = el.dataset.tipSub;
+    const chip = el.dataset.tipChip;
+    const badge = el.dataset.tipBadge;
+    if (ttl || sub || chip || badge) {
+      const chips = [];
+      if (chip) chips.push(verdict(chip));
+      if (badge) chips.push(tag(badge));
+      return `${ttl ? `<span class="ht-t">${esc(ttl)}</span>` : ''}${sub ? `<span class="ht-s">${esc(sub)}</span>` : ''}${chips.length ? `<span class="ht-b">${chips.join('')}</span>` : ''}`;
+    }
+    const text = el.dataset.tip;
+    return text ? esc(text) : '';
   }
+
+  function measureBoxRect(el) {
+    if (!el || !el.isConnected) return null;
+    const boxEl = el.querySelector('[data-aim-box]') || el;
+    return boxEl.getBoundingClientRect();
+  }
+
+  function showHudTip(el, preRect) {
+    const tip = $('#hud-tip');
+    if (!tip || !el || !el.isConnected) return;
+    if (el === tipAnchor && !tip.hidden) return;
+    const html = buildTipHTML(el);
+    if (!html) { hideHudTip(); return; }
+    const r = preRect || measureBoxRect(el);
+    const minTop = 30;
+    if (!r || r.width < 1 || r.bottom <= minTop || r.top >= innerHeight) { hideHudTip(); return; }
+    tipAnchor = el;
+    const halfClamp = Math.min(180, Math.floor(innerWidth * 0.42));
+    const cx = Math.max(halfClamp, Math.min(innerWidth - halfClamp, Math.round(r.left + r.width / 2)));
+    const above = r.top >= 96;
+    const ty = above ? Math.round(r.top - 10) : Math.min(innerHeight - 36, Math.max(minTop, Math.round(r.bottom + 10)));
+    tip.style.setProperty('--tip-x', cx + 'px');
+    tip.style.setProperty('--tip-y', ty + 'px');
+    tip.style.setProperty('--tip-vy', above ? '-100%' : '0%');
+    tip.innerHTML = html;
+    tip.hidden = false;
+  }
+
   function hideHudTip() {
-    clearTimeout(touchTimer);
     tipAnchor = null;
     const tip = $('#hud-tip');
     if (tip) tip.hidden = true;
   }
+
+  function refreshAimReticle(preRect) {
+    if (!curAimEl || !curAimEl.isConnected) { hideAimReticle(); return; }
+    const ret = $('#aim-reticle');
+    if (!ret) return;
+    if (curAimEl.dataset.nodata === '1' || curAimEl.getAttribute('aria-disabled') === 'true') {
+      ret.hidden = true;
+      return;
+    }
+    const r = preRect || measureBoxRect(curAimEl);
+    if (!r || r.width < 2 || r.height < 2 || r.bottom < 24 || r.top > innerHeight) {
+      ret.hidden = true;
+      return;
+    }
+    const wasHidden = ret.hidden;
+    ret.dataset.shape = curAimEl.dataset.aim === 'circle' ? 'circle' : 'rect';
+    ret.classList.toggle('is-sel-aim', curAimEl.classList.contains('is-sel'));
+    ret.style.setProperty('--ar-w', Math.round(r.width) + 'px');
+    ret.style.setProperty('--ar-h', Math.round(r.height) + 'px');
+    if (wasHidden) {
+      ret.style.transition = 'none';
+      ret.classList.remove('is-tight', 'is-press');
+    }
+    ret.style.setProperty('--ar-x', Math.round(r.left) + 'px');
+    ret.style.setProperty('--ar-y', Math.round(r.top) + 'px');
+    ret.hidden = false;
+    if (wasHidden) {
+      requestAnimationFrame(() => {
+        ret.style.transition = '';
+        if (!ret.hidden) ret.classList.add('is-tight');
+      });
+    } else {
+      ret.classList.add('is-tight');
+    }
+  }
+
+  function setAimTarget(el, preRect) {
+    if (el === curAimEl) return;
+    const r = el ? (preRect || measureBoxRect(el)) : null;
+    const prev = curAimEl;
+    if (prev) prev.classList.remove('is-aim');
+    curAimEl = el || null;
+    if (curAimEl) {
+      curAimEl.classList.add('is-aim');
+      refreshAimReticle(r);
+    } else {
+      const ret = $('#aim-reticle');
+      if (ret) { ret.hidden = true; ret.classList.remove('is-tight', 'is-press'); }
+    }
+    emit('aim', curAimEl, prev);
+  }
+
+  function hideAimReticle() {
+    if (curAimEl) setAimTarget(null);
+    else {
+      const ret = $('#aim-reticle');
+      if (ret) { ret.hidden = true; ret.classList.remove('is-tight', 'is-press'); }
+    }
+  }
+
+  function findScrubCandidate(rowEl, clientX) {
+    const key = innerWidth + '|' + Math.round(window.scrollY || 0) + '|' + rowEl.childElementCount;
+    let zones = rowEl._scrubKey === key ? rowEl._scrubZones : null;
+    if (!zones) {
+      zones = [];
+      $$('[data-aim],[data-pick]', rowEl).forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (r.width >= 1 && r.height >= 1) zones.push({ el, left: r.left, right: r.right });
+      });
+      rowEl._scrubKey = key;
+      rowEl._scrubZones = zones;
+    }
+    if (!zones.length) return null;
+    let best = null, bestDist = Infinity;
+    for (let i = 0; i < zones.length; i++) {
+      const z = zones[i];
+      if (clientX >= z.left && clientX <= z.right) return z.el;
+      const dist = clientX < z.left ? (z.left - clientX) : (clientX - z.right);
+      if (dist < bestDist) { bestDist = dist; best = z.el; }
+    }
+    return bestDist <= 42 ? best : null;
+  }
+
   document.addEventListener('pointerover', e => {
     if (e.pointerType === 'touch' || performance.now() < scrollMuteUntil) return;
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    if (el) showHudTip(el); else if (tipAnchor) hideHudTip();
+    const aimEl = e.target.closest && e.target.closest('[data-aim]');
+    const tipEl = (e.target.closest && e.target.closest('[data-tip],[data-tip-title]'))
+      || (aimEl && (aimEl.dataset.tip || aimEl.dataset.tipTitle) ? aimEl : null);
+    // 쓰기 전에 필요한 좌표를 한꺼번에 읽어 강제 동기 레이아웃을 0으로 만든다
+    const aimChanged = aimEl && aimEl !== curAimEl;
+    const tipChanged = tipEl && (tipEl !== tipAnchor || ($('#hud-tip') && $('#hud-tip').hidden));
+    const aimRect = aimChanged ? measureBoxRect(aimEl) : null;
+    const tipRect = tipChanged ? (tipEl === aimEl && aimRect ? aimRect : measureBoxRect(tipEl)) : null;
+
+    if (aimEl) setAimTarget(aimEl, aimRect);
+    else if (curAimEl && !e.target.closest('[data-scrub-row]')) hideAimReticle();
+    if (tipEl) showHudTip(tipEl, tipRect);
+    else if (tipAnchor && !e.target.closest('[data-scrub-row]')) hideHudTip();
   });
+
+  document.addEventListener('pointermove', e => {
+    if (performance.now() < scrollMuteUntil) return;
+    if (e.pointerType === 'touch') {
+      if (!touchScrub || touchScrub.id !== e.pointerId) return;
+      const dx = e.clientX - touchScrub.x0, dy = e.clientY - touchScrub.y0;
+      if (!touchScrub.active) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { touchScrub = null; return; }
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) touchScrub.active = true;
+      }
+      if (touchScrub && touchScrub.active) {
+        const cand = findScrubCandidate(touchScrub.row, e.clientX);
+        if (cand && cand !== curAimEl) {
+          const r = measureBoxRect(cand);
+          setAimTarget(cand, r);
+          showHudTip(cand, r);
+        }
+      }
+      return;
+    }
+    const scrubRow = e.target.closest && e.target.closest('[data-scrub-row]');
+    if (scrubRow) {
+      const direct = e.target.closest && e.target.closest('[data-aim],[data-pick]');
+      const cand = direct || findScrubCandidate(scrubRow, e.clientX);
+      if (cand && (cand !== curAimEl || cand !== tipAnchor)) {
+        const r = measureBoxRect(cand);
+        if (cand.dataset.aim) setAimTarget(cand, r);
+        if (cand.dataset.tip || cand.dataset.tipTitle) showHudTip(cand, r);
+      }
+    }
+  }, { passive: true });
+
   document.addEventListener('pointerout', e => {
-    if (tipAnchor && (!e.relatedTarget || !tipAnchor.contains(e.relatedTarget))) hideHudTip();
+    if (e.pointerType === 'touch') return;
+    const rel = e.relatedTarget;
+    if (curAimEl && (!rel || (!curAimEl.contains(rel) && !(rel.closest && rel.closest('[data-scrub-row]'))))) {
+      const nextAim = rel && rel.closest && rel.closest('[data-aim]');
+      if (!nextAim) hideAimReticle();
+    }
+    if (tipAnchor && (!rel || (!tipAnchor.contains(rel) && !(rel.closest && rel.closest('[data-scrub-row]'))))) {
+      const nextTip = rel && rel.closest && rel.closest('[data-tip],[data-tip-title]');
+      if (!nextTip) hideHudTip();
+    }
   });
+
+  document.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') {
+      const scrubRow = e.target.closest && e.target.closest('[data-scrub-row]');
+      if (scrubRow) {
+        touchScrub = { id: e.pointerId, row: scrubRow, x0: e.clientX, y0: e.clientY, active: false };
+      } else {
+        touchScrub = null;
+      }
+      return;
+    }
+    const ret = $('#aim-reticle');
+    if (ret && !ret.hidden && curAimEl && curAimEl.dataset.nodata !== '1') ret.classList.add('is-press');
+  }, { passive: true });
+
+  function finishPointerPress(e) {
+    const ret = $('#aim-reticle');
+    if (ret) ret.classList.remove('is-press');
+    if (e && e.pointerType === 'touch' && touchScrub && touchScrub.id === e.pointerId) {
+      const wasActive = touchScrub.active;
+      const picked = curAimEl;
+      touchScrub = null;
+      if (wasActive) {
+        suppressClickUntil = performance.now() + 380;
+        hideAimReticle();
+        hideHudTip();
+        if (picked && picked.dataset.pick && picked.dataset.nodata !== '1') {
+          select(picked.dataset.pick, { focus: true });
+        }
+      }
+    }
+  }
+  document.addEventListener('pointerup', finishPointerPress, { passive: true });
+  document.addEventListener('pointercancel', finishPointerPress, { passive: true });
+
   document.addEventListener('focusin', e => {
     if (e.target.matches && !e.target.matches(':focus-visible')) return;
-    const el = e.target.closest && e.target.closest('[data-tip]');
+    const aimEl = e.target.closest && e.target.closest('[data-aim]');
+    if (aimEl) setAimTarget(aimEl);
+    const el = e.target.closest && e.target.closest('[data-tip],[data-tip-title]');
     if (el) showHudTip(el);
   });
-  document.addEventListener('focusout', () => hideHudTip());
-  document.addEventListener('touchstart', e => {
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    clearTimeout(touchTimer);
-    if (el) touchTimer = setTimeout(() => showHudTip(el), 320);
-  }, { passive: true });
-  document.addEventListener('touchmove', () => clearTimeout(touchTimer), { passive: true });
-  document.addEventListener('touchend', () => clearTimeout(touchTimer), { passive: true });
+  document.addEventListener('focusout', () => { hideAimReticle(); hideHudTip(); });
 
-  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 250; closeHelp(false); hideHudTip(); }, { passive: true });
-  on('tab', () => { closeHelp(false); hideHudTip(); });
-  on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideHudTip(); });
+  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 220; closeHelp(false); hideAimReticle(); hideHudTip(); }, { passive: true });
+  on('tab', () => { closeHelp(false); hideAimReticle(); hideHudTip(); });
+  on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideAimReticle(); hideHudTip(); });
 
   // ---------- 위임 클릭과 키보드 ----------
   document.addEventListener('click', e => {
+    if (performance.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); return; }
     hideHudTip();
     const mc = e.target.closest('[data-modal-close]');
     if (mc) { e.stopPropagation(); closeModal(true); return; }
@@ -2368,12 +3052,8 @@
     if (rt) {
       e.stopPropagation();
       const id = rt.dataset.rtab;
-      if (id === 'brief') {
-        returnToHome(st.tab);
-        return;
-      }
-      if (st.tab === id && st.sel[id] == null && !st.grp[id]) {
-        returnToHome(id);
+      if (id === 'brief' || st.tab === id) {
+        returnToHome(st.tab === 'brief' ? id : st.tab);
         return;
       }
       set({ tab: id });
@@ -2434,7 +3114,17 @@
 
     const p = e.target.closest('#z-center [data-pick]');
     if (p && !e.target.closest('.live')) {
+      if (p.dataset.nodata === '1') { showHudTip(p); return; }
       select(p.dataset.pick, { focus: true, toggleOff: p.dataset.toggle === '1' });
+      return;
+    }
+    const sr = e.target.closest('#z-center [data-scrub-row]');
+    if (sr && !e.target.closest('button,a,input,select,.live')) {
+      const cand = findScrubCandidate(sr, e.clientX);
+      if (cand && cand.dataset.pick) {
+        if (cand.dataset.nodata === '1') { showHudTip(cand); return; }
+        select(cand.dataset.pick, { focus: true, toggleOff: cand.dataset.toggle === '1' });
+      }
     }
   });
 
@@ -2533,11 +3223,13 @@
   function boot() {
     const saved = { skin: store.get(LS_SKIN), motion: store.get(LS_MOTION) };
     if (saved.skin === 'dark' || saved.skin === 'light') st.skin = saved.skin;
-    if (saved.motion === 'on' || saved.motion === 'off') st.motion = saved.motion;
-    else if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) st.motion = 'off';
+    if (saved.motion === 'on' || saved.motion === 'calm' || saved.motion === 'off') st.motion = saved.motion;
+    else if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) st.motion = 'calm';
+    else st.motion = 'on';
     const initHash = decodeHash(location.hash);
     Object.assign(st, initHash.patch);
     lastRenderedTab = st.tab;
+    activeRenderedTab = st.tab;
     if (initHash.grp != null) st.grp[st.tab] = initHash.grp;
     if (initHash.pick != null) st.sel[st.tab] = initHash.pick;
     if (st.since == null) st.surg = false;
@@ -2569,10 +3261,19 @@
     ensureLegacySections();
 
     $('#skin').addEventListener('click', () => set({ skin: st.skin === 'dark' ? 'light' : 'dark' }));
-    $('#motion').addEventListener('click', () => set({ motion: st.motion === 'on' ? 'off' : 'on' }));
+    $('#motion').addEventListener('click', () => {
+      const next = st.motion === 'on' ? 'calm' : st.motion === 'calm' ? 'off' : 'on';
+      set({ motion: next });
+    });
     $('#ev-x').addEventListener('click', () => unselect({ restoreFocus: true }));
+    const rtabsEl = $('#rtabs'), rtCueL = $('#rt-cue-l'), rtCueR = $('#rt-cue-r');
+    if (rtabsEl) {
+      rtabsEl.addEventListener('scroll', () => { syncRtabsCue(false); placeGuides(); }, { passive: true });
+    }
+    if (rtCueL && rtabsEl) rtCueL.addEventListener('click', () => rtabsEl.scrollBy({ left: -160, behavior: motionOn() ? 'smooth' : 'auto' }));
+    if (rtCueR && rtabsEl) rtCueR.addEventListener('click', () => rtabsEl.scrollBy({ left: 160, behavior: motionOn() ? 'smooth' : 'auto' }));
     const zc = $('#z-center');
-    if (zc) zc.addEventListener('scroll', () => requestAnimationFrame(updateSelLink), { passive: true });
+    if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
     const evBody = $('#ev-body'), zrMore = $('#zr-more');
     if (evBody) {
       evBody.addEventListener('scroll', syncRightScrollCue, { passive: true });
@@ -2584,30 +3285,36 @@
 
     let rz = 0, lastMode = mode();
     addEventListener('resize', () => {
+      syncRtabsCue(false);
       clearTimeout(rz);
       rz = setTimeout(() => {
         const m = mode();
-        if (m !== lastMode) { if (m !== 'sheet') hideEv(); lastMode = m; }
-        closeHelp(false); hideHudTip();
-        sheetPad(); placeGuides(); updateSelLink(); syncRightScrollCue(); emit('resize', m);
+        if (m !== lastMode) {
+          if (m !== 'sheet') hideEv();
+          lastMode = m;
+          if (st.tab !== 'brief' && st.sel[st.tab] != null) applySelectionState(false);
+        }
+        closeHelp(false); hideAimReticle(); hideHudTip();
+        syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);
     });
 
     booted = true;
     try { history.replaceState({ c4: 1 }, '', encodeHash()); } catch (e) { /* */ }
     renderActiveScreen(ctx(), 'tab');
-    setTimeout(() => { placeGuides(); updateSelLink(); syncRightScrollCue(); }, 50);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(); });
+    setTimeout(() => { placeGuides(); updateSelLink(false); syncRightScrollCue(); }, 50);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(false); });
   }
 
   window.App = {
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
     set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal,
-    openModal, closeModal, updateSelLink,
+    openModal, closeModal, updateSelLink, flipElement, countUp,
+    aim: { set: setAimTarget, hide: hideAimReticle, showTip: showHudTip, hideTip: hideHudTip },
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
-    ui: UI, txt: TXT, mode, motionOn,
-    cellOf, cellCounts, gateFlowRows, coverStageStacks, firstSentence,
+    ui: UI, txt: TXT, mode, motionOn, motionRich, motionScale,
+    cellOf, cellCounts, gateFlowRows, coverStageStacks, scopedPairs, firstSentence,
     segPatch, segPatchText, samePatch, activePeerOrgs, activeOrgs, orgSector, inScope, filterScopeCodes, ringTabMetrics,
     limitOf, mapOf, condSummary, condSegOnly, scopeLine, asofText,
     copyText, copyRows, copyTable, print, toast, fitSel,

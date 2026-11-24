@@ -4,15 +4,16 @@
 .home-panel[hidden]{display:none!important}
 
 .hm-stage{display:grid;grid-template-rows:62% 38%;min-height:clamp(540px,calc(100vh - 216px),700px)}
-.hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.38fr 1.02fr 1.04fr 1fr 0.80fr;
-  align-items:stretch;border-bottom:2px solid var(--axis)}
+.hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.44fr 1.04fr 1.02fr 0.98fr 0.76fr;
+  align-items:stretch;border-bottom:2px solid var(--axis);padding-left:28px}
+.hm-ruler{height:124px;left:0;bottom:0}
 .hm-grp{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;
   min-width:0;padding:18px 18px 0;border:0;border-left:1px solid var(--line-2);background:transparent;
   color:var(--ink-0);text-align:left;transition:color 180ms var(--ease)}
-.hm-grp:first-child{border-left:0;padding-left:4px}
-.hm-grp:last-child{padding-right:4px}
+.hm-grp:first-of-type{border-left:0;padding-left:4px}
+.hm-grp:last-of-type{padding-right:4px}
 .hm-grp > .flag{left:18px;top:2px}
-.hm-grp:first-child > .flag{left:4px}
+.hm-grp:first-of-type > .flag{left:4px}
 
 .hm-head{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .hm-big{display:inline-flex;align-items:baseline;font:400 56px/1 var(--f-num);font-variant-numeric:tabular-nums;
@@ -22,16 +23,21 @@
 .hm-name{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:600 16px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
 .hm-sub{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
 
-/* DNA 기록 화면의 마름모 + 세로 눈금선(올리거나 포커스하면 빨강으로 올라온다) */
-.hm-stem{position:relative;display:block;width:1px;height:28px;margin:8px 0 6px 12px;background:var(--line-2);
-  transition:height 180ms var(--ease),background 180ms var(--ease)}
+/* DNA 기록 화면의 마름모 + 세로 눈금선(높이 대신 transform:scaleY 로 자라게 하여 레이아웃 유발 0) */
+.hm-stem{position:relative;display:block;width:1px;height:36px;margin:4px 0 6px 12px;background:var(--line-2);
+  transform-origin:bottom center;transform:scaleY(.78);
+  transition:transform 120ms var(--ease-in),background-color 120ms var(--ease-in)}
 .hm-dia{position:absolute;left:-3.5px;top:-8px;width:8px;height:8px;border:1px solid var(--ink-2);background:transparent;
-  transform:rotate(45deg);transition:background 180ms var(--ease),border-color 180ms var(--ease),transform 180ms var(--ease)}
-.hm-grp:hover .hm-stem,.hm-grp:focus-visible .hm-stem{height:36px;background:var(--red)}
-.hm-grp:hover .hm-dia,.hm-grp:focus-visible .hm-dia{background:var(--red);border-color:var(--red);transform:translateY(-2px) rotate(45deg)}
+  transform:rotate(45deg);transition:background-color 120ms var(--ease-in),border-color 120ms var(--ease-in),transform 120ms var(--ease-in)}
+.hm-grp:hover .hm-stem,.hm-grp:focus-visible .hm-stem,.hm-grp.is-aim .hm-stem{transform:scaleY(1);background:var(--red)}
+.hm-grp:hover .hm-dia,.hm-grp:focus-visible .hm-dia,.hm-grp.is-aim .hm-dia{background:var(--red);border-color:var(--red);transform:translateY(-2px) rotate(45deg)}
 
-.hm-pils{width:100%;display:flex;align-items:flex-end;min-height:132px;overflow:visible}
-.hm-svg{display:block;max-width:100%;height:auto;overflow:visible}
+.hm-pils{position:relative;width:100%;display:flex;align-items:flex-end;min-height:124px;margin-bottom:-8px;overflow:visible}
+.hm-svg{display:block;height:132px;width:auto;max-width:100%;overflow:visible}
+.hm-bar-g{transform-box:fill-box;transform-origin:center bottom}
+.hm-enter .hm-bar-g{animation:hmPilRise 360ms var(--ease-in) both;animation-delay:var(--pd,0ms)}
+:root[data-motion="calm"] .hm-enter .hm-bar-g{animation-duration:200ms}
+@keyframes hmPilRise{from{opacity:0;transform:scaleY(0.08)}to{opacity:1;transform:none}}
 
 .hm-read{display:flex;flex-direction:column;justify-content:flex-start;gap:6px;padding:20px 4px 8px;background:transparent}
 .hm-read-main{margin:0;max-width:1280px;font:400 15.5px/1.62 var(--f-body);color:var(--ink-0);word-break:keep-all}
@@ -46,7 +52,8 @@
 }
 @media (max-width:999px){
   .hm-stage{display:flex;flex-direction:column;min-height:0;gap:12px}
-  .hm-axis-wrap{display:flex;flex-direction:column;border-bottom:0;gap:14px}
+  .hm-axis-wrap{display:flex;flex-direction:column;border-bottom:0;gap:14px;padding-left:0}
+  .hm-ruler{display:none}
   .hm-grp{border-left:0;border-bottom:2px solid var(--axis);padding:20px 0 0}
   .hm-grp > .flag{left:0;top:2px}
   .hm-big{font-size:42px}
@@ -75,12 +82,3 @@
   .hp-row{grid-template-columns:34px minmax(0,1fr) 18px;padding:10px 12px;gap:4px 10px}
   .hp-sent{grid-column:1/-1;padding-left:44px;font-size:13.5px}
 }
-
-/* 관계 지도 탭(사각 면 없이 선과 윤곽 노드로 표시) */
-.gr-stage{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:22px;min-height:100%;padding:20px 12px;text-align:center}
-.gr-svg{width:100%;max-width:540px;height:auto;display:block}
-.gr-svg .gr-ln{stroke:var(--ink-1);stroke-opacity:.75;stroke-width:1.4}
-.gr-svg .gr-box{fill:transparent;stroke:var(--ink-0);stroke-width:1.4}
-.gr-svg .gr-tx{fill:var(--ink-0);font:600 14px/1 var(--f-ko)}
-.gr-svg .gr-sub{fill:var(--ink-1);font:600 13px/1 var(--f-num)}
-.gr-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
