@@ -2393,16 +2393,21 @@
     body.scrollTop = 0;
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
     if (animate && motionOn()) {
-      const dist = isBand ? Math.max(zr.offsetHeight || 0, Math.abs((beforeZrTop != null ? beforeZrTop - zr.getBoundingClientRect().top : 0))) : 0;
+      const rawDy = (isBand && beforeZrTop != null) ? (beforeZrTop - zr.getBoundingClientRect().top) : 0;
+      const dist = isBand ? Math.max(zr.offsetHeight || 0, Math.abs(rawDy)) : 0;
       const { dur, easing } = panelTiming(true, dist);
       if (!wasPicked && dur > 0 && typeof zrIn.animate === 'function') {
         if (isBand) {
-          const rawDy = beforeZrTop != null ? (beforeZrTop - zr.getBoundingClientRect().top) : 0;
-          const dy = Math.abs(rawDy) >= 1 ? Math.max(-110, Math.min(110, rawDy)) : 14;
-          zr._evAnim = zr.animate([
-            { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
-            { transform: 'translate3d(0,0,0)' },
-          ], { duration: dur, easing });
+          const kfZr = Math.abs(rawDy) >= 1
+            ? [
+                { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 100% 0)' },
+                { transform: 'translate3d(0,0,0)', clipPath: 'inset(0 0 0% 0)' },
+              ]
+            : [
+                { clipPath: 'inset(0 0 100% 0)' },
+                { clipPath: 'inset(0 0 0% 0)' },
+              ];
+          zr._evAnim = zr.animate(kfZr, { duration: dur, easing });
           zrIn._evAnim = zrIn.animate([
             { transform: 'scaleY(0)', opacity: 0 },
             { transform: 'scaleY(1)', opacity: 1 },
@@ -2495,15 +2500,22 @@
         zrIn.hidden = false;
         zr.classList.add('is-picked');
         const rawDy = targetTop - curTop;
-        const dy = Math.abs(rawDy) >= 1 ? Math.max(-110, Math.min(110, rawDy)) : 14;
-        zr._evAnim = zr.animate([
-          { transform: 'translate3d(0,0,0)' },
-          { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
-        ], { duration: dur, easing });
+        const closeDist = Math.max(zr.offsetHeight || 0, Math.abs(rawDy));
+        const { dur: bandDur, easing: bandEasing } = panelTiming(false, closeDist);
+        const kfZr = Math.abs(rawDy) >= 1
+          ? [
+              { transform: 'translate3d(0,0,0)', clipPath: 'inset(0 0 0% 0)' },
+              { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 100% 0)' },
+            ]
+          : [
+              { clipPath: 'inset(0 0 0% 0)' },
+              { clipPath: 'inset(0 0 100% 0)' },
+            ];
+        zr._evAnim = zr.animate(kfZr, { duration: bandDur, easing: bandEasing });
         zrIn._evAnim = zrIn.animate([
           { transform: 'scaleY(1)', opacity: 1 },
           { transform: 'scaleY(0)', opacity: 0 },
-        ], { duration: dur, easing });
+        ], { duration: bandDur, easing: bandEasing });
       } else {
         zrIn._evAnim = zrIn.animate([
           { opacity: 1, transform: 'translate3d(0,0,0)' },
