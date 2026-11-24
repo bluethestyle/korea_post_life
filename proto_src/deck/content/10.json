@@ -1,0 +1,137 @@
+{
+ "no": 10,
+ "id": "timeline",
+ "kind": "body",
+ "chapter": 3,
+ "status": "new",
+ "headline": "{{fact:project_days.days}}일 동안 실무자의 지적을 AI와 의논하며 설계를 크게 다섯 번 고쳤습니다",
+ "diagram": [
+  {
+   "use": "C8",
+   "box": [
+    0,
+    0,
+    1340,
+    null
+   ],
+   "axis": [
+    "2026-11-18",
+    "2026-11-19",
+    "2026-11-20",
+    "2026-11-21",
+    "2026-11-22",
+    "2026-11-23",
+    "2026-11-24"
+   ],
+   "bars": [
+    {
+     "d": "2026-11-18",
+     "v": "{{fact:commits_by_date.2026-11-18}}"
+    },
+    {
+     "d": "2026-11-19",
+     "v": "{{fact:commits_by_date.2026-11-19}}"
+    },
+    {
+     "d": "2026-11-20",
+     "v": "{{fact:commits_by_date.2026-11-20}}"
+    },
+    {
+     "d": "2026-11-21",
+     "v": "{{fact:commits_by_date.2026-11-21}}"
+    },
+    {
+     "d": "2026-11-22",
+     "v": "{{fact:commits_by_date.2026-11-22}}"
+    },
+    {
+     "d": "2026-11-23",
+     "v": "{{fact:commits_by_date.2026-11-23}}"
+    },
+    {
+     "d": "2026-11-24",
+     "v": "{{fact:commits_by_date.2026-11-24}}"
+    }
+   ],
+   "flags": [
+    {
+     "d": "2026-11-18",
+     "label": "금액은 원문 글자로, 숫자는 코드가",
+     "tag": "AI 제안",
+     "who": "ai"
+    },
+    {
+     "d": "2026-11-19",
+     "label": "비교 대상을 생명, 손해보험 상위사로",
+     "tag": "실무자 제안",
+     "who": "human"
+    },
+    {
+     "d": "2026-11-20",
+     "label": "청약에서 영업 인사이트까지 한 흐름으로",
+     "tag": "실무자 지적",
+     "who": "human",
+     "hero": true
+    },
+    {
+     "d": "2026-11-20",
+     "label": "첫 자료는 AI 둘이 따로 옮겨 맞추기",
+     "tag": "실무자 제안",
+     "who": "human"
+    },
+    {
+     "d": "2026-11-23",
+     "label": "화면 구현은 화면 담당 AI에게",
+     "tag": "실무자 결정",
+     "who": "human"
+    }
+   ]
+  },
+  {
+   "use": "C10",
+   "size": "small",
+   "value": "{{fact:project_days.days}}",
+   "unit": "일",
+   "caption": "만든 기간",
+   "box": [
+    1420,
+    0,
+    340,
+    170
+   ]
+  },
+  {
+   "use": "C10",
+   "size": "small",
+   "value": "{{fact:commit_count}}",
+   "unit": "건",
+   "caption": "커밋",
+   "box": [
+    1420,
+    190,
+    340,
+    170
+   ]
+  },
+  {
+   "use": "C10",
+   "size": "small",
+   "value": "{{fact:test_count}}",
+   "unit": "개",
+   "caption": "자동 테스트",
+   "box": [
+    1420,
+    380,
+    340,
+    170
+   ]
+  }
+ ],
+ "points": [],
+ "terms": [
+  "커밋",
+  "테스트"
+ ],
+ "source": "출처: 커밋 기록(main, 한국 시간), 진행 기록의 결정, 자료 기준 {{asof:commit_count}}",
+ "notes": "막대는 날짜별 커밋 수이고, 깃발은 설계를 크게 바꾼 다섯 번의 결정입니다. 첫 깃발은 금액을 AI가 숫자로 바꿔 적던 방식을 원문 글자 그대로 받고 코드가 숫자로 읽는 방식으로 바꾼 것으로, 요약서 {{fact:text_switch_confirmed_rows.total}}행 가운데 확정 행이 {{fact:text_switch_confirmed_rows.before}}행에서 {{fact:text_switch_confirmed_rows.after}}행으로 늘어 정했습니다. 강조한 셋째 깃발은 인수기준 비교에서 영업 인사이트까지 한 흐름으로 이어져야 한다는 실무자의 지적을 Gemini 검토 모델과 의논해 합의안으로 정리한 것입니다. 비교 대상은 생명보험 {{fact:comparison_target_counts.생명보험}}개사, 손해보험 {{fact:comparison_target_counts.손해보험}}개사로 넓혔습니다. 커밋은 Claude {{fact:commits_by_author.Claude}}건, Antigravity {{fact:commits_by_author.Antigravity}}건, 자동 실행 봇 {{fact:commits_by_author.github-actions[bot]}}건으로 나뉘고, 자동 테스트는 매 단계 늘어 지금 {{fact:test_count}}개입니다. 마지막 날에는 관계 그래프 재설계를 검토하고 있습니다."
+}

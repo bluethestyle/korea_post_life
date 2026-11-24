@@ -1,0 +1,95 @@
+{
+ "no": 8,
+ "id": "demo",
+ "kind": "body",
+ "chapter": 2,
+ "status": "demo",
+ "headline": "조건 하나를 바꾸면 가입할 수 있는 회사가 바로 바뀝니다",
+ "diagram": [
+  {
+   "use": "C12",
+   "img": "tab_market",
+   "alt": "고객군과 시장 탭",
+   "box": [
+    0,
+    0,
+    1100,
+    620
+   ],
+   "marks": [
+    {
+     "n": 1,
+     "x": 0.79,
+     "y": 0.08,
+     "label": "조건 바꾸기"
+    },
+    {
+     "n": 2,
+     "x": 0.126,
+     "y": 0.427,
+     "label": "{{fact:example_gate_6months.cell.row}}"
+    }
+   ]
+  },
+  {
+   "use": "C4",
+   "mode": "result",
+   "box": [
+    1130,
+    0,
+    630,
+    420
+   ],
+   "cond": "예: {{fact:example_gate_6months.age}}세 남성, {{fact:example_gate_6months.cell.row}}",
+   "rows": [
+    {
+     "org": "EPOST",
+     "state": "closed",
+     "text": "{{fact:example_gate_6months.cell.orgs.EPOST}}"
+    },
+    {
+     "org": "HANWHALIFE",
+     "state": "open",
+     "hero": true,
+     "text": "간편심사 대상"
+    },
+    {
+     "org": "SAMSUNGFIRE",
+     "state": "closed",
+     "text": "{{fact:example_gate_6months.cell.orgs.SAMSUNGFIRE}}"
+    }
+   ],
+   "note": "{{fact:example_gate_6months.later.row}}이면 세 회사 모두 가입 가능"
+  },
+  {
+   "use": "button",
+   "box": [
+    1130,
+    450,
+    400,
+    70
+   ]
+  },
+  {
+   "use": "text",
+   "text": "발표자가 눌러 실제 화면으로 넘어갑니다",
+   "size": "s",
+   "tone": "muted",
+   "box": [
+    1130,
+    532,
+    630,
+    40
+   ]
+  }
+ ],
+ "points": [
+  "자료 기준일에 따라 결과가 바뀝니다"
+ ],
+ "terms": [],
+ "source": "공개 주소 {{fact:pages_status.url}}, 자료 기준 {{asof:example_gate_6months}}",
+ "notes": "이제 데모 열기 버튼으로 실제 화면을 새 창에서 열어 네 단계로 시연하겠습니다. 첫째, 조건을 {{fact:example_gate_6months.age}}세 남성, {{fact:example_gate_6months.cell.row}}으로 바꾸면 우체국 간편심사는 가입 제한으로 바뀌어 일반심사로 확인해야 하고, 타사 가운데 한화생명만 우체국에 없는 간편심사 유형 {{fact:example_gate_6months.cell.gate_only.0.simple_type}}으로 가입 가능하며 삼성화재는 가입 제한입니다. 입원 시점을 {{fact:example_gate_6months.later.row}}으로 바꾸면 세 회사 모두 가입 가능으로 바뀌는 것도 함께 보여 드릴 수 있습니다. 둘째, 담보 비교 탭에서 앞 장의 암 수술비 행을 열어 면책기간, 감액기간, 기준 가입금액과 함께 적은 지급액을 봅니다. 셋째, 영업 인사이트 탭에서 인사이트를 하나 골라 근거 문서와 쪽수를 확인하고 응대 화법 A4를 엽니다. 넷째, 관계 그래프 탭에서 암보장을 펼치고 일반암 진단비를 고르면 우체국은 암진단특약(갱신형)의 암진단보험금으로 연결되고, 한화생명의 해당 종형은 인수기준만 수집한 종형이라 담보는 비교하지 않는다는 표시가 함께 나옵니다. 화면 위에는 공모전 시연용 화면이며 영업 자료가 아니라는 고지가 늘 보입니다.",
+ "frame": {
+  "top": 240
+ }
+}

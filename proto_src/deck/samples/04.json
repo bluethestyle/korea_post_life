@@ -1,0 +1,33 @@
+{
+ "no": 4,
+ "id": "sample-04",
+ "kind": "body",
+ "chapter": 2,
+ "status": "revised",
+ "headline": "공시 문서를 넣으면 일곱 단계를 거쳐 비교 화면과 응대 화법이 나옵니다",
+ "diagram": [
+  {
+   "use": "C2",
+   "mode": "full",
+   "roles_preview": true,
+   "bracket": {
+    "from": 6,
+    "to": 7,
+    "label": "결과물: 지점 창구와 설계사에게 전달"
+   },
+   "box": [
+    0,
+    20,
+    1760,
+    560
+   ]
+  }
+ ],
+ "terms": [
+  "마스터 데이터",
+  "스냅샷",
+  "관계 그래프"
+ ],
+ "source": "출처: docs/submission.md 4절, docs/planning.md 5.1절",
+ "notes": "견본: C2 full. 상자 아래 회색 아이콘은 단계마다 AI, 코드, 사람 가운데 누가 일하는지(색은 12장에서 켠다)."
+}

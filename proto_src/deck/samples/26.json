@@ -1,0 +1,111 @@
+{
+ "no": 26,
+ "id": "sample-26",
+ "kind": "body",
+ "chapter": 7,
+ "status": "revised",
+ "headline": "공시 문서의 조건을 근거 쪽수와 함께 한 화면에서",
+ "diagram": [
+  {
+   "use": "C2",
+   "mode": "mini",
+   "box": [
+    0,
+    0,
+    1760,
+    44
+   ]
+  },
+  {
+   "use": "C1",
+   "mode": "answers",
+   "box": [
+    0,
+    70,
+    1340,
+    null
+   ],
+   "answers": [
+    {
+     "n": 1,
+     "a": "차이는 수백 쪽 문서 속 문장에 있습니다",
+     "ref": [
+      2
+     ]
+    },
+    {
+     "n": 2,
+     "a": "공시 문서를 넣으면 비교 화면과 응대 화법이 나옵니다",
+     "ref": [
+      4
+     ]
+    },
+    {
+     "n": 3,
+     "a": "사람 한 명이 정하고 AI 여럿이 나눠 만들었습니다",
+     "ref": [
+      9
+     ]
+    },
+    {
+     "n": 4,
+     "a": "글을 쓰지 않고 확률만 매기는 AI로 채점합니다",
+     "ref": [
+      14,
+      17
+     ]
+    },
+    {
+     "n": 5,
+     "a": "다른 담보 이름을 표준담보로 맞추고 이었습니다",
+     "ref": [
+      19,
+      20
+     ]
+    },
+    {
+     "n": 6,
+     "a": "원문 대조 {{fact:epost_summary_rows_matched.matched}}/{{fact:epost_summary_rows_matched.total}}, 운영 API 비용 {{fact:operating_cost_won}}원",
+     "ref": [
+      22,
+      23
+     ]
+    }
+   ]
+  },
+  {
+   "use": "button",
+   "hero": true,
+   "box": [
+    1400,
+    70,
+    360,
+    70
+   ]
+  },
+  {
+   "use": "links",
+   "box": [
+    1400,
+    170,
+    360,
+    300
+   ],
+   "items": [
+    {
+     "l": "데모",
+     "v": "proto/console4.html"
+    },
+    {
+     "l": "자료 기준",
+     "v": "{{asof:snapshot_at}}"
+    }
+   ]
+  }
+ ],
+ "points": [
+  "공모전 시연용 화면이며 영업 자료가 아닙니다."
+ ],
+ "source": "공개 주소 {{fact:pages_status.url}}",
+ "notes": "견본: 일곱 단계 작은 판을 얇게 다시 보이고 C1 답 판, 데모 버튼."
+}

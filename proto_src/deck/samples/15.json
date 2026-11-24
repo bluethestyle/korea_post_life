@@ -1,0 +1,96 @@
+{
+ "no": 15,
+ "id": "sample-15",
+ "kind": "body",
+ "chapter": 4,
+ "status": "new",
+ "headline": "글로 답하는 AI의 약점을 메우려고, {{ref:jev_release.year}}년 가을 판정만 하는 AI가 잇따라 나왔습니다",
+ "diagram": [
+  {
+   "use": "C8",
+   "box": [
+    0,
+    0,
+    1760,
+    270
+   ],
+   "dots": [
+    {
+     "d": "{{ref:openai_calibration_2023.date}}",
+     "label": "{{ref:openai_calibration_2023.text}}",
+     "src": "OpenAI"
+    },
+    {
+     "d": "{{ref:openai_structured_2024.date}}",
+     "label": "{{ref:openai_structured_2024.text}}",
+     "src": "OpenAI"
+    },
+    {
+     "d": "{{ref:jev_release.date}}",
+     "label": "판정만 하는 AI {{ref:jev_release.model}} 공개",
+     "src": "TypeSafe AI"
+    },
+    {
+     "d": "{{ref:gemini_decision_release.date}}",
+     "label": "{{ref:gemini_decision_release.model}} 공개, 이 앱이 쓴 모델",
+     "src": "Google",
+     "hero": true
+    }
+   ]
+  },
+  {
+   "use": "chip",
+   "text": "{{ref:decision_model_use_cases.0}}",
+   "box": [
+    0,
+    300,
+    410,
+    60
+   ]
+  },
+  {
+   "use": "chip",
+   "text": "{{ref:decision_model_use_cases.1}}",
+   "box": [
+    450,
+    300,
+    410,
+    60
+   ]
+  },
+  {
+   "use": "chip",
+   "text": "{{ref:decision_model_use_cases.2}}",
+   "box": [
+    900,
+    300,
+    410,
+    60
+   ]
+  },
+  {
+   "use": "chip",
+   "text": "보험 예: {{ref:insurance_underwriting_example}}",
+   "box": [
+    1350,
+    300,
+    410,
+    100
+   ]
+  },
+  {
+   "use": "text",
+   "tone": "muted",
+   "size": "s",
+   "text": "업체가 밝힌 성능 수치는 옮기지 않았습니다. 기준값은 이 앱의 자료로 다시 맞췄습니다.",
+   "box": [
+    0,
+    440,
+    1760,
+    40
+   ]
+  }
+ ],
+ "source": "",
+ "notes": "견본: C8 점 연표. 보도 기준 배지는 refs 의 press 값에 자동으로 붙고, 꼬리말에 출처 도메인이 붙는다."
+}

@@ -1,0 +1,165 @@
+{
+ "no": 19,
+ "id": "sample-19",
+ "kind": "body",
+ "chapter": 5,
+ "status": "new",
+ "headline": "온톨로지는 이름과 관계의 약속, 지식그래프는 그 약속대로 이은 지도입니다",
+ "diagram": [
+  {
+   "use": "C6",
+   "box": [
+    0,
+    0,
+    1760,
+    null
+   ],
+   "panels": [
+    {
+     "figure": {
+      "use": "C9",
+      "layout": "legend",
+      "captions": [
+       "온톨로지 = 범례",
+       "지식그래프 = 노선도"
+      ],
+      "node_kinds": [
+       {
+        "label": "회사",
+        "shape": "square"
+       },
+       {
+        "label": "상품",
+        "shape": "diamond"
+       },
+       {
+        "label": "담보",
+        "shape": "circle"
+       }
+      ],
+      "edge_kinds": [
+       {
+        "label": "판매",
+        "style": "solid"
+       },
+       {
+        "label": "포함",
+        "style": "dash"
+       }
+      ],
+      "graph": {
+       "nodes": [
+        {
+         "id": "a",
+         "label": "우체국",
+         "shape": "square"
+        },
+        {
+         "id": "b",
+         "label": "한화생명",
+         "shape": "square"
+        },
+        {
+         "id": "c",
+         "label": "암 수술비",
+         "shape": "circle",
+         "hero": false
+        },
+        {
+         "id": "d",
+         "label": "종형",
+         "shape": "diamond"
+        },
+        {
+         "id": "e",
+         "label": "종형",
+         "shape": "diamond"
+        }
+       ],
+       "edges": [
+        {
+         "from": "a",
+         "to": "d"
+        },
+        {
+         "from": "b",
+         "to": "e"
+        },
+        {
+         "from": "d",
+         "to": "c",
+         "style": "dash"
+        },
+        {
+         "from": "e",
+         "to": "c",
+         "style": "dash"
+        }
+       ]
+      }
+     },
+     "chip": "노선도와 범례",
+     "line": "범례대로 실제 사실을 점과 선으로 채운 것이 지식그래프입니다",
+     "src": "정의: {{ref:kg_definition.cite}}, {{ref:ontology_definition.cite}}"
+    },
+    {
+     "figure": {
+      "use": "C8",
+      "dots": [
+       {
+        "d": "{{ref:kg_google_2012.year}}",
+        "label": "{{ref:kg_google_2012.text}}"
+       },
+       {
+        "d": "{{ref:gql_2024.year}}",
+        "label": "점과 선 데이터의 국제 표준 질의 언어"
+       },
+       {
+        "d": "{{ref:graphrag_2024.year}}",
+        "label": "AI가 지도를 먼저 만들고 답함"
+       }
+      ]
+     },
+     "line": "{{ref:graphrag_not_always_better}}",
+     "src": "출처: 각 발표와 논문"
+    },
+    {
+     "figure": {
+      "use": "C9",
+      "layout": "ladder",
+      "nodes": [
+       {
+        "label": "회사"
+       },
+       {
+        "label": "종형"
+       },
+       {
+        "label": "급부",
+        "count": "{{fact:graph_nodes_by_kind.급부}}"
+       },
+       {
+        "label": "표준담보",
+        "count": "{{fact:standard_coverage_in_use}}",
+        "hero": true
+       },
+       {
+        "label": "보장 대분류",
+        "count": "{{fact:coverage_major_class_count}}"
+       }
+      ]
+     },
+     "line": "시트의 행이 점, ID 열이 선입니다. 가벼운 구성입니다",
+     "src": "자료 기준 {{asof:graph_nodes_by_kind}}"
+    }
+   ]
+  }
+ ],
+ "terms": [
+  "온톨로지",
+  "지식그래프",
+  "종형"
+ ],
+ "source": "",
+ "notes": "견본: C6 그림 자리에 C9 legend, C8 dots(alternate), C9 ladder."
+}

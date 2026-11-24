@@ -1,0 +1,18 @@
+{
+ "no": 5,
+ "id": "sample-05",
+ "kind": "video",
+ "chapter": 2,
+ "status": "video",
+ "headline": "흩어진 조건이 한 화면의 판단 근거가 되기까지",
+ "diagram": [],
+ "video": {
+  "part": 1,
+  "src": "media/part1.mp4",
+  "q": "문서 곳곳에 흩어진 조건을 어떻게 한 화면의 판단 근거로 바꾸는가",
+  "stills": [
+   "summary"
+  ]
+ },
+ "notes": "견본: 정지 화면 세 컷 자리에 지금은 화면 캡처를 넣었다. 영상 렌더 뒤 프레임을 뽑아 바꾼다."
+}

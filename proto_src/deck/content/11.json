@@ -1,0 +1,49 @@
+{
+ "no": 11,
+ "id": "agent-rules",
+ "kind": "body",
+ "chapter": 3,
+ "status": "new",
+ "headline": "AI에게 일을 맡기는 기준은 실제로 겪은 문제에서 나왔습니다",
+ "diagram": [
+  {
+   "use": "C5",
+   "labels": [
+    "겪은 일",
+    "세운 기준"
+   ],
+   "box": [
+    0,
+    40,
+    1760,
+    560
+   ],
+   "rows": [
+    {
+     "before": "모델을 안 정한 AI가 가장 비싼 모델로 실행",
+     "after": "AI 작업자마다 모델을 정해 맡김",
+     "tag": "구현, 점검, 단순 점검으로 나눔"
+    },
+    {
+     "before": "같은 AI로 다시 읽자 {{fact:image_doc_same_reader_repeat.pages}}쪽 중 {{fact:image_doc_same_reader_repeat.wrong_same_way}}쪽 같은 오류",
+     "after": "서로 다른 AI 둘이 따로 옮겨 [[이중 추출]]",
+     "tag": "그림 문서 {{fact:image_doc.pages}}쪽에서 금액 불일치 {{fact:image_doc.amount_mismatches}}곳",
+     "hero": true
+    },
+    {
+     "before": "'다 했다'는 보고만으로는 알 수 없음",
+     "after": "지휘하는 AI가 직접 다시 실행해 [[재현]]",
+     "tag": "지적 {{fact:code_review_items}}건을 직접 재현"
+    }
+   ]
+  }
+ ],
+ "points": [],
+ "terms": [
+  "모델",
+  "이중 추출",
+  "재현"
+ ],
+ "source": "출처: 제출 설명 문서 5절과 6절, 진행 기록, 자료 기준 {{asof:image_doc}}",
+ "notes": "AI에게 일을 맡기는 기준은 미리 정한 것이 아니라 겪은 문제에서 하나씩 나왔습니다. 첫째, 모델을 정하지 않은 AI 작업자 하나가 가장 비싼 모델로 실행된 뒤로 작업자마다 모델을 정해 맡깁니다. 그때 한도를 얼마나 썼는지는 기록에 없습니다. 둘째, 글자가 그림으로 된 문서를 같은 AI로 다시 읽히자 같은 자리에서 같은 오류가 났고, 다른 AI가 그 {{fact:image_doc_same_reader_repeat.pages}}쪽을 다시 읽은 {{fact:image_doc_opus_reread_chars}}자는 확정본과 한 글자도 다르지 않았습니다. 컴퓨터의 문자 인식(OCR)은 {{fact:local_ocr_test.chars}}자 가운데 {{fact:local_ocr_test.missed}}자를 빠뜨려 값에 쓰지 않습니다. 셋째, '다 했다'는 보고는 받아들이지 않고 메인 AI가 직접 다시 실행해 확인하며, 재현되지 않은 지적 {{fact:review_not_applied_items}}건은 반영하지 않았습니다. 수집도 같은 원칙으로 했습니다. 한 회사로 시범을 만든 뒤 같은 지시로 {{fact:disclosure_batch_org_count}}개사를 한꺼번에 맡겼고, 남은 한 곳(한화손해보험)은 자동 접속이 막혀 사람이 문서를 받습니다. 그 가운데 {{fact:disclosure_batch_auto_org_count}}개사는 로그인 없이 공시실 문서를 자동으로 받습니다. 메인 AI는 받은 문서 {{fact:disclosure_batch_pdf_count}}개를 직접 확인했습니다."
+}

@@ -1,0 +1,82 @@
+{
+ "no": 9,
+ "id": "team",
+ "kind": "body",
+ "chapter": 3,
+ "status": "revised",
+ "headline": "사람 한 명이 방향을 정하고, AI 여럿이 일을 나눠 맡았습니다",
+ "diagram": [
+  {
+   "use": "C9",
+   "layout": "org",
+   "box": [
+    0,
+    0,
+    1760,
+    null
+   ],
+   "nodes": [
+    {
+     "id": "u",
+     "tier": 0,
+     "label": "실무자 {{fact:team_size}}명",
+     "sub": "방향과 결정"
+    },
+    {
+     "id": "cc",
+     "tier": 1,
+     "label": "지휘하는 AI",
+     "sub": "일을 나누고 결과를 다시 확인"
+    },
+    {
+     "id": "sa",
+     "tier": 2,
+     "label": "만들고 점검하는 AI",
+     "sub": "코드 수정, 테스트 실행"
+    },
+    {
+     "id": "gm",
+     "tier": 2,
+     "label": "조사하는 AI",
+     "sub": "자료 조사, 설계 의견"
+    },
+    {
+     "id": "ag",
+     "tier": 2,
+     "label": "화면을 만드는 AI",
+     "sub": "화면 구현"
+    }
+   ],
+   "edges": [
+    {
+     "from": "u",
+     "to": "cc"
+    },
+    {
+     "from": "cc",
+     "to": "sa"
+    },
+    {
+     "from": "cc",
+     "to": "gm"
+    },
+    {
+     "from": "cc",
+     "to": "ag",
+     "label": "요청서 {{fact:request_doc_count}}건"
+    }
+   ],
+   "ring": {
+    "node": "cc",
+    "label": "결과는 다시 실행해 확인한 뒤 반영",
+    "hero": true
+   }
+  }
+ ],
+ "points": [
+  "화면 AI의 검토 요청 {{fact:pr_counts.total}}건 중 {{fact:pr_counts.merged}}건을 확인 후 반영"
+ ],
+ "terms": [],
+ "source": "출처: 프로젝트 운영 지침, 작업 요청서 목록, GitHub의 검토 요청(PR) 목록, 자료 기준 {{asof:pr_counts}}",
+ "notes": "이 앱은 실무자 한 사람이 방향을 정하고, 여러 AI가 일을 나눠 만들었습니다. 처음에는 Claude 대화 창과 Gemini 웹 화면에 사람이 요청문을 붙여 넣는 방식으로 시작했고, 11월 19일 저녁부터 파일을 직접 읽고 고치는 Claude Code로 옮겼습니다. Claude Code는 원격 서버에서, 화면을 맡은 Antigravity는 사용자 PC에서 실행되기 때문에 둘 사이의 통로는 GitHub 저장소뿐이고, 화면에 필요한 원본도 저장소에 둡니다. Claude Code가 쓴 요청서는 {{fact:request_doc_count}}건, Antigravity가 연 PR은 {{fact:pr_counts.total}}건이고 그 가운데 {{fact:pr_counts.merged}}건을 머지했습니다. PR은 원본에서 그대로 빌드되는지, 자료 파일을 손으로 고치지 않았는지, 주장한 수정이 실제로 됐는지, 회귀가 없는지, 새 글의 숫자가 자료와 맞는지 다섯 가지를 다시 실행해 확인한 뒤에만 머지했습니다. 서브에이전트와 Gemini 패널의 결과도 같은 방식으로, 메인 AI가 테스트와 재현으로 확인한 것만 반영했습니다. 역할별 제품 이름: 지휘하는 AI는 Claude Code(메인 AI), 만들고 점검하는 AI는 서브에이전트(Opus는 구현, Sonnet은 점검, Haiku는 단순 점검), 조사하는 AI는 Gemini 구독 패널, 화면을 만드는 AI는 사용자 PC의 Antigravity(Gemini)입니다. 검토 요청은 GitHub의 PR(고친 내용을 반영하기 전에 검토를 요청하는 것)입니다. 출처 문서는 프로젝트의 CLAUDE.md와 docs/gemini_requests/README.md입니다."
+}

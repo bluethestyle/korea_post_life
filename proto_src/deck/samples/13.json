@@ -1,0 +1,89 @@
+{
+ "no": 13,
+ "id": "sample-13",
+ "kind": "body",
+ "chapter": 3,
+ "status": "new",
+ "headline": "역할 칩과 배지 견본",
+ "diagram": [
+  {
+   "use": "C20",
+   "box": [
+    0,
+    0,
+    1760,
+    60
+   ],
+   "chips": [
+    {
+     "role": "AI",
+     "label": "글자 옮기기"
+    },
+    {
+     "role": "코드",
+     "label": "원문 대조"
+    },
+    {
+     "role": "사람",
+     "label": "기준값 정하기"
+    }
+   ]
+  },
+  {
+   "use": "C15",
+   "kind": "todo",
+   "text": "GitHub Actions 무료 범위: 공식 문서 확인 필요",
+   "box": [
+    0,
+    100,
+    900,
+    64
+   ]
+  },
+  {
+   "use": "C15",
+   "kind": "unmeasured",
+   "box": [
+    0,
+    190,
+    300,
+    50
+   ]
+  },
+  {
+   "use": "C15",
+   "kind": "press",
+   "box": [
+    0,
+    260,
+    300,
+    50
+   ]
+  },
+  {
+   "use": "C14",
+   "terms": [
+    "판정 모델",
+    "확률"
+   ],
+   "box": [
+    0,
+    330,
+    900,
+    160
+   ]
+  },
+  {
+   "use": "text",
+   "text": "보험 예: {{ref:insurance_underwriting_example}}",
+   "size": "m",
+   "box": [
+    960,
+    100,
+    800,
+    120
+   ]
+  }
+ ],
+ "notes": "견본: C20 칩, C15 의 세 종류, C14 를 블록으로 둔 예, refs.json 의 press 값에 붙는 '보도 기준' 배지."
+}

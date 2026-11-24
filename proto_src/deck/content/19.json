@@ -1,0 +1,131 @@
+{
+ "no": 19,
+ "id": "kg-ontology",
+ "kind": "body",
+ "chapter": 5,
+ "status": "new",
+ "headline": "회사마다 다른 이름을 약속대로 한 지도에 잇습니다",
+ "diagram": [
+  {
+   "use": "C9",
+   "layout": "legend",
+   "captions": [
+    "온톨로지 = 범례",
+    "지식그래프 = 노선도"
+   ],
+   "node_kinds": [
+    {
+     "label": "회사",
+     "shape": "square"
+    },
+    {
+     "label": "상품",
+     "shape": "diamond"
+    },
+    {
+     "label": "담보",
+     "shape": "circle"
+    }
+   ],
+   "edge_kinds": [
+    {
+     "label": "판매",
+     "style": "solid"
+    },
+    {
+     "label": "포함",
+     "style": "dash"
+    }
+   ],
+   "graph": {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "우체국",
+      "shape": "square"
+     },
+     {
+      "id": "b",
+      "label": "한화생명",
+      "shape": "square"
+     },
+     {
+      "id": "c",
+      "label": "암 수술비",
+      "shape": "circle"
+     },
+     {
+      "id": "d",
+      "label": "암보험",
+      "shape": "diamond"
+     },
+     {
+      "id": "e",
+      "label": "암보험",
+      "shape": "diamond"
+     }
+    ],
+    "edges": [
+     {
+      "from": "a",
+      "to": "d"
+     },
+     {
+      "from": "b",
+      "to": "e"
+     },
+     {
+      "from": "d",
+      "to": "c",
+      "style": "dash"
+     },
+     {
+      "from": "e",
+      "to": "c",
+      "style": "dash"
+     }
+    ]
+   },
+   "size": "large",
+   "legend_w": 400,
+   "box": [
+    0,
+    0,
+    1180,
+    null
+   ]
+  },
+  {
+   "use": "C10",
+   "value": "{{fact:graph_nodes_by_kind.표준담보}}",
+   "unit": "개",
+   "caption": "이 앱이 정한 표준담보",
+   "box": [
+    1280,
+    40,
+    480,
+    220
+   ]
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "limit": 40,
+   "text": "구글 시트의 행을 점으로, 행을 잇는 ID 열을 선으로 썼습니다",
+   "box": [
+    1280,
+    290,
+    480,
+    100
+   ]
+  }
+ ],
+ "points": [],
+ "terms": [
+  "온톨로지",
+  "지식그래프"
+ ],
+ "source": "정의: {{ref:kg_definition.cite}}, {{ref:ontology_definition.cite}}, 자료 기준 {{asof:graph_nodes_by_kind}}",
+ "notes": "온톨로지는 한 분야에서 쓰는 말과 말 사이의 관계를 미리 정해 둔 약속이고, 지식그래프는 그 약속대로 실제 사실을 점과 선으로 이어 놓은 것입니다. 지하철 노선도에 빗대면 범례가 온톨로지, 노선도 자체가 지식그래프인데, 이 비유는 이해를 돕기 위해 저희가 든 것이고 정의의 출처는 화면 아래의 논문 두 편입니다. 이 기술은 구글이 검색에 지식그래프를 도입하면서 널리 알려졌고, 지금은 웹 표준 언어로 약속을 적는 방식과 그래프 데이터베이스에 저장하는 방식이 함께 쓰입니다. 다만 모든 질문에서 그래프가 더 나은 답을 주지는 않는다는 연구도 있어, 저희는 필요한 만큼만 썼습니다. 이 앱은 정식 온톨로지 언어나 그래프 데이터베이스를 쓰지 않고, 구글 시트의 행을 점으로, 행을 잇는 ID 열을 선으로 삼은 가벼운 구성입니다. 정확히 부르면 표준담보 사전과 담보 관계를 얹은 속성 그래프 형식의 지식그래프입니다. 해외에는 금융 온톨로지 FIBO와 보험 표준 단체 ACORD가 있지만 FIBO의 영역 목록에 보험은 없고, 담보 이름을 하나로 맞춘 국내 공개 체계는 저희가 찾지 못했습니다. 없다고 단정하지는 않습니다. 연표: {{ref:kg_google_2012.year}}년 구글이 {{ref:kg_google_2012.text}}을 내놓았고, {{ref:owl_rdf.owl2_year}}년 {{ref:owl_rdf.text}}로 약속을 적는 방식이 정해졌으며, {{ref:gql_2024.year}}년 그래프 데이터베이스의 국제 표준 질의 언어, 같은 해 {{ref:graphrag_2024.text}}이 나왔습니다. {{ref:graphrag_not_always_better}}. 이 앱의 구성은 회사, 종형, 특약, 급부({{fact:graph_nodes_by_kind.급부}}개), 표준담보({{fact:graph_nodes_by_kind.표준담보}}개), 보장 대분류({{fact:coverage_major_class_count}}개)로 이어집니다. 종형은 한 상품 안의 가입 형태(예: 1종 간편가입)입니다."
+}

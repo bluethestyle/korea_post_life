@@ -1,0 +1,52 @@
+{
+ "no": 12,
+ "id": "ai-code-human",
+ "kind": "body",
+ "chapter": 3,
+ "status": "revised",
+ "headline": "AI는 글자만 옮기고, 숫자는 코드가 읽고, 기준은 사람이 정합니다",
+ "diagram": [
+  {
+   "use": "C3",
+   "box": [
+    0,
+    100,
+    1760,
+    340
+   ],
+   "nodes": [
+    {
+     "num": "1",
+     "label": "AI가 글자를 옮김",
+     "icon": "ai",
+     "sub": "\"{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}}, {{fact:example_text_to_number.text.amount}}\""
+    },
+    {
+     "num": "2",
+     "label": "코드가 숫자로 읽음",
+     "icon": "code",
+     "hero": true,
+     "sub": "{{fact:example_text_to_number.read.reduce_months}}개월 {{fact:example_text_to_number.read.reduced_manwon}}만 원, {{fact:example_text_to_number.read.pay_manwon}}만 원"
+    },
+    {
+     "num": "3",
+     "label": "코드가 원문과 대조",
+     "icon": "check",
+     "sub": "원문에 같은 글자가 있는지"
+    },
+    {
+     "num": "4",
+     "label": "사람이 정한 기준으로",
+     "icon": "person",
+     "sub": "애매한 값은 사람이 검수"
+    }
+   ]
+  }
+ ],
+ "points": [],
+ "terms": [
+  "기준값"
+ ],
+ "source": "출처: 제출 설명 문서 4절과 5절, 변환 예는 추출 지시문의 예시 글을 실제 코드로 읽은 값",
+ "notes": "앱 안에서 일은 AI, 코드, 사람이 나눠 맡습니다. AI는 공시 문서의 글자를 옮기고, 옮긴 값이 맞는지 채점만 합니다. 금액을 만 원으로 바꾸고 기간을 개월로 세는 일, 원문과 대조하는 일은 코드가 하고, 아래 예처럼 '{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}}'이라는 글자를 코드가 감액 {{fact:example_text_to_number.read.reduce_months}}개월, {{fact:example_text_to_number.read.reduced_manwon}}만 원으로 읽습니다. 표적항암약물허가치료특약에서는 가벼운 AI 둘이 지급액을 {{fact:targeted_anticancer_misread.misread_pay_manwon}}만 원으로 잘못 옮겼는데, 코드 대조가 잡아 상위 모델이 {{fact:targeted_anticancer_misread.correct_pay_manwon}}만 원으로 바로잡았습니다. 자동 확정의 기준값과 표준담보 사전은 사람이 마스터 데이터의 담당자 탭에서 정하므로 코드를 고치지 않고 바꿀 수 있습니다. 삼성화재 문서는 AI 대신 코드가 PDF 표를 읽어 규칙으로 옮기고, AI가 한 일은 작업 로그 {{fact:work_log_count_site}}건으로 화면에 공개됩니다. 다시 읽기에는 {{fact:models.extract_alt}}와 상위 모델 {{fact:models.upper}}(하루 {{fact:daily_limit_upper}}회)를 씁니다. 역할별 모델(하루 무료 한도): 찾기 {{fact:models.search}} {{fact:daily_limit_search}}회, 옮기기 {{fact:models.extract}} {{fact:daily_limit_extract}}회, 채점 {{fact:models.decide}} {{fact:daily_limit_decide}}회, 다시 읽기 {{fact:models.extract_alt}} {{fact:daily_limit_extract_alt}}회와 상위 모델 {{fact:models.upper}} {{fact:daily_limit_upper}}회. 단계별로는 AI가 시장 동향 찾기, 글자 옮기기, 채점을, 코드가 금액과 기간 계산, 원문 대조, 관계 연결, 금지어 검사를, 사람이 검수 대기 확인과 표준담보 사전, 기준값을 맡습니다."
+}

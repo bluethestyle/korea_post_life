@@ -1,34 +1,50 @@
 #!/usr/bin/env python3
-"""발표 덱 빌드: content.json + facts.json + tpl.html → out/index.html (오프라인 단독 HTML 한 파일).
+"""발표 덱 빌드: content/NN.json + content/_deck.json + facts.json + refs.json + tpl.html → index.html(오프라인 단독 HTML 한 파일).
 
 실행:
-    python3 build.py [--facts <facts.json>] [--fonts-css <fonts_v4.css>] [--out <index.html>]
+    python3 build.py                                   # 리포 기본값: content/ → out/index.html
+    python3 build.py --out ../../site/deck/index.html  # 배포본
+    python3 build.py --content-dir <폴더> --facts <facts.json> --out <index.html> --only 7,12-14 [--strict]
 
-- content.json 의 글에 든 자리 표시를 facts.json 의 값으로 채운다.
-    {{fact:열쇠}}, {{fact:열쇠.하위키}}, {{fact:열쇠.0}}  값(정수는 천 단위 쉼표, 목록은 쉼표로 이음)
-    {{fact:열쇠|f2}}                                        실수를 소수 둘째 자리로
-    {{len:열쇠}}                                            목록이나 사전의 길이
-    {{asof:열쇠}}                                           그 값의 기준일(as_of)
-  facts.json 에 없는 열쇠나 하위키가 하나라도 있으면 빌드가 멈춘다.
-- 화면 사진은 assets/<이름>.jpg 를 base64 로 넣는다(tools/prep_images.py 가 만든다).
+- 장마다 파일 하나(content/01.json ~ 26.json). 덱 공통 설정(챕터, 일곱 단계, 회사 칩, 용어 풀이 표)은 content/_deck.json.
+  --content-dir 의 폴더에 _deck.json 이 없으면 이 파일 옆 content/_deck.json 을 쓴다(--deck 으로 따로 줄 수 있다).
+- 글의 자리 표시를 채운다.
+    {{fact:열쇠}}, {{fact:열쇠.하위키}}, {{fact:열쇠.0}}  facts.json 의 값(정수는 천 단위 쉼표, 목록은 쉼표로 이음)
+    {{fact:열쇠|f2}}, {{fact:열쇠|f1}}, {{fact:열쇠|pct}} 실수의 형식(소수 둘째, 첫째 자리, 백분율 정수)
+    {{len:열쇠}}  목록이나 사전의 길이,  {{asof:열쇠}}  그 값의 기준일
+    {{ref:열쇠}}, {{ref:열쇠.하위키}}                     refs.json 의 외부 사실. kind 가 press 면 "보도 기준" 배지가 붙고,
+                                                       꼬리말에 출처 도메인이 붙는다
+    {{todo:내용}}                                       확인 필요 표시(점선 상자 안의 글)
+    [[용어]]                                            용어 밑줄(풀이는 장의 terms 로 꼬리 위 띠에)
+  facts.json, refs.json 에 없는 열쇠가 하나라도 있으면 빌드가 멈춘다.
+- 부품(C1~C20)은 deckparts.py 가 빌드 때 HTML 과 SVG 로 그린다. 글자 수 상한을 넘으면 경고를 적는다(--strict 면 멈춘다).
+- 사진은 assets/<이름>.jpg 가운데 장이 부른 것만 base64 로 한 번 심는다(tools/capture_app.py 가 만든다).
+  덱 폴더 바로 위에 stills/ 가 있으면(작업 폴더 구성) 그 JPEG 도 이름으로 부를 수 있다. --assets 를 여러 번 줄 수 있다.
 - 글꼴은 fonts_v4.css 에서 PLKo(SUIT 서브셋) @font-face 만 골라 넣는다.
 - 결과 HTML 에 외부 주소를 부르는 src, href, url(), @import 가 있으면 멈춘다.
-- 영상 장은 out 폴더에 media/partN.mp4 가 있을 때만 <video> 를 넣고, 없으면 플레이스홀더만 둔다.
-  mp4 를 out/media/ 에 넣은 뒤 다시 빌드한다.
+- 영상 장은 out 폴더에 media/partN.mp4 가 있을 때만 <video> 를 넣는다. mp4 를 out/media/ 에 넣은 뒤 다시 빌드한다.
 - 같은 입력이면 같은 바이트가 나온다(시각, 난수를 쓰지 않는다).
-- 덱이 쓴 facts 열쇠를 장마다 facts_used.json 에 적는다.
+- 덱이 쓴 facts 와 refs 열쇠를 장마다 facts_used.json 에 적는다.
 """
+from __future__ import annotations
+
 import argparse
 import base64
-import html
 import json
 import re
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 HERE = Path(__file__).resolve().parent
-PH = re.compile(r"\{\{(fact|len|asof):([^{}|]+?)(?:\|([a-z0-9]+))?\}\}")
-IMG_NAMES = ("first", "market", "cover", "graph")
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+import deckparts as P  # noqa: E402
+
+KINDS = ("cover", "body", "video", "closing")
+STATUSES = ("kept", "revised", "new", "video", "demo")
+REF_KINDS = ("official", "academic", "press")
 
 
 def find_upward(rel: str) -> Path | None:
@@ -39,288 +55,224 @@ def find_upward(rel: str) -> Path | None:
     return None
 
 
-class Facts:
-    def __init__(self, path: Path):
-        self.facts = json.loads(path.read_text(encoding="utf-8"))["facts"]
-        self.errors: list[str] = []
-        self.used: dict[str, list[str]] = {}
-        self.slide = "(덱)"
-
-    def _lookup(self, path: str):
-        key, *rest = path.split(".")
-        if key not in self.facts:
-            raise KeyError(f"열쇠 없음: {key}")
-        entry = self.facts[key]
-        value = entry["value"]
-        for part in rest:
-            if isinstance(value, list):
-                if not re.fullmatch(r"-?\d+", part) or not -len(value) <= int(part) < len(value):
-                    raise KeyError(f"목록 첨자 없음: {path}")
-                value = value[int(part)]
-            elif isinstance(value, dict):
-                if part not in value:
-                    raise KeyError(f"하위키 없음: {path}")
-                value = value[part]
-            else:
-                raise KeyError(f"하위키를 둘 수 없는 값: {path}")
-        return key, entry, value
-
-    @staticmethod
-    def _fmt(value, spec):
-        if isinstance(value, bool) or value is None:
-            raise TypeError(f"글로 적을 수 없는 값: {value!r}")
-        if isinstance(value, int):
-            if spec:
-                raise TypeError("정수에는 형식을 붙이지 않는다")
-            return f"{value:,}"
-        if isinstance(value, float):
-            if spec == "f2":
-                return f"{value:,.2f}"
-            if spec == "f1":
-                return f"{value:,.1f}"
-            if spec:
-                raise TypeError(f"모르는 형식: {spec}")
-            return repr(value)
-        if isinstance(value, str):
-            return value
-        if isinstance(value, list):
-            return ", ".join(Facts._fmt(v, spec) for v in value)
-        raise TypeError(f"글로 적을 수 없는 값: {type(value).__name__}")
-
-    def sub(self, text: str) -> str:
-        def repl(m):
-            kind, path, spec = m.group(1), m.group(2).strip(), m.group(3)
-            try:
-                key, entry, value = self._lookup(path)
-                if kind == "fact":
-                    out = self._fmt(value, spec)
-                elif kind == "len":
-                    if not isinstance(value, (list, dict)):
-                        raise TypeError(f"길이를 셀 수 없는 값: {path}")
-                    out = f"{len(value):,}"
-                else:
-                    out = entry["as_of"]
-            except (KeyError, TypeError) as exc:
-                self.errors.append(f"[{self.slide}] {m.group(0)}: {exc}")
-                return m.group(0)
-            used = self.used.setdefault(self.slide, [])
-            if key not in used:
-                used.append(key)
-            return html.escape(out, quote=False)
-
-        return PH.sub(repl, text)
+def parse_only(text: str | None) -> set[int] | None:
+    if not text:
+        return None
+    out: set[int] = set()
+    for chunk in text.split(","):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if "-" in chunk:
+            a, b = chunk.split("-", 1)
+            out.update(range(int(a), int(b) + 1))
+        else:
+            out.add(int(chunk))
+    return out
 
 
-def esc_attr(text: str) -> str:
-    return html.escape(text, quote=True)
+def load_slides(content_dir: Path) -> list[dict]:
+    files = sorted(p for p in content_dir.glob("*.json") if re.fullmatch(r"\d{2}\.json", p.name))
+    if not files:
+        raise SystemExit(f"장 파일(NN.json)이 없습니다: {content_dir}")
+    slides = []
+    for p in files:
+        s = json.loads(p.read_text(encoding="utf-8"))
+        no = int(p.stem)
+        if s.get("no") != no:
+            raise SystemExit(f"{p.name}: no 가 {s.get('no')!r} 이다(파일 번호 {no} 와 같아야 한다)")
+        if s.get("kind", "body") not in KINDS:
+            raise SystemExit(f"{p.name}: kind 는 {KINDS} 가운데 하나")
+        if s.get("status") not in STATUSES:
+            raise SystemExit(f"{p.name}: status 는 {STATUSES} 가운데 하나")
+        if not isinstance(s.get("chapter"), int) or not 0 <= s["chapter"] <= 7:
+            raise SystemExit(f"{p.name}: chapter 는 0(안내)~6, 7(마무리)")
+        if not s.get("headline"):
+            raise SystemExit(f"{p.name}: headline 이 없다")
+        slides.append(s)
+    return slides
 
 
-def strip_tags(text: str) -> str:
-    return html.unescape(re.sub(r"<[^>]+>", "", text))
+def load_refs(path: Path) -> dict:
+    data = json.loads(path.read_text(encoding="utf-8"))["refs"]
+    for key, r in data.items():
+        if r.get("kind") not in REF_KINDS:
+            raise SystemExit(f"refs.json {key}: kind 는 {REF_KINDS} 가운데 하나(확인하지 못한 사실은 싣지 않는다)")
+        urls = r.get("urls") or []
+        if not urls or not all(isinstance(u, str) and u.startswith("https://") for u in urls):
+            raise SystemExit(f"refs.json {key}: urls 에 https 출처가 하나 이상 있어야 한다")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(r.get("checked", ""))):
+            raise SystemExit(f"refs.json {key}: checked(확인한 날, YYYY-MM-DD)가 없다")
+        if "value" not in r:
+            raise SystemExit(f"refs.json {key}: value 가 없다")
+    return data
 
 
-ARROW = ('<svg viewBox="0 0 40 16" aria-hidden="true"><path d="M0 8H34" stroke="currentColor" '
-         'stroke-width="2" fill="none"/><path d="M28 2L37 8L28 14" stroke="currentColor" '
-         'stroke-width="2" fill="none"/></svg>')
-OPEN_ICON = ('<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" '
-             'stroke="currentColor" stroke-width="2" fill="none"/></svg>')
-
-
-class Builder:
-    def __init__(self, content: dict, facts: Facts, images: dict[str, str], media_root: Path):
-        self.c = content
-        self.f = facts
-        self.images = images
+# ---------------------------------------------------------------------------
+# 장의 프레임
+# ---------------------------------------------------------------------------
+class Frame:
+    def __init__(self, ctx: P.Ctx, total: int, media_root: Path):
+        self.ctx = ctx
+        self.total = total
         self.media_root = media_root
         self.videos: list[str] = []
-        self.total = len(content["slides"])
 
-    def t(self, text: str) -> str:
-        return self.f.sub(text)
-
-    def img(self, key: str, alt: str, extra: str = "") -> str:
-        if key not in self.images:
-            raise SystemExit(f"사진 없음: assets/{key}.jpg")
-        return f'<img src="{self.images[key]}" alt="{esc_attr(strip_tags(self.t(alt)))}"{extra}>'
-
-    def chrome(self, s: dict, idx: int) -> tuple[str, str]:
-        head = (f'<header class="hd"><p class="doc">{self.t(self.c["doc_name"])}</p>'
-                f'<p class="chap">{self.t(s["chapter"])}</p></header>')
-        foot_src = self.t(s.get("footer", ""))
-        foot = (f'<footer class="ft"><p class="src">{foot_src}</p>'
-                f'<p class="pg">{idx:02d} / {self.total:02d}</p></footer>')
-        return head, foot
-
-    def title_block(self, s: dict) -> str:
-        return (f'<p class="eb rise">{self.t(s["eyebrow"])}</p>'
-                f'<h2 class="ttl rise d1">{self.t(s["title"])}</h2>')
-
-    def question(self, q: dict, d: str = "d5") -> str:
-        return (f'<div class="q rise {d}"><p class="l">{self.t(q["label"])}</p>'
-                f'<p class="t">{self.t(q["text"])}</p></div>')
-
-    # 본문 배치
-    def lay_data(self, s):
-        b, side = s["big"], s["side"]
-        items = "".join(f"<li>{self.t(x)}</li>" for x in side["items"])
-        return (f'<div class="data"><div class="rise d2"><div class="big-row"><p class="big">{self.t(b["value"])}</p>'
-                f'<p class="big-u">{self.t(b["unit"])}</p></div><p class="big-c">{self.t(b["caption"])}</p></div>'
-                f'<div class="rise d3"><p class="side-lead">{self.t(side["lead"])}</p><ul class="ls">{items}</ul></div></div>')
-
-    def lay_flow(self, s):
-        parts = []
-        for i, n in enumerate(s["nodes"]):
-            d = f"d{min(i + 2, 6)}"
-            if i:
-                parts.append(f'<div class="arw rise {d}">{ARROW}</div>')
-            sub = f'<p class="s">{self.t(n["sub"])}</p>' if n.get("sub") else ""
-            hero = " hero" if n.get("hero") else ""
-            parts.append(f'<div class="node{hero} rise {d}"><h3>{self.t(n["title"])}</h3>'
-                         f'<p class="t">{self.t(n["text"])}</p>{sub}</div>')
-        return f'<div class="flow">{"".join(parts)}</div>' + self.question(s["question"], "d6")
-
-    def lay_shots(self, s):
-        cells = []
-        for i, sh in enumerate(s["shots"]):
-            cells.append(f'<div class="shot rise d{i + 2}">{self.img(sh["img"], sh["alt"])}'
-                         f'<h3>{self.t(sh["title"])}</h3><p>{self.t(sh["text"])}</p></div>')
-        return f'<div class="shots">{"".join(cells)}</div>'
-
-    def lay_table(self, s):
-        tb = s["table"]
-        head = "".join(f'<th style="width:{w}">{self.t(h)}</th>' for h, w in zip(tb["head"], tb["widths"]))
-        rows = "".join("<tr>" + "".join(f"<td>{self.t(c)}</td>" for c in r) + "</tr>" for r in tb["rows"])
-        return f'<table class="tb rise d2"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table>'
-
-    def lay_cards(self, s):
-        cells = []
-        for i, c in enumerate(s["cards"]):
-            no = f'<p class="no">{self.t(c["no"])}</p>' if c.get("no") else ""
-            val = ""
-            if c.get("value"):
-                unit = f'<p class="u">{self.t(c["unit"])}</p>' if c.get("unit") else ""
-                val = f'<div class="vr"><p class="v">{self.t(c["value"])}</p>{unit}</div>'
-            cells.append(f'<div class="card rise d{i + 2}">{no}<h3>{self.t(c["title"])}</h3>{val}'
-                         f'<p>{self.t(c["text"])}</p></div>')
-        out = f'<div class="cards">{"".join(cells)}</div>'
-        if s.get("question"):
-            out += self.question(s["question"])
-        return out
-
-    def lay_compare(self, s):
-        rows = "".join(f'<div class="kv-r"><p class="kv-v">{self.t(k["value"])}</p><p class="kv-t">{self.t(k["text"])}</p></div>'
-                       for k in s["kv"])
-        im = s["image"]
-        return (f'<div class="cmp"><div class="rise d2">{rows}<p class="kv-n">{self.t(s["note"])}</p></div>'
-                f'<figure class="fig rise d3" style="margin:0">{self.img(im["img"], im["alt"])}'
-                f'<figcaption class="cap">{self.t(im["caption"])}</figcaption></figure></div>'
-                + self.question(s["question"]))
-
-    def lay_kpis(self, s):
-        cells = []
-        for i, k in enumerate(s["kpis"]):
-            hero = " hero" if k.get("hero") else ""
-            cells.append(f'<div class="k{hero} rise d{i + 2}"><p class="l">{self.t(k["label"])}</p>'
-                         f'<div class="vr"><p class="v">{self.t(k["value"])}</p><p class="u">{self.t(k["unit"])}</p></div>'
-                         f'<p>{self.t(k["text"])}</p></div>')
-        return f'<div class="kpis">{"".join(cells)}</div><p class="line rise d6">{self.t(s["line"])}</p>'
-
-    def lay_lists(self, s):
-        cols = []
-        for i, col in enumerate(s["columns"]):
-            items = "".join(f"<li>{self.t(x)}</li>" for x in col["items"])
-            cols.append(f'<div class="col rise d{i + 2}"><h3>{self.t(col["title"])}</h3><ul class="ls">{items}</ul></div>')
-        return f'<div class="cols">{"".join(cols)}</div>'
-
-    def lay_grid4(self, s):
-        cells = "".join(f'<div class="pc rise d{i + 2}"><h3>{self.t(c["title"])}</h3><p>{self.t(c["text"])}</p></div>'
-                        for i, c in enumerate(s["cells"]))
-        return f'<div class="g4">{cells}</div><p class="line rise d6">{self.t(s["line"])}</p>'
-
-    # 장 종류
-    def notes(self, s):
-        return f'<aside class="notes">{self.t(s.get("notes", ""))}</aside>'
-
-    def section(self, s, idx, cls, inner):
-        title = strip_tags(self.t(s["title"])) if s.get("title") else f'애니메이션 파트 {s.get("part", "")}'
-        return (f'<section class="slide {cls}" id="s{idx}" data-id="{esc_attr(s["id"])}" '
-                f'data-title="{esc_attr(title)}" aria-roledescription="장" '
-                f'aria-label="{idx} / {self.total}: {esc_attr(title)}">{inner}{self.notes(s)}</section>')
-
-    def k_body(self, s, idx):
-        head, foot = self.chrome(s, idx)
-        body = getattr(self, "lay_" + s["layout"])(s)
-        return self.section(s, idx, "body-slide", f'{head}{self.title_block(s)}<div class="body">{body}</div>{foot}')
-
-    def k_demo(self, s, idx):
-        head, foot = self.chrome(s, idx)
-        btn = s["button"]
-        top = (f'<div class="eb-row rise"><p class="eb">{self.t(s["eyebrow"])}</p>'
-               f'<a class="btn" href="{esc_attr(btn["href"])}" target="_blank" rel="noopener">{OPEN_ICON}{self.t(btn["label"])}</a></div>'
-               f'<h2 class="ttl rise d1">{self.t(s["title"])}</h2>')
-        heads = "".join(f'<div class="h">{self.t(h)}</div>' for h in ["", *s["heads"]])
-        rows = []
-        for i, st in enumerate(s["steps"], 1):
-            rows.append(f'<div class="c n"><span>{i}</span></div><div class="c op">{self.t(st["op"])}</div>'
-                        f'<div class="c">{self.t(st["q"])}</div><div class="c">{self.t(st["a"])}</div>')
-        body = (f'<div class="steps rise d2" role="table" aria-label="시연 시나리오">{heads}{"".join(rows)}</div>'
-                f'<p class="demo-url rise d3">{self.t(s["url_text"])}</p>')
-        return self.section(s, idx, "demo-slide", f'{head}{top}<div class="body">{body}</div>{foot}')
-
-    def k_video(self, s, idx):
-        s2 = dict(s, title="", footer=s.get("footer", ""))
-        head, foot = self.chrome(s2, idx)
-        tag = f'애니메이션 파트 {self.t(s["part"])}, {self.t(s["length"])}'
-        # 영상 파일이 index.html 옆에 있을 때만 <video> 를 넣는다. 없는 파일을 부르면
-        # 브라우저 콘솔에 읽기 실패 오류가 남기 때문이다. mp4 를 넣은 뒤 다시 빌드하면 재생 장이 된다.
-        video = ""
-        if (self.media_root / s["src"]).is_file():
-            video = (f'<video src="{esc_attr(s["src"])}" controls preload="metadata" playsinline '
-                     f'aria-label="{esc_attr(tag)}"></video>')
-            self.videos.append(s["src"])
-        inner = (f'<div class="spine"></div>{head}<div class="vwrap"><div class="vframe">{video}'
-                 f'<div class="vph"><p class="t1">{tag}, 파일 준비 중</p><p class="t2">{self.t(s["line"])}</p></div></div>'
-                 f'<p class="vcap"><b>{tag}</b>. {self.t(s["line"])}</p></div>{foot}')
-        return self.section(s, idx, "video", inner)
-
-    def k_cover(self, s, idx):
-        meta = "".join(f'<div class="cm"><p class="l">{self.t(m["l"])}</p><p class="v">{self.t(m["v"])}</p></div>'
-                       for m in s["meta"])
-        tl = s["tiles"]
-
-        def num(n, cls):
-            return (f'<div class="tile {cls}"><p class="l">{self.t(n["label"])}</p><div class="vr">'
-                    f'<p class="v">{self.t(n["value"])}</p><p class="u">{self.t(n["unit"])}</p></div></div>')
-
-        tiles = (f'<div class="tiles rise d3"><div class="tile ink wide"><p class="l">{self.t(tl["names_label"])}</p>'
-                 f'<p class="s">{self.t(tl["names"])}</p></div>{num(tl["num1"], "paper")}{num(tl["num2"], "spot")}'
-                 f'<div class="tile media wide"><p class="l">{self.t(tl["media"]["label"])}</p>'
-                 f'{self.img(tl["media"]["img"], tl["media"]["alt"])}</div></div>')
-        body = (f'<div class="spine"></div><div class="cover-body"><p class="badge rise">{self.t(s["badge"])}</p>'
-                f'<h1 class="cover-h1 rise d1">{self.t(s["title"])}</h1>'
-                f'<p class="cover-lead rise d2">{self.t(s["lead"])}</p>'
-                f'<div class="cover-meta rise d3">{meta}</div></div>{tiles}')
-        return self.section(s, idx, "cover", body)
-
-    def k_closing(self, s, idx):
-        links = "".join(f'<p class="l">{self.t(x["l"])}</p><p class="v">{self.t(x["v"])}</p>' for x in s["links"])
-        btn = s["button"]
-        body = (f'<div class="spine"></div><div class="close-body"><p class="eb rise">{self.t(s["eyebrow"])}</p>'
-                f'<h1 class="cover-h1 rise d1">{self.t(s["title"])}</h1>'
-                f'<p class="close-lead rise d2">{self.t(s["lead"])}</p>'
-                f'<div class="links rise d3">{links}</div>'
-                f'<div class="close-row rise d4"><a class="btn" href="{esc_attr(btn["href"])}" target="_blank" rel="noopener">'
-                f'{OPEN_ICON}{self.t(btn["label"])}</a><p class="small">{self.t(s["small"])}</p></div></div>')
-        return self.section(s, idx, "closing", body)
-
-    def build(self) -> str:
+    def blocks(self, s: dict, region: tuple[float, float, float, float]) -> str:
+        rx, ry, rw, rh = region
         out = []
-        for idx, s in enumerate(self.c["slides"], 1):
-            self.f.slide = s["id"]
-            out.append(getattr(self, "k_" + s["kind"])(s, idx))
-        return "\n".join(out)
+        for i, spec in enumerate(s.get("diagram", [])):
+            where = f"diagram[{i}]"
+            box = spec.get("box") or [0, 0, rw, rh]
+            if len(box) != 4:
+                self.ctx.warn(where, "box 는 [x, y, 폭, 높이]")
+                box = [0, 0, rw, rh]
+            # 폭이나 높이를 null 로 두면 영역의 오른쪽 끝, 아래 끝까지
+            x, y = float(box[0]), float(box[1])
+            w = rw - x if box[2] is None else float(box[2])
+            h = rh - y if box[3] is None else float(box[3])
+            if x < -0.5 or y < -0.5 or x + w > rw + 0.5 or y + h > rh + 0.5:
+                self.ctx.warn(where, f"box {box} 가 도해 영역(0, 0, {P.px(rw)}, {P.px(rh)})을 벗어남")
+            inner = P.render(self.ctx, spec, w, h, where)
+            out.append(f'<div class="blk" style="{P.box_style(x, y, w, h)}">{inner}</div>')
+        return (f'<div class="dg" data-region="{P.px(rw)}x{P.px(rh)}" style="{P.box_style(rx, ry, rw, rh)}">'
+                f'{"".join(out)}</div>')
+
+    def footer(self, s: dict) -> str:
+        src = self.ctx.t(s.get("source", ""), None)
+        doms = self.ctx.domains.get(self.ctx.slide, [])
+        if doms:
+            src = (src + " / " if src else "") + "외부 출처: " + ", ".join(doms)
+        # 꼬리말은 한 행(20px, 폭 약 1,560px)에 들어가야 한다. 영문 도메인이 섞여 글자 수 대신 폭 어림으로 본다
+        width = P.text_width(P.plain(src), 20)
+        if width > P.SOURCE_WIDTH:
+            self.ctx.warn("source", f"폭 약 {width:,.0f}px > {P.SOURCE_WIDTH:,}px(외부 출처 도메인 포함, 한글로 약 "
+                                    f"{P.SOURCE_WIDTH // 19}자)")
+        return (f'<footer class="ft"><p class="src">{src}</p>'
+                f'<p class="pg">{s["no"]:02d} / {self.total:02d}</p></footer>')
+
+    def notes(self, s: dict) -> str:
+        return f'<aside class="notes">{self.ctx.t(s.get("notes", ""))}</aside>'
+
+    def section(self, s: dict, cls: str, inner: str) -> str:
+        title = P.plain(self.ctx.sub(s["headline"]))
+        return (f'<section class="slide {cls}" id="s{s["no"]}" data-no="{s["no"]}" data-status="{P.esc(s["status"])}" '
+                f'data-title="{P.esc(title)}" aria-roledescription="장" aria-label="{s["no"]} / {self.total}: {P.esc(title)}">'
+                f'{inner}{self.notes(s)}</section>')
+
+    def header(self, s: dict, dark: bool = False) -> str:
+        return (f'<header class="hd"><p class="doc">{P.esc(self.ctx.deck.get("app_name", ""))}</p>'
+                f'{P.chapter_bar(self.ctx, s["chapter"], dark)}</header>')
+
+    def bands(self, s: dict) -> tuple[str, float]:
+        """요점과 용어 풀이 띠. (HTML, 도해 영역의 아래 끝)"""
+        html_ = []
+        bottom = P.BAND_BOTTOM
+        fn = s.get("footnote")
+        if fn:
+            # 각주: 꼬리말 바로 위 한두 행(20px). 역할별 모델 이름처럼 화면에 작게만 둘 글
+            text = self.ctx.t(fn, None)
+            width = P.text_width(P.plain(text), 20) * 0.9
+            lines = 1 if width <= P.REGION_W else 2
+            if width > P.REGION_W * 2:
+                self.ctx.warn("footnote", f"폭 약 {width:,.0f}px > {P.REGION_W * 2:,}px(두 행)")
+            bottom -= 26 * lines + 2
+            html_.append(f'<p class="fn ax" style="top:{bottom}px;height:{26 * lines + 2}px">{text}</p>')
+            bottom -= 8
+        terms = s.get("terms", [])
+        if terms:
+            bottom -= 64
+            html_.append(f'<div class="gl" style="top:{bottom}px">{P.gloss_band(self.ctx, terms, P.REGION_W)}</div>')
+        pts = s.get("points", [])
+        if len(pts) > P.LIMITS["points"]:
+            self.ctx.warn("points", f"요점 {len(pts)}개 > {P.LIMITS['points']}개")
+        if pts:
+            bottom -= 40 * len(pts) + (8 if terms else 0)
+            rows = "".join(f'<p>{self.ctx.t(p, P.LIMITS["point"], f"points[{i}]")}</p>' for i, p in enumerate(pts))
+            html_.append(f'<div class="pts" style="top:{bottom}px">{rows}</div>')
+        return "".join(html_), bottom - 16
+
+    def headline(self, s: dict, limit: int, cls: str = "hl") -> str:
+        tag = ""
+        if s["status"] == "demo":
+            tag = '<span class="hl-tag">시연</span>'
+        return f'<h2 class="{cls}">{tag}{self.ctx.t(s["headline"], limit, "headline")}</h2>'
+
+    def region_top(self, s: dict) -> float:
+        """도해 영역의 위. 헤드라인이 한 줄로 들어갈 것 같으면(글자 폭 어림) 위로 당긴다. frame.top 으로 정할 수 있다."""
+        if "top" in s.get("frame", {}):
+            return float(s["frame"]["top"])
+        width = P.headline_width(P.plain(self.ctx.sub(s["headline"])), s["status"] == "demo")
+        return P.REGION_TOP_ONE_LINE if width <= 1740 else P.REGION_TOP
+
+    def k_body(self, s: dict) -> str:
+        bands, bottom = self.bands(s)
+        top = self.region_top(s)
+        region = (P.REGION_X, top, P.REGION_W, bottom - top)
+        inner = (self.header(s) + self.headline(s, P.LIMITS["headline"]) + self.blocks(s, region) + bands)
+        return self.section(s, "body-slide" + (" closing" if s.get("kind") == "closing" else ""), inner + self.footer(s))
+
+    k_closing = k_body
+
+    def k_cover(self, s: dict) -> str:
+        d = self.ctx.deck
+        sub = s.get("subtitle", d.get("cover_subtitle", ""))      # 부제(출품작 이름 아래). 리드는 장의 headline
+        meta = "".join(f'<div class="cm"><p class="l">{self.ctx.t(m.get("l", ""), 8, f"meta[{i}].l")}</p>'
+                       f'<p class="v">{self.ctx.t(m.get("v", ""), 24, f"meta[{i}].v")}</p></div>'
+                       for i, m in enumerate(s.get("meta", [])))
+        title = (f'<div class="cover-body"><p class="badge">{self.ctx.t(s.get("badge", d.get("badge", "")), 30, "badge")}</p>'
+                 f'<h1 class="cover-h1">{d.get("cover_title") or P.esc(d.get("app_name", ""))}</h1>'
+                 + (f'<p class="cover-sub">{self.ctx.t(sub, 40, "subtitle")}</p>' if sub else "") +
+                 f'<p class="cover-lead">{self.ctx.t(s["headline"], P.LIMITS["cover_lead"], "headline")}</p>'
+                 + (f'<div class="cover-meta">{meta}</div>' if meta else "") + "</div>")
+        blocks = self.blocks(s, (0, 0, P.STAGE_W, P.STAGE_H)) if s.get("diagram") else ""
+        board = ""
+        if not s.get("no_board"):
+            board = (f'<div class="dg" style="{P.box_style(80, 880, 1760, 120)}"><div class="blk" style="{P.box_style(0, 0, 1760, 120)}">'
+                     f'{P.render(self.ctx, {"use": "C1", "mode": "board"}, 1760, 120, "board")}</div></div>')
+        return self.section(s, "cover", '<div class="spine"></div>' + title + blocks + board)
+
+    def k_video(self, s: dict) -> str:
+        v = s.get("video", {})
+        src = v.get("src", "")
+        part = v.get("part")
+        tag = f'<span class="vchip">영상 {P.esc(part)}</span>' if part is not None else '<span class="vchip">영상</span>'
+        dur = f'<span class="vchip dur">{self.ctx.t(v["dur"], 10, "video.dur")}</span>' if v.get("dur") else ""
+        q = f'<p class="vq">{self.ctx.t(v["q"], P.LIMITS["question"], "video.q")}</p>' if v.get("q") else ""
+        video = ""
+        if src and (self.media_root / src).is_file():
+            video = (f'<video src="{P.esc(src)}" controls preload="metadata" playsinline '
+                     f'aria-label="{P.esc(P.plain(self.ctx.sub(s["headline"])))}"></video>')
+            self.videos.append(src)
+        # 영상 자리: 정지 화면 한 컷을 어둡게 깔고 가운데에 재생 표시와 길이. 정지 화면 안의 작은 글자는 읽히지 않으므로
+        # 컷을 여럿 늘어놓지 않는다(2026-11-24 화면 점검)
+        stills = v.get("stills", [])
+        if len(stills) > 1:
+            self.ctx.warn("video.stills", f"정지 화면 {len(stills)}컷(한 컷)")
+        st = "".join(f'<div class="vst {self.ctx.img(x, f"video.stills[{i}]")}" role="img" aria-label="영상의 정지 화면"></div>'
+                     for i, x in enumerate(stills[:1]))
+        play = ('<div class="vplay"><span class="vplay-b" aria-hidden="true"><svg width="72" height="72" viewBox="0 0 72 72">'
+                '<path d="M24 14L60 36L24 58z"/></svg></span>'
+                f'<p class="vplay-t">발표 때 이 자리에서 영상이 재생됩니다</p></div>')
+        ph = f'<div class="vph{" has-st" if st else ""}">{st}{play}</div>'
+        inner = (f'<div class="spine"></div>{self.header(s)}'
+                 f'<div class="vhead">{tag}{dur}{self.headline(s, P.LIMITS["video_headline"], "vhl")}{q}</div>'
+                 f'<div class="vframe">{video}{ph}</div>{self.footer(s)}')
+        return self.section(s, "video", inner)
+
+    def render(self, s: dict) -> str:
+        self.ctx.slide = f"{s['no']:02d}"
+        heroes, bigs = P.count_marks(s.get("diagram", []))
+        if heroes > 1:
+            self.ctx.warn("diagram", f"강조 {heroes}곳(한 장에 한 곳)")
+        if bigs > 3:
+            self.ctx.warn("diagram", f"큰 숫자 {bigs}개(한 장에 셋 이하)")
+        return getattr(self, "k_" + s.get("kind", "body"))(s)
 
 
+# ---------------------------------------------------------------------------
+# 점검과 조립
+# ---------------------------------------------------------------------------
 EXTERNAL = [
     re.compile(r"""\b(?:src|href|poster|srcset|action|data|formaction)\s*=\s*["']?\s*(?:[a-z][a-z0-9+.-]*:|//)(?!data:)""", re.I),
     re.compile(r"""url\(\s*["']?\s*(?:https?:|//|ftp:)""", re.I),
@@ -339,26 +291,32 @@ def check_external(doc: str) -> list[str]:
     return hits
 
 
-def digits_outside(content: dict) -> list[str]:
+SKIP_DIGIT_KEYS = {"no", "id", "kind", "status", "use", "box", "img", "src", "href", "stills", "legacy", "d", "axis", "frame",
+                   "step", "from", "to", "on", "at", "n", "ref", "x", "y", "fig_h", "label_w", "limit", "zone", "chapter",
+                   "tier", "offset", "part"}
+
+
+def digits_outside(slides: list[dict]) -> list[str]:
     """자리 표시 밖에 숫자를 직접 적은 글(검토용 목록. 빌드를 멈추지 않는다)."""
     found = []
 
-    def walk(o, where):
+    def walk(o: Any, where: str) -> None:
         if isinstance(o, dict):
             for k, v in o.items():
-                if k in ("id", "kind", "layout", "img", "src", "href", "widths", "format"):
+                if k in SKIP_DIGIT_KEYS:
                     continue
                 walk(v, f"{where}.{k}")
         elif isinstance(o, list):
             for i, v in enumerate(o):
                 walk(v, f"{where}[{i}]")
         elif isinstance(o, str):
-            bare = re.sub(r"<[^>]+>", "", PH.sub("", o))
+            bare = re.sub(r"<[^>]+>", "", P.PH.sub("", o))
             for m in re.finditer(r"[0-9][0-9.,~:-]*", bare):
                 ctx = bare[max(0, m.start() - 8):m.end() + 6]
                 found.append(f"{where}: {m.group(0)}  …{ctx}…")
 
-    walk(content.get("slides", []), "slides")
+    for s in slides:
+        walk(s, f"{s['no']:02d}")
     return found
 
 
@@ -377,67 +335,109 @@ FONT_NOTICE = ("<!-- 글꼴: SUIT (Regular 400, SemiBold 600), Copyright (c) 202
                "원래의 저작권과 라이선스 표기는 파일 안에 그대로 있다. -->")
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--content", default=str(HERE / "content.json"))
-    ap.add_argument("--facts", default=None)
-    ap.add_argument("--fonts-css", default=None)
-    ap.add_argument("--tpl", default=str(HERE / "tpl.html"))
-    ap.add_argument("--assets", default=str(HERE / "assets"))
-    ap.add_argument("--out", default=str(HERE / "out" / "index.html"))
-    ap.add_argument("--used", default=str(HERE / "facts_used.json"))
-    a = ap.parse_args()
+@dataclass
+class Result:
+    html: str
+    used: dict
+    warnings: list[str]
+    slides: list[dict]
+    videos: list[str] = field(default_factory=list)
+    digits: list[str] = field(default_factory=list)
 
-    facts_path = Path(a.facts) if a.facts else find_upward("presentation_animation/facts.json")
-    fonts_path = Path(a.fonts_css) if a.fonts_css else find_upward("proto_src/fonts/fonts_v4.css")
-    if not facts_path or not facts_path.is_file():
-        raise SystemExit("facts.json 을 찾지 못했습니다. --facts 로 넘긴다")
-    if not fonts_path or not fonts_path.is_file():
-        raise SystemExit("fonts_v4.css 를 찾지 못했습니다. --fonts-css 로 넘긴다")
 
-    content = json.loads(Path(a.content).read_text(encoding="utf-8"))
-    facts = Facts(facts_path)
+def default_deck_path(content_dir: Path) -> Path:
+    own = content_dir / "_deck.json"
+    return own if own.is_file() else HERE / "content" / "_deck.json"
+
+
+def build_deck(content_dir: Path, facts_path: Path, refs_path: Path, fonts_css: Path, tpl_path: Path = HERE / "tpl.html",
+               assets_dir: Path | list[Path] = HERE / "assets", media_root: Path = HERE / "out", deck_path: Path | None = None,
+               only: set[int] | None = None) -> Result:
+    deck = json.loads((deck_path or default_deck_path(content_dir)).read_text(encoding="utf-8"))
+    slides = load_slides(content_dir)
+    total = len(slides)
+    facts = json.loads(facts_path.read_text(encoding="utf-8"))["facts"]
+    refs = load_refs(refs_path)
+    dirs = assets_dir if isinstance(assets_dir, list) else [assets_dir]
     images = {}
-    for name in IMG_NAMES:
-        p = Path(a.assets) / f"{name}.jpg"
-        if p.is_file():
-            images[name] = "data:image/jpeg;base64," + base64.b64encode(p.read_bytes()).decode("ascii")
+    for d in dirs:
+        for p in sorted(Path(d).glob("*.jpg")):
+            images.setdefault(p.stem, str(p))
+    ctx = P.Ctx(facts, refs, deck, images)
+    frame = Frame(ctx, total, media_root)
+    shown = [s for s in slides if only is None or s["no"] in only]
+    slides_html = "\n".join(frame.render(s) for s in shown)
+    if ctx.errors:
+        raise SystemExit("빌드를 멈춥니다:\n  " + "\n  ".join(ctx.errors))
 
-    out = Path(a.out)
-    builder = Builder(content, facts, images, out.parent)
-    slides_html = builder.build()
-    if facts.errors:
-        print("facts.json 에 없는 자리 표시:", file=sys.stderr)
-        for e in facts.errors:
-            print("  " + e, file=sys.stderr)
-        raise SystemExit(1)
-
-    tpl = Path(a.tpl).read_text(encoding="utf-8")
-    doc = (tpl.replace("__HTML_TITLE__", esc_attr(content["html_title"]))
+    css_images = "\n".join(
+        f'.im-{re.sub(r"[^A-Za-z0-9_-]", "_", name)}{{background-image:url(data:image/jpeg;base64,'
+        f'{base64.b64encode(Path(images[name]).read_bytes()).decode("ascii")})}}'
+        for name in ctx.img_used)
+    tpl = tpl_path.read_text(encoding="utf-8")
+    doc = (tpl.replace("__HTML_TITLE__", P.esc(deck.get("html_title", "")))
               .replace("<!--__FONT_NOTICE__-->", FONT_NOTICE)
-              .replace("/*__FONT_FACES__*/", font_faces(fonts_path))
+              .replace("/*__FONT_FACES__*/", font_faces(fonts_css))
+              .replace("/*__IMAGES__*/", css_images)
+              .replace("<!--__SPRITE__-->", P.sprite())
               .replace("<!--__SLIDES__-->", slides_html))
     leftovers = re.findall(r"__[A-Z_]+__|\{\{[^}]*\}\}", doc)
     if leftovers:
         raise SystemExit(f"채우지 못한 자리: {leftovers[:5]}")
     hits = check_external(doc)
     if hits:
-        print("외부 요청이 될 주소:", file=sys.stderr)
-        for h in hits:
-            print("  " + h, file=sys.stderr)
-        raise SystemExit(1)
+        raise SystemExit("외부 요청이 될 주소:\n  " + "\n  ".join(hits))
+    used = {"facts": ctx.used_facts, "refs": ctx.used_refs}
+    return Result(doc, used, ctx.warnings, shown, frame.videos, digits_outside(shown))
 
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--content-dir", default=str(HERE / "content"), help="장 파일(NN.json) 폴더")
+    ap.add_argument("--deck", default=None, help="덱 공통 설정(기본: 장 폴더의 _deck.json, 없으면 content/_deck.json)")
+    ap.add_argument("--facts", default=None, help="facts.json(기본: 덱 폴더 위의 facts.json, 없으면 리포의 presentation_animation/facts.json)")
+    ap.add_argument("--refs", default=str(HERE / "refs.json"))
+    ap.add_argument("--fonts-css", default=None)
+    ap.add_argument("--tpl", default=str(HERE / "tpl.html"))
+    ap.add_argument("--assets", action="append", default=None, help="사진 폴더(여러 번 줄 수 있음. 기본: assets, 위 폴더의 stills)")
+    ap.add_argument("--out", default=str(HERE / "out" / "index.html"))
+    ap.add_argument("--used", default=None, help="쓴 열쇠 목록(기본: --content-dir 가 기본값일 때만 facts_used.json)")
+    ap.add_argument("--only", default=None, help="이 장들만 빌드(예: 7,12-14). 쪽 번호는 전체 기준")
+    ap.add_argument("--strict", action="store_true", help="글자 수 상한 경고가 있으면 1로 끝낸다")
+    ap.add_argument("--digits", action="store_true", help="자리 표시 밖의 숫자(검토용)를 모두 보인다")
+    a = ap.parse_args()
+
+    # 기본값: 덱 폴더 바로 위의 facts.json, fonts_v4.css(작업 폴더 구성)가 있으면 그것, 없으면 리포 안의 파일
+    facts_path = Path(a.facts) if a.facts else (
+        HERE.parent / "facts.json" if (HERE.parent / "facts.json").is_file() else find_upward("presentation_animation/facts.json"))
+    fonts_path = Path(a.fonts_css) if a.fonts_css else (
+        HERE.parent / "fonts_v4.css" if (HERE.parent / "fonts_v4.css").is_file() else find_upward("proto_src/fonts/fonts_v4.css"))
+    if not facts_path or not facts_path.is_file():
+        raise SystemExit("facts.json 을 찾지 못했습니다. --facts 로 넘긴다")
+    if not fonts_path or not fonts_path.is_file():
+        raise SystemExit("fonts_v4.css 를 찾지 못했습니다. --fonts-css 로 넘긴다")
+    out = Path(a.out)
+    assets = [Path(x) for x in a.assets] if a.assets else [HERE / "assets"] + (
+        [HERE.parent / "stills"] if (HERE.parent / "stills").is_dir() else [])
+    res = build_deck(Path(a.content_dir), facts_path, Path(a.refs), fonts_path, Path(a.tpl), assets, out.parent,
+                     Path(a.deck) if a.deck else None, parse_only(a.only))
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_bytes(doc.encode("utf-8"))
-    Path(a.used).write_text(json.dumps(facts.used, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-
-    print(f"{out} {out.stat().st_size:,} 바이트, 장 {len(content['slides'])}개, 외부 요청 0, "
-          f"넣은 영상 {len(builder.videos)}개{' ' + ', '.join(builder.videos) if builder.videos else ''}")
-    digits = digits_outside(content)
-    if digits:
-        print(f"자리 표시 밖의 숫자 {len(digits)}곳(검토용):")
-        for d in digits:
+    out.write_bytes(res.html.encode("utf-8"))
+    used_path = a.used or (str(HERE / "facts_used.json") if Path(a.content_dir).resolve() == (HERE / "content").resolve()
+                           and a.only is None else None)
+    if used_path:
+        Path(used_path).write_text(json.dumps(res.used, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"{out} {out.stat().st_size:,} 바이트, 장 {len(res.slides)}개, 외부 요청 0, "
+          f"넣은 영상 {len(res.videos)}개{' ' + ', '.join(res.videos) if res.videos else ''}")
+    print(f"글자 수 상한과 장 규칙 경고 {len(res.warnings)}건")
+    for w in res.warnings:
+        print("  " + w)
+    if res.digits:
+        print(f"자리 표시 밖의 숫자 {len(res.digits)}곳(검토용{', --digits 로 모두 보기' if not a.digits else ''})")
+        for d in (res.digits if a.digits else res.digits[:10]):
             print("  " + d)
+    if a.strict and res.warnings:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

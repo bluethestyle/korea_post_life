@@ -1,0 +1,102 @@
+{
+ "no": 23,
+ "id": "cost-deploy",
+ "kind": "body",
+ "chapter": 6,
+ "status": "new",
+ "headline": "매주 운영하는 데 드는 AI 사용료는 {{fact:operating_cost_won}}원이고, 화면은 웹 주소와 파일 하나로 전합니다",
+ "diagram": [
+  {
+   "use": "C16",
+   "box": [
+    0,
+    0,
+    1760,
+    584
+   ],
+   "items": [
+    {
+     "label": "문서를 읽는 AI(무료 등급)",
+     "won": "{{fact:operating_cost_won}}원"
+    },
+    {
+     "label": "구글 시트(원본 자료)",
+     "won": "{{fact:operating_cost_won}}원"
+    },
+    {
+     "label": "자동 실행(GitHub Actions)",
+     "won": "{{fact:operating_cost_won}}원",
+     "todo": "무료 범위 확인"
+    },
+    {
+     "label": "공개 주소(GitHub Pages)",
+     "won": "{{fact:operating_cost_won}}원"
+    }
+   ],
+   "total": "{{fact:operating_cost_won}}원",
+   "caption": "주간 운영에 드는 사용료 기준입니다",
+   "week": {
+    "daily": {
+     "time": "{{fact:schedule_collect_kst.time}}",
+     "label": "시장 동향 수집"
+    },
+    "sun": {
+     "time": "{{fact:schedule_weekly_close_kst.time}}",
+     "label": "주간 마감과 자료 갱신"
+    },
+    "after": "화면 갱신 → 웹 주소에 반영"
+   }
+  },
+  {
+   "use": "C3",
+   "box": [
+    640,
+    340,
+    1120,
+    130
+   ],
+   "nodes": [
+    {
+     "label": "웹 주소",
+     "sub": "인터넷 주소로 공개"
+    },
+    {
+     "label": "파일 하나(약 {{fact:site_file_size_mb}}MB)",
+     "sub": "주소가 막히면 그대로 전달"
+    }
+   ],
+   "joiner": "또는"
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "limit": 60,
+   "text": "개발에 쓴 AI 도구의 구독료는 운영비와 따로 듭니다",
+   "box": [
+    640,
+    494,
+    760,
+    80
+   ]
+  },
+  {
+   "use": "C15",
+   "kind": "todo",
+   "text": "구독료 금액",
+   "box": [
+    1420,
+    500,
+    340,
+    64
+   ]
+  }
+ ],
+ "points": [],
+ "terms": [
+  "GitHub Actions",
+  "GitHub Pages"
+ ],
+ "source": "출처: 자동 실행 설정(시장 동향 수집, 주간 마감), 제출 설명 자료 7절, 진행자 메모",
+ "notes": "매주 운영에 쓰는 도구는 모두 무료 범위 안에 있도록 짰습니다. AI 모델은 Gemini 무료 등급을 하루 한도 안에서 쓰고, 자료는 구글 시트에, 자동 실행은 GitHub Actions에, 화면은 GitHub Pages에 둡니다. 매일 아침 {{fact:schedule_collect_kst.time}}에 시장 동향을 모으고, 일요일 밤 {{fact:schedule_weekly_close_kst.time}}에 주간 마감과 스냅샷을 찍은 뒤 화면을 다시 빌드해 공개 주소를 갱신합니다. 공시 문서 수집과 추출, 담보 매핑은 필요할 때 수동으로 실행합니다. 무료 한도가 회사를 넓히는 데 가장 큰 제약이었습니다. 한화생명 상품 하나의 첫 추출에만 호출 {{fact:hanwha_first_extract.calls}}회와 {{fact:hanwha_first_extract.minutes}}분이 들었기 때문에, 기존 상품의 첫 적재는 무료 API 한도를 쓰지 않고 구독형 AI 도구로 했습니다. 구독료 금액은 확인해 채우겠습니다. 사내망에서 공개 주소가 막히면 약 {{fact:site_file_size_mb}}MB 파일 하나를 그대로 전하면 되고, 인터넷 없이도 열립니다. API 키 같은 비밀값은 Actions의 비밀값에만 둡니다. 무료 등급의 입력은 Google 제품 개선에 쓰일 수 있어 이미 공개된 공시 문서만 보냅니다. 나중에 유료로 넓힐 때 판정 모델의 가격은 입력 100만 토큰당 {{ref:gemini_decision_price.usd_per_million_input_tokens}}달러입니다. 개발에 쓴 구독 AI 도구는 Claude Code, Gemini 구독 패널, Antigravity입니다. 운영 비용은 API(프로그램이 AI를 부르는 창구) 사용료 기준입니다. 자동 실행 설정 파일은 .github/workflows 의 collect.yml, weekly-close.yml입니다."
+}

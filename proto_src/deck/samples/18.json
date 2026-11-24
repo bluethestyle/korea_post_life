@@ -1,0 +1,79 @@
+{
+ "no": 18,
+ "id": "sample-18",
+ "kind": "body",
+ "chapter": 4,
+ "status": "new",
+ "headline": "판정 모델은 매주 들어오는 새 자료에만 쓰고, 기존 상품 첫 적재에는 쓰지 않았습니다",
+ "diagram": [
+  {
+   "use": "C17",
+   "box": [
+    0,
+    0,
+    600,
+    540
+   ],
+   "top": "한화생명 검수 대기 {{fact:mapping_requery.rows}}행",
+   "neck": "분당 {{fact:decide_per_minute_limit.tokens}} 토큰",
+   "bottom": "다시 묻는 데 약 {{fact:mapping_requery.estimated_minutes}}분",
+   "hero": "none"
+  },
+  {
+   "use": "C2",
+   "mode": "tiny",
+   "on": [
+    2,
+    3
+   ],
+   "box": [
+    680,
+    0,
+    520,
+    64
+   ]
+  },
+  {
+   "use": "C3",
+   "box": [
+    680,
+    90,
+    1080,
+    450
+   ],
+   "nodes": [
+    {
+     "label": "들어오는 자료"
+    }
+   ],
+   "branch": {
+    "at": 1,
+    "label": "양이 많은가",
+    "hero": true,
+    "up_label": "적음",
+    "down_label": "많음",
+    "up": [
+     {
+      "label": "매주 새 자료"
+     },
+     {
+      "label": "판정 모델 채점"
+     }
+    ],
+    "down": [
+     {
+      "label": "기존 상품 첫 적재"
+     },
+     {
+      "label": "AI 둘이 따로 옮김"
+     }
+    ]
+   }
+  }
+ ],
+ "terms": [
+  "토큰"
+ ],
+ "source": "한도 출처: AI Studio 한도 화면(docs/planning.md 6.1)",
+ "notes": "견본: C17 과 C3 분기. 모래시계의 강조를 끄고(hero: none) 마름모를 강조했다."
+}

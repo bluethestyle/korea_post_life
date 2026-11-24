@@ -1,0 +1,22 @@
+{
+ "no": 13,
+ "id": "video-2",
+ "kind": "video",
+ "chapter": 3,
+ "status": "video",
+ "headline": "회사마다 다른 문서를 하루 무료 한도 안에서 모았습니다",
+ "video": {
+  "part": 2,
+  "src": "media/part2.mp4",
+  "dur": "{{fact:video_length_label.part2}}",
+  "q": "첫 수집에서 들어온 소식 {{fact:first_collect_news.structured}}건 가운데 {{fact:first_collect_news.out_of_window}}건은 기간 밖이라 코드가 걸렀습니다",
+  "stills": [
+   "part2_1"
+  ]
+ },
+ "diagram": [],
+ "points": [],
+ "terms": [],
+ "source": "영상: 발표용 애니메이션 2부, 출처: 제출 설명 자료 5, 6절, 진행 기록. 자료 기준 {{asof:image_doc}}",
+ "notes": "두 번째 영상은 앞의 두 장에서 말한 원칙이 실제 작업에서 어떻게 움직였는지 보여 줍니다. 앞부분은 쓸 수 있는 자원과 겪은 문제입니다. 검색 AI는 하루 {{fact:daily_limit_search}}회까지만 쓸 수 있었고, 한화손해보험 공시실은 자동 접속을 막았으며, 첫 수집에서는 정형화한 소식 {{fact:first_collect_news.structured}}건 가운데 {{fact:first_collect_news.out_of_window}}건이 수집 기간 밖이라 코드가 버렸습니다. 가운데는 수집 분업입니다. 한 회사로 시범을 만든 뒤 {{fact:disclosure_batch_org_count}}개사의 공시실 접속을 서브에이전트에 나눠 맡기고, 따로 점검했습니다. 끝부분은 글자가 그림인 문서를 서로 다른 AI 둘이 따로 옮겨 맞춰 본 장면으로, {{fact:image_doc.pages}}쪽에서 금액이 어긋난 곳은 {{fact:image_doc.amount_mismatches}}곳이었습니다."
+}

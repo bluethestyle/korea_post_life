@@ -1,0 +1,103 @@
+{
+ "no": 20,
+ "id": "name-matching",
+ "kind": "body",
+ "chapter": 5,
+ "status": "revised",
+ "headline": "회사마다 이름이 다른 암 수술비를 표준담보 하나로 맞추고, 담보끼리의 관계도 정했습니다",
+ "diagram": [
+  {
+   "use": "C9",
+   "layout": "converge",
+   "box": [
+    0,
+    0,
+    1120,
+    536
+   ],
+   "cards": [
+    {
+     "org": "EPOST",
+     "text": "{{fact:example_cancer_surgery_names.EPOST}}"
+    },
+    {
+     "org": "HANWHALIFE",
+     "text": "{{fact:example_cancer_surgery_names.HANWHALIFE}}"
+    },
+    {
+     "org": "SAMSUNGFIRE",
+     "text": "{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}"
+    }
+   ],
+   "target": {
+    "label": "암 수술비",
+    "sub": "표준담보"
+   },
+   "chip": "판정 모델 확률이 높거나 AI 둘의 답이 같으면 자동 확정"
+  },
+  {
+   "use": "C10",
+   "size": "small",
+   "value": "{{fact:coverage_relation_count}}",
+   "unit": "건",
+   "caption": "담보끼리 정한 관계",
+   "box": [
+    1200,
+    0,
+    560,
+    130
+   ],
+   "hero": false
+  },
+  {
+   "use": "text",
+   "size": "m",
+   "text": "<b>포함</b> {{fact:coverage_relations_by_kind.포함}}건: 넓은 담보 안에 좁은 담보",
+   "box": [
+    1200,
+    150,
+    560,
+    40
+   ]
+  },
+  {
+   "use": "C9",
+   "layout": "ladder",
+   "box": [
+    1200,
+    200,
+    560,
+    150
+   ],
+   "nodes": [
+    {
+     "label": "{{fact:coverage_relation_examples.포함.5.broad}}"
+    },
+    {
+     "label": "{{fact:coverage_relation_examples.포함.5.narrow.0}}"
+    }
+   ]
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "limit": 40,
+   "text": "<b>통합</b> {{fact:coverage_relations_by_kind.통합}}건: 여러 담보를 하나로 묶음(예: {{fact:coverage_relation_examples.통합.0.broad}})",
+   "box": [
+    1200,
+    380,
+    560,
+    80
+   ]
+  }
+ ],
+ "points": [
+  "관계가 없으면 나눠 갖춘 회사도 미보유 담보로 보입니다"
+ ],
+ "terms": [
+  "표준담보"
+ ],
+ "source": "출처: 담보 매핑 자료, 표준담보 관계 자료, 자료 기준 {{asof:coverage_relation_count}}",
+ "notes": "같은 암 수술비라도 우체국, 한화생명, 삼성화재의 공시 문서에는 이름이 이렇게 다르게 적혀 있습니다. 왼쪽 카드는 문서의 급부 이름을 그대로 옮긴 것입니다. 그래서 이 앱이 정한 공통 이름인 표준담보 사전을 두고, 회사마다 다른 이름을 표준담보 하나에 연결했습니다. 판정 모델의 확률이 기준값 이상이거나, 서로 다른 AI 둘이 따로 고른 결과가 같으면 자동으로 확정하고, 나머지는 담당자가 검수합니다. 표준담보 사전은 처음에 우체국 상품 기준으로 {{fact:dictionary_initial_size}}개로 시작했고, 우체국이 가졌거나 공시 요약서에서 {{fact:dictionary_addition_rule.min_holder_orgs}}곳 이상이 가진 담보를 더해 지금 {{fact:standard_coverage_rows}}행이 됐습니다. 오른쪽은 담보끼리의 관계입니다. 뇌졸중 진단비처럼 넓은 담보가 뇌출혈 진단비 같은 좁은 담보를 포함하거나, 유사암 진단비처럼 여러 담보를 하나로 통합한 특약이 있습니다. 이 관계가 없으면 한 회사는 통합 특약 하나로, 다른 회사는 나눈 특약 여럿으로 갖춘 경우에 나눠 갖춘 쪽을 미보유로 잘못 알리게 됩니다. 담보 관계는 Claude와 제미나이가 따로 만들고 두 쪽이 같은 행만 넣었습니다. 관련 담보로만 보장하는 표준담보 {{fact:relation_covered_coverages.count}}개는 실제로 가진 것은 아니어서 보유 담보 수에 넣지 않습니다. 자동 확정의 판정 모델 기준값은 {{fact:mapping_auto_confirm_threshold|f2}}입니다."
+}
