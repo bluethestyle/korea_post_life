@@ -569,7 +569,7 @@ Steam 커뮤니티 허브(앱 번호 368500) 정지 화면 일곱 장(`id=287750
 
 ### 1. 한 일 요약 (`1절~7절`, `9절`, 부록 `4.1`·`8.3`·`9.2`)
 
-데이터 파일(`proto_src/console4/*.json`, `tab3.js` 자료 블록, `tab4.js` `CV` 자료 블록)과 `관계 그래프`(`tab6`)의 그래프 무대는 건드리지 않고, `tpl.html`, `style.css`, `core.js`, `tab1.js`, `tab1.css`, `tab2.js`, `tab2.css`, `tab3.js`, `tab3.css`, `tab4.src.js`, `tab4.js`, `tab4.css`, `tab5.js`, `tab5.css`, `tab6.css`, `shoot.py`를 수정해 `site/proto/console4.html`(`6,360,747바이트`)을 다시 합쳤습니다.
+데이터 파일(`proto_src/console4/*.json`, `tab3.js` 자료 블록, `tab4.js` `CV` 자료 블록)과 `관계 그래프`(`tab6`)의 그래프 무대는 건드리지 않고, `tpl.html`, `style.css`, `core.js`, `tab1.js`, `tab1.css`, `tab2.js`, `tab2.css`, `tab3.js`, `tab3.css`, `tab4.src.js`, `tab4.js`, `tab4.css`, `tab5.js`, `tab5.css`, `tab6.css`, `shoot.py`를 수정해 `site/proto/console4.html`(`6,360,821바이트`)을 다시 합쳤습니다.
 
 1. **데스크톱 단일 뷰포트 고정 구조와 내부 스크롤(`1절`)**
    - `1280px` 이상에서 `html, body { height: 100vh; overflow: hidden }`와 `flex` 세로 뼈대(`#head`, `#shell` 안의 `#top-head`, `#cond`, `#scope`, `#rtabs-wrap`, `flex: 1 1 0` 무대 `#home-panel`/`#board`, 높이 `22px` 한 줄 `#foot`)로 바꾸어 상단 안내 바, 제목 줄, 탭 줄이 늘 제자리에 머물고 아래 구역(`#z-left`, `#z-center`, `#z-right`, `#ev-body`)만 안쪽에서 스크롤되게 했습니다(`1024~1279px`, `380px` 좁은 창, `@media print`는 페이지 전체 흐름 유지).
