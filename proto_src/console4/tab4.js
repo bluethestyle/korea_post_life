@@ -359,9 +359,10 @@ function measureZoomLayout(hostEl, stRows, domOrder) {
   if (!cachedHostW && hostEl && hostEl.clientWidth > 120) cachedHostW = hostEl.clientWidth;
   const hostW = cachedHostW > 120 ? cachedHostW : Math.max(320, vw - (vw >= 1600 ? 96 : vw >= 1000 ? 64 : 32));
   const isMobile = vw < 700;
+  const isSmallMob = vw < 640;
   const rulerW = isMobile ? 22 : 30;
-  const rightPad = isMobile ? 82 : 108;
-  const domGap = isMobile ? 14 : 20;
+  const rightPad = isSmallMob ? 54 : (isMobile ? 82 : 108);
+  const domGap = isSmallMob ? 10 : (isMobile ? 14 : 20);
   const usableW = Math.max(150, hostW - rulerW - rightPad);
   const minPitch = 32;
   const maxPitch = isMobile ? 48 : 64;
@@ -1105,6 +1106,7 @@ function condTable(m, row, c) {
 
     const oursCells = items.map(([lab, f]) => `<div class="cv-ours-kv"><span>${esc(lab)}</span><b>${oursRep ? esc(f(oursRep)) : '없음'}</b></div>`).join('');
 
+    const mobDet = innerWidth <= 640;
     const groupsAccordion = buckets.map((bk, bIdx) => {
       const pRows = [];
       bk.codes.forEach(code => {
@@ -1117,25 +1119,44 @@ function condTable(m, row, c) {
             const rp = repOf(c2);
             const v = verdFor(row, m, i, allPIdxs);
             const emptyPay = c2 && c2.w ? `<span class="cv-na">검토 대기 ${c2.w}줄</span>` : c2 && c2.c ? `<span class="cv-na">없음(${esc(c2.c[0])} 덮음)</span>` : '<span class="cv-na">없음</span>';
-            pRows.push(`<tr>
-              <th scope="row" title="${esc(fullN(vid))}">${esc(orgN(vid))} <span class="note">${esc(txt.shortName(kindN(vid)).short)}</span></th>
-              <td>${rp ? esc(payText(rp)) : emptyPay}</td>
-              <td>${rp ? esc(waitText(rp.wait)) : '-'}</td>
-              <td>${rp ? esc(redText(rp.red, rp)) : '-'}</td>
-              <td>${rp ? esc(formText(rp, hasAnyNonMon)) : '-'}</td>
-              <td>${chip(v)}</td>
-            </tr>`);
+            if (mobDet) {
+              const kvHTML = rp
+                ? [['지급', payText(rp)], ['면책', waitText(rp.wait)], ['감액', redText(rp.red, rp)], ['지급 형태', formText(rp, hasAnyNonMon)]]
+                  .map(([lb, val]) => `<span class="cv-ours-kv"><span>${esc(lb)}</span><b>${esc(val)}</b></span>`).join('')
+                : emptyPay;
+              pRows.push(`<tr>
+                <th scope="row" title="${esc(fullN(vid))}">${esc(orgN(vid))} <span class="note">${esc(txt.shortName(kindN(vid)).short)}</span></th>
+                <td><div class="cv-ours-grid">${kvHTML}</div><div class="cv-mob-vd">${chip(v)}</div></td>
+              </tr>`);
+            } else {
+              pRows.push(`<tr>
+                <th scope="row" title="${esc(fullN(vid))}">${esc(orgN(vid))} <span class="note">${esc(txt.shortName(kindN(vid)).short)}</span></th>
+                <td>${rp ? esc(payText(rp)) : emptyPay}</td>
+                <td>${rp ? esc(waitText(rp.wait)) : '-'}</td>
+                <td>${rp ? esc(redText(rp.red, rp)) : '-'}</td>
+                <td>${rp ? esc(formText(rp, hasAnyNonMon)) : '-'}</td>
+                <td>${chip(v)}</td>
+              </tr>`);
+            }
           });
+        } else if (mobDet) {
+          pRows.push(`<tr><th scope="row">${esc(txt.orgShort(code))}</th><td class="note">해당 회사 보유</td></tr>`);
         } else {
           pRows.push(`<tr><th scope="row">${esc(txt.orgShort(code))}</th><td colspan="5" class="note">해당 회사 보유</td></tr>`);
         }
       });
-      return `<details class="zr-det cv-vg-det"${bIdx === 0 ? ' open' : ''}>
-        <summary><span>${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)} <span class="note">${esc(txt.peerNamesEtc(bk.codes.map(txt.orgShort), 4))}</span></span>${ui.IC.chevD}</summary>
-        <div class="zr-det-b"><div class="cv-ct-w"><table class="cv-ct">
+      const detTblHTML = mobDet
+        ? `<table class="cv-ct cv-ct-mob">
+          <tr><th scope="col">상대 회사</th><th scope="col">조건과 판정</th></tr>
+          ${pRows.join('')}
+        </table>`
+        : `<table class="cv-ct">
           <tr><th scope="col">상대 회사</th><th scope="col">지급</th><th scope="col">면책</th><th scope="col">감액</th><th scope="col">지급 형태</th><th scope="col">판정</th></tr>
           ${pRows.join('')}
-        </table></div></div>
+        </table>`;
+      return `<details class="zr-det cv-vg-det"${bIdx === 0 ? ' open' : ''}>
+        <summary><span>${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)} <span class="note">${esc(txt.peerNamesEtc(bk.codes.map(txt.orgShort), 4))}</span></span>${ui.IC.chevD}</summary>
+        <div class="zr-det-b"><div class="cv-ct-w">${detTblHTML}</div></div>
       </details>`;
     }).join('');
 
@@ -1166,8 +1187,8 @@ function condTable(m, row, c) {
     return [lab, txt.sameSummary(vals, eqFn)];
   });
 
-  // 좁은 창(380px 등)에서는 열이 눌리거나 안쪽 가로 스크롤이 생기지 않게 회사를 줄로 세워 보여 준다(요청 30의 7-2)
-  if (innerWidth <= 560) {
+  // 좁은 창(640px 이하)에서는 열이 눌리거나 안쪽 가로 스크롤이 생기지 않게 회사를 줄로 세워 보여 준다(요청 30의 7-2)
+  if (innerWidth <= 640) {
     const mobRows = cols.map((v, k) => {
       const rp = reps[k];
       const detail = rp
@@ -1241,8 +1262,23 @@ function rowEvidence(c, sid, mode) {
     const subNm = SUB_NAME_MAP[o['세부']] || '';
     out.push(`${o['분류']}${subNm ? `(${subNm})` : ''}: ${reasonText(o['사유'])}`);
   });
+  const stRowsForNav = STEPS.includes(row.type)
+    ? buildDomainGroups(m.rows.filter(r => r.type === row.type), domainOrderOf(c)).flatMap(g => g.items)
+    : [];
+  const navList = stRowsForNav.length > 1 ? stRowsForNav : m.rows;
+  const navIdx = navList.findIndex(r => r.sid === sid);
+  const prevRow = navIdx > 0 ? navList[navIdx - 1] : null;
+  const nextRow = navIdx >= 0 && navIdx < navList.length - 1 ? navList[navIdx + 1] : null;
+  const navStepLbl = stRowsForNav.length > 1 ? `${row.type} ` : '';
+  const mobNavHTML = navIdx >= 0 && navList.length > 1
+    ? `<div class="cv-mob-nav" role="navigation" aria-label="담보 이동">
+        <button type="button" class="btn sm ghost cv-mob-nav-btn" data-act="cv-mob-nav" data-sid="${prevRow ? esc(prevRow.sid) : ''}"${prevRow ? '' : ' disabled'}>${ui.IC.chevL}<span>이전 담보</span></button>
+        <span class="cv-mob-nav-pos num">${esc(navStepLbl)}${fmt(navIdx + 1)} / ${fmt(navList.length)}</span>
+        <button type="button" class="btn sm ghost cv-mob-nav-btn" data-act="cv-mob-nav" data-sid="${nextRow ? esc(nextRow.sid) : ''}"${nextRow ? '' : ' disabled'}><span>다음 담보</span>${ui.IC.chevR}</button>
+      </div>`
+    : '';
   const graphJump = `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>`;
-  const body = `<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}${graphJump}</div>
+  const body = `${mobNavHTML}<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}${graphJump}</div>
     <div class="ev-sec"><h3>판정과 인사이트</h3>${judge || `<p class="note">${esc(App.t('peerEmptyHint'))}</p>`}${pts ? `<ul class="cv-pts" style="margin-top:8px">${pts}</ul>` : ''}</div>
     <details class="zr-det"><summary><span>관계도와 근거 문서 쪽 번호 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b">
       <div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}
@@ -1642,8 +1678,11 @@ function tableHTML(c) {
   const chipNames = order.filter(nm => nm !== BOTH_NONE_TEXT);
   const sumChipsHTML = chipNames.map(nm => `${ui.verdict(chipKindByName(nm), nm)} <b class="num" data-sum-name="${esc(nm)}">${byName[nm] || 0}</b>`).join(' ');
   const head2 = '<span class="cv-v hd"><span class="pv">지급</span><span class="wv">면책</span><span class="rv">감액</span></span>';
+  const twHintTxt = (innerWidth <= 640 || !manyOrgs)
+    ? '담보 열은 고정되고, 회사 및 판정 열을 좌우로 밀어 확인합니다.'
+    : '담보와 판정 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
   const scrollBarHTML = `<div class="cv-tw-bar no-print" id="cv-tw-bar" hidden>
-    <span class="cv-tw-hint" id="cv-tw-hint">담보와 판정 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.</span>
+    <span class="cv-tw-hint" id="cv-tw-hint">${esc(twHintTxt)}</span>
     <span class="cv-tw-btns">
       <button type="button" class="btn sm ghost" id="cv-scroll-l" data-act="cv-scroll-l" disabled>${ui.IC.chevL}<span>왼쪽 회사 열</span></button>
       <button type="button" class="btn sm ghost" id="cv-scroll-r" data-act="cv-scroll-r"><span>오른쪽 회사 열</span>${ui.IC.chevR}</button>
@@ -1680,13 +1719,21 @@ function syncCoverTwScroll(root) {
   const bar = (root || document).querySelector('#cv-tw-bar');
   if (!tw) return;
   const maxL = Math.max(0, tw.scrollWidth - tw.clientWidth);
-  const hasOver = maxL > 3;
-  const moreL = hasOver && tw.scrollLeft > 3;
-  const moreR = hasOver && tw.scrollLeft < maxL - 3;
+  const hasOver = maxL > 2;
+  const moreL = hasOver && tw.scrollLeft > 2;
+  const moreR = hasOver && tw.scrollLeft < maxL - 2;
   tw.classList.toggle('has-more-l', moreL);
   tw.classList.toggle('has-more-r', moreR);
   if (bar) {
     bar.hidden = !hasOver;
+    const hint = bar.querySelector('#cv-tw-hint');
+    if (hint) {
+      const tbl = tw.querySelector('#cover-tbl');
+      const manyOrgs = !!(tbl && tbl.classList.contains('is-many-orgs'));
+      hint.textContent = (innerWidth <= 640 || !manyOrgs)
+        ? '담보 열은 고정되고, 회사 및 판정 열을 좌우로 밀어 확인합니다.'
+        : '담보와 판정 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
+    }
     const btnL = bar.querySelector('#cv-scroll-l');
     const btnR = bar.querySelector('#cv-scroll-r');
     if (btnL) btnL.disabled = !moreL;
@@ -1859,7 +1906,18 @@ document.addEventListener('click', e => {
     if ((act === 'cv-scroll-l' || act === 'cv-scroll-r') && dmBody) {
       e.stopPropagation();
       const tw = dmBody.querySelector('#cover-tw');
-      if (tw) tw.scrollBy({ left: act === 'cv-scroll-l' ? -440 : 440, behavior: App.motionOn() ? 'smooth' : 'auto' });
+      const stepX = innerWidth <= 640 ? 200 : 440;
+      if (tw) tw.scrollBy({ left: act === 'cv-scroll-l' ? -stepX : stepX, behavior: App.motionOn() ? 'smooth' : 'auto' });
+      return;
+    }
+    if (act === 'cv-mob-nav') {
+      e.stopPropagation();
+      if (a.disabled || !a.dataset.sid) return;
+      const targetSid = a.dataset.sid;
+      ensureSidInView(targetSid, App.ctx());
+      App.select('s:' + targetSid, { reveal: false });
+      const evBody = document.getElementById('ev-body');
+      if (evBody) evBody.scrollTop = 0;
       return;
     }
     if (act === 'cv-group' && dmBody) { e.stopPropagation(); fGroup = a.dataset.v || null; refreshTable(dmBody, App.ctx()); return; }

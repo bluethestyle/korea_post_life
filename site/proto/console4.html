@@ -222,32 +222,39 @@ button{cursor:pointer}
   .th-act-btns .btn.sm{padding:0 7px}
   .scope-tgl{padding:0 7px}
 }
-@media (max-width:1139px) and (min-width:1000px){
+@media (max-width:1139px){
   .th-act-menu-btn{display:inline-flex!important}
   .th-act-btns{display:none;position:absolute;top:32px;left:0;z-index:58;flex-direction:column;align-items:stretch;
-    min-width:176px;height:auto;gap:4px;padding:6px;background:var(--panel-t);border:1px solid var(--line-2);
+    min-width:176px;max-width:calc(100vw - 32px);max-height:min(72vh,440px);overflow-y:auto;height:auto;gap:4px;padding:6px;
+    background:var(--panel-t);border:1px solid var(--line-2);
     border-top:2px solid var(--top-line);box-shadow:0 12px 32px rgba(21,29,36,.26)}
   .th-act-wrap.is-open .th-act-btns{display:flex}
   .th-act-btns .btn.sm{width:100%;justify-content:flex-start;padding:0 10px}
 }
 @media (max-width:999px){
+  :root:not([data-theme="dark"]) .head{background:rgba(226,230,234,.98)}
+  :root[data-theme="dark"] .head{background:rgba(21,28,36,.98)}
   .notice{padding:0 8px;gap:6px}
   .notice-acts{gap:4px}
-  .notice .tgl{width:22px;height:20px;padding:0;justify-content:center}
+  .notice .tgl{position:relative;width:22px;height:20px;padding:0;justify-content:center}
+  .notice .tgl::before{content:"";position:absolute;inset:-6px}
   .notice .tgl .tgl-tx{display:none}
   .notice .tgl .tgl-ic{display:block}
-  .top-head{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+  .top-head{grid-template-columns:minmax(0,1fr);gap:6px}
   .th-title{font-size:25px}
+  .th-total{display:none!important}
   .lpath{flex-wrap:wrap;overflow:visible}
   .lpath .lp-cur{white-space:normal}
   .th-mid{grid-column:1/-1;align-items:flex-start}
   .th-cond-line{white-space:normal}
   .th-cond-btns{justify-content:flex-start;height:auto}
-  .th-act-btns{flex-wrap:wrap;height:auto;gap:4px}
-  .th-act-btns .btn.sm{width:30px;height:28px;padding:0;justify-content:center;gap:0}
-  .th-act-btns .btn.sm > span:not(.sr){display:none}
-  .tht-ring{width:64px;height:64px}
-  .tht-val{padding-top:23px;font-size:14px}
+  .th-act-wrap{height:32px}
+  .th-act-btns{top:36px}
+  .th-act-btns .btn.sm{min-height:34px}
+  .scope-tgl,.th-act-menu-btn,.leg-btn{height:32px}
+}
+@media (max-width:640px){
+  .th-title{font-size:22px}
 }
 
 /* ---------- 5. 눌러서 여는 조건 편집 판과 범위 띠 ---------- */
@@ -263,7 +270,7 @@ button{cursor:pointer}
 .cf .hint{font:400 13px/1.2 var(--f-body);color:var(--ink-2);white-space:nowrap}
 @media (max-width:999px){
   .cond-body{flex-direction:column}
-  .cg{padding:12px 16px;gap:10px 16px}
+  .cg{padding:10px 14px;gap:8px 14px}
   .cg + .cg{border-left:0;border-top:1px solid var(--line-2)}
   .cg-h{flex:0 0 100%;width:auto}
 }
@@ -381,6 +388,14 @@ button{cursor:pointer}
   .rtab,.rtab.rtab-home{flex-direction:column;justify-content:center;text-align:center;padding:7px 6px;gap:4px}
   .rt-txt{align-items:center}
   .rt-name{font-size:13px;white-space:nowrap;justify-content:center}
+}
+@media (max-width:640px){
+  .rtabs{grid-template-columns:repeat(6,minmax(84px,1fr))}
+  .rtab,.rtab.rtab-home{padding:5px 4px;gap:3px}
+  .rt-ring{width:44px;height:44px}
+  .rt-num{padding-top:15px;font-size:13px}
+  .rtabs-cue.is-l{width:24px;background:linear-gradient(90deg,var(--fog-0) 48%,transparent)}
+  .rtabs-cue.is-r{width:24px;background:linear-gradient(270deg,var(--fog-0) 48%,transparent)}
 }
 
 /* ---------- 7. 본문 무대(.board: 사각 면과 backdrop-filter 전혀 없음) ---------- */
@@ -615,15 +630,21 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
   .board[data-layout="side"] .ev-unselected,
   .board[data-layout="three"] .ev-unselected,
   .board[data-layout="three"] .ev-unselected.is-custom-panel{border-left:0;border-top:1px solid var(--line-2);padding:10px 0 4px;height:auto;overflow:visible}
-  .board > .z-right.is-picked{display:none;position:fixed;left:0;right:0;bottom:0;top:auto;
-    height:min(62vh,520px);max-height:min(62vh,520px);z-index:45;margin:0;
-    border-left:0;border-top:3px solid var(--top-line);box-shadow:0 -8px 24px rgba(21,29,36,.26)}
+  .board[data-layout] > .z-right.is-picked,.board > .z-right.is-picked{display:none;position:fixed;inset:0;
+    width:100vw;height:100vh;height:100dvh;min-height:0;max-height:none;z-index:56;margin:0;
+    border:0;border-top:3px solid var(--top-line);box-shadow:none}
   :root:not([data-theme="dark"]) .board > .z-right.is-picked{background:#E2E6EA}
   :root[data-theme="dark"] .board > .z-right.is-picked{background:#1A2128}
-  body.ev-open .board > .z-right.is-picked{display:flex;flex-direction:column;overflow:hidden;animation:sheetUp var(--dur-panel-open) var(--ease-panel)}
+  body.ev-open .shell{z-index:56}
+  body.ev-open .aim-reticle,body.ev-open .hud-tip{display:none!important}
+  body.ev-open .board[data-layout] > .z-right.is-picked,body.ev-open .board > .z-right.is-picked{display:flex;flex-direction:column;overflow:hidden;animation:sheetUp var(--dur-panel-open) var(--ease-panel)}
   .board[data-layout="band"] .zr-in{display:flex;flex-direction:column;max-height:none}
-  .board[data-layout="band"] .ev-top{border-right:0;border-bottom:1px solid var(--line)}
-  .ev-handle{display:block}
+  .ev-top,.board[data-layout="band"] .ev-top{border-right:0;border-bottom:1px solid var(--line);padding:12px 16px 10px;overflow-y:visible}
+  .ev-krow{padding-right:36px}
+  .ev-x{width:40px;height:40px;right:6px;top:8px}
+  .ev-back-btn{height:30px!important;padding:0 10px!important}
+  .ev-body,.board[data-layout="band"] .ev-body{padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+  .ev-handle{display:none}
 }
 @keyframes sheetUp{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
 
@@ -650,6 +671,10 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
   .dm-head{padding:12px 14px 10px}
   .dm-t{font-size:18px}
   .dm-body{padding:12px 14px 20px}
+}
+@media (max-width:640px){
+  .data-modal{padding:0}
+  .dm-box{width:100vw;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-left:0;border-right:0}
 }
 
 /* ---------- 10. 공통 부품(본문에서는 사각 면 제거, 모달 및 응대 카드 안에서만 면 유지) ---------- */
@@ -888,6 +913,7 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 :root[data-theme="dark"] .qhelp:hover,:root[data-theme="dark"] .qhelp:focus-visible,:root[data-theme="dark"] .qhelp[aria-expanded="true"]{background:var(--ink-0);border-color:var(--ink-0);color:#151D24}
 .slate .qhelp{border-color:rgba(255,255,255,.65);color:#fff}
 .slate .qhelp:hover,.slate .qhelp:focus-visible,.slate .qhelp[aria-expanded="true"]{background:#fff;border-color:#fff;color:#151D24}
+@media (max-width:999px){.qhelp{width:28px;height:28px}}
 
 .help-pop{position:fixed;z-index:65;width:min(400px,calc(100vw - 20px));max-height:min(82vh,640px);overflow:auto;
   padding:12px 14px 14px 16px;background:var(--slate-solid);color:#fff;
@@ -990,6 +1016,8 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .hm-big-empty{height:56px}
 .hm-name{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:600 16px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all}
 .hm-sub{font:600 13px/1.2 var(--f-ko);color:var(--ink-2)}
+.hm-mob-sum{display:none}
+@media (min-width:1000px){.hm-mob-sum{display:none!important}}
 
 /* DNA 기록 화면의 마름모 + 세로 눈금선(높이 대신 transform:scaleY 로 자라게 하여 레이아웃 유발 0) */
 .hm-stem{position:relative;display:block;width:1px;height:36px;margin:4px 0 6px 12px;background:var(--line-2);
@@ -1024,12 +1052,14 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   .hm-stage{display:flex;flex-direction:column;min-height:0;gap:12px}
   .hm-axis-wrap{display:flex;flex-direction:column;border-bottom:0;gap:14px;padding-left:0}
   .hm-ruler{display:none}
-  .hm-grp{border-left:0;border-bottom:2px solid var(--axis);padding:20px 0 0}
+  .hm-grp{border-left:0;border-bottom:2px solid var(--axis);padding:14px 0 0}
   .hm-grp > .flag{left:0;top:2px}
-  .hm-big{font-size:42px}
+  .hm-big{font-size:34px}
   .hm-big-empty{height:12px}
+  .hm-mob-sum{display:block;margin-top:3px;font:400 13px/1.45 var(--f-body);color:var(--ink-1);word-break:keep-all}
   .hm-stem{height:18px;margin:14px 0 6px 10px}
-  .hm-pils{min-height:108px}
+  .hm-pils{min-height:88px}
+  .hm-svg{height:100px}
   .hm-read{padding:8px 0 4px}
 }
 
@@ -1049,7 +1079,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .hp-row > *:not(.hp-hit){position:relative;z-index:2;pointer-events:none}
 .hp-row > .flag{position:absolute;left:0;top:0;z-index:3;pointer-events:auto}
 @media (max-width:999px){
-  .hp-row{grid-template-columns:34px minmax(0,1fr) 18px;padding:10px 12px;gap:4px 10px}
+  .hp-row{grid-template-columns:34px minmax(0,1fr) 18px;padding:10px 12px 10px 16px;gap:4px 10px}
   .hp-sent{grid-column:1/-1;padding-left:44px;font-size:13.5px}
 }
 
@@ -1179,14 +1209,22 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 @media (max-width:999px){
   .mkc-stage{padding-right:0}
   .mk-top-ctrl{justify-content:space-between}
+  .mk-ren-box .chev-sel{height:32px}
+  .mk-ren-box .chev-sel button{width:34px}
   .mk-thead{display:flex;flex-direction:column;align-items:stretch;gap:6px}
   .mk-tch{width:44px;font-size:13px;white-space:normal;line-height:1.15;word-break:keep-all}
   .mk-trows{gap:18px}
   .mk-trow{display:flex;flex-direction:column;align-items:stretch;gap:6px}
   .mk-trow.is-break::before{top:-9px}
   .mk-rh{flex-direction:row;align-items:baseline;justify-content:space-between}
+  .mk-trans-tk{right:50%;transform:translateX(50%)}
   .mk-ring{width:44px;height:44px}
   .mk-rn{font-size:14px}
+}
+@media (max-width:420px){
+  .mk-ring{width:40px;height:40px}
+  .mk-tch{width:40px;font-size:13px}
+  .mk-rn{font-size:13.5px}
 }
 
 /* [개정과 시장] / [표로 보기] 창 내부 부품 */
@@ -1209,6 +1247,11 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .mk-gap li{display:flex;gap:8px;align-items:flex-start}
 .mk-url{word-break:break-all;font-family:var(--f-num)}
 .mk-est{display:inline-flex;align-items:center;gap:6px}
+@media (max-width:640px){
+  .mk-pane-scroll,.mk-pane-scroll > .dm-sec,.dm-body > .panel{min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:thin}
+  .dm-body .tbl:not(.cv-t) th,.dm-body .tbl:not(.cv-t) td{padding:6px 6px}
+  .mk-pane-scroll .tbl tr.pick > td:last-child{padding-right:22px}
+}
 
 /* tab3.css */
 /* 탭 3 가입 관문 전용: 위쪽 5개 관문 차례 가로축 + 고지 유형별 통과 기둥(44x44px) + 오른쪽 28% 읽기 영역.
@@ -1398,6 +1441,11 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 @media (max-width:1199px){
   .gt-modal-root .gt-mid,.gt-modal-root .gt-cb2{grid-template-columns:minmax(0,1fr)}
 }
+@media (max-width:640px){
+  .gt-modal-root .gt-scroll{padding:0 10px;scrollbar-width:thin}
+  .gt-modal-root .gt-cb2,.gt-modal-root .gt-trees{padding-left:10px;padding-right:10px}
+  .gt-modal-root .panel-h{padding:12px 10px 8px}
+}
 
 /* tab4.css */
 /* 탭 4 담보 비교 전용: 위 전체 띠(79개 눈금 + 거르개 셋 + 미끄러지는 2px 단계 꺾쇠) + 아래 확대 구역(보장 분야 묶음, 45도 담보 이름) + 읽기 띠.
@@ -1539,7 +1587,14 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   .cv-ov-nm{font-size:13px}
   .cv-ov-cnt{font-size:13px}
   .cv-ov-ticks{gap:1px;height:24px;max-width:100%}
+  .cv-pager .btn.sm{height:32px}
+}
+@media (max-width:699px){
   .cvp-lbl{max-width:138px}
+}
+@media (max-width:640px){
+  .cv-ov-seg{min-width:38px}
+  .cv-ov-ticks{max-width:100%;overflow:hidden}
 }
 
 /* ---------- [표로 보기] 전체 모달 안의 치료 여정 격자, 단정 주의, 보류 요약, 담보 비교표 ---------- */
@@ -1641,6 +1696,28 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 #data-modal .cv-tw.has-more-r .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){box-shadow:-6px 0 12px -4px rgba(21,29,36,.28);border-left:1px solid var(--line-2)}
 #data-modal .cv-t.is-many-orgs tr.pick:hover :is(td.cv-n,td.cv-vd-sticky){background:var(--panel-lo)}
 #data-modal .cv-gh-pin{position:sticky;left:14px;display:inline-block}
+@media (max-width:1279px){
+  #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--panel-t);min-width:140px;max-width:180px}
+  #data-modal .cv-t.is-compact-orgs thead th.cv-n{z-index:4}
+  #data-modal .cv-tw.has-more-l .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
+  #data-modal .cv-t.is-compact-orgs tr.pick:hover td.cv-n{background:var(--panel-lo)}
+}
+@media (max-width:999px){
+  #data-modal .cv-tw-bar{top:-12px;padding:6px 10px}
+}
+@media (max-width:640px){
+  #data-modal .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky),
+  #data-modal .cv-tw.has-more-r .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){position:static;min-width:148px;max-width:none;box-shadow:none;border-left:0;padding-right:22px}
+  #data-modal .cv-t.is-many-orgs tr.pick:hover td.cv-vd-sticky{background:var(--hover)}
+  #data-modal .cv-t :is(th.cv-n,td.cv-n),
+  #data-modal .cv-t.is-many-orgs :is(th.cv-n,td.cv-n),
+  #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--panel-t);min-width:112px;max-width:128px}
+  #data-modal .cv-t thead th.cv-n{z-index:4}
+  #data-modal .cv-tw.has-more-l .cv-t :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
+  #data-modal .cv-t tr.pick:hover td.cv-n{background:var(--panel-lo)}
+  #data-modal .cv-t td.cv-n .nm{overflow-wrap:anywhere}
+  #data-modal .cv-t :is(th.cv-c,td.cv-c){min-width:164px}
+}
 .cv-vds-list{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
 .cv-vds-list.is-wrap{flex-direction:row;flex-wrap:wrap;gap:3px 4px}
 .cv-vds-it{display:inline-flex;align-items:center;gap:5px;font:400 13px/1.2 var(--f-body)}
@@ -1665,6 +1742,14 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(.cv-modal-root,#print-root) .cv-t tr.cv-gh .num{font:600 15px/1 var(--f-num);color:#fff}
 
 /* ---------- 읽기 띠 및 상세 영역 안(탭 4, 탭 5 가 함께 쓴다) ---------- */
+.cv-mob-nav{display:none!important}
+:is(#z-right,.ev) .cv-mob-vd{margin-top:4px}
+@media (max-width:999px){
+  .cv-mob-nav{display:flex!important;align-items:center;justify-content:space-between;gap:8px;padding:8px 18px;border-bottom:1px solid var(--line);background:var(--panel-lo)}
+  .cv-mob-nav-btn{height:32px!important;min-height:32px!important;padding:0 10px!important;font-size:13px!important}
+  .cv-mob-nav-btn:disabled{color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line);cursor:default;pointer-events:none}
+  .cv-mob-nav-pos{font:600 13px/1.2 var(--f-ko);color:var(--ink-1);white-space:nowrap}
+}
 :is(#z-right,.ev) .cv-jd + .cv-jd{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 :is(#z-right,.ev) .cv-jd p{margin:0 0 5px}
 :is(#z-right,.ev) .cv-jd .vd{margin-left:6px}
@@ -1679,8 +1764,10 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(#z-right,.ev) .cv-ct:not(.cv-ct-fold):not(.cv-ct-mob) td.sm{min-width:88px;white-space:nowrap}
 :is(#z-right,.ev) .cv-ct.cv-ct-mob th{min-width:82px;white-space:nowrap}
 :is(#z-right,.ev) .cv-it th,:is(#z-right,.ev) .cv-it td{min-width:56px}
-@media (max-width:560px){
+@media (max-width:640px){
   :is(#z-right,.ev) .cv-ct.cv-ct-fold tr{display:flex;flex-direction:column}
+  :is(#z-right,.ev) .cv-ct.cv-ct-mob th[scope="row"]{width:92px;max-width:104px;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
+  :is(#z-right,.ev) .cv-ct.cv-ct-mob td,:is(#z-right,.ev) .cv-it td{overflow-wrap:anywhere}
 }
 :is(#z-right,.ev) .cv-ct thead th,:is(#z-right,.ev) .cv-ct tr:first-child th,:is(#z-right,.ev) .cv-it tr:first-child th,:is(#z-right,.ev) .cv-jt tr:first-child th{font:600 13px/1.3 var(--f-ko);color:var(--ink-2);border-bottom-color:var(--line-2)}
 :is(#z-right,.ev) .cv-ct th[scope="row"],:is(#z-right,.ev) .cv-it th[scope="row"]{font:600 13px/1.45 var(--f-ko);color:var(--ink-1);white-space:nowrap}
@@ -1711,7 +1798,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 
 /* 관계도 */
 :is(#z-right,.ev) .cv-rel,:is(#z-right,.ev) .ins-rel{min-height:40px;margin:2px 0 8px}
-:is(#z-right,.ev) .rl-svg{display:block;overflow:visible}
+:is(#z-right,.ev) .rl-svg{display:block;max-width:100%;height:auto;overflow:visible}
 :is(#z-right,.ev) .rl-b{fill:var(--panel-hi);stroke:var(--line-2);stroke-width:1}
 :is(#z-right,.ev) .rl-b.std{fill:var(--panel-hi);stroke:var(--ink-1);stroke-width:1.5}
 :is(#z-right,.ev) .rl-b.ben.rep{stroke:var(--ink-0);stroke-width:2}
@@ -1778,6 +1865,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 #view-insight .ins-top-bar .chev-sel button{width:26px}
 #view-insight .ins-top-bar .chev-sel .v{font-size:13px;padding:0 4px}
 #view-insight .ins-top-bar .ins-top-btn{height:26px!important;min-height:26px!important;padding:0 8px!important;font-size:13px!important}
+.ins-mob-card-btn,.ins-mob-top-btn{display:none!important}
 
 #view-insight .vbody.ins-enter .ins-cat{animation:insCatIn 360ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
 :root[data-motion="calm"] #view-insight .vbody.ins-enter .ins-cat{animation-duration:200ms}
@@ -1918,10 +2006,16 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 
 /* 좁은 화면 */
 @media (max-width:999px){
+  .ins-mob-card-btn,.ins-mob-top-btn{display:inline-flex!important}
   #view-insight .ins-top-bar{flex-wrap:wrap;height:auto;max-height:none;padding:4px 0 6px;gap:6px}
+  #view-insight .ins-top-acts{flex-wrap:wrap;gap:6px;max-width:100%}
+  #view-insight .ins-top-bar .chev-sel{height:32px}
+  #view-insight .ins-top-bar .chev-sel button{width:32px}
+  #view-insight .ins-top-bar .ins-top-btn,#view-insight .ins-top-bar .ins-mob-card-btn{height:32px!important;min-height:32px!important}
+  .ins-cb .ins-mob-top-btn{height:32px!important;min-height:32px!important}
   #view-insight .ins-gh{margin:0 8px 6px}
   #view-insight .ins-empty{padding:4px 8px 14px}
-  #view-insight .ins-it,#view-insight .ins-rg{padding:0 8px}
+  #view-insight .ins-it,#view-insight .ins-rg{padding:0 8px 0 16px}
   #view-insight .ins-ih.selbar::before{left:-8px;right:-8px}
   #view-insight .ins-ih{padding-right:28px;min-height:40px;padding-top:0;padding-bottom:0}
   #view-insight .ins-s,#view-insight .ins-w,#view-insight .ins-m,#view-insight .ins-hd{padding-right:24px}
@@ -2147,6 +2241,11 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 /* 1000px 미만: 고른 노드의 조상과 자손 길만 세로로 세운 한 열 그림 */
 .gr-vpath{display:none}
 @media (max-width:999px){
+  .gr-left-wrap{gap:8px;padding-right:0}
+  .gr-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  .gr-preset{min-height:36px;padding:6px 6px;align-items:center;justify-content:center;text-align:center}
+  .gr-preset .gp-s{display:none}
+  .gr-ctrl-row .btn{height:32px}
   .gr-col-bar,.gr-canvas-scroll{display:none}
   .gr-vpath{display:flex;flex-direction:column;gap:0;padding:6px 0 14px}
   .gr-vp-step{position:relative;display:flex;flex-direction:column;gap:6px;padding:10px 0 12px 18px;border-left:2px solid var(--axis)}
@@ -4362,6 +4461,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     btns.push(legendBtn(legKey, cp('legendBtn')));
     box.innerHTML = btns.join('');
     if (sep) sep.hidden = btns.length === 0;
+    syncActMenu();
   }
 
   // ---------- 본문 무대 렌더링 ----------
@@ -4538,7 +4638,47 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
   // ---------- 읽기 영역(.z-right), 고른 표지 미끄러짐(#sel-glide), 1px 연결선(#sel-link) ----------
   const EV = { open: false };
+  let overlaySavedY = null;
+  let overlayPinY = null;
+  let inOverlayRestore = false;
   let selGlideToken = 0;
+
+  function isOverlayScrollLocked() {
+    const dm = $('#data-modal');
+    return !!((dm && !dm.hidden) || (EV.open && mode() === 'sheet'));
+  }
+
+  function pinWindowScrollTo(y) {
+    inOverlayRestore = true;
+    window.scrollTo(0, y);
+    requestAnimationFrame(() => { inOverlayRestore = false; });
+  }
+
+  function restoreOverlayScroll() {
+    if (isOverlayScrollLocked()) return;
+    const y = overlaySavedY;
+    overlaySavedY = null;
+    overlayPinY = null;
+    if (y !== null && innerWidth < 1280) {
+      pinWindowScrollTo(y);
+    }
+  }
+
+  function syncEvBackBtn() {
+    const zr = $('#z-right'), backBtn = $('#ev-back-btn');
+    if (!zr || !backBtn) return;
+    if (!zr.classList.contains('is-picked')) {
+      backBtn.hidden = true;
+      return;
+    }
+    const lbl = zr._backLabel || (mode() === 'sheet' ? '목록으로' : '');
+    if (lbl) {
+      backBtn.textContent = lbl;
+      backBtn.hidden = false;
+    } else {
+      backBtn.hidden = true;
+    }
+  }
 
   function syncRightScrollCue() {
     const body = $('#ev-body'), more = $('#zr-more');
@@ -4756,7 +4896,6 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   function setEvPicked(spec, animate) {
     const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
-    const backBtn = $('#ev-back-btn');
     const board = $('#board'), zc = $('#z-center');
     if (!zr || !zrIn || !k || !body) return;
     const token = ++evAnimToken;
@@ -4780,14 +4919,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       }
     }
     zrIn.hidden = false;
-    if (backBtn) {
-      if (spec.backLabel) {
-        backBtn.textContent = spec.backLabel;
-        backBtn.hidden = false;
-      } else {
-        backBtn.hidden = true;
-      }
-    }
+    zr._backLabel = spec.backLabel || '';
+    syncEvBackBtn();
     k.textContent = spec.kicker || cp('evKickerPick');
     t.textContent = spec.title || '';
     b.innerHTML = (spec.badges || []).join('');
@@ -4994,6 +5127,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         if (token !== evAnimToken) return;
         cancelEvAnims(zr, zrIn, body);
         zr.classList.remove('is-picked');
+        zr._backLabel = '';
+        syncEvBackBtn();
         zrIn.hidden = true;
         unsel.hidden = false;
         populateUnselectedEv(zr, unsel, ctx());
@@ -5006,45 +5141,60 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     evAnimToken++;
     cancelEvAnims(zr, zrIn, body);
     zr.classList.remove('is-picked');
+    zr._backLabel = '';
+    syncEvBackBtn();
     if (zrIn) zrIn.hidden = true;
     unsel.hidden = false;
     populateUnselectedEv(zr, unsel, curC);
   }
 
   function showEv(spec, o = {}) {
+    const preSheetY = (mode() === 'sheet' && !EV.open && overlaySavedY === null) ? window.scrollY : null;
     setEvPicked(spec, o.animate !== false);
-    if (o.open !== false && mode() === 'sheet') openEv();
+    if (o.open !== false && mode() === 'sheet') openEv(preSheetY);
   }
-  function openEv() {
+  function openEv(savedY) {
     if (mode() !== 'sheet') return;
+    if (overlaySavedY === null) {
+      overlaySavedY = savedY != null ? savedY : window.scrollY;
+    }
     if (!EV.open) { EV.open = true; document.body.classList.add('ev-open'); }
+    const eb = $('#ev-body');
+    if (eb) eb.scrollTop = 0;
+    syncRightScrollCue();
+    inOverlayRestore = true;
+    window.scrollTo(0, overlaySavedY);
+    overlayPinY = window.scrollY;
+    requestAnimationFrame(() => { inOverlayRestore = false; });
     sheetPad();
   }
   function hideEv() {
     if (!EV.open) return;
     const zr = $('#z-right');
     const { dur, easing } = panelTiming(false);
-    if (mode() === 'sheet' && dur > 0 && zr && typeof zr.animate === 'function') {
+    if (mode() === 'sheet' && dur > 0 && zr && zr.classList.contains('is-picked') && typeof zr.animate === 'function') {
       const token = ++evAnimToken;
-      const anim = zr.animate([
+      if (zr._evAnim) zr._evAnim.cancel();
+      const anim = (zr._evAnim = zr.animate([
         { transform: 'translate3d(0,0,0)', opacity: 1 },
         { transform: 'translate3d(0,28px,0)', opacity: 0 },
-      ], { duration: dur, easing });
+      ], { duration: dur, easing }));
       anim.onfinish = () => {
         if (token !== evAnimToken) return;
+        zr._evAnim = null;
         EV.open = false;
         document.body.classList.remove('ev-open');
         sheetPad();
+        restoreOverlayScroll();
       };
       return;
     }
     EV.open = false; document.body.classList.remove('ev-open');
     sheetPad();
+    restoreOverlayScroll();
   }
   function sheetPad() {
-    const zr = $('#z-right');
-    const h = EV.open && mode() === 'sheet' && zr ? zr.offsetHeight : 0;
-    document.documentElement.style.setProperty('--sheet-h', h + 'px');
+    document.documentElement.style.setProperty('--sheet-h', '0px');
   }
 
   function legendHTML() {
@@ -5140,6 +5290,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (key == null) return unselect(o);
     const same = st.sel[st.tab] === String(key);
     if (same && o.toggleOff) return unselect(o);
+    const preSheetY = (mode() === 'sheet' && !EV.open && overlaySavedY === null) ? window.scrollY : null;
     const prevBox = (!same && o.animate !== false) ? measureSelBox(st.tab) : null;
     st.sel[st.tab] = String(key);
     if (o.push !== false && booted && !same) pushHistory(new Set(['pick']));
@@ -5147,7 +5298,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     applySelectionState(o.animate !== false, curC);
     const nextBox = (!same && o.animate !== false && prevBox) ? measureSelBox(st.tab) : null;
     if (prevBox && nextBox) playSelGlide(prevBox, nextBox);
-    if (st.sel[st.tab] != null && mode() === 'sheet' && o.open !== false) openEv();
+    if (st.sel[st.tab] != null && mode() === 'sheet' && o.open !== false) openEv(preSheetY);
     const root = viewOf(st.tab) || $('#z-center');
     const el = root && $(`[data-pick="${CSS.escape(String(key))}"]`, root);
     if (el && o.focus) {
@@ -5155,7 +5306,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       try { hit.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
     if (curAimEl && el) refreshAimReticle();
-    if (el && o.reveal !== false && mode() === 'sheet') setTimeout(() => reveal(el), 240);
+    if (el && o.reveal === true && mode() === 'sheet') setTimeout(() => reveal(el), 240);
     placeGuides();
     requestAnimationFrame(() => updateSelLink(o.animate !== false && !same));
     emit('select', st.tab, String(key));
@@ -5224,6 +5375,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const m = $('#data-modal');
     if (!m || !spec) return;
     closeHelp(false, true);
+    closeActMenu(true);
+    if (overlaySavedY === null) {
+      overlaySavedY = window.scrollY;
+      overlayPinY = overlaySavedY;
+    } else if (overlayPinY === null) {
+      overlayPinY = window.scrollY;
+    }
     modalAnimToken++;
     cancelModalAnims(m);
     modalTrigger = spec.trigger || document.activeElement || null;
@@ -5258,6 +5416,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const body = $('#dm-body', m);
     body.innerHTML = typeof content.html === 'string' ? content.html : '';
     if (content.html && typeof content.html !== 'string') body.appendChild(content.html);
+    body.scrollTop = 0;
     if (typeof content.after === 'function') {
       try { content.after(body, ctx()); } catch (e) { console.error(e); }
     }
@@ -5275,7 +5434,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const prev = modalTrigger;
     modalTrigger = null;
     if (restoreFocus && prev && document.contains(prev)) {
-      try { prev.focus({ preventScroll: true }); } catch (e) { /* */ }
+      const focusEl = (innerWidth <= 1139 && prev.closest && prev.closest('#th-act-btns')) ? ($('#act-menu-btn') || prev) : prev;
+      try { focusEl.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
     const { dur, easing } = panelTiming(false);
     const bx = $('.dm-box', m);
@@ -5296,6 +5456,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         cancelModalAnims(m);
         m.hidden = true;
         $('#dm-body', m).innerHTML = '';
+        restoreOverlayScroll();
       };
       return true;
     }
@@ -5303,15 +5464,16 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     cancelModalAnims(m);
     m.hidden = true;
     $('#dm-body', m).innerHTML = '';
+    restoreOverlayScroll();
     return true;
   }
 
-  function closeActMenu() {
+  function closeActMenu(immediate) {
     const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn'), box = $('#th-act-btns');
     if (!wrap || !wrap.classList.contains('is-open')) return false;
     if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
     const { dur, easing } = panelTiming(false);
-    if (dur > 0 && box && typeof box.animate === 'function') {
+    if (!immediate && dur > 0 && box && typeof box.animate === 'function') {
       const anim = box.animate([{ opacity: 1, transform: 'translate3d(0,0,0)' }, { opacity: 0, transform: 'translate3d(0,-8px,0)' }], { duration: dur, easing });
       anim.onfinish = () => wrap.classList.remove('is-open');
       return true;
@@ -5320,12 +5482,21 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     return true;
   }
 
+  function syncActMenu() {
+    const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn');
+    if (!wrap || !btnEl) return;
+    if (innerWidth > 1139 && wrap.classList.contains('is-open')) {
+      wrap.classList.remove('is-open');
+      btnEl.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   function stepUp() {
-    if (closeActMenu()) { const mb = $('#act-menu-btn'); if (mb) mb.focus(); return true; }
+    if (closeActMenu()) { const mb = $('#act-menu-btn'); if (mb) { try { mb.focus({ preventScroll: true }); } catch (e) { /* */ } } return true; }
     if (closeHelp(true)) return true;
     if (closeModal(true)) return true;
-    if (condOpen) { setCondOpen(false); const b = $('#cond-sum'); if (b) b.focus(); return true; }
-    if (scopeOpen) { setScopeOpen(false); const b = $('#scope-tgl'); if (b) b.focus(); return true; }
+    if (condOpen) { setCondOpen(false); const b = $('#cond-sum'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { /* */ } } return true; }
+    if (scopeOpen) { setScopeOpen(false); const b = $('#scope-tgl'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { /* */ } } return true; }
     if (EV.open && mode() === 'sheet') { unselect({ restoreFocus: true }); return true; }
     if (st.sel[st.tab] != null) { unselect({ restoreFocus: true }); return true; }
     const curGrp = st.grp[st.tab];
@@ -5343,8 +5514,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   }
 
   function showTab(id, opts = {}) {
+    overlaySavedY = null;
+    overlayPinY = null;
+    closeActMenu(true);
     closeModal(false, true);
     renderActiveScreen(ctx(new Set(['tab'])), 'tab');
+    overlaySavedY = null;
+    overlayPinY = null;
     if (opts.scroll !== false && booted && innerWidth < 1280) scrollTo({ top: 0, behavior: 'auto' });
     emit('tab', id);
   }
@@ -5393,9 +5569,22 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }
     const r = el.getBoundingClientRect();
     const top = 36;
-    const bottom = innerHeight - (EV.open && mode() === 'sheet' ? $('#z-right').offsetHeight : 0) - 12;
-    if (r.top < top) scrollBy({ top: r.top - top, behavior: sm });
-    else if (r.bottom > bottom) scrollBy({ top: Math.min(r.bottom - bottom, r.top - top), behavior: sm });
+    const zr = $('#z-right');
+    const shH = (EV.open && mode() === 'sheet' && zr && zr.offsetHeight < innerHeight - 40) ? zr.offsetHeight : 0;
+    const bottom = innerHeight - shH - 12;
+    let delta = 0;
+    if (r.top < top) delta = r.top - top;
+    else if (r.bottom > bottom) delta = Math.min(r.bottom - bottom, r.top - top);
+    if (delta !== 0) {
+      if (isOverlayScrollLocked()) {
+        const nextY = Math.max(0, Math.round(window.scrollY + delta));
+        overlaySavedY = nextY;
+        overlayPinY = nextY;
+        pinWindowScrollTo(nextY);
+      } else {
+        scrollBy({ top: delta, behavior: sm });
+      }
+    }
   }
   function go(tabId, o = {}) {
     if (!TAB_IDS.includes(tabId)) tabId = TAB_BY_NAME[tabId] || tabId;
@@ -5588,7 +5777,10 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     helpAnchor = null;
     if (prev) {
       prev.setAttribute('aria-expanded', 'false');
-      if (restoreFocus) { try { prev.focus(); } catch (e) { /* */ } }
+      if (restoreFocus) {
+        const focusEl = (innerWidth <= 1139 && prev.closest && prev.closest('#th-act-btns')) ? ($('#act-menu-btn') || prev) : prev;
+        try { focusEl.focus({ preventScroll: true }); } catch (e) { /* */ }
+      }
     }
     const { dur, easing } = panelTiming(false);
     if (!immediate && dur > 0 && typeof pop.animate === 'function') {
@@ -5651,7 +5843,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     pop.classList.remove('is-peer');
     pop.classList.add('is-leg');
     pop.innerHTML = `<div class="help-h"><span>${esc(cp(spec.titleKey))}</span><button type="button" class="help-x" data-help-close="1" aria-label="${esc(cp('legendCloseAria'))}"><svg width="11" height="11" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button></div>${spec.htmlFn(ctx())}`;
-    openHelpPop(pop, btnEl);
+    const posEl = (innerWidth <= 1139 && btnEl.closest && btnEl.closest('#th-act-btns')) ? ($('#act-menu-btn') || btnEl) : btnEl;
+    openHelpPop(pop, posEl);
   }
   function renderPeerPopBody() {
     const modes = [
@@ -5934,9 +6127,238 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   });
   document.addEventListener('focusout', () => { hideAimReticle(); hideHudTip(); });
 
-  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 220; closeHelp(false); hideAimReticle(); hideHudTip(); }, { passive: true });
-  on('tab', () => { closeHelp(false); hideAimReticle(); hideHudTip(); });
+  addEventListener('scroll', () => {
+    if (inOverlayRestore) return;
+    if (isOverlayScrollLocked() && overlayPinY !== null) {
+      if (Math.abs(window.scrollY - overlayPinY) > 0.5) {
+        pinWindowScrollTo(overlayPinY);
+      }
+      return;
+    }
+    scrollMuteUntil = performance.now() + 220;
+    closeHelp(false);
+    hideAimReticle();
+    hideHudTip();
+  }, { passive: true });
+  on('tab', () => { closeActMenu(true); closeHelp(false); hideAimReticle(); hideHudTip(); });
   on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideAimReticle(); hideHudTip(); });
+
+  // ---------- 스크롤 전파 차단 및 배경 스크롤 잠금 ----------
+  const SCROLL_OV = new Set(['auto', 'scroll', 'overlay']);
+  const SCROLL_EPS = 1.5;
+
+  function elFromTarget(t) {
+    if (!t) return null;
+    if (t.nodeType === 1) return t;
+    return t.parentElement || null;
+  }
+
+  function isAxisScrollContainer(el, axis) {
+    if (!el) return false;
+    const cs = getComputedStyle(el);
+    if (axis === 'y') return SCROLL_OV.has(cs.overflowY) && el.scrollHeight > el.clientHeight + 1;
+    return SCROLL_OV.has(cs.overflowX) && el.scrollWidth > el.clientWidth + 1;
+  }
+
+  function canScrollAxis(el, axis, delta, eps = SCROLL_EPS) {
+    if (!el || delta === 0) return false;
+    if (!isAxisScrollContainer(el, axis)) return false;
+    if (axis === 'y') {
+      return delta > 0
+        ? (el.scrollTop + el.clientHeight < el.scrollHeight - eps)
+        : (el.scrollTop > eps);
+    }
+    return delta > 0
+      ? (el.scrollLeft + el.clientWidth < el.scrollWidth - eps)
+      : (el.scrollLeft > eps);
+  }
+
+  function axisHeadroom(el, axis, delta) {
+    if (!el || delta === 0) return 0;
+    if (axis === 'y') {
+      return delta > 0
+        ? Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop)
+        : Math.max(0, el.scrollTop);
+    }
+    return delta > 0
+      ? Math.max(0, el.scrollWidth - el.clientWidth - el.scrollLeft)
+      : Math.max(0, el.scrollLeft);
+  }
+
+  function getContainedRoot(target) {
+    const el = elFromTarget(target);
+    if (!el || typeof el.closest !== 'function') return null;
+    const hp = el.closest('#help-pop:not([hidden])');
+    if (hp) return hp;
+    const dm = el.closest('#data-modal:not([hidden])');
+    if (dm) return dm;
+    const zr = el.closest('#z-right.is-picked');
+    if (zr) {
+      if (mode() === 'sheet') {
+        if (document.body.classList.contains('ev-open')) return zr;
+      } else if (!zr.hidden && zr.offsetHeight > 0) {
+        return zr;
+      }
+    }
+    const gs = el.closest('#gr-sugg:not([hidden])');
+    if (gs) return gs;
+    const actBtns = el.closest('#th-act-wrap.is-open .th-act-btns');
+    if (actBtns) return actBtns;
+    if (innerWidth >= 1000) {
+      const cpEl = el.closest('.ev-unselected.is-custom-panel');
+      if (cpEl && !cpEl.hidden && cpEl.scrollHeight > cpEl.clientHeight + 1) return cpEl;
+    }
+    return null;
+  }
+
+  document.addEventListener('wheel', e => {
+    if (e.ctrlKey || e.metaKey) return;
+    let dx = e.deltaX || 0;
+    let dy = e.deltaY || 0;
+    if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
+    else if (e.deltaMode === 2) { dx *= innerHeight; dy *= innerHeight; }
+
+    const elT = elFromTarget(e.target);
+    const root = getContainedRoot(elT);
+    if (!root) {
+      if (isOverlayScrollLocked() && e.cancelable) e.preventDefault();
+      return;
+    }
+    if (dx === 0 && dy === 0) {
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    let scrollerY = null, scrollerX = null;
+    let outerY = false, outerX = false;
+    let nearestY = null, nearestX = null;
+    for (let cur = elT; cur; cur = cur.parentElement) {
+      if (dy !== 0) {
+        if (!nearestY && isAxisScrollContainer(cur, 'y')) nearestY = cur;
+        if (canScrollAxis(cur, 'y', dy)) {
+          if (!scrollerY) scrollerY = cur;
+          else outerY = true;
+        }
+      }
+      if (dx !== 0) {
+        if (!nearestX && isAxisScrollContainer(cur, 'x')) nearestX = cur;
+        if (canScrollAxis(cur, 'x', dx)) {
+          if (!scrollerX) scrollerX = cur;
+          else outerX = true;
+        }
+      }
+      if (cur === root) break;
+    }
+
+    if (!scrollerY && !scrollerX) {
+      if (Math.abs(dy) >= Math.abs(dx) && dy !== 0) {
+        let primaryBody = null;
+        if (root.id === 'z-right') {
+          const eb = $('#ev-body', root);
+          if (eb && (!elT || !eb.contains(elT))) primaryBody = eb;
+        } else if (root.id === 'data-modal' && (!elT || !elT.closest('.dm-scrim'))) {
+          const db = $('#dm-body', root);
+          if (db && (!elT || !db.contains(elT))) primaryBody = db;
+        }
+        if (primaryBody && canScrollAxis(primaryBody, 'y', dy, 0.5)) {
+          primaryBody.scrollTop += dy;
+          if (e.cancelable) e.preventDefault();
+          return;
+        }
+      }
+      const snapY = nearestY || (root.id === 'z-right' ? $('#ev-body', root) : root.id === 'data-modal' ? $('#dm-body', root) : null);
+      if (snapY && dy !== 0 && isAxisScrollContainer(snapY, 'y')) {
+        const maxTop = Math.max(0, snapY.scrollHeight - snapY.clientHeight);
+        if (dy < 0 && snapY.scrollTop > 0 && snapY.scrollTop <= 2) snapY.scrollTop = 0;
+        else if (dy > 0 && maxTop - snapY.scrollTop > 0 && maxTop - snapY.scrollTop <= 2) snapY.scrollTop = maxTop;
+      }
+      if (nearestX && dx !== 0 && isAxisScrollContainer(nearestX, 'x')) {
+        const maxLeft = Math.max(0, nearestX.scrollWidth - nearestX.clientWidth);
+        if (dx < 0 && nearestX.scrollLeft > 0 && nearestX.scrollLeft <= 2) nearestX.scrollLeft = 0;
+        else if (dx > 0 && maxLeft - nearestX.scrollLeft > 0 && maxLeft - nearestX.scrollLeft <= 2) nearestX.scrollLeft = maxLeft;
+      }
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    if (scrollerX && !scrollerY && dy !== 0) {
+      scrollerX.scrollLeft += dx;
+      if (nearestY && isAxisScrollContainer(nearestY, 'y')) {
+        const maxTop = Math.max(0, nearestY.scrollHeight - nearestY.clientHeight);
+        if (dy < 0 && nearestY.scrollTop > 0 && nearestY.scrollTop <= 2) nearestY.scrollTop = 0;
+        else if (dy > 0 && maxTop - nearestY.scrollTop > 0 && maxTop - nearestY.scrollTop <= 2) nearestY.scrollTop = maxTop;
+      }
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    if (scrollerY && !outerY && Math.abs(dy) >= axisHeadroom(scrollerY, 'y', dy)) {
+      scrollerY.scrollTop += dy;
+      if (scrollerX && dx !== 0) scrollerX.scrollLeft += dx;
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+    if (scrollerX && !scrollerY && !outerX && Math.abs(dx) >= axisHeadroom(scrollerX, 'x', dx)) {
+      scrollerX.scrollLeft += dx;
+      if (e.cancelable) e.preventDefault();
+    }
+  }, { passive: false });
+
+  let containTouch = null;
+  document.addEventListener('touchstart', e => {
+    if (!e.touches || e.touches.length !== 1) { containTouch = null; return; }
+    const t = e.touches[0];
+    containTouch = {
+      x: t.clientX,
+      y: t.clientY,
+      startX: t.clientX,
+      startY: t.clientY,
+      target: elFromTarget(e.target),
+    };
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const elT = elFromTarget(e.target) || (containTouch && containTouch.target);
+    if (!containTouch) {
+      containTouch = { x: t.clientX, y: t.clientY, startX: t.clientX, startY: t.clientY, target: elT };
+    }
+    let dx = containTouch.x - t.clientX;
+    let dy = containTouch.y - t.clientY;
+    if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+      containTouch.x = t.clientX;
+      containTouch.y = t.clientY;
+    } else {
+      dx = containTouch.startX - t.clientX;
+      dy = containTouch.startY - t.clientY;
+    }
+
+    const root = getContainedRoot(elT);
+    if (!root) {
+      if (isOverlayScrollLocked() && e.cancelable) e.preventDefault();
+      return;
+    }
+    if (dx === 0 && dy === 0) return;
+
+    const axis = Math.abs(dy) >= Math.abs(dx) ? 'y' : 'x';
+    const delta = axis === 'y' ? dy : dx;
+    let canScroll = false;
+    for (let cur = elT; cur; cur = cur.parentElement) {
+      if (canScrollAxis(cur, axis, delta, SCROLL_EPS)) {
+        canScroll = true;
+        break;
+      }
+      if (cur === root) break;
+    }
+    if (!canScroll && e.cancelable) e.preventDefault();
+  }, { passive: false });
+
+  const clearContainTouch = e => {
+    if (!e.touches || e.touches.length === 0) containTouch = null;
+  };
+  document.addEventListener('touchend', clearContainTouch, { passive: true });
+  document.addEventListener('touchcancel', clearContainTouch, { passive: true });
 
   // ---------- 위임 클릭과 키보드 ----------
   document.addEventListener('click', e => {
@@ -5973,10 +6395,12 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const am = e.target.closest('#act-menu-btn');
     if (am) {
       e.stopPropagation();
+      if (innerWidth > 1139) return;
       const wrap = $('#th-act-wrap'), box = $('#th-act-btns');
       if (wrap) {
         const opening = !wrap.classList.contains('is-open');
         if (opening) {
+          closeHelp(false, true);
           wrap.classList.add('is-open');
           am.setAttribute('aria-expanded', 'true');
           const { dur, easing } = panelTiming(true);
@@ -6064,7 +6488,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }
 
     const lu = e.target.closest('[data-layer-up]');
-    if (lu) { e.stopPropagation(); stepUp(); return; }
+    if (lu) { e.stopPropagation(); closeActMenu(true); stepUp(); return; }
 
     const zl = e.target.closest('[data-zl]');
     if (zl) {
@@ -6101,7 +6525,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (mp && !e.target.closest('.live')) {
       const pickKey = mp.dataset.pick;
       closeModal(false, true);
-      select(pickKey, { focus: true });
+      select(pickKey, { focus: true, reveal: true });
       return;
     }
 
@@ -6123,7 +6547,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
   document.addEventListener('keydown', e => {
     // 1. 고리 탭 줄 및 첫 화면 다섯 묶음 좌우 화살표 이동
-    const inRtab = e.target.closest && e.target.closest('[data-rtab]');
+    const inRtab = !isOverlayScrollLocked() && e.target.closest && e.target.closest('[data-rtab]');
     if (inRtab && ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
       const scopeRoot = st.tab === 'brief' ? $('#home-panel') : $('#rtabs');
       const items = scopeRoot ? $$('[data-rtab]', scopeRoot) : [];
@@ -6148,7 +6572,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }
 
     // 2. 왼쪽 분류 구역 상하 화살표 이동
-    const inZl = e.target.closest && e.target.closest('#z-left .zl-item');
+    const inZl = !isOverlayScrollLocked() && e.target.closest && e.target.closest('#z-left .zl-item');
     if (inZl && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End')) {
       const items = $$('#z-left .zl-item');
       const i = items.indexOf(inZl);
@@ -6166,7 +6590,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     }
 
     // 3. 무대 단위 도형 격자 화살표 이동([data-grid-r][data-grid-c])
-    const cellBtn = e.target.closest && e.target.closest('#z-center [data-grid-r][data-grid-c]');
+    const cellBtn = !isOverlayScrollLocked() && e.target.closest && e.target.closest('#z-center [data-grid-r][data-grid-c]');
     if (cellBtn && ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
       const r = +cellBtn.dataset.gridR, c = +cellBtn.dataset.gridC;
       const nr = e.key === 'ArrowDown' ? r + 1 : e.key === 'ArrowUp' ? r - 1 : r;
@@ -6186,7 +6610,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       if (trPick.closest('#dm-body')) {
         const pk = trPick.dataset.pick;
         closeModal(false, true);
-        select(pk, { focus: true });
+        select(pk, { focus: true, reveal: true });
       } else {
         select(trPick.dataset.pick, { focus: true });
       }
@@ -6196,8 +6620,41 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (e.key === 'Escape') {
       if (stepUp()) { e.preventDefault(); return; }
     }
-    const typing = e.target.closest && e.target.closest('input,select,textarea');
+    const typing = e.target.closest && e.target.closest('input,select,textarea,[contenteditable="true"]');
     if (typing) return;
+
+    if (isOverlayScrollLocked() && !e.defaultPrevented && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const k = e.key;
+      if (k === 'PageDown' || k === 'PageUp' || k === 'Home' || k === 'End' || k === 'ArrowDown' || k === 'ArrowUp' || k === ' ') {
+        const elT = elFromTarget(e.target);
+        if (k === ' ' && elT && elT.closest('button,a[href],summary,[role="button"],[role="switch"],[role="radio"],[role="checkbox"],[role="tab"]')) return;
+        e.preventDefault();
+        const dm = $('#data-modal');
+        const overlay = (dm && !dm.hidden) ? dm : (EV.open && mode() === 'sheet' ? $('#z-right') : null);
+        if (!overlay) return;
+        let sc = null;
+        if (elT && overlay.contains(elT)) {
+          for (let cur = elT; cur; cur = cur.parentElement) {
+            if (isAxisScrollContainer(cur, 'y')) { sc = cur; break; }
+            if (cur === overlay) break;
+          }
+        }
+        if (!sc && (overlay.id === 'data-modal' ? (!elT || elT.id === 'dm-x' || overlay.contains(elT)) : true)) {
+          sc = overlay.id === 'data-modal' ? $('#dm-body', overlay) : $('#ev-body', overlay);
+        }
+        if (sc && isAxisScrollContainer(sc, 'y')) {
+          const pageStep = Math.max(80, Math.round(sc.clientHeight * 0.88));
+          if (k === 'PageDown' || (k === ' ' && !e.shiftKey)) sc.scrollTop += pageStep;
+          else if (k === 'PageUp' || (k === ' ' && e.shiftKey)) sc.scrollTop -= pageStep;
+          else if (k === 'ArrowDown') sc.scrollTop += 48;
+          else if (k === 'ArrowUp') sc.scrollTop -= 48;
+          else if (k === 'Home') sc.scrollTop = 0;
+          else if (k === 'End') sc.scrollTop = sc.scrollHeight;
+        }
+        return;
+      }
+    }
+
     if (e.key === ']' || e.key === '[') {
       const curIdx = SCREEN_IDS.indexOf(st.tab);
       const nextIdx = curIdx < 0 ? 0 : (curIdx + (e.key === ']' ? 1 : SCREEN_IDS.length - 1)) % SCREEN_IDS.length;
@@ -6280,6 +6737,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
     let rz = 0, lastMode = mode();
     addEventListener('resize', () => {
+      syncActMenu();
       syncRtabsCue(false);
       clearTimeout(rz);
       rz = setTimeout(() => {
@@ -6289,6 +6747,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
           lastMode = m;
           if (st.tab !== 'brief' && st.sel[st.tab] != null) applySelectionState(false);
         }
+        syncActMenu();
+        syncEvBackBtn();
         closeHelp(false); hideAimReticle(); hideHudTip();
         syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);
@@ -6657,12 +7117,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
       const extraTag = id === 'market' && m.subText
         ? `<span class="hm-sub">${esc(m.subText)}</span>`
         : (m.fullBadge ? `<span class="tag" title="${esc(t('fullScopeHint'))}">${esc(t('fullScopeBadge'))}</span>` : '');
-      const sumSub = groupPlainSummary(id, base);
-      return `<button type="button" class="hm-grp" id="tab-${id}" data-rtab="${id}" data-aim="rect" data-tip-title="${esc(m.name)}" data-tip-sub="${esc(sumSub)}" tabindex="${idx === 0 ? 0 : -1}">
+      const grpSentence = groupPlainSummary(id, base);
+      return `<button type="button" class="hm-grp" id="tab-${id}" data-rtab="${id}" data-aim="rect" data-tip-title="${esc(m.name)}" data-tip-sub="${esc(grpSentence)}" tabindex="${idx === 0 ? 0 : -1}">
         ${m.flag ? ui.flag(m.flag) : ''}
         <div class="hm-head">
           ${bigHTML}
           <span class="hm-name"><span>${esc(m.name)}</span>${extraTag}</span>
+          ${grpSentence ? `<span class="hm-mob-sum">${esc(grpSentence)}</span>` : ''}
         </div>
         <span class="hm-stem" aria-hidden="true"><i class="hm-dia"></i></span>
         <div class="hm-pils">${svgByTab[id]}</div>
@@ -8783,9 +9244,10 @@ function measureZoomLayout(hostEl, stRows, domOrder) {
   if (!cachedHostW && hostEl && hostEl.clientWidth > 120) cachedHostW = hostEl.clientWidth;
   const hostW = cachedHostW > 120 ? cachedHostW : Math.max(320, vw - (vw >= 1600 ? 96 : vw >= 1000 ? 64 : 32));
   const isMobile = vw < 700;
+  const isSmallMob = vw < 640;
   const rulerW = isMobile ? 22 : 30;
-  const rightPad = isMobile ? 82 : 108;
-  const domGap = isMobile ? 14 : 20;
+  const rightPad = isSmallMob ? 54 : (isMobile ? 82 : 108);
+  const domGap = isSmallMob ? 10 : (isMobile ? 14 : 20);
   const usableW = Math.max(150, hostW - rulerW - rightPad);
   const minPitch = 32;
   const maxPitch = isMobile ? 48 : 64;
@@ -9529,6 +9991,7 @@ function condTable(m, row, c) {
 
     const oursCells = items.map(([lab, f]) => `<div class="cv-ours-kv"><span>${esc(lab)}</span><b>${oursRep ? esc(f(oursRep)) : '없음'}</b></div>`).join('');
 
+    const mobDet = innerWidth <= 640;
     const groupsAccordion = buckets.map((bk, bIdx) => {
       const pRows = [];
       bk.codes.forEach(code => {
@@ -9541,25 +10004,44 @@ function condTable(m, row, c) {
             const rp = repOf(c2);
             const v = verdFor(row, m, i, allPIdxs);
             const emptyPay = c2 && c2.w ? `<span class="cv-na">검토 대기 ${c2.w}줄</span>` : c2 && c2.c ? `<span class="cv-na">없음(${esc(c2.c[0])} 덮음)</span>` : '<span class="cv-na">없음</span>';
-            pRows.push(`<tr>
-              <th scope="row" title="${esc(fullN(vid))}">${esc(orgN(vid))} <span class="note">${esc(txt.shortName(kindN(vid)).short)}</span></th>
-              <td>${rp ? esc(payText(rp)) : emptyPay}</td>
-              <td>${rp ? esc(waitText(rp.wait)) : '-'}</td>
-              <td>${rp ? esc(redText(rp.red, rp)) : '-'}</td>
-              <td>${rp ? esc(formText(rp, hasAnyNonMon)) : '-'}</td>
-              <td>${chip(v)}</td>
-            </tr>`);
+            if (mobDet) {
+              const kvHTML = rp
+                ? [['지급', payText(rp)], ['면책', waitText(rp.wait)], ['감액', redText(rp.red, rp)], ['지급 형태', formText(rp, hasAnyNonMon)]]
+                  .map(([lb, val]) => `<span class="cv-ours-kv"><span>${esc(lb)}</span><b>${esc(val)}</b></span>`).join('')
+                : emptyPay;
+              pRows.push(`<tr>
+                <th scope="row" title="${esc(fullN(vid))}">${esc(orgN(vid))} <span class="note">${esc(txt.shortName(kindN(vid)).short)}</span></th>
+                <td><div class="cv-ours-grid">${kvHTML}</div><div class="cv-mob-vd">${chip(v)}</div></td>
+              </tr>`);
+            } else {
+              pRows.push(`<tr>
+                <th scope="row" title="${esc(fullN(vid))}">${esc(orgN(vid))} <span class="note">${esc(txt.shortName(kindN(vid)).short)}</span></th>
+                <td>${rp ? esc(payText(rp)) : emptyPay}</td>
+                <td>${rp ? esc(waitText(rp.wait)) : '-'}</td>
+                <td>${rp ? esc(redText(rp.red, rp)) : '-'}</td>
+                <td>${rp ? esc(formText(rp, hasAnyNonMon)) : '-'}</td>
+                <td>${chip(v)}</td>
+              </tr>`);
+            }
           });
+        } else if (mobDet) {
+          pRows.push(`<tr><th scope="row">${esc(txt.orgShort(code))}</th><td class="note">해당 회사 보유</td></tr>`);
         } else {
           pRows.push(`<tr><th scope="row">${esc(txt.orgShort(code))}</th><td colspan="5" class="note">해당 회사 보유</td></tr>`);
         }
       });
-      return `<details class="zr-det cv-vg-det"${bIdx === 0 ? ' open' : ''}>
-        <summary><span>${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)} <span class="note">${esc(txt.peerNamesEtc(bk.codes.map(txt.orgShort), 4))}</span></span>${ui.IC.chevD}</summary>
-        <div class="zr-det-b"><div class="cv-ct-w"><table class="cv-ct">
+      const detTblHTML = mobDet
+        ? `<table class="cv-ct cv-ct-mob">
+          <tr><th scope="col">상대 회사</th><th scope="col">조건과 판정</th></tr>
+          ${pRows.join('')}
+        </table>`
+        : `<table class="cv-ct">
           <tr><th scope="col">상대 회사</th><th scope="col">지급</th><th scope="col">면책</th><th scope="col">감액</th><th scope="col">지급 형태</th><th scope="col">판정</th></tr>
           ${pRows.join('')}
-        </table></div></div>
+        </table>`;
+      return `<details class="zr-det cv-vg-det"${bIdx === 0 ? ' open' : ''}>
+        <summary><span>${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)} <span class="note">${esc(txt.peerNamesEtc(bk.codes.map(txt.orgShort), 4))}</span></span>${ui.IC.chevD}</summary>
+        <div class="zr-det-b"><div class="cv-ct-w">${detTblHTML}</div></div>
       </details>`;
     }).join('');
 
@@ -9590,8 +10072,8 @@ function condTable(m, row, c) {
     return [lab, txt.sameSummary(vals, eqFn)];
   });
 
-  // 좁은 창(380px 등)에서는 열이 눌리거나 안쪽 가로 스크롤이 생기지 않게 회사를 줄로 세워 보여 준다(요청 30의 7-2)
-  if (innerWidth <= 560) {
+  // 좁은 창(640px 이하)에서는 열이 눌리거나 안쪽 가로 스크롤이 생기지 않게 회사를 줄로 세워 보여 준다(요청 30의 7-2)
+  if (innerWidth <= 640) {
     const mobRows = cols.map((v, k) => {
       const rp = reps[k];
       const detail = rp
@@ -9665,8 +10147,23 @@ function rowEvidence(c, sid, mode) {
     const subNm = SUB_NAME_MAP[o['세부']] || '';
     out.push(`${o['분류']}${subNm ? `(${subNm})` : ''}: ${reasonText(o['사유'])}`);
   });
+  const stRowsForNav = STEPS.includes(row.type)
+    ? buildDomainGroups(m.rows.filter(r => r.type === row.type), domainOrderOf(c)).flatMap(g => g.items)
+    : [];
+  const navList = stRowsForNav.length > 1 ? stRowsForNav : m.rows;
+  const navIdx = navList.findIndex(r => r.sid === sid);
+  const prevRow = navIdx > 0 ? navList[navIdx - 1] : null;
+  const nextRow = navIdx >= 0 && navIdx < navList.length - 1 ? navList[navIdx + 1] : null;
+  const navStepLbl = stRowsForNav.length > 1 ? `${row.type} ` : '';
+  const mobNavHTML = navIdx >= 0 && navList.length > 1
+    ? `<div class="cv-mob-nav" role="navigation" aria-label="담보 이동">
+        <button type="button" class="btn sm ghost cv-mob-nav-btn" data-act="cv-mob-nav" data-sid="${prevRow ? esc(prevRow.sid) : ''}"${prevRow ? '' : ' disabled'}>${ui.IC.chevL}<span>이전 담보</span></button>
+        <span class="cv-mob-nav-pos num">${esc(navStepLbl)}${fmt(navIdx + 1)} / ${fmt(navList.length)}</span>
+        <button type="button" class="btn sm ghost cv-mob-nav-btn" data-act="cv-mob-nav" data-sid="${nextRow ? esc(nextRow.sid) : ''}"${nextRow ? '' : ' disabled'}><span>다음 담보</span>${ui.IC.chevR}</button>
+      </div>`
+    : '';
   const graphJump = `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>`;
-  const body = `<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}${graphJump}</div>
+  const body = `${mobNavHTML}<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}${graphJump}</div>
     <div class="ev-sec"><h3>판정과 인사이트</h3>${judge || `<p class="note">${esc(App.t('peerEmptyHint'))}</p>`}${pts ? `<ul class="cv-pts" style="margin-top:8px">${pts}</ul>` : ''}</div>
     <details class="zr-det"><summary><span>관계도와 근거 문서 쪽 번호 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b">
       <div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}
@@ -10066,8 +10563,11 @@ function tableHTML(c) {
   const chipNames = order.filter(nm => nm !== BOTH_NONE_TEXT);
   const sumChipsHTML = chipNames.map(nm => `${ui.verdict(chipKindByName(nm), nm)} <b class="num" data-sum-name="${esc(nm)}">${byName[nm] || 0}</b>`).join(' ');
   const head2 = '<span class="cv-v hd"><span class="pv">지급</span><span class="wv">면책</span><span class="rv">감액</span></span>';
+  const twHintTxt = (innerWidth <= 640 || !manyOrgs)
+    ? '담보 열은 고정되고, 회사 및 판정 열을 좌우로 밀어 확인합니다.'
+    : '담보와 판정 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
   const scrollBarHTML = `<div class="cv-tw-bar no-print" id="cv-tw-bar" hidden>
-    <span class="cv-tw-hint" id="cv-tw-hint">담보와 판정 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.</span>
+    <span class="cv-tw-hint" id="cv-tw-hint">${esc(twHintTxt)}</span>
     <span class="cv-tw-btns">
       <button type="button" class="btn sm ghost" id="cv-scroll-l" data-act="cv-scroll-l" disabled>${ui.IC.chevL}<span>왼쪽 회사 열</span></button>
       <button type="button" class="btn sm ghost" id="cv-scroll-r" data-act="cv-scroll-r"><span>오른쪽 회사 열</span>${ui.IC.chevR}</button>
@@ -10104,13 +10604,21 @@ function syncCoverTwScroll(root) {
   const bar = (root || document).querySelector('#cv-tw-bar');
   if (!tw) return;
   const maxL = Math.max(0, tw.scrollWidth - tw.clientWidth);
-  const hasOver = maxL > 3;
-  const moreL = hasOver && tw.scrollLeft > 3;
-  const moreR = hasOver && tw.scrollLeft < maxL - 3;
+  const hasOver = maxL > 2;
+  const moreL = hasOver && tw.scrollLeft > 2;
+  const moreR = hasOver && tw.scrollLeft < maxL - 2;
   tw.classList.toggle('has-more-l', moreL);
   tw.classList.toggle('has-more-r', moreR);
   if (bar) {
     bar.hidden = !hasOver;
+    const hint = bar.querySelector('#cv-tw-hint');
+    if (hint) {
+      const tbl = tw.querySelector('#cover-tbl');
+      const manyOrgs = !!(tbl && tbl.classList.contains('is-many-orgs'));
+      hint.textContent = (innerWidth <= 640 || !manyOrgs)
+        ? '담보 열은 고정되고, 회사 및 판정 열을 좌우로 밀어 확인합니다.'
+        : '담보와 판정 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
+    }
     const btnL = bar.querySelector('#cv-scroll-l');
     const btnR = bar.querySelector('#cv-scroll-r');
     if (btnL) btnL.disabled = !moreL;
@@ -10283,7 +10791,18 @@ document.addEventListener('click', e => {
     if ((act === 'cv-scroll-l' || act === 'cv-scroll-r') && dmBody) {
       e.stopPropagation();
       const tw = dmBody.querySelector('#cover-tw');
-      if (tw) tw.scrollBy({ left: act === 'cv-scroll-l' ? -440 : 440, behavior: App.motionOn() ? 'smooth' : 'auto' });
+      const stepX = innerWidth <= 640 ? 200 : 440;
+      if (tw) tw.scrollBy({ left: act === 'cv-scroll-l' ? -stepX : stepX, behavior: App.motionOn() ? 'smooth' : 'auto' });
+      return;
+    }
+    if (act === 'cv-mob-nav') {
+      e.stopPropagation();
+      if (a.disabled || !a.dataset.sid) return;
+      const targetSid = a.dataset.sid;
+      ensureSidInView(targetSid, App.ctx());
+      App.select('s:' + targetSid, { reveal: false });
+      const evBody = document.getElementById('ev-body');
+      if (evBody) evBody.scrollTop = 0;
       return;
     }
     if (act === 'cv-group' && dmBody) { e.stopPropagation(); fGroup = a.dataset.v || null; refreshTable(dmBody, App.ctx()); return; }
@@ -10776,7 +11295,7 @@ App.registerTab((function () {
     const n = groups.reduce((a, g) => a + g.xs.length, 0);
     return `<div class="ins-cw">
       <div class="ins-ct"><div><span class="k">${ui.scope('base')} 산출물</span><h2>응대 화법</h2></div>
-        <div class="ins-cb">${ui.btn('인쇄', { main: true, sm: true, icon: 'print', attrs: 'data-print="insight-card" data-card="1" data-title="응대 화법"' })}${ui.btn('화법 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-card"' })}</div></div>
+        <div class="ins-cb">${ui.btn('인쇄', { main: true, sm: true, icon: 'print', attrs: 'data-print="insight-card" data-card="1" data-title="응대 화법"' })}${ui.btn('화법 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-card"' })}<button type="button" class="btn sm ghost ins-mob-top-btn" data-act="ins-go-top">목록 위로</button></div></div>
       <p class="ins-cn"><span>응대 화법에 추가 <b class="num" id="ins-card-picked-n">${fmt(n)}</b>건</span>${ui.btn('기본 선택으로', { sm: true, ghost: true, attrs: 'data-act="ins-reset"' })}<span class="ins-over" id="ins-over" role="status"></span></p>
       ${cardHTML(c)}
     </div>`;
@@ -10968,6 +11487,7 @@ App.registerTab((function () {
       <div class="ins-top-acts">
         <span class="ins-pf"><span class="lb">목적</span><span data-slot="purpose"></span></span>
         <span class="live">${ui.btn('목록 복사', { sm: true, ghost: true, icon: 'copy', cls: 'ins-top-btn', attrs: 'data-act="ins-copy-list"' })}</span>
+        <button type="button" class="btn sm ins-mob-card-btn" data-act="ins-go-card">응대 화법 보기</button>
       </div>
     </div>`;
   }
@@ -11146,6 +11666,21 @@ App.registerTab((function () {
       copyRev();
     } else if (act === 'ins-copy-card') {
       copyCard();
+    } else if (act === 'ins-go-card') {
+      e.stopPropagation();
+      if (App.state.sel.insight != null) App.unselect({ restoreFocus: false, animate: false });
+      const zr = document.getElementById('z-right');
+      if (zr) {
+        const top = Math.max(0, Math.round(window.scrollY + zr.getBoundingClientRect().top - 36));
+        window.scrollTo({ top, behavior: App.motionOn() ? 'smooth' : 'auto' });
+      }
+    } else if (act === 'ins-go-top') {
+      e.stopPropagation();
+      const vwEl = document.getElementById('view-insight');
+      if (vwEl) {
+        const top = Math.max(0, Math.round(window.scrollY + vwEl.getBoundingClientRect().top - 36));
+        window.scrollTo({ top, behavior: App.motionOn() ? 'smooth' : 'auto' });
+      }
     }
   });
 

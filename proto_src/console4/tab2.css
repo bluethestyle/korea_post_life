@@ -123,14 +123,22 @@
 @media (max-width:999px){
   .mkc-stage{padding-right:0}
   .mk-top-ctrl{justify-content:space-between}
+  .mk-ren-box .chev-sel{height:32px}
+  .mk-ren-box .chev-sel button{width:34px}
   .mk-thead{display:flex;flex-direction:column;align-items:stretch;gap:6px}
   .mk-tch{width:44px;font-size:13px;white-space:normal;line-height:1.15;word-break:keep-all}
   .mk-trows{gap:18px}
   .mk-trow{display:flex;flex-direction:column;align-items:stretch;gap:6px}
   .mk-trow.is-break::before{top:-9px}
   .mk-rh{flex-direction:row;align-items:baseline;justify-content:space-between}
+  .mk-trans-tk{right:50%;transform:translateX(50%)}
   .mk-ring{width:44px;height:44px}
   .mk-rn{font-size:14px}
+}
+@media (max-width:420px){
+  .mk-ring{width:40px;height:40px}
+  .mk-tch{width:40px;font-size:13px}
+  .mk-rn{font-size:13.5px}
 }
 
 /* [개정과 시장] / [표로 보기] 창 내부 부품 */
@@ -153,3 +161,8 @@
 .mk-gap li{display:flex;gap:8px;align-items:flex-start}
 .mk-url{word-break:break-all;font-family:var(--f-num)}
 .mk-est{display:inline-flex;align-items:center;gap:6px}
+@media (max-width:640px){
+  .mk-pane-scroll,.mk-pane-scroll > .dm-sec,.dm-body > .panel{min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:thin}
+  .dm-body .tbl:not(.cv-t) th,.dm-body .tbl:not(.cv-t) td{padding:6px 6px}
+  .mk-pane-scroll .tbl tr.pick > td:last-child{padding-right:22px}
+}

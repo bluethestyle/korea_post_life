@@ -311,7 +311,7 @@ App.registerTab((function () {
     const n = groups.reduce((a, g) => a + g.xs.length, 0);
     return `<div class="ins-cw">
       <div class="ins-ct"><div><span class="k">${ui.scope('base')} 산출물</span><h2>응대 화법</h2></div>
-        <div class="ins-cb">${ui.btn('인쇄', { main: true, sm: true, icon: 'print', attrs: 'data-print="insight-card" data-card="1" data-title="응대 화법"' })}${ui.btn('화법 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-card"' })}</div></div>
+        <div class="ins-cb">${ui.btn('인쇄', { main: true, sm: true, icon: 'print', attrs: 'data-print="insight-card" data-card="1" data-title="응대 화법"' })}${ui.btn('화법 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="ins-copy-card"' })}<button type="button" class="btn sm ghost ins-mob-top-btn" data-act="ins-go-top">목록 위로</button></div></div>
       <p class="ins-cn"><span>응대 화법에 추가 <b class="num" id="ins-card-picked-n">${fmt(n)}</b>건</span>${ui.btn('기본 선택으로', { sm: true, ghost: true, attrs: 'data-act="ins-reset"' })}<span class="ins-over" id="ins-over" role="status"></span></p>
       ${cardHTML(c)}
     </div>`;
@@ -503,6 +503,7 @@ App.registerTab((function () {
       <div class="ins-top-acts">
         <span class="ins-pf"><span class="lb">목적</span><span data-slot="purpose"></span></span>
         <span class="live">${ui.btn('목록 복사', { sm: true, ghost: true, icon: 'copy', cls: 'ins-top-btn', attrs: 'data-act="ins-copy-list"' })}</span>
+        <button type="button" class="btn sm ins-mob-card-btn" data-act="ins-go-card">응대 화법 보기</button>
       </div>
     </div>`;
   }
@@ -681,6 +682,21 @@ App.registerTab((function () {
       copyRev();
     } else if (act === 'ins-copy-card') {
       copyCard();
+    } else if (act === 'ins-go-card') {
+      e.stopPropagation();
+      if (App.state.sel.insight != null) App.unselect({ restoreFocus: false, animate: false });
+      const zr = document.getElementById('z-right');
+      if (zr) {
+        const top = Math.max(0, Math.round(window.scrollY + zr.getBoundingClientRect().top - 36));
+        window.scrollTo({ top, behavior: App.motionOn() ? 'smooth' : 'auto' });
+      }
+    } else if (act === 'ins-go-top') {
+      e.stopPropagation();
+      const vwEl = document.getElementById('view-insight');
+      if (vwEl) {
+        const top = Math.max(0, Math.round(window.scrollY + vwEl.getBoundingClientRect().top - 36));
+        window.scrollTo({ top, behavior: App.motionOn() ? 'smooth' : 'auto' });
+      }
     }
   });
 

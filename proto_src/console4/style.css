@@ -201,32 +201,39 @@ button{cursor:pointer}
   .th-act-btns .btn.sm{padding:0 7px}
   .scope-tgl{padding:0 7px}
 }
-@media (max-width:1139px) and (min-width:1000px){
+@media (max-width:1139px){
   .th-act-menu-btn{display:inline-flex!important}
   .th-act-btns{display:none;position:absolute;top:32px;left:0;z-index:58;flex-direction:column;align-items:stretch;
-    min-width:176px;height:auto;gap:4px;padding:6px;background:var(--panel-t);border:1px solid var(--line-2);
+    min-width:176px;max-width:calc(100vw - 32px);max-height:min(72vh,440px);overflow-y:auto;height:auto;gap:4px;padding:6px;
+    background:var(--panel-t);border:1px solid var(--line-2);
     border-top:2px solid var(--top-line);box-shadow:0 12px 32px rgba(21,29,36,.26)}
   .th-act-wrap.is-open .th-act-btns{display:flex}
   .th-act-btns .btn.sm{width:100%;justify-content:flex-start;padding:0 10px}
 }
 @media (max-width:999px){
+  :root:not([data-theme="dark"]) .head{background:rgba(226,230,234,.98)}
+  :root[data-theme="dark"] .head{background:rgba(21,28,36,.98)}
   .notice{padding:0 8px;gap:6px}
   .notice-acts{gap:4px}
-  .notice .tgl{width:22px;height:20px;padding:0;justify-content:center}
+  .notice .tgl{position:relative;width:22px;height:20px;padding:0;justify-content:center}
+  .notice .tgl::before{content:"";position:absolute;inset:-6px}
   .notice .tgl .tgl-tx{display:none}
   .notice .tgl .tgl-ic{display:block}
-  .top-head{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+  .top-head{grid-template-columns:minmax(0,1fr);gap:6px}
   .th-title{font-size:25px}
+  .th-total{display:none!important}
   .lpath{flex-wrap:wrap;overflow:visible}
   .lpath .lp-cur{white-space:normal}
   .th-mid{grid-column:1/-1;align-items:flex-start}
   .th-cond-line{white-space:normal}
   .th-cond-btns{justify-content:flex-start;height:auto}
-  .th-act-btns{flex-wrap:wrap;height:auto;gap:4px}
-  .th-act-btns .btn.sm{width:30px;height:28px;padding:0;justify-content:center;gap:0}
-  .th-act-btns .btn.sm > span:not(.sr){display:none}
-  .tht-ring{width:64px;height:64px}
-  .tht-val{padding-top:23px;font-size:14px}
+  .th-act-wrap{height:32px}
+  .th-act-btns{top:36px}
+  .th-act-btns .btn.sm{min-height:34px}
+  .scope-tgl,.th-act-menu-btn,.leg-btn{height:32px}
+}
+@media (max-width:640px){
+  .th-title{font-size:22px}
 }
 
 /* ---------- 5. 눌러서 여는 조건 편집 판과 범위 띠 ---------- */
@@ -242,7 +249,7 @@ button{cursor:pointer}
 .cf .hint{font:400 13px/1.2 var(--f-body);color:var(--ink-2);white-space:nowrap}
 @media (max-width:999px){
   .cond-body{flex-direction:column}
-  .cg{padding:12px 16px;gap:10px 16px}
+  .cg{padding:10px 14px;gap:8px 14px}
   .cg + .cg{border-left:0;border-top:1px solid var(--line-2)}
   .cg-h{flex:0 0 100%;width:auto}
 }
@@ -360,6 +367,14 @@ button{cursor:pointer}
   .rtab,.rtab.rtab-home{flex-direction:column;justify-content:center;text-align:center;padding:7px 6px;gap:4px}
   .rt-txt{align-items:center}
   .rt-name{font-size:13px;white-space:nowrap;justify-content:center}
+}
+@media (max-width:640px){
+  .rtabs{grid-template-columns:repeat(6,minmax(84px,1fr))}
+  .rtab,.rtab.rtab-home{padding:5px 4px;gap:3px}
+  .rt-ring{width:44px;height:44px}
+  .rt-num{padding-top:15px;font-size:13px}
+  .rtabs-cue.is-l{width:24px;background:linear-gradient(90deg,var(--fog-0) 48%,transparent)}
+  .rtabs-cue.is-r{width:24px;background:linear-gradient(270deg,var(--fog-0) 48%,transparent)}
 }
 
 /* ---------- 7. 본문 무대(.board: 사각 면과 backdrop-filter 전혀 없음) ---------- */
@@ -594,15 +609,21 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
   .board[data-layout="side"] .ev-unselected,
   .board[data-layout="three"] .ev-unselected,
   .board[data-layout="three"] .ev-unselected.is-custom-panel{border-left:0;border-top:1px solid var(--line-2);padding:10px 0 4px;height:auto;overflow:visible}
-  .board > .z-right.is-picked{display:none;position:fixed;left:0;right:0;bottom:0;top:auto;
-    height:min(62vh,520px);max-height:min(62vh,520px);z-index:45;margin:0;
-    border-left:0;border-top:3px solid var(--top-line);box-shadow:0 -8px 24px rgba(21,29,36,.26)}
+  .board[data-layout] > .z-right.is-picked,.board > .z-right.is-picked{display:none;position:fixed;inset:0;
+    width:100vw;height:100vh;height:100dvh;min-height:0;max-height:none;z-index:56;margin:0;
+    border:0;border-top:3px solid var(--top-line);box-shadow:none}
   :root:not([data-theme="dark"]) .board > .z-right.is-picked{background:#E2E6EA}
   :root[data-theme="dark"] .board > .z-right.is-picked{background:#1A2128}
-  body.ev-open .board > .z-right.is-picked{display:flex;flex-direction:column;overflow:hidden;animation:sheetUp var(--dur-panel-open) var(--ease-panel)}
+  body.ev-open .shell{z-index:56}
+  body.ev-open .aim-reticle,body.ev-open .hud-tip{display:none!important}
+  body.ev-open .board[data-layout] > .z-right.is-picked,body.ev-open .board > .z-right.is-picked{display:flex;flex-direction:column;overflow:hidden;animation:sheetUp var(--dur-panel-open) var(--ease-panel)}
   .board[data-layout="band"] .zr-in{display:flex;flex-direction:column;max-height:none}
-  .board[data-layout="band"] .ev-top{border-right:0;border-bottom:1px solid var(--line)}
-  .ev-handle{display:block}
+  .ev-top,.board[data-layout="band"] .ev-top{border-right:0;border-bottom:1px solid var(--line);padding:12px 16px 10px;overflow-y:visible}
+  .ev-krow{padding-right:36px}
+  .ev-x{width:40px;height:40px;right:6px;top:8px}
+  .ev-back-btn{height:30px!important;padding:0 10px!important}
+  .ev-body,.board[data-layout="band"] .ev-body{padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+  .ev-handle{display:none}
 }
 @keyframes sheetUp{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
 
@@ -629,6 +650,10 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
   .dm-head{padding:12px 14px 10px}
   .dm-t{font-size:18px}
   .dm-body{padding:12px 14px 20px}
+}
+@media (max-width:640px){
+  .data-modal{padding:0}
+  .dm-box{width:100vw;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-left:0;border-right:0}
 }
 
 /* ---------- 10. 공통 부품(본문에서는 사각 면 제거, 모달 및 응대 카드 안에서만 면 유지) ---------- */
@@ -867,6 +892,7 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 :root[data-theme="dark"] .qhelp:hover,:root[data-theme="dark"] .qhelp:focus-visible,:root[data-theme="dark"] .qhelp[aria-expanded="true"]{background:var(--ink-0);border-color:var(--ink-0);color:#151D24}
 .slate .qhelp{border-color:rgba(255,255,255,.65);color:#fff}
 .slate .qhelp:hover,.slate .qhelp:focus-visible,.slate .qhelp[aria-expanded="true"]{background:#fff;border-color:#fff;color:#151D24}
+@media (max-width:999px){.qhelp{width:28px;height:28px}}
 
 .help-pop{position:fixed;z-index:65;width:min(400px,calc(100vw - 20px));max-height:min(82vh,640px);overflow:auto;
   padding:12px 14px 14px 16px;background:var(--slate-solid);color:#fff;

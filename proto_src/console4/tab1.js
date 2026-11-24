@@ -335,12 +335,13 @@
       const extraTag = id === 'market' && m.subText
         ? `<span class="hm-sub">${esc(m.subText)}</span>`
         : (m.fullBadge ? `<span class="tag" title="${esc(t('fullScopeHint'))}">${esc(t('fullScopeBadge'))}</span>` : '');
-      const sumSub = groupPlainSummary(id, base);
-      return `<button type="button" class="hm-grp" id="tab-${id}" data-rtab="${id}" data-aim="rect" data-tip-title="${esc(m.name)}" data-tip-sub="${esc(sumSub)}" tabindex="${idx === 0 ? 0 : -1}">
+      const grpSentence = groupPlainSummary(id, base);
+      return `<button type="button" class="hm-grp" id="tab-${id}" data-rtab="${id}" data-aim="rect" data-tip-title="${esc(m.name)}" data-tip-sub="${esc(grpSentence)}" tabindex="${idx === 0 ? 0 : -1}">
         ${m.flag ? ui.flag(m.flag) : ''}
         <div class="hm-head">
           ${bigHTML}
           <span class="hm-name"><span>${esc(m.name)}</span>${extraTag}</span>
+          ${grpSentence ? `<span class="hm-mob-sum">${esc(grpSentence)}</span>` : ''}
         </div>
         <span class="hm-stem" aria-hidden="true"><i class="hm-dia"></i></span>
         <div class="hm-pils">${svgByTab[id]}</div>

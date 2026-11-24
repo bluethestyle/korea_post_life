@@ -668,6 +668,16 @@ async def page_for(b, vw, vh, skin='light', motion='off', hash_=''):
     return ctx, pg, errs, ext
 
 
+async def click_act(pg, sel: str):
+    loc = pg.locator(sel)
+    if not await loc.is_visible():
+        menu = pg.locator('#act-menu-btn')
+        if await menu.is_visible():
+            await menu.click()
+            await pg.wait_for_timeout(80)
+    await loc.click()
+
+
 async def run():
     report = {}
     shot_names = [
@@ -708,7 +718,7 @@ async def run():
             await pg.wait_for_timeout(200)
 
             # 개정과 시장 모달 열기 후 복귀
-            await pg.locator('#mk-btn-rev').click()
+            await click_act(pg, '#mk-btn-rev')
             await pg.wait_for_timeout(220)
             await shot(pg, f'{tag}-market-rev', report)
             await pg.keyboard.press('Escape')
@@ -746,7 +756,7 @@ async def run():
                     await pg.keyboard.press('Escape')
                     await pg.wait_for_timeout(180)
                     if vw == 1920:
-                        await pg.locator('#gt-btn-tbl').click()
+                        await click_act(pg, '#gt-btn-tbl')
                         await pg.wait_for_timeout(240)
                         await shot(pg, f'{tag}-gate-table', report)
                         await pg.keyboard.press('Escape')
@@ -758,7 +768,7 @@ async def run():
                     await pg.keyboard.press('Escape')
                     await pg.wait_for_timeout(180)
                     if vw == 1920:
-                        await pg.locator('#cv-btn-tbl').click()
+                        await click_act(pg, '#cv-btn-tbl')
                         await pg.wait_for_timeout(240)
                         await shot(pg, f'{tag}-cover-table', report)
                         await pg.keyboard.press('Escape')

@@ -1988,6 +1988,7 @@
     btns.push(legendBtn(legKey, cp('legendBtn')));
     box.innerHTML = btns.join('');
     if (sep) sep.hidden = btns.length === 0;
+    syncActMenu();
   }
 
   // ---------- 본문 무대 렌더링 ----------
@@ -2164,7 +2165,47 @@
 
   // ---------- 읽기 영역(.z-right), 고른 표지 미끄러짐(#sel-glide), 1px 연결선(#sel-link) ----------
   const EV = { open: false };
+  let overlaySavedY = null;
+  let overlayPinY = null;
+  let inOverlayRestore = false;
   let selGlideToken = 0;
+
+  function isOverlayScrollLocked() {
+    const dm = $('#data-modal');
+    return !!((dm && !dm.hidden) || (EV.open && mode() === 'sheet'));
+  }
+
+  function pinWindowScrollTo(y) {
+    inOverlayRestore = true;
+    window.scrollTo(0, y);
+    requestAnimationFrame(() => { inOverlayRestore = false; });
+  }
+
+  function restoreOverlayScroll() {
+    if (isOverlayScrollLocked()) return;
+    const y = overlaySavedY;
+    overlaySavedY = null;
+    overlayPinY = null;
+    if (y !== null && innerWidth < 1280) {
+      pinWindowScrollTo(y);
+    }
+  }
+
+  function syncEvBackBtn() {
+    const zr = $('#z-right'), backBtn = $('#ev-back-btn');
+    if (!zr || !backBtn) return;
+    if (!zr.classList.contains('is-picked')) {
+      backBtn.hidden = true;
+      return;
+    }
+    const lbl = zr._backLabel || (mode() === 'sheet' ? '목록으로' : '');
+    if (lbl) {
+      backBtn.textContent = lbl;
+      backBtn.hidden = false;
+    } else {
+      backBtn.hidden = true;
+    }
+  }
 
   function syncRightScrollCue() {
     const body = $('#ev-body'), more = $('#zr-more');
@@ -2382,7 +2423,6 @@
   function setEvPicked(spec, animate) {
     const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
-    const backBtn = $('#ev-back-btn');
     const board = $('#board'), zc = $('#z-center');
     if (!zr || !zrIn || !k || !body) return;
     const token = ++evAnimToken;
@@ -2406,14 +2446,8 @@
       }
     }
     zrIn.hidden = false;
-    if (backBtn) {
-      if (spec.backLabel) {
-        backBtn.textContent = spec.backLabel;
-        backBtn.hidden = false;
-      } else {
-        backBtn.hidden = true;
-      }
-    }
+    zr._backLabel = spec.backLabel || '';
+    syncEvBackBtn();
     k.textContent = spec.kicker || cp('evKickerPick');
     t.textContent = spec.title || '';
     b.innerHTML = (spec.badges || []).join('');
@@ -2620,6 +2654,8 @@
         if (token !== evAnimToken) return;
         cancelEvAnims(zr, zrIn, body);
         zr.classList.remove('is-picked');
+        zr._backLabel = '';
+        syncEvBackBtn();
         zrIn.hidden = true;
         unsel.hidden = false;
         populateUnselectedEv(zr, unsel, ctx());
@@ -2632,45 +2668,60 @@
     evAnimToken++;
     cancelEvAnims(zr, zrIn, body);
     zr.classList.remove('is-picked');
+    zr._backLabel = '';
+    syncEvBackBtn();
     if (zrIn) zrIn.hidden = true;
     unsel.hidden = false;
     populateUnselectedEv(zr, unsel, curC);
   }
 
   function showEv(spec, o = {}) {
+    const preSheetY = (mode() === 'sheet' && !EV.open && overlaySavedY === null) ? window.scrollY : null;
     setEvPicked(spec, o.animate !== false);
-    if (o.open !== false && mode() === 'sheet') openEv();
+    if (o.open !== false && mode() === 'sheet') openEv(preSheetY);
   }
-  function openEv() {
+  function openEv(savedY) {
     if (mode() !== 'sheet') return;
+    if (overlaySavedY === null) {
+      overlaySavedY = savedY != null ? savedY : window.scrollY;
+    }
     if (!EV.open) { EV.open = true; document.body.classList.add('ev-open'); }
+    const eb = $('#ev-body');
+    if (eb) eb.scrollTop = 0;
+    syncRightScrollCue();
+    inOverlayRestore = true;
+    window.scrollTo(0, overlaySavedY);
+    overlayPinY = window.scrollY;
+    requestAnimationFrame(() => { inOverlayRestore = false; });
     sheetPad();
   }
   function hideEv() {
     if (!EV.open) return;
     const zr = $('#z-right');
     const { dur, easing } = panelTiming(false);
-    if (mode() === 'sheet' && dur > 0 && zr && typeof zr.animate === 'function') {
+    if (mode() === 'sheet' && dur > 0 && zr && zr.classList.contains('is-picked') && typeof zr.animate === 'function') {
       const token = ++evAnimToken;
-      const anim = zr.animate([
+      if (zr._evAnim) zr._evAnim.cancel();
+      const anim = (zr._evAnim = zr.animate([
         { transform: 'translate3d(0,0,0)', opacity: 1 },
         { transform: 'translate3d(0,28px,0)', opacity: 0 },
-      ], { duration: dur, easing });
+      ], { duration: dur, easing }));
       anim.onfinish = () => {
         if (token !== evAnimToken) return;
+        zr._evAnim = null;
         EV.open = false;
         document.body.classList.remove('ev-open');
         sheetPad();
+        restoreOverlayScroll();
       };
       return;
     }
     EV.open = false; document.body.classList.remove('ev-open');
     sheetPad();
+    restoreOverlayScroll();
   }
   function sheetPad() {
-    const zr = $('#z-right');
-    const h = EV.open && mode() === 'sheet' && zr ? zr.offsetHeight : 0;
-    document.documentElement.style.setProperty('--sheet-h', h + 'px');
+    document.documentElement.style.setProperty('--sheet-h', '0px');
   }
 
   function legendHTML() {
@@ -2766,6 +2817,7 @@
     if (key == null) return unselect(o);
     const same = st.sel[st.tab] === String(key);
     if (same && o.toggleOff) return unselect(o);
+    const preSheetY = (mode() === 'sheet' && !EV.open && overlaySavedY === null) ? window.scrollY : null;
     const prevBox = (!same && o.animate !== false) ? measureSelBox(st.tab) : null;
     st.sel[st.tab] = String(key);
     if (o.push !== false && booted && !same) pushHistory(new Set(['pick']));
@@ -2773,7 +2825,7 @@
     applySelectionState(o.animate !== false, curC);
     const nextBox = (!same && o.animate !== false && prevBox) ? measureSelBox(st.tab) : null;
     if (prevBox && nextBox) playSelGlide(prevBox, nextBox);
-    if (st.sel[st.tab] != null && mode() === 'sheet' && o.open !== false) openEv();
+    if (st.sel[st.tab] != null && mode() === 'sheet' && o.open !== false) openEv(preSheetY);
     const root = viewOf(st.tab) || $('#z-center');
     const el = root && $(`[data-pick="${CSS.escape(String(key))}"]`, root);
     if (el && o.focus) {
@@ -2781,7 +2833,7 @@
       try { hit.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
     if (curAimEl && el) refreshAimReticle();
-    if (el && o.reveal !== false && mode() === 'sheet') setTimeout(() => reveal(el), 240);
+    if (el && o.reveal === true && mode() === 'sheet') setTimeout(() => reveal(el), 240);
     placeGuides();
     requestAnimationFrame(() => updateSelLink(o.animate !== false && !same));
     emit('select', st.tab, String(key));
@@ -2850,6 +2902,13 @@
     const m = $('#data-modal');
     if (!m || !spec) return;
     closeHelp(false, true);
+    closeActMenu(true);
+    if (overlaySavedY === null) {
+      overlaySavedY = window.scrollY;
+      overlayPinY = overlaySavedY;
+    } else if (overlayPinY === null) {
+      overlayPinY = window.scrollY;
+    }
     modalAnimToken++;
     cancelModalAnims(m);
     modalTrigger = spec.trigger || document.activeElement || null;
@@ -2884,6 +2943,7 @@
     const body = $('#dm-body', m);
     body.innerHTML = typeof content.html === 'string' ? content.html : '';
     if (content.html && typeof content.html !== 'string') body.appendChild(content.html);
+    body.scrollTop = 0;
     if (typeof content.after === 'function') {
       try { content.after(body, ctx()); } catch (e) { console.error(e); }
     }
@@ -2901,7 +2961,8 @@
     const prev = modalTrigger;
     modalTrigger = null;
     if (restoreFocus && prev && document.contains(prev)) {
-      try { prev.focus({ preventScroll: true }); } catch (e) { /* */ }
+      const focusEl = (innerWidth <= 1139 && prev.closest && prev.closest('#th-act-btns')) ? ($('#act-menu-btn') || prev) : prev;
+      try { focusEl.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
     const { dur, easing } = panelTiming(false);
     const bx = $('.dm-box', m);
@@ -2922,6 +2983,7 @@
         cancelModalAnims(m);
         m.hidden = true;
         $('#dm-body', m).innerHTML = '';
+        restoreOverlayScroll();
       };
       return true;
     }
@@ -2929,15 +2991,16 @@
     cancelModalAnims(m);
     m.hidden = true;
     $('#dm-body', m).innerHTML = '';
+    restoreOverlayScroll();
     return true;
   }
 
-  function closeActMenu() {
+  function closeActMenu(immediate) {
     const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn'), box = $('#th-act-btns');
     if (!wrap || !wrap.classList.contains('is-open')) return false;
     if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
     const { dur, easing } = panelTiming(false);
-    if (dur > 0 && box && typeof box.animate === 'function') {
+    if (!immediate && dur > 0 && box && typeof box.animate === 'function') {
       const anim = box.animate([{ opacity: 1, transform: 'translate3d(0,0,0)' }, { opacity: 0, transform: 'translate3d(0,-8px,0)' }], { duration: dur, easing });
       anim.onfinish = () => wrap.classList.remove('is-open');
       return true;
@@ -2946,12 +3009,21 @@
     return true;
   }
 
+  function syncActMenu() {
+    const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn');
+    if (!wrap || !btnEl) return;
+    if (innerWidth > 1139 && wrap.classList.contains('is-open')) {
+      wrap.classList.remove('is-open');
+      btnEl.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   function stepUp() {
-    if (closeActMenu()) { const mb = $('#act-menu-btn'); if (mb) mb.focus(); return true; }
+    if (closeActMenu()) { const mb = $('#act-menu-btn'); if (mb) { try { mb.focus({ preventScroll: true }); } catch (e) { /* */ } } return true; }
     if (closeHelp(true)) return true;
     if (closeModal(true)) return true;
-    if (condOpen) { setCondOpen(false); const b = $('#cond-sum'); if (b) b.focus(); return true; }
-    if (scopeOpen) { setScopeOpen(false); const b = $('#scope-tgl'); if (b) b.focus(); return true; }
+    if (condOpen) { setCondOpen(false); const b = $('#cond-sum'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { /* */ } } return true; }
+    if (scopeOpen) { setScopeOpen(false); const b = $('#scope-tgl'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { /* */ } } return true; }
     if (EV.open && mode() === 'sheet') { unselect({ restoreFocus: true }); return true; }
     if (st.sel[st.tab] != null) { unselect({ restoreFocus: true }); return true; }
     const curGrp = st.grp[st.tab];
@@ -2969,8 +3041,13 @@
   }
 
   function showTab(id, opts = {}) {
+    overlaySavedY = null;
+    overlayPinY = null;
+    closeActMenu(true);
     closeModal(false, true);
     renderActiveScreen(ctx(new Set(['tab'])), 'tab');
+    overlaySavedY = null;
+    overlayPinY = null;
     if (opts.scroll !== false && booted && innerWidth < 1280) scrollTo({ top: 0, behavior: 'auto' });
     emit('tab', id);
   }
@@ -3019,9 +3096,22 @@
     }
     const r = el.getBoundingClientRect();
     const top = 36;
-    const bottom = innerHeight - (EV.open && mode() === 'sheet' ? $('#z-right').offsetHeight : 0) - 12;
-    if (r.top < top) scrollBy({ top: r.top - top, behavior: sm });
-    else if (r.bottom > bottom) scrollBy({ top: Math.min(r.bottom - bottom, r.top - top), behavior: sm });
+    const zr = $('#z-right');
+    const shH = (EV.open && mode() === 'sheet' && zr && zr.offsetHeight < innerHeight - 40) ? zr.offsetHeight : 0;
+    const bottom = innerHeight - shH - 12;
+    let delta = 0;
+    if (r.top < top) delta = r.top - top;
+    else if (r.bottom > bottom) delta = Math.min(r.bottom - bottom, r.top - top);
+    if (delta !== 0) {
+      if (isOverlayScrollLocked()) {
+        const nextY = Math.max(0, Math.round(window.scrollY + delta));
+        overlaySavedY = nextY;
+        overlayPinY = nextY;
+        pinWindowScrollTo(nextY);
+      } else {
+        scrollBy({ top: delta, behavior: sm });
+      }
+    }
   }
   function go(tabId, o = {}) {
     if (!TAB_IDS.includes(tabId)) tabId = TAB_BY_NAME[tabId] || tabId;
@@ -3214,7 +3304,10 @@
     helpAnchor = null;
     if (prev) {
       prev.setAttribute('aria-expanded', 'false');
-      if (restoreFocus) { try { prev.focus(); } catch (e) { /* */ } }
+      if (restoreFocus) {
+        const focusEl = (innerWidth <= 1139 && prev.closest && prev.closest('#th-act-btns')) ? ($('#act-menu-btn') || prev) : prev;
+        try { focusEl.focus({ preventScroll: true }); } catch (e) { /* */ }
+      }
     }
     const { dur, easing } = panelTiming(false);
     if (!immediate && dur > 0 && typeof pop.animate === 'function') {
@@ -3277,7 +3370,8 @@
     pop.classList.remove('is-peer');
     pop.classList.add('is-leg');
     pop.innerHTML = `<div class="help-h"><span>${esc(cp(spec.titleKey))}</span><button type="button" class="help-x" data-help-close="1" aria-label="${esc(cp('legendCloseAria'))}"><svg width="11" height="11" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button></div>${spec.htmlFn(ctx())}`;
-    openHelpPop(pop, btnEl);
+    const posEl = (innerWidth <= 1139 && btnEl.closest && btnEl.closest('#th-act-btns')) ? ($('#act-menu-btn') || btnEl) : btnEl;
+    openHelpPop(pop, posEl);
   }
   function renderPeerPopBody() {
     const modes = [
@@ -3560,9 +3654,238 @@
   });
   document.addEventListener('focusout', () => { hideAimReticle(); hideHudTip(); });
 
-  addEventListener('scroll', () => { scrollMuteUntil = performance.now() + 220; closeHelp(false); hideAimReticle(); hideHudTip(); }, { passive: true });
-  on('tab', () => { closeHelp(false); hideAimReticle(); hideHudTip(); });
+  addEventListener('scroll', () => {
+    if (inOverlayRestore) return;
+    if (isOverlayScrollLocked() && overlayPinY !== null) {
+      if (Math.abs(window.scrollY - overlayPinY) > 0.5) {
+        pinWindowScrollTo(overlayPinY);
+      }
+      return;
+    }
+    scrollMuteUntil = performance.now() + 220;
+    closeHelp(false);
+    hideAimReticle();
+    hideHudTip();
+  }, { passive: true });
+  on('tab', () => { closeActMenu(true); closeHelp(false); hideAimReticle(); hideHudTip(); });
   on('change', (_, opts) => { if (!opts || !opts.keepPop) closeHelp(false); hideAimReticle(); hideHudTip(); });
+
+  // ---------- 스크롤 전파 차단 및 배경 스크롤 잠금 ----------
+  const SCROLL_OV = new Set(['auto', 'scroll', 'overlay']);
+  const SCROLL_EPS = 1.5;
+
+  function elFromTarget(t) {
+    if (!t) return null;
+    if (t.nodeType === 1) return t;
+    return t.parentElement || null;
+  }
+
+  function isAxisScrollContainer(el, axis) {
+    if (!el) return false;
+    const cs = getComputedStyle(el);
+    if (axis === 'y') return SCROLL_OV.has(cs.overflowY) && el.scrollHeight > el.clientHeight + 1;
+    return SCROLL_OV.has(cs.overflowX) && el.scrollWidth > el.clientWidth + 1;
+  }
+
+  function canScrollAxis(el, axis, delta, eps = SCROLL_EPS) {
+    if (!el || delta === 0) return false;
+    if (!isAxisScrollContainer(el, axis)) return false;
+    if (axis === 'y') {
+      return delta > 0
+        ? (el.scrollTop + el.clientHeight < el.scrollHeight - eps)
+        : (el.scrollTop > eps);
+    }
+    return delta > 0
+      ? (el.scrollLeft + el.clientWidth < el.scrollWidth - eps)
+      : (el.scrollLeft > eps);
+  }
+
+  function axisHeadroom(el, axis, delta) {
+    if (!el || delta === 0) return 0;
+    if (axis === 'y') {
+      return delta > 0
+        ? Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop)
+        : Math.max(0, el.scrollTop);
+    }
+    return delta > 0
+      ? Math.max(0, el.scrollWidth - el.clientWidth - el.scrollLeft)
+      : Math.max(0, el.scrollLeft);
+  }
+
+  function getContainedRoot(target) {
+    const el = elFromTarget(target);
+    if (!el || typeof el.closest !== 'function') return null;
+    const hp = el.closest('#help-pop:not([hidden])');
+    if (hp) return hp;
+    const dm = el.closest('#data-modal:not([hidden])');
+    if (dm) return dm;
+    const zr = el.closest('#z-right.is-picked');
+    if (zr) {
+      if (mode() === 'sheet') {
+        if (document.body.classList.contains('ev-open')) return zr;
+      } else if (!zr.hidden && zr.offsetHeight > 0) {
+        return zr;
+      }
+    }
+    const gs = el.closest('#gr-sugg:not([hidden])');
+    if (gs) return gs;
+    const actBtns = el.closest('#th-act-wrap.is-open .th-act-btns');
+    if (actBtns) return actBtns;
+    if (innerWidth >= 1000) {
+      const cpEl = el.closest('.ev-unselected.is-custom-panel');
+      if (cpEl && !cpEl.hidden && cpEl.scrollHeight > cpEl.clientHeight + 1) return cpEl;
+    }
+    return null;
+  }
+
+  document.addEventListener('wheel', e => {
+    if (e.ctrlKey || e.metaKey) return;
+    let dx = e.deltaX || 0;
+    let dy = e.deltaY || 0;
+    if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
+    else if (e.deltaMode === 2) { dx *= innerHeight; dy *= innerHeight; }
+
+    const elT = elFromTarget(e.target);
+    const root = getContainedRoot(elT);
+    if (!root) {
+      if (isOverlayScrollLocked() && e.cancelable) e.preventDefault();
+      return;
+    }
+    if (dx === 0 && dy === 0) {
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    let scrollerY = null, scrollerX = null;
+    let outerY = false, outerX = false;
+    let nearestY = null, nearestX = null;
+    for (let cur = elT; cur; cur = cur.parentElement) {
+      if (dy !== 0) {
+        if (!nearestY && isAxisScrollContainer(cur, 'y')) nearestY = cur;
+        if (canScrollAxis(cur, 'y', dy)) {
+          if (!scrollerY) scrollerY = cur;
+          else outerY = true;
+        }
+      }
+      if (dx !== 0) {
+        if (!nearestX && isAxisScrollContainer(cur, 'x')) nearestX = cur;
+        if (canScrollAxis(cur, 'x', dx)) {
+          if (!scrollerX) scrollerX = cur;
+          else outerX = true;
+        }
+      }
+      if (cur === root) break;
+    }
+
+    if (!scrollerY && !scrollerX) {
+      if (Math.abs(dy) >= Math.abs(dx) && dy !== 0) {
+        let primaryBody = null;
+        if (root.id === 'z-right') {
+          const eb = $('#ev-body', root);
+          if (eb && (!elT || !eb.contains(elT))) primaryBody = eb;
+        } else if (root.id === 'data-modal' && (!elT || !elT.closest('.dm-scrim'))) {
+          const db = $('#dm-body', root);
+          if (db && (!elT || !db.contains(elT))) primaryBody = db;
+        }
+        if (primaryBody && canScrollAxis(primaryBody, 'y', dy, 0.5)) {
+          primaryBody.scrollTop += dy;
+          if (e.cancelable) e.preventDefault();
+          return;
+        }
+      }
+      const snapY = nearestY || (root.id === 'z-right' ? $('#ev-body', root) : root.id === 'data-modal' ? $('#dm-body', root) : null);
+      if (snapY && dy !== 0 && isAxisScrollContainer(snapY, 'y')) {
+        const maxTop = Math.max(0, snapY.scrollHeight - snapY.clientHeight);
+        if (dy < 0 && snapY.scrollTop > 0 && snapY.scrollTop <= 2) snapY.scrollTop = 0;
+        else if (dy > 0 && maxTop - snapY.scrollTop > 0 && maxTop - snapY.scrollTop <= 2) snapY.scrollTop = maxTop;
+      }
+      if (nearestX && dx !== 0 && isAxisScrollContainer(nearestX, 'x')) {
+        const maxLeft = Math.max(0, nearestX.scrollWidth - nearestX.clientWidth);
+        if (dx < 0 && nearestX.scrollLeft > 0 && nearestX.scrollLeft <= 2) nearestX.scrollLeft = 0;
+        else if (dx > 0 && maxLeft - nearestX.scrollLeft > 0 && maxLeft - nearestX.scrollLeft <= 2) nearestX.scrollLeft = maxLeft;
+      }
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    if (scrollerX && !scrollerY && dy !== 0) {
+      scrollerX.scrollLeft += dx;
+      if (nearestY && isAxisScrollContainer(nearestY, 'y')) {
+        const maxTop = Math.max(0, nearestY.scrollHeight - nearestY.clientHeight);
+        if (dy < 0 && nearestY.scrollTop > 0 && nearestY.scrollTop <= 2) nearestY.scrollTop = 0;
+        else if (dy > 0 && maxTop - nearestY.scrollTop > 0 && maxTop - nearestY.scrollTop <= 2) nearestY.scrollTop = maxTop;
+      }
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    if (scrollerY && !outerY && Math.abs(dy) >= axisHeadroom(scrollerY, 'y', dy)) {
+      scrollerY.scrollTop += dy;
+      if (scrollerX && dx !== 0) scrollerX.scrollLeft += dx;
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+    if (scrollerX && !scrollerY && !outerX && Math.abs(dx) >= axisHeadroom(scrollerX, 'x', dx)) {
+      scrollerX.scrollLeft += dx;
+      if (e.cancelable) e.preventDefault();
+    }
+  }, { passive: false });
+
+  let containTouch = null;
+  document.addEventListener('touchstart', e => {
+    if (!e.touches || e.touches.length !== 1) { containTouch = null; return; }
+    const t = e.touches[0];
+    containTouch = {
+      x: t.clientX,
+      y: t.clientY,
+      startX: t.clientX,
+      startY: t.clientY,
+      target: elFromTarget(e.target),
+    };
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const elT = elFromTarget(e.target) || (containTouch && containTouch.target);
+    if (!containTouch) {
+      containTouch = { x: t.clientX, y: t.clientY, startX: t.clientX, startY: t.clientY, target: elT };
+    }
+    let dx = containTouch.x - t.clientX;
+    let dy = containTouch.y - t.clientY;
+    if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+      containTouch.x = t.clientX;
+      containTouch.y = t.clientY;
+    } else {
+      dx = containTouch.startX - t.clientX;
+      dy = containTouch.startY - t.clientY;
+    }
+
+    const root = getContainedRoot(elT);
+    if (!root) {
+      if (isOverlayScrollLocked() && e.cancelable) e.preventDefault();
+      return;
+    }
+    if (dx === 0 && dy === 0) return;
+
+    const axis = Math.abs(dy) >= Math.abs(dx) ? 'y' : 'x';
+    const delta = axis === 'y' ? dy : dx;
+    let canScroll = false;
+    for (let cur = elT; cur; cur = cur.parentElement) {
+      if (canScrollAxis(cur, axis, delta, SCROLL_EPS)) {
+        canScroll = true;
+        break;
+      }
+      if (cur === root) break;
+    }
+    if (!canScroll && e.cancelable) e.preventDefault();
+  }, { passive: false });
+
+  const clearContainTouch = e => {
+    if (!e.touches || e.touches.length === 0) containTouch = null;
+  };
+  document.addEventListener('touchend', clearContainTouch, { passive: true });
+  document.addEventListener('touchcancel', clearContainTouch, { passive: true });
 
   // ---------- 위임 클릭과 키보드 ----------
   document.addEventListener('click', e => {
@@ -3599,10 +3922,12 @@
     const am = e.target.closest('#act-menu-btn');
     if (am) {
       e.stopPropagation();
+      if (innerWidth > 1139) return;
       const wrap = $('#th-act-wrap'), box = $('#th-act-btns');
       if (wrap) {
         const opening = !wrap.classList.contains('is-open');
         if (opening) {
+          closeHelp(false, true);
           wrap.classList.add('is-open');
           am.setAttribute('aria-expanded', 'true');
           const { dur, easing } = panelTiming(true);
@@ -3690,7 +4015,7 @@
     }
 
     const lu = e.target.closest('[data-layer-up]');
-    if (lu) { e.stopPropagation(); stepUp(); return; }
+    if (lu) { e.stopPropagation(); closeActMenu(true); stepUp(); return; }
 
     const zl = e.target.closest('[data-zl]');
     if (zl) {
@@ -3727,7 +4052,7 @@
     if (mp && !e.target.closest('.live')) {
       const pickKey = mp.dataset.pick;
       closeModal(false, true);
-      select(pickKey, { focus: true });
+      select(pickKey, { focus: true, reveal: true });
       return;
     }
 
@@ -3749,7 +4074,7 @@
 
   document.addEventListener('keydown', e => {
     // 1. 고리 탭 줄 및 첫 화면 다섯 묶음 좌우 화살표 이동
-    const inRtab = e.target.closest && e.target.closest('[data-rtab]');
+    const inRtab = !isOverlayScrollLocked() && e.target.closest && e.target.closest('[data-rtab]');
     if (inRtab && ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
       const scopeRoot = st.tab === 'brief' ? $('#home-panel') : $('#rtabs');
       const items = scopeRoot ? $$('[data-rtab]', scopeRoot) : [];
@@ -3774,7 +4099,7 @@
     }
 
     // 2. 왼쪽 분류 구역 상하 화살표 이동
-    const inZl = e.target.closest && e.target.closest('#z-left .zl-item');
+    const inZl = !isOverlayScrollLocked() && e.target.closest && e.target.closest('#z-left .zl-item');
     if (inZl && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End')) {
       const items = $$('#z-left .zl-item');
       const i = items.indexOf(inZl);
@@ -3792,7 +4117,7 @@
     }
 
     // 3. 무대 단위 도형 격자 화살표 이동([data-grid-r][data-grid-c])
-    const cellBtn = e.target.closest && e.target.closest('#z-center [data-grid-r][data-grid-c]');
+    const cellBtn = !isOverlayScrollLocked() && e.target.closest && e.target.closest('#z-center [data-grid-r][data-grid-c]');
     if (cellBtn && ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
       const r = +cellBtn.dataset.gridR, c = +cellBtn.dataset.gridC;
       const nr = e.key === 'ArrowDown' ? r + 1 : e.key === 'ArrowUp' ? r - 1 : r;
@@ -3812,7 +4137,7 @@
       if (trPick.closest('#dm-body')) {
         const pk = trPick.dataset.pick;
         closeModal(false, true);
-        select(pk, { focus: true });
+        select(pk, { focus: true, reveal: true });
       } else {
         select(trPick.dataset.pick, { focus: true });
       }
@@ -3822,8 +4147,41 @@
     if (e.key === 'Escape') {
       if (stepUp()) { e.preventDefault(); return; }
     }
-    const typing = e.target.closest && e.target.closest('input,select,textarea');
+    const typing = e.target.closest && e.target.closest('input,select,textarea,[contenteditable="true"]');
     if (typing) return;
+
+    if (isOverlayScrollLocked() && !e.defaultPrevented && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const k = e.key;
+      if (k === 'PageDown' || k === 'PageUp' || k === 'Home' || k === 'End' || k === 'ArrowDown' || k === 'ArrowUp' || k === ' ') {
+        const elT = elFromTarget(e.target);
+        if (k === ' ' && elT && elT.closest('button,a[href],summary,[role="button"],[role="switch"],[role="radio"],[role="checkbox"],[role="tab"]')) return;
+        e.preventDefault();
+        const dm = $('#data-modal');
+        const overlay = (dm && !dm.hidden) ? dm : (EV.open && mode() === 'sheet' ? $('#z-right') : null);
+        if (!overlay) return;
+        let sc = null;
+        if (elT && overlay.contains(elT)) {
+          for (let cur = elT; cur; cur = cur.parentElement) {
+            if (isAxisScrollContainer(cur, 'y')) { sc = cur; break; }
+            if (cur === overlay) break;
+          }
+        }
+        if (!sc && (overlay.id === 'data-modal' ? (!elT || elT.id === 'dm-x' || overlay.contains(elT)) : true)) {
+          sc = overlay.id === 'data-modal' ? $('#dm-body', overlay) : $('#ev-body', overlay);
+        }
+        if (sc && isAxisScrollContainer(sc, 'y')) {
+          const pageStep = Math.max(80, Math.round(sc.clientHeight * 0.88));
+          if (k === 'PageDown' || (k === ' ' && !e.shiftKey)) sc.scrollTop += pageStep;
+          else if (k === 'PageUp' || (k === ' ' && e.shiftKey)) sc.scrollTop -= pageStep;
+          else if (k === 'ArrowDown') sc.scrollTop += 48;
+          else if (k === 'ArrowUp') sc.scrollTop -= 48;
+          else if (k === 'Home') sc.scrollTop = 0;
+          else if (k === 'End') sc.scrollTop = sc.scrollHeight;
+        }
+        return;
+      }
+    }
+
     if (e.key === ']' || e.key === '[') {
       const curIdx = SCREEN_IDS.indexOf(st.tab);
       const nextIdx = curIdx < 0 ? 0 : (curIdx + (e.key === ']' ? 1 : SCREEN_IDS.length - 1)) % SCREEN_IDS.length;
@@ -3906,6 +4264,7 @@
 
     let rz = 0, lastMode = mode();
     addEventListener('resize', () => {
+      syncActMenu();
       syncRtabsCue(false);
       clearTimeout(rz);
       rz = setTimeout(() => {
@@ -3915,6 +4274,8 @@
           lastMode = m;
           if (st.tab !== 'brief' && st.sel[st.tab] != null) applySelectionState(false);
         }
+        syncActMenu();
+        syncEvBackBtn();
         closeHelp(false); hideAimReticle(); hideHudTip();
         syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
       }, 80);

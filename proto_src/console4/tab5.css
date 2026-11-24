@@ -18,6 +18,7 @@
 #view-insight .ins-top-bar .chev-sel button{width:26px}
 #view-insight .ins-top-bar .chev-sel .v{font-size:13px;padding:0 4px}
 #view-insight .ins-top-bar .ins-top-btn{height:26px!important;min-height:26px!important;padding:0 8px!important;font-size:13px!important}
+.ins-mob-card-btn,.ins-mob-top-btn{display:none!important}
 
 #view-insight .vbody.ins-enter .ins-cat{animation:insCatIn 360ms var(--ease-in) both;animation-delay:var(--cd,0ms)}
 :root[data-motion="calm"] #view-insight .vbody.ins-enter .ins-cat{animation-duration:200ms}
@@ -158,10 +159,16 @@
 
 /* 좁은 화면 */
 @media (max-width:999px){
+  .ins-mob-card-btn,.ins-mob-top-btn{display:inline-flex!important}
   #view-insight .ins-top-bar{flex-wrap:wrap;height:auto;max-height:none;padding:4px 0 6px;gap:6px}
+  #view-insight .ins-top-acts{flex-wrap:wrap;gap:6px;max-width:100%}
+  #view-insight .ins-top-bar .chev-sel{height:32px}
+  #view-insight .ins-top-bar .chev-sel button{width:32px}
+  #view-insight .ins-top-bar .ins-top-btn,#view-insight .ins-top-bar .ins-mob-card-btn{height:32px!important;min-height:32px!important}
+  .ins-cb .ins-mob-top-btn{height:32px!important;min-height:32px!important}
   #view-insight .ins-gh{margin:0 8px 6px}
   #view-insight .ins-empty{padding:4px 8px 14px}
-  #view-insight .ins-it,#view-insight .ins-rg{padding:0 8px}
+  #view-insight .ins-it,#view-insight .ins-rg{padding:0 8px 0 16px}
   #view-insight .ins-ih.selbar::before{left:-8px;right:-8px}
   #view-insight .ins-ih{padding-right:28px;min-height:40px;padding-top:0;padding-bottom:0}
   #view-insight .ins-s,#view-insight .ins-w,#view-insight .ins-m,#view-insight .ins-hd{padding-right:24px}

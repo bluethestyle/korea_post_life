@@ -185,3 +185,8 @@
 @media (max-width:1199px){
   .gt-modal-root .gt-mid,.gt-modal-root .gt-cb2{grid-template-columns:minmax(0,1fr)}
 }
+@media (max-width:640px){
+  .gt-modal-root .gt-scroll{padding:0 10px;scrollbar-width:thin}
+  .gt-modal-root .gt-cb2,.gt-modal-root .gt-trees{padding-left:10px;padding-right:10px}
+  .gt-modal-root .panel-h{padding:12px 10px 8px}
+}
