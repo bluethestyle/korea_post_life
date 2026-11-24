@@ -7,7 +7,7 @@
 - sales.json   영업 인사이트(sales.export)
 - combo.json, gate.json   가입 관문 탭의 구성 예시와 관문 나무. 줄인 꼴을 tab3.js 의 자료 줄(9번 줄의 두 표식 사이)에 넣는다
 - cover.json   담보 비교 탭과 관계 그림의 자료. tab4.js = "const CV = " + cover.json + ";" + tab4.src.js
-- d.json       const D (lineup.export, 간편 세 등급 x 세 회사 비교 자료)
+- d.json       const D (lineup.export, 간편 세 등급 x 화면에 올린 회사의 비교 자료)
 - tab3.js, tab4.js   위 자료를 실은 탭 코드. 손으로 쓴 코드(tab3.js 의 표식 밖, tab4.src.js)는 proto_src/console4 에서 읽고 고치지 않는다
 
 --out 을 다른 폴더로 주면 거기에 일곱 파일을 쓰고 proto_src/console4 는 건드리지 않는다(견주어 볼 때).

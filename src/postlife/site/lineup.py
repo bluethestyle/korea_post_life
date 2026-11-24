@@ -1,10 +1,17 @@
-"""시안 4가 `const D`로 읽는 자료(간편 3.1.5, 3.2.5, 3.5.5 세 등급 x 세 회사 종형의 비교 자료)를 사본에서 만든다.
+"""시안 4가 `const D`로 읽는 자료(간편 3.1.5, 3.2.5, 3.5.5 세 등급 x 화면에 올린 회사 종형의 비교 자료)를 사본에서 만든다.
 
 처음 시안(site/proto/console.html, 2026-11-20)의 자료를 만든 스크립트를 그대로 옮겼다. 그 스크립트를 그때의 사본
 (2026-11-20T15:15:56+09:00)과 지금 코드로 돌린 결과가 console.html 474번 줄과 바이트까지 같은 것을 확인하고 옮겼다.
-열쇠, 꼴, 계산 규칙을 바꾸지 않는다(시안 4의 core.js 가 읽는다).
+열쇠, 꼴, 계산 규칙을 바꾸지 않는다(시안 4의 core.js 가 읽는다). 2026-11-23 에 세 회사로 적어 두었던 회사와 종형을 화면에 올린
+회사에서 고르게 바꿨다(세 회사 사본의 결과는 바이트까지 같다). 상대가 셋 이상이면 시사점(_insights)의 빈자리와 고유는
+상대 모두를, 조건 차이는 상대 모두가 가진 담보를 본다(두 상대일 때의 규칙을 상대 수만큼 늘린 것).
 
-- 종형은 LINEUP 에 적은 아홉 개(우체국 간편한건강 2606, 한화생명 시그니처 H 간편가입형, 삼성화재 새로고침 7종)다.
+- 회사는 화면에 올린 회사(사본을 읽을 때 site/orgs.py 가 config.SITE_ORGS 나 --orgs 로 거른 회사)다. 차례는 config.SITE_ORGS 의
+  차례(우체국이 처음), 그 밖의 회사는 사본의 종형 차례다(company_codes).
+- 종형은 간편 세 등급(GRADES)마다 회사마다 하나다(pick_lineup). 비교역할구분이 정밀비교이고 판매종료일이 비었으며 간편고지약칭이
+  그 등급인 종형이 하나뿐이면 그 종형, 없거나 둘 이상이면 고르지 않고 null 로 둔다. 우체국 종형을 고를 수 없으면 멈춘다.
+  세 회사 사본에서는 우체국 간편한건강 2606, 한화생명 시그니처 H 간편가입형, 삼성화재 새로고침 7종의 아홉 개(2026-11-23 전에
+  손으로 적어 두었던 LINEUP 과 같다)이고, 메리츠화재를 넣으면 통합간편건강보험 2610 의 315, 325, 355 간편심사형이 더해진다.
 - hum_담보매핑에서 검토상태가 "자동확정"인 줄만 쓴다. 승인, 수정, 대기 줄은 표준담보에 잇지 않는다.
 - 대표 급부, 최대 가입 시 지급액, 나이 구간별 가입 가능 여부는 화면 코드(compare, model)를 그대로 부른다.
 - 우열은 면책과 감액만 견준다. 한화생명과 삼성화재는 특약 가입 한도 자료가 없어 지급액 자체의 우열은 가리지 않는다.
@@ -18,18 +25,14 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .. import config
 from . import compare as C
-from .model import MAX_AGE, Cond, Data
+from .model import HOME_ORG, MAX_AGE, Cond, Data
 
 STATE = "자동확정"
 
-ORGS = ["EPOST", "HANWHALIFE", "SAMSUNGFIRE"]
 SHORT = {"EPOST": "우체국", "HANWHALIFE": "한화생명", "SAMSUNGFIRE": "삼성화재"}
-LINEUP = {   # 심사 등급(간편고지 약칭)별 세 회사 종형
-    "3.1.5": ["EPOST_P500129_8dba92", "HANWHALIFE_2597_3c2dbb", "SAMSUNGFIRE_ZPB357050_9bf87f"],
-    "3.2.5": ["EPOST_P500130_099c2b", "HANWHALIFE_2597_aeb54c", "SAMSUNGFIRE_ZPB357050_a9cfb1"],
-    "3.5.5": ["EPOST_P500131_bac6c0", "HANWHALIFE_2597_f279bf", "SAMSUNGFIRE_ZPB357050_71baba"],
-}
+GRADES = ["3.1.5", "3.2.5", "3.5.5"]     # 심사 등급(간편고지 약칭)
 DEFAULT_GRADE = "3.2.5"
 # 비교 화면에 싣는 표준담보 16개. 3.2.5 세 종형 가운데 둘 이상이 자동확정 급부를 가진 것에서 암, 뇌혈관, 심장, 공통이 섞이게 골랐다.
 COMPARE = [
@@ -77,46 +80,72 @@ def terms(other: dict, base: dict) -> str:
     return overall + "".join(parts)
 
 
-def _insights(cells: dict[str, dict[str, dict]], grade: str, stds: list[str]) -> dict:
-    e, h, s = LINEUP[grade]
+def company_codes(d: Data) -> list[str]:
+    """화면에 올린 회사(사본을 읽을 때 거른 회사, 곧 d 에 종형이 있는 회사)의 기관코드. config.SITE_ORGS 의 차례(우체국이 처음)이고,
+    그 밖의 회사(--orgs 로 더한 회사, 가상 사본의 회사)는 사본의 종형 차례로 뒤에 붙는다."""
+    present = list(dict.fromkeys(d.variants[v].get("기관코드") for v in d.variant_order))
+    head = [HOME_ORG] + [c for c in config.SITE_ORGS if c != HOME_ORG]
+    return [c for c in head if c in present] + [c for c in present if c not in head and c is not None]
+
+
+def pick_lineup(d: Data, codes: list[str]) -> dict[str, list[str | None]]:
+    """등급(GRADES)마다 회사(codes 차례)마다 종형 하나. 정밀비교이고 판매 중(판매종료일이 빈 값)이며 간편고지약칭이 그 등급인
+    종형이 하나뿐일 때만 고르고, 없거나 둘 이상이면 None 이다. 우체국 종형을 고르지 못하면 멈춘다."""
+    out: dict[str, list[str | None]] = {}
+    for grade in GRADES:
+        row: list[str | None] = []
+        for code in codes:
+            found = [v for v in d.variant_order if d.variants[v].get("기관코드") == code
+                     and d.variants[v].get("비교역할구분") == C.COMPARE_ROLE
+                     and d.variants[v].get("판매종료일") in (None, "") and d.variants[v].get("간편고지약칭") == grade]
+            row.append(found[0] if len(found) == 1 else None)
+        if row[0] is None or codes[0] != HOME_ORG:
+            raise ValueError(f"사본에서 {grade} 등급의 우체국 종형을 하나로 고르지 못했다")
+        out[grade] = row
+    return out
+
+
+def _insights(cells: dict[str, dict[str, dict]], row: list[str | None], stds: list[str]) -> dict:
+    """등급 하나의 시사점. row 는 그 등급의 회사별 종형(맨 앞이 우체국, 고르지 못한 회사는 None 이라 뺀다)."""
+    e, *others = [v for v in row if v]
     gap, uniq, diff = [], [], []
     skip = {"gap": 0, "uniq": 0, "diff": 0}
     for sid in stds:
-        a, b, c = cells[e][sid]["p"], cells[h][sid]["p"], cells[s][sid]["p"]
-        if b == "o" and c == "o" and a in "nw":
+        a, ps = cells[e][sid]["p"], [cells[o][sid]["p"] for o in others]
+        if others and all(p == "o" for p in ps) and a in "nw":
             if a == "w":
                 skip["gap"] += 1
             else:
                 gap.append(sid)
-        if a == "o" and b in "nw" and c in "nw":
-            if "w" in (b, c):
+        if others and a == "o" and all(p in "nw" for p in ps):
+            if "w" in ps:
                 skip["uniq"] += 1
             else:
                 uniq.append(sid)
-        if a == b == c == "o":
-            th, ts = terms(cells[h][sid], cells[e][sid]), terms(cells[s][sid], cells[e][sid])
-            if "p" in (th, ts):
-                if any(cells[x][sid]["wait"] != cells[e][sid]["wait"] or cells[x][sid]["red"] != cells[e][sid]["red"] for x in (h, s)):
+        if others and a == "o" and all(p == "o" for p in ps):
+            ts = [terms(cells[o][sid], cells[e][sid]) for o in others]
+            if "p" in ts:
+                if any(cells[x][sid]["wait"] != cells[e][sid]["wait"] or cells[x][sid]["red"] != cells[e][sid]["red"] for x in others):
                     skip["diff"] += 1
                 continue
-            if th[0] == "s" and ts[0] == "s":
+            if all(t[0] == "s" for t in ts):
                 continue
             # 우체국 기준: 경쟁사가 나으면(b) 우체국 불리
-            worse = sum(1 for t in (th, ts) if t[0] == "b")
-            better = sum(1 for t in (th, ts) if t[0] == "w")
-            mixed = sum(1 for t in (th, ts) if t[0] == "m")
-            diff.append({"sid": sid, "t": [th, ts], "worse": worse, "better": better, "mixed": mixed,
-                         "alt": [1 if cells[h][sid]["alt"] else 0, 1 if cells[s][sid]["alt"] else 0]})
+            worse = sum(1 for t in ts if t[0] == "b")
+            better = sum(1 for t in ts if t[0] == "w")
+            mixed = sum(1 for t in ts if t[0] == "m")
+            diff.append({"sid": sid, "t": ts, "worse": worse, "better": better, "mixed": mixed,
+                         "alt": [1 if cells[o][sid]["alt"] else 0 for o in others]})
     diff.sort(key=lambda x: (-x["worse"], -x["mixed"], -x["better"], stds.index(x["sid"])))
     return {"gap": gap, "uniq": uniq, "diff": diff, "skip": skip}
 
 
 def export(d: Data) -> dict[str, Any]:
-    """`const D` 의 열일곱 열쇠(KEYS)를 만든다. LINEUP 의 종형이나 COMPARE 의 표준담보가 사본에 없으면 멈춘다."""
-    vids = [v for vs in LINEUP.values() for v in vs]
-    missing = [v for v in vids if v not in d.variants]
-    if missing:
-        raise ValueError(f"사본에 LINEUP 종형이 없다: {missing}")
+    """`const D` 의 열일곱 열쇠(KEYS)를 만든다. 등급마다 우체국 종형을 고르지 못하거나 COMPARE 의 표준담보가 사본에 없으면 멈춘다.
+    lineup[등급][i] 는 orgs[i] 회사의 종형이고, 그 회사에서 고르지 못한 등급은 null 이다."""
+    codes = company_codes(d)
+    LINEUP = pick_lineup(d, codes)
+    vids = [v for vs in LINEUP.values() for v in vs if v]
     stds = [s for s, r in d.std.items() if r.get("사용여부", True)]
     stds.sort(key=lambda s: (GROUPS.index(d.std[s]["보장대분류"]) if d.std[s]["보장대분류"] in GROUPS else 9,
                              TYPES.index(d.std[s]["급부유형"]) if d.std[s]["급부유형"] in TYPES else 9, s))
@@ -167,18 +196,18 @@ def export(d: Data) -> dict[str, Any]:
         for bi, (lo, hi) in enumerate(bands):
             for sex in ("M", "F"):
                 cond = Cond(age=lo, sex=sex, lo=lo, hi=hi)
-                cells = {v: {sid: cell(v, sid, cond) for sid in stds} for v in lineup}
-                ins = _insights(cells, grade, stds)
+                cells = {v: {sid: cell(v, sid, cond) for sid in stds} for v in lineup if v}
+                ins = _insights(cells, lineup, stds)
                 pool |= set(ins["gap"][:TOP]) | set(ins["uniq"][:TOP]) | {x["sid"] for x in ins["diff"][:TOP]}
                 raw[f"{grade}|{bi}|{sex}"] = (grade, cells, ins)
 
     pool_list = [s for s in stds if s in pool]
     used_bids: dict[tuple[str, str], list[str]] = {}
     for key, (grade, cells, ins) in raw.items():
-        e, h, s = LINEUP[grade]
-        pres = {v: "".join(cells[v][sid]["p"] for sid in stds) for v in (e, h, s)}
+        e, *others = [v for v in LINEUP[grade] if v]       # 우체국과 그 등급의 상대 종형(고르지 못한 회사는 뺀다)
+        pres = {v: "".join(cells[v][sid]["p"] for sid in stds) for v in (e, *others)}
         rep = {}
-        for v in (e, h, s):
+        for v in (e, *others):
             rep[v] = {}
             for sid in pool_list:
                 c = cells[v][sid]
@@ -189,7 +218,7 @@ def export(d: Data) -> dict[str, Any]:
                         used_bids[(v, sid)].append(c["rep"])
         verd = {}
         for sid in pool_list:
-            verd[sid] = [terms(cells[h][sid], cells[e][sid]), terms(cells[s][sid], cells[e][sid])]
+            verd[sid] = [terms(cells[o][sid], cells[e][sid]) for o in others]
         payload = json.dumps({"pres": pres, "rep": rep, "verd": verd, "ins": ins}, ensure_ascii=False, sort_keys=True)
         if payload not in payloads:
             payloads.append(payload)
@@ -238,9 +267,8 @@ def export(d: Data) -> dict[str, Any]:
     std_out = {s: {"name": d.std[s]["표준담보명"], "group": d.std[s]["보장대분류"], "mid": d.std[s]["보장중분류"],
                    "type": d.std[s]["급부유형"], "unit": d.std[s].get("비교기준단위만원")} for s in stds}
 
-    # 화면(core.js)은 orgs 의 짧은 이름으로 회사를 부른다. 세 회사 밖의 회사(가상 사본의 회사 따위)도 이름이 나오게 사본에 있는
-    # 회사를 종형 차례로 뒤에 더한다(짧은 이름은 기관 이름). 세 회사뿐인 사본은 지금과 같다
-    codes = ORGS + [c for c in dict.fromkeys(d.variants[v].get("기관코드") for v in d.variant_order) if c not in ORGS]
+    # 화면(core.js)은 orgs 의 짧은 이름으로 회사를 부른다. 세 회사 밖의 회사(메리츠화재, 가상 사본의 회사 따위)의 짧은 이름은
+    # 기관 이름이다. orgs 의 차례는 lineup 의 자리 차례와 같다(company_codes)
     out = {
         "asOf": d.meta.get("snapshot_at"),
         # 업권은 Data.org_sector 의 값("생명보험", "손해보험"). 업권 자료가 없는 기관(우체국)은 null 이다
