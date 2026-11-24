@@ -268,8 +268,8 @@ DOC_FACTS: list[tuple[str, Any, str, str, str, str, tuple[str, ...], str | None]
 ]
 
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
-    ("test_count", 1287, "전체 자동 시험 수", "2026-11-23",
-     "메인 세션이 2026-11-23 main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
+    ("test_count", 1404, "전체 자동 시험 수", "2026-11-24",
+     "메인 세션이 2026-11-24 main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
 ]
 
 
