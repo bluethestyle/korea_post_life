@@ -208,7 +208,7 @@ App.registerTab((function () {
           const curOpen = cc.oursOpen;
           const bothOpen = prevOpen && curOpen;
           const openTransition = !prevOpen && curOpen;
-          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" style="--sd:${rIdx * 65 + cIdx * 24}ms" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
+          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" style="--sd:${rIdx * 36 + cIdx * 14}ms" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
         }
         const stateCls = 'st-' + cc.state;
         const isNoData = cc.state === 'unknown';
@@ -225,7 +225,7 @@ App.registerTab((function () {
         const chipKind = cc.state === 'only' ? 'only' : cc.state === 'worse' ? 'worse' : cc.state === 'both' ? 'same' : cc.state === 'unknown' ? 'unknown' : 'none';
         const tip = `${tipTitle}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
         const pk = keyOf(it.ri, it.ci);
-        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-aim="circle"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 4 + cIdx) * 18}ms">
+        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-aim="circle"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 4 + cIdx) * 10}ms">
           ${needFlag ? ui.flag() : ''}
           ${cellRingSVG(cc)}
           <span class="mk-rn num">${esc(numStr)}</span>

@@ -162,13 +162,18 @@
   #print-root .ins-card .flag-t .tri i{background:#000}
 }
 
-/* 중간 폭(1280px 전후)에서도 목록과 카드 두 열을 유지하면서 내부 바로가기를 정돈하고, 700px 미만에서만 아래로 접는다 */
+/* 중간 폭(1280px 전후)에서도 목록과 카드 두 열을 유지하면서 내부 바로가기를 정돈하고, 520px 미만에서만 아래로 접는다(3-1) */
 @container (max-width:940px){
   #view-insight .ins-jump{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   #view-insight .ins-jump a{min-height:42px;padding:0 4px}
   #view-insight .ins-jump b{font-size:21px}
 }
-@container (max-width:700px){
+@container (max-width:860px){
+  #view-insight .ins-grid{grid-template-columns:minmax(0,1.08fr) minmax(252px,0.92fr);gap:14px}
+  #view-insight .ins-card{padding:16px 14px 12px}
+  #view-insight .ins-card .sec{margin-right:-10px}
+}
+@container (max-width:520px){
   #view-insight .ins-grid{grid-template-columns:minmax(0,1fr)}
   #view-insight .ins-r{position:static;max-height:none;overflow:visible}
 }

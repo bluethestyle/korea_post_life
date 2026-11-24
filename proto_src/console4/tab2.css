@@ -49,7 +49,7 @@
 .mk-rn{position:absolute;inset:0;display:grid;place-items:center;font:600 19px/1 var(--f-num);
   font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none}
 
-.mkr-disc{fill:transparent;transition:fill 150ms var(--ease-in)}
+.mkr-disc{fill:transparent}
 .mkr-sel-ring{stroke:transparent}
 .mkr-diag-bg{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease-in)}
 .mkr-diag{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease-in)}
@@ -92,8 +92,8 @@
 .mk-ring.is-sel .mkr-part-mk{fill:#fff}
 
 .mk-anim .mk-seg{animation:mkSegDraw 360ms var(--ease-in) both;animation-delay:var(--sd,0ms)}
-.mk-anim .mk-ring{animation:mkPop 320ms var(--ease-in) both;animation-delay:var(--d,0ms)}
-.mk-anim .mkr-arc-conf,.mk-anim .mkr-arc-part{animation:mkArcDraw 460ms var(--ease-in) both;animation-delay:calc(var(--d,0ms) + 80ms)}
+.mk-anim .mk-ring{animation:mkPop 360ms var(--ease-in) both;animation-delay:var(--d,0ms)}
+.mk-anim .mkr-arc-conf,.mk-anim .mkr-arc-part{animation:mkArcDraw 380ms var(--ease-in) both;animation-delay:calc(var(--d,0ms) + 50ms)}
 :root[data-motion="calm"] .mk-anim .mk-seg,
 :root[data-motion="calm"] .mk-anim .mk-ring,
 :root[data-motion="calm"] .mk-anim .mkr-arc-conf,

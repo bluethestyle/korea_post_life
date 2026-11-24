@@ -104,7 +104,7 @@
     if (rows.length > 1 && maxW && rows.length * pw + (rows.length - 1) * gap > maxW) {
       gap = Math.max(4, Math.floor((maxW - rows.length * pw) / (rows.length - 1)));
       if (rows.length * pw + (rows.length - 1) * gap > maxW) {
-        pw = Math.max(10, Math.floor((maxW - (rows.length - 1) * gap) / rows.length));
+        pw = Math.max(12, Math.floor((maxW - (rows.length - 1) * gap) / rows.length));
       }
     }
     const W = rows.length * pw + (rows.length - 1) * gap;

@@ -140,16 +140,26 @@ App.registerTab((function () {
     const hotR = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridR != null ? +aimEl.dataset.gridR : -1;
     const hotC = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridC != null ? +aimEl.dataset.gridC : -1;
     const sel = App.state.sel.gate || '';
-    const selRowKey = sel.startsWith('gf:') ? sel.slice(3, sel.lastIndexOf('|')) : '';
+    let selRowKey = '';
+    if (sel.startsWith('gf:')) selRowKey = sel.slice(3, sel.lastIndexOf('|'));
+    else if (sel.startsWith('g:')) {
+      const f = info(sel.slice(2));
+      if (f) selRowKey = f['고지유형열쇠'] || '';
+    }
     root.querySelectorAll('.gtf-acol[data-col]').forEach(el => {
       el.classList.toggle('is-hot', +el.dataset.col === hotC);
     });
+    root.querySelectorAll('.gtf-cell[data-sel-anchor]').forEach(el => el.removeAttribute('data-sel-anchor'));
     root.querySelectorAll('.gtf-row[data-row]').forEach(el => {
       const r = +el.dataset.row;
       const rk = el.dataset.typeKey || '';
       const hasSel = !!(selRowKey && rk === selRowKey);
       el.classList.toggle('is-hot', r === hotR);
       el.classList.toggle('has-row-sel', hasSel);
+      if (hasSel && sel.startsWith('g:')) {
+        const cells = el.querySelectorAll('.gtf-cell');
+        if (cells.length) cells[cells.length - 1].setAttribute('data-sel-anchor', '1');
+      }
       if (redrawSel && hasSel && App.motionOn() && rk !== lastGateSelRowKey) {
         el.classList.remove('gtf-row-redraw');
         void el.offsetWidth;
@@ -211,7 +221,7 @@ App.registerTab((function () {
               : passN === 0 ? 'none' : 'same';
         const tip = `${row.key}, ${stNm}: 통과 ${ratioTxt}곳${isPrem ? ' (전제 관문)' : ''}`;
         const delayMs = Math.min(340, rIdx * 24 + k * 42);
-        const quietCnt = flowRows.length > 8 && k < steps.length - 1 && passN === prevPass;
+        const quietCnt = flowRows.length > 8 && k > 0 && k < steps.length - 1 && passN === prevPass;
         return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-aim="rect"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}">
           <span class="gtf-pil" data-link-pt="1" data-aim-box="1">${pillarCellSVG(passN, row.total, isPrem, delayMs)}</span>
           <span class="gtf-cnt num${quietCnt ? ' is-quiet' : ''}">${esc(ratioTxt)}</span>
@@ -858,6 +868,18 @@ App.registerTab((function () {
   }
 
   function focus(key) {
+    if (key && key.startsWith('g:')) {
+      let vid = key.slice(2);
+      if (!info(vid)) {
+        const curC = App.ctx();
+        const vinf = txt.vinfo(vid);
+        const org = vinf && vinf['기관코드'];
+        const byOrg = org && G && G['V'] ? G['V'].find(v => info(v) && info(v)['회사'] === org) : null;
+        vid = byOrg || curC.baseId;
+      }
+      if (info(vid)) App.select('g:' + vid, { focus: false });
+      return;
+    }
     if (key === 'tree' || key === 'q' || key === 'limit' || key === 'combo') {
       App.openModal({
         trigger: document.getElementById('gt-btn-tbl'),

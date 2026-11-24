@@ -316,7 +316,7 @@
     grEvTitle: '관계 지도',
     grEvBodyTpl: '노드를 눌러 옆 열의 이웃을 펼치거나, 연결선을 눌러 검토상태와 급부역할 같은 관계 속성을 확인합니다.',
     grLegendTitle: '관계 지도 도형과 선 안내',
-    grLgNode: '직각 칸: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽), 보장분야(넓은 띠), 소식(날짜). 우체국은 왼쪽 3px 변',
+    grLgNode: '직각 칸: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽, 비교 종형에 연결이 없는 담보는 옅은 단선 윤곽), 보장분야(넓은 띠), 소식(날짜). 우체국은 왼쪽 3px 변',
     grLgEdge: '연결선: 판매와 포함(실선), 해당(승인 및 수정은 굵은 실선), 속함(가는 선), 관계(이중선), 일으킴(점선)',
   };
 
@@ -908,7 +908,7 @@
     same: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5h7M1.5 6.5h7" stroke="currentColor" stroke-width="1.6"/></svg>',
     diff: '<svg viewBox="0 0 12 10" aria-hidden="true"><path d="M1 3h9M7.5 1L10 3 7.5 5M11 7H2M4.5 5L2 7l2.5 2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
     none: '<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="1.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1.5"/></svg>',
-    unknown: '<svg viewBox="0 0 10 10" aria-hidden="true"><text x="5" y="8.2" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor">?</text></svg>',
+    unknown: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3.2 3.3a1.85 1.65 0 1 1 2.7 1.45c-.6.35-.9.68-.9 1.35" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="square"/><rect x="4.3" y="7.4" width="1.4" height="1.4" fill="currentColor"/></svg>',
     lock: '<svg width="12" height="13" viewBox="0 0 12 13" aria-hidden="true"><rect x="1.5" y="5.5" width="9" height="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 5.5V4a2.5 2.5 0 0 1 5 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
     copy: '<svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><rect x="4" y="4" width="7.5" height="7.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 4V1.5H1.5V9H4" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
     print: '<svg width="14" height="13" viewBox="0 0 14 13" aria-hidden="true"><path d="M3.5 4V1.5h7V4M3.5 9.5H1.5V5h11v4.5h-2M3.5 7.5h7v4h-7Z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
@@ -1481,17 +1481,23 @@
 
   function rtabRingSVG(m, withDiag) {
     if (m.isGraph) return graphGlyphSVG();
-    const r = 34, C = +(2 * Math.PI * r).toFixed(2);
+    const r = 34;
+    const arcD = `M 0 -${r} A ${r} ${r} 0 1 1 -0.01 -${r}`;
     const max = Math.max(0.0001, m.max || 1);
-    let off = 0, sum = 0;
-    const arcs = (m.segs || []).filter(s => s.v > 0).map(s => {
-      sum += s.v;
-      const len = +(C * Math.min(1, s.v / max)).toFixed(2);
-      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" data-dash="${len} ${C}" data-c="${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
-      off += len;
-      return el;
+    let cum = 0;
+    const validSegs = (m.segs || []).filter(s => s.v > 0);
+    const segSpecs = validSegs.map(s => {
+      cum = Math.min(1, cum + s.v / max);
+      const endPct = +(cum * 100).toFixed(2);
+      const off = +(100 - endPct).toFixed(2);
+      return { cls: s.cls || '', off };
+    });
+    // 뒤쪽 누적 호부터 먼저 깔고 앞쪽 주 호를 위에 얹어 stroke-dashoffset 만으로 전환한다(4-3)
+    const arcs = segSpecs.slice().reverse().map((sp, revIdx) => {
+      const sw = revIdx === segSpecs.length - 1 && segSpecs.length > 1 ? 4.5 : 4.4;
+      return `<path class="rt-arc${sp.cls ? ' ' + sp.cls : ''}" d="${arcD}" pathLength="100" fill="none" stroke-width="${sw}" stroke-dasharray="100 200" stroke-dashoffset="${sp.off}" data-doff="${sp.off}"/>`;
     }).join('');
-    const f = Math.min(1, sum / max);
+    const f = cum;
     let ticks = '';
     if (f < 0.999) {
       const N = 24, r1 = r - 2.6, r2 = r + 2.6;
@@ -1516,12 +1522,13 @@
   }
 
   function miniRingSVG(v, max, cls) {
-    const r = 15, C = +(2 * Math.PI * r).toFixed(2);
+    const r = 15;
+    const arcD = `M 0 -${r} A ${r} ${r} 0 1 1 -0.01 -${r}`;
     const f = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
-    const len = +(C * f).toFixed(2);
+    const off = +(100 - f * 100).toFixed(2);
     return `<svg viewBox="-20 -20 40 40" aria-hidden="true" focusable="false">
       <circle class="rt-trk" r="${r}" fill="none" stroke-width="1.8"/>
-      ${f > 0 ? `<circle class="rt-arc${cls ? ' ' + cls : ''}" r="${r}" fill="none" stroke-width="2.8" stroke-dasharray="${len} ${C}" transform="rotate(-90)"/>` : ''}
+      ${f > 0 ? `<path class="rt-arc${cls ? ' ' + cls : ''}" d="${arcD}" pathLength="100" fill="none" stroke-width="2.8" stroke-dasharray="100 200" stroke-dashoffset="${off}"/>` : ''}
     </svg>`;
   }
   UI.miniRingSVG = miniRingSVG;
@@ -1631,13 +1638,13 @@
 
   function drawHeaderRingArcs(root) {
     if (!motionOn()) return;
-    for (const c of $$('.rt-arc[data-c][data-dash]', root)) {
-      const C = c.dataset.c, d = c.dataset.dash;
+    for (const c of $$('.rt-arc[data-doff]', root)) {
+      const doff = c.dataset.doff;
       c.style.transition = 'none';
-      c.setAttribute('stroke-dasharray', `0 ${C}`);
+      c.setAttribute('stroke-dashoffset', '100');
       void c.getBoundingClientRect();
       c.style.transition = '';
-      c.setAttribute('stroke-dasharray', d);
+      c.setAttribute('stroke-dashoffset', doff);
     }
   }
 
@@ -1681,6 +1688,12 @@
         const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
         nav.scrollLeft = Math.max(0, Math.min(maxLeft, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2)));
       }
+    }
+    const actPill = $('.rtab[aria-selected="true"]', nav);
+    const pill = $('#rtab-bg', nav);
+    if (pill && actPill) {
+      const toX = actPill.offsetLeft, toS = Math.max(0.1, actPill.offsetWidth / 100);
+      pill.style.transform = `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})`;
     }
     const over = nav.scrollWidth > nav.clientWidth + 4;
     const moreL = over && nav.scrollLeft > 4;
@@ -1863,7 +1876,7 @@
     const t = tabs[id];
     if (t && t.layout) return t.layout;
     if (id === 'cover') return 'band';
-    if (id === 'market' || id === 'gate' || id === 'insight') return 'side';
+    if (id === 'market' || id === 'gate') return 'side';
     return 'three';
   }
 
@@ -3272,6 +3285,7 @@
 
     let rz = 0, lastMode = mode();
     addEventListener('resize', () => {
+      syncRtabsCue(false);
       clearTimeout(rz);
       rz = setTimeout(() => {
         const m = mode();

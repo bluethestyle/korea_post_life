@@ -1,7 +1,7 @@
 /* 탭 6 관계 지도(tab6.js):
-   - proto_src/graph/graph.json(#graph-data)을 처음 열 때 읽고, 모든 수는 자료의 목록 길이만 그대로 쓴다.
+   - proto_src/graph/graph.json(#graph-data)을 쉬는 시간이나 처음 열 때 읽고, 모든 수는 자료의 요약과 목록 길이만 그대로 쓴다.
    - 왼쪽부터 일곱 열(소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야) 고정 배치, 1.5px 직각 꺾은선, 표준담보 오른쪽 관계 이중선 꺾쇠.
-   - 처음 상태부터 대화 상자 없이 "담보 대응" 그래프가 열리며, 보장분야 -> 표준담보 -> 특약과 급부의 세 걸음 펼침과 어느 노드에서나 12개 단위 이웃 펼침(+N 더)을 지원한다.
+   - 처음 상태부터 대화 상자 없이 "담보 대응" 그래프가 열리며, 보장분야 -> 표준담보 -> 회사별 특약과 급부 실제 길 펼침과 어느 노드에서나 12개 단위 이웃 펼침(+N 더)을 지원한다.
 */
 (function () {
   const { ui, txt, t } = App;
@@ -10,11 +10,13 @@
   const COL_KINDS = [6, 0, 1, 2, 3, 4, 5]; // 소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야
   const COL_OF_KIND = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
   const BATCH_SIZE = 12;
+  const RIDER_GRP_ORDER = { '주계약': 0, '비갱신특약': 1, '갱신특약': 2 };
 
   let G = null;
   let lastLeftEl = null;
   let lastCenterEl = null;
   let lastScopeSig = '';
+  let edgeDrawRaf = 0;
 
   const state = {
     preset: 'cover',     // 'cover' | 'variant' | 'news'
@@ -23,14 +25,19 @@
     activeStd: null,     // node index of 표준담보
     cols: [[], [], [], [], [], [], []],
     batches: {},         // colIdx -> { pool: number[], shown: number, label: string }
+    varLimits: {},       // 'r:<vi>' | 'b:<vi>' -> limit inside cover-2 per-company path
+    varMores: {},        // colIdx -> Array<{ afterIdx: number|null, key: string, rem: number, label: string }>
+    variantRidersAll: [],// full sorted riders of baseVar in 'variant' preset
     selNode: null,       // node index
     selEdge: null,       // edge key ('e:12' | 'vb:v:d' | 'vs:v:s')
+    focusNode: null,     // roving tabindex node index
     query: '',
   };
 
   let undoStack = [];
   let trail = [];
   let renderedEdges = new Map(); // edgeKey -> descriptor
+  let hoveredEdgeEl = null;
 
   function ensureGraph() {
     if (G) return G;
@@ -166,9 +173,21 @@
     return G;
   }
 
+  // 앞 화면이 쉬는 동안 그래프 색인을 미리 만들어 탭 전환 때 긴 작업이 생기지 않게 한다(1-10)
+  setTimeout(() => {
+    const warm = () => {
+      if (!G && document.getElementById('graph-data')) {
+        try { ensureGraph(); } catch (e) { /* */ }
+      }
+    };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(warm, { timeout: 1500 });
+    else setTimeout(warm, 120);
+  }, 320);
+
   function orgLabel(code) {
     if (!code) return '';
-    return txt.orgShort(code) || (G && G.orgNames[code]) || code;
+    if (G && G.orgNames && G.orgNames[code]) return G.orgNames[code];
+    return txt.orgShort(code) || code;
   }
 
   function scopeSig(c) {
@@ -265,8 +284,12 @@
       activeStd: state.activeStd,
       cols: state.cols.map(arr => arr.slice()),
       batches: state.batches,
+      varLimits: state.varLimits,
+      varMores: state.varMores,
+      variantRidersAll: state.variantRidersAll,
       selNode: state.selNode,
       selEdge: state.selEdge,
+      focusNode: state.focusNode,
     });
   }
 
@@ -278,8 +301,12 @@
     state.activeStd = o.activeStd;
     state.cols = o.cols.map(arr => arr.slice());
     state.batches = o.batches || {};
+    state.varLimits = o.varLimits || {};
+    state.varMores = o.varMores || {};
+    state.variantRidersAll = o.variantRidersAll || [];
     state.selNode = o.selNode;
     state.selEdge = o.selEdge;
+    state.focusNode = o.focusNode ?? null;
   }
 
   function pushUndo() {
@@ -299,6 +326,74 @@
     if (trail.length > 10) trail.shift();
   }
 
+  function riderGroupRank(grpName) {
+    const s = String(grpName || '');
+    if (Object.prototype.hasOwnProperty.call(RIDER_GRP_ORDER, s)) return RIDER_GRP_ORDER[s];
+    return 9;
+  }
+
+  // 종형 구성 틀에서 현재 펼쳐진 특약과 급부에 맞춰 표준담보와 보장분야 열을 이어 갱신한다(1-9)
+  function syncVariantDownstream(g, baseVar, resetBenBatch) {
+    const allBens = [];
+    const allBenSeen = new Set();
+    const mustBens = [];
+    const mustSeen = new Set();
+
+    // 화면에 보이는 특약마다 최소 1개의 급부를 먼저 넣어 길이 끊기지 않게 한다
+    state.cols[3].forEach(ri => {
+      const bList = g.riderBens.get(ri) || [];
+      if (bList.length && !mustSeen.has(bList[0])) {
+        mustSeen.add(bList[0]);
+        mustBens.push(bList[0]);
+      }
+    });
+    // 전체 특약 순서대로 전체 급부 풀 구성
+    state.variantRidersAll.forEach(ri => {
+      (g.riderBens.get(ri) || []).forEach(bi => {
+        if (!allBenSeen.has(bi)) { allBenSeen.add(bi); allBens.push(bi); }
+      });
+    });
+
+    const orderedPool = mustBens.slice();
+    const ordSeen = new Set(mustBens);
+    // 먼저 현재 보이는 특약의 나머지 급부를 채우고, 그 뒤 아직 접힌 특약의 급부를 둔다
+    state.cols[3].forEach(ri => {
+      (g.riderBens.get(ri) || []).forEach(bi => {
+        if (!ordSeen.has(bi)) { ordSeen.add(bi); orderedPool.push(bi); }
+      });
+    });
+    allBens.forEach(bi => {
+      if (!ordSeen.has(bi)) { ordSeen.add(bi); orderedPool.push(bi); }
+    });
+
+    const prevShownB = (!resetBenBatch && state.batches[4]) ? state.batches[4].shown : BATCH_SIZE;
+    const targetB = Math.max(mustBens.length, prevShownB);
+    if (orderedPool.length <= targetB) {
+      state.cols[4] = orderedPool;
+      delete state.batches[4];
+    } else {
+      state.cols[4] = orderedPool.slice(0, targetB);
+      state.batches[4] = { pool: orderedPool, shown: targetB, label: '급부' };
+    }
+
+    const stds = [];
+    const stdSeen = new Set();
+    state.cols[4].forEach(bi => {
+      (g.benStds.get(bi) || []).forEach(({ std }) => {
+        if (!stdSeen.has(std)) { stdSeen.add(std); stds.push(std); }
+      });
+    });
+    state.cols[5] = stds;
+
+    const doms = [];
+    const domSeen = new Set();
+    stds.forEach(si => {
+      const dm = g.stdDom.get(si);
+      if (dm && !domSeen.has(dm.dom)) { domSeen.add(dm.dom); doms.push(dm.dom); }
+    });
+    state.cols[6] = doms;
+  }
+
   function initPresetState(presetName, c, keepHistory) {
     const g = ensureGraph();
     if (!keepHistory) {
@@ -310,7 +405,11 @@
     state.activeStd = null;
     state.selNode = null;
     state.selEdge = null;
+    state.focusNode = null;
     state.batches = {};
+    state.varLimits = {};
+    state.varMores = {};
+    state.variantRidersAll = [];
     state.cols = [[], [], [], [], [], [], []];
 
     if (presetName === 'variant') {
@@ -321,34 +420,12 @@
         if (orgIdx != null) state.cols[1] = [orgIdx];
         state.cols[2] = [baseVar];
         const riders = (g.varRiders.get(baseVar) || []).slice().sort((a, b) => {
-          const ga = String(g.N[a].p['담보구분'] || ''), gb = String(g.N[b].p['담보구분'] || '');
-          return ga.localeCompare(gb, 'ko') || a - b;
+          const ga = String(g.N[a].p['담보구분'] || '기타'), gb = String(g.N[b].p['담보구분'] || '기타');
+          return (riderGroupRank(ga) - riderGroupRank(gb)) || ga.localeCompare(gb, 'ko') || (a - b);
         });
+        state.variantRidersAll = riders;
         setColWithBatch(3, riders, '특약');
-        // 첫 펼쳐진 특약들의 급부와 표준담보 일부도 함께 이어 보여 준다
-        const bens = [];
-        const benSeen = new Set();
-        state.cols[3].slice(0, 6).forEach(ri => {
-          (g.riderBens.get(ri) || []).forEach(bi => {
-            if (!benSeen.has(bi)) { benSeen.add(bi); bens.push(bi); }
-          });
-        });
-        setColWithBatch(4, bens, '급부');
-        const stds = [];
-        const stdSeen = new Set();
-        state.cols[4].forEach(bi => {
-          (g.benStds.get(bi) || []).forEach(({ std }) => {
-            if (!stdSeen.has(std)) { stdSeen.add(std); stds.push(std); }
-          });
-        });
-        state.cols[5] = stds;
-        const doms = [];
-        const domSeen = new Set();
-        stds.forEach(si => {
-          const dm = g.stdDom.get(si);
-          if (dm && !domSeen.has(dm.dom)) { domSeen.add(dm.dom); doms.push(dm.dom); }
-        });
-        state.cols[6] = doms;
+        syncVariantDownstream(g, baseVar, true);
       }
       recordTrail('종형 구성');
       return;
@@ -364,17 +441,14 @@
       state.cols[0].forEach(ni => {
         g.adj[ni].forEach(x => { if (x.ek === 5 && g.N[x.j].k === 0) orgSet.add(x.j); });
       });
-      // 우체국과 주요 비교 회사도 함께 놓아 종형으로 이어지게 한다
-      matchedVariants(g, c).forEach(vi => {
+      // 처음에는 기준 종형과 맞붙는 종형만 두고, 판매 종료 종형과 관문 전용 종형은 회사 노드를 펼칠 때만 보인다(1-8)
+      const mVars = matchedVariants(g, c);
+      mVars.forEach(vi => {
         const oi = g.byId.get('ORG:' + g.N[vi].o);
         if (oi != null) orgSet.add(oi);
       });
       state.cols[1] = Array.from(orgSet);
-      const varSet = new Set();
-      state.cols[1].forEach(oi => {
-        g.adj[oi].forEach(x => { if (x.ek === 0 && g.N[x.j].k === 1) varSet.add(x.j); });
-      });
-      state.cols[2] = Array.from(varSet);
+      state.cols[2] = mVars;
       recordTrail('시장 소식');
       return;
     }
@@ -423,6 +497,7 @@
   }
 
   function releaseBatchMore(colIdx) {
+    const g = ensureGraph();
     const b = state.batches[colIdx];
     if (!b) return;
     pushUndo();
@@ -430,7 +505,118 @@
     state.cols[colIdx] = b.pool.slice(0, nextShown);
     b.shown = nextShown;
     if (b.shown >= b.pool.length) delete state.batches[colIdx];
-    recordTrail(`${b.label || G.kinds[COL_KINDS[colIdx]]} +${BATCH_SIZE}`);
+    if (state.preset === 'variant' && state.cols[2].length === 1) {
+      if (colIdx === 3) syncVariantDownstream(g, state.cols[2][0], false);
+      else if (colIdx === 4) {
+        const stds = [];
+        const stdSeen = new Set();
+        state.cols[4].forEach(bi => {
+          (g.benStds.get(bi) || []).forEach(({ std }) => {
+            if (!stdSeen.has(std)) { stdSeen.add(std); stds.push(std); }
+          });
+        });
+        state.cols[5] = stds;
+        const doms = [];
+        const domSeen = new Set();
+        stds.forEach(si => {
+          const dm = g.stdDom.get(si);
+          if (dm && !domSeen.has(dm.dom)) { domSeen.add(dm.dom); doms.push(dm.dom); }
+        });
+        state.cols[6] = doms;
+      }
+    }
+    recordTrail(`${b.label || g.kinds[COL_KINDS[colIdx]]} +${BATCH_SIZE}`);
+    rerenderGraph(true);
+  }
+
+  // 담보 대응 2걸음에서 회사별 특약과 급부 목록을 12개 단위로 구성한다(1-3: 모든 회사의 길이 빠짐없이 이어진다)
+  function buildCoverStdColumns(g, stdIdx, vars) {
+    const riders = [];
+    const riderSeen = new Set();
+    const bens = [];
+    const benSeen = new Set();
+    const more3 = [];
+    const more4 = [];
+
+    delete state.batches[3];
+    delete state.batches[4];
+
+    vars.forEach(vi => {
+      const sMap = g.varStdPaths.get(vi);
+      const pathObj = sMap && sMap.get(stdIdx);
+      if (!pathObj || !pathObj.riders.length) return;
+
+      const orgNm = orgLabel(g.N[vi].o);
+      const limR = state.varLimits['r:' + vi] || BATCH_SIZE;
+      const shownVarRiders = pathObj.riders.slice(0, limR);
+      let lastR = null;
+      shownVarRiders.forEach(ri => {
+        if (!riderSeen.has(ri)) { riderSeen.add(ri); riders.push(ri); }
+        lastR = ri;
+      });
+      const remR = pathObj.riders.length - shownVarRiders.length;
+      if (remR > 0) {
+        more3.push({ afterIdx: lastR, key: `r:${vi}`, rem: remR, label: `+${fmt(remR)} 더 (${orgNm})` });
+      }
+
+      // 보이는 특약에서 고른 담보로 이어지는 급부는 빠짐없이 함께 보여 길이 끊기지 않게 한다(1-3)
+      const validBenSet = new Set(pathObj.bens);
+      const shownVarBens = [];
+      const shownVarBenSet = new Set();
+      shownVarRiders.forEach(ri => {
+        (g.riderBens.get(ri) || []).forEach(bi => {
+          if (validBenSet.has(bi) && !shownVarBenSet.has(bi)) {
+            shownVarBenSet.add(bi);
+            shownVarBens.push(bi);
+          }
+        });
+      });
+      let lastB = null;
+      shownVarBens.forEach(bi => {
+        if (!benSeen.has(bi)) { benSeen.add(bi); bens.push(bi); }
+        lastB = bi;
+      });
+      const remB = pathObj.bens.length - shownVarBens.length;
+      if (remB > 0) {
+        more4.push({ afterIdx: lastB, key: `r:${vi}`, rem: remB, label: `+${fmt(remB)} 더 (${orgNm})` });
+      }
+    });
+
+    // 비교 종형 바깥에서만 이어진 급부가 있는 담보면 그 급부와 특약을 열에 놓는다
+    if (!bens.length) {
+      const extR = [];
+      const extB = [];
+      (g.stdBens.get(stdIdx) || []).forEach(({ ben }) => {
+        if (!benSeen.has(ben)) { benSeen.add(ben); extB.push(ben); }
+        (g.benRiders.get(ben) || []).forEach(ri => {
+          if (!riderSeen.has(ri)) { riderSeen.add(ri); extR.push(ri); }
+        });
+      });
+      setColWithBatch(3, extR, '특약');
+      setColWithBatch(4, extB, '급부');
+      state.varMores = {};
+      return;
+    }
+
+    state.cols[3] = riders;
+    state.cols[4] = bens;
+    state.varMores = { 3: more3, 4: more4 };
+  }
+
+  function releaseVarMore(vmoreKey) {
+    const g = ensureGraph();
+    if (state.activeStd == null) return;
+    pushUndo();
+    const cur = state.varLimits[vmoreKey] || BATCH_SIZE;
+    state.varLimits[vmoreKey] = cur + BATCH_SIZE;
+    // 특약 한도를 늘릴 때 급부 한도도 함께 맞춰 새로 열린 특약의 급부가 바로 이어지게 한다
+    if (vmoreKey.startsWith('r:')) {
+      const bKey = 'b:' + vmoreKey.slice(2);
+      state.varLimits[bKey] = Math.max(state.varLimits[bKey] || BATCH_SIZE, state.varLimits[vmoreKey]);
+    }
+    const vars = state.cols[2].length ? state.cols[2] : matchedVariants(g, App.ctx());
+    buildCoverStdColumns(g, state.activeStd, vars);
+    recordTrail(`${g.N[state.activeStd].l} +${BATCH_SIZE}`);
     rerenderGraph(true);
   }
 
@@ -443,6 +629,8 @@
     state.cols[2] = vars;
     state.cols[3] = [];
     state.cols[4] = [];
+    state.varLimits = {};
+    state.varMores = {};
     delete state.batches[3];
     delete state.batches[4];
     delete state.batches[5];
@@ -454,6 +642,7 @@
     state.activeDom = domIdx;
     state.activeStd = null;
     state.selNode = domIdx;
+    state.focusNode = domIdx;
     state.selEdge = null;
     recordTrail(g.N[domIdx].l);
   }
@@ -488,39 +677,13 @@
       state.cols[5] = [stdIdx].concat(state.cols[5]);
     }
 
-    // 활성 종형 순서대로 특약과 급부를 모아 선 교차를 최소화한다
-    const riders = [];
-    const riderSeen = new Set();
-    const bens = [];
-    const benSeen = new Set();
-
-    vars.forEach(vi => {
-      const sMap = g.varStdPaths.get(vi);
-      const pathObj = sMap && sMap.get(stdIdx);
-      if (!pathObj) return;
-      pathObj.riders.forEach(ri => {
-        if (!riderSeen.has(ri)) { riderSeen.add(ri); riders.push(ri); }
-      });
-      pathObj.bens.forEach(bi => {
-        if (!benSeen.has(bi)) { benSeen.add(bi); bens.push(bi); }
-      });
-    });
-
-    // 혹시 현재 종형 바깥에서만 이어진 급부가 있으면 그 급부와 특약도 빠뜨리지 않는다
-    if (!bens.length) {
-      (g.stdBens.get(stdIdx) || []).forEach(({ ben }) => {
-        if (!benSeen.has(ben)) { benSeen.add(ben); bens.push(ben); }
-        (g.benRiders.get(ben) || []).forEach(ri => {
-          if (!riderSeen.has(ri)) { riderSeen.add(ri); riders.push(ri); }
-        });
-      });
-    }
-
-    setColWithBatch(3, riders, '특약');
-    setColWithBatch(4, bens, '급부');
+    state.varLimits = {};
+    state.varMores = {};
+    buildCoverStdColumns(g, stdIdx, vars);
     state.mode = 'cover-2';
     state.activeStd = stdIdx;
     state.selNode = stdIdx;
+    state.focusNode = stdIdx;
     state.selEdge = null;
     recordTrail(g.N[stdIdx].l);
   }
@@ -570,28 +733,30 @@
     const hit = groups.find(x => x.key === grpKey);
     if (!hit || !hit.nodes.length) return;
     pushUndo();
-    if (state.mode === 'cover-0' || state.mode === 'cover-1') state.mode = 'hop';
+    if (state.mode === 'cover-0' || state.mode === 'cover-1' || state.mode === 'cover-2') state.mode = 'hop';
+    state.varMores = {};
     let list = hit.nodes.slice();
     if (hit.nbKind === 6) {
       list.sort((a, b) => String(g.N[b].p['발표일자'] || '').localeCompare(String(g.N[a].p['발표일자'] || '')));
     }
     appendToColWithBatch(hit.dstCol, list, hit.nbKindName);
     state.selNode = nodeIdx;
+    state.focusNode = nodeIdx;
     state.selEdge = null;
     recordTrail(`${g.N[nodeIdx].l} (${hit.nbKindName})`);
     rerenderGraph(true);
-    App.select('n:' + g.N[nodeIdx].id, { animate: false });
+    App.select('n:' + g.N[nodeIdx].id, { animate: false, focus: false });
   }
 
-  // 표준담보의 우체국 보유 / 단독 보유 판별(summary.표준담보별종형 우선 사용)
-  function stdOwnershipClass(g, stdIdx) {
+  // 표준담보의 우체국 보유, 단독 보유, 비교 종형 미연결 판별(1-1, 1-11: 화면 열이 아니라 기준 종형과 맞붙는 종형을 비교 대상으로 삼는다)
+  function stdOwnershipClass(g, stdIdx, c) {
     const stdNode = g.N[stdIdx];
     if (!stdNode) return '';
-    const cmpVars = state.cols[2].filter(vi => {
-      const vs = g.summary && g.summary['종형'] && g.summary['종형'][g.N[vi].id];
-      return !vs || (!vs['판매종료일'] && vs['비교역할'] !== '관문전용' && vs['비교역할'] !== '직전개정시연');
-    });
-    const activeSet = new Set(cmpVars.length ? cmpVars : state.cols[2]);
+    const curC = c || App.ctx();
+    const cmpVars = matchedVariants(g, curC);
+    const activeSet = new Set(cmpVars);
+    const hasPeerScope = cmpVars.some(vi => g.N[vi] && g.N[vi].o && g.N[vi].o !== 'EPOST');
+
     let holderIdxs = null;
     if (g.summary && g.summary['표준담보별종형'] && Array.isArray(g.summary['표준담보별종형'][stdNode.id])) {
       holderIdxs = g.summary['표준담보별종형'][stdNode.id];
@@ -614,7 +779,8 @@
       });
     }
     if (!epostHas && peerHas) return 'is-miss';
-    if (epostHas && !peerHas) return 'is-only';
+    if (epostHas && !peerHas && hasPeerScope) return 'is-only';
+    if (!epostHas && !peerHas) return 'is-unlinked';
     return '';
   }
 
@@ -690,7 +856,7 @@
       });
     }
 
-    // 3. 1걸음 펼침(보장분야를 펼쳐 표준담보는 열렸고 특약과 급부는 접혀 있을 때): 종형 -> 표준담보 연결선(summary.표준담보별종형 우선)
+    // 3. 1걸음 펼침(보장분야를 펼쳐 표준담보는 열렸고 특약과 급부는 접혀 있을 때): 종형 -> 표준담보 보유 연결선(1-12: 화면에서 특약과 급부 수를 세지 않는다)
     if (hasStds && !hasRidersOrBens && visByCol[2].size) {
       state.cols[5].forEach(si => {
         const sNode = g.N[si];
@@ -702,23 +868,20 @@
           const pObj = sMap && sMap.get(si);
           const hasLink = holderSet ? holderSet.has(vi) : !!pObj;
           if (!hasLink) return;
-          const rCnt = pObj ? pObj.riders.length : 0;
-          const bCnt = pObj ? pObj.bens.length : 0;
           edges.push({
             key: `vs:${vi}:${si}`,
             kind: 'var-std',
             eIdx: null,
             ek: 2,
-            ekName: rCnt || bCnt ? `특약 ${rCnt}, 급부 ${bCnt}` : '보유 연결',
+            ekName: '보유 연결',
             leftNode: vi,
             rightNode: si,
             sNode: vi,
             tNode: si,
             intraCol: false,
             props: {
-              연결구분: '종형에서 표준담보로 이어지는 경로 요약',
-              연결특약수: rCnt,
-              연결급부수: bCnt,
+              연결구분: '종형에서 표준담보로 이어지는 보유 연결',
+              안내: '표준담보를 누르면 회사별 특약과 급부 열이 펼쳐집니다',
             },
             pathObj: pObj,
             count: null,
@@ -803,13 +966,29 @@
     return parts.join(', ');
   }
 
-  function renderNodeCardHTML(g, ni, hl) {
+  function ensureFocusNode() {
+    const allVis = new Set();
+    let firstVis = null;
+    for (let colIdx = 0; colIdx < state.cols.length; colIdx++) {
+      for (const ni of state.cols[colIdx]) {
+        if (firstVis == null) firstVis = ni;
+        allVis.add(ni);
+      }
+    }
+    if (state.selNode != null && allVis.has(state.selNode)) {
+      if (state.focusNode == null || !allVis.has(state.focusNode)) state.focusNode = state.selNode;
+    } else if (state.focusNode == null || !allVis.has(state.focusNode)) {
+      state.focusNode = firstVis;
+    }
+  }
+
+  function renderNodeCardHTML(g, ni, hl, c) {
     const n = g.N[ni];
     if (!n) return '';
     const isSel = state.selNode === ni && !state.selEdge;
     const isDim = hl.active && !hl.nodes.has(ni);
     const isEpost = n.o === 'EPOST';
-    const stdCls = n.k === 4 ? stdOwnershipClass(g, ni) : '';
+    const stdCls = n.k === 4 ? stdOwnershipClass(g, ni, c) : '';
     const cls = [
       'gr-node',
       `k-${n.k}`,
@@ -854,7 +1033,13 @@
       const benCnt = (g.stdBens.get(ni) || []).length;
       const goldMark = stdCls === 'is-only' ? '<i class="gr-gold-mk" aria-hidden="true"></i>' : '';
       inner = `${goldMark}<span class="gn-t">${esc(n.l)}</span><span class="gn-cnt num">${fmt(benCnt)}</span>`;
-      const ownNote = stdCls === 'is-miss' ? '우체국 종형 연결 없음' : stdCls === 'is-only' ? '우체국 단독 연결' : `연결 급부 ${fmt(benCnt)}개`;
+      const ownNote = stdCls === 'is-miss'
+        ? '우체국 종형 연결 없음'
+        : stdCls === 'is-only'
+          ? '우체국 단독 연결'
+          : stdCls === 'is-unlinked'
+            ? '비교 종형에 연결 없음'
+            : `연결 급부 ${fmt(benCnt)}개`;
       tipSub = `${p['보장대분류'] || ''} / ${p['급부유형'] || ''} / ${ownNote}`;
     } else if (n.k === 5) {
       const stdCnt = (g.domStds.get(ni) || []).length;
@@ -880,15 +1065,16 @@
       }
     }
 
+    const tabIdx = state.focusNode === ni ? 0 : -1;
     return `<div class="gr-node-wrap${isDim ? ' is-dim' : ''}" data-gr-wrap="${esc(n.id)}">
-      <button type="button" class="${cls}" data-gr-node="${esc(n.id)}" data-gr-idx="${ni}" data-aim="rect" data-link-pt="1"${isSel ? ' data-sel-anchor="1"' : ''} data-tip-title="${esc(n.l)}" data-tip-sub="${esc(tipSub)}" aria-pressed="${isSel}">
+      <button type="button" class="${cls}" tabindex="${tabIdx}" data-gr-node="${esc(n.id)}" data-gr-idx="${ni}" data-aim="rect" data-link-pt="1"${isSel ? ' data-sel-anchor="1"' : ''} data-tip-title="${esc(n.l)}" data-tip-sub="${esc(tipSub)}" aria-pressed="${isSel}">
         ${inner}
       </button>
       ${hopBar}
     </div>`;
   }
 
-  function renderVerticalMobileHTML(g, edges, hl) {
+  function renderVerticalMobileHTML(g, edges, hl, c) {
     // 1000px 미만: 고른 노드(없으면 첫 열들 대표)의 조상과 자손 길을 세로 한 열로 세운다
     const steps = [];
     COL_KINDS.forEach((k, colIdx) => {
@@ -899,13 +1085,13 @@
       const isCurCol = state.selNode != null && g.N[state.selNode] && g.N[state.selNode].k === k;
       steps.push(`<div class="gr-vp-step${isCurCol ? ' is-cur' : ''}">
         <div class="gr-vp-hd"><span>${esc(g.kinds[k])}</span><span class="num">${fmt(filtered.length)}/${fmt(raw.length)}</span></div>
-        <div class="gr-vp-nodes">${filtered.map(ni => renderNodeCardHTML(g, ni, { active: false, nodes: new Set() })).join('')}</div>
+        <div class="gr-vp-nodes">${filtered.map(ni => renderNodeCardHTML(g, ni, { active: false, nodes: new Set() }, c)).join('')}</div>
       </div>`);
     });
     return steps.join('');
   }
 
-  function renderLeftZone(leftEl, g) {
+  function renderLeftZone(leftEl) {
     if (!leftEl) return;
     const presets = [
       { id: 'cover', nm: '담보 대응', sub: '회사, 종형, 보장분야에서 담보 길 비교' },
@@ -1007,7 +1193,8 @@
           d = Math.abs(y2 - y1) <= 2 ? `M${x1} ${y1}H${x2}` : `M${x1} ${y1}H${mx}V${y2}H${x2}`;
           chipX = mx;
           chipY = Math.round((y1 + y2) / 2);
-          ed._badgeX = Math.round(x2 - 16 - (vCount - 1 - vRank) * 24);
+          const stepB = Math.min(24, Math.max(10, Math.floor((spanX * 0.42) / Math.max(1, vCount))));
+          ed._badgeX = Math.max(x1 + 14, Math.round(x2 - 16 - (vCount - 1 - vRank) * stepB));
           ed._badgeY = y2;
         } else {
           const spread = list.length > 1 ? ((idx / (list.length - 1)) - 0.5) * Math.min(12, list.length * 1.8) : 0;
@@ -1044,7 +1231,7 @@
         countBadge = `<rect class="gr-edge-cnt-bg" x="${bx - bw / 2}" y="${by - 7}" width="${bw}" height="14"/><text class="gr-edge-cnt-tx" x="${bx}" y="${by}">${ed.count}</text>`;
       }
 
-      svgParts.push(`<g class="${gCls}" data-gr-edge="${esc(ed.key)}" data-chip="${esc(chipLabel)}" data-cx="${chipX}" data-cy="${chipY}">
+      svgParts.push(`<g class="${gCls}" data-gr-edge="${esc(ed.key)}" data-chip="${esc(chipLabel)}" data-cx="${chipX}" data-cy="${chipY}"${isEsel ? ' data-sel-anchor="1"' : ''}>
         <path class="gr-edge-hit" d="${d}"/>
         ${visMarkup}
         ${countBadge}
@@ -1057,19 +1244,18 @@
 
     svg.innerHTML = svgParts.join('');
 
-    // 쓰기 패스: 기존 노드는 새 자리로 미끄러지고(FLIP), 새 엣지는 출발에서 도착으로 그어진다
+    // 쓰기 패스(1-4): 이미 보이던 노드는 수에 한도를 두지 않고 모두 새 자리로 미끄러지고, 새 노드만 나타난다
     if (animate && App.motionOn()) {
       const mScale = App.motionScale();
-      let animBudget = 0;
+      let newCount = 0;
       for (const [ni, el] of nodeElMap.entries()) {
-        if (animBudget >= 28 || typeof el.animate !== 'function') break;
+        if (typeof el.animate !== 'function') continue;
         const nextR = nodeRectMap.get(ni);
         const prevR = prevNodeRects ? prevNodeRects.get(ni) : null;
         if (prevR && nextR) {
           const dx = prevR.left - nextR.left;
           const dy = prevR.top - nextR.top;
           if (Math.abs(dx) > 1.5 || Math.abs(dy) > 1.5) {
-            animBudget++;
             el.animate([
               { transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0)` },
               { transform: 'translate3d(0,0,0)' },
@@ -1079,30 +1265,31 @@
             });
           }
         } else if (prevNodeRects && prevNodeRects.size > 0) {
-          animBudget++;
+          const staggerIdx = Math.min(newCount, 12);
+          newCount++;
           el.animate([
             { transform: 'translate3d(0,6px,0)', opacity: 0 },
             { transform: 'translate3d(0,0,0)', opacity: 1 },
           ], {
             duration: Math.max(100, Math.round(240 * mScale)),
-            delay: Math.round(Math.min(90, animBudget * 8) * mScale),
+            delay: Math.round(staggerIdx * 8 * mScale),
             easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
             fill: 'backwards',
           });
         }
       }
 
-      const maxEdgeAnim = Math.min(24, newEdgeIds.length);
-      for (let k = 0; k < maxEdgeIdsLimit(maxEdgeAnim); k++) {
+      for (let k = 0; k < newEdgeIds.length; k++) {
         const gEl = svg.querySelector(`[data-gr-edge="${CSS.escape(newEdgeIds[k])}"]`);
         const pEl = gEl && gEl.querySelector('.gr-edge-vis, .gr-edge-dbl-out');
-        if (pEl && typeof pEl.animate === 'function') {
+        if (pEl && typeof pEl.animate !== 'function') continue;
+        if (pEl) {
           pEl.animate([
             { strokeDasharray: '1 1', strokeDashoffset: 1 },
             { strokeDasharray: '1 1', strokeDashoffset: 0 },
           ], {
             duration: Math.max(100, Math.round(260 * mScale)),
-            delay: Math.round(Math.min(80, k * 6) * mScale),
+            delay: Math.round(Math.min(12, k) * 6 * mScale),
             easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
             fill: 'backwards',
           });
@@ -1110,8 +1297,6 @@
       }
     }
   }
-
-  function maxEdgeIdsLimit(n) { return n; }
 
   function captureCurrentNodeRects(centerEl) {
     const m = new Map();
@@ -1123,15 +1308,76 @@
     return m;
   }
 
-  function rerenderGraph(animate) {
+  // 열 머리의 수 표시(1-9: 종형 구성 틀에서 일부만 펼쳐진 열은 N/전체로 표시한다)
+  function columnCountText(g, colIdx) {
+    const cnt = state.cols[colIdx].length;
+    if (state.preset === 'variant' && state.cols[2].length === 1) {
+      const vNode = g.N[state.cols[2][0]];
+      const vSum = vNode && g.summary && g.summary['종형'] && g.summary['종형'][vNode.id];
+      if (vSum) {
+        let tot = null;
+        if (colIdx === 3) tot = vSum['특약수'];
+        else if (colIdx === 4) tot = vSum['급부수'];
+        else if (colIdx === 5 && Array.isArray(vSum['표준담보'])) tot = vSum['표준담보'].length;
+        else if (colIdx === 6 && vSum['보장분야별']) tot = Object.values(vSum['보장분야별']).filter(v => v > 0).length;
+        if (tot != null && cnt < tot) return `${fmt(cnt)}/${fmt(tot)}`;
+      }
+    }
+    const b = state.batches[colIdx];
+    if (b && b.pool && cnt < b.pool.length) return `${fmt(cnt)}/${fmt(b.pool.length)}`;
+    const vm = state.varMores[colIdx];
+    if (vm && vm.length) {
+      const hiddenSum = vm.reduce((s, x) => s + x.rem, 0);
+      if (hiddenSum > 0) return `${fmt(cnt)}/${fmt(cnt + hiddenSum)}`;
+    }
+    return fmt(cnt);
+  }
+
+  // 종형 구성 틀의 특약 열 본문을 담보구분 묶음 머리별로 그린다(1-9)
+  function renderVariantRiderColHTML(g, items, hl, c) {
+    const allRiders = state.variantRidersAll.length ? state.variantRidersAll : items;
+    const totByGrp = new Map();
+    const orderGrps = [];
+    allRiders.forEach(ri => {
+      const grp = String((g.N[ri] && g.N[ri].p['담보구분']) || '기타');
+      if (!totByGrp.has(grp)) { totByGrp.set(grp, 0); orderGrps.push(grp); }
+      totByGrp.set(grp, totByGrp.get(grp) + 1);
+    });
+    const shownByGrp = new Map();
+    items.forEach(ri => {
+      const grp = String((g.N[ri] && g.N[ri].p['담보구분']) || '기타');
+      if (!shownByGrp.has(grp)) shownByGrp.set(grp, []);
+      shownByGrp.get(grp).push(ri);
+    });
+
+    const parts = [];
+    orderGrps.forEach(grp => {
+      const tot = totByGrp.get(grp) || 0;
+      const list = shownByGrp.get(grp) || [];
+      const cntTxt = list.length === tot ? fmt(tot) : `${fmt(list.length)}/${fmt(tot)}`;
+      parts.push(`<div class="gr-grp-hd${list.length ? '' : ' is-rest'}"><span>${esc(grp)}</span><span class="num">${cntTxt}</span></div>`);
+      list.forEach(ri => { parts.push(renderNodeCardHTML(g, ri, hl, c)); });
+    });
+    return parts.join('');
+  }
+
+  function rerenderGraph(animate, opts = {}) {
     const g = ensureGraph();
     if (!lastCenterEl) return;
+    if (edgeDrawRaf) { cancelAnimationFrame(edgeDrawRaf); edgeDrawRaf = 0; }
+    hoveredEdgeEl = null;
+
+    const curC = App.ctx();
+    ensureFocusNode();
 
     // 1단계(읽기 전용): 바꾸기 전 노드의 화면 좌표를 먼저 기록한다
     const prevNodeRects = animate ? captureCurrentNodeRects(lastCenterEl) : null;
     const prevEdgeKeys = animate ? new Set(renderedEdges.keys()) : null;
 
     const edges = buildEdgeList(g);
+    // 첫 프레임의 요약 배지(엣지 수)와 조상/자손 계산이 정확한 수를 읽도록 논리 엣지 맵을 먼저 채운다
+    renderedEdges = new Map();
+    edges.forEach(ed => renderedEdges.set(ed.key, ed));
     const hl = computeHighlightSets(edges);
 
     const trailHTML = trail.map((tr, idx) => {
@@ -1141,10 +1387,10 @@
 
     const colHeadsHTML = COL_KINDS.map((k, colIdx) => {
       const cnt = state.cols[colIdx].length;
-      const open = cnt > 0 || !!state.batches[colIdx];
+      const open = cnt > 0 || !!state.batches[colIdx] || !!(state.varMores[colIdx] && state.varMores[colIdx].length);
       return `<div class="gr-col-hd gr-c-${k} ${open ? 'is-open' : 'is-folded'}">
         <span class="gr-col-nm">${esc(g.kinds[k])}</span>
-        <span class="gr-col-cnt num">${fmt(cnt)}</span>
+        <span class="gr-col-cnt num">${columnCountText(g, colIdx)}</span>
       </div>`;
     }).join('');
 
@@ -1152,15 +1398,46 @@
     const colsBodyHTML = isNarrow ? '' : COL_KINDS.map((k, colIdx) => {
       const items = state.cols[colIdx];
       const b = state.batches[colIdx];
-      const open = items.length > 0 || !!b;
-      const cards = items.map(ni => renderNodeCardHTML(g, ni, hl)).join('');
+      const vmList = state.varMores[colIdx] || [];
+      const open = items.length > 0 || !!b || vmList.length > 0;
+
+      let cards = '';
+      if (colIdx === 3 && state.preset === 'variant' && items.length > 0) {
+        cards = renderVariantRiderColHTML(g, items, hl, curC);
+      } else if (vmList.length > 0) {
+        const byAfter = new Map();
+        const tailMores = [];
+        vmList.forEach(m => {
+          if (m.afterIdx != null && items.includes(m.afterIdx)) {
+            let a = byAfter.get(m.afterIdx);
+            if (!a) { a = []; byAfter.set(m.afterIdx, a); }
+            a.push(m);
+          } else {
+            tailMores.push(m);
+          }
+        });
+        const chunks = [];
+        items.forEach(ni => {
+          chunks.push(renderNodeCardHTML(g, ni, hl, curC));
+          (byAfter.get(ni) || []).forEach(m => {
+            chunks.push(`<button type="button" class="gr-node gr-more" tabindex="-1" data-gr-vmore="${esc(m.key)}" data-aim="rect">${esc(m.label)}</button>`);
+          });
+        });
+        tailMores.forEach(m => {
+          chunks.push(`<button type="button" class="gr-node gr-more" tabindex="-1" data-gr-vmore="${esc(m.key)}" data-aim="rect">${esc(m.label)}</button>`);
+        });
+        cards = chunks.join('');
+      } else {
+        cards = items.map(ni => renderNodeCardHTML(g, ni, hl, curC)).join('');
+      }
+
       const moreBtn = b && b.shown < b.pool.length
-        ? `<button type="button" class="gr-node gr-more" data-gr-more="${colIdx}" data-aim="rect">+${fmt(b.pool.length - b.shown)} 더</button>`
+        ? `<button type="button" class="gr-node gr-more" tabindex="-1" data-gr-more="${colIdx}" data-aim="rect">+${fmt(b.pool.length - b.shown)} 더</button>`
         : '';
       return `<div class="gr-col gr-c-${k} ${open ? 'is-open' : 'is-folded'}" data-col-idx="${colIdx}">${cards}${moreBtn}</div>`;
     }).join('');
 
-    const vpathHTML = isNarrow ? renderVerticalMobileHTML(g, edges, hl) : '';
+    const vpathHTML = isNarrow ? renderVerticalMobileHTML(g, edges, hl, curC) : '';
 
     lastCenterEl.innerHTML = `<div class="gr-wrap" id="gr-stage-root">
       <nav class="gr-trail" aria-label="지나온 길"><span class="gr-trail-k">지나온 길</span>${trailHTML}</nav>
@@ -1168,7 +1445,7 @@
       <div class="gr-canvas-scroll" id="gr-scroll">
         <div class="gr-canvas" id="gr-canvas">
           <svg class="gr-edges-svg" id="gr-edges-svg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
-          <div class="gr-edge-chip" id="gr-edge-chip" hidden></div>
+          <div class="gr-edge-chip" id="gr-edge-chip" data-aim="rect" hidden></div>
           <div class="gr-cols-grid">${colsBodyHTML}</div>
         </div>
       </div>`}
@@ -1184,8 +1461,33 @@
       });
     }
 
-    drawOrthogonalEdges(lastCenterEl, g, edges, hl, prevNodeRects, prevEdgeKeys, animate);
-    requestAnimationFrame(() => App.updateSelLink(false));
+    if (opts.deferEdges && !isNarrow) {
+      const targetCenter = lastCenterEl;
+      edgeDrawRaf = requestAnimationFrame(() => {
+        edgeDrawRaf = 0;
+        if (App.state.tab !== 'graph' || targetCenter !== lastCenterEl) return;
+        drawOrthogonalEdges(targetCenter, g, edges, hl, null, null, false);
+        App.updateSelLink(false);
+      });
+    } else {
+      drawOrthogonalEdges(lastCenterEl, g, edges, hl, prevNodeRects, prevEdgeKeys, animate);
+      requestAnimationFrame(() => App.updateSelLink(false));
+    }
+  }
+
+  function restoreGraphNodeFocus(ni) {
+    if (ni == null || !lastCenterEl) return;
+    state.focusNode = ni;
+    const allBtns = lastCenterEl.querySelectorAll('.gr-node[data-gr-idx]');
+    let target = null;
+    allBtns.forEach(b => {
+      const match = +b.dataset.grIdx === ni;
+      b.tabIndex = match ? 0 : -1;
+      if (match && !target) target = b;
+    });
+    if (target) {
+      try { target.focus({ preventScroll: true }); } catch (e) { /* */ }
+    }
   }
 
   // ---------- 오른쪽 읽기 영역(#z-right): 노드 상세, 엣지 속성, 다른 화면 이동 ----------
@@ -1207,8 +1509,27 @@
       const links = g.benStds.get(n.i) || [];
       if (links.length) stdId = g.N[links[0].std].id;
     }
+
+    // 가입 관문에서 보기: 전체 표 창(tree)을 띄우지 않고 해당 종형을 고른 상태로 바로 연다(1-13)
+    let gateVid = '';
+    if (n.k === 1) gateVid = n.id;
+    else if (n.k === 2) {
+      const vList = g.riderVars.get(n.i) || [];
+      if (vList.length) gateVid = g.N[vList[0]].id;
+    } else if (n.k === 3) {
+      const rList = g.benRiders.get(n.i) || [];
+      if (rList.length) {
+        const vList = g.riderVars.get(rList[0]) || [];
+        if (vList.length) gateVid = g.N[vList[0]].id;
+      }
+    } else if (n.k === 0 && n.o) {
+      const mVars = matchedVariants(g, App.ctx());
+      const hitV = mVars.find(vi => g.N[vi] && g.N[vi].o === n.o);
+      if (hitV != null) gateVid = g.N[hitV].id;
+    }
+
     const coverFocus = stdId ? ` data-focus="s:${esc(stdId)}"` : '';
-    const gateFocus = n.k === 1 ? ` data-focus="tree"` : '';
+    const gateFocus = gateVid ? ` data-focus="g:${esc(gateVid)}"` : '';
     return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
       ${ui.btn('담보 비교에서 보기', { sm: true, ghost: true, chev: true, attrs: `data-go="cover"${coverFocus}` })}
       ${ui.btn('가입 관문에서 보기', { sm: true, ghost: true, chev: true, attrs: `data-go="gate"${gateFocus}` })}
@@ -1218,6 +1539,7 @@
   function buildNodeEv(g, ni) {
     const n = g.N[ni];
     if (!n) return null;
+    const curC = App.ctx();
     const groups = neighborGroupsOf(g, ni);
     const hopBtns = groups.map(grp =>
       `<button type="button" class="btn sm ghost" data-gr-expand="${ni}|${esc(grp.key)}"><span>${esc(grp.nbKindName)} (${esc(grp.ekName)})</span><span class="num">${fmt(grp.nodes.length)}</span>${ui.IC.chevR}</button>`
@@ -1238,9 +1560,10 @@
     const badges = [ui.tag(g.kinds[n.k])];
     if (n.o) badges.push(ui.tag(orgLabel(n.o)));
     if (n.k === 4) {
-      const ownCls = stdOwnershipClass(g, ni);
+      const ownCls = stdOwnershipClass(g, ni, curC);
       if (ownCls === 'is-miss') badges.push(ui.verdict('none'));
       else if (ownCls === 'is-only') badges.push(ui.verdict('only'));
+      else if (ownCls === 'is-unlinked') badges.push(ui.tag('비교 종형에 없음'));
     }
 
     const extraRows = [['식별자', n.id]];
@@ -1347,6 +1670,7 @@
       const ni = g.byId.get(id);
       if (ni == null) return null;
       state.selNode = ni;
+      state.focusNode = ni;
       state.selEdge = null;
       return buildNodeEv(g, ni);
     }
@@ -1376,7 +1700,7 @@
   }
 
   function renderZones({ left, center, ctx: c }) {
-    const g = ensureGraph();
+    ensureGraph();
     lastLeftEl = left;
     lastCenterEl = center;
     const sig = scopeSig(c);
@@ -1385,31 +1709,28 @@
       lastScopeSig = sig;
       initPresetState(state.preset || 'cover', c, false);
     }
-    renderLeftZone(left, g);
-    rerenderGraph(false);
+    renderLeftZone(left);
+    // 탭 진입 첫 프레임에는 열과 노드를 그리고, 엣지 좌표 읽기는 다음 프레임에 돌린다(1-10)
+    rerenderGraph(false, { deferEdges: true });
   }
 
-  function selectAndHandleNode(ni, c) {
+  function selectAndHandleNode(ni, c, keepFocus) {
     const g = ensureGraph();
     const n = g.N[ni];
     if (!n) return;
     if (state.preset === 'cover' && n.k === 5) {
       expandDomainStep(ni, c);
-      rerenderGraph(true);
-      App.select('n:' + n.id, { animate: true });
-      return;
-    }
-    if (state.preset === 'cover' && n.k === 4) {
+    } else if (state.preset === 'cover' && n.k === 4) {
       expandStdStep(ni, c);
-      rerenderGraph(true);
-      App.select('n:' + n.id, { animate: true });
-      return;
+    } else {
+      state.selNode = ni;
+      state.focusNode = ni;
+      state.selEdge = null;
+      recordTrail(n.l);
     }
-    state.selNode = ni;
-    state.selEdge = null;
-    recordTrail(n.l);
     rerenderGraph(true);
-    App.select('n:' + n.id, { animate: true });
+    App.select('n:' + n.id, { animate: true, focus: false });
+    if (keepFocus) restoreGraphNodeFocus(ni);
   }
 
   function jumpToAnyNode(ni, c) {
@@ -1427,6 +1748,7 @@
       initPresetState('news', c, true);
       if (!state.cols[0].includes(ni)) state.cols[0].unshift(ni);
       state.selNode = ni;
+      state.focusNode = ni;
       recordTrail(n.l);
     } else if (n.k === 1) {
       initPresetState('cover', c, true);
@@ -1434,17 +1756,20 @@
       const oi = n.o ? g.byId.get('ORG:' + n.o) : null;
       if (oi != null && !state.cols[1].includes(oi)) state.cols[1].unshift(oi);
       state.selNode = ni;
+      state.focusNode = ni;
       recordTrail(n.l);
     } else {
       pushUndo();
       if (!state.cols[colIdx].includes(ni)) state.cols[colIdx].unshift(ni);
       state.selNode = ni;
+      state.focusNode = ni;
       state.selEdge = null;
       recordTrail(n.l);
     }
-    if (lastLeftEl) renderLeftZone(lastLeftEl, g);
+    if (lastLeftEl) renderLeftZone(lastLeftEl);
     rerenderGraph(true);
-    App.select('n:' + n.id, { animate: true });
+    App.select('n:' + n.id, { animate: true, focus: false });
+    restoreGraphNodeFocus(ni);
   }
 
   function focus(target, _body, c) {
@@ -1497,7 +1822,36 @@
     sugg.hidden = false;
   }
 
-  // ---------- 위임 이벤트(클릭, 검색, 엣지 가리킴 칩, 키보드 되돌리기) ----------
+  // ---------- 엣지 가리킴 칩과 조준 표식 반응(1-2) ----------
+  function showEdgeHoverChip(eg) {
+    if (!lastCenterEl || !eg) return;
+    const chip = lastCenterEl.querySelector('#gr-edge-chip');
+    if (!chip) return;
+    if (hoveredEdgeEl && hoveredEdgeEl !== eg) hoveredEdgeEl.classList.remove('is-hot');
+    hoveredEdgeEl = eg;
+    eg.classList.add('is-hot');
+    chip.textContent = eg.dataset.chip || '';
+    chip.style.setProperty('--ec-x', (eg.dataset.cx || 0) + 'px');
+    chip.style.setProperty('--ec-y', (eg.dataset.cy || 0) + 'px');
+    chip.classList.remove('is-press');
+    chip.hidden = false;
+    App.aim.set(chip);
+  }
+
+  function clearEdgeHoverChip() {
+    if (hoveredEdgeEl) {
+      hoveredEdgeEl.classList.remove('is-hot');
+      hoveredEdgeEl = null;
+    }
+    if (!lastCenterEl) return;
+    const chip = lastCenterEl.querySelector('#gr-edge-chip');
+    if (chip && !chip.hidden) {
+      chip.classList.remove('is-press');
+      chip.hidden = true;
+    }
+  }
+
+  // ---------- 위임 이벤트(클릭, 검색, 엣지 가리킴 칩, 키보드 화살표 및 되돌리기) ----------
   document.addEventListener('input', e => {
     if (App.state.tab !== 'graph') return;
     if (e.target && e.target.id === 'gr-search') {
@@ -1506,19 +1860,34 @@
   });
 
   document.addEventListener('pointerover', e => {
-    if (App.state.tab !== 'graph' || !lastCenterEl) return;
+    if (App.state.tab !== 'graph' || !lastCenterEl || e.pointerType === 'touch') return;
     const eg = e.target.closest && e.target.closest('[data-gr-edge]');
-    const chip = lastCenterEl.querySelector('#gr-edge-chip');
-    if (!chip) return;
-    if (eg) {
-      chip.textContent = eg.dataset.chip || '';
-      chip.style.setProperty('--ec-x', (eg.dataset.cx || 0) + 'px');
-      chip.style.setProperty('--ec-y', (eg.dataset.cy || 0) + 'px');
-      chip.hidden = false;
-    } else if (!chip.hidden) {
-      chip.hidden = true;
+    if (eg) showEdgeHoverChip(eg);
+    else if (hoveredEdgeEl) clearEdgeHoverChip();
+  });
+
+  document.addEventListener('pointerout', e => {
+    if (App.state.tab !== 'graph' || !hoveredEdgeEl) return;
+    const rel = e.relatedTarget;
+    if (!rel || !(rel.closest && rel.closest('[data-gr-edge]') === hoveredEdgeEl)) {
+      clearEdgeHoverChip();
     }
   });
+
+  document.addEventListener('pointerdown', e => {
+    if (App.state.tab !== 'graph' || !lastCenterEl) return;
+    const eg = e.target.closest && e.target.closest('[data-gr-edge]');
+    if (eg) {
+      const chip = lastCenterEl.querySelector('#gr-edge-chip');
+      if (chip && !chip.hidden) chip.classList.add('is-press');
+    }
+  }, { passive: true });
+
+  document.addEventListener('pointerup', () => {
+    if (!lastCenterEl) return;
+    const chip = lastCenterEl.querySelector('#gr-edge-chip');
+    if (chip) chip.classList.remove('is-press');
+  }, { passive: true });
 
   document.addEventListener('click', e => {
     if (App.state.tab !== 'graph') return;
@@ -1529,7 +1898,7 @@
       e.stopPropagation();
       initPresetState(pr.dataset.grPreset, c, false);
       App.unselect({ push: false, restoreFocus: false });
-      if (lastLeftEl) renderLeftZone(lastLeftEl, ensureGraph());
+      if (lastLeftEl) renderLeftZone(lastLeftEl);
       rerenderGraph(true);
       return;
     }
@@ -1543,13 +1912,13 @@
         restoreStateSnap(prev);
         if (trail.length > 1) trail.pop();
         rerenderGraph(true);
-        if (state.selEdge) App.select('edge:' + state.selEdge, { animate: false, push: false });
-        else if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false });
+        if (state.selEdge) App.select('edge:' + state.selEdge, { animate: false, push: false, focus: false });
+        else if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false, focus: false });
         else App.unselect({ push: false, restoreFocus: false });
       } else if (act.dataset.grAct === 'reset') {
         initPresetState(state.preset, c, false);
         App.unselect({ push: false, restoreFocus: false });
-        if (lastLeftEl) renderLeftZone(lastLeftEl, ensureGraph());
+        if (lastLeftEl) renderLeftZone(lastLeftEl);
         rerenderGraph(true);
       }
       return;
@@ -1565,7 +1934,7 @@
       restoreStateSnap(item.snap);
       trail = trail.slice(0, idx + 1);
       rerenderGraph(true);
-      if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false });
+      if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false, focus: false });
       else App.unselect({ push: false, restoreFocus: false });
       return;
     }
@@ -1583,7 +1952,16 @@
     if (exp) {
       e.stopPropagation();
       const [niStr, ...rest] = exp.dataset.grExpand.split('|');
-      expandNeighborGroup(+niStr, rest.join('|'));
+      const ni = +niStr;
+      expandNeighborGroup(ni, rest.join('|'));
+      restoreGraphNodeFocus(ni);
+      return;
+    }
+
+    const vmr = e.target.closest && e.target.closest('[data-gr-vmore]');
+    if (vmr) {
+      e.stopPropagation();
+      releaseVarMore(vmr.dataset.grVmore);
       return;
     }
 
@@ -1597,16 +1975,19 @@
     const openDom = e.target.closest && e.target.closest('[data-gr-open-dom]');
     if (openDom) {
       e.stopPropagation();
-      expandDomainStep(+openDom.dataset.grOpenDom, c);
+      const dIdx = +openDom.dataset.grOpenDom;
+      expandDomainStep(dIdx, c);
       rerenderGraph(true);
-      App.select('n:' + ensureGraph().N[state.selNode].id, { animate: true });
+      App.select('n:' + ensureGraph().N[state.selNode].id, { animate: true, focus: false });
+      restoreGraphNodeFocus(dIdx);
       return;
     }
 
     const jmp = e.target.closest && e.target.closest('[data-gr-jump-idx]');
     if (jmp) {
       e.stopPropagation();
-      selectAndHandleNode(+jmp.dataset.grJumpIdx, c);
+      const jIdx = +jmp.dataset.grJumpIdx;
+      selectAndHandleNode(jIdx, c, true);
       return;
     }
 
@@ -1616,7 +1997,7 @@
       const ek = pickEdgeBtn.dataset.grPickEdge;
       state.selEdge = ek;
       rerenderGraph(false);
-      App.select('edge:' + ek, { animate: true });
+      App.select('edge:' + ek, { animate: true, focus: false });
       return;
     }
 
@@ -1626,16 +2007,97 @@
       const ek = eg.dataset.grEdge;
       state.selEdge = ek;
       rerenderGraph(false);
-      App.select('edge:' + ek, { animate: true });
+      App.select('edge:' + ek, { animate: true, focus: false });
       return;
     }
 
     const nd = e.target.closest && e.target.closest('[data-gr-node]');
     if (nd) {
       e.stopPropagation();
-      selectAndHandleNode(+nd.dataset.grIdx, c);
+      selectAndHandleNode(+nd.dataset.grIdx, c, true);
     }
   });
+
+  // 무대 노드 화살표 이동(1-5: 상하로 같은 열 안 이동, 좌우로 옆 열의 이어진 노드로 이동)
+  function handleGraphArrowKey(e, ndBtn) {
+    if (!lastCenterEl) return false;
+    const colEl = ndBtn.closest('.gr-col[data-col-idx]');
+    const vpathEl = !colEl ? ndBtn.closest('.gr-vpath') : null;
+
+    if (vpathEl) {
+      const items = Array.from(vpathEl.querySelectorAll('.gr-node[data-gr-idx]'));
+      const idx = items.indexOf(ndBtn);
+      if (idx < 0) return false;
+      let nextIdx = idx;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') nextIdx = Math.min(items.length - 1, idx + 1);
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') nextIdx = Math.max(0, idx - 1);
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = items.length - 1;
+      if (nextIdx !== idx) {
+        e.preventDefault();
+        restoreGraphNodeFocus(+items[nextIdx].dataset.grIdx);
+        return true;
+      }
+      return false;
+    }
+
+    if (!colEl) return false;
+    const curCol = +colEl.dataset.colIdx;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+      const items = Array.from(colEl.querySelectorAll('.gr-node'));
+      const idx = items.indexOf(ndBtn);
+      if (idx < 0) return false;
+      let nextIdx = idx;
+      if (e.key === 'ArrowDown') nextIdx = Math.min(items.length - 1, idx + 1);
+      else if (e.key === 'ArrowUp') nextIdx = Math.max(0, idx - 1);
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = items.length - 1;
+      if (nextIdx !== idx) {
+        e.preventDefault();
+        const target = items[nextIdx];
+        if (target.dataset.grIdx != null) restoreGraphNodeFocus(+target.dataset.grIdx);
+        else { target.focus(); }
+        return true;
+      }
+      return false;
+    }
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      const step = e.key === 'ArrowRight' ? 1 : -1;
+      const curNi = ndBtn.dataset.grIdx != null ? +ndBtn.dataset.grIdx : null;
+      const curRect = ndBtn.getBoundingClientRect();
+      const curMidY = curRect.top + curRect.height / 2;
+
+      for (let c = curCol + step; c >= 0 && c < COL_KINDS.length; c += step) {
+        const nextColEl = lastCenterEl.querySelector(`.gr-col[data-col-idx="${c}"]`);
+        if (!nextColEl) continue;
+        const colNodes = Array.from(nextColEl.querySelectorAll('.gr-node[data-gr-idx]'));
+        if (!colNodes.length) continue;
+
+        // 현재 노드와 엣지로 직접 이어진 노드가 있으면 그 가운데 세로 위치가 가장 가까운 노드를 우선 고른다
+        const connectedSet = new Set();
+        if (curNi != null) {
+          for (const ed of renderedEdges.values()) {
+            if (ed.leftNode === curNi) connectedSet.add(ed.rightNode);
+            else if (ed.rightNode === curNi) connectedSet.add(ed.leftNode);
+          }
+        }
+        const candidates = colNodes.filter(b => connectedSet.has(+b.dataset.grIdx));
+        const pool = candidates.length ? candidates : colNodes;
+        let bestBtn = pool[0];
+        let bestDist = Infinity;
+        pool.forEach(b => {
+          const r = b.getBoundingClientRect();
+          const d = Math.abs((r.top + r.height / 2) - curMidY);
+          if (d < bestDist) { bestDist = d; bestBtn = b; }
+        });
+        e.preventDefault();
+        restoreGraphNodeFocus(+bestBtn.dataset.grIdx);
+        return true;
+      }
+    }
+    return false;
+  }
 
   document.addEventListener('keydown', e => {
     if (App.state.tab !== 'graph') return;
@@ -1649,6 +2111,14 @@
       }
       return;
     }
+
+    const ndBtn = e.target.closest && e.target.closest('#gr-stage-root .gr-node');
+    if (ndBtn && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+      if (handleGraphArrowKey(e, ndBtn)) return;
+    }
+
+    const typing = e.target.closest && e.target.closest('input,select,textarea');
+    if (typing) return;
     if ((e.key === 'z' || e.key === 'Z') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const undoBtn = lastLeftEl && lastLeftEl.querySelector('#gr-btn-undo');
       if (undoBtn && !undoBtn.disabled) undoBtn.click();
@@ -1658,9 +2128,16 @@
   App.on('select', (tabId) => {
     if (tabId !== 'graph') return;
     if (App.state.sel.graph == null && (state.selNode != null || state.selEdge != null)) {
+      let prevIdx = state.selNode;
+      if (prevIdx == null && state.selEdge && renderedEdges.has(state.selEdge)) {
+        prevIdx = renderedEdges.get(state.selEdge).leftNode;
+      }
+      if (prevIdx == null) prevIdx = state.focusNode;
       state.selNode = null;
       state.selEdge = null;
+      if (prevIdx != null) state.focusNode = prevIdx;
       rerenderGraph(false);
+      if (prevIdx != null) restoreGraphNodeFocus(prevIdx);
     }
   });
   App.on('resize', () => {

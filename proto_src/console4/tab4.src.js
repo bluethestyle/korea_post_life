@@ -161,16 +161,18 @@ const chipText = v => (v ? (v.text || v.name) : BOTH_NONE_TEXT);
 // ---------- 두 층 담보 비교: 위 전체 띠(79개 눈금 + 거르개 셋) + 아래 고른 단계 확대 구역 ----------
 const FILTERS = [
   { k: 'miss', label: '우체국에 없는 담보' },
-  { k: 'split', label: '판정이 갈린 담보' },
+  { k: 'split', label: '조건이 다른 담보' },
   { k: 'only', label: '우체국만 가진 담보' },
 ];
 let curStepByBase = {};
 let curPageByStep = {};
+let lastSyncedSelKey = '';
 const activeFilters = new Set();
 let stepSwitchToken = 0;
 let lastStageHost = null;
 let cachedHostW = 0;
 let lastHotSid = '';
+let pressedTickEl = null;
 
 function truncLabel(str, maxChars) {
   const s = String(str || '').trim();
@@ -194,7 +196,11 @@ function rowStackMetrics(row, m, B, c, totPeerOrgs) {
   const wait = cntOf('검토 대기') + cntOf('판정 보류');
   const miss = cntOf('우체국에 없음');
   const stackN = better + same + diff + worse + wait + miss;
-  const hasSplit = better > 0 || worse > 0 || diff > 0;
+  const pIdxs = peerIdxOf(m, c);
+  const hasSplit = pIdxs.some(i => {
+    const v = row.verd[i];
+    return !!(v && (v.name === '우체국 나음' || v.name === '우체국 못함' || v.name === '우열을 매기지 않음'));
+  });
   const isMiss = miss > 0;
   const isOnly = oursHas && stackN === 0;
   let domChip = 'same';
@@ -428,6 +434,8 @@ function syncCoverSelectionAndFilter(stageEl) {
   slots.forEach((sl, idx) => {
     const on = sl.dataset.sid === selSid;
     sl.classList.toggle('is-sel', on);
+    if (on) sl.setAttribute('data-sel-anchor', '1');
+    else sl.removeAttribute('data-sel-anchor');
     sl.setAttribute('aria-pressed', String(on));
     sl.tabIndex = idx === selSlotIdx ? 0 : -1;
   });
@@ -752,17 +760,22 @@ function renderStage(center, c) {
   const totPeerOrgs = Math.max(1, rawPeerOrgs);
   const pSet = new Set(c.activePeerOrgs || []);
 
-  // 선택된 담보가 있으면 해당 단계를 우선 유지하고, 없으면 못함+없음 최대 단계를 기본으로 선택
+  // 담보를 새로 고른 순간에만 해당 단계로 옮기고, 거르개 토글이나 창 크기 변경 때는 사람이 펼친 단계를 유지한다(2-3)
   const selRaw = c.st.sel.cover || '';
   const selSid = selRaw.startsWith('s:') ? selRaw.slice(2) : (selRaw.startsWith('c:') ? selRaw.slice(2) : '');
-  if (selSid && m.byId[selSid] && STEPS.includes(m.byId[selSid].type)) {
-    curStepByBase[c.baseId] = m.byId[selSid].type;
-  } else if (!curStepByBase[c.baseId] || !STEPS.includes(curStepByBase[c.baseId])) {
+  const selSig = `${c.baseId}|${selRaw}`;
+  if (selSig !== lastSyncedSelKey) {
+    lastSyncedSelKey = selSig;
+    if (selSid && m.byId[selSid] && STEPS.includes(m.byId[selSid].type)) {
+      curStepByBase[c.baseId] = m.byId[selSid].type;
+    }
+  }
+  if (!curStepByBase[c.baseId] || !STEPS.includes(curStepByBase[c.baseId])) {
     curStepByBase[c.baseId] = defaultStepFor(m, B, c);
   }
   const curStep = curStepByBase[c.baseId];
 
-  const tickW = innerWidth >= 1600 ? 6 : innerWidth >= 1000 ? 4 : 3;
+  const tickW = innerWidth >= 1600 ? 6 : innerWidth >= 1000 ? 4 : innerWidth < 480 ? 2 : 3;
   let totalPassCnt = 0;
   m.rows.forEach(r => {
     if (matchesCoverFilter(rowStackMetrics(r, m, B, c, totPeerOrgs))) totalPassCnt++;
@@ -780,16 +793,16 @@ function renderStage(center, c) {
       const fullNm = stdN(r.sid);
       const ownDesc = pillarSubText(rm, rawPeerOrgs);
       const layerVec = `${rm.better},${rm.same + rm.diff},${rm.worse},${rm.wait},${rm.miss}`;
-      return `<span class="cv-tick${pass ? '' : ' is-filtered-out'}" data-cv-tick="${esc(r.sid)}" data-cv-step-of="${esc(stNm)}" data-stack-n="${rm.stackN}" data-layers="${layerVec}" data-tip-title="${esc(fullNm)}" data-tip-sub="${esc(`${stNm} / ${ownDesc}`)}" data-tip-chip="${rm.domChip}" style="width:${tickW}px;--th:${tk.h}px">${tk.html}<i class="cv-tk-sel"></i></span>`;
+      return `<span class="cv-tick${pass ? '' : ' is-filtered-out'}" data-aim="rect" data-cv-tick="${esc(r.sid)}" data-cv-step-of="${esc(stNm)}" data-stack-n="${rm.stackN}" data-layers="${layerVec}" data-tip-title="${esc(fullNm)}" data-tip-sub="${esc(`${stNm} / ${ownDesc}`)}" data-tip-chip="${rm.domChip}" style="width:${tickW}px;--th:${tk.h}px">${tk.html}<i class="cv-tk-sel"></i></span>`;
     }).join('');
 
-    return `<button type="button" class="cv-ov-seg${on ? ' is-on' : ''}" data-cv-step="${esc(stNm)}" aria-pressed="${on}" aria-label="${esc(`${stNm} 단계 펼치기 (${oursCnt}/${totCnt})`)}">
+    return `<button type="button" class="cv-ov-seg${on ? ' is-on' : ''}" style="--seg-n:${Math.max(4, totCnt)}" data-cv-step="${esc(stNm)}" data-cv-ov="1" aria-pressed="${on}" aria-label="${esc(`${stNm} 단계 펼치기 (${oursCnt}/${totCnt})`)}">
       <span class="cv-ov-sh">
         <span class="cv-ov-ring">${ui.miniRingSVG(oursCnt, Math.max(1, totCnt), '')}</span>
         <span class="cv-ov-nm">${esc(stNm)}</span>
         <span class="cv-ov-cnt num">${esc(`${fmt(oursCnt)}/${fmt(totCnt)}`)}</span>
       </span>
-      <span class="cv-ov-ticks" data-cv-ov="1">${ticksHTML}</span>
+      <span class="cv-ov-ticks">${ticksHTML}</span>
     </button>`;
   }).join('');
 
@@ -1175,22 +1188,33 @@ function rowEvidence(c, sid, mode) {
 
   let verdBadges = '';
   if (pIdxs.length >= 4 && B) {
-    const pc = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
-    const cntCode = k => (c.peerScope === 'all' ? ((pc[k] || []).length) : c.inScope(pc[k]));
-    const summaryPairs = [
-      ['better', '우체국 나음', cntCode('나음')],
-      ['same', '같음', cntCode('같음')],
-      ['worse', '우체국 못함', cntCode('못함')],
-      ['diff', '우열을 매기지 않음', cntCode('엇갈림') + cntCode('단정 주의') + cntCode('지급 형태 다름') + cntCode('관계 담보로 덮음')],
-      ['unknown', '검토 대기', cntCode('검토 대기')],
-      ['unknown', '판정 보류', cntCode('판정 보류')],
-      ['none', '우체국에 없음', cntCode('우체국에 없음')],
-    ].filter(x => x[2] > 0);
-    if (!summaryPairs.length && has(row.cells[0])) {
-      verdBadges = ui.verdict('only', '우체국에만 있음');
-    } else {
-      verdBadges = summaryPairs.map(([vd, lb, n]) => ui.verdict(vd, `${lb} ${fmt(n)}곳`)).join(' ');
-    }
+    // 쌍판정(row.verd)과 판정차례로 모든 판정 이름을 빠짐없이 모아 표지의 곳 수 합이 상대 수(및 판정상대수 합)와 정확히 같게 한다(2-1)
+    const countsByName = new Map();
+    const chipByName = new Map();
+    pIdxs.forEach(i => {
+      const v = row.verd[i];
+      const nm = v ? v.name : BOTH_NONE_TEXT;
+      countsByName.set(nm, (countsByName.get(nm) || 0) + 1);
+      if (v && !chipByName.has(nm)) chipByName.set(nm, v.kind);
+    });
+    const orderList = (CV && Array.isArray(CV['판정차례']) && CV['판정차례'].length)
+      ? CV['판정차례']
+      : ['우체국 나음', '우체국 못함', '같음', '우열을 매기지 않음', '우체국에만 있음', '우체국에 없음', '검토 대기', '판정 보류', BOTH_NONE_TEXT];
+    const allOnly = (countsByName.get('우체국에만 있음') || 0) === pIdxs.length && pIdxs.length > 0;
+    const badgeParts = [];
+    orderList.forEach(nm => {
+      const cnt = countsByName.get(nm) || 0;
+      if (!cnt) return;
+      if (nm === '우체국에만 있음') {
+        if (allOnly) badgeParts.push(ui.verdict('only', `우체국에만 있음 ${fmt(cnt)}곳`));
+        else badgeParts.push(`<span class="tag">상대에 없음 ${fmt(cnt)}곳</span>`);
+      } else if (nm === BOTH_NONE_TEXT) {
+        badgeParts.push(`<span class="tag">${esc(BOTH_NONE_TEXT)} ${fmt(cnt)}곳</span>`);
+      } else {
+        badgeParts.push(ui.verdict(chipByName.get(nm) || 'unknown', `${nm} ${fmt(cnt)}곳`));
+      }
+    });
+    verdBadges = badgeParts.join(' ');
   } else {
     verdBadges = pIdxs.slice(0, 3).map(i => { const v = verdFor(row, m, i, pIdxs); return v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(v)}</span>` : ''; }).join('');
   }
@@ -1220,7 +1244,8 @@ function journeyData(c) {
 function journeyTone(idx) {
   if (idx === 0) return { bar: 'ours', lg: 'lg0' };
   if (idx === 1) return { bar: 'other', lg: 'lg1' };
-  return { bar: 'other hollow', lg: 'lg2' };
+  if (idx === 2) return { bar: 'other hollow', lg: 'lg2' };
+  return { bar: 'other dashed', lg: 'lg3' };
 }
 function journeyHTML(c) {
   const { j, cols } = journeyData(c);
@@ -1632,8 +1657,8 @@ function actions() {
   ].join('');
 }
 
-function findNearestTick(ovTrackEl, clientX) {
-  const ticks = Array.from(ovTrackEl.querySelectorAll('.cv-tick[data-cv-tick]'));
+function findNearestTick(ovSegEl, clientX) {
+  const ticks = Array.from(ovSegEl.querySelectorAll('.cv-tick[data-cv-tick]'));
   if (!ticks.length) return null;
   let best = null, bestDist = Infinity;
   for (const tk of ticks) {
@@ -1642,26 +1667,69 @@ function findNearestTick(ovTrackEl, clientX) {
     const d = Math.abs(cx - clientX);
     if (d < bestDist) { bestDist = d; best = tk; }
   }
-  return bestDist <= 18 ? best : null;
+  return best;
 }
 
-document.addEventListener('pointermove', e => {
+function clearPressedTick() {
+  if (pressedTickEl) {
+    pressedTickEl.classList.remove('is-press');
+    pressedTickEl = null;
+  }
+}
+
+function syncOvPointer(e) {
   if (App.state.tab !== 'cover' || e.pointerType === 'touch') return;
   const ov = e.target.closest && e.target.closest('[data-cv-ov]');
-  if (ov) {
-    const tk = findNearestTick(ov, e.clientX);
-    if (tk) {
-      App.aim.showTip(tk);
-      syncCoverAimHot(tk);
+  if (!ov) return;
+  const tk = findNearestTick(ov, e.clientX);
+  if (tk) {
+    if (pressedTickEl && pressedTickEl !== tk) {
+      pressedTickEl.classList.remove('is-press');
+      if (e.buttons & 1) {
+        pressedTickEl = tk;
+        tk.classList.add('is-press');
+      } else {
+        pressedTickEl = null;
+      }
     }
+    App.aim.set(tk);
+    App.aim.showTip(tk);
+    syncCoverAimHot(tk);
+  }
+}
+
+document.addEventListener('pointerover', syncOvPointer, { passive: true });
+document.addEventListener('pointermove', syncOvPointer, { passive: true });
+
+document.addEventListener('pointerdown', e => {
+  if (App.state.tab !== 'cover' || e.pointerType === 'touch') return;
+  const ov = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (!ov) return;
+  const tk = findNearestTick(ov, e.clientX);
+  if (tk) {
+    clearPressedTick();
+    pressedTickEl = tk;
+    tk.classList.add('is-press');
+    App.aim.set(tk);
+    const ret = document.getElementById('aim-reticle');
+    if (ret && !ret.hidden) ret.classList.add('is-press');
   }
 }, { passive: true });
+
+document.addEventListener('pointerup', clearPressedTick, { passive: true });
+document.addEventListener('pointercancel', clearPressedTick, { passive: true });
 
 document.addEventListener('pointerout', e => {
   if (App.state.tab !== 'cover') return;
   const fromOv = e.target.closest && e.target.closest('[data-cv-ov]');
   if (fromOv && (!e.relatedTarget || !fromOv.contains(e.relatedTarget))) {
+    clearPressedTick();
     syncCoverAimHot(null);
+    const nextOv = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-cv-ov]');
+    if (!nextOv) {
+      App.aim.hide();
+      App.aim.hideTip();
+    }
   }
 });
 
@@ -1690,6 +1758,19 @@ document.addEventListener('click', e => {
     switchCoverStep(curStep, { page: +pgBtn.dataset.cvPage, animate: true });
     return;
   }
+  // 구간 이름표 줄(.cv-ov-sh)을 누르면 고른 담보를 바꾼 채로 덮어쓰지 않고 해당 단계만 펼친다(2-3)
+  const inSegHead = e.target.closest && e.target.closest('.cv-ov-sh');
+  const stBtn = e.target.closest && e.target.closest('[data-cv-step]');
+  if (inSegHead && stBtn) {
+    e.stopPropagation();
+    const nextStep = stBtn.dataset.cvStep;
+    const c = App.ctx();
+    if (curStepByBase[c.baseId] !== nextStep) {
+      switchCoverStep(nextStep, { page: 0, animate: true });
+    }
+    return;
+  }
+  // 눈금 줄을 누르면 가장 가까운 눈금의 단계를 펼치고 그 담보를 바로 고른다(4-1)
   const ovTrack = e.target.closest && e.target.closest('[data-cv-ov]');
   if (ovTrack) {
     e.stopPropagation();
@@ -1697,13 +1778,14 @@ document.addEventListener('click', e => {
     if (tk && tk.dataset.cvTick) {
       const sid = tk.dataset.cvTick;
       const stNm = tk.dataset.cvStepOf;
+      const c = App.ctx();
+      lastSyncedSelKey = `${c.baseId}|s:${sid}`;
       if (stNm) switchCoverStep(stNm, { page: 0, animate: true });
-      ensureSidInView(sid, App.ctx());
+      ensureSidInView(sid, c);
       App.select('s:' + sid, { focus: false });
       return;
     }
   }
-  const stBtn = e.target.closest && e.target.closest('[data-cv-step]');
   if (stBtn) {
     e.stopPropagation();
     const nextStep = stBtn.dataset.cvStep;
@@ -1795,12 +1877,22 @@ document.addEventListener('keydown', e => {
 
 function pick(key, c) {
   if (key.startsWith('s:')) {
-    ensureSidInView(key.slice(2), c);
-    return rowEvidence(c, key.slice(2), 'row');
+    const sid = key.slice(2);
+    const sig = `${c.baseId}|${key}`;
+    if (sig !== lastSyncedSelKey) {
+      lastSyncedSelKey = sig;
+      ensureSidInView(sid, c);
+    }
+    return rowEvidence(c, sid, 'row');
   }
   if (key.startsWith('c:')) {
-    ensureSidInView(key.slice(2), c);
-    return rowEvidence(c, key.slice(2), 'caution');
+    const sid = key.slice(2);
+    const sig = `${c.baseId}|${key}`;
+    if (sig !== lastSyncedSelKey) {
+      lastSyncedSelKey = sig;
+      ensureSidInView(sid, c);
+    }
+    return rowEvidence(c, sid, 'caution');
   }
   if (key.startsWith('j:')) return journeyPick(c, key);
   return null;
@@ -1846,6 +1938,8 @@ function enter(body) {
 App.on('aim', aimEl => { if (App.state.tab === 'cover') syncCoverAimHot(aimEl); });
 App.on('select', tab => {
   if (tab !== 'cover') return;
+  const curSel = App.state.sel.cover || '';
+  if (!curSel) lastSyncedSelKey = `${App.state.base}|`;
   const stageEl = document.getElementById('cv-pillar-stage');
   syncCoverSelectionAndFilter(stageEl);
 });

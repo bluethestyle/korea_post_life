@@ -276,6 +276,12 @@ App.registerTab((function () {
     const r = body && body.querySelector('.ins-r');
     if (!r) return;
     if (getComputedStyle(r).position !== 'sticky') { r.style.top = ''; return; }
+    const zc = body.closest('#z-center');
+    if (zc && getComputedStyle(zc).overflowY === 'auto') {
+      const boxH = zc.clientHeight || innerHeight;
+      r.style.top = `${Math.min(8, boxH - r.offsetHeight - 12)}px`;
+      return;
+    }
     const headEl = document.getElementById('head');
     const headH = headEl ? headEl.offsetHeight : 0;
     r.style.top = `${Math.min(headH + 16, innerHeight - r.offsetHeight - 16)}px`;
@@ -623,5 +629,5 @@ App.registerTab((function () {
     return true;
   }
 
-  return { id: 'insight', layout: 'side', kicker: '인사이트와 산출물', render, update, pick, evidence, focus, enter };
+  return { id: 'insight', layout: 'three', kicker: '인사이트와 산출물', render, update, pick, evidence, focus, enter };
 })());

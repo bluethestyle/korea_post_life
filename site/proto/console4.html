@@ -319,10 +319,10 @@ button{cursor:pointer}
 
 .rt-trk{stroke:var(--ink-2);stroke-opacity:.26}
 .rt-tks line{stroke:var(--ink-2);stroke-opacity:.50}
-.rt-arc{stroke:var(--ink-0);transition:stroke-dasharray 420ms var(--ease)}
+.rt-arc{stroke:var(--ink-0);transition:stroke-dashoffset 420ms var(--ease)}
 .rt-arc.gold{stroke:var(--gold-line)}
 :root[data-theme="dark"] .rt-arc.gold{stroke:var(--gold)}
-.rt-disc{fill:transparent;transition:fill 180ms var(--ease)}
+.rt-disc{fill:transparent}
 .rt-glyph{stroke:var(--ink-0);stroke-width:1.4;fill:none}
 .rt-glyph-dot{fill:var(--ink-0)}
 
@@ -400,7 +400,7 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
   transition:transform 90ms var(--ease-in),opacity 90ms var(--ease-in)}
 .aim-reticle[hidden]{display:none!important}
 .aim-reticle .ar-c{position:absolute;left:0;top:0;border-color:var(--ink-0);border-style:solid;border-width:0;
-  transition:transform 120ms var(--ease-in),border-color 120ms var(--ease-in)}
+  transition:transform 120ms var(--ease-in)}
 .aim-reticle.is-sel-aim .ar-c{border-color:var(--red)}
 /* 네모꼴: 바깥 6px 에서 2px 로 조여 들고, 누르면 2px 더 조인다(80ms) */
 .aim-reticle[data-shape="rect"] .ar-c{width:8px;height:8px}
@@ -513,8 +513,7 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 .zl-k{font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
 .zl-list{display:flex;flex-direction:column;gap:2px}
 .zl-item{position:relative;display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:5px 8px;
-  border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink-0);text-align:left;
-  transition:color 150ms var(--ease)}
+  border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink-0);text-align:left}
 .zl-item:hover{background:var(--hover)}
 .zl-item[aria-selected="true"],.zl-item.is-on{box-shadow:inset 3px 0 0 var(--red);font-weight:600}
 .zl-ring{position:relative;flex:none;width:34px;height:34px;display:grid;place-items:center}
@@ -537,7 +536,9 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 
 @media (max-width:1599px) and (min-width:1000px){
   .board[data-layout="side"]{grid-template-columns:69% 3% 28%;min-height:clamp(500px,calc(100vh - 224px),660px)}
-  .board[data-layout="three"]{grid-template-columns:19% 53% 28%;height:clamp(500px,calc(100vh - 224px),670px)}
+  .board[data-layout="three"]{grid-template-columns:16% 59% 25%;height:clamp(500px,calc(100vh - 224px),670px)}
+  .board[data-layout="three"] > .z-left{padding:8px 10px 8px 0}
+  .board[data-layout="three"] > .z-center{padding:8px 12px}
 }
 @media (max-width:999px){
   .sel-link-svg{display:none}
@@ -667,7 +668,7 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 .ring{display:block;flex:none;overflow:visible}
 .ring .trk{stroke:var(--ink-2);stroke-opacity:.24}
 .ring .tks line{stroke:var(--ink-2);stroke-opacity:.6}
-.ring .arc{stroke:var(--ink-0);transition:stroke-dasharray var(--t-ring) var(--ease)}
+.ring .arc{stroke:var(--ink-0);transition:stroke-dashoffset var(--t-ring) var(--ease)}
 .ring .arc.gold{stroke:var(--gold-line)}
 .ring .diag{stroke:var(--ink-1)}
 .ring .pct{fill:var(--ink-0);font:600 24px/1 var(--f-num)}
@@ -874,9 +875,9 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 .bl-axis{stroke:var(--ink-2);stroke-opacity:.48}
 .bl-outer{stroke:var(--ink-2);stroke-opacity:.36}
 .bl-trk{stroke:var(--ink-2);stroke-opacity:.22}
-.bl-arc{stroke:var(--ink-0);transition:stroke-dasharray 180ms var(--ease)}
+.bl-arc{stroke:var(--ink-0)}
 .bl-gold{stroke:var(--gold-line);stroke-opacity:.72}
-.bl-dia{stroke:var(--ink-0);transition:stroke-dasharray 180ms var(--ease)}
+.bl-dia{stroke:var(--ink-0)}
 .bl-pct{position:absolute;inset:0;display:grid;place-items:center;font:600 19px/1 var(--f-num);color:var(--ink-0);font-variant-numeric:tabular-nums;letter-spacing:.03em}
 body.is-booting #head,body.is-booting #shell{opacity:0;pointer-events:none}
 body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
@@ -1028,7 +1029,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .mk-rn{position:absolute;inset:0;display:grid;place-items:center;font:600 19px/1 var(--f-num);
   font-variant-numeric:tabular-nums;color:var(--ink-0);pointer-events:none}
 
-.mkr-disc{fill:transparent;transition:fill 150ms var(--ease-in)}
+.mkr-disc{fill:transparent}
 .mkr-sel-ring{stroke:transparent}
 .mkr-diag-bg{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease-in)}
 .mkr-diag{stroke:transparent;opacity:0;transition:opacity 150ms var(--ease-in)}
@@ -1071,8 +1072,8 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .mk-ring.is-sel .mkr-part-mk{fill:#fff}
 
 .mk-anim .mk-seg{animation:mkSegDraw 360ms var(--ease-in) both;animation-delay:var(--sd,0ms)}
-.mk-anim .mk-ring{animation:mkPop 320ms var(--ease-in) both;animation-delay:var(--d,0ms)}
-.mk-anim .mkr-arc-conf,.mk-anim .mkr-arc-part{animation:mkArcDraw 460ms var(--ease-in) both;animation-delay:calc(var(--d,0ms) + 80ms)}
+.mk-anim .mk-ring{animation:mkPop 360ms var(--ease-in) both;animation-delay:var(--d,0ms)}
+.mk-anim .mkr-arc-conf,.mk-anim .mkr-arc-part{animation:mkArcDraw 380ms var(--ease-in) both;animation-delay:calc(var(--d,0ms) + 50ms)}
 :root[data-motion="calm"] .mk-anim .mk-seg,
 :root[data-motion="calm"] .mk-anim .mk-ring,
 :root[data-motion="calm"] .mk-anim .mkr-arc-conf,
@@ -1348,7 +1349,9 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .cv-tick{position:relative;display:flex;align-items:flex-end;height:var(--th,14px);flex:none;
   transition:opacity 180ms var(--ease-in),transform 120ms var(--ease-in)}
 .cv-tick .cvp-svg{width:100%;height:100%;display:block;overflow:visible}
-.cv-tick.is-hot{transform:translateY(-2px)}
+.cv-tick:is(.is-hot,.is-aim){transform:translateY(-2px)}
+.cv-tick:is(.is-hot,.is-aim) :is(.cvs-box,.cvs-dia){box-shadow:inset 0 0 0 1px var(--ink-0)}
+.cv-tick.is-press{transform:translateY(1px)!important;transition-duration:80ms!important}
 .cv-tick .cv-tk-sel{display:none;position:absolute;left:50%;top:-6px;width:5px;height:5px;margin-left:-2.5px;background:var(--red);transform:rotate(45deg)}
 .cv-tick.is-sel .cv-tk-sel{display:block}
 .cv-tick.is-sel::after{content:"";position:absolute;left:-1px;right:-1px;bottom:-3px;height:2px;background:var(--red)}
@@ -1363,7 +1366,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 /* 오른쪽 위 거르개 단추 셋 + 남은 담보 수 */
 .cv-flt-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .cv-flt-btn{height:28px;padding:0 10px;border:1px solid var(--line-2);background:transparent;color:var(--ink-1);
-  font:600 13px/1 var(--f-ko);white-space:nowrap;transition:background-color 140ms var(--ease-in),color 140ms var(--ease-in)}
+  font:600 13px/1 var(--f-ko);white-space:nowrap}
 .cv-flt-btn:hover{background:var(--hover);color:var(--ink-0)}
 .cv-flt-btn.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent;box-shadow:inset 0 2px 0 var(--top-line)}
 .cv-flt-stat{font:400 13px/1.2 var(--f-body);color:var(--ink-1);margin-left:4px;white-space:nowrap}
@@ -1395,9 +1398,9 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .cvp-upper{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
 .cvp-stem{position:relative;width:1px;height:20px;margin-bottom:4px;background:transparent;
   transform-origin:bottom center;transform:scaleY(.55);
-  transition:transform 120ms var(--ease-in),background-color 120ms var(--ease-in)}
+  transition:transform 120ms var(--ease-in)}
 .cvp-dia{position:absolute;left:-3px;top:-7px;width:7px;height:7px;border:1px solid transparent;background:transparent;transform:rotate(45deg);
-  transition:transform 120ms var(--ease-in),background-color 120ms var(--ease-in),border-color 120ms var(--ease-in)}
+  transition:transform 120ms var(--ease-in)}
 .cvp-flg{position:absolute;top:2px;left:50%;width:6px;height:6px;margin-left:-3px;background:var(--red);clip-path:polygon(50% 0,100% 100%,0 100%)}
 .cvp-bar{position:relative;display:flex;align-items:flex-end;width:var(--bw,20px);height:var(--ph,14px);transform-origin:center bottom;backface-visibility:hidden}
 .cvs-box{display:flex;flex-direction:column;width:100%;height:100%}
@@ -1417,11 +1420,10 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .cvs-dia{display:block;background:var(--gold);border:1.2px solid var(--gold-line);transform:rotate(45deg)}
 .cvp-foot-tk{display:block;width:1px;height:5px;background:var(--axis);margin-top:0;flex:none}
 
-/* 기준축 아래 45도 기울인 담보 이름(13px, 120px 영역 안, 14자 초과 시 말줄임 + 가리킬 때 전체) */
-.cvp-lbl-box{position:relative;width:100%;height:var(--lbl-h,120px);pointer-events:none;overflow:visible}
-.cvp-lbl{position:absolute;left:50%;top:5px;max-width:138px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font:600 13px/1.15 var(--f-ko);color:var(--ink-2);transform-origin:0 0;transform:rotate(45deg);
-  transition:color 120ms var(--ease-in)}
+/* 기준축 아래 45도 기울인 담보 이름(13px, 120px 영역 안, 14자 이하는 잘리지 않고 14자 초과 시 말줄임 + 가리킬 때 전체) */
+.cvp-lbl-box{position:relative;width:100%;height:var(--lbl-h,124px);pointer-events:none;overflow:visible}
+.cvp-lbl{position:absolute;left:50%;top:4px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:600 13px/1.15 var(--f-ko);color:var(--ink-2);transform-origin:0 0;transform:rotate(45deg)}
 
 /* 보장 분야 묶음 꺾쇠 선 + 13px 이름 */
 .cv-dom-brk{position:relative;display:flex;align-items:center;justify-content:center;min-height:22px;margin-top:2px;
@@ -1453,13 +1455,13 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 }
 @media (max-width:999px){
   .cv-ov-top{flex-direction:column;align-items:stretch;gap:8px}
-  .cv-ov-segs{gap:4px;justify-content:space-between;width:100%}
-  .cv-ov-seg{min-width:24px;padding:2px 0 4px}
+  .cv-ov-segs{display:flex;gap:5px;justify-content:space-between;width:100%}
+  .cv-ov-seg{flex:var(--seg-n,4) 1 0;min-width:28px;padding:2px 0 4px}
   .cv-ov-ring{display:none}
   .cv-ov-sh{flex-direction:column;align-items:flex-start;gap:1px}
   .cv-ov-nm{font-size:13px}
   .cv-ov-cnt{font-size:13px}
-  .cv-ov-ticks{gap:1px;height:24px}
+  .cv-ov-ticks{gap:1px;height:24px;max-width:100%}
   .cvp-lbl{max-width:96px}
 }
 
@@ -1487,6 +1489,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(.cv-modal-root,#print-root) .cvj-b .hbar{min-width:0}
 :is(.cv-modal-root,#print-root) .cvj-b b{font:600 13px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);text-align:right}
 :is(.cv-modal-root,#print-root) .hbar > i.hollow{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+:is(.cv-modal-root,#print-root) .hbar > i.dashed{background:transparent;border:1.5px dashed var(--ink-1);box-sizing:border-box}
 :is(.cv-modal-root,#print-root) .cvj-ch{position:absolute;right:8px;top:50%;width:8px;height:14px;margin-top:-7px;color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cvj-all{gap:4px}
 :is(.cv-modal-root,#print-root) .cvj-all .cvj-b{grid-template-columns:minmax(0,1fr) 30px}
@@ -1497,6 +1500,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(.cv-modal-root,#print-root) .cvj-lg .lg0{background:var(--ink-0)}
 :is(.cv-modal-root,#print-root) .cvj-lg .lg1{background:var(--ink-2)}
 :is(.cv-modal-root,#print-root) .cvj-lg .lg2{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cvj-lg .lg3{border:1.5px dashed var(--ink-1);box-sizing:border-box}
 :is(.cv-modal-root,#print-root) .cvj-lg .lgz{height:12px;width:14px;background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 4px);outline:1px solid var(--line-2)}
 
 :is(.cv-modal-root,#print-root) .cv-mid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--gap);align-items:start}
@@ -1812,13 +1816,18 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   #print-root .ins-card .flag-t .tri i{background:#000}
 }
 
-/* 중간 폭(1280px 전후)에서도 목록과 카드 두 열을 유지하면서 내부 바로가기를 정돈하고, 700px 미만에서만 아래로 접는다 */
+/* 중간 폭(1280px 전후)에서도 목록과 카드 두 열을 유지하면서 내부 바로가기를 정돈하고, 520px 미만에서만 아래로 접는다(3-1) */
 @container (max-width:940px){
   #view-insight .ins-jump{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   #view-insight .ins-jump a{min-height:42px;padding:0 4px}
   #view-insight .ins-jump b{font-size:21px}
 }
-@container (max-width:700px){
+@container (max-width:860px){
+  #view-insight .ins-grid{grid-template-columns:minmax(0,1.08fr) minmax(252px,0.92fr);gap:14px}
+  #view-insight .ins-card{padding:16px 14px 12px}
+  #view-insight .ins-card .sec{margin-right:-10px}
+}
+@container (max-width:520px){
   #view-insight .ins-grid{grid-template-columns:minmax(0,1fr)}
   #view-insight .ins-r{position:static;max-height:none;overflow:visible}
 }
@@ -1864,8 +1873,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 
 .gr-presets{display:flex;flex-direction:column;gap:4px}
 .gr-preset{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;min-height:42px;
-  padding:7px 10px 7px 12px;border:1px solid var(--line-2);background:transparent;color:var(--ink-0);text-align:left;
-  transition:background-color 140ms var(--ease-in),color 140ms var(--ease-in),border-color 140ms var(--ease-in)}
+  padding:7px 10px 7px 12px;border:1px solid var(--line-2);background:transparent;color:var(--ink-0);text-align:left}
 .gr-preset:hover{background:var(--hover)}
 .gr-preset.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent;box-shadow:inset 3px 0 0 var(--top-line)}
 .gr-preset .gp-t{font:600 13.5px/1.25 var(--f-ko);color:inherit}
@@ -1896,126 +1904,144 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .gr-trail{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;min-height:28px;padding-bottom:4px;border-bottom:1px solid var(--line)}
 .gr-trail-k{font:600 13px/1.2 var(--f-ko);color:var(--ink-2);margin-right:4px}
 .gr-tr-btn{display:inline-flex;align-items:center;gap:5px;min-height:26px;min-width:26px;padding:2px 8px;
-  border:1px solid var(--line-2);background:transparent;color:var(--ink-1);font:600 13px/1.2 var(--f-ko);
-  transition:background-color 120ms var(--ease-in),color 120ms var(--ease-in)}
+  border:1px solid var(--line-2);background:transparent;color:var(--ink-1);font:600 13px/1.2 var(--f-ko)}
 .gr-tr-btn:hover{background:var(--hover);color:var(--ink-0)}
 .gr-tr-btn.is-cur{background:var(--slate);color:var(--on-slate);border-color:transparent}
 .gr-tr-sep{font:600 13px/1 var(--f-num);color:var(--ink-2)}
 
-.gr-col-bar{display:flex;align-items:stretch;gap:18px;padding:0 2px 6px;border-bottom:2px solid var(--axis)}
-.gr-col-hd{display:flex;align-items:baseline;justify-content:space-between;gap:4px;min-width:0;padding:2px 4px;
+.gr-col-bar{display:flex;align-items:flex-end;gap:12px;padding:0 2px 6px;border-bottom:2px solid var(--axis)}
+.gr-col-hd{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:1px;min-width:0;padding:2px 2px;
   transition:opacity 180ms var(--ease-in)}
-.gr-col-hd.is-folded{flex:0 0 60px;opacity:.54;justify-content:center;gap:3px;padding:2px 0}
-.gr-col-nm{font:600 13px/1.2 var(--f-ko);color:var(--ink-0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gr-col-cnt{font:600 13px/1.2 var(--f-num);color:var(--ink-1);white-space:nowrap}
+.gr-col-hd.is-folded{flex:0 0 36px;min-width:36px;opacity:.56;align-items:center;padding:2px 0}
+.gr-col-hd.gr-c-4.is-folded,.gr-col-hd.gr-c-5.is-folded{flex:0 0 56px;min-width:56px}
+.gr-col-nm{font:600 13px/1.2 var(--f-ko);color:var(--ink-0);white-space:nowrap;overflow:visible}
+.gr-col-cnt{font:600 13px/1.15 var(--f-num);color:var(--ink-1);white-space:nowrap}
 .gr-col-hd.is-folded .gr-col-cnt{color:var(--ink-2)}
 
 /* 열 비율(열린 열과 접힌 열이 같은 폭 규칙을 공유해 머리와 본문 열이 정확히 일치한다) */
-.gr-c-6.is-open{flex:1.22 1 0}
-.gr-c-0.is-open{flex:.84 1 0}
-.gr-c-1.is-open{flex:1.22 1 0}
-.gr-c-2.is-open{flex:1.34 1 0}
-.gr-c-3.is-open{flex:1.48 1 0}
-.gr-c-4.is-open{flex:1.36 1 0}
-.gr-c-5.is-open{flex:.86 1 0}
+.gr-c-6.is-open{flex:1.1 1 88px}
+.gr-c-0.is-open{flex:.96 1 92px}
+.gr-c-1.is-open{flex:1.15 1 102px}
+.gr-c-2.is-open{flex:1.2 1 104px}
+.gr-c-3.is-open{flex:1.15 1 98px}
+.gr-c-4.is-open{flex:1.65 1 142px}
+.gr-c-5.is-open{flex:1.05 1 102px}
 
 .gr-canvas-scroll{position:relative;width:100%;max-height:calc(100vh - 250px);min-height:420px;overflow-y:auto;overflow-x:hidden;padding:8px 2px 16px}
 .gr-canvas{position:relative;width:100%;min-height:380px}
 
-/* 연결선 SVG 층(노드 열 사이 골짜기를 직각 꺾은선으로 잇고, 표준담보 열 오른쪽 가장자리에 관계 이중선 꺾쇠를 그린다) */
+/* 연결선 SVG 층: 노드 사이 골짜기와 수 배지에서 포인터 이벤트를 직접 받는다(1-2) */
 .gr-edges-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
-.gr-edge-g{pointer-events:stroke;cursor:pointer;transition:opacity 180ms var(--ease-in)}
+.gr-edge-g{pointer-events:none;cursor:pointer;transition:opacity 180ms var(--ease-in)}
 .gr-edge-g.is-dim{opacity:.35}
-.gr-edge-hit{fill:none;stroke:transparent;stroke-width:11;pointer-events:stroke}
-.gr-edge-vis{fill:none;stroke:var(--ink-1);stroke-width:1.5;vector-effect:non-scaling-stroke;transition:stroke 120ms var(--ease-in),opacity 180ms var(--ease-in)}
+.gr-edge-hit{fill:none;stroke:rgba(0,0,0,.012);stroke-width:14;pointer-events:stroke;cursor:pointer}
+.gr-edge-vis{fill:none;stroke:var(--ink-1);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none;transition:opacity 180ms var(--ease-in)}
 .gr-edge-vis.ek-0,.gr-edge-vis.ek-1{stroke-width:1.5}
 .gr-edge-vis.ek-2{stroke-width:1.5}
 .gr-edge-vis.ek-2.is-human{stroke:var(--ink-0);stroke-width:2.8}
 .gr-edge-vis.ek-3{stroke-width:1;stroke-opacity:.82}
 .gr-edge-vis.ek-5{stroke-dasharray:5 3.5;stroke-width:1.5}
 /* 관계(포함, 통합): 이중선(바깥 굵은 선 + 안쪽 바탕색 가름선) */
-.gr-edge-dbl-out{fill:none;stroke:var(--ink-0);stroke-width:3.6;vector-effect:non-scaling-stroke}
-.gr-edge-dbl-in{fill:none;stroke:var(--panel-t);stroke-width:1.4;vector-effect:non-scaling-stroke}
+.gr-edge-dbl-out{fill:none;stroke:var(--ink-0);stroke-width:3.6;vector-effect:non-scaling-stroke;pointer-events:none}
+.gr-edge-dbl-in{fill:none;stroke:var(--panel-t);stroke-width:1.4;vector-effect:non-scaling-stroke;pointer-events:none}
 .gr-edge-g:is(:hover,.is-hot,.is-esel) .gr-edge-vis{stroke:var(--red)}
 .gr-edge-g:is(:hover,.is-hot,.is-esel) .gr-edge-dbl-out{stroke:var(--red)}
-.gr-edge-cnt-bg{fill:var(--panel-t);stroke:var(--ink-1);stroke-width:1}
+.gr-edge-cnt-bg{fill:var(--panel-t);stroke:var(--ink-1);stroke-width:1;pointer-events:all;cursor:pointer}
+.gr-edge-g:is(:hover,.is-hot,.is-esel) .gr-edge-cnt-bg{stroke:var(--red)}
 .gr-edge-cnt-tx{fill:var(--ink-0);font:600 13px/1 var(--f-num);dominant-baseline:central;text-anchor:middle;pointer-events:none}
 
 /* 엣지를 가리킬 때 가운데 뜨는 작은 관계 이름 칩 */
 .gr-edge-chip{position:absolute;left:0;top:0;z-index:6;padding:2px 8px;pointer-events:none;
   background:var(--slate-solid);color:#fff;border-top:1.5px solid #fff;font:600 13px/1.3 var(--f-ko);white-space:nowrap;
   transform:translate3d(var(--ec-x,0px),var(--ec-y,0px),0) translate(-50%,-50%);
-  transition:opacity 90ms var(--ease-in)}
+  transition:opacity 90ms var(--ease-in),transform 80ms var(--ease-snap)}
+.gr-edge-chip.is-press{transform:translate3d(var(--ec-x,0px),calc(var(--ec-y,0px) + 1px),0) translate(-50%,-50%)}
 .gr-edge-chip[hidden]{display:none!important}
 
-/* 본문 7열 기둥 줄 */
-.gr-cols-grid{position:relative;z-index:2;display:flex;align-items:flex-start;gap:18px;width:100%}
-.gr-col{display:flex;flex-direction:column;gap:6px;min-width:0}
-.gr-col.is-folded{flex:0 0 60px;min-height:1px;pointer-events:none}
-.gr-col.gr-c-4{gap:4px;padding-right:14px}
+/* 본문 7열 기둥 줄: 열과 격자는 pointer-events:none 이고 노드와 단추만 auto 로 두어 골짜기 엣지가 잡힌다 */
+.gr-cols-grid{position:relative;z-index:2;display:flex;align-items:flex-start;gap:12px;width:100%;pointer-events:none}
+.gr-col{display:flex;flex-direction:column;gap:6px;min-width:0;pointer-events:none}
+.gr-col.is-folded{flex:0 0 36px;min-width:36px;min-height:1px;pointer-events:none}
+.gr-col.gr-c-4.is-folded,.gr-col.gr-c-5.is-folded{flex:0 0 56px;min-width:56px}
+.gr-col.gr-c-4{gap:4px;padding-right:12px}
 
-.gr-node-wrap{display:flex;flex-direction:column;gap:3px;min-width:0;transition:opacity 180ms var(--ease-in)}
+.gr-node-wrap{display:flex;flex-direction:column;gap:3px;min-width:0;pointer-events:auto;transition:opacity 180ms var(--ease-in)}
 .gr-node-wrap.is-dim{opacity:.35}
+
+/* 종형 구성 틀의 담보구분 묶음 머리 */
+.gr-grp-hd{display:flex;align-items:baseline;justify-content:space-between;gap:4px;padding:4px 6px 2px;margin-top:4px;
+  border-bottom:1.5px solid var(--ink-1);font:600 13px/1.2 var(--f-ko);color:var(--ink-0);pointer-events:auto}
+.gr-grp-hd:first-child{margin-top:0}
+.gr-grp-hd.is-rest{opacity:.68;border-bottom-style:dashed}
+.gr-grp-hd .num{font:600 13px/1.1 var(--f-num);color:var(--ink-1)}
 
 /* 직각 노드 일곱 꼴 공통(.gr-node: 둥근 모서리 0, 최소 폭 24px 이상) */
 .gr-node{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:2px;
-  width:100%;min-width:28px;min-height:32px;padding:5px 8px;border-radius:0;border:1px solid var(--ink-0);
-  background:rgba(244,247,250,.82);color:var(--ink-0);text-align:left;
-  transition:transform 100ms var(--ease-in),background-color 140ms var(--ease-in),border-color 140ms var(--ease-in),opacity 180ms var(--ease-in)}
+  width:100%;min-width:28px;min-height:32px;padding:5px 6px;border-radius:0;border:1px solid var(--ink-0);
+  background:rgba(244,247,250,.82);color:var(--ink-0);text-align:left;pointer-events:auto;
+  transition:transform 80ms var(--ease-snap),opacity 180ms var(--ease-in)}
 :root[data-theme="dark"] .gr-node{background:rgba(19,26,35,.84)}
 .gr-node:hover,.gr-node:focus-visible{box-shadow:inset 0 0 0 1px var(--ink-0)}
+.gr-node:active{transform:translateY(1px)}
 
-/* 우체국 노드는 왼쪽에 3px 굵은 변(색이 아닌 꼴로 구분) */
-.gr-node.is-epost{border-left-width:3px}
-
-/* 0 회사: 먹색 면의 칸, 흰 글자(우체국은 왼쪽 3px 변 + 안쪽 흰 가름선으로 꼴 구분) */
-.gr-node.k-0{min-height:38px;padding:7px 10px;background:var(--slate);color:var(--on-slate);border-color:var(--ink-0)}
-.gr-node.k-0.is-epost{border-left:3px solid var(--gold-line);box-shadow:inset 2px 0 0 #fff}
-.gr-node.k-0 .gn-t{color:#fff;font-weight:700}
+/* 0 회사: 먹색 면의 칸, 흰 글자 */
+.gr-node.k-0{min-height:38px;padding:5px 6px;background:var(--slate);color:var(--on-slate);border-color:var(--ink-0)}
+.gr-node.k-0 .gn-t{display:block;color:#fff;font-weight:700;-webkit-line-clamp:unset;white-space:normal;word-break:keep-all;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
 .gr-node.k-0 .gn-s{color:rgba(255,255,255,.82)}
 
 /* 1 종형: 2px 윤곽 칸, 상품명과 종형명 두 줄 */
-.gr-node.k-1{min-height:46px;padding:6px 9px;border-width:2px}
-.gr-node.k-1.is-epost{border-left-width:4px;box-shadow:inset 2px 0 0 var(--panel-t),inset 3px 0 0 var(--ink-0)}
+.gr-node.k-1{min-height:46px;padding:5px 6px;border-width:2px}
 
 /* 2 특약: 1px 윤곽 칸 */
-.gr-node.k-2{min-height:34px;padding:5px 8px;border-width:1px}
+.gr-node.k-2{min-height:34px;padding:5px 6px;border-width:1px}
 
 /* 3 급부: 작은 칸, 이름과 한 줄 요약(기준지급액, 면책, 감액) */
-.gr-node.k-3{min-height:42px;padding:5px 8px;border-width:1px}
+.gr-node.k-3{min-height:42px;padding:5px 6px;border-width:1px}
 
-/* 4 표준담보: 이중 윤곽 칸, 한 줄 28px */
-.gr-node.k-4{min-height:28px;padding:3px 8px;border:1px solid var(--ink-0);
-  box-shadow:inset 0 0 0 2px var(--panel-t),inset 0 0 0 3px var(--ink-0);flex-direction:row;align-items:center;justify-content:space-between;gap:6px}
+/* 우체국 노드는 모든 종류(회사, 종형, 특약, 급부)에서 왼쪽에 3px 굵은 변을 둔다(1-6: k-0~k-3 뒤에 선언) */
+.gr-node.is-epost{border-left-width:3px}
+.gr-node.k-0.is-epost{border-left:3px solid var(--gold-line);box-shadow:inset 2px 0 0 #fff}
+.gr-node.k-1.is-epost{border-left-width:3px;box-shadow:inset 2px 0 0 var(--panel-t),inset 3px 0 0 var(--ink-0)}
+.gr-node.k-2.is-epost,.gr-node.k-3.is-epost{border-left-width:3px;border-left-color:var(--ink-0)}
+
+/* 4 표준담보: 이중 윤곽 칸(이름이 두 줄이면 높이가 자연스럽게 늘어나 잘림 0 유지) */
+.gr-node.k-4{min-height:28px;padding:4px 6px;border:1px solid var(--ink-0);
+  box-shadow:inset 0 0 0 2px var(--panel-t),inset 0 0 0 3px var(--ink-0);flex-direction:row;align-items:center;justify-content:space-between;gap:4px}
 .gr-node.k-4.is-miss{border-style:dashed;border-color:var(--ink-2);box-shadow:none;
   background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px),rgba(244,247,250,.68)}
 :root[data-theme="dark"] .gr-node.k-4.is-miss{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px),rgba(19,26,35,.68)}
 .gr-node.k-4.is-only{border-color:var(--gold-line);box-shadow:inset 0 0 0 2px var(--panel-t),inset 0 0 0 3px var(--gold-line)}
+.gr-node.k-4.is-unlinked{border:1px solid var(--line-2);box-shadow:none;background:rgba(244,247,250,.5)}
+:root[data-theme="dark"] .gr-node.k-4.is-unlinked{background:rgba(19,26,35,.5)}
+.gr-node.k-4.is-unlinked .gn-t{color:var(--ink-2)}
 .gr-gold-mk{flex:none;width:7px;height:7px;background:var(--gold);border:1px solid var(--gold-line);transform:rotate(45deg)}
 
 /* 5 보장분야: 넓은 띠 */
-.gr-node.k-5{min-height:48px;padding:7px 10px;border-width:2px 1px 2px 3px;border-color:var(--ink-0);
-  flex-direction:row;align-items:center;justify-content:space-between;gap:6px}
+.gr-node.k-5{min-height:48px;padding:5px 6px;border-width:2px 1px 2px 3px;border-color:var(--ink-0);
+  flex-direction:row;align-items:center;justify-content:space-between;gap:4px}
 
 /* 6 소식: 날짜가 붙은 작은 칸 */
-.gr-node.k-6{min-height:42px;padding:5px 8px;border-color:var(--ink-1)}
+.gr-node.k-6{min-height:42px;padding:5px 6px;border-color:var(--ink-1)}
 
 /* +N 더 묶음 칸 */
 .gr-node.gr-more{min-height:30px;border-style:dashed;border-color:var(--ink-1);flex-direction:row;align-items:center;justify-content:center;
-  font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
+  font:600 13px/1.2 var(--f-ko);color:var(--ink-1);pointer-events:auto}
 
 /* 고른 노드: 시안 4 공통 빨강(#A30D0D) 3px 바깥 테 + 2px 흰 안쪽 테 */
 .gr-node.is-sel{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff!important;z-index:3}
 
 .gn-ktag{font:600 13px/1.15 var(--f-num);color:var(--ink-2)}
-.gn-t{display:block;width:100%;font:600 13px/1.28 var(--f-ko);color:var(--ink-0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gr-node.k-1 .gn-p{display:block;width:100%;font:400 13px/1.25 var(--f-body);color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gr-node.k-4 .gn-t,.gr-node.k-5 .gn-t{width:auto;flex:1;min-width:0}
+.gn-t{display:-webkit-box;width:100%;font:600 13px/1.26 var(--f-ko);color:var(--ink-0);
+  -webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
+.gr-node.k-1 .gn-p{display:-webkit-box;width:100%;font:400 13px/1.24 var(--f-body);color:var(--ink-1);
+  -webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
+/* 회사(k-0), 표준담보(k-4), 보장분야(k-5) 이름은 모든 데스크톱 창(1280~1920)에서 잘림 0 */
+.gr-node.k-4 .gn-t,.gr-node.k-5 .gn-t{display:block;width:auto;flex:1;min-width:0;-webkit-line-clamp:unset;overflow:visible;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
 .gn-s,.gr-ben-sub{display:block;width:100%;font:400 13px/1.25 var(--f-body);color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gn-cnt{flex:none;font:600 13px/1 var(--f-num);color:var(--ink-1)}
 
 /* 고른 노드 양옆 이웃 펼치기 손잡이 줄 */
-.gr-hop-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px;padding-top:2px}
+.gr-hop-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px;padding-top:2px;pointer-events:auto}
 .gr-hop-side{display:inline-flex;flex-wrap:wrap;gap:3px}
 .gr-hop-btn{display:inline-flex;align-items:center;gap:4px;min-height:24px;min-width:26px;padding:1px 6px;
   border:1px solid var(--ink-1);background:var(--panel-t);color:var(--ink-0);font:600 13px/1.15 var(--f-ko)}
@@ -2023,10 +2049,17 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .gr-hop-btn.is-done{border-style:dashed;color:var(--ink-2)}
 .gr-hop-btn .num{font-weight:700}
 
-/* 1280~1599px: 열의 폭이 좁아지면 급부 칸의 한 줄 요약을 가리키거나 고를 때만 보인다 */
+/* 1280~1599px: 열 사이 간격을 좁히고 급부 칸의 한 줄 요약을 가리키거나 고를 때만 보인다 */
 @media (max-width:1599px) and (min-width:1000px){
-  .gr-col-bar,.gr-cols-grid{gap:12px}
-  .gr-col-hd.is-folded,.gr-col.is-folded{flex-basis:48px}
+  .gr-col-bar,.gr-cols-grid{gap:8px}
+  .gr-col.gr-c-4{padding-right:8px}
+  .gr-c-6.is-open{flex:1.05 1 82px}
+  .gr-c-0.is-open{flex:.96 1 88px}
+  .gr-c-1.is-open{flex:1.08 1 94px}
+  .gr-c-2.is-open{flex:1.12 1 96px}
+  .gr-c-3.is-open{flex:1.04 1 88px}
+  .gr-c-4.is-open{flex:1.68 1 136px}
+  .gr-c-5.is-open{flex:1.02 1 98px}
   .gr-node.k-3:not(:hover):not(:focus-visible):not(.is-sel) .gr-ben-sub{display:none}
   .gr-node.k-3:not(:hover):not(:focus-visible):not(.is-sel){min-height:32px}
 }
@@ -2580,7 +2613,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     grEvTitle: '관계 지도',
     grEvBodyTpl: '노드를 눌러 옆 열의 이웃을 펼치거나, 연결선을 눌러 검토상태와 급부역할 같은 관계 속성을 확인합니다.',
     grLegendTitle: '관계 지도 도형과 선 안내',
-    grLgNode: '직각 칸: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽), 보장분야(넓은 띠), 소식(날짜). 우체국은 왼쪽 3px 변',
+    grLgNode: '직각 칸: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽, 비교 종형에 연결이 없는 담보는 옅은 단선 윤곽), 보장분야(넓은 띠), 소식(날짜). 우체국은 왼쪽 3px 변',
     grLgEdge: '연결선: 판매와 포함(실선), 해당(승인 및 수정은 굵은 실선), 속함(가는 선), 관계(이중선), 일으킴(점선)',
   };
 
@@ -3172,7 +3205,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     same: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5h7M1.5 6.5h7" stroke="currentColor" stroke-width="1.6"/></svg>',
     diff: '<svg viewBox="0 0 12 10" aria-hidden="true"><path d="M1 3h9M7.5 1L10 3 7.5 5M11 7H2M4.5 5L2 7l2.5 2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
     none: '<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="1.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1.5"/></svg>',
-    unknown: '<svg viewBox="0 0 10 10" aria-hidden="true"><text x="5" y="8.2" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor">?</text></svg>',
+    unknown: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3.2 3.3a1.85 1.65 0 1 1 2.7 1.45c-.6.35-.9.68-.9 1.35" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="square"/><rect x="4.3" y="7.4" width="1.4" height="1.4" fill="currentColor"/></svg>',
     lock: '<svg width="12" height="13" viewBox="0 0 12 13" aria-hidden="true"><rect x="1.5" y="5.5" width="9" height="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 5.5V4a2.5 2.5 0 0 1 5 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
     copy: '<svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><rect x="4" y="4" width="7.5" height="7.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 4V1.5H1.5V9H4" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
     print: '<svg width="14" height="13" viewBox="0 0 14 13" aria-hidden="true"><path d="M3.5 4V1.5h7V4M3.5 9.5H1.5V5h11v4.5h-2M3.5 7.5h7v4h-7Z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
@@ -3745,17 +3778,23 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
   function rtabRingSVG(m, withDiag) {
     if (m.isGraph) return graphGlyphSVG();
-    const r = 34, C = +(2 * Math.PI * r).toFixed(2);
+    const r = 34;
+    const arcD = `M 0 -${r} A ${r} ${r} 0 1 1 -0.01 -${r}`;
     const max = Math.max(0.0001, m.max || 1);
-    let off = 0, sum = 0;
-    const arcs = (m.segs || []).filter(s => s.v > 0).map(s => {
-      sum += s.v;
-      const len = +(C * Math.min(1, s.v / max)).toFixed(2);
-      const el = `<circle class="rt-arc${s.cls ? ' ' + s.cls : ''}" r="${r}" fill="none" stroke-width="4.4" stroke-dasharray="${len} ${C}" data-dash="${len} ${C}" data-c="${C}" stroke-dashoffset="${-off}" transform="rotate(-90)"/>`;
-      off += len;
-      return el;
+    let cum = 0;
+    const validSegs = (m.segs || []).filter(s => s.v > 0);
+    const segSpecs = validSegs.map(s => {
+      cum = Math.min(1, cum + s.v / max);
+      const endPct = +(cum * 100).toFixed(2);
+      const off = +(100 - endPct).toFixed(2);
+      return { cls: s.cls || '', off };
+    });
+    // 뒤쪽 누적 호부터 먼저 깔고 앞쪽 주 호를 위에 얹어 stroke-dashoffset 만으로 전환한다(4-3)
+    const arcs = segSpecs.slice().reverse().map((sp, revIdx) => {
+      const sw = revIdx === segSpecs.length - 1 && segSpecs.length > 1 ? 4.5 : 4.4;
+      return `<path class="rt-arc${sp.cls ? ' ' + sp.cls : ''}" d="${arcD}" pathLength="100" fill="none" stroke-width="${sw}" stroke-dasharray="100 200" stroke-dashoffset="${sp.off}" data-doff="${sp.off}"/>`;
     }).join('');
-    const f = Math.min(1, sum / max);
+    const f = cum;
     let ticks = '';
     if (f < 0.999) {
       const N = 24, r1 = r - 2.6, r2 = r + 2.6;
@@ -3780,12 +3819,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
   }
 
   function miniRingSVG(v, max, cls) {
-    const r = 15, C = +(2 * Math.PI * r).toFixed(2);
+    const r = 15;
+    const arcD = `M 0 -${r} A ${r} ${r} 0 1 1 -0.01 -${r}`;
     const f = max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
-    const len = +(C * f).toFixed(2);
+    const off = +(100 - f * 100).toFixed(2);
     return `<svg viewBox="-20 -20 40 40" aria-hidden="true" focusable="false">
       <circle class="rt-trk" r="${r}" fill="none" stroke-width="1.8"/>
-      ${f > 0 ? `<circle class="rt-arc${cls ? ' ' + cls : ''}" r="${r}" fill="none" stroke-width="2.8" stroke-dasharray="${len} ${C}" transform="rotate(-90)"/>` : ''}
+      ${f > 0 ? `<path class="rt-arc${cls ? ' ' + cls : ''}" d="${arcD}" pathLength="100" fill="none" stroke-width="2.8" stroke-dasharray="100 200" stroke-dashoffset="${off}"/>` : ''}
     </svg>`;
   }
   UI.miniRingSVG = miniRingSVG;
@@ -3895,13 +3935,13 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
   function drawHeaderRingArcs(root) {
     if (!motionOn()) return;
-    for (const c of $$('.rt-arc[data-c][data-dash]', root)) {
-      const C = c.dataset.c, d = c.dataset.dash;
+    for (const c of $$('.rt-arc[data-doff]', root)) {
+      const doff = c.dataset.doff;
       c.style.transition = 'none';
-      c.setAttribute('stroke-dasharray', `0 ${C}`);
+      c.setAttribute('stroke-dashoffset', '100');
       void c.getBoundingClientRect();
       c.style.transition = '';
-      c.setAttribute('stroke-dasharray', d);
+      c.setAttribute('stroke-dashoffset', doff);
     }
   }
 
@@ -3945,6 +3985,12 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
         const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
         nav.scrollLeft = Math.max(0, Math.min(maxLeft, Math.round(act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2)));
       }
+    }
+    const actPill = $('.rtab[aria-selected="true"]', nav);
+    const pill = $('#rtab-bg', nav);
+    if (pill && actPill) {
+      const toX = actPill.offsetLeft, toS = Math.max(0.1, actPill.offsetWidth / 100);
+      pill.style.transform = `translate3d(${toX}px,0,0) scaleX(${toS.toFixed(4)})`;
     }
     const over = nav.scrollWidth > nav.clientWidth + 4;
     const moreL = over && nav.scrollLeft > 4;
@@ -4127,7 +4173,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     const t = tabs[id];
     if (t && t.layout) return t.layout;
     if (id === 'cover') return 'band';
-    if (id === 'market' || id === 'gate' || id === 'insight') return 'side';
+    if (id === 'market' || id === 'gate') return 'side';
     return 'three';
   }
 
@@ -5536,6 +5582,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
     let rz = 0, lastMode = mode();
     addEventListener('resize', () => {
+      syncRtabsCue(false);
       clearTimeout(rz);
       rz = setTimeout(() => {
         const m = mode();
@@ -5681,7 +5728,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     if (rows.length > 1 && maxW && rows.length * pw + (rows.length - 1) * gap > maxW) {
       gap = Math.max(4, Math.floor((maxW - rows.length * pw) / (rows.length - 1)));
       if (rows.length * pw + (rows.length - 1) * gap > maxW) {
-        pw = Math.max(10, Math.floor((maxW - (rows.length - 1) * gap) / rows.length));
+        pw = Math.max(12, Math.floor((maxW - (rows.length - 1) * gap) / rows.length));
       }
     }
     const W = rows.length * pw + (rows.length - 1) * gap;
@@ -6242,7 +6289,7 @@ App.registerTab((function () {
           const curOpen = cc.oursOpen;
           const bothOpen = prevOpen && curOpen;
           const openTransition = !prevOpen && curOpen;
-          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" style="--sd:${rIdx * 65 + cIdx * 24}ms" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
+          trackParts.push(`<span class="mk-seg ${bothOpen ? 'is-solid' : 'is-dash'}" style="--sd:${rIdx * 36 + cIdx * 14}ms" aria-hidden="true">${openTransition ? '<i class="mk-trans-tk"></i>' : ''}</span>`);
         }
         const stateCls = 'st-' + cc.state;
         const isNoData = cc.state === 'unknown';
@@ -6259,7 +6306,7 @@ App.registerTab((function () {
         const chipKind = cc.state === 'only' ? 'only' : cc.state === 'worse' ? 'worse' : cc.state === 'both' ? 'same' : cc.state === 'unknown' ? 'unknown' : 'none';
         const tip = `${tipTitle}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
         const pk = keyOf(it.ri, it.ci);
-        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-aim="circle"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 4 + cIdx) * 18}ms">
+        trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-aim="circle"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 4 + cIdx) * 10}ms">
           ${needFlag ? ui.flag() : ''}
           ${cellRingSVG(cc)}
           <span class="mk-rn num">${esc(numStr)}</span>
@@ -6886,16 +6933,26 @@ App.registerTab((function () {
     const hotR = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridR != null ? +aimEl.dataset.gridR : -1;
     const hotC = aimEl && aimEl.closest && aimEl.closest('#gt-flow-stage') && aimEl.dataset.gridC != null ? +aimEl.dataset.gridC : -1;
     const sel = App.state.sel.gate || '';
-    const selRowKey = sel.startsWith('gf:') ? sel.slice(3, sel.lastIndexOf('|')) : '';
+    let selRowKey = '';
+    if (sel.startsWith('gf:')) selRowKey = sel.slice(3, sel.lastIndexOf('|'));
+    else if (sel.startsWith('g:')) {
+      const f = info(sel.slice(2));
+      if (f) selRowKey = f['고지유형열쇠'] || '';
+    }
     root.querySelectorAll('.gtf-acol[data-col]').forEach(el => {
       el.classList.toggle('is-hot', +el.dataset.col === hotC);
     });
+    root.querySelectorAll('.gtf-cell[data-sel-anchor]').forEach(el => el.removeAttribute('data-sel-anchor'));
     root.querySelectorAll('.gtf-row[data-row]').forEach(el => {
       const r = +el.dataset.row;
       const rk = el.dataset.typeKey || '';
       const hasSel = !!(selRowKey && rk === selRowKey);
       el.classList.toggle('is-hot', r === hotR);
       el.classList.toggle('has-row-sel', hasSel);
+      if (hasSel && sel.startsWith('g:')) {
+        const cells = el.querySelectorAll('.gtf-cell');
+        if (cells.length) cells[cells.length - 1].setAttribute('data-sel-anchor', '1');
+      }
       if (redrawSel && hasSel && App.motionOn() && rk !== lastGateSelRowKey) {
         el.classList.remove('gtf-row-redraw');
         void el.offsetWidth;
@@ -6957,7 +7014,7 @@ App.registerTab((function () {
               : passN === 0 ? 'none' : 'same';
         const tip = `${row.key}, ${stNm}: 통과 ${ratioTxt}곳${isPrem ? ' (전제 관문)' : ''}`;
         const delayMs = Math.min(340, rIdx * 24 + k * 42);
-        const quietCnt = flowRows.length > 8 && k < steps.length - 1 && passN === prevPass;
+        const quietCnt = flowRows.length > 8 && k > 0 && k < steps.length - 1 && passN === prevPass;
         return `${connBefore}<button type="button" class="gtf-cell${passN === 0 ? ' is-zero' : ''}${isPrem ? ' is-prem' : ''}" data-pick="${esc(pk)}" data-toggle="1" data-aim="rect"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${k}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}">
           <span class="gtf-pil" data-link-pt="1" data-aim-box="1">${pillarCellSVG(passN, row.total, isPrem, delayMs)}</span>
           <span class="gtf-cnt num${quietCnt ? ' is-quiet' : ''}">${esc(ratioTxt)}</span>
@@ -7604,6 +7661,18 @@ App.registerTab((function () {
   }
 
   function focus(key) {
+    if (key && key.startsWith('g:')) {
+      let vid = key.slice(2);
+      if (!info(vid)) {
+        const curC = App.ctx();
+        const vinf = txt.vinfo(vid);
+        const org = vinf && vinf['기관코드'];
+        const byOrg = org && G && G['V'] ? G['V'].find(v => info(v) && info(v)['회사'] === org) : null;
+        vid = byOrg || curC.baseId;
+      }
+      if (info(vid)) App.select('g:' + vid, { focus: false });
+      return;
+    }
     if (key === 'tree' || key === 'q' || key === 'limit' || key === 'combo') {
       App.openModal({
         trigger: document.getElementById('gt-btn-tbl'),
@@ -7819,16 +7888,18 @@ const chipText = v => (v ? (v.text || v.name) : BOTH_NONE_TEXT);
 // ---------- 두 층 담보 비교: 위 전체 띠(79개 눈금 + 거르개 셋) + 아래 고른 단계 확대 구역 ----------
 const FILTERS = [
   { k: 'miss', label: '우체국에 없는 담보' },
-  { k: 'split', label: '판정이 갈린 담보' },
+  { k: 'split', label: '조건이 다른 담보' },
   { k: 'only', label: '우체국만 가진 담보' },
 ];
 let curStepByBase = {};
 let curPageByStep = {};
+let lastSyncedSelKey = '';
 const activeFilters = new Set();
 let stepSwitchToken = 0;
 let lastStageHost = null;
 let cachedHostW = 0;
 let lastHotSid = '';
+let pressedTickEl = null;
 
 function truncLabel(str, maxChars) {
   const s = String(str || '').trim();
@@ -7852,7 +7923,11 @@ function rowStackMetrics(row, m, B, c, totPeerOrgs) {
   const wait = cntOf('검토 대기') + cntOf('판정 보류');
   const miss = cntOf('우체국에 없음');
   const stackN = better + same + diff + worse + wait + miss;
-  const hasSplit = better > 0 || worse > 0 || diff > 0;
+  const pIdxs = peerIdxOf(m, c);
+  const hasSplit = pIdxs.some(i => {
+    const v = row.verd[i];
+    return !!(v && (v.name === '우체국 나음' || v.name === '우체국 못함' || v.name === '우열을 매기지 않음'));
+  });
   const isMiss = miss > 0;
   const isOnly = oursHas && stackN === 0;
   let domChip = 'same';
@@ -8086,6 +8161,8 @@ function syncCoverSelectionAndFilter(stageEl) {
   slots.forEach((sl, idx) => {
     const on = sl.dataset.sid === selSid;
     sl.classList.toggle('is-sel', on);
+    if (on) sl.setAttribute('data-sel-anchor', '1');
+    else sl.removeAttribute('data-sel-anchor');
     sl.setAttribute('aria-pressed', String(on));
     sl.tabIndex = idx === selSlotIdx ? 0 : -1;
   });
@@ -8410,17 +8487,22 @@ function renderStage(center, c) {
   const totPeerOrgs = Math.max(1, rawPeerOrgs);
   const pSet = new Set(c.activePeerOrgs || []);
 
-  // 선택된 담보가 있으면 해당 단계를 우선 유지하고, 없으면 못함+없음 최대 단계를 기본으로 선택
+  // 담보를 새로 고른 순간에만 해당 단계로 옮기고, 거르개 토글이나 창 크기 변경 때는 사람이 펼친 단계를 유지한다(2-3)
   const selRaw = c.st.sel.cover || '';
   const selSid = selRaw.startsWith('s:') ? selRaw.slice(2) : (selRaw.startsWith('c:') ? selRaw.slice(2) : '');
-  if (selSid && m.byId[selSid] && STEPS.includes(m.byId[selSid].type)) {
-    curStepByBase[c.baseId] = m.byId[selSid].type;
-  } else if (!curStepByBase[c.baseId] || !STEPS.includes(curStepByBase[c.baseId])) {
+  const selSig = `${c.baseId}|${selRaw}`;
+  if (selSig !== lastSyncedSelKey) {
+    lastSyncedSelKey = selSig;
+    if (selSid && m.byId[selSid] && STEPS.includes(m.byId[selSid].type)) {
+      curStepByBase[c.baseId] = m.byId[selSid].type;
+    }
+  }
+  if (!curStepByBase[c.baseId] || !STEPS.includes(curStepByBase[c.baseId])) {
     curStepByBase[c.baseId] = defaultStepFor(m, B, c);
   }
   const curStep = curStepByBase[c.baseId];
 
-  const tickW = innerWidth >= 1600 ? 6 : innerWidth >= 1000 ? 4 : 3;
+  const tickW = innerWidth >= 1600 ? 6 : innerWidth >= 1000 ? 4 : innerWidth < 480 ? 2 : 3;
   let totalPassCnt = 0;
   m.rows.forEach(r => {
     if (matchesCoverFilter(rowStackMetrics(r, m, B, c, totPeerOrgs))) totalPassCnt++;
@@ -8438,16 +8520,16 @@ function renderStage(center, c) {
       const fullNm = stdN(r.sid);
       const ownDesc = pillarSubText(rm, rawPeerOrgs);
       const layerVec = `${rm.better},${rm.same + rm.diff},${rm.worse},${rm.wait},${rm.miss}`;
-      return `<span class="cv-tick${pass ? '' : ' is-filtered-out'}" data-cv-tick="${esc(r.sid)}" data-cv-step-of="${esc(stNm)}" data-stack-n="${rm.stackN}" data-layers="${layerVec}" data-tip-title="${esc(fullNm)}" data-tip-sub="${esc(`${stNm} / ${ownDesc}`)}" data-tip-chip="${rm.domChip}" style="width:${tickW}px;--th:${tk.h}px">${tk.html}<i class="cv-tk-sel"></i></span>`;
+      return `<span class="cv-tick${pass ? '' : ' is-filtered-out'}" data-aim="rect" data-cv-tick="${esc(r.sid)}" data-cv-step-of="${esc(stNm)}" data-stack-n="${rm.stackN}" data-layers="${layerVec}" data-tip-title="${esc(fullNm)}" data-tip-sub="${esc(`${stNm} / ${ownDesc}`)}" data-tip-chip="${rm.domChip}" style="width:${tickW}px;--th:${tk.h}px">${tk.html}<i class="cv-tk-sel"></i></span>`;
     }).join('');
 
-    return `<button type="button" class="cv-ov-seg${on ? ' is-on' : ''}" data-cv-step="${esc(stNm)}" aria-pressed="${on}" aria-label="${esc(`${stNm} 단계 펼치기 (${oursCnt}/${totCnt})`)}">
+    return `<button type="button" class="cv-ov-seg${on ? ' is-on' : ''}" style="--seg-n:${Math.max(4, totCnt)}" data-cv-step="${esc(stNm)}" data-cv-ov="1" aria-pressed="${on}" aria-label="${esc(`${stNm} 단계 펼치기 (${oursCnt}/${totCnt})`)}">
       <span class="cv-ov-sh">
         <span class="cv-ov-ring">${ui.miniRingSVG(oursCnt, Math.max(1, totCnt), '')}</span>
         <span class="cv-ov-nm">${esc(stNm)}</span>
         <span class="cv-ov-cnt num">${esc(`${fmt(oursCnt)}/${fmt(totCnt)}`)}</span>
       </span>
-      <span class="cv-ov-ticks" data-cv-ov="1">${ticksHTML}</span>
+      <span class="cv-ov-ticks">${ticksHTML}</span>
     </button>`;
   }).join('');
 
@@ -8833,22 +8915,33 @@ function rowEvidence(c, sid, mode) {
 
   let verdBadges = '';
   if (pIdxs.length >= 4 && B) {
-    const pc = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
-    const cntCode = k => (c.peerScope === 'all' ? ((pc[k] || []).length) : c.inScope(pc[k]));
-    const summaryPairs = [
-      ['better', '우체국 나음', cntCode('나음')],
-      ['same', '같음', cntCode('같음')],
-      ['worse', '우체국 못함', cntCode('못함')],
-      ['diff', '우열을 매기지 않음', cntCode('엇갈림') + cntCode('단정 주의') + cntCode('지급 형태 다름') + cntCode('관계 담보로 덮음')],
-      ['unknown', '검토 대기', cntCode('검토 대기')],
-      ['unknown', '판정 보류', cntCode('판정 보류')],
-      ['none', '우체국에 없음', cntCode('우체국에 없음')],
-    ].filter(x => x[2] > 0);
-    if (!summaryPairs.length && has(row.cells[0])) {
-      verdBadges = ui.verdict('only', '우체국에만 있음');
-    } else {
-      verdBadges = summaryPairs.map(([vd, lb, n]) => ui.verdict(vd, `${lb} ${fmt(n)}곳`)).join(' ');
-    }
+    // 쌍판정(row.verd)과 판정차례로 모든 판정 이름을 빠짐없이 모아 표지의 곳 수 합이 상대 수(및 판정상대수 합)와 정확히 같게 한다(2-1)
+    const countsByName = new Map();
+    const chipByName = new Map();
+    pIdxs.forEach(i => {
+      const v = row.verd[i];
+      const nm = v ? v.name : BOTH_NONE_TEXT;
+      countsByName.set(nm, (countsByName.get(nm) || 0) + 1);
+      if (v && !chipByName.has(nm)) chipByName.set(nm, v.kind);
+    });
+    const orderList = (CV && Array.isArray(CV['판정차례']) && CV['판정차례'].length)
+      ? CV['판정차례']
+      : ['우체국 나음', '우체국 못함', '같음', '우열을 매기지 않음', '우체국에만 있음', '우체국에 없음', '검토 대기', '판정 보류', BOTH_NONE_TEXT];
+    const allOnly = (countsByName.get('우체국에만 있음') || 0) === pIdxs.length && pIdxs.length > 0;
+    const badgeParts = [];
+    orderList.forEach(nm => {
+      const cnt = countsByName.get(nm) || 0;
+      if (!cnt) return;
+      if (nm === '우체국에만 있음') {
+        if (allOnly) badgeParts.push(ui.verdict('only', `우체국에만 있음 ${fmt(cnt)}곳`));
+        else badgeParts.push(`<span class="tag">상대에 없음 ${fmt(cnt)}곳</span>`);
+      } else if (nm === BOTH_NONE_TEXT) {
+        badgeParts.push(`<span class="tag">${esc(BOTH_NONE_TEXT)} ${fmt(cnt)}곳</span>`);
+      } else {
+        badgeParts.push(ui.verdict(chipByName.get(nm) || 'unknown', `${nm} ${fmt(cnt)}곳`));
+      }
+    });
+    verdBadges = badgeParts.join(' ');
   } else {
     verdBadges = pIdxs.slice(0, 3).map(i => { const v = verdFor(row, m, i, pIdxs); return v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(v)}</span>` : ''; }).join('');
   }
@@ -8878,7 +8971,8 @@ function journeyData(c) {
 function journeyTone(idx) {
   if (idx === 0) return { bar: 'ours', lg: 'lg0' };
   if (idx === 1) return { bar: 'other', lg: 'lg1' };
-  return { bar: 'other hollow', lg: 'lg2' };
+  if (idx === 2) return { bar: 'other hollow', lg: 'lg2' };
+  return { bar: 'other dashed', lg: 'lg3' };
 }
 function journeyHTML(c) {
   const { j, cols } = journeyData(c);
@@ -9290,8 +9384,8 @@ function actions() {
   ].join('');
 }
 
-function findNearestTick(ovTrackEl, clientX) {
-  const ticks = Array.from(ovTrackEl.querySelectorAll('.cv-tick[data-cv-tick]'));
+function findNearestTick(ovSegEl, clientX) {
+  const ticks = Array.from(ovSegEl.querySelectorAll('.cv-tick[data-cv-tick]'));
   if (!ticks.length) return null;
   let best = null, bestDist = Infinity;
   for (const tk of ticks) {
@@ -9300,26 +9394,69 @@ function findNearestTick(ovTrackEl, clientX) {
     const d = Math.abs(cx - clientX);
     if (d < bestDist) { bestDist = d; best = tk; }
   }
-  return bestDist <= 18 ? best : null;
+  return best;
 }
 
-document.addEventListener('pointermove', e => {
+function clearPressedTick() {
+  if (pressedTickEl) {
+    pressedTickEl.classList.remove('is-press');
+    pressedTickEl = null;
+  }
+}
+
+function syncOvPointer(e) {
   if (App.state.tab !== 'cover' || e.pointerType === 'touch') return;
   const ov = e.target.closest && e.target.closest('[data-cv-ov]');
-  if (ov) {
-    const tk = findNearestTick(ov, e.clientX);
-    if (tk) {
-      App.aim.showTip(tk);
-      syncCoverAimHot(tk);
+  if (!ov) return;
+  const tk = findNearestTick(ov, e.clientX);
+  if (tk) {
+    if (pressedTickEl && pressedTickEl !== tk) {
+      pressedTickEl.classList.remove('is-press');
+      if (e.buttons & 1) {
+        pressedTickEl = tk;
+        tk.classList.add('is-press');
+      } else {
+        pressedTickEl = null;
+      }
     }
+    App.aim.set(tk);
+    App.aim.showTip(tk);
+    syncCoverAimHot(tk);
+  }
+}
+
+document.addEventListener('pointerover', syncOvPointer, { passive: true });
+document.addEventListener('pointermove', syncOvPointer, { passive: true });
+
+document.addEventListener('pointerdown', e => {
+  if (App.state.tab !== 'cover' || e.pointerType === 'touch') return;
+  const ov = e.target.closest && e.target.closest('[data-cv-ov]');
+  if (!ov) return;
+  const tk = findNearestTick(ov, e.clientX);
+  if (tk) {
+    clearPressedTick();
+    pressedTickEl = tk;
+    tk.classList.add('is-press');
+    App.aim.set(tk);
+    const ret = document.getElementById('aim-reticle');
+    if (ret && !ret.hidden) ret.classList.add('is-press');
   }
 }, { passive: true });
+
+document.addEventListener('pointerup', clearPressedTick, { passive: true });
+document.addEventListener('pointercancel', clearPressedTick, { passive: true });
 
 document.addEventListener('pointerout', e => {
   if (App.state.tab !== 'cover') return;
   const fromOv = e.target.closest && e.target.closest('[data-cv-ov]');
   if (fromOv && (!e.relatedTarget || !fromOv.contains(e.relatedTarget))) {
+    clearPressedTick();
     syncCoverAimHot(null);
+    const nextOv = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-cv-ov]');
+    if (!nextOv) {
+      App.aim.hide();
+      App.aim.hideTip();
+    }
   }
 });
 
@@ -9348,6 +9485,19 @@ document.addEventListener('click', e => {
     switchCoverStep(curStep, { page: +pgBtn.dataset.cvPage, animate: true });
     return;
   }
+  // 구간 이름표 줄(.cv-ov-sh)을 누르면 고른 담보를 바꾼 채로 덮어쓰지 않고 해당 단계만 펼친다(2-3)
+  const inSegHead = e.target.closest && e.target.closest('.cv-ov-sh');
+  const stBtn = e.target.closest && e.target.closest('[data-cv-step]');
+  if (inSegHead && stBtn) {
+    e.stopPropagation();
+    const nextStep = stBtn.dataset.cvStep;
+    const c = App.ctx();
+    if (curStepByBase[c.baseId] !== nextStep) {
+      switchCoverStep(nextStep, { page: 0, animate: true });
+    }
+    return;
+  }
+  // 눈금 줄을 누르면 가장 가까운 눈금의 단계를 펼치고 그 담보를 바로 고른다(4-1)
   const ovTrack = e.target.closest && e.target.closest('[data-cv-ov]');
   if (ovTrack) {
     e.stopPropagation();
@@ -9355,13 +9505,14 @@ document.addEventListener('click', e => {
     if (tk && tk.dataset.cvTick) {
       const sid = tk.dataset.cvTick;
       const stNm = tk.dataset.cvStepOf;
+      const c = App.ctx();
+      lastSyncedSelKey = `${c.baseId}|s:${sid}`;
       if (stNm) switchCoverStep(stNm, { page: 0, animate: true });
-      ensureSidInView(sid, App.ctx());
+      ensureSidInView(sid, c);
       App.select('s:' + sid, { focus: false });
       return;
     }
   }
-  const stBtn = e.target.closest && e.target.closest('[data-cv-step]');
   if (stBtn) {
     e.stopPropagation();
     const nextStep = stBtn.dataset.cvStep;
@@ -9453,12 +9604,22 @@ document.addEventListener('keydown', e => {
 
 function pick(key, c) {
   if (key.startsWith('s:')) {
-    ensureSidInView(key.slice(2), c);
-    return rowEvidence(c, key.slice(2), 'row');
+    const sid = key.slice(2);
+    const sig = `${c.baseId}|${key}`;
+    if (sig !== lastSyncedSelKey) {
+      lastSyncedSelKey = sig;
+      ensureSidInView(sid, c);
+    }
+    return rowEvidence(c, sid, 'row');
   }
   if (key.startsWith('c:')) {
-    ensureSidInView(key.slice(2), c);
-    return rowEvidence(c, key.slice(2), 'caution');
+    const sid = key.slice(2);
+    const sig = `${c.baseId}|${key}`;
+    if (sig !== lastSyncedSelKey) {
+      lastSyncedSelKey = sig;
+      ensureSidInView(sid, c);
+    }
+    return rowEvidence(c, sid, 'caution');
   }
   if (key.startsWith('j:')) return journeyPick(c, key);
   return null;
@@ -9504,6 +9665,8 @@ function enter(body) {
 App.on('aim', aimEl => { if (App.state.tab === 'cover') syncCoverAimHot(aimEl); });
 App.on('select', tab => {
   if (tab !== 'cover') return;
+  const curSel = App.state.sel.cover || '';
+  if (!curSel) lastSyncedSelKey = `${App.state.base}|`;
   const stageEl = document.getElementById('cv-pillar-stage');
   syncCoverSelectionAndFilter(stageEl);
 });
@@ -9814,6 +9977,12 @@ App.registerTab((function () {
     const r = body && body.querySelector('.ins-r');
     if (!r) return;
     if (getComputedStyle(r).position !== 'sticky') { r.style.top = ''; return; }
+    const zc = body.closest('#z-center');
+    if (zc && getComputedStyle(zc).overflowY === 'auto') {
+      const boxH = zc.clientHeight || innerHeight;
+      r.style.top = `${Math.min(8, boxH - r.offsetHeight - 12)}px`;
+      return;
+    }
     const headEl = document.getElementById('head');
     const headH = headEl ? headEl.offsetHeight : 0;
     r.style.top = `${Math.min(headH + 16, innerHeight - r.offsetHeight - 16)}px`;
@@ -10161,7 +10330,7 @@ App.registerTab((function () {
     return true;
   }
 
-  return { id: 'insight', layout: 'side', kicker: '인사이트와 산출물', render, update, pick, evidence, focus, enter };
+  return { id: 'insight', layout: 'three', kicker: '인사이트와 산출물', render, update, pick, evidence, focus, enter };
 })());
 
 })();
@@ -10169,9 +10338,9 @@ App.registerTab((function () {
 'use strict';
 /* tab6.js */
 /* 탭 6 관계 지도(tab6.js):
-   - proto_src/graph/graph.json(#graph-data)을 처음 열 때 읽고, 모든 수는 자료의 목록 길이만 그대로 쓴다.
+   - proto_src/graph/graph.json(#graph-data)을 쉬는 시간이나 처음 열 때 읽고, 모든 수는 자료의 요약과 목록 길이만 그대로 쓴다.
    - 왼쪽부터 일곱 열(소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야) 고정 배치, 1.5px 직각 꺾은선, 표준담보 오른쪽 관계 이중선 꺾쇠.
-   - 처음 상태부터 대화 상자 없이 "담보 대응" 그래프가 열리며, 보장분야 -> 표준담보 -> 특약과 급부의 세 걸음 펼침과 어느 노드에서나 12개 단위 이웃 펼침(+N 더)을 지원한다.
+   - 처음 상태부터 대화 상자 없이 "담보 대응" 그래프가 열리며, 보장분야 -> 표준담보 -> 회사별 특약과 급부 실제 길 펼침과 어느 노드에서나 12개 단위 이웃 펼침(+N 더)을 지원한다.
 */
 (function () {
   const { ui, txt, t } = App;
@@ -10180,11 +10349,13 @@ App.registerTab((function () {
   const COL_KINDS = [6, 0, 1, 2, 3, 4, 5]; // 소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야
   const COL_OF_KIND = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
   const BATCH_SIZE = 12;
+  const RIDER_GRP_ORDER = { '주계약': 0, '비갱신특약': 1, '갱신특약': 2 };
 
   let G = null;
   let lastLeftEl = null;
   let lastCenterEl = null;
   let lastScopeSig = '';
+  let edgeDrawRaf = 0;
 
   const state = {
     preset: 'cover',     // 'cover' | 'variant' | 'news'
@@ -10193,14 +10364,19 @@ App.registerTab((function () {
     activeStd: null,     // node index of 표준담보
     cols: [[], [], [], [], [], [], []],
     batches: {},         // colIdx -> { pool: number[], shown: number, label: string }
+    varLimits: {},       // 'r:<vi>' | 'b:<vi>' -> limit inside cover-2 per-company path
+    varMores: {},        // colIdx -> Array<{ afterIdx: number|null, key: string, rem: number, label: string }>
+    variantRidersAll: [],// full sorted riders of baseVar in 'variant' preset
     selNode: null,       // node index
     selEdge: null,       // edge key ('e:12' | 'vb:v:d' | 'vs:v:s')
+    focusNode: null,     // roving tabindex node index
     query: '',
   };
 
   let undoStack = [];
   let trail = [];
   let renderedEdges = new Map(); // edgeKey -> descriptor
+  let hoveredEdgeEl = null;
 
   function ensureGraph() {
     if (G) return G;
@@ -10336,9 +10512,21 @@ App.registerTab((function () {
     return G;
   }
 
+  // 앞 화면이 쉬는 동안 그래프 색인을 미리 만들어 탭 전환 때 긴 작업이 생기지 않게 한다(1-10)
+  setTimeout(() => {
+    const warm = () => {
+      if (!G && document.getElementById('graph-data')) {
+        try { ensureGraph(); } catch (e) { /* */ }
+      }
+    };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(warm, { timeout: 1500 });
+    else setTimeout(warm, 120);
+  }, 320);
+
   function orgLabel(code) {
     if (!code) return '';
-    return txt.orgShort(code) || (G && G.orgNames[code]) || code;
+    if (G && G.orgNames && G.orgNames[code]) return G.orgNames[code];
+    return txt.orgShort(code) || code;
   }
 
   function scopeSig(c) {
@@ -10435,8 +10623,12 @@ App.registerTab((function () {
       activeStd: state.activeStd,
       cols: state.cols.map(arr => arr.slice()),
       batches: state.batches,
+      varLimits: state.varLimits,
+      varMores: state.varMores,
+      variantRidersAll: state.variantRidersAll,
       selNode: state.selNode,
       selEdge: state.selEdge,
+      focusNode: state.focusNode,
     });
   }
 
@@ -10448,8 +10640,12 @@ App.registerTab((function () {
     state.activeStd = o.activeStd;
     state.cols = o.cols.map(arr => arr.slice());
     state.batches = o.batches || {};
+    state.varLimits = o.varLimits || {};
+    state.varMores = o.varMores || {};
+    state.variantRidersAll = o.variantRidersAll || [];
     state.selNode = o.selNode;
     state.selEdge = o.selEdge;
+    state.focusNode = o.focusNode ?? null;
   }
 
   function pushUndo() {
@@ -10469,6 +10665,74 @@ App.registerTab((function () {
     if (trail.length > 10) trail.shift();
   }
 
+  function riderGroupRank(grpName) {
+    const s = String(grpName || '');
+    if (Object.prototype.hasOwnProperty.call(RIDER_GRP_ORDER, s)) return RIDER_GRP_ORDER[s];
+    return 9;
+  }
+
+  // 종형 구성 틀에서 현재 펼쳐진 특약과 급부에 맞춰 표준담보와 보장분야 열을 이어 갱신한다(1-9)
+  function syncVariantDownstream(g, baseVar, resetBenBatch) {
+    const allBens = [];
+    const allBenSeen = new Set();
+    const mustBens = [];
+    const mustSeen = new Set();
+
+    // 화면에 보이는 특약마다 최소 1개의 급부를 먼저 넣어 길이 끊기지 않게 한다
+    state.cols[3].forEach(ri => {
+      const bList = g.riderBens.get(ri) || [];
+      if (bList.length && !mustSeen.has(bList[0])) {
+        mustSeen.add(bList[0]);
+        mustBens.push(bList[0]);
+      }
+    });
+    // 전체 특약 순서대로 전체 급부 풀 구성
+    state.variantRidersAll.forEach(ri => {
+      (g.riderBens.get(ri) || []).forEach(bi => {
+        if (!allBenSeen.has(bi)) { allBenSeen.add(bi); allBens.push(bi); }
+      });
+    });
+
+    const orderedPool = mustBens.slice();
+    const ordSeen = new Set(mustBens);
+    // 먼저 현재 보이는 특약의 나머지 급부를 채우고, 그 뒤 아직 접힌 특약의 급부를 둔다
+    state.cols[3].forEach(ri => {
+      (g.riderBens.get(ri) || []).forEach(bi => {
+        if (!ordSeen.has(bi)) { ordSeen.add(bi); orderedPool.push(bi); }
+      });
+    });
+    allBens.forEach(bi => {
+      if (!ordSeen.has(bi)) { ordSeen.add(bi); orderedPool.push(bi); }
+    });
+
+    const prevShownB = (!resetBenBatch && state.batches[4]) ? state.batches[4].shown : BATCH_SIZE;
+    const targetB = Math.max(mustBens.length, prevShownB);
+    if (orderedPool.length <= targetB) {
+      state.cols[4] = orderedPool;
+      delete state.batches[4];
+    } else {
+      state.cols[4] = orderedPool.slice(0, targetB);
+      state.batches[4] = { pool: orderedPool, shown: targetB, label: '급부' };
+    }
+
+    const stds = [];
+    const stdSeen = new Set();
+    state.cols[4].forEach(bi => {
+      (g.benStds.get(bi) || []).forEach(({ std }) => {
+        if (!stdSeen.has(std)) { stdSeen.add(std); stds.push(std); }
+      });
+    });
+    state.cols[5] = stds;
+
+    const doms = [];
+    const domSeen = new Set();
+    stds.forEach(si => {
+      const dm = g.stdDom.get(si);
+      if (dm && !domSeen.has(dm.dom)) { domSeen.add(dm.dom); doms.push(dm.dom); }
+    });
+    state.cols[6] = doms;
+  }
+
   function initPresetState(presetName, c, keepHistory) {
     const g = ensureGraph();
     if (!keepHistory) {
@@ -10480,7 +10744,11 @@ App.registerTab((function () {
     state.activeStd = null;
     state.selNode = null;
     state.selEdge = null;
+    state.focusNode = null;
     state.batches = {};
+    state.varLimits = {};
+    state.varMores = {};
+    state.variantRidersAll = [];
     state.cols = [[], [], [], [], [], [], []];
 
     if (presetName === 'variant') {
@@ -10491,34 +10759,12 @@ App.registerTab((function () {
         if (orgIdx != null) state.cols[1] = [orgIdx];
         state.cols[2] = [baseVar];
         const riders = (g.varRiders.get(baseVar) || []).slice().sort((a, b) => {
-          const ga = String(g.N[a].p['담보구분'] || ''), gb = String(g.N[b].p['담보구분'] || '');
-          return ga.localeCompare(gb, 'ko') || a - b;
+          const ga = String(g.N[a].p['담보구분'] || '기타'), gb = String(g.N[b].p['담보구분'] || '기타');
+          return (riderGroupRank(ga) - riderGroupRank(gb)) || ga.localeCompare(gb, 'ko') || (a - b);
         });
+        state.variantRidersAll = riders;
         setColWithBatch(3, riders, '특약');
-        // 첫 펼쳐진 특약들의 급부와 표준담보 일부도 함께 이어 보여 준다
-        const bens = [];
-        const benSeen = new Set();
-        state.cols[3].slice(0, 6).forEach(ri => {
-          (g.riderBens.get(ri) || []).forEach(bi => {
-            if (!benSeen.has(bi)) { benSeen.add(bi); bens.push(bi); }
-          });
-        });
-        setColWithBatch(4, bens, '급부');
-        const stds = [];
-        const stdSeen = new Set();
-        state.cols[4].forEach(bi => {
-          (g.benStds.get(bi) || []).forEach(({ std }) => {
-            if (!stdSeen.has(std)) { stdSeen.add(std); stds.push(std); }
-          });
-        });
-        state.cols[5] = stds;
-        const doms = [];
-        const domSeen = new Set();
-        stds.forEach(si => {
-          const dm = g.stdDom.get(si);
-          if (dm && !domSeen.has(dm.dom)) { domSeen.add(dm.dom); doms.push(dm.dom); }
-        });
-        state.cols[6] = doms;
+        syncVariantDownstream(g, baseVar, true);
       }
       recordTrail('종형 구성');
       return;
@@ -10534,17 +10780,14 @@ App.registerTab((function () {
       state.cols[0].forEach(ni => {
         g.adj[ni].forEach(x => { if (x.ek === 5 && g.N[x.j].k === 0) orgSet.add(x.j); });
       });
-      // 우체국과 주요 비교 회사도 함께 놓아 종형으로 이어지게 한다
-      matchedVariants(g, c).forEach(vi => {
+      // 처음에는 기준 종형과 맞붙는 종형만 두고, 판매 종료 종형과 관문 전용 종형은 회사 노드를 펼칠 때만 보인다(1-8)
+      const mVars = matchedVariants(g, c);
+      mVars.forEach(vi => {
         const oi = g.byId.get('ORG:' + g.N[vi].o);
         if (oi != null) orgSet.add(oi);
       });
       state.cols[1] = Array.from(orgSet);
-      const varSet = new Set();
-      state.cols[1].forEach(oi => {
-        g.adj[oi].forEach(x => { if (x.ek === 0 && g.N[x.j].k === 1) varSet.add(x.j); });
-      });
-      state.cols[2] = Array.from(varSet);
+      state.cols[2] = mVars;
       recordTrail('시장 소식');
       return;
     }
@@ -10593,6 +10836,7 @@ App.registerTab((function () {
   }
 
   function releaseBatchMore(colIdx) {
+    const g = ensureGraph();
     const b = state.batches[colIdx];
     if (!b) return;
     pushUndo();
@@ -10600,7 +10844,118 @@ App.registerTab((function () {
     state.cols[colIdx] = b.pool.slice(0, nextShown);
     b.shown = nextShown;
     if (b.shown >= b.pool.length) delete state.batches[colIdx];
-    recordTrail(`${b.label || G.kinds[COL_KINDS[colIdx]]} +${BATCH_SIZE}`);
+    if (state.preset === 'variant' && state.cols[2].length === 1) {
+      if (colIdx === 3) syncVariantDownstream(g, state.cols[2][0], false);
+      else if (colIdx === 4) {
+        const stds = [];
+        const stdSeen = new Set();
+        state.cols[4].forEach(bi => {
+          (g.benStds.get(bi) || []).forEach(({ std }) => {
+            if (!stdSeen.has(std)) { stdSeen.add(std); stds.push(std); }
+          });
+        });
+        state.cols[5] = stds;
+        const doms = [];
+        const domSeen = new Set();
+        stds.forEach(si => {
+          const dm = g.stdDom.get(si);
+          if (dm && !domSeen.has(dm.dom)) { domSeen.add(dm.dom); doms.push(dm.dom); }
+        });
+        state.cols[6] = doms;
+      }
+    }
+    recordTrail(`${b.label || g.kinds[COL_KINDS[colIdx]]} +${BATCH_SIZE}`);
+    rerenderGraph(true);
+  }
+
+  // 담보 대응 2걸음에서 회사별 특약과 급부 목록을 12개 단위로 구성한다(1-3: 모든 회사의 길이 빠짐없이 이어진다)
+  function buildCoverStdColumns(g, stdIdx, vars) {
+    const riders = [];
+    const riderSeen = new Set();
+    const bens = [];
+    const benSeen = new Set();
+    const more3 = [];
+    const more4 = [];
+
+    delete state.batches[3];
+    delete state.batches[4];
+
+    vars.forEach(vi => {
+      const sMap = g.varStdPaths.get(vi);
+      const pathObj = sMap && sMap.get(stdIdx);
+      if (!pathObj || !pathObj.riders.length) return;
+
+      const orgNm = orgLabel(g.N[vi].o);
+      const limR = state.varLimits['r:' + vi] || BATCH_SIZE;
+      const shownVarRiders = pathObj.riders.slice(0, limR);
+      let lastR = null;
+      shownVarRiders.forEach(ri => {
+        if (!riderSeen.has(ri)) { riderSeen.add(ri); riders.push(ri); }
+        lastR = ri;
+      });
+      const remR = pathObj.riders.length - shownVarRiders.length;
+      if (remR > 0) {
+        more3.push({ afterIdx: lastR, key: `r:${vi}`, rem: remR, label: `+${fmt(remR)} 더 (${orgNm})` });
+      }
+
+      // 보이는 특약에서 고른 담보로 이어지는 급부는 빠짐없이 함께 보여 길이 끊기지 않게 한다(1-3)
+      const validBenSet = new Set(pathObj.bens);
+      const shownVarBens = [];
+      const shownVarBenSet = new Set();
+      shownVarRiders.forEach(ri => {
+        (g.riderBens.get(ri) || []).forEach(bi => {
+          if (validBenSet.has(bi) && !shownVarBenSet.has(bi)) {
+            shownVarBenSet.add(bi);
+            shownVarBens.push(bi);
+          }
+        });
+      });
+      let lastB = null;
+      shownVarBens.forEach(bi => {
+        if (!benSeen.has(bi)) { benSeen.add(bi); bens.push(bi); }
+        lastB = bi;
+      });
+      const remB = pathObj.bens.length - shownVarBens.length;
+      if (remB > 0) {
+        more4.push({ afterIdx: lastB, key: `r:${vi}`, rem: remB, label: `+${fmt(remB)} 더 (${orgNm})` });
+      }
+    });
+
+    // 비교 종형 바깥에서만 이어진 급부가 있는 담보면 그 급부와 특약을 열에 놓는다
+    if (!bens.length) {
+      const extR = [];
+      const extB = [];
+      (g.stdBens.get(stdIdx) || []).forEach(({ ben }) => {
+        if (!benSeen.has(ben)) { benSeen.add(ben); extB.push(ben); }
+        (g.benRiders.get(ben) || []).forEach(ri => {
+          if (!riderSeen.has(ri)) { riderSeen.add(ri); extR.push(ri); }
+        });
+      });
+      setColWithBatch(3, extR, '특약');
+      setColWithBatch(4, extB, '급부');
+      state.varMores = {};
+      return;
+    }
+
+    state.cols[3] = riders;
+    state.cols[4] = bens;
+    state.varMores = { 3: more3, 4: more4 };
+  }
+
+  function releaseVarMore(vmoreKey) {
+    const g = ensureGraph();
+    if (state.activeStd == null) return;
+    pushUndo();
+    const cur = state.varLimits[vmoreKey] || BATCH_SIZE;
+    state.varLimits[vmoreKey] = cur + BATCH_SIZE;
+    // 특약 한도를 늘릴 때 급부 한도도 함께 맞춰 새로 열린 특약의 급부가 바로 이어지게 한다
+    if (vmoreKey.startsWith('r:')) {
+      const bKey = 'b:' + vmoreKey.slice(2);
+      state.varLimits[bKey] = Math.max(state.varLimits[bKey] || BATCH_SIZE, state.varLimits[vmoreKey]);
+    }
+    const vars = state.cols[2].length ? state.cols[2] : matchedVariants(g, App.ctx());
+    buildCoverStdColumns(g, state.activeStd, vars);
+    recordTrail(`${g.N[state.activeStd].l} +${BATCH_SIZE}`);
     rerenderGraph(true);
   }
 
@@ -10613,6 +10968,8 @@ App.registerTab((function () {
     state.cols[2] = vars;
     state.cols[3] = [];
     state.cols[4] = [];
+    state.varLimits = {};
+    state.varMores = {};
     delete state.batches[3];
     delete state.batches[4];
     delete state.batches[5];
@@ -10624,6 +10981,7 @@ App.registerTab((function () {
     state.activeDom = domIdx;
     state.activeStd = null;
     state.selNode = domIdx;
+    state.focusNode = domIdx;
     state.selEdge = null;
     recordTrail(g.N[domIdx].l);
   }
@@ -10658,39 +11016,13 @@ App.registerTab((function () {
       state.cols[5] = [stdIdx].concat(state.cols[5]);
     }
 
-    // 활성 종형 순서대로 특약과 급부를 모아 선 교차를 최소화한다
-    const riders = [];
-    const riderSeen = new Set();
-    const bens = [];
-    const benSeen = new Set();
-
-    vars.forEach(vi => {
-      const sMap = g.varStdPaths.get(vi);
-      const pathObj = sMap && sMap.get(stdIdx);
-      if (!pathObj) return;
-      pathObj.riders.forEach(ri => {
-        if (!riderSeen.has(ri)) { riderSeen.add(ri); riders.push(ri); }
-      });
-      pathObj.bens.forEach(bi => {
-        if (!benSeen.has(bi)) { benSeen.add(bi); bens.push(bi); }
-      });
-    });
-
-    // 혹시 현재 종형 바깥에서만 이어진 급부가 있으면 그 급부와 특약도 빠뜨리지 않는다
-    if (!bens.length) {
-      (g.stdBens.get(stdIdx) || []).forEach(({ ben }) => {
-        if (!benSeen.has(ben)) { benSeen.add(ben); bens.push(ben); }
-        (g.benRiders.get(ben) || []).forEach(ri => {
-          if (!riderSeen.has(ri)) { riderSeen.add(ri); riders.push(ri); }
-        });
-      });
-    }
-
-    setColWithBatch(3, riders, '특약');
-    setColWithBatch(4, bens, '급부');
+    state.varLimits = {};
+    state.varMores = {};
+    buildCoverStdColumns(g, stdIdx, vars);
     state.mode = 'cover-2';
     state.activeStd = stdIdx;
     state.selNode = stdIdx;
+    state.focusNode = stdIdx;
     state.selEdge = null;
     recordTrail(g.N[stdIdx].l);
   }
@@ -10740,28 +11072,30 @@ App.registerTab((function () {
     const hit = groups.find(x => x.key === grpKey);
     if (!hit || !hit.nodes.length) return;
     pushUndo();
-    if (state.mode === 'cover-0' || state.mode === 'cover-1') state.mode = 'hop';
+    if (state.mode === 'cover-0' || state.mode === 'cover-1' || state.mode === 'cover-2') state.mode = 'hop';
+    state.varMores = {};
     let list = hit.nodes.slice();
     if (hit.nbKind === 6) {
       list.sort((a, b) => String(g.N[b].p['발표일자'] || '').localeCompare(String(g.N[a].p['발표일자'] || '')));
     }
     appendToColWithBatch(hit.dstCol, list, hit.nbKindName);
     state.selNode = nodeIdx;
+    state.focusNode = nodeIdx;
     state.selEdge = null;
     recordTrail(`${g.N[nodeIdx].l} (${hit.nbKindName})`);
     rerenderGraph(true);
-    App.select('n:' + g.N[nodeIdx].id, { animate: false });
+    App.select('n:' + g.N[nodeIdx].id, { animate: false, focus: false });
   }
 
-  // 표준담보의 우체국 보유 / 단독 보유 판별(summary.표준담보별종형 우선 사용)
-  function stdOwnershipClass(g, stdIdx) {
+  // 표준담보의 우체국 보유, 단독 보유, 비교 종형 미연결 판별(1-1, 1-11: 화면 열이 아니라 기준 종형과 맞붙는 종형을 비교 대상으로 삼는다)
+  function stdOwnershipClass(g, stdIdx, c) {
     const stdNode = g.N[stdIdx];
     if (!stdNode) return '';
-    const cmpVars = state.cols[2].filter(vi => {
-      const vs = g.summary && g.summary['종형'] && g.summary['종형'][g.N[vi].id];
-      return !vs || (!vs['판매종료일'] && vs['비교역할'] !== '관문전용' && vs['비교역할'] !== '직전개정시연');
-    });
-    const activeSet = new Set(cmpVars.length ? cmpVars : state.cols[2]);
+    const curC = c || App.ctx();
+    const cmpVars = matchedVariants(g, curC);
+    const activeSet = new Set(cmpVars);
+    const hasPeerScope = cmpVars.some(vi => g.N[vi] && g.N[vi].o && g.N[vi].o !== 'EPOST');
+
     let holderIdxs = null;
     if (g.summary && g.summary['표준담보별종형'] && Array.isArray(g.summary['표준담보별종형'][stdNode.id])) {
       holderIdxs = g.summary['표준담보별종형'][stdNode.id];
@@ -10784,7 +11118,8 @@ App.registerTab((function () {
       });
     }
     if (!epostHas && peerHas) return 'is-miss';
-    if (epostHas && !peerHas) return 'is-only';
+    if (epostHas && !peerHas && hasPeerScope) return 'is-only';
+    if (!epostHas && !peerHas) return 'is-unlinked';
     return '';
   }
 
@@ -10860,7 +11195,7 @@ App.registerTab((function () {
       });
     }
 
-    // 3. 1걸음 펼침(보장분야를 펼쳐 표준담보는 열렸고 특약과 급부는 접혀 있을 때): 종형 -> 표준담보 연결선(summary.표준담보별종형 우선)
+    // 3. 1걸음 펼침(보장분야를 펼쳐 표준담보는 열렸고 특약과 급부는 접혀 있을 때): 종형 -> 표준담보 보유 연결선(1-12: 화면에서 특약과 급부 수를 세지 않는다)
     if (hasStds && !hasRidersOrBens && visByCol[2].size) {
       state.cols[5].forEach(si => {
         const sNode = g.N[si];
@@ -10872,23 +11207,20 @@ App.registerTab((function () {
           const pObj = sMap && sMap.get(si);
           const hasLink = holderSet ? holderSet.has(vi) : !!pObj;
           if (!hasLink) return;
-          const rCnt = pObj ? pObj.riders.length : 0;
-          const bCnt = pObj ? pObj.bens.length : 0;
           edges.push({
             key: `vs:${vi}:${si}`,
             kind: 'var-std',
             eIdx: null,
             ek: 2,
-            ekName: rCnt || bCnt ? `특약 ${rCnt}, 급부 ${bCnt}` : '보유 연결',
+            ekName: '보유 연결',
             leftNode: vi,
             rightNode: si,
             sNode: vi,
             tNode: si,
             intraCol: false,
             props: {
-              연결구분: '종형에서 표준담보로 이어지는 경로 요약',
-              연결특약수: rCnt,
-              연결급부수: bCnt,
+              연결구분: '종형에서 표준담보로 이어지는 보유 연결',
+              안내: '표준담보를 누르면 회사별 특약과 급부 열이 펼쳐집니다',
             },
             pathObj: pObj,
             count: null,
@@ -10973,13 +11305,29 @@ App.registerTab((function () {
     return parts.join(', ');
   }
 
-  function renderNodeCardHTML(g, ni, hl) {
+  function ensureFocusNode() {
+    const allVis = new Set();
+    let firstVis = null;
+    for (let colIdx = 0; colIdx < state.cols.length; colIdx++) {
+      for (const ni of state.cols[colIdx]) {
+        if (firstVis == null) firstVis = ni;
+        allVis.add(ni);
+      }
+    }
+    if (state.selNode != null && allVis.has(state.selNode)) {
+      if (state.focusNode == null || !allVis.has(state.focusNode)) state.focusNode = state.selNode;
+    } else if (state.focusNode == null || !allVis.has(state.focusNode)) {
+      state.focusNode = firstVis;
+    }
+  }
+
+  function renderNodeCardHTML(g, ni, hl, c) {
     const n = g.N[ni];
     if (!n) return '';
     const isSel = state.selNode === ni && !state.selEdge;
     const isDim = hl.active && !hl.nodes.has(ni);
     const isEpost = n.o === 'EPOST';
-    const stdCls = n.k === 4 ? stdOwnershipClass(g, ni) : '';
+    const stdCls = n.k === 4 ? stdOwnershipClass(g, ni, c) : '';
     const cls = [
       'gr-node',
       `k-${n.k}`,
@@ -11024,7 +11372,13 @@ App.registerTab((function () {
       const benCnt = (g.stdBens.get(ni) || []).length;
       const goldMark = stdCls === 'is-only' ? '<i class="gr-gold-mk" aria-hidden="true"></i>' : '';
       inner = `${goldMark}<span class="gn-t">${esc(n.l)}</span><span class="gn-cnt num">${fmt(benCnt)}</span>`;
-      const ownNote = stdCls === 'is-miss' ? '우체국 종형 연결 없음' : stdCls === 'is-only' ? '우체국 단독 연결' : `연결 급부 ${fmt(benCnt)}개`;
+      const ownNote = stdCls === 'is-miss'
+        ? '우체국 종형 연결 없음'
+        : stdCls === 'is-only'
+          ? '우체국 단독 연결'
+          : stdCls === 'is-unlinked'
+            ? '비교 종형에 연결 없음'
+            : `연결 급부 ${fmt(benCnt)}개`;
       tipSub = `${p['보장대분류'] || ''} / ${p['급부유형'] || ''} / ${ownNote}`;
     } else if (n.k === 5) {
       const stdCnt = (g.domStds.get(ni) || []).length;
@@ -11050,15 +11404,16 @@ App.registerTab((function () {
       }
     }
 
+    const tabIdx = state.focusNode === ni ? 0 : -1;
     return `<div class="gr-node-wrap${isDim ? ' is-dim' : ''}" data-gr-wrap="${esc(n.id)}">
-      <button type="button" class="${cls}" data-gr-node="${esc(n.id)}" data-gr-idx="${ni}" data-aim="rect" data-link-pt="1"${isSel ? ' data-sel-anchor="1"' : ''} data-tip-title="${esc(n.l)}" data-tip-sub="${esc(tipSub)}" aria-pressed="${isSel}">
+      <button type="button" class="${cls}" tabindex="${tabIdx}" data-gr-node="${esc(n.id)}" data-gr-idx="${ni}" data-aim="rect" data-link-pt="1"${isSel ? ' data-sel-anchor="1"' : ''} data-tip-title="${esc(n.l)}" data-tip-sub="${esc(tipSub)}" aria-pressed="${isSel}">
         ${inner}
       </button>
       ${hopBar}
     </div>`;
   }
 
-  function renderVerticalMobileHTML(g, edges, hl) {
+  function renderVerticalMobileHTML(g, edges, hl, c) {
     // 1000px 미만: 고른 노드(없으면 첫 열들 대표)의 조상과 자손 길을 세로 한 열로 세운다
     const steps = [];
     COL_KINDS.forEach((k, colIdx) => {
@@ -11069,13 +11424,13 @@ App.registerTab((function () {
       const isCurCol = state.selNode != null && g.N[state.selNode] && g.N[state.selNode].k === k;
       steps.push(`<div class="gr-vp-step${isCurCol ? ' is-cur' : ''}">
         <div class="gr-vp-hd"><span>${esc(g.kinds[k])}</span><span class="num">${fmt(filtered.length)}/${fmt(raw.length)}</span></div>
-        <div class="gr-vp-nodes">${filtered.map(ni => renderNodeCardHTML(g, ni, { active: false, nodes: new Set() })).join('')}</div>
+        <div class="gr-vp-nodes">${filtered.map(ni => renderNodeCardHTML(g, ni, { active: false, nodes: new Set() }, c)).join('')}</div>
       </div>`);
     });
     return steps.join('');
   }
 
-  function renderLeftZone(leftEl, g) {
+  function renderLeftZone(leftEl) {
     if (!leftEl) return;
     const presets = [
       { id: 'cover', nm: '담보 대응', sub: '회사, 종형, 보장분야에서 담보 길 비교' },
@@ -11177,7 +11532,8 @@ App.registerTab((function () {
           d = Math.abs(y2 - y1) <= 2 ? `M${x1} ${y1}H${x2}` : `M${x1} ${y1}H${mx}V${y2}H${x2}`;
           chipX = mx;
           chipY = Math.round((y1 + y2) / 2);
-          ed._badgeX = Math.round(x2 - 16 - (vCount - 1 - vRank) * 24);
+          const stepB = Math.min(24, Math.max(10, Math.floor((spanX * 0.42) / Math.max(1, vCount))));
+          ed._badgeX = Math.max(x1 + 14, Math.round(x2 - 16 - (vCount - 1 - vRank) * stepB));
           ed._badgeY = y2;
         } else {
           const spread = list.length > 1 ? ((idx / (list.length - 1)) - 0.5) * Math.min(12, list.length * 1.8) : 0;
@@ -11214,7 +11570,7 @@ App.registerTab((function () {
         countBadge = `<rect class="gr-edge-cnt-bg" x="${bx - bw / 2}" y="${by - 7}" width="${bw}" height="14"/><text class="gr-edge-cnt-tx" x="${bx}" y="${by}">${ed.count}</text>`;
       }
 
-      svgParts.push(`<g class="${gCls}" data-gr-edge="${esc(ed.key)}" data-chip="${esc(chipLabel)}" data-cx="${chipX}" data-cy="${chipY}">
+      svgParts.push(`<g class="${gCls}" data-gr-edge="${esc(ed.key)}" data-chip="${esc(chipLabel)}" data-cx="${chipX}" data-cy="${chipY}"${isEsel ? ' data-sel-anchor="1"' : ''}>
         <path class="gr-edge-hit" d="${d}"/>
         ${visMarkup}
         ${countBadge}
@@ -11227,19 +11583,18 @@ App.registerTab((function () {
 
     svg.innerHTML = svgParts.join('');
 
-    // 쓰기 패스: 기존 노드는 새 자리로 미끄러지고(FLIP), 새 엣지는 출발에서 도착으로 그어진다
+    // 쓰기 패스(1-4): 이미 보이던 노드는 수에 한도를 두지 않고 모두 새 자리로 미끄러지고, 새 노드만 나타난다
     if (animate && App.motionOn()) {
       const mScale = App.motionScale();
-      let animBudget = 0;
+      let newCount = 0;
       for (const [ni, el] of nodeElMap.entries()) {
-        if (animBudget >= 28 || typeof el.animate !== 'function') break;
+        if (typeof el.animate !== 'function') continue;
         const nextR = nodeRectMap.get(ni);
         const prevR = prevNodeRects ? prevNodeRects.get(ni) : null;
         if (prevR && nextR) {
           const dx = prevR.left - nextR.left;
           const dy = prevR.top - nextR.top;
           if (Math.abs(dx) > 1.5 || Math.abs(dy) > 1.5) {
-            animBudget++;
             el.animate([
               { transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0)` },
               { transform: 'translate3d(0,0,0)' },
@@ -11249,30 +11604,31 @@ App.registerTab((function () {
             });
           }
         } else if (prevNodeRects && prevNodeRects.size > 0) {
-          animBudget++;
+          const staggerIdx = Math.min(newCount, 12);
+          newCount++;
           el.animate([
             { transform: 'translate3d(0,6px,0)', opacity: 0 },
             { transform: 'translate3d(0,0,0)', opacity: 1 },
           ], {
             duration: Math.max(100, Math.round(240 * mScale)),
-            delay: Math.round(Math.min(90, animBudget * 8) * mScale),
+            delay: Math.round(staggerIdx * 8 * mScale),
             easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
             fill: 'backwards',
           });
         }
       }
 
-      const maxEdgeAnim = Math.min(24, newEdgeIds.length);
-      for (let k = 0; k < maxEdgeIdsLimit(maxEdgeAnim); k++) {
+      for (let k = 0; k < newEdgeIds.length; k++) {
         const gEl = svg.querySelector(`[data-gr-edge="${CSS.escape(newEdgeIds[k])}"]`);
         const pEl = gEl && gEl.querySelector('.gr-edge-vis, .gr-edge-dbl-out');
-        if (pEl && typeof pEl.animate === 'function') {
+        if (pEl && typeof pEl.animate !== 'function') continue;
+        if (pEl) {
           pEl.animate([
             { strokeDasharray: '1 1', strokeDashoffset: 1 },
             { strokeDasharray: '1 1', strokeDashoffset: 0 },
           ], {
             duration: Math.max(100, Math.round(260 * mScale)),
-            delay: Math.round(Math.min(80, k * 6) * mScale),
+            delay: Math.round(Math.min(12, k) * 6 * mScale),
             easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
             fill: 'backwards',
           });
@@ -11280,8 +11636,6 @@ App.registerTab((function () {
       }
     }
   }
-
-  function maxEdgeIdsLimit(n) { return n; }
 
   function captureCurrentNodeRects(centerEl) {
     const m = new Map();
@@ -11293,15 +11647,76 @@ App.registerTab((function () {
     return m;
   }
 
-  function rerenderGraph(animate) {
+  // 열 머리의 수 표시(1-9: 종형 구성 틀에서 일부만 펼쳐진 열은 N/전체로 표시한다)
+  function columnCountText(g, colIdx) {
+    const cnt = state.cols[colIdx].length;
+    if (state.preset === 'variant' && state.cols[2].length === 1) {
+      const vNode = g.N[state.cols[2][0]];
+      const vSum = vNode && g.summary && g.summary['종형'] && g.summary['종형'][vNode.id];
+      if (vSum) {
+        let tot = null;
+        if (colIdx === 3) tot = vSum['특약수'];
+        else if (colIdx === 4) tot = vSum['급부수'];
+        else if (colIdx === 5 && Array.isArray(vSum['표준담보'])) tot = vSum['표준담보'].length;
+        else if (colIdx === 6 && vSum['보장분야별']) tot = Object.values(vSum['보장분야별']).filter(v => v > 0).length;
+        if (tot != null && cnt < tot) return `${fmt(cnt)}/${fmt(tot)}`;
+      }
+    }
+    const b = state.batches[colIdx];
+    if (b && b.pool && cnt < b.pool.length) return `${fmt(cnt)}/${fmt(b.pool.length)}`;
+    const vm = state.varMores[colIdx];
+    if (vm && vm.length) {
+      const hiddenSum = vm.reduce((s, x) => s + x.rem, 0);
+      if (hiddenSum > 0) return `${fmt(cnt)}/${fmt(cnt + hiddenSum)}`;
+    }
+    return fmt(cnt);
+  }
+
+  // 종형 구성 틀의 특약 열 본문을 담보구분 묶음 머리별로 그린다(1-9)
+  function renderVariantRiderColHTML(g, items, hl, c) {
+    const allRiders = state.variantRidersAll.length ? state.variantRidersAll : items;
+    const totByGrp = new Map();
+    const orderGrps = [];
+    allRiders.forEach(ri => {
+      const grp = String((g.N[ri] && g.N[ri].p['담보구분']) || '기타');
+      if (!totByGrp.has(grp)) { totByGrp.set(grp, 0); orderGrps.push(grp); }
+      totByGrp.set(grp, totByGrp.get(grp) + 1);
+    });
+    const shownByGrp = new Map();
+    items.forEach(ri => {
+      const grp = String((g.N[ri] && g.N[ri].p['담보구분']) || '기타');
+      if (!shownByGrp.has(grp)) shownByGrp.set(grp, []);
+      shownByGrp.get(grp).push(ri);
+    });
+
+    const parts = [];
+    orderGrps.forEach(grp => {
+      const tot = totByGrp.get(grp) || 0;
+      const list = shownByGrp.get(grp) || [];
+      const cntTxt = list.length === tot ? fmt(tot) : `${fmt(list.length)}/${fmt(tot)}`;
+      parts.push(`<div class="gr-grp-hd${list.length ? '' : ' is-rest'}"><span>${esc(grp)}</span><span class="num">${cntTxt}</span></div>`);
+      list.forEach(ri => { parts.push(renderNodeCardHTML(g, ri, hl, c)); });
+    });
+    return parts.join('');
+  }
+
+  function rerenderGraph(animate, opts = {}) {
     const g = ensureGraph();
     if (!lastCenterEl) return;
+    if (edgeDrawRaf) { cancelAnimationFrame(edgeDrawRaf); edgeDrawRaf = 0; }
+    hoveredEdgeEl = null;
+
+    const curC = App.ctx();
+    ensureFocusNode();
 
     // 1단계(읽기 전용): 바꾸기 전 노드의 화면 좌표를 먼저 기록한다
     const prevNodeRects = animate ? captureCurrentNodeRects(lastCenterEl) : null;
     const prevEdgeKeys = animate ? new Set(renderedEdges.keys()) : null;
 
     const edges = buildEdgeList(g);
+    // 첫 프레임의 요약 배지(엣지 수)와 조상/자손 계산이 정확한 수를 읽도록 논리 엣지 맵을 먼저 채운다
+    renderedEdges = new Map();
+    edges.forEach(ed => renderedEdges.set(ed.key, ed));
     const hl = computeHighlightSets(edges);
 
     const trailHTML = trail.map((tr, idx) => {
@@ -11311,10 +11726,10 @@ App.registerTab((function () {
 
     const colHeadsHTML = COL_KINDS.map((k, colIdx) => {
       const cnt = state.cols[colIdx].length;
-      const open = cnt > 0 || !!state.batches[colIdx];
+      const open = cnt > 0 || !!state.batches[colIdx] || !!(state.varMores[colIdx] && state.varMores[colIdx].length);
       return `<div class="gr-col-hd gr-c-${k} ${open ? 'is-open' : 'is-folded'}">
         <span class="gr-col-nm">${esc(g.kinds[k])}</span>
-        <span class="gr-col-cnt num">${fmt(cnt)}</span>
+        <span class="gr-col-cnt num">${columnCountText(g, colIdx)}</span>
       </div>`;
     }).join('');
 
@@ -11322,15 +11737,46 @@ App.registerTab((function () {
     const colsBodyHTML = isNarrow ? '' : COL_KINDS.map((k, colIdx) => {
       const items = state.cols[colIdx];
       const b = state.batches[colIdx];
-      const open = items.length > 0 || !!b;
-      const cards = items.map(ni => renderNodeCardHTML(g, ni, hl)).join('');
+      const vmList = state.varMores[colIdx] || [];
+      const open = items.length > 0 || !!b || vmList.length > 0;
+
+      let cards = '';
+      if (colIdx === 3 && state.preset === 'variant' && items.length > 0) {
+        cards = renderVariantRiderColHTML(g, items, hl, curC);
+      } else if (vmList.length > 0) {
+        const byAfter = new Map();
+        const tailMores = [];
+        vmList.forEach(m => {
+          if (m.afterIdx != null && items.includes(m.afterIdx)) {
+            let a = byAfter.get(m.afterIdx);
+            if (!a) { a = []; byAfter.set(m.afterIdx, a); }
+            a.push(m);
+          } else {
+            tailMores.push(m);
+          }
+        });
+        const chunks = [];
+        items.forEach(ni => {
+          chunks.push(renderNodeCardHTML(g, ni, hl, curC));
+          (byAfter.get(ni) || []).forEach(m => {
+            chunks.push(`<button type="button" class="gr-node gr-more" tabindex="-1" data-gr-vmore="${esc(m.key)}" data-aim="rect">${esc(m.label)}</button>`);
+          });
+        });
+        tailMores.forEach(m => {
+          chunks.push(`<button type="button" class="gr-node gr-more" tabindex="-1" data-gr-vmore="${esc(m.key)}" data-aim="rect">${esc(m.label)}</button>`);
+        });
+        cards = chunks.join('');
+      } else {
+        cards = items.map(ni => renderNodeCardHTML(g, ni, hl, curC)).join('');
+      }
+
       const moreBtn = b && b.shown < b.pool.length
-        ? `<button type="button" class="gr-node gr-more" data-gr-more="${colIdx}" data-aim="rect">+${fmt(b.pool.length - b.shown)} 더</button>`
+        ? `<button type="button" class="gr-node gr-more" tabindex="-1" data-gr-more="${colIdx}" data-aim="rect">+${fmt(b.pool.length - b.shown)} 더</button>`
         : '';
       return `<div class="gr-col gr-c-${k} ${open ? 'is-open' : 'is-folded'}" data-col-idx="${colIdx}">${cards}${moreBtn}</div>`;
     }).join('');
 
-    const vpathHTML = isNarrow ? renderVerticalMobileHTML(g, edges, hl) : '';
+    const vpathHTML = isNarrow ? renderVerticalMobileHTML(g, edges, hl, curC) : '';
 
     lastCenterEl.innerHTML = `<div class="gr-wrap" id="gr-stage-root">
       <nav class="gr-trail" aria-label="지나온 길"><span class="gr-trail-k">지나온 길</span>${trailHTML}</nav>
@@ -11338,7 +11784,7 @@ App.registerTab((function () {
       <div class="gr-canvas-scroll" id="gr-scroll">
         <div class="gr-canvas" id="gr-canvas">
           <svg class="gr-edges-svg" id="gr-edges-svg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
-          <div class="gr-edge-chip" id="gr-edge-chip" hidden></div>
+          <div class="gr-edge-chip" id="gr-edge-chip" data-aim="rect" hidden></div>
           <div class="gr-cols-grid">${colsBodyHTML}</div>
         </div>
       </div>`}
@@ -11354,8 +11800,33 @@ App.registerTab((function () {
       });
     }
 
-    drawOrthogonalEdges(lastCenterEl, g, edges, hl, prevNodeRects, prevEdgeKeys, animate);
-    requestAnimationFrame(() => App.updateSelLink(false));
+    if (opts.deferEdges && !isNarrow) {
+      const targetCenter = lastCenterEl;
+      edgeDrawRaf = requestAnimationFrame(() => {
+        edgeDrawRaf = 0;
+        if (App.state.tab !== 'graph' || targetCenter !== lastCenterEl) return;
+        drawOrthogonalEdges(targetCenter, g, edges, hl, null, null, false);
+        App.updateSelLink(false);
+      });
+    } else {
+      drawOrthogonalEdges(lastCenterEl, g, edges, hl, prevNodeRects, prevEdgeKeys, animate);
+      requestAnimationFrame(() => App.updateSelLink(false));
+    }
+  }
+
+  function restoreGraphNodeFocus(ni) {
+    if (ni == null || !lastCenterEl) return;
+    state.focusNode = ni;
+    const allBtns = lastCenterEl.querySelectorAll('.gr-node[data-gr-idx]');
+    let target = null;
+    allBtns.forEach(b => {
+      const match = +b.dataset.grIdx === ni;
+      b.tabIndex = match ? 0 : -1;
+      if (match && !target) target = b;
+    });
+    if (target) {
+      try { target.focus({ preventScroll: true }); } catch (e) { /* */ }
+    }
   }
 
   // ---------- 오른쪽 읽기 영역(#z-right): 노드 상세, 엣지 속성, 다른 화면 이동 ----------
@@ -11377,8 +11848,27 @@ App.registerTab((function () {
       const links = g.benStds.get(n.i) || [];
       if (links.length) stdId = g.N[links[0].std].id;
     }
+
+    // 가입 관문에서 보기: 전체 표 창(tree)을 띄우지 않고 해당 종형을 고른 상태로 바로 연다(1-13)
+    let gateVid = '';
+    if (n.k === 1) gateVid = n.id;
+    else if (n.k === 2) {
+      const vList = g.riderVars.get(n.i) || [];
+      if (vList.length) gateVid = g.N[vList[0]].id;
+    } else if (n.k === 3) {
+      const rList = g.benRiders.get(n.i) || [];
+      if (rList.length) {
+        const vList = g.riderVars.get(rList[0]) || [];
+        if (vList.length) gateVid = g.N[vList[0]].id;
+      }
+    } else if (n.k === 0 && n.o) {
+      const mVars = matchedVariants(g, App.ctx());
+      const hitV = mVars.find(vi => g.N[vi] && g.N[vi].o === n.o);
+      if (hitV != null) gateVid = g.N[hitV].id;
+    }
+
     const coverFocus = stdId ? ` data-focus="s:${esc(stdId)}"` : '';
-    const gateFocus = n.k === 1 ? ` data-focus="tree"` : '';
+    const gateFocus = gateVid ? ` data-focus="g:${esc(gateVid)}"` : '';
     return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
       ${ui.btn('담보 비교에서 보기', { sm: true, ghost: true, chev: true, attrs: `data-go="cover"${coverFocus}` })}
       ${ui.btn('가입 관문에서 보기', { sm: true, ghost: true, chev: true, attrs: `data-go="gate"${gateFocus}` })}
@@ -11388,6 +11878,7 @@ App.registerTab((function () {
   function buildNodeEv(g, ni) {
     const n = g.N[ni];
     if (!n) return null;
+    const curC = App.ctx();
     const groups = neighborGroupsOf(g, ni);
     const hopBtns = groups.map(grp =>
       `<button type="button" class="btn sm ghost" data-gr-expand="${ni}|${esc(grp.key)}"><span>${esc(grp.nbKindName)} (${esc(grp.ekName)})</span><span class="num">${fmt(grp.nodes.length)}</span>${ui.IC.chevR}</button>`
@@ -11408,9 +11899,10 @@ App.registerTab((function () {
     const badges = [ui.tag(g.kinds[n.k])];
     if (n.o) badges.push(ui.tag(orgLabel(n.o)));
     if (n.k === 4) {
-      const ownCls = stdOwnershipClass(g, ni);
+      const ownCls = stdOwnershipClass(g, ni, curC);
       if (ownCls === 'is-miss') badges.push(ui.verdict('none'));
       else if (ownCls === 'is-only') badges.push(ui.verdict('only'));
+      else if (ownCls === 'is-unlinked') badges.push(ui.tag('비교 종형에 없음'));
     }
 
     const extraRows = [['식별자', n.id]];
@@ -11517,6 +12009,7 @@ App.registerTab((function () {
       const ni = g.byId.get(id);
       if (ni == null) return null;
       state.selNode = ni;
+      state.focusNode = ni;
       state.selEdge = null;
       return buildNodeEv(g, ni);
     }
@@ -11546,7 +12039,7 @@ App.registerTab((function () {
   }
 
   function renderZones({ left, center, ctx: c }) {
-    const g = ensureGraph();
+    ensureGraph();
     lastLeftEl = left;
     lastCenterEl = center;
     const sig = scopeSig(c);
@@ -11555,31 +12048,28 @@ App.registerTab((function () {
       lastScopeSig = sig;
       initPresetState(state.preset || 'cover', c, false);
     }
-    renderLeftZone(left, g);
-    rerenderGraph(false);
+    renderLeftZone(left);
+    // 탭 진입 첫 프레임에는 열과 노드를 그리고, 엣지 좌표 읽기는 다음 프레임에 돌린다(1-10)
+    rerenderGraph(false, { deferEdges: true });
   }
 
-  function selectAndHandleNode(ni, c) {
+  function selectAndHandleNode(ni, c, keepFocus) {
     const g = ensureGraph();
     const n = g.N[ni];
     if (!n) return;
     if (state.preset === 'cover' && n.k === 5) {
       expandDomainStep(ni, c);
-      rerenderGraph(true);
-      App.select('n:' + n.id, { animate: true });
-      return;
-    }
-    if (state.preset === 'cover' && n.k === 4) {
+    } else if (state.preset === 'cover' && n.k === 4) {
       expandStdStep(ni, c);
-      rerenderGraph(true);
-      App.select('n:' + n.id, { animate: true });
-      return;
+    } else {
+      state.selNode = ni;
+      state.focusNode = ni;
+      state.selEdge = null;
+      recordTrail(n.l);
     }
-    state.selNode = ni;
-    state.selEdge = null;
-    recordTrail(n.l);
     rerenderGraph(true);
-    App.select('n:' + n.id, { animate: true });
+    App.select('n:' + n.id, { animate: true, focus: false });
+    if (keepFocus) restoreGraphNodeFocus(ni);
   }
 
   function jumpToAnyNode(ni, c) {
@@ -11597,6 +12087,7 @@ App.registerTab((function () {
       initPresetState('news', c, true);
       if (!state.cols[0].includes(ni)) state.cols[0].unshift(ni);
       state.selNode = ni;
+      state.focusNode = ni;
       recordTrail(n.l);
     } else if (n.k === 1) {
       initPresetState('cover', c, true);
@@ -11604,17 +12095,20 @@ App.registerTab((function () {
       const oi = n.o ? g.byId.get('ORG:' + n.o) : null;
       if (oi != null && !state.cols[1].includes(oi)) state.cols[1].unshift(oi);
       state.selNode = ni;
+      state.focusNode = ni;
       recordTrail(n.l);
     } else {
       pushUndo();
       if (!state.cols[colIdx].includes(ni)) state.cols[colIdx].unshift(ni);
       state.selNode = ni;
+      state.focusNode = ni;
       state.selEdge = null;
       recordTrail(n.l);
     }
-    if (lastLeftEl) renderLeftZone(lastLeftEl, g);
+    if (lastLeftEl) renderLeftZone(lastLeftEl);
     rerenderGraph(true);
-    App.select('n:' + n.id, { animate: true });
+    App.select('n:' + n.id, { animate: true, focus: false });
+    restoreGraphNodeFocus(ni);
   }
 
   function focus(target, _body, c) {
@@ -11667,7 +12161,36 @@ App.registerTab((function () {
     sugg.hidden = false;
   }
 
-  // ---------- 위임 이벤트(클릭, 검색, 엣지 가리킴 칩, 키보드 되돌리기) ----------
+  // ---------- 엣지 가리킴 칩과 조준 표식 반응(1-2) ----------
+  function showEdgeHoverChip(eg) {
+    if (!lastCenterEl || !eg) return;
+    const chip = lastCenterEl.querySelector('#gr-edge-chip');
+    if (!chip) return;
+    if (hoveredEdgeEl && hoveredEdgeEl !== eg) hoveredEdgeEl.classList.remove('is-hot');
+    hoveredEdgeEl = eg;
+    eg.classList.add('is-hot');
+    chip.textContent = eg.dataset.chip || '';
+    chip.style.setProperty('--ec-x', (eg.dataset.cx || 0) + 'px');
+    chip.style.setProperty('--ec-y', (eg.dataset.cy || 0) + 'px');
+    chip.classList.remove('is-press');
+    chip.hidden = false;
+    App.aim.set(chip);
+  }
+
+  function clearEdgeHoverChip() {
+    if (hoveredEdgeEl) {
+      hoveredEdgeEl.classList.remove('is-hot');
+      hoveredEdgeEl = null;
+    }
+    if (!lastCenterEl) return;
+    const chip = lastCenterEl.querySelector('#gr-edge-chip');
+    if (chip && !chip.hidden) {
+      chip.classList.remove('is-press');
+      chip.hidden = true;
+    }
+  }
+
+  // ---------- 위임 이벤트(클릭, 검색, 엣지 가리킴 칩, 키보드 화살표 및 되돌리기) ----------
   document.addEventListener('input', e => {
     if (App.state.tab !== 'graph') return;
     if (e.target && e.target.id === 'gr-search') {
@@ -11676,19 +12199,34 @@ App.registerTab((function () {
   });
 
   document.addEventListener('pointerover', e => {
-    if (App.state.tab !== 'graph' || !lastCenterEl) return;
+    if (App.state.tab !== 'graph' || !lastCenterEl || e.pointerType === 'touch') return;
     const eg = e.target.closest && e.target.closest('[data-gr-edge]');
-    const chip = lastCenterEl.querySelector('#gr-edge-chip');
-    if (!chip) return;
-    if (eg) {
-      chip.textContent = eg.dataset.chip || '';
-      chip.style.setProperty('--ec-x', (eg.dataset.cx || 0) + 'px');
-      chip.style.setProperty('--ec-y', (eg.dataset.cy || 0) + 'px');
-      chip.hidden = false;
-    } else if (!chip.hidden) {
-      chip.hidden = true;
+    if (eg) showEdgeHoverChip(eg);
+    else if (hoveredEdgeEl) clearEdgeHoverChip();
+  });
+
+  document.addEventListener('pointerout', e => {
+    if (App.state.tab !== 'graph' || !hoveredEdgeEl) return;
+    const rel = e.relatedTarget;
+    if (!rel || !(rel.closest && rel.closest('[data-gr-edge]') === hoveredEdgeEl)) {
+      clearEdgeHoverChip();
     }
   });
+
+  document.addEventListener('pointerdown', e => {
+    if (App.state.tab !== 'graph' || !lastCenterEl) return;
+    const eg = e.target.closest && e.target.closest('[data-gr-edge]');
+    if (eg) {
+      const chip = lastCenterEl.querySelector('#gr-edge-chip');
+      if (chip && !chip.hidden) chip.classList.add('is-press');
+    }
+  }, { passive: true });
+
+  document.addEventListener('pointerup', () => {
+    if (!lastCenterEl) return;
+    const chip = lastCenterEl.querySelector('#gr-edge-chip');
+    if (chip) chip.classList.remove('is-press');
+  }, { passive: true });
 
   document.addEventListener('click', e => {
     if (App.state.tab !== 'graph') return;
@@ -11699,7 +12237,7 @@ App.registerTab((function () {
       e.stopPropagation();
       initPresetState(pr.dataset.grPreset, c, false);
       App.unselect({ push: false, restoreFocus: false });
-      if (lastLeftEl) renderLeftZone(lastLeftEl, ensureGraph());
+      if (lastLeftEl) renderLeftZone(lastLeftEl);
       rerenderGraph(true);
       return;
     }
@@ -11713,13 +12251,13 @@ App.registerTab((function () {
         restoreStateSnap(prev);
         if (trail.length > 1) trail.pop();
         rerenderGraph(true);
-        if (state.selEdge) App.select('edge:' + state.selEdge, { animate: false, push: false });
-        else if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false });
+        if (state.selEdge) App.select('edge:' + state.selEdge, { animate: false, push: false, focus: false });
+        else if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false, focus: false });
         else App.unselect({ push: false, restoreFocus: false });
       } else if (act.dataset.grAct === 'reset') {
         initPresetState(state.preset, c, false);
         App.unselect({ push: false, restoreFocus: false });
-        if (lastLeftEl) renderLeftZone(lastLeftEl, ensureGraph());
+        if (lastLeftEl) renderLeftZone(lastLeftEl);
         rerenderGraph(true);
       }
       return;
@@ -11735,7 +12273,7 @@ App.registerTab((function () {
       restoreStateSnap(item.snap);
       trail = trail.slice(0, idx + 1);
       rerenderGraph(true);
-      if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false });
+      if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false, focus: false });
       else App.unselect({ push: false, restoreFocus: false });
       return;
     }
@@ -11753,7 +12291,16 @@ App.registerTab((function () {
     if (exp) {
       e.stopPropagation();
       const [niStr, ...rest] = exp.dataset.grExpand.split('|');
-      expandNeighborGroup(+niStr, rest.join('|'));
+      const ni = +niStr;
+      expandNeighborGroup(ni, rest.join('|'));
+      restoreGraphNodeFocus(ni);
+      return;
+    }
+
+    const vmr = e.target.closest && e.target.closest('[data-gr-vmore]');
+    if (vmr) {
+      e.stopPropagation();
+      releaseVarMore(vmr.dataset.grVmore);
       return;
     }
 
@@ -11767,16 +12314,19 @@ App.registerTab((function () {
     const openDom = e.target.closest && e.target.closest('[data-gr-open-dom]');
     if (openDom) {
       e.stopPropagation();
-      expandDomainStep(+openDom.dataset.grOpenDom, c);
+      const dIdx = +openDom.dataset.grOpenDom;
+      expandDomainStep(dIdx, c);
       rerenderGraph(true);
-      App.select('n:' + ensureGraph().N[state.selNode].id, { animate: true });
+      App.select('n:' + ensureGraph().N[state.selNode].id, { animate: true, focus: false });
+      restoreGraphNodeFocus(dIdx);
       return;
     }
 
     const jmp = e.target.closest && e.target.closest('[data-gr-jump-idx]');
     if (jmp) {
       e.stopPropagation();
-      selectAndHandleNode(+jmp.dataset.grJumpIdx, c);
+      const jIdx = +jmp.dataset.grJumpIdx;
+      selectAndHandleNode(jIdx, c, true);
       return;
     }
 
@@ -11786,7 +12336,7 @@ App.registerTab((function () {
       const ek = pickEdgeBtn.dataset.grPickEdge;
       state.selEdge = ek;
       rerenderGraph(false);
-      App.select('edge:' + ek, { animate: true });
+      App.select('edge:' + ek, { animate: true, focus: false });
       return;
     }
 
@@ -11796,16 +12346,97 @@ App.registerTab((function () {
       const ek = eg.dataset.grEdge;
       state.selEdge = ek;
       rerenderGraph(false);
-      App.select('edge:' + ek, { animate: true });
+      App.select('edge:' + ek, { animate: true, focus: false });
       return;
     }
 
     const nd = e.target.closest && e.target.closest('[data-gr-node]');
     if (nd) {
       e.stopPropagation();
-      selectAndHandleNode(+nd.dataset.grIdx, c);
+      selectAndHandleNode(+nd.dataset.grIdx, c, true);
     }
   });
+
+  // 무대 노드 화살표 이동(1-5: 상하로 같은 열 안 이동, 좌우로 옆 열의 이어진 노드로 이동)
+  function handleGraphArrowKey(e, ndBtn) {
+    if (!lastCenterEl) return false;
+    const colEl = ndBtn.closest('.gr-col[data-col-idx]');
+    const vpathEl = !colEl ? ndBtn.closest('.gr-vpath') : null;
+
+    if (vpathEl) {
+      const items = Array.from(vpathEl.querySelectorAll('.gr-node[data-gr-idx]'));
+      const idx = items.indexOf(ndBtn);
+      if (idx < 0) return false;
+      let nextIdx = idx;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') nextIdx = Math.min(items.length - 1, idx + 1);
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') nextIdx = Math.max(0, idx - 1);
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = items.length - 1;
+      if (nextIdx !== idx) {
+        e.preventDefault();
+        restoreGraphNodeFocus(+items[nextIdx].dataset.grIdx);
+        return true;
+      }
+      return false;
+    }
+
+    if (!colEl) return false;
+    const curCol = +colEl.dataset.colIdx;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+      const items = Array.from(colEl.querySelectorAll('.gr-node'));
+      const idx = items.indexOf(ndBtn);
+      if (idx < 0) return false;
+      let nextIdx = idx;
+      if (e.key === 'ArrowDown') nextIdx = Math.min(items.length - 1, idx + 1);
+      else if (e.key === 'ArrowUp') nextIdx = Math.max(0, idx - 1);
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = items.length - 1;
+      if (nextIdx !== idx) {
+        e.preventDefault();
+        const target = items[nextIdx];
+        if (target.dataset.grIdx != null) restoreGraphNodeFocus(+target.dataset.grIdx);
+        else { target.focus(); }
+        return true;
+      }
+      return false;
+    }
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      const step = e.key === 'ArrowRight' ? 1 : -1;
+      const curNi = ndBtn.dataset.grIdx != null ? +ndBtn.dataset.grIdx : null;
+      const curRect = ndBtn.getBoundingClientRect();
+      const curMidY = curRect.top + curRect.height / 2;
+
+      for (let c = curCol + step; c >= 0 && c < COL_KINDS.length; c += step) {
+        const nextColEl = lastCenterEl.querySelector(`.gr-col[data-col-idx="${c}"]`);
+        if (!nextColEl) continue;
+        const colNodes = Array.from(nextColEl.querySelectorAll('.gr-node[data-gr-idx]'));
+        if (!colNodes.length) continue;
+
+        // 현재 노드와 엣지로 직접 이어진 노드가 있으면 그 가운데 세로 위치가 가장 가까운 노드를 우선 고른다
+        const connectedSet = new Set();
+        if (curNi != null) {
+          for (const ed of renderedEdges.values()) {
+            if (ed.leftNode === curNi) connectedSet.add(ed.rightNode);
+            else if (ed.rightNode === curNi) connectedSet.add(ed.leftNode);
+          }
+        }
+        const candidates = colNodes.filter(b => connectedSet.has(+b.dataset.grIdx));
+        const pool = candidates.length ? candidates : colNodes;
+        let bestBtn = pool[0];
+        let bestDist = Infinity;
+        pool.forEach(b => {
+          const r = b.getBoundingClientRect();
+          const d = Math.abs((r.top + r.height / 2) - curMidY);
+          if (d < bestDist) { bestDist = d; bestBtn = b; }
+        });
+        e.preventDefault();
+        restoreGraphNodeFocus(+bestBtn.dataset.grIdx);
+        return true;
+      }
+    }
+    return false;
+  }
 
   document.addEventListener('keydown', e => {
     if (App.state.tab !== 'graph') return;
@@ -11819,6 +12450,14 @@ App.registerTab((function () {
       }
       return;
     }
+
+    const ndBtn = e.target.closest && e.target.closest('#gr-stage-root .gr-node');
+    if (ndBtn && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+      if (handleGraphArrowKey(e, ndBtn)) return;
+    }
+
+    const typing = e.target.closest && e.target.closest('input,select,textarea');
+    if (typing) return;
     if ((e.key === 'z' || e.key === 'Z') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const undoBtn = lastLeftEl && lastLeftEl.querySelector('#gr-btn-undo');
       if (undoBtn && !undoBtn.disabled) undoBtn.click();
@@ -11828,9 +12467,16 @@ App.registerTab((function () {
   App.on('select', (tabId) => {
     if (tabId !== 'graph') return;
     if (App.state.sel.graph == null && (state.selNode != null || state.selEdge != null)) {
+      let prevIdx = state.selNode;
+      if (prevIdx == null && state.selEdge && renderedEdges.has(state.selEdge)) {
+        prevIdx = renderedEdges.get(state.selEdge).leftNode;
+      }
+      if (prevIdx == null) prevIdx = state.focusNode;
       state.selNode = null;
       state.selEdge = null;
+      if (prevIdx != null) state.focusNode = prevIdx;
       rerenderGraph(false);
+      if (prevIdx != null) restoreGraphNodeFocus(prevIdx);
     }
   });
   App.on('resize', () => {

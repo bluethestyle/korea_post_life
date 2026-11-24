@@ -308,7 +308,7 @@ STAGE_NODE_LIMITS = {
     'brief': 30,
     'market': 60,
     'gate': 80,
-    'cover': 65,
+    'cover': 60,
     'graph': 70,
 }
 
@@ -419,33 +419,80 @@ LAYOUT_ANIM_JS = r"""() => {
   for (const ss of document.styleSheets) {
     try { walkRules(ss.cssRules); } catch (e) { /* */ }
   }
-  const animBad = [];
+  const animBad = (window.__activeAnimLog && Array.isArray(window.__activeAnimLog.bad)) ? window.__activeAnimLog.bad.slice() : [];
+  const seenKeys = new Set(animBad.map(x => `${x.anim}|${x.prop}`));
   if (document.getAnimations) {
     for (const a of document.getAnimations({ subtree: true })) {
       try {
         const kfs = a.effect && a.effect.getKeyframes ? a.effect.getKeyframes() : [];
         for (const kf of kfs) {
           for (const k of Object.keys(kf)) {
-            if (BAD_CAMEL.has(k)) animBad.push({ anim: a.animationName || a.id || 'waapi', prop: k });
+            if (BAD_CAMEL.has(k)) {
+              const nm = a.animationName || a.id || 'waapi';
+              const key = `${nm}|${k}`;
+              if (!seenKeys.has(key)) { seenKeys.add(key); animBad.push({ anim: nm, prop: k }); }
+            }
           }
         }
       } catch (e) { /* */ }
     }
   }
-  return { count: sheetBad.length + animBad.length, sheet: sheetBad, active: animBad };
+  return {
+    count: sheetBad.length + animBad.length,
+    sheet: sheetBad,
+    active: animBad,
+    observed_animations: (window.__activeAnimLog && window.__activeAnimLog.total) || 0,
+  };
 }"""
 
 RAF_HOOK_JS = r"""() => {
-  window.__startRaf = () => {
+  const BAD_CAMEL = new Set([
+    'width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
+    'top', 'left', 'right', 'bottom', 'inset',
+    'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
+    'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'borderWidth', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'fontSize', 'lineHeight', 'gap', 'columnGap', 'rowGap', 'flex', 'flexBasis', 'flexGrow',
+    'gridTemplateColumns', 'gridTemplateRows',
+  ]);
+  window.__activeAnimLog = { total: 0, bad: [], seen: new Set() };
+  function collectRunningAnims(tag) {
+    if (!document.getAnimations) return;
+    const list = document.getAnimations({ subtree: true });
+    window.__activeAnimLog.total += list.length;
+    for (const a of list) {
+      try {
+        const kfs = a.effect && a.effect.getKeyframes ? a.effect.getKeyframes() : [];
+        for (const kf of kfs) {
+          for (const k of Object.keys(kf)) {
+            if (BAD_CAMEL.has(k)) {
+              const nm = a.animationName || a.id || 'waapi';
+              const uKey = `${tag}|${nm}|${k}`;
+              if (!window.__activeAnimLog.seen.has(uKey)) {
+                window.__activeAnimLog.seen.add(uKey);
+                window.__activeAnimLog.bad.push({ action: tag, anim: nm, prop: k });
+              }
+            }
+          }
+        }
+      } catch (e) { /* */ }
+    }
+  }
+  window.__startRaf = (actionTag, sampleAnims = true) => {
     const ts = [];
     let active = true;
+    const tag = actionTag || 'act';
+    if (sampleAnims) setTimeout(() => { if (active) collectRunningAnims(tag); }, 16);
+    const iv = sampleAnims ? setInterval(() => { if (active) collectRunningAnims(tag); }, 50) : 0;
     function tick(t) {
       ts.push(t);
       if (active) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
     window.__stopRaf = () => {
+      if (sampleAnims) collectRunningAnims(tag);
       active = false;
+      if (iv) clearInterval(iv);
       const dts = [];
       for (let i = 2; i < ts.length; i++) dts.push(+(ts[i] - ts[i - 1]).toFixed(2));
       dts.sort((a, b) => a - b);
@@ -462,8 +509,8 @@ RAF_HOOK_JS = r"""() => {
 }"""
 
 
-async def sample_action(pg, act_coro, dur_ms=620):
-    await pg.evaluate("window.__startRaf()")
+async def sample_action(pg, act_coro, dur_ms=620, tag='act', sample_anims=True):
+    await pg.evaluate(f"window.__startRaf({json.dumps(tag)}, {'true' if sample_anims else 'false'})")
     await pg.wait_for_timeout(40)
     ok = await act_coro()
     if ok is False:
@@ -484,25 +531,26 @@ async def measure_frames_once(b, cpu_rate=1) -> dict:
         await cdp.send('Emulation.setCPUThrottlingRate', {'rate': cpu_rate})
 
     out = {}
+    sa = (cpu_rate <= 1)
 
     # 1. 탭 전환(첫 화면 -> 고객군과 시장)
     async def act_tab():
         await pg.locator('#tab-market').first.click()
-    out['tab_switch'] = await sample_action(pg, act_tab, 680)
+    out['tab_switch'] = await sample_action(pg, act_tab, 680, 'tab_switch', sa)
 
     # 2. 고객군 고리 고르기
     async def act_market_pick():
         await pg.locator('#z-center .mk-ring[data-grid-r="0"][data-grid-c="1"]').click()
         await pg.wait_for_timeout(180)
         await pg.locator('#z-center .mk-ring[data-grid-r="1"][data-grid-c="2"]').click()
-    out['market_pick'] = await sample_action(pg, act_market_pick, 460)
+    out['market_pick'] = await sample_action(pg, act_market_pick, 460, 'market_pick', sa)
 
     # 3. 읽기 영역 열고 닫기
     async def act_reading():
         await pg.keyboard.press('Escape')
         await pg.wait_for_timeout(180)
         await pg.locator('#z-center .mk-ring[data-grid-r="1"][data-grid-c="1"]').click()
-    out['reading_toggle'] = await sample_action(pg, act_reading, 460)
+    out['reading_toggle'] = await sample_action(pg, act_reading, 460, 'reading_toggle', sa)
 
     # 4. 가입 관문 칸 고르기
     await pg.evaluate("App.set({tab:'gate'})")
@@ -515,7 +563,7 @@ async def measure_frames_once(b, cpu_rate=1) -> dict:
         await cells.nth(0).click()
         await pg.wait_for_timeout(180)
         await cells.nth(min(6, (await cells.count()) - 1)).click()
-    out['gate_pick'] = await sample_action(pg, act_gate_pick, 460)
+    out['gate_pick'] = await sample_action(pg, act_gate_pick, 460, 'gate_pick', sa)
 
     # 5. 담보 기둥 고르기
     await pg.evaluate("App.set({tab:'cover'})")
@@ -529,15 +577,17 @@ async def measure_frames_once(b, cpu_rate=1) -> dict:
         await pils.nth(1).click()
         await pg.wait_for_timeout(180)
         await pils.nth(min(4, cnt - 1)).click()
-    out['cover_pick'] = await sample_action(pg, act_cover_pick, 460)
+    out['cover_pick'] = await sample_action(pg, act_cover_pick, 460, 'cover_pick', sa)
 
     # 6. 담보 비교 단계 바꾸기(전체 띠 구간 전환)
     async def act_cover_step():
-        segs = pg.locator('#z-center [data-cv-step]')
+        segs = pg.locator('#z-center [data-cv-step] .cv-ov-sh')
+        if await segs.count() < 2:
+            segs = pg.locator('#z-center [data-cv-step]')
         if await segs.count() < 2:
             return False
         await segs.nth(1).click()
-    out['cover_step'] = await sample_action(pg, act_cover_step, 520)
+    out['cover_step'] = await sample_action(pg, act_cover_step, 520, 'cover_step', sa)
 
     # 7. 담보 비교 문지르기(포인터 좌우 이동)
     async def act_cover_scrub():
@@ -554,11 +604,15 @@ async def measure_frames_once(b, cpu_rate=1) -> dict:
             xk = x0 + (x1 - x0) * (k / 11)
             await pg.mouse.move(xk, y)
             await pg.wait_for_timeout(24)
-    out['cover_scrub'] = await sample_action(pg, act_cover_scrub, 260)
+    out['cover_scrub'] = await sample_action(pg, act_cover_scrub, 260, 'cover_scrub', sa)
 
-    # 8. 관계 지도 펼침
-    await pg.evaluate("App.set({tab:'graph'})")
-    await pg.wait_for_timeout(380)
+    # 8. 담보 비교 -> 관계 지도 탭 전환(1-10 재현 구간)
+    async def act_cover_to_graph():
+        await pg.locator('#tab-graph').first.click()
+    out['cover_to_graph'] = await sample_action(pg, act_cover_to_graph, 620, 'cover_to_graph', sa)
+
+    # 9. 관계 지도 펼침
+    await pg.wait_for_timeout(120)
 
     async def act_graph_expand():
         dom_btn = pg.locator('#z-center [data-gr-node^="CAT:"]').first
@@ -569,7 +623,7 @@ async def measure_frames_once(b, cpu_rate=1) -> dict:
         std_btn = pg.locator('#z-center [data-gr-node^="STD_"]').first
         if await std_btn.count() > 0:
             await std_btn.click()
-    out['graph_expand'] = await sample_action(pg, act_graph_expand, 520)
+    out['graph_expand'] = await sample_action(pg, act_graph_expand, 520, 'graph_expand', sa)
 
     layout_anim = await pg.evaluate(LAYOUT_ANIM_JS)
     if cdp:
@@ -581,7 +635,13 @@ async def measure_frames_once(b, cpu_rate=1) -> dict:
 async def run_frame_bench(b) -> dict:
     r1 = await measure_frames_once(b, cpu_rate=1)
     r4 = await measure_frames_once(b, cpu_rate=4)
-    print('레이아웃 유발 전환/애니메이션:', r1['layout_anim']['count'], r1['layout_anim']['sheet'][:6], r1['layout_anim']['active'][:6])
+    print(
+        '레이아웃 유발 전환/애니메이션:',
+        r1['layout_anim']['count'],
+        f"(표본 {r1['layout_anim'].get('observed_animations', 0)}건)",
+        r1['layout_anim']['sheet'][:6],
+        r1['layout_anim']['active'][:6],
+    )
     for k in r1['metrics']:
         m1 = r1['metrics'][k]
         m4 = r4['metrics'][k]

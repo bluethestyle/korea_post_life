@@ -23,7 +23,9 @@
 .cv-tick{position:relative;display:flex;align-items:flex-end;height:var(--th,14px);flex:none;
   transition:opacity 180ms var(--ease-in),transform 120ms var(--ease-in)}
 .cv-tick .cvp-svg{width:100%;height:100%;display:block;overflow:visible}
-.cv-tick.is-hot{transform:translateY(-2px)}
+.cv-tick:is(.is-hot,.is-aim){transform:translateY(-2px)}
+.cv-tick:is(.is-hot,.is-aim) :is(.cvs-box,.cvs-dia){box-shadow:inset 0 0 0 1px var(--ink-0)}
+.cv-tick.is-press{transform:translateY(1px)!important;transition-duration:80ms!important}
 .cv-tick .cv-tk-sel{display:none;position:absolute;left:50%;top:-6px;width:5px;height:5px;margin-left:-2.5px;background:var(--red);transform:rotate(45deg)}
 .cv-tick.is-sel .cv-tk-sel{display:block}
 .cv-tick.is-sel::after{content:"";position:absolute;left:-1px;right:-1px;bottom:-3px;height:2px;background:var(--red)}
@@ -38,7 +40,7 @@
 /* 오른쪽 위 거르개 단추 셋 + 남은 담보 수 */
 .cv-flt-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .cv-flt-btn{height:28px;padding:0 10px;border:1px solid var(--line-2);background:transparent;color:var(--ink-1);
-  font:600 13px/1 var(--f-ko);white-space:nowrap;transition:background-color 140ms var(--ease-in),color 140ms var(--ease-in)}
+  font:600 13px/1 var(--f-ko);white-space:nowrap}
 .cv-flt-btn:hover{background:var(--hover);color:var(--ink-0)}
 .cv-flt-btn.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent;box-shadow:inset 0 2px 0 var(--top-line)}
 .cv-flt-stat{font:400 13px/1.2 var(--f-body);color:var(--ink-1);margin-left:4px;white-space:nowrap}
@@ -70,9 +72,9 @@
 .cvp-upper{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
 .cvp-stem{position:relative;width:1px;height:20px;margin-bottom:4px;background:transparent;
   transform-origin:bottom center;transform:scaleY(.55);
-  transition:transform 120ms var(--ease-in),background-color 120ms var(--ease-in)}
+  transition:transform 120ms var(--ease-in)}
 .cvp-dia{position:absolute;left:-3px;top:-7px;width:7px;height:7px;border:1px solid transparent;background:transparent;transform:rotate(45deg);
-  transition:transform 120ms var(--ease-in),background-color 120ms var(--ease-in),border-color 120ms var(--ease-in)}
+  transition:transform 120ms var(--ease-in)}
 .cvp-flg{position:absolute;top:2px;left:50%;width:6px;height:6px;margin-left:-3px;background:var(--red);clip-path:polygon(50% 0,100% 100%,0 100%)}
 .cvp-bar{position:relative;display:flex;align-items:flex-end;width:var(--bw,20px);height:var(--ph,14px);transform-origin:center bottom;backface-visibility:hidden}
 .cvs-box{display:flex;flex-direction:column;width:100%;height:100%}
@@ -92,11 +94,10 @@
 .cvs-dia{display:block;background:var(--gold);border:1.2px solid var(--gold-line);transform:rotate(45deg)}
 .cvp-foot-tk{display:block;width:1px;height:5px;background:var(--axis);margin-top:0;flex:none}
 
-/* 기준축 아래 45도 기울인 담보 이름(13px, 120px 영역 안, 14자 초과 시 말줄임 + 가리킬 때 전체) */
-.cvp-lbl-box{position:relative;width:100%;height:var(--lbl-h,120px);pointer-events:none;overflow:visible}
-.cvp-lbl{position:absolute;left:50%;top:5px;max-width:138px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font:600 13px/1.15 var(--f-ko);color:var(--ink-2);transform-origin:0 0;transform:rotate(45deg);
-  transition:color 120ms var(--ease-in)}
+/* 기준축 아래 45도 기울인 담보 이름(13px, 120px 영역 안, 14자 이하는 잘리지 않고 14자 초과 시 말줄임 + 가리킬 때 전체) */
+.cvp-lbl-box{position:relative;width:100%;height:var(--lbl-h,124px);pointer-events:none;overflow:visible}
+.cvp-lbl{position:absolute;left:50%;top:4px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:600 13px/1.15 var(--f-ko);color:var(--ink-2);transform-origin:0 0;transform:rotate(45deg)}
 
 /* 보장 분야 묶음 꺾쇠 선 + 13px 이름 */
 .cv-dom-brk{position:relative;display:flex;align-items:center;justify-content:center;min-height:22px;margin-top:2px;
@@ -128,13 +129,13 @@
 }
 @media (max-width:999px){
   .cv-ov-top{flex-direction:column;align-items:stretch;gap:8px}
-  .cv-ov-segs{gap:4px;justify-content:space-between;width:100%}
-  .cv-ov-seg{min-width:24px;padding:2px 0 4px}
+  .cv-ov-segs{display:flex;gap:5px;justify-content:space-between;width:100%}
+  .cv-ov-seg{flex:var(--seg-n,4) 1 0;min-width:28px;padding:2px 0 4px}
   .cv-ov-ring{display:none}
   .cv-ov-sh{flex-direction:column;align-items:flex-start;gap:1px}
   .cv-ov-nm{font-size:13px}
   .cv-ov-cnt{font-size:13px}
-  .cv-ov-ticks{gap:1px;height:24px}
+  .cv-ov-ticks{gap:1px;height:24px;max-width:100%}
   .cvp-lbl{max-width:96px}
 }
 
@@ -162,6 +163,7 @@
 :is(.cv-modal-root,#print-root) .cvj-b .hbar{min-width:0}
 :is(.cv-modal-root,#print-root) .cvj-b b{font:600 13px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink-0);text-align:right}
 :is(.cv-modal-root,#print-root) .hbar > i.hollow{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+:is(.cv-modal-root,#print-root) .hbar > i.dashed{background:transparent;border:1.5px dashed var(--ink-1);box-sizing:border-box}
 :is(.cv-modal-root,#print-root) .cvj-ch{position:absolute;right:8px;top:50%;width:8px;height:14px;margin-top:-7px;color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cvj-all{gap:4px}
 :is(.cv-modal-root,#print-root) .cvj-all .cvj-b{grid-template-columns:minmax(0,1fr) 30px}
@@ -172,6 +174,7 @@
 :is(.cv-modal-root,#print-root) .cvj-lg .lg0{background:var(--ink-0)}
 :is(.cv-modal-root,#print-root) .cvj-lg .lg1{background:var(--ink-2)}
 :is(.cv-modal-root,#print-root) .cvj-lg .lg2{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+:is(.cv-modal-root,#print-root) .cvj-lg .lg3{border:1.5px dashed var(--ink-1);box-sizing:border-box}
 :is(.cv-modal-root,#print-root) .cvj-lg .lgz{height:12px;width:14px;background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 4px);outline:1px solid var(--line-2)}
 
 :is(.cv-modal-root,#print-root) .cv-mid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--gap);align-items:start}
