@@ -101,7 +101,7 @@ def _months(start: date, end: date) -> list[str]:
 
 def allowed_orgs(q: config.Query) -> dict[str, str]:
     """이 질의의 소식을 귀속시킬 수 있는 기관. 협회·공통 질의는 실제 보험사에도 귀속시킨다."""
-    codes = list(config.INSTITUTIONS) + list(q.orgs) if q.any_org else list(q.orgs)
+    codes = list(config.TREND_INSTITUTIONS) + list(q.orgs) if q.any_org else list(q.orgs)
     return {c: config.ALL_ORGS[c] for c in dict.fromkeys(codes)}
 
 

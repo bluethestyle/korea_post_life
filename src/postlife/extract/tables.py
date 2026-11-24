@@ -73,6 +73,9 @@ class Layout:
     unnamed_rows: bool = False
     inner_tables: bool = True                   # 지급사유 칸 안의 작은 표를 찾는다. False면 지급사유 칸 안의 선도 모두 행과 칸을 가르는 선이다
     close_frame: bool = False                   # 표의 세로선들이 함께 끝나는 자리에 가로선을 더한다(쪽을 넘는 병합 칸은 쪽 끝에 아래 선이 없다)
+    # 주계약 조각의 특별약관 이름. 주계약 표의 이름 칸이 급부명(세부보장 이름)인 요약서는 표에 계약 이름이 없어 이 이름을 쓴다.
+    # 세부보장 이름은 이름 칸의 글자 그대로다. 비우면 이름 칸의 글자가 특별약관 이름이다
+    main_title: str = ""
 
 
 # 삼성화재: "□ 보험금 지급사유 및 지급금액" 절, "◆ 기본계약" 구분, 쉼표로 이은 이름
@@ -97,6 +100,7 @@ MERITZ = Layout(
 # KB라이프생명: "2. 보험금 지급사유 및 보험금 지급제한 사유" 절(다음 절은 "3. 일반적인 보험금 지급제한 사유").
 # 절 안에서 "가. 간편심사형(3.5.5), 간편심사형(3.3.5)", "나. 일반심사형" 줄이 형 구간을 열고, 구간마다 "1) 주계약",
 # "2) 선택특약" 줄 아래에 표가 있다. 칸은 셋이고 머리행의 첫 칸이 "급부명"(주계약)이나 "특약명"(선택특약)이다.
+# 주계약 표의 이름 칸은 급부명이라 주계약 조각의 특별약관 이름은 "주계약"으로 둔다(main_title. 세부보장 이름은 급부명).
 # 세부보장 이름 칸이 없어 특약 이름 칸 하나가 지급사유 여러 행에 걸쳐 병합되고, 그 칸과 지급금액 칸이 쪽을 넘어 이어진다
 # (쪽 끝에 그 칸들의 아래 선이 없다). 지급사유 칸 안의 가로선은 작은 표가 아니라 행을 가르는 선이다. "주요치료Plus" 특약은
 # 지급사유 칸이 설명 칸과 치료 이름 칸으로 갈리고, 치료 이름 칸이 행마다 따로, 설명 칸과 지급금액 칸은 여러 행에 걸쳐 병합된다.
@@ -109,7 +113,7 @@ KBLIFE = Layout(
     segment_line=re.compile(r"^[가-하]\.\s*([가-힣]*심사형)(?![가-힣])"),
     name_heads=("특약명", "급부명"),
     nested=True, trailing=True, merged=True, unnamed_rows=True, inner_tables=False, close_frame=True,
-    main_label="주계약",
+    main_label="주계약", main_title="주계약",
 )
 
 LAYOUTS = {layout.name: layout for layout in (SAMSUNGFIRE, MERITZ, KBLIFE)}
@@ -696,6 +700,8 @@ class _Open:
                                 join_text("\n".join(row["amount"])), row["page"], cover_only))
         title = title or covers[0].name
         main = self.label == self.layout.main_label if self.layout.main_label else None
+        if main and self.layout.main_title:
+            title = self.layout.main_title          # 이름 칸은 급부명이다. 세부보장 이름으로만 쓴다
         parts = split_slash(title) if self.layout.slash_names else ()
         return Rider(title, tuple(covers), covers[0].page, max(self.last_page, covers[-1].page), self.label, only,
                      self.segment, main, parts)

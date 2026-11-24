@@ -812,7 +812,7 @@
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
-        "name": "INSTITUTIONS"
+        "name": "TREND_INSTITUTIONS"
       }
     },
     "market_news_institutions_by_sector": {
@@ -826,7 +826,7 @@
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
-        "name": "LIFE, NONLIFE, POST"
+        "name": "TREND_LIFE, NONLIFE, POST"
       }
     },
     "market_news_institution_names": {
@@ -862,7 +862,7 @@
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
-        "name": "LIFE, NONLIFE, POST"
+        "name": "TREND_LIFE, NONLIFE, POST"
       }
     },
     "market_news_categories": {
@@ -1744,6 +1744,221 @@
         "path": "지도.전체.열[].lo, hi"
       }
     },
+    "segment_map_grid": {
+      "value": [
+        {
+          "row": "입원 3개월~1년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": true
+            },
+            {
+              "column": "20~80세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": true
+            }
+          ]
+        },
+        {
+          "row": "입원 1~2년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "입원 2~3년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "입원 3~4년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "입원 4~5년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "입원 5년 넘음이나 없음",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "수술만 3개월~1년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": true
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": true
+            }
+          ]
+        },
+        {
+          "row": "수술만 1~2년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "수술만 2~3년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "수술만 3~4년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "수술만 4~5년 전",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        },
+        {
+          "row": "수술만 5년 넘음이나 없음",
+          "cells": [
+            {
+              "column": "15~19세",
+              "label": "우리 간편 닫힘",
+              "sub": "일반심사 확인",
+              "gate_only": false
+            },
+            {
+              "column": "20~80세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            }
+          ]
+        }
+      ],
+      "label": "고객군 지도의 칸마다의 값(행은 segment_map_rows, 칸은 segment_map_columns 차례). label 은 칸의 라벨, sub 는 칸의 보조 줄, gate_only 는 그 칸의 상대가 우리에게 없는 고지 유형(관문만 수집한 종형)으로만 열렸는지",
+      "as_of": "2026-11-23",
+      "source": {
+        "kind": "screen_data",
+        "file": "proto_src/console4/sales.json",
+        "path": "지도.전체.칸[행][열].라벨, 보조, 관문만수집(비지 않으면 gate_only 참)"
+      }
+    },
     "screen_market_news": {
       "value": {
         "week": "2026-W48",
@@ -1771,6 +1986,140 @@
         "file": "proto_src/console4/sales.json",
         "path": "개정변동.수"
       }
+    },
+    "relation_covered_coverages": {
+      "value": {
+        "count": 13,
+        "items": [
+          {
+            "id": "STD_CA_DX_BORDER",
+            "name": "경계성종양 진단비",
+            "kind": "넓은 담보",
+            "via": [
+              "유사암 진단비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_DX_INSITU",
+            "name": "제자리암 진단비",
+            "kind": "넓은 담보",
+            "via": [
+              "유사암 진단비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_DX_MUCOSA",
+            "name": "대장점막내암 진단비",
+            "kind": "넓은 담보",
+            "via": [
+              "유사암 진단비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_DX_SKIN",
+            "name": "기타피부암 진단비",
+            "kind": "넓은 담보",
+            "via": [
+              "유사암 진단비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_DX_SPECIFIC",
+            "name": "N대 특정암 진단비",
+            "kind": "넓은 담보",
+            "via": [
+              "일반암 진단비"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_DX_THYROID",
+            "name": "갑상선암 진단비",
+            "kind": "넓은 담보",
+            "via": [
+              "유사암 진단비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_TX_CHEMO",
+            "name": "항암약물치료비",
+            "kind": "넓은 담보",
+            "via": [
+              "항암방사선·약물치료비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_TX_IMMUNO",
+            "name": "면역항암약물허가치료비",
+            "kind": "넓은 담보",
+            "via": [
+              "항암방사선·약물치료비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_TX_PARTICLE",
+            "name": "항암양성자·중입자방사선치료비",
+            "kind": "넓은 담보",
+            "via": [
+              "항암방사선·약물치료비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CA_TX_RADIO",
+            "name": "항암방사선치료비",
+            "kind": "넓은 담보",
+            "via": [
+              "항암방사선·약물치료비(통합)"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_BR_DX_STROKE",
+            "name": "뇌졸중 진단비",
+            "kind": "넓은 담보",
+            "via": [
+              "뇌혈관질환 진단비"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CV_SURG",
+            "name": "뇌·심장질환 수술비",
+            "kind": "부분 담보",
+            "via": [
+              "뇌혈관질환 수술비",
+              "심장질환 수술비"
+            ],
+            "partial": false
+          },
+          {
+            "id": "STD_CV_TX_THROMBOLYSIS",
+            "name": "뇌·심장질환 혈전용해치료비",
+            "kind": "부분 담보",
+            "via": [
+              "뇌경색 혈전용해치료비",
+              "급성심근경색 혈전용해치료비"
+            ],
+            "partial": false
+          }
+        ]
+      },
+      "label": "기준 종형이 그 담보의 확정 급부도 매핑 대기 급부도 없이 관계 담보(넓은 담보, 부분 담보)로만 덮는 표준담보 (화면이 처음 여는 기준 종형). via 는 덮는 우리 담보, partial 은 부분 담보 가운데 일부만 가졌는지",
+      "as_of": "2026-11-23",
+      "source": {
+        "kind": "screen_data",
+        "file": "proto_src/console4/cover.json",
+        "path": "b[기준종형[0].종형ID].rows[k][1][0] 가운데 i, w 없이 c 만 있는 칸"
+      },
+      "note": "보유 담보 수(held_coverage_count)에 들지 않습니다. 관계 담보로 덮는 것이지 그 담보를 가진 것은 아닙니다."
     },
     "team_size": {
       "value": 1,

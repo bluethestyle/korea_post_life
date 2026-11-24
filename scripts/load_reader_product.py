@@ -5,9 +5,16 @@
 benefits_2reader.jsonl, 꼴은 data/crosscheck/README.md)에 둔다. 이 스크립트는 그 값으로 행을 만든다.
 
 1. 대상 설정과 공시 수집 결과(index.json)로 종형 행을 만든다(variants.build). 종형 행은 모든 종형을 쓴다.
-2. 정밀비교 종형마다 상품요약서 PDF에서 표를 다시 읽어 조각을 만든다(tables.py). 같은 요약서를 쓰는 종형은 한 번만 읽는다.
-   조각의 형과 종형은 reader_rows.variants_for로 잇는다("공통" 조각은 그 요약서의 모든 정밀비교 종형에 든다).
+2. 정밀비교 종형마다 상품요약서 PDF에서 표를 다시 읽어 조각을 만든다. 쪽을 넘어 이어지는 표 하나인 요약서(--org meritz,
+   kblife)는 tables.py, 특약마다 작은 표가 따로인 생명보험사 요약서(--org samsunglife)는 blocks.py로 읽는다(dump_tables.py,
+   dump_blocks.py와 같은 조각). 같은 요약서를 쓰는 종형은 한 번만 읽는다. KB라이프생명은 형(간편심사형, 일반심사형)으로 종형을
+   고르고, 간편심사형 조각은 같은 형의 관문전용 종형(3.3.5)이 아니라 정밀비교 종형(3.5.5)에만 행이 된다.
+   조각의 형과 종형은 reader_rows.variants_for로 잇는다("공통" 조각은 그 요약서의 모든 정밀비교 종형에 든다). 한 급부 표 안에
+   종별 값이 함께 있는 요약서(삼성생명)는 대상 설정의 종형에 "읽을종"("2종")을 적고, 그 종이 아닌 조각과 줄은 빼고
+   (reader_rows.for_kind) 남은 줄의 글자에서 다른 종의 토막을 뗀 뒤 행을 만든다. 조각 지문은 원래 조각으로 맞춘다.
 3. 값 파일의 번호마다 조각 지문(reader_rows.cover_fingerprint)을 다시 읽은 조각과 맞춰 본다. 지문이 다른 줄은 쓰지 않는다.
+   한 요약서 안에서 형마다 공시상품코드가 따로 있는 상품(KB라이프생명)은 형마다 값 파일이 따로이고, 그 요약서를 쓰는 코드의
+   값 파일을 모두 이어 쓴다(merged_lines).
 4. reader_rows.build_rows로 특약 행과 급부 행을 만든다. 원문 구절이 들어가는 열(지급횟수제한, 감액예외)은 조각에서 잘라 쓴다.
    갱신형 특약의 갱신주기년은 대상 설정의 갱신형특약주기년이고, 갱신형특약제외에 적은 특약은 만들지 않는다.
    행없음 줄은 금액 없는 급부 행(지급기준구분 차등지급, 실손보상, 분할지급, 현물급부. 두 금액과 감액은 비움)이 되고,
@@ -26,7 +33,10 @@ benefits_2reader.jsonl, 꼴은 data/crosscheck/README.md)에 둔다. 이 스크�
   python scripts/load_reader_product.py --docs out --dry-run --result r.json --rows rows.json     # 쓰지 않고 행과 요약만 낸다
   python scripts/load_reader_product.py --docs out --snapshot data/snapshot --result r.json       # 사본을 시트 삼아 본다(쓰지 않음)
 
---docs는 scripts/fetch_disclosure.py --org meritz의 결과 폴더다(index.json과 <저장이름>.pdf). 시트 접속 정보가 없어도
+  python scripts/load_reader_product.py --docs out --org samsunglife --targets data/targets/samsunglife.json --dry-run --result r.json
+  python scripts/load_reader_product.py --docs out --org kblife --targets data/targets/kblife.json --dry-run --result r.json
+
+--docs는 scripts/fetch_disclosure.py --org <회사>의 결과 폴더다(index.json과 <저장이름>.pdf). 시트 접속 정보가 없어도
 --dry-run은 끝까지 돈다(빈 시트로 본다). --result에는 조각의 문장을 싣지 않는다. --rows(결과물)에는 만들어질 행과 행없음 줄의
 정보가 들어가며, 행의 원문 구절 열(지급횟수제한, 감액예외)이 들어 있으므로 리포에 두지 않는다.
 """
@@ -46,7 +56,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from load_table_product import _drop_bad_benefits, snapshot_store  # noqa: E402  스크립트 폴더는 실행할 때 sys.path에 들어 있다
-from postlife.extract import job, tables, variants  # noqa: E402
+from postlife.extract import blocks, job, tables, variants  # noqa: E402
 from postlife.extract import reader_rows as RR  # noqa: E402
 from postlife.extract import rerun as R  # noqa: E402
 from postlife.sheets_io import MemoryBackend, SheetStore  # noqa: E402
@@ -66,9 +76,39 @@ WAITING = "검토 대기"
 CHANGED = "조각 지문이 다름"
 NOT_IN_VALUES = "값 파일에 없음"
 NOT_IN_PIECES = "값 파일의 번호가 다시 읽은 조각에 없음"
+CLASH = "값 파일 여럿에 같은 번호의 다른 줄"
 NO_ROW = "행없음"
 EXCLUDED = "20년 갱신주기를 고를 수 없는 갱신형 특약"
 NO_YEARS = "갱신주기년이 없는 갱신형 특약"
+
+# 요약서 급부 표의 꼴. 손해보험사 표(tables.py)와 생명보험사 특약별 작은 표(blocks.py)
+Layout = tables.Layout | blocks.LifeLayout
+LAYOUTS: dict[str, Layout] = {**tables.LAYOUTS, **blocks.LAYOUTS}
+
+
+def common_of(layout: Layout) -> str:
+    """형 구간이 있는 요약서에서 모든 형에 드는 조각의 형 이름. 생명보험사 꼴은 형 구간이 없다."""
+    return getattr(layout, "common", "공통")
+
+
+def main_renewal(riders: Sequence[dict[str, Any]], v: variants.Variant) -> None:
+    """요약서 표에 이름 없이 "주계약"으로만 적힌 주계약 행(생명보험사 꼴, blocks.py)의 갱신여부와 갱신주기년을 종형의 갱신유형으로
+    채운다(variants.main_row와 같은 값). 이름에 갱신형 표시가 없어 행 만들기가 비갱신으로 적기 때문이다. 이름이 있는 주계약 행
+    (메리츠화재 따위)은 건드리지 않는다."""
+    years = v.row["갱신주기년"] if v.row["갱신유형"] == "갱신" else None
+    for r in riders:
+        if r["담보구분"] == "주계약" and r["원시특약명"] == variants.MAIN_NAME:
+            r["갱신여부"], r["갱신주기년"] = years is not None, years
+
+
+def variant_pieces(pieces: Sequence[RR.PieceView], name: str, layout: Layout,
+                   kind: str | None) -> tuple[list[RR.PieceView], list[str], list[int]]:
+    """종형 하나에 드는 조각. 형으로 고르고(reader_rows.variants_for), 대상 설정의 읽을종이 있으면 그 종이 아닌 조각과 줄을
+    뺀다(reader_rows.for_kind). (조각, 읽을 종이 아니어서 뺀 세부보장 번호, 통째로 뺀 조각 순번)."""
+    mine = [p for p in pieces if name in RR.variants_for(p.segment, [name], common_of(layout))]
+    if not kind:
+        return mine, [], []
+    return RR.for_kind(mine, kind)
 
 
 @dataclass
@@ -80,6 +120,8 @@ class Group:
     used: list[str] = field(default_factory=list)          # 정밀비교 종형 하나 이상에 드는 조각의 세부보장 번호(차례대로)
     reasons: dict[str, str] = field(default_factory=dict)  # 번호 → 쓰지 않은 사유
     written: set[str] = field(default_factory=set)         # 급부 행이 된 번호
+    kinds: dict[str, str] = field(default_factory=dict)    # 종형명 → 대상 설정의 읽을종(있는 종형만)
+    out_of_kind: list[str] = field(default_factory=list)   # 읽을 종이 아니어서 어느 정밀비교 종형에도 들지 않은 번호
 
 
 @dataclass
@@ -98,9 +140,31 @@ def value_lines(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def read_pieces(pdf: Path, layout: tables.Layout) -> tuple[list[RR.PieceView], dict[int, str]]:
-    """요약서 PDF에서 급부 표를 다시 읽어 조각(번호는 조각 파일의 순번)과 쪽 글자를 돌려준다. scripts/dump_tables.py와 같은 길이다."""
+def merged_lines(paths: Sequence[Path]) -> tuple[list[dict[str, Any]], set[str]]:
+    """같은 요약서를 쓰는 코드들의 값 파일을 잇는다. 한 요약서 안에서 형마다 공시상품코드가 따로 있는 상품(KB라이프생명:
+    간편심사형 331000106, 일반심사형 335000106)은 형마다 묶음과 값 파일이 따로다. 번호는 요약서의 조각 순번이라 겹치지 않는다.
+    같은 번호가 두 파일에 있으면 줄이 글자까지 같을 때만 하나를 쓰고, 다르면 그 번호는 쓰지 않는다(돌려주는 집합)."""
+    seen: dict[str, dict[str, Any]] = {}
+    clash: set[str] = set()
+    for path in paths:
+        for line in value_lines(path):
+            n = line["번호"]
+            if n in seen and seen[n] != line:
+                clash.add(n)
+            seen.setdefault(n, line)
+    return [line for n, line in seen.items() if n not in clash], clash
+
+
+def read_pieces(pdf: Path, layout: Layout) -> tuple[list[RR.PieceView], dict[int, str]]:
+    """요약서 PDF에서 급부 표를 다시 읽어 조각(번호는 조각 파일의 순번)과 쪽 글자를 돌려준다.
+
+    손해보험사 꼴(tables.Layout)은 scripts/dump_tables.py와, 생명보험사 꼴(blocks.LifeLayout)은 scripts/dump_blocks.py와 같은 길이다.
+    """
     pages = tables.page_texts(pdf)
+    if isinstance(layout, blocks.LifeLayout):
+        result, source = blocks.read_pdf(pdf, layout, pages=pages)
+        data = tables.riders_to_json(result.riders, {"문서": pdf.stem, **source}, result.notes)
+        return RR.load_pieces(data), pages
     found = tables.benefit_pages(pages, None, layout)
     read = tables.read_tables(pdf, found.first_page, found.last_page, layout)
     riders = tables.riders_from_tables(read, layout)
@@ -125,13 +189,24 @@ def products_of(targets: Mapping[str, Any]) -> dict[tuple[str, str], Mapping[str
     return {(v["공시상품코드"], v["종형명"]): product for product in targets["상품"] for v in product["종형"]}
 
 
-def check_values(group: Group, lines: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
-    """값 파일을 다시 읽은 조각과 맞춰 보고 행 만들기에 넣을 판정 값을 고른다. 쓰지 않을 줄은 group.reasons에 사유를 남긴다."""
+def kinds_of(targets: Mapping[str, Any]) -> dict[tuple[str, str], str]:
+    """(공시상품코드, 종형명) → 대상 설정의 읽을종("2종"). 한 급부 표 안에 종별 값이 함께 있는 요약서(삼성생명)의 정밀비교
+    종형에만 적는다. 적지 않은 종형은 넣지 않는다."""
+    return {(v["공시상품코드"], v["종형명"]): v["읽을종"] for product in targets["상품"] for v in product["종형"]
+            if v.get("읽을종")}
+
+
+def check_values(group: Group, lines: Sequence[Mapping[str, Any]], clash: set[str] | None = None) -> dict[str, dict[str, Any]]:
+    """값 파일을 다시 읽은 조각과 맞춰 보고 행 만들기에 넣을 판정 값을 고른다. 쓰지 않을 줄은 group.reasons에 사유를 남긴다.
+    clash는 값 파일 여럿에 서로 다른 줄로 나온 번호(merged_lines)다."""
     found = RR.covers_by_number(group.pieces)
     used = set(group.used)
     by_number = {line["번호"]: line for line in lines}
+    for n in sorted(clash or ()):
+        if n in used:
+            group.reasons[n] = CLASH
     for n in group.used:
-        if n not in by_number:
+        if n not in by_number and n not in group.reasons:
             group.reasons[n] = NOT_IN_VALUES
     for n, line in by_number.items():
         if n not in found:
@@ -147,10 +222,13 @@ def check_values(group: Group, lines: Sequence[Mapping[str, Any]]) -> dict[str, 
 
 def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]], docs: Path,
          values: Mapping[str, Path], now: datetime, dry_run: bool = False, only: Sequence[str] | None = None,
-         layout: tables.Layout = tables.MERITZ) -> Loaded:
-    """values: {공시상품코드: 값 파일}. 같은 요약서를 쓰는 종형들은 그 가운데 값 파일이 있는 코드의 값 파일을 쓴다.
+         layout: Layout = tables.MERITZ) -> Loaded:
+    """values: {공시상품코드: 값 파일}. 같은 요약서를 쓰는 종형들은 그 가운데 값 파일이 있는 코드의 값 파일을 모두 이어 쓴다
+    (merged_lines. 메리츠화재는 요약서마다 값 파일이 하나, KB라이프생명은 형마다 하나).
 
     급부 행의 형식 오류는 그 행만 빼고 쓴다. 상품종형이나 특약에 형식 오류나 ID 겹침이 남거나 dry_run이면 쓰지 않는다.
+    대상 설정의 종형에 읽을종이 있으면 그 종이 아닌 조각과 세부보장은 그 종형의 행을 만들지 않는다(variant_pieces). 값 파일에도
+    그 줄은 없다(묶음 나누기가 같은 규칙으로 뺀다).
     """
     report = Loaded()
     found, problems = variants.build(targets, index)
@@ -158,6 +236,7 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
     if only:
         found = [v for v in found if v.row["공시상품코드"] in only]
     product = products_of(targets)
+    kind_of = kinds_of(targets)
     sheet = store.read(["sys_특약", "sys_급부", "sys_상품종형", "sys_작업로그"])
     on_sheet = {r["특약ID"]: r for r in sheet["sys_특약"]}
 
@@ -176,7 +255,9 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
     for group_variants in shared.values():
         codes = list(dict.fromkeys(v.row["공시상품코드"] for v in group_variants))
         same_file = [e["상품코드"] for e in index if e.get("해시") == group_variants[0].summary["해시"]]
-        code = next((c for c in codes + same_file if c in values and values[c].exists()), None)
+        # 그 요약서를 쓰는 코드 가운데 값 파일이 있는 코드 모두(형마다 코드와 값 파일이 따로인 상품은 둘 이상)
+        with_values = [c for c in dict.fromkeys(codes + same_file) if c in values and values[c].exists()]
+        code = "+".join(with_values) or None
         first = group_variants[0]
         if code is None:
             report.notes.append(f"{', '.join(codes)}: 값 파일이 없어 급부를 쓰지 않음")
@@ -187,23 +268,34 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
             continue
         group = Group(code, group_variants)
         group.pieces, pages = read_pieces(pdf, layout)
-        names = [v.row["종형명"] for v in group_variants]
-        members = {p.index: RR.variants_for(p.segment, names, layout.common) for p in group.pieces}
-        group.used = [c.number for p in group.pieces if members[p.index] for c in p.covers]
-        readings = check_values(group, value_lines(values[code]))
+        chosen: dict[str, list[RR.PieceView]] = {}
+        in_variant: set[str] = set()
+        cut: list[str] = []
+        for v in group_variants:
+            key = (v.row["공시상품코드"], v.row["종형명"])
+            if key in kind_of:
+                group.kinds[v.row["종형명"]] = kind_of[key]
+            chosen[v.id], dropped, _ = variant_pieces(group.pieces, v.row["종형명"], layout, kind_of.get(key))
+            in_variant |= {c.number for p in chosen[v.id] for c in p.covers}
+            cut += dropped
+        group.used = [c.number for p in group.pieces for c in p.covers if c.number in in_variant]
+        group.out_of_kind = [n for n in dict.fromkeys(cut) if n not in in_variant]
+        lines, clash = merged_lines([values[c] for c in with_values])
+        readings = check_values(group, lines, clash)
         report.groups.append(group)
         for v in group_variants:
-            mine = [p for p in group.pieces if v.row["종형명"] in members[p.index]]
+            mine = chosen[v.id]
             settings = product[(v.row["공시상품코드"], v.row["종형명"])]
             banned = [x["특약명"] for x in settings.get("갱신형특약제외") or []]
             built = RR.build_rows(v.id, mine, readings, renewal_years(mine, v.plain_renewal_years, banned), pages)
+            main_renewal(built.riders, v)
             for r in built.riders:          # 표는 가입 한도를 모른다. 시트에 있던 값을 잇는다(job.run과 같다)
                 old = on_sheet.get(r["특약ID"], {})
                 r.update({c: old.get(c) for c in job.LIMIT_COLUMNS if r.get(c) is None})
             report.rows["sys_상품종형"].append(v.row)
             report.rows["sys_특약"] += built.riders
             report.rows["sys_급부"] += built.benefits
-            report.no_amount.update(no_amount_reasons(built, readings, mine))
+            report.no_amount.update(no_amount_reasons(built, readings, group.pieces))
             report.done.add(v.id)
             _account(report, group, v, mine, built, banned)
 
@@ -344,6 +436,9 @@ def markdown(report: Loaded) -> str:
         kinds = reason_counts(g)
         out += (f"{g.code} 요약서: 정밀비교 종형에 드는 세부보장 {len(g.used)}줄, 급부 행이 된 줄 {len(g.written & set(g.used))}, "
                 f"쓰지 않은 줄 {sum(kinds.values())}\n")
+        if g.kinds:
+            out += (f"- 읽을 종({', '.join(sorted(set(g.kinds.values())))})이 아니어서 뺀 세부보장: {len(g.out_of_kind)}줄"
+                    "(정밀비교 종형에 드는 줄로 세지 않음)\n")
         out += "".join(f"- {k}: {n}\n" for k, n in kinds.most_common())
         held = sorted((n for n, why in g.reasons.items() if why.startswith(RR.HOLD) and n not in g.written), key=RR._order)
         if held:
@@ -372,6 +467,8 @@ def result_of(report: Loaded) -> dict[str, Any]:
         "쓰지 않은 줄": {g.code: dict(reason_counts(g)) for g in report.groups},
         "쓰지 않은 줄 번호": {g.code: {n: why.split(":", 1)[0] for n, why in sorted(g.reasons.items(), key=lambda x: RR._order(x[0]))
                                      if n not in g.written and n in set(g.used)} for g in report.groups},
+        **({"읽을 종이 아니어서 뺀 줄": {g.code: len(g.out_of_kind) for g in report.groups if g.kinds}}
+           if any(g.kinds for g in report.groups) else {}),
         "금액 없는 급부": dict(no_amount_counts(report).most_common()),
         "갱신형특약제외": report.excluded, "ID 겹침": report.clashes, "형식 오류": report.errors,
         "시트에서 빠지는 행": report.dropped, "주의": report.notes, "기록 행 수": len(report.logs), "시트에 씀": report.written,
@@ -384,7 +481,8 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--targets", type=Path, default=TARGETS)
     p.add_argument("--values", action="append", default=[], metavar="코드=경로",
                    help="공시상품코드의 값 파일. 비우면 data/crosscheck/<회사>_<코드>_benefits_2reader.jsonl")
-    p.add_argument("--org", default=tables.MERITZ.name, choices=sorted(tables.LAYOUTS), help="요약서 급부 표의 꼴(회사)")
+    p.add_argument("--org", default=tables.MERITZ.name, choices=sorted(LAYOUTS),
+                   help="요약서 급부 표의 꼴(회사). 값 파일 이름의 앞머리이기도 하다")
     p.add_argument("--only", action="extend", nargs="+", help="이 공시상품코드의 종형만 처리")
     p.add_argument("--dry-run", action="store_true", help="시트에 쓰지 않는다")
     p.add_argument("--snapshot", type=Path, help="시트 대신 이 사본 폴더를 읽는다. 시트에 쓰지 않는다")
@@ -421,7 +519,7 @@ def main(argv: list[str] | None = None) -> int:
         code, _, path = item.partition("=")
         values[code] = Path(path)
     report = load(store, targets, index, args.docs, values, datetime.now(KST), dry_run=dry_run, only=args.only,
-                  layout=tables.LAYOUTS[args.org])
+                  layout=LAYOUTS[args.org])
 
     text = markdown(report)
     print(text)

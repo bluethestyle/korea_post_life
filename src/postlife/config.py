@@ -24,8 +24,8 @@ SEARCH_DAILY_LIMIT = 20
 MAX_QUERIES_PER_RUN = 6    # 질의마다 최대 3회 시도해도 하루 검색 한도 안에 들어오는 수
 SEARCH_LOOKBACK_DAYS = 14  # 요일별로 주 1회 도는 것을 감안해 2주를 훑고 중복은 병합한다
 
-# 기관코드 → 기관명 (2.2)
-LIFE = {
+# 기관코드 → 기관명 (2.2). 동향 수집 대상 생명보험사
+TREND_LIFE = {
     "SAMSUNGLIFE": "삼성생명",
     "HANWHALIFE": "한화생명",
     "KYOBO": "교보생명",
@@ -36,6 +36,14 @@ LIFE = {
     "HEUNGKUKLIFE": "흥국생명",
     "KDBLIFE": "KDB생명",
 }
+# 정밀 비교에만 들어가는 생명보험사. 동향 수집 19곳(2.2) 밖이라 요일별 질의(DAILY_PLAN)와 소식의 귀속 대상
+# (TREND_INSTITUTIONS)에는 들지 않는다. 기관 이름(INSTITUTIONS)과 업권(LIFE)을 풀 때만 쓴다(2026-11-23)
+COMPARE_ONLY_LIFE = {
+    "KBLIFE": "KB라이프생명",
+    "MIRAEASSET": "미래에셋생명",
+    "METLIFE": "메트라이프생명",
+}
+LIFE = {**TREND_LIFE, **COMPARE_ONLY_LIFE}
 NONLIFE = {
     "SAMSUNGFIRE": "삼성화재",
     "DB": "DB손해보험",
@@ -48,7 +56,8 @@ NONLIFE = {
     "HEUNGKUKFIRE": "흥국화재",
 }
 POST = {"EPOST": "우체국보험"}
-INSTITUTIONS = {**LIFE, **NONLIFE, **POST}
+TREND_INSTITUTIONS = {**TREND_LIFE, **NONLIFE, **POST}   # 동향 수집 대상 19곳. 협회·공통 소식을 귀속시킬 수 있는 회사
+INSTITUTIONS = {**LIFE, **NONLIFE, **POST}               # 기관코드 → 기관명. 정밀 비교에만 들어가는 회사까지
 
 # 제도 변화처럼 특정 회사에 속하지 않는 소식의 기관코드
 COMMON = {
