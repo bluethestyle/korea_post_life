@@ -173,6 +173,7 @@ let stepSwitchToken = 0;
 let lastStageHost = null;
 let cachedHostW = 0;
 let lastHotSid = '';
+let userScrolledZc = false;
 const SUB_NAME_MAP = {};
 Object.values(S['포인트'] || {}).forEach(p => { if (p && p['세부'] && p['세부이름']) SUB_NAME_MAP[p['세부']] = p['세부이름']; });
 
@@ -658,6 +659,44 @@ function animateZoomBarsFromTicks(stageEl, baseDelayMs = 0, prePlotRect = null, 
   });
 }
 
+function scrollSelectedBarIntoCenter() {
+  if (App.state.tab !== 'cover' || innerWidth < 1000) return;
+  const zc = document.getElementById('z-center');
+  if (!zc) return;
+  if (!zc._cvUserScrollBound) {
+    zc._cvUserScrollBound = true;
+    const mark = () => { if (App.state.tab === 'cover') userScrolledZc = true; };
+    zc.addEventListener('wheel', mark, { passive: true });
+    zc.addEventListener('touchmove', mark, { passive: true });
+  }
+  if (!App.state.sel.cover) {
+    if (!userScrolledZc && zc.scrollTop > 0) zc.scrollTop = 0;
+    if (App.syncZcScrollCue) App.syncZcScrollCue();
+    return;
+  }
+  if (userScrolledZc) {
+    if (App.syncZcScrollCue) App.syncZcScrollCue();
+    App.updateSelLink(false);
+    return;
+  }
+  const selSlot = zc.querySelector('.cvp-slot.is-sel');
+  if (selSlot && zc.scrollHeight > zc.clientHeight + 1) {
+    const zcRect = zc.getBoundingClientRect();
+    const barEl = selSlot.querySelector('.cvp-bar') || selSlot;
+    const bRect = barEl.getBoundingClientRect();
+    if (bRect.bottom > zcRect.bottom - 10) {
+      const need = bRect.bottom - (zcRect.bottom - 10);
+      const maxUp = Math.max(0, bRect.top - (zcRect.top + 6));
+      const delta = maxUp > 0 ? Math.min(need, maxUp) : need;
+      zc.scrollTop = Math.min(zc.scrollHeight - zc.clientHeight, Math.round(zc.scrollTop + delta));
+    } else if (bRect.top < zcRect.top + 6) {
+      zc.scrollTop = Math.max(0, Math.round(zc.scrollTop - ((zcRect.top + 6) - bRect.top)));
+    }
+  }
+  if (App.syncZcScrollCue) App.syncZcScrollCue();
+  App.updateSelLink(false);
+}
+
 function switchCoverStep(nextStep, opts = {}) {
   const c = App.ctx();
   const m = model(c.baseId);
@@ -735,7 +774,7 @@ function switchCoverStep(nextStep, opts = {}) {
       try { target.focus({ preventScroll: true }); } catch (ex) { /* */ }
     }
   }
-  requestAnimationFrame(() => App.updateSelLink(false));
+  requestAnimationFrame(() => { scrollSelectedBarIntoCenter(); App.updateSelLink(false); });
 }
 
 function ensureSidInView(sid, c) {
@@ -860,7 +899,7 @@ function renderStage(center, c) {
 
   const stageEl = center.querySelector('#cv-pillar-stage');
   syncCoverSelectionAndFilter(stageEl);
-  requestAnimationFrame(() => positionOvBracket(stageEl, false));
+  requestAnimationFrame(() => { positionOvBracket(stageEl, false); scrollSelectedBarIntoCenter(); });
 }
 
 function applyCoverFiltersInPlace(stageEl) {
@@ -1583,12 +1622,21 @@ function tableBand(c, m, byName, peerN) {
     note: `판정 칸 ${total}개 가운데 넷을 크게 보였습니다. 나머지(같음, 우열을 매기지 않음, 검토 대기, 판정 보류, ${BOTH_NONE_TEXT})는 아래 줄에 수를 적었습니다.` });
 }
 
+function payHTML(text, hasExtra) {
+  if (!hasExtra) return esc(text);
+  const s = String(text);
+  const m = s.match(/^(.*\s)(\S+)$/);
+  return m
+    ? `${esc(m[1])}<span class="pv-nw">${esc(m[2])}<i class="pv-x" aria-hidden="true"></i></span>`
+    : `<span class="pv-nw">${esc(s)}<i class="pv-x" aria-hidden="true"></i></span>`;
+}
+
 function compCell(row, k, vid) {
   const c = row.cells[k];
   if (has(c)) {
     const b = repOf(c);
     const extra = [c.n > 1 ? `같은 담보 급부 ${c.n}개 가운데 대표 급부` : '', c.o ? `대표와 조건이 다른 줄 ${c.o}개` : '', c.w ? `매핑 대기 ${c.w}줄` : ''].filter(Boolean).join(', ');
-    return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${esc(payText(b))}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red, b))}</span></span></td>`;
+    return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${payHTML(payText(b), !!extra)}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red, b))}</span></span></td>`;
   }
   const t = c && c.w ? `검토 대기 ${c.w}줄` : c && c.c ? `없음, ${txt.josa(c.c[0], '으로')} 덮음` : '없음';
   return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-x${c && c.w ? ' wait' : ''}">${esc(t)}</span></td>`;
@@ -2061,10 +2109,18 @@ function enter(body) {
 App.on('aim', aimEl => { if (App.state.tab === 'cover') syncCoverAimHot(aimEl); });
 App.on('select', tab => {
   if (tab !== 'cover') return;
+  userScrolledZc = false;
   const curSel = App.state.sel.cover || '';
   if (!curSel) lastSyncedSelKey = `${App.state.base}|`;
   const stageEl = document.getElementById('cv-pillar-stage');
   syncCoverSelectionAndFilter(stageEl);
+  scrollSelectedBarIntoCenter();
+  requestAnimationFrame(() => scrollSelectedBarIntoCenter());
+});
+App.on('ev-settled', tab => {
+  if (tab !== 'cover') return;
+  scrollSelectedBarIntoCenter();
+  requestAnimationFrame(scrollSelectedBarIntoCenter);
 });
 App.on('resize', () => {
   cachedHostW = 0;

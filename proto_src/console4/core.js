@@ -1263,11 +1263,23 @@
   }
 
   function cancelBandAnims(el, innerEl, list) {
+    if (el && el._bandRaf) { cancelAnimationFrame(el._bandRaf); el._bandRaf = 0; }
     if (el && el._bandAnim) { el._bandAnim.cancel(); el._bandAnim = null; }
     if (innerEl && innerEl._bandAnim) { innerEl._bandAnim.cancel(); innerEl._bandAnim = null; }
     for (const b of (list || [])) {
       if (b && b._bandShiftAnim) { b._bandShiftAnim.cancel(); b._bandShiftAnim = null; }
+      if (b) {
+        b.style.transformOrigin = '';
+        b.style.height = '';
+        b.style.maxHeight = '';
+        b.style.minHeight = '';
+        b.style.flex = '';
+        b.style.marginBottom = '';
+        b.style.clipPath = '';
+      }
     }
+    const bd = $('#board');
+    if (bd) bd.style.overflow = '';
   }
 
   function animateTopBand(el, innerSel, open) {
@@ -1280,26 +1292,40 @@
       el._closingBand = false;
       el.hidden = !open;
       placeGuides();
+      syncZcScrollCue();
       requestAnimationFrame(() => updateSelLink(false));
       return;
     }
+    const bd = $('#board');
     if (open) {
       el._closingBand = false;
-      const beforeTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      const beforeBox = new Map(below.map(b => {
+        const r = b.getBoundingClientRect();
+        return [b, { top: r.top, height: r.height, bot: r.bottom }];
+      }));
       el.hidden = false;
+      const afterBox = new Map(below.map(b => {
+        const r = b.getBoundingClientRect();
+        return [b, { top: r.top, height: r.height, bot: r.bottom }];
+      }));
       let maxShift = el.offsetHeight || 0;
-      const dyMap = new Map();
+      const deltaMap = new Map();
       for (const b of below) {
-        const dy = beforeTop.get(b) - b.getBoundingClientRect().top;
-        dyMap.set(b, dy);
-        if (Math.abs(dy) > maxShift) maxShift = Math.abs(dy);
+        const bef = beforeBox.get(b);
+        const aft = afterBox.get(b);
+        const dy = bef.top - aft.top;
+        const dbot = bef.bot - aft.bot;
+        const dh = bef.height - aft.height;
+        deltaMap.set(b, { bef, aft, dy, dh });
+        maxShift = Math.max(maxShift, Math.abs(dy), Math.abs(dbot));
       }
       const { dur, easing } = panelTiming(true, maxShift);
-      if (!dur) { placeGuides(); requestAnimationFrame(() => updateSelLink(false)); return; }
+      if (!dur) { placeGuides(); syncZcScrollCue(); requestAnimationFrame(() => updateSelLink(false)); return; }
+      if (bd && !bd.hidden) bd.style.overflow = 'visible';
       el._bandAnim = el.animate([
         { clipPath: 'inset(0% 0% 100% 0%)' },
         { clipPath: 'inset(0% 0% 0% 0%)' },
-      ], { duration: dur, easing });
+      ], { duration: dur, easing, fill: 'forwards' });
       if (innerEl && typeof innerEl.animate === 'function') {
         innerEl._bandAnim = innerEl.animate([
           { opacity: 0, offset: 0 },
@@ -1307,66 +1333,152 @@
           { opacity: 1, offset: 1 },
         ], { duration: dur, easing });
       }
+      const resizable = [];
       for (const b of below) {
-        const dy = dyMap.get(b) || 0;
-        if (Math.abs(dy) >= 0.5 && typeof b.animate === 'function') {
+        const { bef, aft, dy, dh } = deltaMap.get(b) || { bef: null, aft: null, dy: 0, dh: 0 };
+        if (!bef || !aft || typeof b.animate !== 'function') continue;
+        if (Math.abs(dh) < 0.5) {
+          if (Math.abs(dy) >= 0.5) {
+            b._bandShiftAnim = b.animate([
+              { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+              { transform: 'translate3d(0,0,0)' },
+            ], { duration: dur, easing });
+          }
+        } else {
+          const isFlex = b.id === 'home-panel' || (bd && bd.dataset.layout === 'band' && (b.id === 'z-center' || b.id === 'z-right'));
+          b.style.maxHeight = 'none';
+          b.style.minHeight = '0px';
+          b.style.height = `${bef.height.toFixed(2)}px`;
+          b.style.marginBottom = `${(-(bef.height - aft.height)).toFixed(2)}px`;
+          if (isFlex) b.style.flex = `0 0 ${bef.height.toFixed(2)}px`;
           b._bandShiftAnim = b.animate([
             { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
             { transform: 'translate3d(0,0,0)' },
-          ], { duration: dur, easing });
+          ], { duration: dur, easing, fill: 'forwards' });
+          resizable.push({ b, isFlex, h0: bef.height, h1: aft.height, baseH: aft.height, dy });
         }
+      }
+      if (resizable.length) {
+        const tickOpen = () => {
+          if (token !== el._bandTok) return;
+          for (const it of resizable) {
+            let p = 1;
+            if (Math.abs(it.dy) >= 0.5) {
+              const m = new DOMMatrix(getComputedStyle(it.b).transform);
+              p = Math.max(0, Math.min(1, 1 - (m.m42 / it.dy)));
+            } else if (el._bandAnim && typeof el._bandAnim.currentTime === 'number') {
+              p = Math.max(0, Math.min(1, el._bandAnim.currentTime / dur));
+            }
+            const h = it.h0 + (it.h1 - it.h0) * p;
+            it.b.style.height = `${h.toFixed(2)}px`;
+            it.b.style.marginBottom = `${(-(h - it.baseH)).toFixed(2)}px`;
+            if (it.isFlex) it.b.style.flex = `0 0 ${h.toFixed(2)}px`;
+          }
+          el._bandRaf = requestAnimationFrame(tickOpen);
+        };
+        el._bandRaf = requestAnimationFrame(tickOpen);
       }
       el._bandAnim.onfinish = () => {
         if (token !== el._bandTok) return;
-        el._bandAnim = null;
+        cancelBandAnims(el, innerEl, below);
         placeGuides();
         updateSelLink(false);
+        syncZcScrollCue();
       };
       placeGuides();
       requestAnimationFrame(() => updateSelLink(false));
     } else {
       if (el.hidden) return;
       el._closingBand = true;
-      const curTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      const curBox = new Map(below.map(b => {
+        const r = b.getBoundingClientRect();
+        return [b, { top: r.top, height: r.height, bot: r.bottom }];
+      }));
       const prevH = el.offsetHeight || 0;
       el.hidden = true;
-      const targetTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      const targetBox = new Map(below.map(b => {
+        const r = b.getBoundingClientRect();
+        return [b, { top: r.top, height: r.height, bot: r.bottom }];
+      }));
       el.hidden = false;
       let maxShift = prevH;
+      const deltaMap = new Map();
       for (const b of below) {
-        const dy = (targetTop.get(b) || 0) - (curTop.get(b) || 0);
-        if (Math.abs(dy) > maxShift) maxShift = Math.abs(dy);
+        const cur = curBox.get(b);
+        const tgt = targetBox.get(b);
+        const dy = tgt.top - cur.top;
+        const dbot = tgt.bot - cur.bot;
+        const dh = tgt.height - cur.height;
+        deltaMap.set(b, { cur, tgt, dy, dh });
+        maxShift = Math.max(maxShift, Math.abs(dy), Math.abs(dbot));
       }
       const { dur, easing } = panelTiming(false, maxShift);
-      if (!dur) { el._closingBand = false; el.hidden = true; placeGuides(); return; }
+      if (!dur) { el._closingBand = false; el.hidden = true; placeGuides(); syncZcScrollCue(); return; }
+      if (bd && !bd.hidden) bd.style.overflow = 'visible';
       el._bandAnim = el.animate([
         { clipPath: 'inset(0% 0% 0% 0%)' },
         { clipPath: 'inset(0% 0% 100% 0%)' },
-      ], { duration: dur, easing });
+      ], { duration: dur, easing, fill: 'forwards' });
       if (innerEl && typeof innerEl.animate === 'function') {
         innerEl._bandAnim = innerEl.animate([
           { opacity: 1, offset: 0 },
           { opacity: 0, offset: 0.55 },
           { opacity: 0, offset: 1 },
-        ], { duration: dur, easing });
+        ], { duration: dur, easing, fill: 'forwards' });
       }
+      const resizable = [];
       for (const b of below) {
-        const dy = targetTop.get(b) - curTop.get(b);
-        if (Math.abs(dy) >= 0.5 && typeof b.animate === 'function') {
+        const { cur, tgt, dy, dh } = deltaMap.get(b) || { cur: null, tgt: null, dy: 0, dh: 0 };
+        if (!cur || !tgt || typeof b.animate !== 'function') continue;
+        if (Math.abs(dh) < 0.5) {
+          if (Math.abs(dy) >= 0.5) {
+            b._bandShiftAnim = b.animate([
+              { transform: 'translate3d(0,0,0)' },
+              { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+            ], { duration: dur, easing, fill: 'forwards' });
+          }
+        } else {
+          const isFlex = b.id === 'home-panel' || (bd && bd.dataset.layout === 'band' && (b.id === 'z-center' || b.id === 'z-right'));
+          b.style.maxHeight = 'none';
+          b.style.minHeight = '0px';
+          b.style.height = `${cur.height.toFixed(2)}px`;
+          b.style.marginBottom = '0px';
+          if (isFlex) b.style.flex = `0 0 ${cur.height.toFixed(2)}px`;
           b._bandShiftAnim = b.animate([
             { transform: 'translate3d(0,0,0)' },
             { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
-          ], { duration: dur, easing });
+          ], { duration: dur, easing, fill: 'forwards' });
+          resizable.push({ b, isFlex, h0: cur.height, h1: tgt.height, baseH: cur.height, dy });
         }
+      }
+      if (resizable.length) {
+        const tickClose = () => {
+          if (token !== el._bandTok) return;
+          for (const it of resizable) {
+            let p = 1;
+            if (Math.abs(it.dy) >= 0.5) {
+              const m = new DOMMatrix(getComputedStyle(it.b).transform);
+              p = Math.max(0, Math.min(1, m.m42 / it.dy));
+            } else if (el._bandAnim && typeof el._bandAnim.currentTime === 'number') {
+              p = Math.max(0, Math.min(1, el._bandAnim.currentTime / dur));
+            }
+            const h = it.h0 + (it.h1 - it.h0) * p;
+            it.b.style.height = `${h.toFixed(2)}px`;
+            it.b.style.marginBottom = `${(-(h - it.baseH)).toFixed(2)}px`;
+            if (it.isFlex) it.b.style.flex = `0 0 ${h.toFixed(2)}px`;
+          }
+          el._bandRaf = requestAnimationFrame(tickClose);
+        };
+        el._bandRaf = requestAnimationFrame(tickClose);
       }
       el._bandAnim.onfinish = () => {
         if (token !== el._bandTok) return;
         el._closingBand = false;
-        el._bandAnim = null;
-        cancelBandAnims(null, innerEl, below);
+        cancelBandAnims(el, innerEl, below);
         el.hidden = true;
         placeGuides();
         updateSelLink(false);
+        syncZcScrollCue();
       };
     }
   }
@@ -1403,7 +1515,7 @@
         <i class="th-sep" id="th-act-sep" aria-hidden="true"></i>
         <button class="scope-tgl" id="cond-sum" type="button" aria-expanded="false" aria-controls="cond"><span class="act-t">${esc(cp('condOpenBtn'))}</span> ${IC.chevD}</button>
         <button class="scope-tgl peer-tgl" id="peer-tgl" type="button" data-peer-pop="1" aria-controls="help-pop" aria-expanded="false"><span id="peer-tgl-t"></span> ${IC.chevD}</button>
-        <button class="scope-tgl" id="scope-tgl" type="button" aria-expanded="false" aria-controls="scope">${esc(cp('scopeBtn'))} ${IC.chevD}</button>${help('scope-band', cp('scopeTitle'))}
+        <span class="th-scope-grp"><button class="scope-tgl" id="scope-tgl" type="button" aria-expanded="false" aria-controls="scope">${esc(cp('scopeBtn'))} ${IC.chevD}</button>${help('scope-band', cp('scopeTitle'))}</span>
       </div>`;
 
     const el = $('#cond');
@@ -1946,7 +2058,7 @@
     const nav = $('#lpath');
     if (!nav) return;
     if (st.tab === 'brief') {
-      nav.innerHTML = `<span class="lp-cur">${esc(cp('homePathRoot'))}</span>`;
+      nav.innerHTML = `<span class="lp-cur" title="${esc(cp('homePathRoot'))}">${esc(cp('homePathRoot'))}</span>`;
       return;
     }
     const t = tabs[st.tab];
@@ -1962,7 +2074,7 @@
     }
     nav.innerHTML = parts.map((label, idx) => {
       const last = idx === parts.length - 1;
-      if (last) return `<span class="lp-cur">${esc(label)}</span>`;
+      if (last) return `<span class="lp-cur" title="${esc(label)}">${esc(label)}</span>`;
       return `<button type="button" class="lp-b" data-path-idx="${idx}">${esc(label)}</button><span class="lp-sep" aria-hidden="true">&gt;</span>`;
     }).join('');
   }
@@ -2053,18 +2165,65 @@
     document.documentElement.style.setProperty('--bg-px', `${(idx - 1) * -12}px`);
   }
 
+  let tabOutToken = 0;
+  let tabOutCleanups = [];
+  function clearTabOutStyle(el) {
+    if (!el) return;
+    el.classList.remove('is-tab-out');
+    el.style.position = '';
+    el.style.left = '';
+    el.style.right = '';
+    el.style.top = '';
+    el.style.width = '';
+    el.style.removeProperty('height');
+    el.style.pointerEvents = '';
+    el.style.opacity = '';
+    el.style.zIndex = '';
+    el.style.overflow = '';
+  }
+  function cleanupTabOutAnims() {
+    tabOutToken++;
+    const list = tabOutCleanups;
+    tabOutCleanups = [];
+    for (const fn of list) {
+      try { fn(); } catch (e) { /* */ }
+    }
+    const bd = $('#board');
+    const hp = $('#home-panel');
+    const els = [bd, hp].concat(SCREEN_IDS.map(viewOf));
+    for (const el of els) {
+      if (!el) continue;
+      if (el._tabOutAnim) { el._tabOutAnim.cancel(); el._tabOutAnim = null; }
+      clearTabOutStyle(el);
+    }
+    if (bd) void bd.offsetWidth;
+    if (hp) void hp.offsetWidth;
+  }
+
   function renderActiveScreen(c, why) {
+    cleanupTabOutAnims();
     const curC = c || ctx();
     const isTabSwitch = why === 'tab' && booted && activeRenderedTab !== st.tab;
     const snap = isTabSwitch ? snapScreenTransition(activeRenderedTab, st.tab) : null;
     activeRenderedTab = st.tab;
-    applyBgParallax(st.tab);
-    renderRingTabs(curC, snap);
     const isHome = st.tab === 'brief';
     const homePanel = $('#home-panel');
     const board = $('#board');
-    homePanel.hidden = !isHome;
-    board.hidden = isHome;
+    const canTabOut = !!(snap && motionOn());
+    const outClose = canTabOut ? panelTiming(false) : null;
+    const outDur = outClose ? Math.max(90, Math.min(200, Math.round(outClose.dur * 0.6))) : 0;
+    const outEase = outClose ? outClose.easing : 'linear';
+    const hpRect = (canTabOut && snap.fromTab === 'brief' && !isHome && homePanel && !homePanel.hidden)
+      ? homePanel.getBoundingClientRect() : null;
+    const bdRect = (canTabOut && snap.fromTab !== 'brief' && isHome && board && !board.hidden)
+      ? board.getBoundingClientRect() : null;
+    const fadeOutHome = !!(hpRect && hpRect.height > 0 && outDur > 0 && typeof homePanel.animate === 'function');
+    const fadeOutBoard = !!(bdRect && bdRect.height > 0 && outDur > 0 && typeof board.animate === 'function');
+
+    applyBgParallax(st.tab);
+    renderRingTabs(curC, snap);
+    if (!fadeOutHome) homePanel.hidden = !isHome;
+    if (!fadeOutBoard) board.hidden = isHome;
 
     if (isHome) {
       hideEv();
@@ -2076,10 +2235,37 @@
       syncHeaderAndPath(curC);
       renderActBar(curC);
       placeGuides();
+      syncZcScrollCue();
+      requestAnimationFrame(syncZcScrollCue);
+      if (fadeOutBoard) {
+        const tok = tabOutToken;
+        board.hidden = false;
+        board.style.position = 'fixed';
+        board.style.left = `${bdRect.left}px`;
+        board.style.top = `${bdRect.top}px`;
+        board.style.width = `${bdRect.width}px`;
+        board.style.setProperty('height', `${bdRect.height}px`, 'important');
+        board.classList.add('is-tab-out');
+        board.style.zIndex = '2';
+        board.style.overflow = 'hidden';
+        const finishBoardOut = () => {
+          if (board._tabOutAnim) { board._tabOutAnim.cancel(); board._tabOutAnim = null; }
+          clearTabOutStyle(board);
+          if (st.tab !== 'brief') return;
+          board.hidden = true;
+          syncZcScrollCue();
+        };
+        tabOutCleanups.push(finishBoardOut);
+        board._tabOutAnim = board.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
+        board._tabOutAnim.onfinish = () => {
+          if (tok !== tabOutToken) return;
+          finishBoardOut();
+        };
+      }
       if (snap) {
         if (motionOn() && typeof homePanel.animate === 'function') {
           const { dur, easing } = panelTiming(true);
-          if (dur > 0) homePanel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+          if (dur > 0) homePanel.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: dur, easing });
         }
         playAxisBridge(snap.axis, findVisibleMainAxis('brief'));
         playReturnRingToHome(snap);
@@ -2087,17 +2273,61 @@
       return;
     }
 
-    if (!isHome && homePanel.innerHTML) homePanel.innerHTML = '';
+    if (!isHome && !fadeOutHome && homePanel.innerHTML) homePanel.innerHTML = '';
+    if (fadeOutHome) {
+      const tok = tabOutToken;
+      homePanel.hidden = false;
+      homePanel.style.position = 'fixed';
+      homePanel.style.left = `${hpRect.left}px`;
+      homePanel.style.top = `${hpRect.top}px`;
+      homePanel.style.width = `${hpRect.width}px`;
+      homePanel.style.height = `${hpRect.height}px`;
+      homePanel.classList.add('is-tab-out');
+      homePanel.style.zIndex = '2';
+      homePanel.style.overflow = 'hidden';
+      const finishHomeOut = () => {
+        if (homePanel._tabOutAnim) { homePanel._tabOutAnim.cancel(); homePanel._tabOutAnim = null; }
+        clearTabOutStyle(homePanel);
+        if (st.tab === 'brief') return;
+        homePanel.hidden = true;
+        homePanel.innerHTML = '';
+        syncZcScrollCue();
+      };
+      tabOutCleanups.push(finishHomeOut);
+      homePanel._tabOutAnim = homePanel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
+      homePanel._tabOutAnim.onfinish = () => {
+        if (tok !== tabOutToken) return;
+        finishHomeOut();
+      };
+    }
+
+    ensureLegacySections();
+    const prevTabId = (canTabOut && snap.fromTab !== 'brief' && snap.fromTab !== st.tab && outDur > 0) ? snap.fromTab : null;
+    const prevView = prevTabId ? viewOf(prevTabId) : null;
+    const pvRect = (prevView && !prevView.hidden) ? prevView.getBoundingClientRect() : null;
+    const fadeOutView = !!(prevView && pvRect && pvRect.height > 0 && typeof prevView.animate === 'function');
+
     const lay = boardLayoutFor(st.tab);
     board.dataset.layout = lay;
     board.dataset.tab = st.tab;
     const zl = $('#z-left');
     if (zl) zl.hidden = lay !== 'three';
 
-    ensureLegacySections();
     for (const x of SCREEN_IDS) {
       const v = viewOf(x);
-      if (v) v.hidden = x !== st.tab;
+      if (v) v.hidden = x !== st.tab && !(fadeOutView && x === prevTabId);
+    }
+
+    if (fadeOutView) {
+      prevView.hidden = false;
+      prevView.style.position = 'fixed';
+      prevView.style.left = `${pvRect.left}px`;
+      prevView.style.top = `${pvRect.top}px`;
+      prevView.style.width = `${pvRect.width}px`;
+      prevView.style.height = `${pvRect.height}px`;
+      prevView.style.overflow = 'hidden';
+      prevView.classList.add('is-tab-out');
+      prevView.style.zIndex = '0';
     }
 
     const id = st.tab;
@@ -2149,14 +2379,32 @@
     applySelectionState(false, curC);
     renderActBar(curC);
     placeGuides();
+    if (fadeOutView) {
+      const tok = tabOutToken;
+      const finishViewOut = () => {
+        if (prevView._tabOutAnim) { prevView._tabOutAnim.cancel(); prevView._tabOutAnim = null; }
+        clearTabOutStyle(prevView);
+        if (st.tab === prevTabId) return;
+        prevView.hidden = true;
+        syncZcScrollCue();
+      };
+      tabOutCleanups.push(finishViewOut);
+      prevView._tabOutAnim = prevView.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
+      prevView._tabOutAnim.onfinish = () => {
+        if (tok !== tabOutToken) return;
+        finishViewOut();
+      };
+    }
+    syncZcScrollCue();
+    requestAnimationFrame(syncZcScrollCue);
     if (snap) {
       if (motionOn()) {
         const { dur, easing } = panelTiming(true);
         if (dur > 0) {
-          if (sec && typeof sec.animate === 'function') sec.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+          if (sec && typeof sec.animate === 'function') sec.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: dur, easing });
           const zr = $('#z-right');
-          if (zr && !zr.hidden && typeof zr.animate === 'function') zr.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
-          if (zl && !zl.hidden && typeof zl.animate === 'function') zl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+          if (zr && !zr.hidden && typeof zr.animate === 'function') zr.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: dur, easing });
+          if (zl && !zl.hidden && typeof zl.animate === 'function') zl.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: dur, easing });
         }
       }
       playAxisBridge(snap.axis, findVisibleMainAxis(id));
@@ -2212,6 +2460,41 @@
     if (!body || !more) return;
     const over = body.scrollHeight - body.clientHeight > 6 && body.scrollTop + body.clientHeight < body.scrollHeight - 6;
     more.hidden = !over;
+  }
+
+  function syncZcScrollCue() {
+    const board = $('#board'), zc = $('#z-center');
+    let cue = $('#zc-scroll-cue');
+    const show = !!(
+      st.tab === 'cover' &&
+      innerWidth >= 1280 &&
+      mode() !== 'sheet' &&
+      board && !board.hidden &&
+      zc &&
+      zc.scrollHeight > zc.clientHeight + 1 &&
+      zc.scrollTop + zc.clientHeight < zc.scrollHeight - 2
+    );
+    if (!show) {
+      if (cue) cue.hidden = true;
+      return;
+    }
+    const zr = zc.getBoundingClientRect();
+    if (zr.width < 10 || zr.height < 10) {
+      if (cue) cue.hidden = true;
+      return;
+    }
+    if (!cue) {
+      cue = document.createElement('div');
+      cue.className = 'zc-scroll-cue';
+      cue.id = 'zc-scroll-cue';
+      cue.hidden = true;
+      cue.setAttribute('aria-hidden', 'true');
+      cue.innerHTML = IC.chevD;
+      document.body.appendChild(cue);
+    }
+    cue.style.left = Math.min(innerWidth - 26, Math.round(zr.right + 4)) + 'px';
+    cue.style.top = Math.round(zr.bottom - 28) + 'px';
+    cue.hidden = false;
   }
 
   function hideSelGlide() {
@@ -2396,6 +2679,16 @@
   }
 
   let evAnimToken = 0;
+  function clearUnselStyle(unsel) {
+    if (!unsel) return;
+    unsel.style.position = '';
+    unsel.style.inset = '';
+    unsel.style.left = '';
+    unsel.style.right = '';
+    unsel.style.top = '';
+    unsel.style.pointerEvents = '';
+    unsel.style.zIndex = '';
+  }
   function cancelEvAnims(zr, zrIn, body) {
     const unsel = $('#ev-unselected'), zc = $('#z-center');
     if (zr && zr._evAnim) { zr._evAnim.cancel(); zr._evAnim = null; }
@@ -2411,12 +2704,7 @@
       zr.style.top = '';
       zr.style.zIndex = '';
     }
-    if (unsel) {
-      unsel.style.position = '';
-      unsel.style.inset = '';
-      unsel.style.pointerEvents = '';
-      unsel.style.zIndex = '';
-    }
+    clearUnselStyle(unsel);
     if (zc) zc.style.clipPath = '';
   }
 
@@ -2432,13 +2720,19 @@
     const isBand = !!(board && board.dataset.layout === 'band' && mode() !== 'sheet');
     const beforeZrTop = (!wasPicked && isBand && canAnim) ? zr.getBoundingClientRect().top : null;
     const beforeZcH = (!wasPicked && isBand && canAnim && zc) ? zc.getBoundingClientRect().height : null;
-    const fadeUnsel = !wasPicked && !isBand && canAnim && unsel && !unsel.hidden && typeof unsel.animate === 'function';
+    const fadeUnsel = !wasPicked && canAnim && unsel && !unsel.hidden && typeof unsel.animate === 'function';
     zr.classList.remove('has-default-panel');
     zr.classList.add('is-picked');
     if (unsel) {
       if (fadeUnsel) {
         unsel.style.position = 'absolute';
-        unsel.style.inset = '0';
+        if (isBand) {
+          unsel.style.left = '0';
+          unsel.style.right = '0';
+          unsel.style.top = '-2px';
+        } else {
+          unsel.style.inset = '0';
+        }
         unsel.style.pointerEvents = 'none';
         unsel.style.zIndex = '0';
       } else {
@@ -2455,6 +2749,7 @@
     if (spec.body && typeof spec.body !== 'string') body.appendChild(spec.body);
     body.scrollTop = 0;
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
+    let deferredSettle = false;
     if (animate && motionOn()) {
       const afterZrTop = isBand ? zr.getBoundingClientRect().top : 0;
       const afterZcH = (isBand && zc) ? zc.getBoundingClientRect().height : 0;
@@ -2463,6 +2758,7 @@
       const dist = isBand ? Math.max(zr.offsetHeight || 0, Math.abs(rawDy)) : 0;
       const { dur, easing } = panelTiming(true, dist);
       if (!wasPicked && dur > 0 && typeof zrIn.animate === 'function') {
+        deferredSettle = true;
         if (isBand) {
           if (Math.abs(rawDy) >= 1 && zc && zcShrink >= 1) {
             const bTop = board.getBoundingClientRect().top;
@@ -2478,14 +2774,26 @@
           }
           const kfZr = Math.abs(rawDy) >= 1
             ? [
-                { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 100% 0)' },
+                { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 calc(100% - 36px) 0)' },
                 { transform: 'translate3d(0,0,0)', clipPath: 'inset(0 0 0% 0)' },
               ]
             : [
-                { clipPath: 'inset(0 0 100% 0)' },
+                { clipPath: 'inset(0 0 calc(100% - 36px) 0)' },
                 { clipPath: 'inset(0 0 0% 0)' },
               ];
           zr._evAnim = zr.animate(kfZr, { duration: dur, easing });
+          if (fadeUnsel) {
+            unsel._evAnim = unsel.animate([
+              { opacity: 1 },
+              { opacity: 0 },
+            ], { duration: Math.min(220, Math.round(dur * 0.4)), easing, fill: 'forwards' });
+            unsel._evAnim.onfinish = () => {
+              if (token !== evAnimToken) return;
+              if (unsel._evAnim) { unsel._evAnim.cancel(); unsel._evAnim = null; }
+              unsel.hidden = true;
+              clearUnselStyle(unsel);
+            };
+          }
           zrIn._evAnim = zrIn.animate([
             { transform: 'scaleY(0)', opacity: 0 },
             { transform: 'scaleY(1)', opacity: 1 },
@@ -2493,29 +2801,38 @@
           zrIn._evAnim.onfinish = () => {
             if (token !== evAnimToken) return;
             cancelEvAnims(zr, zrIn, body);
+            if (unsel) unsel.hidden = true;
             syncRightScrollCue();
+            syncZcScrollCue();
             updateSelLink(false);
+            emit('ev-settled', st.tab);
           };
         } else {
           if (fadeUnsel) {
             unsel._evAnim = unsel.animate([
               { opacity: 1, transform: 'translate3d(0,0,0)' },
               { opacity: 0, transform: 'translate3d(-10px,0,0)' },
-            ], { duration: dur, easing });
+            ], { duration: dur, easing, fill: 'forwards' });
             unsel._evAnim.onfinish = () => {
               if (token !== evAnimToken) return;
-              unsel._evAnim = null;
+              if (unsel._evAnim) { unsel._evAnim.cancel(); unsel._evAnim = null; }
               unsel.hidden = true;
-              unsel.style.position = '';
-              unsel.style.inset = '';
-              unsel.style.pointerEvents = '';
-              unsel.style.zIndex = '';
+              clearUnselStyle(unsel);
             };
           }
           zrIn._evAnim = zrIn.animate([
             { opacity: 0, transform: 'translate3d(16px,0,0)' },
             { opacity: 1, transform: 'translate3d(0,0,0)' },
           ], { duration: dur, easing });
+          zrIn._evAnim.onfinish = () => {
+            if (token !== evAnimToken) return;
+            cancelEvAnims(zr, zrIn, body);
+            if (unsel) unsel.hidden = true;
+            syncRightScrollCue();
+            syncZcScrollCue();
+            updateSelLink(false);
+            emit('ev-settled', st.tab);
+          };
         }
         body._evAnim = body.animate([
           { opacity: 0, offset: 0 },
@@ -2525,21 +2842,16 @@
       } else {
         if (fadeUnsel && unsel) {
           unsel.hidden = true;
-          unsel.style.position = '';
-          unsel.style.inset = '';
-          unsel.style.pointerEvents = '';
-          unsel.style.zIndex = '';
+          clearUnselStyle(unsel);
         }
         staggerEvLines(zrIn);
       }
     } else if (fadeUnsel && unsel) {
       unsel.hidden = true;
-      unsel.style.position = '';
-      unsel.style.inset = '';
-      unsel.style.pointerEvents = '';
-      unsel.style.zIndex = '';
+      clearUnselStyle(unsel);
     }
-    requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(animate === true); });
+    if (!deferredSettle) emit('ev-settled', st.tab);
+    requestAnimationFrame(() => { syncRightScrollCue(); syncZcScrollCue(); updateSelLink(animate === true); });
   }
 
   function unselectedConclusion(c) {
@@ -2611,13 +2923,20 @@
         unsel.hidden = false;
         const targetTop = zr.getBoundingClientRect().top;
         const zcTargetH = zc ? zc.getBoundingClientRect().height : 0;
-        unsel.hidden = true;
         zrIn.hidden = false;
         zr.classList.add('is-picked');
         const rawDy = targetTop - curTop;
         const zcGrow = zcTargetH - zcCurH;
         const closeDist = Math.max(zr.offsetHeight || 0, Math.abs(rawDy));
-        const { dur: bandDur, easing: bandEasing } = panelTiming(false, closeDist);
+        const { dur: rawBandDur, easing: bandEasing } = panelTiming(false, closeDist);
+        const bandDur = Math.min(585, rawBandDur);
+        unsel.hidden = false;
+        unsel.style.position = 'absolute';
+        unsel.style.left = '0';
+        unsel.style.right = '0';
+        unsel.style.top = '-2px';
+        unsel.style.pointerEvents = 'none';
+        unsel.style.zIndex = '0';
         if (Math.abs(rawDy) >= 1 && zc && zcGrow >= 1) {
           const bTop = board.getBoundingClientRect().top;
           zr.style.position = 'absolute';
@@ -2628,27 +2947,46 @@
           zc._evAnim = zc.animate([
             { clipPath: `inset(0 0 ${zcGrow.toFixed(2)}px 0)` },
             { clipPath: 'inset(0 0 0px 0)' },
-          ], { duration: bandDur, easing: bandEasing });
+          ], { duration: bandDur, easing: bandEasing, fill: 'forwards' });
         }
         const kfZr = Math.abs(rawDy) >= 1
           ? [
               { transform: 'translate3d(0,0,0)', clipPath: 'inset(0 0 0% 0)' },
-              { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 100% 0)' },
+              { transform: `translate3d(0,${rawDy.toFixed(2)}px,0)`, clipPath: 'inset(0 0 calc(100% - 36px) 0)' },
             ]
           : [
               { clipPath: 'inset(0 0 0% 0)' },
-              { clipPath: 'inset(0 0 100% 0)' },
+              { clipPath: 'inset(0 0 calc(100% - 36px) 0)' },
             ];
-        zr._evAnim = zr.animate(kfZr, { duration: bandDur, easing: bandEasing });
+        zr._evAnim = zr.animate(kfZr, { duration: bandDur, easing: bandEasing, fill: 'forwards' });
         zrIn._evAnim = zrIn.animate([
           { transform: 'scaleY(1)', opacity: 1 },
           { transform: 'scaleY(0)', opacity: 0 },
-        ], { duration: bandDur, easing: bandEasing });
+        ], { duration: bandDur, easing: bandEasing, fill: 'forwards' });
+        if (typeof unsel.animate === 'function') {
+          unsel._evAnim = unsel.animate([
+            { opacity: 0, offset: 0 },
+            { opacity: 0, offset: 0.45 },
+            { opacity: 1, offset: 1 },
+          ], { duration: bandDur, easing: bandEasing, fill: 'forwards' });
+        }
       } else {
+        unsel.hidden = false;
+        unsel.style.position = 'absolute';
+        unsel.style.inset = '0';
+        unsel.style.pointerEvents = 'none';
+        unsel.style.zIndex = '0';
+        if (typeof unsel.animate === 'function') {
+          unsel._evAnim = unsel.animate([
+            { opacity: 0, offset: 0 },
+            { opacity: 0, offset: 0.45 },
+            { opacity: 1, offset: 1 },
+          ], { duration: dur, easing, fill: 'forwards' });
+        }
         zrIn._evAnim = zrIn.animate([
           { opacity: 1, transform: 'translate3d(0,0,0)' },
           { opacity: 0, transform: 'translate3d(16px,0,0)' },
-        ], { duration: dur, easing });
+        ], { duration: dur, easing, fill: 'forwards' });
       }
       zrIn._evAnim.onfinish = () => {
         if (token !== evAnimToken) return;
@@ -2658,10 +2996,7 @@
         syncEvBackBtn();
         zrIn.hidden = true;
         unsel.hidden = false;
-        populateUnselectedEv(zr, unsel, ctx());
-        if (typeof unsel.animate === 'function' && motionOn()) {
-          unsel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: Math.min(200, dur), easing });
-        }
+        syncZcScrollCue();
       };
       return;
     }
@@ -2673,6 +3008,7 @@
     if (zrIn) zrIn.hidden = true;
     unsel.hidden = false;
     populateUnselectedEv(zr, unsel, curC);
+    syncZcScrollCue();
   }
 
   function showEv(spec, o = {}) {
@@ -2810,6 +3146,7 @@
       hideEv();
     }
     syncHeaderAndPath(curC);
+    syncZcScrollCue();
   }
 
   function select(key, o = {}) {
@@ -2995,24 +3332,46 @@
     return true;
   }
 
+  let actMenuTok = 0;
   function closeActMenu(immediate) {
     const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn'), box = $('#th-act-btns');
     if (!wrap || !wrap.classList.contains('is-open')) return false;
+    if (wrap._closingMenu) {
+      actMenuTok++;
+      wrap._closingMenu = false;
+      if (box && box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
+      wrap.classList.remove('is-open');
+      if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
+      return false;
+    }
+    actMenuTok++;
+    const tok = actMenuTok;
+    if (box && box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
     if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
     const { dur, easing } = panelTiming(false);
     if (!immediate && dur > 0 && box && typeof box.animate === 'function') {
-      const anim = box.animate([{ opacity: 1, transform: 'translate3d(0,0,0)' }, { opacity: 0, transform: 'translate3d(0,-8px,0)' }], { duration: dur, easing });
-      anim.onfinish = () => wrap.classList.remove('is-open');
+      wrap._closingMenu = true;
+      box._actAnim = box.animate([{ opacity: 1, transform: 'translate3d(0,0,0)' }, { opacity: 0, transform: 'translate3d(0,-8px,0)' }], { duration: dur, easing, fill: 'forwards' });
+      box._actAnim.onfinish = () => {
+        if (tok !== actMenuTok) return;
+        if (box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
+        wrap._closingMenu = false;
+        wrap.classList.remove('is-open');
+      };
       return true;
     }
+    wrap._closingMenu = false;
     wrap.classList.remove('is-open');
     return true;
   }
 
   function syncActMenu() {
-    const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn');
+    const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn'), box = $('#th-act-btns');
     if (!wrap || !btnEl) return;
     if (innerWidth > 1139 && wrap.classList.contains('is-open')) {
+      actMenuTok++;
+      wrap._closingMenu = false;
+      if (box && box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
       wrap.classList.remove('is-open');
       btnEl.setAttribute('aria-expanded', 'false');
     }
@@ -3060,6 +3419,7 @@
     }
     renderActiveScreen(ctx(changed), 'change');
     refreshModalIfOpen();
+    syncZcScrollCue();
     emit('change', ctx(changed), opts);
   }
 
@@ -3197,9 +3557,29 @@
     setTimeout(() => { if (document.body.classList.contains('printing') && !matchMedia('print').matches) done(); }, 1500);
   }
   let toastT = 0;
-  function toast(msg) {
-    const t = $('#toast'); t.textContent = msg; t.classList.add('on');
-    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600);
+  function toast(msg, opts) {
+    const t = $('#toast');
+    if (!t) return;
+    clearTimeout(toastT);
+    if (opts && opts.actLabel && typeof opts.onAct === 'function') {
+      t.innerHTML = `<span class="toast-msg">${esc(msg)}</span> <button type="button" class="toast-act">${esc(opts.actLabel)}</button>`;
+      t.classList.add('has-act');
+      const btnEl = $('.toast-act', t);
+      if (btnEl) {
+        btnEl.addEventListener('click', () => {
+          clearTimeout(toastT);
+          t.classList.remove('on', 'has-act');
+          opts.onAct();
+        }, { once: true });
+      }
+      t.classList.add('on');
+      toastT = setTimeout(() => t.classList.remove('on', 'has-act'), opts.duration || 4200);
+    } else {
+      t.classList.remove('has-act');
+      t.textContent = msg;
+      t.classList.add('on');
+      toastT = setTimeout(() => t.classList.remove('on'), (opts && opts.duration) || 2600);
+    }
   }
 
   // ---------- 안내선 ----------
@@ -3720,7 +4100,7 @@
     const dm = el.closest('#data-modal:not([hidden])');
     if (dm) return dm;
     const zr = el.closest('#z-right.is-picked');
-    if (zr) {
+    if (zr && !zr._closingEv) {
       if (mode() === 'sheet') {
         if (document.body.classList.contains('ev-open')) return zr;
       } else if (!zr.hidden && zr.offsetHeight > 0) {
@@ -3925,14 +4305,17 @@
       if (innerWidth > 1139) return;
       const wrap = $('#th-act-wrap'), box = $('#th-act-btns');
       if (wrap) {
-        const opening = !wrap.classList.contains('is-open');
+        const opening = !wrap.classList.contains('is-open') || wrap._closingMenu;
         if (opening) {
+          actMenuTok++;
+          wrap._closingMenu = false;
+          if (box && box._actAnim) { box._actAnim.cancel(); box._actAnim = null; }
           closeHelp(false, true);
           wrap.classList.add('is-open');
           am.setAttribute('aria-expanded', 'true');
           const { dur, easing } = panelTiming(true);
           if (dur > 0 && box && typeof box.animate === 'function') {
-            box.animate([{ opacity: 0, transform: 'translate3d(0,-8px,0)' }, { opacity: 1, transform: 'translate3d(0,0,0)' }], { duration: dur, easing });
+            box._actAnim = box.animate([{ opacity: 0, transform: 'translate3d(0,-8px,0)' }, { opacity: 1, transform: 'translate3d(0,0,0)' }], { duration: dur, easing });
           }
         } else {
           closeActMenu();
@@ -3941,7 +4324,7 @@
       return;
     }
     if (!e.target.closest('#th-act-wrap')) closeActMenu();
-    else if (e.target.closest('#th-act-btns button')) setTimeout(closeActMenu, 0);
+    else if (e.target.closest('#th-act-btns button') && !e.target.closest('[data-layer-up]')) setTimeout(closeActMenu, 0);
 
     const detSum = e.target.closest('details.zr-det > summary');
     if (detSum && motionOn()) {
@@ -3956,16 +4339,16 @@
           const { dur, easing } = panelTiming(true, bodyEl.offsetHeight || 160);
           if (dur > 0) {
             det._detAnim = bodyEl.animate([
-              { opacity: 0, transform: 'scaleY(0)' },
-              { opacity: 1, transform: 'scaleY(1)' },
+              { opacity: 0, clipPath: 'inset(0 0 100% 0)' },
+              { opacity: 1, clipPath: 'inset(0 0 0% 0)' },
             ], { duration: dur, easing });
           }
         } else {
           const { dur, easing } = panelTiming(false, bodyEl.offsetHeight || 160);
           if (dur > 0) {
             det._detAnim = bodyEl.animate([
-              { opacity: 1, transform: 'scaleY(1)' },
-              { opacity: 0, transform: 'scaleY(0)' },
+              { opacity: 1, clipPath: 'inset(0 0 0% 0)' },
+              { opacity: 0, clipPath: 'inset(0 0 100% 0)' },
             ], { duration: dur, easing });
             det._detAnim.onfinish = () => {
               det._detAnim = null;
@@ -4252,7 +4635,7 @@
     if (rtCueL && rtabsEl) rtCueL.addEventListener('click', () => rtabsEl.scrollBy({ left: -160, behavior: motionOn() ? 'smooth' : 'auto' }));
     if (rtCueR && rtabsEl) rtCueR.addEventListener('click', () => rtabsEl.scrollBy({ left: 160, behavior: motionOn() ? 'smooth' : 'auto' }));
     const zc = $('#z-center');
-    if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
+    if (zc) zc.addEventListener('scroll', () => { hideAimReticle(); syncZcScrollCue(); requestAnimationFrame(() => updateSelLink(false)); }, { passive: true });
     const evBody = $('#ev-body'), zrMore = $('#zr-more');
     if (evBody) {
       evBody.addEventListener('scroll', syncRightScrollCue, { passive: true });
@@ -4277,22 +4660,22 @@
         syncActMenu();
         syncEvBackBtn();
         closeHelp(false); hideAimReticle(); hideHudTip();
-        syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); emit('resize', m);
+        syncRtabsCue(true); sheetPad(); placeGuides(); updateSelLink(false); syncRightScrollCue(); syncZcScrollCue(); emit('resize', m);
       }, 80);
     });
 
     booted = true;
     try { history.replaceState({ c4: 1 }, '', encodeHash()); } catch (e) { /* */ }
     renderActiveScreen(ctx(), 'tab');
-    setTimeout(() => { placeGuides(); updateSelLink(false); syncRightScrollCue(); }, 50);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(false); });
+    setTimeout(() => { placeGuides(); updateSelLink(false); syncRightScrollCue(); syncZcScrollCue(); }, 50);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeGuides(); updateSelLink(false); syncZcScrollCue(); });
   }
 
   window.App = {
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
     set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal, scrollInZone, panelTiming,
-    openModal, closeModal, updateSelLink, flipElement, countUp,
+    openModal, closeModal, updateSelLink, syncZcScrollCue, flipElement, countUp,
     aim: { set: setAimTarget, hide: hideAimReticle, showTip: showHudTip, hideTip: hideHudTip },
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
     ui: UI, txt: TXT, mode, motionOn, motionRich, motionScale,
