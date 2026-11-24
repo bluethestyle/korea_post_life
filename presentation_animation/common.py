@@ -183,7 +183,7 @@ def pill(
     ).set_z_index(z)
     t.move_to(b.get_center())
     g = VGroup(b, t)
-    g.set_z_index(z)
+    g.set_z_index(z, family=False)
     return g
 
 
@@ -227,7 +227,7 @@ def bb_badge(
     t_grp.move_to(box.get_center())
     rim.move_to(box.get_center())
     g = VGroup(rim, box, t_grp)
-    g.set_z_index(z)
+    g.set_z_index(z, family=False)
     return g
 
 
@@ -960,6 +960,15 @@ def make_compass_rose(center: np.ndarray | list[float], r: float = 0.48, col: st
     return VGroup(outer, ring, ticks), needle
 
 
+def set_3d_tier(mob: Mobject, tier: float, sub: int = 0, sort_3d: bool = True) -> Mobject:
+    """삼차원 카메라 렌더링 시 수평 분리 계층(tier)과 세부 순서(sub)를 하위 도형 전체에 부여한다."""
+    for submob in mob.get_family():
+        setattr(submob, "_depth_tier", float(tier))
+        setattr(submob, "_depth_sub", int(sub))
+        setattr(submob, "_depth_sort", bool(sort_3d))
+    return mob
+
+
 def build_world_grid(span_x: float = 11.0, span_y: float = 6.5) -> VGroup:
     """세계 좌표 격자."""
     grid = VGroup()
@@ -986,6 +995,7 @@ def build_world_grid(span_x: float = 11.0, span_y: float = 6.5) -> VGroup:
             )
         )
     grid.set_z_index(-5)
+    set_3d_tier(grid, -20.0, sub=0, sort_3d=False)
     return grid
 
 
@@ -1014,6 +1024,8 @@ def floor_grid_3d(
         lines.add(Line([x, y_min, z_val], [x, y_max, z_val], color=col, stroke_width=0.9, stroke_opacity=0.38))
     for y in np.arange(y_min, y_max + 1e-4, step_y):
         lines.add(Line([x_min, y, z_val], [x_max, y, z_val], color=col, stroke_width=0.9, stroke_opacity=0.38))
+    set_3d_tier(plate, -10.0, sub=0, sort_3d=False)
+    set_3d_tier(lines, -10.0, sub=1, sort_3d=False)
     return VGroup(plate, lines)
 
 
@@ -1028,16 +1040,63 @@ def pillar_3d(
     opacity: float = 0.80,
     stroke_col: str | None = None,
     sw: float = 1.3,
+    tier: float = 0.0,
 ) -> Prism:
     """바닥 높이 base_z 에서 위로 솟는 삼차원 기둥."""
     eff_h = max(h, 0.04)
-    return Prism(
+    p = Prism(
         dimensions=[w, d, eff_h],
         fill_color=col,
         fill_opacity=opacity,
         stroke_color=stroke_col if stroke_col is not None else col,
         stroke_width=sw,
     ).move_to([x, y, base_z + eff_h / 2])
+    set_3d_tier(p, tier, sub=0, sort_3d=True)
+    return p
+
+
+def pillar_3d_sliced(
+    x: float,
+    y: float,
+    w: float,
+    d: float,
+    h: float,
+    base_z: float = 0.0,
+    cuts: Sequence[tuple[float, float]] = (),
+    top_tier: float = 0.0,
+    col: str = C_CYAN,
+    opacity: float = 0.88,
+    stroke_col: str | None = None,
+    sw: float = 1.3,
+) -> VGroup:
+    """수평 기준면 높이(cuts)마다 기둥을 분할해 기준면 아래는 비치고 위 돌출부만 올라오게 만든다."""
+    eff_h = max(h, 0.04)
+    z0, z1 = base_z, base_z + eff_h
+    sorted_cuts = sorted(cuts, key=lambda item: item[0])
+    pts = [z0]
+    for zc, _ in sorted_cuts:
+        if z0 + 1e-4 < zc < z1 - 1e-4:
+            pts.append(zc)
+    pts.append(z1)
+
+    segs = VGroup()
+    for za, zb in zip(pts[:-1], pts[1:]):
+        mid = 0.5 * (za + zb)
+        seg_tier = top_tier
+        for zc, tb in sorted_cuts:
+            if mid <= zc:
+                seg_tier = tb
+                break
+        seg = Prism(
+            dimensions=[w, d, zb - za],
+            fill_color=col,
+            fill_opacity=opacity,
+            stroke_color=stroke_col if stroke_col is not None else col,
+            stroke_width=sw,
+        ).move_to([x, y, mid])
+        set_3d_tier(seg, seg_tier, sub=0, sort_3d=True)
+        segs.add(seg)
+    return segs
 
 
 def glass_plane_3d(
@@ -1049,9 +1108,10 @@ def glass_plane_3d(
     col: str,
     fill_op: float = 0.16,
     sw: float = 2.0,
+    tier: float = 0.0,
 ) -> RoundedRectangle:
     """삼차원 공간을 가로지르는 반투명 수평 기준면."""
-    return RoundedRectangle(
+    plane = RoundedRectangle(
         corner_radius=0.10,
         width=w,
         height=d,
@@ -1061,6 +1121,8 @@ def glass_plane_3d(
         stroke_width=sw,
         stroke_opacity=0.90,
     ).move_to([cx, cy, z_val])
+    set_3d_tier(plane, tier, sub=0, sort_3d=False)
+    return plane
 
 
 def build_hud_chrome() -> VGroup:
@@ -1075,7 +1137,12 @@ def build_hud_chrome() -> VGroup:
 
 
 class PostLifeBaseScene(ThreeDScene):
-    """고정 상하단 자막 바와 카메라 이동 도우미를 갖춘 장면."""
+    """고정 상하단 자막 바와 계층형 삼차원 깊이 정렬 도우미를 갖춘 장면."""
+
+    def get_moving_mobjects(self, *animations: Animation) -> list[Mobject]:
+        if abs(self.renderer.camera.get_phi()) > 1e-4:
+            return list(self.mobjects)
+        return super().get_moving_mobjects(*animations)
 
     def init_cinema_canvas(self) -> tuple[VGroup, VGroup]:
         self.camera.background_color = C_BG
@@ -1093,7 +1160,46 @@ class PostLifeBaseScene(ThreeDScene):
             cam.cache_cairo_context(pixel_array, ctx)
             return ctx
 
+        def _tiered_get_mobjects_to_display(*args, **kwargs) -> list[Mobject]:
+            base_mobs = Camera.get_mobjects_to_display(cam, *args, **kwargs)
+            if (
+                abs(cam.get_phi()) < 1e-4
+                and abs(cam.get_theta() + math.pi / 2) < 1e-4
+                and abs(cam.get_gamma()) < 1e-4
+            ):
+                return base_mobs
+
+            rot_matrix = cam.get_rotation_matrix()
+            view_axis = rot_matrix[2]
+            fixed_frame = cam.fixed_in_frame_mobjects
+            fixed_orient = cam.fixed_orientation_mobjects
+
+            def _key(item: tuple[int, Mobject]) -> tuple[float, int, float, float, int]:
+                idx, mob = item
+                if mob in fixed_frame:
+                    return (30.0, 0, 0.0, float(mob.z_index), idx)
+                if mob in fixed_orient:
+                    tier_b = float(getattr(mob, "_depth_tier", 20.0))
+                    sub_b = int(getattr(mob, "_depth_sub", 0))
+                    c_pt = fixed_orient[mob]()
+                    cam_d = round(float(np.dot(c_pt, view_axis)), 5)
+                    return (tier_b, sub_b, cam_d, float(mob.z_index), idx)
+                if mob.z_index < 0 and not hasattr(mob, "_depth_tier"):
+                    return (-20.0, 0, 0.0, float(mob.z_index), idx)
+
+                tier = float(getattr(mob, "_depth_tier", 0.0))
+                sub = int(getattr(mob, "_depth_sub", 0))
+                sort_3d = bool(getattr(mob, "_depth_sort", True))
+                if sort_3d:
+                    cam_d = float(np.dot(mob.get_z_index_reference_point(), view_axis))
+                else:
+                    cam_d = 0.0
+                return (tier, sub, cam_d, float(mob.z_index), idx)
+
+            return [mob for _, mob in sorted(enumerate(base_mobs), key=_key)]
+
         cam.get_cairo_context = _origin_locked_get_cairo_context  # type: ignore[method-assign]
+        cam.get_mobjects_to_display = _tiered_get_mobjects_to_display  # type: ignore[method-assign]
         self.set_camera_orientation(phi=0 * DEGREES, theta=-90 * DEGREES, gamma=0 * DEGREES, zoom=1.0, frame_center=ORIGIN)
         world_grid = build_world_grid()
         hud_chrome = build_hud_chrome()

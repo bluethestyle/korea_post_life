@@ -37,6 +37,7 @@ from common import (
     num,
     pillar_3d,
     pill,
+    set_3d_tier,
     txt,
 )
 from infographics import make_dark_a4_sheet, svg_icon
@@ -302,9 +303,9 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         p3d_x = 1.50
         z_f1, z_f2, z_f3 = -1.12, 0.12, 1.36
-        plane_fct_3d = glass_plane_3d(p3d_x, 0.0, z_f1, 5.65, 2.85, C_CYAN, fill_op=0.16, sw=2.2)
-        plane_std_3d = glass_plane_3d(p3d_x, 0.0, z_f2, 5.65, 2.85, C_GOLD, fill_op=0.16, sw=2.2)
-        plane_der_3d = glass_plane_3d(p3d_x, 0.0, z_f3, 5.65, 2.85, C_VIOLET, fill_op=0.16, sw=2.2)
+        plane_fct_3d = glass_plane_3d(p3d_x, 0.0, z_f1, 5.65, 2.85, C_CYAN, fill_op=0.16, sw=2.2, tier=-6.0)
+        plane_std_3d = glass_plane_3d(p3d_x, 0.0, z_f2, 5.65, 2.85, C_GOLD, fill_op=0.16, sw=2.2, tier=-2.0)
+        plane_der_3d = glass_plane_3d(p3d_x, 0.0, z_f3, 5.65, 2.85, C_VIOLET, fill_op=0.16, sw=2.2, tier=2.0)
 
         nodes_3d, edges_floor_3d, shafts_3d, pulses_3d = VGroup(), VGroup(), VGroup(), VGroup()
         shaft_xy = [
@@ -316,19 +317,27 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         for k in range(len(shaft_xy) - 1):
             x0, y0, _ = shaft_xy[k]
             x1, y1, _ = shaft_xy[k + 1]
-            edges_floor_3d.add(
-                Line([x0, y0, z_f1 + 0.08], [x1, y1, z_f1 + 0.08], color=C_CYAN, stroke_width=1.8, stroke_opacity=0.70),
-                Line([x0, y0, z_f2 + 0.08], [x1, y1, z_f2 + 0.08], color=C_GOLD, stroke_width=2.0, stroke_opacity=0.84),
-                Line([x0, y0, z_f3 + 0.08], [x1, y1, z_f3 + 0.08], color=C_VIOLET, stroke_width=2.0, stroke_opacity=0.84),
-            )
+            e_f1 = Line([x0, y0, z_f1 + 0.08], [x1, y1, z_f1 + 0.08], color=C_CYAN, stroke_width=1.8, stroke_opacity=0.70)
+            e_f2 = Line([x0, y0, z_f2 + 0.08], [x1, y1, z_f2 + 0.08], color=C_GOLD, stroke_width=2.0, stroke_opacity=0.84)
+            e_f3 = Line([x0, y0, z_f3 + 0.08], [x1, y1, z_f3 + 0.08], color=C_VIOLET, stroke_width=2.0, stroke_opacity=0.84)
+            set_3d_tier(e_f1, -5.0, sub=0, sort_3d=True)
+            set_3d_tier(e_f2, -1.0, sub=0, sort_3d=True)
+            set_3d_tier(e_f3, 3.0, sub=0, sort_3d=True)
+            edges_floor_3d.add(e_f1, e_f2, e_f3)
         for sx, sy, scol in shaft_xy:
-            shafts_3d.add(DashedLine([sx, sy, z_f1], [sx, sy, z_f3], dash_length=0.10, color=scol, stroke_width=2.2))
+            sh_low = DashedLine([sx, sy, z_f1], [sx, sy, z_f2], dash_length=0.10, color=scol, stroke_width=2.2)
+            sh_high = DashedLine([sx, sy, z_f2], [sx, sy, z_f3], dash_length=0.10, color=scol, stroke_width=2.2)
+            set_3d_tier(sh_low, -3.0, sub=0, sort_3d=True)
+            set_3d_tier(sh_high, 1.0, sub=0, sort_3d=True)
+            shafts_3d.add(sh_low, sh_high)
             nodes_3d.add(
-                pillar_3d(sx, sy, 0.34, 0.34, 0.18, base_z=z_f1, col=C_CYAN, opacity=0.92, stroke_col=WHITE),
-                pillar_3d(sx, sy, 0.32, 0.32, 0.22, base_z=z_f2, col=C_GOLD, opacity=0.94, stroke_col=WHITE).rotate(PI / 4, axis=OUT),
-                pillar_3d(sx, sy, 0.36, 0.36, 0.24, base_z=z_f3, col=C_VIOLET, opacity=0.94, stroke_col=WHITE),
+                pillar_3d(sx, sy, 0.34, 0.34, 0.18, base_z=z_f1, col=C_CYAN, opacity=0.92, stroke_col=WHITE, tier=-5.0),
+                pillar_3d(sx, sy, 0.32, 0.32, 0.22, base_z=z_f2, col=C_GOLD, opacity=0.94, stroke_col=WHITE, tier=-1.0).rotate(PI / 4, axis=OUT),
+                pillar_3d(sx, sy, 0.36, 0.36, 0.24, base_z=z_f3, col=C_VIOLET, opacity=0.94, stroke_col=WHITE, tier=3.0),
             )
-            pulses_3d.add(Prism(dimensions=[0.22, 0.22, 0.22], fill_color=WHITE, fill_opacity=1.0, stroke_color=scol, stroke_width=1.6).move_to([sx, sy, z_f1]))
+            p_mob = Prism(dimensions=[0.22, 0.22, 0.22], fill_color=WHITE, fill_opacity=1.0, stroke_color=scol, stroke_width=1.6).move_to([sx, sy, z_f1])
+            set_3d_tier(p_mob, -3.0, sub=0, sort_3d=True)
+            pulses_3d.add(p_mob)
 
         bb_7b_f1 = fit(
             bb_badge(f"원천 {TERM['snapshot']}: 화면 {num(site_org_cnt)}개사", f"급부 {num(ben_cnt_site)}건", fg=C_CYAN, bg="#060B11", border=C_CYAN, size=11.6, sub_size=10.2, sub_col=C_WHITE),
@@ -370,6 +379,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         self.remove(beat7a_all)
         self.wait(1.60)
 
+        for p in pulses_3d:
+            p.add_updater(lambda m: set_3d_tier(m, -3.0 if m.get_center()[2] < z_f2 else (1.0 if m.get_center()[2] < z_f3 - 0.04 else 3.5)))
         self.add(pulses_3d)
         self.cam_move(
             phi=52 * DEGREES,
@@ -379,6 +390,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             anims=[*[MoveAlongPath(pulses_3d[k], Line([shaft_xy[k][0], shaft_xy[k][1], z_f1], [shaft_xy[k][0], shaft_xy[k][1], z_f3])) for k in range(len(shaft_xy))]],
             rt=2.20,
         )
+        for p in pulses_3d:
+            p.clear_updaters()
         self.remove(pulses_3d, *pulses_3d)
         self.wait(2.20)
 
@@ -523,6 +536,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             Line([-5.8, -0.08, 0], [5.8, -0.08, 0], color=C_CYAN, stroke_width=0.8, stroke_opacity=0.14),
             Line([0, -2.85, 0], [0, 2.75, 0], color=C_CYAN, stroke_width=0.8, stroke_opacity=0.14),
         ).set_z_index(1)
+        set_3d_tier(radar_bg, -15.0, sub=0, sort_3d=False)
 
         hub_prisms = VGroup()
         billboard_nodes: list[Mobject] = []
@@ -584,6 +598,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         self.add_fixed_in_frame_mobjects(build_banner, build_legend)
         self.register_billboards(*billboard_nodes)
+        set_3d_tier(billboard_grp, 0.0, sub=0, sort_3d=True)
 
         self.cam_move(
             phi=56 * DEGREES,
@@ -869,6 +884,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             CubicBezier(pt_hub, np.array([0.4, -0.82, -0.76]), np.array([2.7, -0.82, -0.76]), pt_epost, color=C_CORAL, stroke_width=3.0),
             num_dashes=24,
         )
+        set_3d_tier(bad_arc_3d, -5.0, sub=0, sort_3d=True)
         bad_1hop_lbl = fit(
             pill(f'단순 특약명 비교 시: "{nm_bs_surg} 특약 부재로 미보유" 오판 ×', fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=11.8, z=25),
             max_w=11.55,

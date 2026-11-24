@@ -35,8 +35,8 @@ from common import (
     make_npu_chip,
     make_stopwatch,
     num,
-    pillar_3d,
     pill,
+    pillar_3d_sliced,
     txt,
 )
 from infographics import svg_icon
@@ -590,24 +590,25 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         z_plane_75 = pb_z0 + v_conf * pb_h
         z_plane_40 = pb_z0 + v_reex * pb_h
-        plane_75 = glass_plane_3d(pb_cx, 0.0, z_plane_75, 6.00, 2.28, C_GOLD, fill_op=0.16, sw=2.3)
-        plane_40 = glass_plane_3d(pb_cx, 0.0, z_plane_40, 6.00, 2.28, C_CORAL, fill_op=0.15, sw=2.1)
+        plane_75 = glass_plane_3d(pb_cx, 0.0, z_plane_75, 6.00, 2.28, C_GOLD, fill_op=0.16, sw=2.3, tier=2.0)
+        plane_40 = glass_plane_3d(pb_cx, 0.0, z_plane_40, 6.00, 2.28, C_CORAL, fill_op=0.15, sw=2.1, tier=-2.0)
+        pb_cuts = [(z_plane_40, -4.0), (z_plane_75, 0.0)]
 
         y_bef, y_aft = 0.56, -0.48
         x_p = [-0.60, 0.90, 2.40, 3.90]
 
         p_bef_bars = VGroup(
-            pillar_3d(x_p[0], y_bef, 0.66, 0.52, tf_rng["low"] * pb_h, base_z=pb_z0, col=C_AMBER, opacity=0.76, stroke_col=C_AMBER),
-            pillar_3d(x_p[1], y_bef, 0.66, 0.52, tf_rng["high"] * pb_h, base_z=pb_z0, col=C_AMBER, opacity=0.80, stroke_col=WHITE),
-            pillar_3d(x_p[2], y_bef, 0.66, 0.52, bnd_chk["bundled_probability"] * pb_h, base_z=pb_z0, col=C_CORAL, opacity=0.86, stroke_col=WHITE),
+            pillar_3d_sliced(x_p[0], y_bef, 0.66, 0.52, tf_rng["low"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_AMBER, opacity=0.76, stroke_col=C_AMBER),
+            pillar_3d_sliced(x_p[1], y_bef, 0.66, 0.52, tf_rng["high"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_AMBER, opacity=0.80, stroke_col=WHITE),
+            pillar_3d_sliced(x_p[2], y_bef, 0.66, 0.52, bnd_chk["bundled_probability"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CORAL, opacity=0.86, stroke_col=WHITE),
         )
 
         p_aft_bars = VGroup(
-            pillar_3d(x_p[0], y_aft, 0.66, 0.52, sym_prob["correct_min"] * pb_h, base_z=pb_z0, col=C_GOLD, opacity=0.92, stroke_col=WHITE, sw=1.6),
-            pillar_3d(x_p[1], y_aft, 0.66, 0.52, sym_prob["correct_min"] * pb_h, base_z=pb_z0, col=C_GOLD, opacity=0.92, stroke_col=WHITE, sw=1.6),
-            pillar_3d(x_p[2] - 0.22, y_aft, 0.35, 0.48, sep_p0 * pb_h, base_z=pb_z0, col=C_CYAN, opacity=0.88, stroke_col=WHITE, sw=1.4),
-            pillar_3d(x_p[2] + 0.22, y_aft, 0.35, 0.48, sep_p1 * pb_h, base_z=pb_z0, col=C_CYAN, opacity=0.88, stroke_col=WHITE, sw=1.4),
-            pillar_3d(x_p[3], y_aft, 0.66, 0.52, sym_prob["flipped_max"] * pb_h, base_z=pb_z0, col=C_CORAL, opacity=0.90, stroke_col=C_CORAL, sw=1.4),
+            pillar_3d_sliced(x_p[0], y_aft, 0.66, 0.52, sym_prob["correct_min"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_GOLD, opacity=0.92, stroke_col=WHITE, sw=1.6),
+            pillar_3d_sliced(x_p[1], y_aft, 0.66, 0.52, sym_prob["correct_min"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_GOLD, opacity=0.92, stroke_col=WHITE, sw=1.6),
+            pillar_3d_sliced(x_p[2] - 0.22, y_aft, 0.35, 0.48, sep_p0 * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CYAN, opacity=0.88, stroke_col=WHITE, sw=1.4),
+            pillar_3d_sliced(x_p[2] + 0.22, y_aft, 0.35, 0.48, sep_p1 * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CYAN, opacity=0.88, stroke_col=WHITE, sw=1.4),
+            pillar_3d_sliced(x_p[3], y_aft, 0.66, 0.52, sym_prob["flipped_max"] * pb_h, base_z=pb_z0, cuts=pb_cuts, top_tier=4.0, col=C_CORAL, opacity=0.90, stroke_col=C_CORAL, sw=1.4),
         )
 
         bb_pl_75 = bb_badge(f"확정 기준면 {v_conf:.2f}", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=11.8).move_to([4.55, 1.08, z_plane_75 + 0.16])

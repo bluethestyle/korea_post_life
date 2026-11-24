@@ -38,7 +38,9 @@ from common import (
     make_silo_pool,
     num,
     pillar_3d,
+    pillar_3d_sliced,
     pill,
+    set_3d_tier,
     txt,
 )
 from infographics import make_claude_orchestrator_hub, svg_icon
@@ -439,6 +441,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                 for idx, sc in enumerate([0.36, 0.68, 1.00])
             ]
         )
+        set_3d_tier(arena_rings, -10.0, sub=0, sort_3d=False)
         pilot_tower = pillar_3d(ring_cx, ring_cy, 0.64, 0.64, 1.62, base_z=ring_bz, col=C_GOLD, opacity=0.90, stroke_col=WHITE, sw=1.7)
         bb_pilot = bb_badge(f"시범: {pilot_org}", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=13.2).move_to([ring_cx, ring_cy, ring_bz + 2.02])
 
@@ -482,6 +485,8 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                     sub_col=C_GOLD,
                 ).move_to([px - 0.25, py + 0.20, ring_bz + 1.10])
 
+        set_3d_tier(arena_spokes, -10.0, sub=1, sort_3d=False)
+
         fx0, fy0, _ = ring_coords[front_idx]
         bb_verified = bb_badge(
             f"{batch_orgs[0]}, {batch_orgs[front_idx]} 등 {num(auto_cnt)}개사",
@@ -520,6 +525,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         self.wait(1.60)
 
         wave_ring_1 = Circle(radius=0.45, fill_opacity=0.0, stroke_color=C_CYAN, stroke_width=4.4).move_to([ring_cx, ring_cy, ring_bz + 0.06])
+        set_3d_tier(wave_ring_1, -10.0, sub=2, sort_3d=False)
         self.add(wave_ring_1)
         fetch_3d_anims = []
         for idx, (px, py, is_blocked) in enumerate(ring_coords):
@@ -539,6 +545,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         self.wait(1.60)
 
         wave_ring_2 = Circle(radius=0.45, fill_opacity=0.0, stroke_color=C_MINT, stroke_width=4.6).move_to([ring_cx, ring_cy, ring_bz + 0.10])
+        set_3d_tier(wave_ring_2, -10.0, sub=2, sort_3d=False)
         self.add(wave_ring_2)
         ver_3d_anims = []
         for idx, (px, py, is_blocked) in enumerate(ring_coords):
@@ -1048,8 +1055,8 @@ class Part2CollectExtractScene(PostLifeBaseScene):
 
         rows_n, cols_n = 5, 7
         z_top_sh, z_bot_sh = 0.66, -0.66
-        top_plate = glass_plane_3d(0.15, -0.05, z_top_sh, 4.90, 2.86, C_CYAN, fill_op=0.14, sw=2.2)
-        bot_plate = glass_plane_3d(0.15, -0.05, z_bot_sh, 4.90, 2.86, C_GOLD, fill_op=0.14, sw=2.2)
+        top_plate = glass_plane_3d(0.15, -0.05, z_top_sh, 4.90, 2.86, C_CYAN, fill_op=0.14, sw=2.2, tier=4.0)
+        bot_plate = glass_plane_3d(0.15, -0.05, z_bot_sh, 4.90, 2.86, C_GOLD, fill_op=0.14, sw=2.2, tier=-4.0)
 
         top_cells_3d, bot_cells_3d, match_rays_3d = VGroup(), VGroup(), VGroup()
         mismatch_rc = (2, 4)
@@ -1068,8 +1075,26 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                 else:
                     match_rays_3d.add(Line([cx3, cy3, z_bot_sh], [cx3, cy3, z_top_sh], color=C_MINT, stroke_width=1.5, stroke_opacity=0.75))
 
-        diff_pillar_3d = pillar_3d(diff_x3, diff_y3, 0.46, 0.34, z_top_sh - z_bot_sh + 0.32, base_z=z_bot_sh - 0.16, col=C_AMBER, opacity=0.92, stroke_col=WHITE, sw=1.7)
-        scan_sheet_3d = Prism(dimensions=[0.09, 3.05, 1.62], fill_color=C_MINT, fill_opacity=0.34, stroke_color=C_MINT, stroke_width=1.9).move_to([-2.30, -0.05, 0.0])
+        set_3d_tier(bot_cells_3d, -4.0, sub=1, sort_3d=True)
+        set_3d_tier(match_rays_3d, 0.0, sub=0, sort_3d=True)
+        set_3d_tier(top_cells_3d, 4.0, sub=1, sort_3d=True)
+
+        diff_pillar_3d = pillar_3d_sliced(
+            diff_x3,
+            diff_y3,
+            0.46,
+            0.34,
+            z_top_sh - z_bot_sh + 0.32,
+            base_z=z_bot_sh,
+            cuts=[(z_top_sh, 0.0)],
+            top_tier=6.0,
+            col=C_AMBER,
+            opacity=0.92,
+            stroke_col=WHITE,
+            sw=1.7,
+        )
+        scan_sheet_3d = Prism(dimensions=[0.09, 2.84, z_top_sh - z_bot_sh], fill_color=C_MINT, fill_opacity=0.34, stroke_color=C_MINT, stroke_width=1.9).move_to([-2.30, -0.05, 0.0])
+        set_3d_tier(scan_sheet_3d, 0.0, sub=1, sort_3d=True)
 
         bb_sh_top = bb_badge(f"상단 {TERM['extract']}: 제미나이 구독 패널", fg=C_CYAN, bg="#07131C", border=C_CYAN, size=12.4).move_to([-3.55, 0.58, z_top_sh])
         bb_sh_bot = bb_badge(f"하단 {TERM['extract']}: sonnet 에이전트", fg=C_GOLD, bg="#181408", border=C_GOLD, size=12.4).move_to([-3.55, -0.58, z_bot_sh])
@@ -1089,9 +1114,10 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                 FadeOut(VGroup(*bbs_4b)),
                 FadeOut(hud_4b_grp),
                 FadeIn(same_rep_banner, shift=DOWN * 0.08),
-                FadeIn(VGroup(top_plate, bot_plate)),
-                FadeIn(top_cells_3d, lag_ratio=0.01),
+                FadeIn(bot_plate),
                 FadeIn(bot_cells_3d, lag_ratio=0.01),
+                FadeIn(top_plate),
+                FadeIn(top_cells_3d, lag_ratio=0.01),
                 FadeIn(VGroup(bb_sh_top, bb_sh_bot)),
             ],
             rt=1.45,
@@ -1108,7 +1134,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
             anims=[
                 scan_sheet_3d.animate.move_to([2.60, -0.05, 0.0]),
                 Create(match_rays_3d, lag_ratio=0.018),
-                FadeIn(diff_pillar_3d, scale=1.15),
+                FadeIn(diff_pillar_3d),
                 FadeIn(bb_sh_diff),
             ],
             rt=1.90,

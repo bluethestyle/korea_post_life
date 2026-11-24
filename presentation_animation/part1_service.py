@@ -35,6 +35,7 @@ from common import (
     num,
     pillar_3d,
     pill,
+    set_3d_tier,
     txt,
 )
 from infographics import make_dark_a4_sheet, svg_icon
@@ -137,24 +138,28 @@ class Part1ServiceScene(PostLifeBaseScene):
             ]
         )
 
+        set_3d_tier(hw_slabs, 0.0, sub=0, sort_3d=True)
+        set_3d_tier(img_slabs, 0.0, sub=0, sort_3d=True)
+
         tangle_3d = VGroup(
             CubicBezier(
                 [-1.20, 0.86, base_z + h_hw],
-                [-0.20, 1.25, base_z + h_hw + 0.42],
-                [0.55, 1.15, base_z + h_img + 0.42],
+                [-0.20, 1.25, base_z + h_hw + 0.46],
+                [0.55, 1.15, base_z + h_img + 0.52],
                 [1.45, 0.86, base_z + h_img],
                 color=C_CORAL,
                 stroke_width=2.8,
             ),
             CubicBezier(
                 [-1.20, -0.86, base_z + h_ref],
-                [-0.10, -0.25, base_z + 1.45],
-                [0.55, 0.35, base_z + 1.35],
+                [-0.10, -0.25, base_z + 1.68],
+                [0.55, 0.35, base_z + 1.56],
                 [1.45, 0.86, base_z + h_img],
                 color=C_CYAN,
                 stroke_width=2.3,
             ),
         )
+        set_3d_tier(tangle_3d, 2.0, sub=0, sort_3d=True)
 
         bb_hw = bb_badge(
             "한화생명 상품요약서",
