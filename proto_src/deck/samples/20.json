@@ -33,7 +33,7 @@
     "label": "암 수술비",
     "sub": "표준담보"
    },
-   "chip": "자동 확정: 판정 모델 {{fact:mapping_auto_confirm_threshold|f2}} 이상 또는 AI 둘의 결과 일치"
+   "chip": "자동 확정: 확률 {{fact:mapping_auto_confirm_threshold|f2}} 이상 또는 AI 둘의 답 일치"
   },
   {
    "use": "C10",

@@ -23,6 +23,7 @@
     "2026-11-23",
     "2026-11-24"
    ],
+   "bar_unit": "건",
    "bars": [
     {
      "d": "2026-11-18",
@@ -68,20 +69,20 @@
     },
     {
      "d": "2026-11-20",
-     "label": "청약에서 영업 인사이트까지 한 흐름으로",
+     "label": "인수기준 비교에서 응대 화법까지",
      "tag": "실무자 지적",
      "who": "human",
      "hero": true
     },
     {
      "d": "2026-11-20",
-     "label": "첫 자료는 AI 둘이 따로 옮겨 맞추기",
+     "label": "첫 적재는 두 AI가 따로 옮겨 대조",
      "tag": "실무자 제안",
      "who": "human"
     },
     {
      "d": "2026-11-23",
-     "label": "화면 구현은 화면 담당 AI에게",
+     "label": "화면 구현은 {{name:antigravity}}에게",
      "tag": "실무자 결정",
      "who": "human"
     }
@@ -89,49 +90,55 @@
   },
   {
    "use": "C10",
+   "tile": true,
    "size": "small",
+   "icon": "기간",
+   "tile_label": "만든 기간",
    "value": "{{fact:project_days.days}}",
    "unit": "일",
-   "caption": "만든 기간",
    "box": [
     1420,
     0,
     340,
-    170
+    168
    ]
   },
   {
    "use": "C10",
+   "tile": true,
    "size": "small",
+   "tile_label": "커밋",
    "value": "{{fact:commit_count}}",
    "unit": "건",
-   "caption": "커밋",
+   "caption": "날짜별 막대의 합",
    "box": [
     1420,
-    190,
+    178,
     340,
-    170
+    220
    ]
   },
   {
    "use": "C10",
+   "tile": true,
    "size": "small",
+   "tile_label": "자동 테스트",
    "value": "{{fact:test_count}}",
    "unit": "개",
-   "caption": "자동 테스트",
    "box": [
     1420,
-    380,
+    408,
     340,
-    170
+    168
    ]
   }
  ],
  "points": [],
  "terms": [
   "커밋",
-  "테스트"
+  "테스트",
+  "GitHub"
  ],
- "source": "출처: 커밋 기록(main, 한국 시간), 진행 기록의 결정, 자료 기준 {{asof:commit_count}}",
- "notes": "막대는 날짜별 커밋 수이고, 깃발은 설계를 크게 바꾼 다섯 번의 결정입니다. 첫 깃발은 금액을 AI가 숫자로 바꿔 적던 방식을 원문 글자 그대로 받고 코드가 숫자로 읽는 방식으로 바꾼 것으로, 요약서 {{fact:text_switch_confirmed_rows.total}}행 가운데 확정 행이 {{fact:text_switch_confirmed_rows.before}}행에서 {{fact:text_switch_confirmed_rows.after}}행으로 늘어 정했습니다. 강조한 셋째 깃발은 인수기준 비교에서 영업 인사이트까지 한 흐름으로 이어져야 한다는 실무자의 지적을 Gemini 검토 모델과 의논해 합의안으로 정리한 것입니다. 비교 대상은 생명보험 {{fact:comparison_target_counts.생명보험}}개사, 손해보험 {{fact:comparison_target_counts.손해보험}}개사로 넓혔습니다. 커밋은 Claude {{fact:commits_by_author.Claude}}건, Antigravity {{fact:commits_by_author.Antigravity}}건, 자동 실행 봇 {{fact:commits_by_author.github-actions[bot]}}건으로 나뉘고, 자동 테스트는 매 단계 늘어 지금 {{fact:test_count}}개입니다. 마지막 날에는 관계 그래프 재설계를 검토하고 있습니다."
+ "source": "출처: {{name:github}} 커밋 기록(한국 시간), 진행 기록의 결정, 자료 기준 {{asof:commit_count}}",
+ "notes": "막대는 날짜별 커밋 수(건)이고, 깃발은 설계를 크게 바꾼 다섯 번의 결정입니다. 깃발에는 주제만 적었고, 그 원리는 바로 뒤 11장과 12장에서 풀어 설명합니다. 첫 깃발은 금액을 AI가 숫자로 바꿔 적던 방식을 원문 글자 그대로 받고 코드가 숫자로 읽는 방식으로 바꾼 것으로, 요약서 {{fact:text_switch_confirmed_rows.total}}행 가운데 확정 행이 {{fact:text_switch_confirmed_rows.before}}행에서 {{fact:text_switch_confirmed_rows.after}}행으로 늘어 정했습니다. 강조한 셋째 깃발은 인수기준 비교에서 영업 인사이트와 응대 화법까지 한 흐름으로 이어져야 한다는 실무자의 지적을 Gemini 검토 모델과 의논해 합의안으로 정리한 것입니다. 비교 대상은 생명보험 {{fact:comparison_target_counts.생명보험}}개사, 손해보험 {{fact:comparison_target_counts.손해보험}}개사로 넓혔습니다(목표 범위). 넷째 깃발은 첫 적재 때 서로 다른 두 AI가 따로 옮긴 값을 맞춰 보는 방식이고, 다섯째 깃발은 화면 구현을 {{name:antigravity}}에게 넘기고 {{name:claude_code}}는 자료와 검수를 맡기로 한 결정입니다. 오른쪽 타일의 커밋 수는 막대를 모두 더한 값입니다. 커밋은 Claude {{fact:commits_by_author.Claude}}건, Antigravity {{fact:commits_by_author.Antigravity}}건, 자동 실행 봇 {{fact:commits_by_author.github-actions[bot]}}건으로 나뉘고, 자동 테스트는 매 단계 늘어 지금 {{fact:test_count}}개입니다. 마지막 날에는 관계 그래프 재설계를 검토하고 있습니다."
 }

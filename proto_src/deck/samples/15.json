@@ -17,12 +17,12 @@
    "dots": [
     {
      "d": "{{ref:openai_calibration_2023.date}}",
-     "label": "{{ref:openai_calibration_2023.text}}",
+     "label": "{{ref:openai_calibration_2023.short}}",
      "src": "OpenAI"
     },
     {
      "d": "{{ref:openai_structured_2024.date}}",
-     "label": "{{ref:openai_structured_2024.text}}",
+     "label": "{{ref:openai_structured_2024.short}}",
      "src": "OpenAI"
     },
     {
@@ -32,9 +32,10 @@
     },
     {
      "d": "{{ref:gemini_decision_release.date}}",
-     "label": "{{ref:gemini_decision_release.model}} 공개, 이 앱이 쓴 모델",
+     "label": "{{ref:gemini_decision_release.model}} 공개",
      "src": "Google",
-     "hero": true
+     "hero": true,
+     "tag": "이 앱이 씀"
     }
    ]
   },
@@ -70,7 +71,7 @@
   },
   {
    "use": "chip",
-   "text": "보험 예: {{ref:insurance_underwriting_example}}",
+   "text": "보험 예: {{ref:insurance_claims_triage_example.short}}",
    "box": [
     1350,
     300,

@@ -21,7 +21,8 @@
    "rows": [
     {
      "before": "모델을 안 정한 작업자가 가장 비싼 모델로 실행",
-     "after": "작업자마다 모델을 정해 맡김"
+     "after": "작업자마다 모델을 정해 맡김",
+     "note": "구현 {{name:opus}}, 점검 {{name:sonnet}}, 단순 점검 {{name:haiku}}"
     },
     {
      "before": "같은 AI로 다시 읽자 {{fact:image_doc_same_reader_repeat.pages}}쪽 중 {{fact:image_doc_same_reader_repeat.wrong_same_way}}쪽 같은 오류",

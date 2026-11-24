@@ -1,0 +1,53 @@
+{
+ "no": 27,
+ "id": "sample-27",
+ "kind": "body",
+ "chapter": 6,
+ "status": "new",
+ "headline": "실무자가 꼽은 어려움과, 지금 우체국만 적재한 가입 조건",
+ "diagram": [
+  {
+   "use": "quote",
+   "box": [0, 0, 1000, 300],
+   "kind": "gist",
+   "text": "회사마다 필수 특약과 가입금액이 달라 같은 보장을 나란히 비교하기 어렵습니다",
+   "who": "보험영업 실무자 {{fact:practice_respondents}}명",
+   "src": "실무자 응답(사용자 전달)",
+   "build": 1
+  },
+  {
+   "use": "C10",
+   "box": [1060, 0, 340, 300],
+   "tile": true,
+   "icon": "담보",
+   "tile_label": "결합 제약",
+   "value": "{{fact:combination_constraints_by_org.EPOST}}",
+   "unit": "건",
+   "caption": "우체국만 적재",
+   "build": 2
+  },
+  {
+   "use": "C10",
+   "box": [1420, 0, 340, 300],
+   "tile": true,
+   "icon": "마스터 데이터",
+   "tile_label": "특약 가입조건",
+   "value": "{{fact:rider_condition_rows_by_org.EPOST}}",
+   "unit": "행",
+   "caption": "타사는 적재 전",
+   "build": 2
+  },
+  {
+   "use": "svg",
+   "box": [0, 340, 1760, 220],
+   "vb": [1760, 220],
+   "alt": "공시 문서 세 개를 기준을 맞춘 비교표 하나로 모으는 그림",
+   "svg": "<rect x='0' y='20' width='520' height='180' class='sv-paper'/><use href='{{icon:공시 문서}}' x='40' y='70' width='64' height='64'/><use href='{{icon:공시 문서}}' x='130' y='70' width='64' height='64'/><use href='{{icon:공시 문서}}' x='220' y='70' width='64' height='64'/><text x='310' y='112'>회사별 문서</text><path d='M560 110H860' class='sv-muted' marker-end='url(#ah)'/><text x='580' y='92' class='aux'>기준 가입금액, 부가 조건</text><rect x='900' y='20' width='860' height='180' class='sv-redbg'/><rect x='900' y='20' width='860' height='180' class='sv-red'/><use href='{{icon:비교 화면}}' x='940' y='70' width='64' height='64'/><text x='1030' y='112' class='b'>기준을 옆에 함께 보이는 비교</text>",
+   "hero": true,
+   "build": 3
+  }
+ ],
+ "terms": ["담보"],
+ "source": "출처: 실무자 응답(사용자 전달), 사실 자료 combination_constraints_by_org",
+ "notes": "견본: 디자인 시스템에서 가져온 장치. quote(인용, gist 는 응답 요지 칩), C10 의 tile(큰 숫자 타일, 아이콘 칩과 이름), svg(장 파일 안의 인라인 그림, 아이콘은 icon 자리 표시에 개념 이름), 블록의 build(장이 열리면 1, 2, 3 순서로 나타남)."
+}

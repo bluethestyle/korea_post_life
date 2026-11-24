@@ -59,14 +59,17 @@
       "kind": "official", "checked": "2026-11-24", "slides": [14]
     },
     "openai_calibration_2023": {
-      "label": "OpenAI GPT-4 연구 글: 사후 학습을 거친 모델의 확률 보정",
-      "value": {"date": "2023-03-14", "year": "2023", "month": "3", "org": "OpenAI", "text": "대화용 AI는 자기 확신을 숫자로 잘 못 나타낸다는 보고"},
+      "label": "OpenAI GPT-4 연구 글: 사전학습 모델은 확신이 정답률과 대체로 맞지만, 대화용 후속 학습(post-training) 뒤에는 보정이 떨어짐",
+      "value": {"date": "2023-03-14", "year": "2023", "month": "3", "org": "OpenAI", "text": "대화용으로 다듬은 뒤 AI의 확신 수치가 실제 정답률과 어긋난다는 보고",
+                "short": "대화용으로 다듬은 뒤 확신 수치가 어긋남"},
       "urls": ["https://openai.com/index/gpt-4-research/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [15]
+      "kind": "official", "checked": "2026-11-24", "slides": [15],
+      "note": "원문 요지: 기반 사전학습 모델은 확신이 정답일 확률과 대체로 일치하고, 지금의 후속 학습을 거치면 보정이 떨어진다(calibration is reduced). 대화용 AI 일반이 처음부터 확신을 못 나타낸다는 뜻으로 쓰지 않는다. short 는 연표 점 라벨(34자)용이다."
     },
     "openai_structured_2024": {
       "label": "OpenAI 구조화 출력 공개: 형식은 강제하지만 값의 오류는 막지 못함",
-      "value": {"date": "2024-08-06", "year": "2024", "month": "8", "org": "OpenAI", "text": "답의 형식은 강제할 수 있게 됐지만 값의 오류는 남음"},
+      "value": {"date": "2024-08-06", "year": "2024", "month": "8", "org": "OpenAI", "text": "답의 형식은 강제할 수 있게 됐지만 값의 오류는 남음",
+                "short": "답의 형식은 강제, 값의 오류는 남음"},
       "urls": ["https://openai.com/index/introducing-structured-outputs-in-the-api/"],
       "kind": "official", "checked": "2026-11-24", "slides": [15]
     },
@@ -77,11 +80,18 @@
       "kind": "official", "checked": "2026-11-24", "slides": [15]
     },
     "insurance_claim_example": {
-      "label": "보험 예(공식): 보험금 청구 서류와 사진을 함께 판정",
-      "value": "스캔한 보험금 청구 서류와 파손 사진을 함께 판정하는 예",
+      "label": "보험 예(공식): 보험금 청구 서류와 사진을 함께 판정할 수 있다는 입력 조합의 예",
+      "value": "스캔한 보험금 청구 서류와 파손 사진을 함께 판정할 수 있다는 예",
       "urls": ["https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/"],
       "kind": "official", "checked": "2026-11-24", "slides": [15],
-      "note": "15장 넷째 카드를 보도 기준 없이 쓰고 싶을 때의 대안이다."
+      "note": "원문은 a scanned PDF claim with damage photos 를 여러 입력을 함께 넣는 조합의 예로 든 것이고, 실제 판정 사례가 아니다. 그 범위로만 쓴다."
+    },
+    "insurance_claims_triage_example": {
+      "label": "보험 예(공식): 보험금 청구 분류에서 애매하거나 위험한 건은 사람 담당자에게",
+      "value": {"text": "보험금 청구 분류에서 애매하거나 위험한 건은 사람 담당자에게", "short": "보험금 청구에서 애매한 건은 사람에게"},
+      "urls": ["https://docs.typesafe.ai/concepts/use-case-map.md"],
+      "kind": "official", "checked": "2026-11-24", "slides": [15],
+      "note": "만든 회사 문서 Use case map 의 Claims triage: Escalate uncertain or high-risk cases to a human adjuster. 인수심사(underwriting)를 한 문장으로 말한 공식 문서는 찾지 못했으므로 insurance_underwriting_example 대신 이 값을 쓴다."
     },
     "insurance_underwriting_example": {
       "label": "보험 예(보도): 인수심사에서 애매한 건은 담당자에게",
@@ -91,11 +101,11 @@
       "note": "보도 내용: 재산의 화재 가능성을 추정하고 애매한 건은 인수 담당자에게 보낸다."
     },
     "same_item_type_names": {
-      "label": "두 회사 문서가 같은 문항 종류 이름을 씀(따랐다는 진술은 없음)",
-      "value": {"names": ["noul", "choice", "score"]},
-      "urls": ["https://aistudio.google.com/docs/decisions-api", "https://docs.typesafe.ai/"],
+      "label": "두 회사 문서가 세 가지 문항 종류(noul, choice, score)에 같은 이름을 씀. Jev 문서에는 이미지 영역 종류(box)가 하나 더 있음(따랐다는 진술은 없음)",
+      "value": {"names": ["noul", "choice", "score"], "jev_extra": ["box"]},
+      "urls": ["https://aistudio.google.com/docs/decisions-api", "https://docs.typesafe.ai/concepts/system-one.md"],
       "kind": "official", "checked": "2026-11-24", "slides": [15],
-      "note": "노트에만 쓴다. 그 이상의 관계는 말하지 않는다."
+      "note": "노트에만 쓴다. Google 문서는 세 종류(Every question uses one of three question types), TypeSafe 문서는 Choice, Score, Noul, Box 네 종류다. 같은 이름은 세 종류뿐이고 그 이상의 관계는 말하지 않는다."
     },
     "kg_definition": {
       "label": "지식그래프의 정의(Hogan 외 2021)",
@@ -135,29 +145,48 @@
       "note": "학회 게재 여부는 확인하지 못했다. 프리프린트로만 소개한다."
     },
     "owl_rdf": {
-      "label": "웹 표준 온톨로지 언어 OWL 2(W3C 권고)와 RDF 1.1",
-      "value": {"owl2_year": "2012", "rdf11_year": "2014", "text": "웹 표준 언어(OWL, RDF)"},
-      "urls": ["https://www.w3.org/TR/owl2-overview/", "https://www.w3.org/TR/rdf11-concepts/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19]
+      "label": "웹 표준 온톨로지 언어 OWL 2(W3C 권고안 2009년, 2판 2012년)와 RDF 1.1(W3C 권고안 2014년)",
+      "value": {"owl2_year": "2009", "owl2_date": "2009-10-27", "owl2_second_edition_year": "2012", "rdf11_year": "2014",
+                "text": "웹 표준 언어(OWL, RDF)", "short": "웹 표준 기구 W3C가 온톨로지 표준 OWL 2 발행"},
+      "urls": ["https://www.w3.org/TR/2009/REC-owl2-overview-20091027/", "https://www.w3.org/TR/owl2-overview/", "https://www.w3.org/TR/rdf11-concepts/"],
+      "kind": "official", "checked": "2026-11-24", "slides": [19],
+      "note": "owl2_year 는 OWL 2 초판 권고안(W3C Recommendation 27 October 2009, 2009년 원본 주소를 직접 열어 확인)이다. 2012-12-11 은 문서 2판, RDF 1.1 Concepts 는 2014-02-25 권고안이다. 연표에는 초판 연도를 쓰고 2판과 RDF 1.1 은 노트에만 둔다."
     },
     "graph_database": {
       "label": "그래프 데이터베이스의 저장 방식(벤더 공식 문서)",
       "value": "표 대신 노드, 관계, 속성으로 저장하는 그래프 데이터베이스",
-      "urls": ["https://neo4j.com/docs/getting-started/get-started-with-neo4j/graph-database/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19]
+      "urls": ["https://neo4j.com/docs/getting-started/graph-database/"],
+      "kind": "official", "checked": "2026-11-24", "slides": [19],
+      "note": "옛 주소(get-started-with-neo4j/graph-database/)는 이 주소로 넘어간다. 근거 문장: A Neo4j graph database stores data as nodes, relationships, and properties instead of in tables or documents."
+    },
+    "fibo_domains": {
+      "label": "금융 온톨로지 FIBO: OWL로 만들었고 보험 전용 영역은 없음(보험 관련 클래스는 일부 있음)",
+      "value": "금융 온톨로지 FIBO는 OWL로 만들었고 보험 전용 영역은 없습니다(보험증권, 보험회사 같은 보험 관련 클래스는 일부 있음)",
+      "urls": ["https://github.com/edmcouncil/fibo", "https://spec.edmcouncil.org/fibo/"],
+      "kind": "official", "checked": "2026-11-24", "slides": [19],
+      "note": "README: FIBO is developed as an ontology in the Web Ontology Language (OWL). 영역은 BE, BP, CAE, DER, FBC, FND, IND, LOAN, MD, SEC 이고 보험 전용 영역은 없다. 보험 관련 클래스(InsurancePolicy, Insurer, InsuranceCompany 따위)는 FBC, LOAN, SEC 모듈에 있다(저장소 복제본 검색, 2026-11-24). 노트에만 쓴다."
     },
     "fibo_acord": {
-      "label": "금융 온톨로지 FIBO와 보험 표준 단체 ACORD",
-      "value": "금융 온톨로지 FIBO는 OWL로 만들었고 영역 목록에 보험이 없습니다. 보험 표준 단체 ACORD는 용어집과 데이터 모델을 냅니다",
+      "label": "금융 온톨로지 FIBO와 보험 표준 단체 ACORD(ACORD 쪽 근거는 보도자료 배포본)",
+      "value": "금융 온톨로지 FIBO는 OWL로 만들었고 보험 전용 영역은 없습니다(보험 관련 클래스는 일부 있음). 보험 표준 단체 ACORD는 용어집과 데이터 모델을 냅니다",
       "urls": ["https://spec.edmcouncil.org/fibo/", "https://github.com/edmcouncil/fibo", "https://prnewswire.com/news-releases/acord-releases-update-to-the-reference-architecture-301891074.html"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19],
-      "note": "노트에만 쓴다. ACORD 는 표준 단체 보도자료 배포본으로 확인했다."
+      "kind": "press", "checked": "2026-11-24", "slides": [19],
+      "note": "노트에만 쓴다. ACORD 근거는 ACORD 가 PR Newswire 로 배포한 보도자료(2023-08-02, Reference Architecture 2.11 의 Business Glossary, Data Model, Information Model 갱신)라 press 로 둔다. FIBO 만 말할 때는 fibo_domains(official)를 쓴다."
     },
     "association_disclosure": {
-      "label": "생명보험협회와 손해보험협회의 비교공시",
-      "value": "협회 비교공시는 회사별 대표 상품을 표준 가입조건으로 보여 줍니다",
-      "urls": ["https://pub.insure.or.kr", "https://kpub.knia.or.kr/productDisc/guide/productInf.do"],
-      "kind": "official", "checked": "2026-11-24", "slides": [2, 3]
+      "label": "보험협회의 상품 비교공시(손해보험협회 안내와 금융감독원 공시제도 설명 기준)",
+      "value": "협회 비교공시는 회사별 대표 상품의 보장내용과 보험료 등을 표준 또는 기본 예시 조건으로 보여 줍니다",
+      "urls": ["https://kpub.knia.or.kr/productDisc/guide/productInf.do", "https://www.fss.or.kr/main/prc/is/sub/is008.jsp?menuNo=900399", "https://pub.insure.or.kr"],
+      "kind": "official", "checked": "2026-11-24", "slides": [2, 3],
+      "note": "대표 상품이라는 말은 손해보험협회 상품비교공시 안내와 금융감독원 보험상품 공시제도 설명에 있다. 생명보험협회 공시실 첫 화면은 대표 상품 여부를 적지 않는다. '특약 단위 가입조건과 고지사항까지 나란히 놓지 않는다'는 공식 설명의 문장이 아니라 안내가 밝힌 비교 항목(보장내용, 보험료, 해지환급금, 공시이율, 사업비 등)에서 읽은 범위이므로 노트에 그 범위를 붙인다."
+    },
+    "github_actions_public_free": {
+      "label": "GitHub Actions: 공개 저장소의 표준 GitHub 호스팅 러너 사용은 무료, 공개 저장소의 예약 실행은 저장소 활동이 60일 없으면 꺼짐",
+      "value": {"text": "공개 저장소에서 표준 GitHub 호스팅 러너 사용은 무료입니다", "schedule_off_after_days": 60,
+                "short": "공개 저장소는 기본 실행 환경이 무료"},
+      "urls": ["https://docs.github.com/en/billing/concepts/product-billing/github-actions", "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows"],
+      "kind": "official", "checked": "2026-11-24", "slides": [23],
+      "note": "단서 둘: 대형 러너(larger runners)는 공개 저장소에서도 요금이 붙고, 공개 저장소의 schedule 실행은 저장소 활동이 60일 없으면 자동으로 꺼진다. 이 앱은 매일과 매주 예약 실행이 있어 60일 규칙이 실제로 관련된다."
     }
   }
 }

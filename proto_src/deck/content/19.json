@@ -4,7 +4,7 @@
  "kind": "body",
  "chapter": 5,
  "status": "new",
- "headline": "회사마다 다른 이름을 약속대로 한 지도에 잇습니다",
+ "headline": "회사마다 다른 담보 이름을 약속대로 한 지도에 잇습니다",
  "diagram": [
   {
    "use": "C9",
@@ -87,45 +87,130 @@
     ]
    },
    "size": "large",
-   "legend_w": 400,
    "box": [
     0,
     0,
-    1180,
-    null
-   ]
-  },
-  {
-   "use": "C10",
-   "value": "{{fact:graph_nodes_by_kind.표준담보}}",
-   "unit": "개",
-   "caption": "이 앱이 정한 표준담보",
-   "box": [
-    1280,
-    40,
-    480,
-    220
-   ]
+    600,
+    560
+   ],
+   "build": 1
   },
   {
    "use": "text",
    "size": "s",
    "tone": "muted",
-   "limit": 40,
-   "text": "구글 시트의 행을 점으로, 행을 잇는 ID 열을 선으로 썼습니다",
+   "text": "이 앱의 지도: 층마다 점의 수",
    "box": [
-    1280,
-    290,
-    480,
-    100
-   ]
+    640,
+    0,
+    460,
+    44
+   ],
+   "build": 2
+  },
+  {
+   "use": "C9",
+   "layout": "ladder",
+   "nodes": [
+    {
+     "label": "회사",
+     "count": "{{fact:graph_company_nodes_with_variants.count}}곳"
+    },
+    {
+     "label": "종형",
+     "count": "{{fact:graph_nodes_by_kind.종형}}개"
+    },
+    {
+     "label": "특약",
+     "count": "{{fact:graph_nodes_by_kind.특약}}개"
+    },
+    {
+     "label": "급부(지급 사유)",
+     "count": "{{fact:graph_nodes_by_kind.급부}}개"
+    },
+    {
+     "label": "표준담보",
+     "count": "{{fact:graph_nodes_by_kind.표준담보}}개",
+     "hero": true
+    },
+    {
+     "label": "보장 대분류",
+     "count": "{{fact:coverage_major_class_count}}개"
+    }
+   ],
+   "box": [
+    640,
+    60,
+    460,
+    500
+   ],
+   "build": 2
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "text": "지식그래프 기술의 연표",
+   "box": [
+    1140,
+    0,
+    620,
+    44
+   ],
+   "build": 3
+  },
+  {
+   "use": "C8",
+   "dir": "v",
+   "dots": [
+    {
+     "d": "{{ref:owl_rdf.owl2_date}}",
+     "label": "{{ref:owl_rdf.short}}"
+    },
+    {
+     "d": "{{ref:kg_google_2012.date}}",
+     "label": "Google이 검색에 지식그래프 도입"
+    },
+    {
+     "d": "{{ref:gql_2024.date}}",
+     "label": "그래프 조회 언어의 국제 표준 GQL"
+    },
+    {
+     "d": "{{ref:graphrag_2024.year}}",
+     "label": "AI가 문서로 지도를 먼저 만드는 GraphRAG"
+    }
+   ],
+   "box": [
+    1140,
+    60,
+    620,
+    500
+   ],
+   "build": 3
+  },
+  {
+   "use": "svg",
+   "box": [
+    0,
+    584,
+    1760,
+    72
+   ],
+   "vb": [
+    1760,
+    72
+   ],
+   "alt": "구글 시트의 한 행이 점 하나가 되고, 행끼리 잇는 번호가 선 하나가 된다는 그림",
+   "svg": "<rect x='0' y='4' width='1760' height='64' class='sv-paper'/><use href='{{icon:마스터 데이터}}' x='24' y='14' width='44' height='44'/><text x='84' y='46'>구글 시트의 한 행 = 점 하나</text><use href='{{icon:관계 그래프}}' x='600' y='14' width='44' height='44'/><text x='660' y='46'>행끼리 잇는 번호(ID) = 선 하나</text><text x='1240' y='46'>그래프 전용 데이터베이스는 안 씀</text>",
+   "build": 4
   }
  ],
  "points": [],
  "terms": [
   "온톨로지",
-  "지식그래프"
+  "지식그래프",
+  "종형"
  ],
- "source": "정의: {{ref:kg_definition.cite}}, {{ref:ontology_definition.cite}}, 자료 기준 {{asof:graph_nodes_by_kind}}",
- "notes": "온톨로지는 한 분야에서 쓰는 말과 말 사이의 관계를 미리 정해 둔 약속이고, 지식그래프는 그 약속대로 실제 사실을 점과 선으로 이어 놓은 것입니다. 지하철 노선도에 빗대면 범례가 온톨로지, 노선도 자체가 지식그래프인데, 이 비유는 이해를 돕기 위해 저희가 든 것이고 정의의 출처는 화면 아래의 논문 두 편입니다. 이 기술은 구글이 검색에 지식그래프를 도입하면서 널리 알려졌고, 지금은 웹 표준 언어로 약속을 적는 방식과 그래프 데이터베이스에 저장하는 방식이 함께 쓰입니다. 다만 모든 질문에서 그래프가 더 나은 답을 주지는 않는다는 연구도 있어, 저희는 필요한 만큼만 썼습니다. 이 앱은 정식 온톨로지 언어나 그래프 데이터베이스를 쓰지 않고, 구글 시트의 행을 점으로, 행을 잇는 ID 열을 선으로 삼은 가벼운 구성입니다. 정확히 부르면 표준담보 사전과 담보 관계를 얹은 속성 그래프 형식의 지식그래프입니다. 해외에는 금융 온톨로지 FIBO와 보험 표준 단체 ACORD가 있지만 FIBO의 영역 목록에 보험은 없고, 담보 이름을 하나로 맞춘 국내 공개 체계는 저희가 찾지 못했습니다. 없다고 단정하지는 않습니다. 연표: {{ref:kg_google_2012.year}}년 구글이 {{ref:kg_google_2012.text}}을 내놓았고, {{ref:owl_rdf.owl2_year}}년 {{ref:owl_rdf.text}}로 약속을 적는 방식이 정해졌으며, {{ref:gql_2024.year}}년 그래프 데이터베이스의 국제 표준 질의 언어, 같은 해 {{ref:graphrag_2024.text}}이 나왔습니다. {{ref:graphrag_not_always_better}}. 이 앱의 구성은 회사, 종형, 특약, 급부({{fact:graph_nodes_by_kind.급부}}개), 표준담보({{fact:graph_nodes_by_kind.표준담보}}개), 보장 대분류({{fact:coverage_major_class_count}}개)로 이어집니다. 종형은 한 상품 안의 가입 형태(예: 1종 간편가입)입니다."
+ "source": "정의: {{ref:kg_definition.cite}}, 자료 기준 {{asof:graph_nodes_by_kind}}",
+ "notes": "7장에서 본 것처럼 같은 암 수술비도 회사마다 이름이 다릅니다. 이 이름들을 잇는 방법이 이 장의 주제입니다. 온톨로지는 한 분야에서 쓰는 말과 말 사이의 관계를 미리 정해 둔 약속이고, 지식그래프는 그 약속대로 실제 사실을 점과 선으로 이어 놓은 것입니다. 지하철 노선도에 빗대면 범례가 온톨로지, 노선도 자체가 지식그래프인데, 이 비유는 이해를 돕기 위해 저희가 든 것이고 지식그래프의 정의는 화면 아래의 논문({{ref:kg_definition.cite}}), 온톨로지의 정의는 {{ref:ontology_definition.cite}}의 논문에서 가져왔습니다. 가운데 층 그림이 이 앱의 실제 지도입니다. 회사 {{fact:graph_company_nodes_with_variants.count}}곳({{fact:graph_company_nodes_with_variants.names}})의 종형 {{fact:graph_nodes_by_kind.종형}}개, 특약 {{fact:graph_nodes_by_kind.특약}}개, 급부 {{fact:graph_nodes_by_kind.급부}}개가 표준담보 {{fact:graph_nodes_by_kind.표준담보}}개로 모이고, 표준담보는 보장 대분류 {{fact:coverage_major_class_count}}개로 묶입니다. 급부 수천 개가 표준담보 수십 개로 줄어드는 것이 이 지도의 쓸모입니다. 표준담보 사전은 {{fact:standard_coverage_rows}}행이고 그 가운데 쓰는 것이 {{fact:standard_coverage_in_use}}개입니다. 관계 그래프에는 시장 동향에 나온 회사까지 점으로 있지만 층의 맨 위에는 상품을 올린 회사만 셉니다. 특약 수가 화면 자료의 특약 수보다 적은 것은 인수기준만 수집한 종형의 특약을 그래프에 싣지 않았기 때문입니다. 연표: {{ref:owl_rdf.owl2_year}}년 W3C가 웹 온톨로지 언어 OWL 2를 권고안으로 냈고(문서 2판 {{ref:owl_rdf.owl2_second_edition_year}}년, RDF 1.1은 {{ref:owl_rdf.rdf11_year}}년), {{ref:kg_google_2012.year}}년 구글이 {{ref:kg_google_2012.text}}을 내놓으며 지식그래프가 널리 알려졌습니다. {{ref:gql_2024.year}}년에는 그래프 데이터베이스의 국제 표준 질의 언어 GQL이, 같은 해 {{ref:graphrag_2024.text}}이 나왔습니다. {{ref:graphrag_not_always_better}}. 그래서 저희는 필요한 만큼만 썼습니다. 이 앱은 정식 온톨로지 언어나 그래프 데이터베이스를 쓰지 않고, 구글 시트의 행을 점으로, 행끼리 잇는 번호(ID) 칸을 선으로 삼은 가벼운 구성입니다. 정확히 부르면 표준담보 사전과 담보 관계를 얹은 속성 그래프 형식의 지식그래프입니다. 해외에는 금융 온톨로지와 보험 표준 단체가 있습니다. {{ref:fibo_acord}}. 담보 이름을 하나로 맞춘 국내 공개 체계는 저희가 찾지 못했습니다. 없다고 단정하지는 않습니다."
 }

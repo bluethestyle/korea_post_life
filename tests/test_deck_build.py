@@ -155,6 +155,36 @@ def test_missing_fact_or_ref_stops_the_build(tmp_path):
             build(folder)
 
 
+def test_name_placeholder_reads_deck_names_and_missing_name_stops(tmp_path):
+    folder = write_slides(tmp_path / "ok", [body(1, diagram=[{"use": "text", "text": "{{name:claude_code}}, {{name:antigravity}}"}])])
+    res = build(folder)
+    assert "Claude Code, Antigravity" in res.html and "{{name:" not in res.html
+    for bad in ("{{name:no_such_tool}}", "{{name:about}}"):
+        folder = write_slides(tmp_path / bad.strip("{}").replace(":", "_"), [body(1, headline=bad)])
+        with pytest.raises(SystemExit):
+            build(folder)
+
+
+def test_optional_scope_and_note_labels_render_and_are_limited(tmp_path):
+    folder = write_slides(tmp_path / "c", [
+        body(1, diagram=[{"use": "C10", "value": "1", "caption": "설명", "scope": "범위 글", "box": [0, 0, 400, 200]},
+                         {"use": "C11", "value": "1", "total": "2", "scope": "대조 범위", "box": [500, 0, 400, 400]},
+                         {"use": "C3", "box": [0, 420, 1760, 160], "nodes": [{"label": "가", "note": "작은 이름"}, {"label": "나"}]}]),
+        body(2, diagram=[{"use": "C8", "box": [0, 0, 1760, 300], "dots": [{"d": "2026-11-11", "label": "점", "tag": "이 앱이 씀", "hero": True},
+                                                                           {"d": "2026-09-15", "label": "점"}]},
+                         {"use": "C5", "box": [0, 320, 1760, 200], "rows": [{"before": "가", "after": "나", "note": "모델 등급"}]}]),
+        body(3, diagram=[{"use": "C16", "box": [0, 0, 1760, 500], "items": [], "total": "0원",
+                          "week": {"daily": {"time": "06:10", "label": "수집"}, "manual": {"label": "사람이 실행", "text": "추출"},
+                                   "after": "커밋"}},
+                         {"use": "C10", "value": "1", "scope": "가" * 31, "box": [0, 520, 400, 100]}]),
+    ])
+    res = build(folder)
+    for cls, text in (("c10-sc", "범위 글"), ("c11-sc", "대조 범위"), ("c3-note", "작은 이름"), ("c5-note", "모델 등급"), ("c8-tag", "이 앱이 씀")):
+        assert re.search(rf'class="{cls}[^"]*">{text}<', res.html), cls
+    assert "사람이 실행</b> 추출" in res.html and "152V310" in res.html
+    assert any("[03] diagram[1].C10.scope: 31자 > 26자" in w for w in res.warnings)
+
+
 def test_only_builds_the_named_slides_with_full_page_numbers():
     res = build(SRC / "content", only={2, 3})
     assert [s["no"] for s in res.slides] == [2, 3]
@@ -183,3 +213,87 @@ def test_assets_are_small_jpegs():
 
 def test_same_input_gives_same_bytes():
     assert build(SRC / "samples").html == build(SRC / "samples").html
+
+
+def test_sprite_holds_only_the_icons_the_slides_use(tmp_path):
+    folder = write_slides(tmp_path / "c", [body(1, diagram=[{"use": "C3", "nodes": [{"label": "가", "icon": "공시 문서"},
+                                                                                    {"label": "나", "icon": "stack"}]}])])
+    html = build(folder).html
+    # 개념 이름은 덱 아이콘 사전(_deck.json icons)으로, 디자인 시스템 도안(Lucide)은 ic- 로 심는다
+    assert 'id="ic-file-text"' in html and 'href="#ic-file-text"' in html and 'id="i-stack"' in html
+    assert 'id="i-camera"' not in html and 'id="ic-coins"' not in html
+    # 덱 자체 이름 가운데 디자인 시스템에 같은 뜻의 도안이 있는 것은 디자인 시스템 도안으로 그린다
+    folder = write_slides(tmp_path / "d", [body(1, diagram=[{"use": "C18", "icon": "doc"}])])
+    assert 'href="#ic-file-text"' in build(folder).html
+
+
+def test_unknown_icon_stops_the_build(tmp_path):
+    folder = write_slides(tmp_path / "c", [body(1, diagram=[{"use": "C18", "icon": "없는 개념"}])])
+    with pytest.raises(SystemExit):
+        build(folder)
+
+
+def test_icons_are_lucide_with_the_license_notice():
+    icons = sorted((SRC / "icons").glob("*.svg"))
+    assert len(icons) == 55
+    notice = (SRC / "icons" / "LICENSE.txt").read_text(encoding="utf-8")
+    assert "ISC License" in notice and "Lucide" in notice
+    for p in icons:
+        text = p.read_text(encoding="utf-8")
+        assert "lucide" in text and "<script" not in text and "http" not in text.replace("http://www.w3.org/2000/svg", ""), p.name
+
+
+def test_inline_svg_block_checks_text_size_and_refuses_external_references(tmp_path):
+    ok = {"use": "svg", "box": [0, 0, 800, 200], "vb": [800, 200], "alt": "그림",
+          "svg": "<rect x='0' y='0' width='800' height='200' class='sv-paper'/><text x='20' y='60'>{{fact:practice_compare_time}}</text>"
+                 "<text x='20' y='120' class='aux'>보조 글</text><use href='{{icon:비용}}' x='600' y='40' width='48' height='48'/>"}
+    small = {"use": "svg", "box": [0, 220, 400, 100], "vb": [800, 200], "svg": "<text x='0' y='40'>작게 보이는 글</text>"}
+    folder = write_slides(tmp_path / "c", [body(1, diagram=[ok, small])])
+    res = build(folder)
+    assert '<svg class="svgb"' in res.html and "2~3일" in res.html and 'id="ic-coins"' in res.html
+    assert any("[01] diagram[1].svg.text[0]: 글자 13.0px < 22px" in w for w in res.warnings), res.warnings
+    assert not any("diagram[0]" in w for w in res.warnings), res.warnings
+    for bad in ("<image href='https://example.com/a.png'/>", "<a href='https://example.com'><text>가</text></a>",
+                "<use href='https://example.com/s.svg#x'/>", "<text onclick='x()'>가</text>", "<script>1</script>",
+                "<rect style='fill:url(https://example.com/p)'/>"):
+        folder = write_slides(tmp_path / f"bad{abs(hash(bad))}", [body(1, diagram=[{"use": "svg", "svg": bad}])])
+        with pytest.raises(SystemExit):
+            build(folder)
+
+
+def test_quote_zones_tiles_and_build_order(tmp_path):
+    folder = write_slides(tmp_path / "c", [body(1, diagram=[
+        {"use": "quote", "box": [0, 0, 900, 260], "text": "회사마다 필수 특약이 다릅니다", "who": "실무자 1명", "build": 1},
+        {"use": "C12", "img": "talk_preview", "box": [0, 280, 1000, 300],
+         "zones": [{"n": "A", "x": 0.1, "y": 0.1, "w": 0.3, "h": 0.2, "label": "인쇄"}], "marks": [{"n": 2, "x": 0.5, "y": 0.6, "label": "표식"}],
+         "build": 2},
+        {"use": "C10", "box": [1100, 0, 400, 260], "tile": True, "icon": "담보", "tile_label": "결합 제약", "value": "79", "build": 9}])])
+    res = build(folder)
+    assert '<span class="qt-gist">응답 요지</span>' in res.html and "\u201c" not in res.html
+    assert 'class="c12-zn"' in res.html and '<span class="c12-zk"' in res.html
+    assert 'class="c10 tile"' in res.html and 'id="ic-shield-alert"' in res.html
+    assert 'data-build="1"' in res.html and 'data-build="2"' in res.html
+    assert any("diagram[2].build: 9: 1~8" in w for w in res.warnings), res.warnings
+
+
+def test_more_than_six_icons_on_a_slide_is_warned(tmp_path):
+    nodes = [{"label": str(i), "icon": "stack"} for i in range(7)]
+    folder = write_slides(tmp_path / "c", [body(1, diagram=[{"use": "C3", "arrows": False, "nodes": nodes}])])
+    assert any("아이콘 7개" in w for w in build(folder).warnings)
+
+
+def test_layout_options_keep_cards_aligned_and_lines_off_labels(tmp_path):
+    folder = write_slides(tmp_path / "c", [body(1, diagram=[
+        {"use": "C3", "align": "top", "box": [0, 0, 1760, 200], "nodes": [{"label": "가", "sub": "한 줄"}, {"label": "나"}]},
+        {"use": "C5", "box": [0, 220, 1760, 300], "badgeCol": {"label": "효과", "badge": "측정 전", "once": True},
+         "rows": [{"before": "가", "after": "나", "hero": True}, {"before": "다", "after": "라"}]},
+        {"use": "C9", "layout": "legend", "box": [0, 540, 900, 60], "captions": ["범례", "노선도"],
+         "graph": {"nodes": [{"id": "a", "label": "위"}, {"id": "b", "label": "옆"}, {"id": "c", "label": "가운데"}],
+                   "edges": [{"from": "a", "to": "c"}]}}])])
+    res = build(folder)
+    assert 'class="c3-n top"' in res.html
+    # 배지는 열 머리에 한 번만 두고 배지 열은 없다
+    assert res.html.count('class="bd-um"') == 1 and 'class="c5-bd"' not in res.html
+    # 선이 아래로만 나가는 점(위)은 이름을 점 위에, 위에서 선이 들어오는 점(가운데)은 점 아래에
+    assert re.search(r'class="c9-gn sh-circle up"[^>]*><i></i><b class="ax">위<', res.html)
+    assert re.search(r'class="c9-gn sh-circle"[^>]*><i></i><b class="ax">가운데<', res.html)
