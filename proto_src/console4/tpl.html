@@ -95,8 +95,8 @@
       </g>
     </g>
   </svg>
-  <div class="guides" id="guides"></div>
 </div>
+<div class="guides" id="guides" aria-hidden="true"></div>
 
 <!-- 여는 화면: 화이트룸 안개 위에서 정사각 테두리와 마름모, 교차 기준선이 단계별로 그려진 뒤 무대로 펼쳐진다 -->
 <div class="boot-loader" id="boot-loader" role="status" aria-live="polite" hidden>
@@ -116,6 +116,10 @@
 <header class="head" id="head">
   <div class="notice" role="note">
     <span class="nt"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x=".75" y=".75" width="10.5" height="10.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 3v4M6 8.4v1" stroke="currentColor" stroke-width="1.5"/></svg><span id="notice-t">공모전 시연용 화면이며 영업 자료가 아닙니다</span></span>
+    <div class="notice-acts" id="notice-acts">
+      <button class="tgl" id="skin" type="button" aria-pressed="false">다크 모드</button>
+      <button class="tgl" id="motion" type="button" aria-pressed="true">애니메이션 <b>켬</b></button>
+    </div>
   </div>
 </header>
 
@@ -165,7 +169,7 @@
       <div class="zr-in ev-in" id="zr-in" hidden>
         <i class="ev-handle" aria-hidden="true"></i>
         <div class="ev-top">
-          <div class="ev-krow"><span class="k" id="ev-k">요약</span><span class="ev-pnm"><span id="ev-pnm-t">상세와 근거</span><span id="ev-help"></span></span></div>
+          <div class="ev-krow"><span class="k" id="ev-k">요약</span><span class="ev-pnm"><button class="btn sm ghost ev-back-btn" id="ev-back-btn" type="button" hidden></button><span id="ev-pnm-t">상세와 근거</span><span id="ev-help"></span></span></div>
           <h2 id="ev-t">요약</h2>
           <div class="badges" id="ev-b"></div>
           <button class="ev-x" id="ev-x" type="button" aria-label="상세 닫기"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button>
@@ -176,20 +180,13 @@
     </aside>
   </div>
 
-  <!-- 무대 아래 기능 단추 줄: 왼쪽 [뒤로] [표로 보기 / 문장으로 보기] [요약 복사] [범례], 오른쪽 스킨 및 움직임 전환 -->
-  <div class="actbar" id="actbar" role="toolbar" aria-label="화면 조작">
-    <div class="actbar-l" id="actbar-l"></div>
-    <div class="actbar-r" id="actbar-r">
-      <button class="tgl" id="skin" type="button" aria-pressed="false">짙은 화면</button>
-      <button class="tgl" id="motion" type="button" aria-pressed="true">움직임 <b>켬</b></button>
-    </div>
-  </div>
-
   <footer class="foot" id="foot">
-    <p><b id="foot-notice-h">고지.</b> <span id="foot-notice">공모전 시연용 화면이며 영업 자료가 아닙니다</span>. <span id="foot-disclaimer"></span> <span class="asof"><span id="asof-label">자료 기준</span> <span class="num" id="asof"></span></span></p>
-    <p><b id="foot-font-h">글꼴.</b> /*__FONT_NOTICE__*/</p>
+    <span class="sr"><b id="foot-notice-h">유의사항.</b> <span id="foot-notice">공모전 시연용 화면이며 영업 자료가 아닙니다</span>.</span>
+    <span class="foot-disc" id="foot-disclaimer"></span>
+    <span class="asof"><span id="asof-label">자료 기준</span> <span class="num" id="asof"></span></span>
   </footer>
 </div>
+<div id="font-notice-src" hidden>/*__FONT_NOTICE__*/</div>
 
 <!-- 눌러서 여는 전체 표 및 문장 창(표로 보기, 문장으로 보기) -->
 <div class="data-modal" id="data-modal" role="dialog" aria-modal="true" aria-labelledby="dm-title" hidden>

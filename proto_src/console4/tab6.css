@@ -200,6 +200,11 @@
 /* 1000px 미만: 고른 노드의 조상과 자손 길만 세로로 세운 한 열 그림 */
 .gr-vpath{display:none}
 @media (max-width:999px){
+  .gr-left-wrap{gap:8px;padding-right:0}
+  .gr-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  .gr-preset{min-height:36px;padding:6px 6px;align-items:center;justify-content:center;text-align:center}
+  .gr-preset .gp-s{display:none}
+  .gr-ctrl-row .btn{height:32px}
   .gr-col-bar,.gr-canvas-scroll{display:none}
   .gr-vpath{display:flex;flex-direction:column;gap:0;padding:6px 0 14px}
   .gr-vp-step{position:relative;display:flex;flex-direction:column;gap:6px;padding:10px 0 12px 18px;border-left:2px solid var(--axis)}

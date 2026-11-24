@@ -890,7 +890,7 @@ App.registerTab((function () {
             if (origAfter) origAfter(body, ctx2);
             const targetId = { tree: '#gt-tree', q: '#gt-q', limit: '#gt-limit', combo: '#gt-combo' }[key];
             const el = targetId && body.querySelector(targetId);
-            if (el) el.scrollIntoView({ block: 'start', behavior: 'auto' });
+            if (el) App.scrollInZone(el, 'auto');
           };
           return spec;
         },
