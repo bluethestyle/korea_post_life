@@ -30,6 +30,11 @@ from common import (
     fit,
     floor_grid_3d,
     glow_dot,
+    make_counselor_desk,
+    make_doc_icon,
+    make_hazard_badge,
+    make_refinery_funnel,
+    make_speech_callout,
     num,
     pillar_3d,
     pill,
@@ -299,16 +304,14 @@ class Part1ServiceScene(PostLifeBaseScene):
             corner_radius=0.10, width=3.16, height=3.88, fill_color=C_PANEL, fill_opacity=0.96, stroke_color=C_AMBER, stroke_width=2.1
         ).move_to([4.36, 0.18, 0]).set_z_index(3)
         field_hdr = pill("창구, 설계사 현장", fg=C_WHITE, bg=C_PANEL_HI, border=C_AMBER, size=13.2, z=7).move_to([4.36, 1.66, 0])
-        p_head = Circle(radius=0.22, fill_color=C_PANEL_HI, fill_opacity=1.0, stroke_color=C_INK_0, stroke_width=2.2).move_to([3.62, 0.72, 0]).set_z_index(6)
-        p_body = Arc(radius=0.35, start_angle=0, angle=PI, arc_center=[3.62, 0.20, 0], color=C_INK_0, stroke_width=2.4).set_z_index(6)
-        q_bub = RoundedRectangle(
-            corner_radius=0.09, width=1.62, height=0.66, fill_color=C_CORAL_DIM, fill_opacity=0.96, stroke_color=C_CORAL, stroke_width=2.0
-        ).move_to([4.86, 0.72, 0]).set_z_index(7)
-        q_txt = txt("청약 기준은?", size=12.8, color=C_WHITE, bold=True, z=8).move_to(q_bub)
-        warn_tri = RegularPolygon(n=3, fill_color="#3D2B0D", fill_opacity=0.96, stroke_color=C_AMBER, stroke_width=2.2).scale(0.36).move_to([4.36, -0.42, 0]).set_z_index(7)
-        warn_bang = txt("!", size=17, color=C_AMBER, bold=True, z=8).move_to(warn_tri.get_center() + DOWN * 0.04)
+        counselor_desk = make_counselor_desk([3.58, 0.52, 0], col=C_INK_0, accent=C_AMBER, z=6)
+        q_callout = make_speech_callout(
+            [4.96, 0.78, 0], 1.52, 0.64, txt("청약 기준은?", size=12.4, color=C_WHITE, bold=True), col=C_CORAL, bg=C_CORAL_DIM, z=7
+        )
+        q_bub = q_callout[1]
+        hazard_emblem = make_hazard_badge([4.36, -0.38, 0], scale_f=0.95, col=C_AMBER, z=7)
         warn_cap = fit(txt("근거 문서와 쪽수 없이\n구두 안내 위험", size=12.0, color=C_AMBER, bold=True, z=7), max_w=2.84).move_to([4.36, -1.18, 0])
-        field_vis = VGroup(field_ring, field_hdr, p_head, p_body, q_bub, q_txt, warn_tri, warn_bang, warn_cap)
+        field_vis = VGroup(field_ring, field_hdr, counselor_desk, q_callout, hazard_emblem, warn_cap)
 
         foot_1a = fit(
             pill("해결 과제: 요약서와 사업방법서를 같은 기준으로 정리하고, 본부 비교 결과를 창구 요약 카드까지 연결합니다", fg=C_WHITE, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=12.8, z=9),
@@ -362,25 +365,25 @@ class Part1ServiceScene(PostLifeBaseScene):
 
         raw_docs = VGroup(
             *[
-                RoundedRectangle(corner_radius=0.04, width=0.36, height=0.46, fill_color=C_PANEL_HI, fill_opacity=0.96, stroke_color=C_CYAN if k % 2 == 0 else C_VIOLET, stroke_width=1.7).move_to(
-                    [-5.65 + k * 0.38, 1.54 + (k % 2) * 0.12, 0]
+                make_doc_icon(0.38, 0.48, col=C_CYAN if k % 2 == 0 else C_VIOLET, is_image=(k == 3), z=6).move_to(
+                    [-5.66 + k * 0.38, 1.56 + (k % 2) * 0.11, 0]
                 )
                 for k in range(5)
             ]
-        ).set_z_index(6)
-        raw_lbl = fit(txt(f"{num(news_inst_cnt)}개 기관 보도, 공시 문서", size=11.8, color=C_CYAN, bold=True, z=7), max_w=2.36).move_to([-4.90, 2.04, 0])
+        )
+        raw_lbl = fit(txt(f"{num(news_inst_cnt)}개 기관 보도, 공시 문서", size=11.8, color=C_CYAN, bold=True, z=7), max_w=2.36).move_to([-4.90, 2.06, 0])
 
-        funnel_poly = Polygon(
-            [-5.94, 1.12, 0],
-            [-3.86, 1.12, 0],
-            [-4.50, 0.20, 0],
-            [-5.30, 0.20, 0],
-            fill_color="#132634",
-            fill_opacity=0.94,
-            stroke_color=C_CYAN,
-            stroke_width=2.2,
-        ).set_z_index(5)
-        funnel_txt = txt("검증과 표준화", size=11.6, color=WHITE, bold=True, z=7).move_to([-4.90, 0.70, 0])
+        refinery_funnel = make_refinery_funnel(
+            -4.90,
+            1.14,
+            0.14,
+            top_w=2.14,
+            neck_w=0.56,
+            col=C_CYAN,
+            accent=C_GOLD,
+            label_mob=txt("검증과 표준화", size=11.2, color=WHITE, bold=True),
+            z=5,
+        )
 
         ledger_frame = RoundedRectangle(corner_radius=0.08, width=2.36, height=1.88, fill_color="#13251E", fill_opacity=0.96, stroke_color=C_MINT, stroke_width=2.2).move_to([-4.90, -0.96, 0]).set_z_index(4)
         ledger_hdr = fit(txt(f"구글 시트 정본 {num(sheet_tabs)}탭", size=12.0, color=C_MINT, bold=True, z=7), max_w=2.16).move_to([-4.90, -0.24, 0])
@@ -394,7 +397,7 @@ class Part1ServiceScene(PostLifeBaseScene):
                 .set_z_index(6)
             )
         ledger_sub = fit(txt(f"외부 요청 {num(browser_problems)}건 ✓", size=11.0, color=C_INK_0, bold=True, z=7), max_w=2.16).move_to([-4.90, -1.66, 0])
-        left_refinery = VGroup(raw_docs, raw_lbl, funnel_poly, funnel_txt, ledger_frame, ledger_hdr, ledger_cells, ledger_sub)
+        left_refinery = VGroup(raw_docs, raw_lbl, refinery_funnel, ledger_frame, ledger_hdr, ledger_cells, ledger_sub)
 
         dash_frame = RoundedRectangle(corner_radius=0.10, width=5.28, height=3.92, fill_color=C_PANEL, fill_opacity=0.97, stroke_color=C_GOLD, stroke_width=2.5).move_to([-0.24, 0.04, 0]).set_z_index(4)
         dash_title = fit(pill("① 본부 판단 화면 (오프라인 단독 HTML)", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=12.4, z=7), max_w=4.96).move_to([-0.24, 1.62, 0])
@@ -463,6 +466,10 @@ class Part1ServiceScene(PostLifeBaseScene):
             max_w=12.00,
         ).move_to([0.0, -2.56, 0])
 
+        funnel_drops = VGroup(
+            *[glow_dot([-4.90, 0.12, 0], color=C_MINT if k % 2 == 0 else C_GOLD, r=0.052, z=11) for k in range(3)]
+        )
+        self.add(funnel_drops)
         self.cam_move(
             zoom=1.34,
             center=[-4.60, 0.12, 0],
@@ -470,13 +477,20 @@ class Part1ServiceScene(PostLifeBaseScene):
                 FadeOut(beat1a_all, shift=UP * 0.10),
                 FadeIn(raw_lbl),
                 LaggedStart(*[FadeIn(rd, shift=DOWN * 0.20) for rd in raw_docs], lag_ratio=0.10),
-                FadeIn(VGroup(funnel_poly, funnel_txt)),
+                FadeIn(refinery_funnel, shift=DOWN * 0.08),
+                *[
+                    Succession(
+                        Wait(0.35 + k * 0.22),
+                        MoveAlongPath(funnel_drops[k], Line([-4.90, 0.12, 0], [-4.90, -0.45, 0]), run_time=0.65),
+                    )
+                    for k in range(3)
+                ],
                 FadeIn(VGroup(ledger_frame, ledger_hdr, ledger_sub)),
                 LaggedStart(*[FadeIn(lc, scale=0.3) for lc in ledger_cells], lag_ratio=0.05),
             ],
             rt=1.60,
         )
-        self.remove(beat1a_all)
+        self.remove(beat1a_all, funnel_drops, *funnel_drops)
         self.wait(2.10)
 
         self.cam_move(
@@ -541,20 +555,31 @@ class Part1ServiceScene(PostLifeBaseScene):
         )
 
         hub_c = np.array([0.0, 0.22, 0.0])
-        hub_halo = Circle(radius=1.20, fill_opacity=0.0, stroke_color=C_GOLD_DEEP, stroke_width=1.6, stroke_opacity=0.70).move_to(hub_c).set_z_index(6)
-        hub_outer_ring = DashedVMobject(Circle(radius=1.06, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=2.4).move_to(hub_c), num_dashes=28).set_z_index(7)
-        hub_core = Circle(radius=0.88, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=3.0).move_to(hub_c).set_z_index(8)
-        dial_needle = Arrow(hub_c + UP * 0.62, hub_c + UP * 1.10, buff=0, color=C_GOLD, stroke_width=3.4, tip_length=0.15).set_z_index(12)
+        hub_halo = Circle(radius=1.22, fill_opacity=0.0, stroke_color=C_GOLD_DEEP, stroke_width=1.6, stroke_opacity=0.72).move_to(hub_c).set_z_index(6)
+        hub_outer_ring = DashedVMobject(Circle(radius=1.08, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=2.4).move_to(hub_c), num_dashes=28).set_z_index(7)
+        hub_core = Circle(radius=0.90, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=3.0).move_to(hub_c).set_z_index(8)
+        hub_ticks = VGroup(
+            *[
+                Line(
+                    hub_c + np.array([np.cos(k * PI / 6) * 0.78, np.sin(k * PI / 6) * 0.78, 0]),
+                    hub_c + np.array([np.cos(k * PI / 6) * 0.87, np.sin(k * PI / 6) * 0.87, 0]),
+                    color=C_GOLD if k % 3 == 0 else C_SLATE,
+                    stroke_width=1.8 if k % 3 == 0 else 1.1,
+                )
+                for k in range(12)
+            ]
+        ).set_z_index(8)
+        dial_needle = Arrow(hub_c + UP * 0.62, hub_c + UP * 1.12, buff=0, color=C_GOLD, stroke_width=3.4, tip_length=0.15).set_z_index(12)
         hub_txt = fit(
             VGroup(
                 txt("대표 조건, 기준 종형", size=11.4, color=C_GOLD, bold=True, z=9),
                 pill(f"{num(ref_age)}세, {ref_sex_ko}", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=11.0, px=0.10, py=0.035, z=9),
                 pill(base_var_name, fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=10.6, px=0.10, py=0.035, z=9),
             ).arrange(DOWN, buff=0.08),
-            max_w=1.52,
+            max_w=1.48,
         ).move_to(hub_c)
-        central_hub_body = VGroup(hub_halo, hub_outer_ring, hub_core, hub_txt)
-        central_hub = VGroup(hub_halo, hub_outer_ring, hub_core, dial_needle, hub_txt)
+        central_hub_body = VGroup(hub_halo, hub_outer_ring, hub_core, hub_ticks, hub_txt)
+        central_hub = VGroup(hub_halo, hub_outer_ring, hub_core, hub_ticks, dial_needle, hub_txt)
 
         def make_radial_module(cx: float, cy: float, col: str, badge_s: str, title_s: str, cap_s: str, widget: VGroup) -> VGroup:
             card = RoundedRectangle(corner_radius=0.09, width=3.58, height=1.54, fill_color=C_PANEL, fill_opacity=0.96, stroke_color=col, stroke_width=2.2).move_to([cx, cy, 0]).set_z_index(4)

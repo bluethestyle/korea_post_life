@@ -29,6 +29,10 @@ from common import (
     floor_grid_3d,
     glass_plane_3d,
     glow_dot,
+    make_emitter_nozzle,
+    make_npu_chip,
+    make_shield_icon,
+    make_stopwatch,
     num,
     pillar_3d,
     pill,
@@ -81,8 +85,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         gen_hdr = fit(pill("일반 문장 생성 호출 (작문 방식)", fg=C_WHITE, bg=C_PANEL_HI, border=C_SLATE, size=12.4), max_w=3.84).move_to([-4.02, 1.86, 0]).set_z_index(6)
 
         sw_c = np.array([-5.38, 1.14, 0.0])
-        sw_ring = Circle(radius=0.28, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_AMBER, stroke_width=2.2).move_to(sw_c).set_z_index(7)
-        sw_hand = Line(sw_c, sw_c + UP * 0.22, color=C_AMBER, stroke_width=2.6).set_z_index(11)
+        sw_ring, sw_hand = make_stopwatch(sw_c, r=0.27, col=C_AMBER, z=7)
 
         gen_tok_row = fit(
             VGroup(
@@ -126,18 +129,17 @@ class Part3DecisionScene(PostLifeBaseScene):
             max_w=6.48,
         ).move_to([2.62, 1.86, 0]).set_z_index(7)
 
-        dec_in = pill("특약 원문과 문항", fg=C_WHITE, bg=C_PANEL_HI, border=C_CYAN, size=11.4, px=0.12, py=0.06, z=7).move_to([0.20, 0.84, 0])
-        dec_core = RoundedRectangle(
-            corner_radius=0.08, width=2.04, height=1.02, fill_color="#1D2736", fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=2.4
-        ).move_to([2.24, 0.84, 0]).set_z_index(6)
+        dec_in = pill("특약 원문과 문항", fg=C_WHITE, bg=C_PANEL_HI, border=C_CYAN, size=11.4, px=0.12, py=0.06, z=7).move_to([0.16, 0.84, 0])
         dec_core_t = fit(
             VGroup(
-                txt(decide_model, size=12.0, color=C_GOLD, bold=True, z=7),
-                txt(f"출력 토큰 = {num(d_spec['output_tokens'])}", size=11.2, color=C_MINT, bold=True, z=7),
+                txt(decide_model, size=11.8, color=C_GOLD, bold=True, z=9),
+                txt(f"출력 토큰 = {num(d_spec['output_tokens'])}", size=11.0, color=C_MINT, bold=True, z=9),
             ).arrange(DOWN, buff=0.05),
-            max_w=1.88,
-        ).move_to(dec_core)
-        dec_in_arr = arrow_2d(dec_in.get_right(), dec_core.get_left(), color=C_CYAN, sw=2.2, tip=0.10, z=7)
+            max_w=1.80,
+        )
+        dec_core = make_npu_chip([2.24, 0.84, 0], w=2.02, h=0.98, col=C_GOLD, accent=C_CYAN, z=6)
+        dec_core_t.move_to([2.24, 0.84, 0])
+        dec_in_arr = arrow_2d(dec_in.get_right(), [1.13, 0.84, 0], color=C_CYAN, sw=2.2, tip=0.10, z=7)
 
         w_scale = 1.16
         w_corr = w_scale * sym_prob["correct_min"]
@@ -149,9 +151,9 @@ class Part3DecisionScene(PostLifeBaseScene):
                 (0.62, "뒤집은 값", f"{sym_prob['flipped_max']:.2f}↓", w_flip, C_SLATE),
             ]
         ):
-            dec_out_arrs.add(arrow_2d(dec_core.get_right(), [3.38, by, 0], color=C_GOLD if b_i == 0 else C_SLATE, sw=1.9, tip=0.09, z=6))
-            lt = txt(b_lbl, size=11.0, color=C_INK_0 if b_i > 0 else WHITE, bold=True, z=7).move_to([3.82, by, 0])
-            br = Rectangle(width=b_w, height=0.20, fill_color=b_col, fill_opacity=0.96, stroke_width=0).move_to([4.28 + b_w / 2, by, 0]).set_z_index(7)
+            dec_out_arrs.add(arrow_2d([3.35, 0.84, 0], [3.50, by, 0], color=C_GOLD if b_i == 0 else C_SLATE, sw=1.9, tip=0.08, z=6))
+            lt = txt(b_lbl, size=11.0, color=C_INK_0 if b_i > 0 else WHITE, bold=True, z=7).move_to([3.90, by, 0])
+            br = Rectangle(width=b_w, height=0.20, fill_color=b_col, fill_opacity=0.96, stroke_width=0).move_to([4.36 + b_w / 2, by, 0]).set_z_index(7)
             vt = txt(b_val, size=11.2, color=C_GOLD if b_i == 0 else C_INK_1, bold=True, z=7).next_to(br, RIGHT, buff=0.08)
             dec_bars.add(VGroup(lt, br, vt))
 
@@ -169,10 +171,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             lb = fit(txt(label_s, size=11.6, color=col, bold=True, z=8), max_w=2.26).move_to([tx + 0.24, ty, 0])
             return VGroup(bx, icon_g, lb)
 
-        ic_u1 = VGroup(
-            RegularPolygon(n=6, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_CYAN, stroke_width=1.8).scale(0.19),
-            txt("✓", size=10.5, color=C_CYAN, bold=True),
-        )
+        ic_u1 = make_shield_icon([0, 0, 0], scale_f=0.64, col=C_CYAN, bg=C_BG_SUB, mark_mob=txt("✓", size=10.5, color=C_CYAN, bold=True), z=8)
         ic_u2 = VGroup(
             arrow_2d([-0.16, 0, 0], [0.14, 0.14, 0], color=C_GOLD, sw=2.0, tip=0.08),
             arrow_2d([-0.16, 0, 0], [0.14, -0.14, 0], color=C_GOLD, sw=2.0, tip=0.08),
@@ -494,9 +493,15 @@ class Part3DecisionScene(PostLifeBaseScene):
         est_total_h = 2.20
         wait_ratio = m_req["waiting_minutes"] / m_req["estimated_minutes"]
         wait_h = est_total_h * wait_ratio
-        therm_bg = RoundedRectangle(
-            corner_radius=0.06, width=0.70, height=est_total_h, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_VIOLET, stroke_width=1.8
+        therm_shell = RoundedRectangle(
+            corner_radius=0.10, width=0.74, height=est_total_h, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_VIOLET, stroke_width=2.0
         ).move_to([3.12, 0.02, 0]).set_z_index(5)
+        therm_caps = VGroup(
+            RoundedRectangle(corner_radius=0.03, width=0.88, height=0.09, fill_color=C_VIOLET, fill_opacity=0.92, stroke_width=0).move_to([3.12, 0.02 + est_total_h / 2, 0]),
+            RoundedRectangle(corner_radius=0.03, width=0.88, height=0.09, fill_color=C_VIOLET, fill_opacity=0.92, stroke_width=0).move_to([3.12, 0.02 - est_total_h / 2, 0]),
+            *[Line([3.36, -0.82 + i * 0.42, 0], [3.48, -0.82 + i * 0.42, 0], color=C_INK_1, stroke_width=1.3) for i in range(5)],
+        ).set_z_index(7)
+        therm_bg = VGroup(therm_shell, therm_caps)
         therm_wait = RoundedRectangle(
             corner_radius=0.05, width=0.58, height=wait_h, fill_color=C_AMBER, fill_opacity=0.96, stroke_width=0
         ).move_to([3.12, 0.02 - est_total_h / 2 + wait_h / 2, 0]).set_z_index(6)
@@ -701,17 +706,15 @@ class Part3DecisionScene(PostLifeBaseScene):
             f"해결 ③, ④ 확률 경계({v_conf:.2f}, {v_reex:.2f})로 나누고, 최근 {num(win_sec)}초 입력 토큰을 {num(guard_tok)} 아래로 맞춥니다",
         )
 
-        nozzle = RoundedRectangle(
-            corner_radius=0.08, width=1.56, height=1.10, fill_color=C_PANEL_HI, fill_opacity=0.96, stroke_color=C_CYAN, stroke_width=2.2
-        ).move_to([-5.15, 0.40, 0]).set_z_index(5)
         noz_txt = fit(
             VGroup(
-                txt("해결 ③", size=11.4, color=C_CYAN, bold=True, z=7),
-                txt("확률 경계", size=12.6, color=C_VIOLET, bold=True, z=7),
-                txt("분기 처리", size=11.6, color=C_INK_0, bold=True, z=7),
+                txt("해결 ③", size=11.0, color=C_CYAN, bold=True, z=8),
+                txt("확률 경계", size=12.2, color=C_VIOLET, bold=True, z=8),
+                txt("분기 처리", size=11.2, color=C_INK_0, bold=True, z=8),
             ).arrange(DOWN, buff=0.03),
-            max_w=1.38,
-        ).move_to(nozzle)
+            max_w=1.08,
+        )
+        nozzle = make_emitter_nozzle([-5.10, 0.40, 0], w=1.74, h=1.18, col=C_CYAN, accent=C_VIOLET, label_mob=noz_txt, z=5)
 
         gate_x, th_high_y, th_low_y = -2.85, 1.25, -0.32
         meter_bar = Line([gate_x, -1.70, 0], [gate_x, 2.38, 0], color=C_SLATE, stroke_width=3.2).set_z_index(4)
@@ -785,7 +788,7 @@ class Part3DecisionScene(PostLifeBaseScene):
                 FadeOut(prob_3d_all),
                 FadeOut(VGroup(*all_6b_bbs)),
                 FadeOut(hud_6b_grp),
-                FadeIn(VGroup(nozzle, noz_txt), shift=RIGHT * 0.12),
+                FadeIn(nozzle, shift=RIGHT * 0.12),
                 Create(meter_bar),
                 Create(line_75),
                 Create(line_40),
@@ -873,7 +876,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         )
 
         ch6_stage = VGroup(
-            nozzle, noz_txt, meter_bar, line_75, line_40, knob_75, knob_40,
+            nozzle, meter_bar, line_75, line_40, knob_75, knob_40,
             z_top, zt_lbl, z_mid, zm_lbl, excl_wall, excl_lbl, retry_arc, retry_lbl,
             particles, rescue_pt, mkt_group, quota_bar,
         )

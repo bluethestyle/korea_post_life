@@ -237,6 +237,650 @@ def capacity_ring(
     return VGroup(bg_ring, tg)
 
 
+# ---------------------------------------------------------------------------
+# Bespoke Infographic Vector Components (고품격 절차형 벡터 부품)
+# ---------------------------------------------------------------------------
+def make_doc_icon(
+    w: float = 0.40,
+    h: float = 0.52,
+    col: str = C_CYAN,
+    fill: str = C_PANEL_HI,
+    is_image: bool = False,
+    badge_txt: str | None = None,
+    z: int = 6,
+) -> VGroup:
+    """접힌 귀퉁이와 내부 문서 줄(또는 그림 기호)을 갖춘 문서 아이콘."""
+    hw, hh = w / 2, h / 2
+    fold = min(w, h) * 0.28
+    page = Polygon(
+        [-hw, -hh, 0],
+        [hw, -hh, 0],
+        [hw, hh - fold, 0],
+        [hw - fold, hh, 0],
+        [-hw, hh, 0],
+        fill_color=fill,
+        fill_opacity=0.97,
+        stroke_color=col,
+        stroke_width=1.8,
+    ).set_z_index(z)
+    flap = Polygon(
+        [hw - fold, hh, 0],
+        [hw - fold, hh - fold, 0],
+        [hw, hh - fold, 0],
+        fill_color=col,
+        fill_opacity=0.35,
+        stroke_color=col,
+        stroke_width=1.4,
+    ).set_z_index(z + 1)
+    parts: list[Mobject] = [page, flap]
+    if is_image:
+        frame = RoundedRectangle(
+            corner_radius=0.02,
+            width=w * 0.72,
+            height=h * 0.48,
+            fill_color="#1A1024",
+            fill_opacity=0.90,
+            stroke_color=col,
+            stroke_width=1.1,
+        ).move_to([0, -h * 0.08, 0]).set_z_index(z + 1)
+        mtn = Polygon(
+            [-w * 0.28, -h * 0.28, 0],
+            [-w * 0.06, -h * 0.02, 0],
+            [w * 0.08, -h * 0.18, 0],
+            [w * 0.18, -h * 0.06, 0],
+            [w * 0.28, -h * 0.28, 0],
+            fill_color=col,
+            fill_opacity=0.55,
+            stroke_color=col,
+            stroke_width=1.1,
+        ).set_z_index(z + 2)
+        sun = Circle(radius=w * 0.075, fill_color=C_GOLD, fill_opacity=0.95, stroke_width=0).move_to([w * 0.14, h * 0.05, 0]).set_z_index(z + 2)
+        parts.extend([frame, mtn, sun])
+    else:
+        hdr_bar = Line([-hw * 0.68, hh * 0.42, 0], [hw * 0.20, hh * 0.42, 0], color=col, stroke_width=2.2).set_z_index(z + 1)
+        l1 = Line([-hw * 0.68, hh * 0.08, 0], [hw * 0.62, hh * 0.08, 0], color=C_INK_1, stroke_width=1.4, stroke_opacity=0.80).set_z_index(z + 1)
+        l2 = Line([-hw * 0.68, -hh * 0.20, 0], [hw * 0.62, -hh * 0.20, 0], color=C_INK_1, stroke_width=1.4, stroke_opacity=0.75).set_z_index(z + 1)
+        l3 = Line([-hw * 0.68, -hh * 0.48, 0], [hw * 0.34, -hh * 0.48, 0], color=C_INK_2, stroke_width=1.4, stroke_opacity=0.70).set_z_index(z + 1)
+        parts.extend([hdr_bar, l1, l2, l3])
+    if badge_txt is not None:
+        rib = RoundedRectangle(
+            corner_radius=0.03,
+            width=w * 0.86,
+            height=h * 0.30,
+            fill_color=col,
+            fill_opacity=0.95,
+            stroke_color=WHITE,
+            stroke_width=1.0,
+        ).move_to([0, -hh * 0.32, 0]).set_z_index(z + 2)
+        rt = fit(txt(badge_txt, size=8.6, color=C_DARK_INK if col in (C_GOLD, C_MINT, C_CYAN) else WHITE, bold=True, z=z + 3), max_w=w * 0.78).move_to(rib)
+        parts.extend([rib, rt])
+    g = VGroup(*parts)
+    g.set_z_index(z)
+    return g
+
+
+def make_refinery_funnel(
+    cx: float,
+    top_y: float,
+    bot_y: float,
+    top_w: float = 2.16,
+    neck_w: float = 0.56,
+    col: str = C_CYAN,
+    accent: str = C_GOLD,
+    label_mob: Mobject | None = None,
+    z: int = 5,
+) -> VGroup:
+    """입체 타원 입구와 곡선 투명 벽면, 다단 거름망, 노즐 칼라를 갖춘 정련 퍼널."""
+    h_tot = top_y - bot_y
+    spout_y = bot_y + h_tot * 0.26
+    tl = np.array([cx - top_w / 2, top_y, 0.0])
+    tr = np.array([cx + top_w / 2, top_y, 0.0])
+    nl = np.array([cx - neck_w / 2, spout_y, 0.0])
+    nr = np.array([cx + neck_w / 2, spout_y, 0.0])
+    bl = np.array([cx - neck_w * 0.42, bot_y, 0.0])
+    br = np.array([cx + neck_w * 0.42, bot_y, 0.0])
+
+    body = VMobject(fill_color="#0E2230", fill_opacity=0.95, stroke_color=col, stroke_width=2.3).set_z_index(z)
+    body.start_new_path(tl)
+    body.add_cubic_bezier_curve_to(
+        tl + DOWN * (h_tot * 0.30),
+        nl + UP * (h_tot * 0.24) + LEFT * 0.06,
+        nl,
+    )
+    body.add_line_to(bl)
+    body.add_line_to(br)
+    body.add_line_to(nr)
+    body.add_cubic_bezier_curve_to(
+        nr + UP * (h_tot * 0.24) + RIGHT * 0.06,
+        tr + DOWN * (h_tot * 0.30),
+        tr,
+    )
+    body.close_path()
+
+    mouth_outer = Ellipse(
+        width=top_w,
+        height=top_w * 0.16,
+        fill_color="#08131C",
+        fill_opacity=0.98,
+        stroke_color=col,
+        stroke_width=2.2,
+    ).move_to([cx, top_y, 0]).set_z_index(z + 2)
+    mouth_inner = Ellipse(
+        width=top_w * 0.84,
+        height=top_w * 0.095,
+        fill_opacity=0.0,
+        stroke_color=accent,
+        stroke_width=1.2,
+        stroke_opacity=0.75,
+    ).move_to([cx, top_y, 0]).set_z_index(z + 3)
+
+    y_r1 = top_y - h_tot * 0.33
+    w_r1 = top_w * 0.68
+    sieve_1 = DashedLine([cx - w_r1 / 2, y_r1, 0], [cx + w_r1 / 2, y_r1, 0], dash_length=0.06, color=col, stroke_width=1.5, stroke_opacity=0.65).set_z_index(z + 1)
+
+    y_r2 = top_y - h_tot * 0.58
+    w_r2 = top_w * 0.42
+    sieve_2 = DashedLine([cx - w_r2 / 2, y_r2, 0], [cx + w_r2 / 2, y_r2, 0], dash_length=0.05, color=C_MINT, stroke_width=1.6, stroke_opacity=0.75).set_z_index(z + 1)
+
+    collar = RoundedRectangle(
+        corner_radius=0.04,
+        width=neck_w * 1.24,
+        height=0.11,
+        fill_color=C_PANEL_HI,
+        fill_opacity=0.98,
+        stroke_color=accent,
+        stroke_width=1.8,
+    ).move_to([cx, spout_y, 0]).set_z_index(z + 2)
+
+    nozzle_tip = Ellipse(
+        width=neck_w * 0.84,
+        height=0.10,
+        fill_color=C_MINT,
+        fill_opacity=0.85,
+        stroke_color=WHITE,
+        stroke_width=1.2,
+    ).move_to([cx, bot_y, 0]).set_z_index(z + 2)
+
+    sheen = VMobject(fill_opacity=0.0, stroke_color=WHITE, stroke_width=1.8, stroke_opacity=0.38).set_z_index(z + 2)
+    sheen.start_new_path(tl + RIGHT * (top_w * 0.11) + DOWN * 0.10)
+    sheen.add_cubic_bezier_curve_to(
+        tl + RIGHT * (top_w * 0.13) + DOWN * (h_tot * 0.30),
+        nl + RIGHT * 0.08 + UP * (h_tot * 0.20),
+        nl + RIGHT * 0.08 + UP * 0.06,
+    )
+
+    grp = VGroup(body, sieve_1, sieve_2, sheen, collar, nozzle_tip, mouth_outer, mouth_inner)
+    if label_mob is not None:
+        label_mob.move_to([cx, top_y - h_tot * 0.42, 0]).set_z_index(z + 4)
+        grp.add(label_mob)
+    return grp
+
+
+def make_counselor_desk(pos: np.ndarray | list[float], col: str = C_INK_0, accent: str = C_AMBER, z: int = 6) -> VGroup:
+    """창구 상담사와 단말기, 카운터 데스크 일러스트."""
+    p = np.array(pos, dtype=float)
+    head = Circle(radius=0.18, fill_color=C_PANEL_HI, fill_opacity=1.0, stroke_color=col, stroke_width=2.1).move_to(p + UP * 0.34).set_z_index(z + 1)
+    shoulders = VMobject(fill_color="#1B2634", fill_opacity=0.98, stroke_color=col, stroke_width=2.0).set_z_index(z)
+    shoulders.start_new_path(p + np.array([-0.34, -0.18, 0]))
+    shoulders.add_cubic_bezier_curve_to(
+        p + np.array([-0.34, 0.12, 0]),
+        p + np.array([0.34, 0.12, 0]),
+        p + np.array([0.34, -0.18, 0]),
+    )
+    shoulders.close_path()
+    collar_v = VGroup(
+        Line(p + np.array([-0.08, 0.08, 0]), p + np.array([0.0, -0.06, 0]), color=accent, stroke_width=1.8),
+        Line(p + np.array([0.08, 0.08, 0]), p + np.array([0.0, -0.06, 0]), color=accent, stroke_width=1.8),
+    ).set_z_index(z + 1)
+    monitor = RoundedRectangle(
+        corner_radius=0.03,
+        width=0.34,
+        height=0.24,
+        fill_color=C_BG_SUB,
+        fill_opacity=1.0,
+        stroke_color=C_CYAN,
+        stroke_width=1.6,
+    ).move_to(p + np.array([0.34, -0.04, 0])).set_z_index(z + 2)
+    stand = Line(p + np.array([0.34, -0.16, 0]), p + np.array([0.34, -0.22, 0]), color=C_SLATE, stroke_width=2.2).set_z_index(z + 1)
+    desk = Line(p + np.array([-0.46, -0.22, 0]), p + np.array([0.56, -0.22, 0]), color=accent, stroke_width=2.6).set_z_index(z + 2)
+    return VGroup(shoulders, collar_v, head, stand, monitor, desk)
+
+
+def make_speech_callout(
+    pos: np.ndarray | list[float],
+    w: float,
+    h: float,
+    text_mob: Mobject,
+    col: str = C_CORAL,
+    bg: str = C_CORAL_DIM,
+    z: int = 7,
+) -> VGroup:
+    """말풍선 꼬리가 달린 현장 질문 콜아웃."""
+    p = np.array(pos, dtype=float)
+    bub = RoundedRectangle(
+        corner_radius=0.10,
+        width=w,
+        height=h,
+        fill_color=bg,
+        fill_opacity=0.97,
+        stroke_color=col,
+        stroke_width=2.1,
+    ).move_to(p).set_z_index(z)
+    tail = Polygon(
+        p + np.array([-w / 2 + 0.02, -0.04, 0]),
+        p + np.array([-w / 2 - 0.18, -0.14, 0]),
+        p + np.array([-w / 2 + 0.06, -0.20, 0]),
+        fill_color=bg,
+        fill_opacity=0.98,
+        stroke_color=col,
+        stroke_width=2.0,
+    ).set_z_index(z)
+    text_mob.move_to(bub).set_z_index(z + 2)
+    return VGroup(tail, bub, text_mob)
+
+
+def make_hazard_badge(pos: np.ndarray | list[float], scale_f: float = 1.0, col: str = C_AMBER, z: int = 7) -> VGroup:
+    """이중 테두리와 발광 후광을 갖춘 주의 배지."""
+    p = np.array(pos, dtype=float)
+    halo = Circle(radius=0.34 * scale_f, fill_color=col, fill_opacity=0.14, stroke_color=col, stroke_width=1.2, stroke_opacity=0.45).move_to(p).set_z_index(z)
+    outer = RoundedRectangle(
+        corner_radius=0.07 * scale_f,
+        width=0.46 * scale_f,
+        height=0.46 * scale_f,
+        fill_color="#3D2B0D",
+        fill_opacity=0.98,
+        stroke_color=col,
+        stroke_width=2.3,
+    ).rotate(PI / 4).move_to(p).set_z_index(z + 1)
+    inner = RoundedRectangle(
+        corner_radius=0.04 * scale_f,
+        width=0.34 * scale_f,
+        height=0.34 * scale_f,
+        fill_opacity=0.0,
+        stroke_color=WHITE,
+        stroke_width=1.0,
+        stroke_opacity=0.55,
+    ).rotate(PI / 4).move_to(p).set_z_index(z + 2)
+    bang = txt("!", size=17 * scale_f, color=col, bold=True, z=z + 3).move_to(p)
+    return VGroup(halo, outer, inner, bang)
+
+
+def make_shield_icon(
+    pos: np.ndarray | list[float],
+    scale_f: float = 1.0,
+    col: str = C_MINT,
+    bg: str = "#112820",
+    mark_mob: Mobject | None = None,
+    z: int = 7,
+) -> VGroup:
+    """곡선 베지어 외곽선과 내부 광택선을 갖춘 보안과 검증 방패 아이콘."""
+    p = np.array(pos, dtype=float)
+    s = scale_f
+    sh = VMobject(fill_color=bg, fill_opacity=0.98, stroke_color=col, stroke_width=2.3).set_z_index(z)
+    top_l = p + np.array([-0.24 * s, 0.24 * s, 0])
+    top_c = p + np.array([0.0, 0.29 * s, 0])
+    top_r = p + np.array([0.24 * s, 0.24 * s, 0])
+    mid_r = p + np.array([0.24 * s, -0.02 * s, 0])
+    bot_c = p + np.array([0.0, -0.30 * s, 0])
+    mid_l = p + np.array([-0.24 * s, -0.02 * s, 0])
+    sh.start_new_path(top_l)
+    sh.add_cubic_bezier_curve_to(p + np.array([-0.12 * s, 0.28 * s, 0]), p + np.array([-0.05 * s, 0.29 * s, 0]), top_c)
+    sh.add_cubic_bezier_curve_to(p + np.array([0.05 * s, 0.29 * s, 0]), p + np.array([0.12 * s, 0.28 * s, 0]), top_r)
+    sh.add_line_to(mid_r)
+    sh.add_cubic_bezier_curve_to(p + np.array([0.22 * s, -0.16 * s, 0]), p + np.array([0.10 * s, -0.25 * s, 0]), bot_c)
+    sh.add_cubic_bezier_curve_to(p + np.array([-0.10 * s, -0.25 * s, 0]), p + np.array([-0.22 * s, -0.16 * s, 0]), mid_l)
+    sh.close_path()
+
+    inner = sh.copy().scale(0.78, about_point=p).set_fill(opacity=0.0).set_stroke(color=WHITE, width=1.0, opacity=0.45).set_z_index(z + 1)
+    grp = VGroup(sh, inner)
+    if mark_mob is not None:
+        mark_mob.move_to(p + DOWN * 0.01 * s).set_z_index(z + 2)
+        grp.add(mark_mob)
+    return grp
+
+
+def make_mini_portal(pos: np.ndarray | list[float], variant: str = "table", col: str = C_CYAN, z: int = 6) -> VGroup:
+    """회사마다 다른 웹 공시 화면 레이아웃을 표현하는 미니 포털 카드."""
+    p = np.array(pos, dtype=float)
+    w, h = 0.42, 0.44
+    frame = RoundedRectangle(corner_radius=0.04, width=w, height=h, fill_color=C_PANEL_HI, fill_opacity=0.96, stroke_color=col, stroke_width=1.7).move_to(p).set_z_index(z)
+    top_b = Line(p + np.array([-w / 2 + 0.03, h / 2 - 0.09, 0]), p + np.array([w / 2 - 0.03, h / 2 - 0.09, 0]), color=col, stroke_width=1.3, stroke_opacity=0.8).set_z_index(z + 1)
+    dots = VGroup(*[Dot(p + np.array([-w / 2 + 0.06 + i * 0.05, h / 2 - 0.045, 0]), radius=0.015, color=col) for i in range(3)]).set_z_index(z + 2)
+    inner = VGroup()
+    if variant == "table":
+        for r in range(3):
+            ry = p[1] + 0.04 - r * 0.09
+            inner.add(Line([p[0] - 0.15, ry, 0], [p[0] + 0.15, ry, 0], color=col, stroke_width=1.2, stroke_opacity=0.75))
+        inner.add(Line([p[0] - 0.03, p[1] + 0.07, 0], [p[0] - 0.03, p[1] - 0.17, 0], color=col, stroke_width=1.1, stroke_opacity=0.65))
+    elif variant == "tree":
+        inner.add(
+            Line([p[0] - 0.12, p[1] + 0.05, 0], [p[0] - 0.12, p[1] - 0.15, 0], color=col, stroke_width=1.4),
+            Line([p[0] - 0.12, p[1] + 0.02, 0], [p[0] + 0.12, p[1] + 0.02, 0], color=col, stroke_width=1.3),
+            Line([p[0] - 0.12, p[1] - 0.07, 0], [p[0] + 0.08, p[1] - 0.07, 0], color=col, stroke_width=1.3),
+            Line([p[0] - 0.12, p[1] - 0.15, 0], [p[0] + 0.14, p[1] - 0.15, 0], color=col, stroke_width=1.3),
+        )
+    else:
+        inner.add(
+            RoundedRectangle(corner_radius=0.02, width=0.28, height=0.18, fill_color=C_BG_SUB, fill_opacity=0.95, stroke_color=col, stroke_width=1.2).move_to(p + DOWN * 0.05),
+            Line([p[0] - 0.08, p[1] - 0.05, 0], [p[0] + 0.08, p[1] - 0.05, 0], color=WHITE, stroke_width=1.2, stroke_opacity=0.8),
+        )
+    inner.set_z_index(z + 2)
+    return VGroup(frame, top_b, dots, inner)
+
+
+def make_firewall_barrier(pos: np.ndarray | list[float], h: float = 0.78, col: str = C_CORAL, z: int = 8) -> VGroup:
+    """사선 경고 줄무늬와 정지 배지를 갖춘 접속 차단 게이트."""
+    p = np.array(pos, dtype=float)
+    post = RoundedRectangle(
+        corner_radius=0.04,
+        width=0.22,
+        height=h,
+        fill_color=C_CORAL_DIM,
+        fill_opacity=0.98,
+        stroke_color=col,
+        stroke_width=2.0,
+    ).move_to(p).set_z_index(z)
+    stripes = VGroup()
+    for i in range(4):
+        sy = p[1] - h * 0.34 + i * (h * 0.22)
+        stripes.add(Line([p[0] - 0.08, sy - 0.05, 0], [p[0] + 0.08, sy + 0.05, 0], color=col, stroke_width=2.0))
+    stripes.set_z_index(z + 1)
+    stop_oct = RegularPolygon(n=8, fill_color=col, fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.3).scale(0.14).move_to(p).set_z_index(z + 2)
+    stop_bar = Line(p + LEFT * 0.065, p + RIGHT * 0.065, color=WHITE, stroke_width=2.4).set_z_index(z + 3)
+    return VGroup(post, stripes, stop_oct, stop_bar)
+
+
+def make_filter_gate(gx: float, y_bot: float = -1.38, y_top: float = 1.38, gap_half: float = 0.48, col: str = C_CYAN, z: int = 6) -> VGroup:
+    """상하 정밀 챔퍼 기둥과 중앙 레이저 슬릿을 갖춘 선별 게이트."""
+    w = 0.22
+    hw = w / 2
+    top_pillar = Polygon(
+        [gx - hw, y_top, 0],
+        [gx + hw, y_top, 0],
+        [gx + hw, gap_half + 0.10, 0],
+        [gx + hw * 0.45, gap_half, 0],
+        [gx - hw * 0.45, gap_half, 0],
+        [gx - hw, gap_half + 0.10, 0],
+        fill_color=C_PANEL_HI,
+        fill_opacity=0.97,
+        stroke_color=col,
+        stroke_width=2.0,
+    ).set_z_index(z)
+    bot_pillar = Polygon(
+        [gx - hw * 0.45, -gap_half, 0],
+        [gx + hw * 0.45, -gap_half, 0],
+        [gx + hw, -gap_half - 0.10, 0],
+        [gx + hw, y_bot, 0],
+        [gx - hw, y_bot, 0],
+        [gx - hw, -gap_half - 0.10, 0],
+        fill_color=C_PANEL_HI,
+        fill_opacity=0.97,
+        stroke_color=col,
+        stroke_width=2.0,
+    ).set_z_index(z)
+    cap_t = RoundedRectangle(corner_radius=0.02, width=w * 1.45, height=0.08, fill_color=col, fill_opacity=0.88, stroke_width=0).move_to([gx, y_top, 0]).set_z_index(z + 1)
+    cap_b = RoundedRectangle(corner_radius=0.02, width=w * 1.45, height=0.08, fill_color=col, fill_opacity=0.88, stroke_width=0).move_to([gx, y_bot, 0]).set_z_index(z + 1)
+    beam_glow = Line([gx, -gap_half, 0], [gx, gap_half, 0], color=col, stroke_width=5.5, stroke_opacity=0.22).set_z_index(z - 1)
+    beam_core = DashedLine([gx, -gap_half, 0], [gx, gap_half, 0], dash_length=0.06, color=col, stroke_width=2.0).set_z_index(z + 1)
+    node_t = Dot([gx, gap_half, 0], radius=0.042, color=WHITE).set_z_index(z + 2)
+    node_b = Dot([gx, -gap_half, 0], radius=0.042, color=WHITE).set_z_index(z + 2)
+    return VGroup(beam_glow, top_pillar, bot_pillar, cap_t, cap_b, beam_core, node_t, node_b)
+
+
+def make_silo_pool(pos: np.ndarray | list[float], w: float = 1.48, h: float = 2.04, col: str = C_GOLD, accent: str = C_MINT, z: int = 4) -> VGroup:
+    """상하 타원 림과 내부 적재 층위를 갖춘 원통형 데이터 사일로."""
+    p = np.array(pos, dtype=float)
+    eh = w * 0.17
+    body = Rectangle(
+        width=w,
+        height=h - eh,
+        fill_color="#13251F",
+        fill_opacity=0.96,
+        stroke_color=col,
+        stroke_width=2.2,
+    ).move_to(p).set_z_index(z)
+    bot_rim = Ellipse(width=w, height=eh, fill_color="#183228", fill_opacity=0.98, stroke_color=col, stroke_width=2.2).move_to(p + DOWN * ((h - eh) / 2)).set_z_index(z + 1)
+    top_rim = Ellipse(width=w, height=eh, fill_color="#0B1714", fill_opacity=0.98, stroke_color=col, stroke_width=2.2).move_to(p + UP * ((h - eh) / 2)).set_z_index(z + 2)
+    strata = VGroup()
+    for i in range(4):
+        sy = p[1] - h * 0.34 + i * 0.16
+        strata.add(
+            RoundedRectangle(
+                corner_radius=0.03,
+                width=w * 0.76,
+                height=0.09,
+                fill_color=accent if i < 3 else col,
+                fill_opacity=0.32 + i * 0.14,
+                stroke_width=0,
+            ).move_to([p[0], sy, 0])
+        )
+    strata.set_z_index(z + 1)
+    sheen = Line(p + np.array([-w * 0.36, -h * 0.34, 0]), p + np.array([-w * 0.36, h * 0.30, 0]), color=WHITE, stroke_width=1.5, stroke_opacity=0.30).set_z_index(z + 2)
+    return VGroup(bot_rim, body, strata, sheen, top_rim)
+
+
+def make_loupe(
+    center: np.ndarray | list[float],
+    radius: float = 1.56,
+    col: str = C_GOLD,
+    cone_origin: np.ndarray | list[float] | None = None,
+    z: int = 6,
+) -> VGroup:
+    """이중 금속 베젤과 반사광 호, 눈금선, 손잡이, 확대 광원뿔을 갖춘 정밀 루페."""
+    c = np.array(center, dtype=float)
+    parts: list[Mobject] = []
+    if cone_origin is not None:
+        o = np.array(cone_origin, dtype=float)
+        t_up = c + np.array([-radius * 0.62, radius * 0.78, 0])
+        t_dn = c + np.array([-radius * 0.62, -radius * 0.78, 0])
+        cone = Polygon(o, t_up, t_dn, fill_color=col, fill_opacity=0.09, stroke_width=0).set_z_index(z - 2)
+        ray_u = DashedLine(o, t_up, dash_length=0.08, color=col, stroke_width=1.6, stroke_opacity=0.75).set_z_index(z - 1)
+        ray_d = DashedLine(o, t_dn, dash_length=0.08, color=col, stroke_width=1.6, stroke_opacity=0.75).set_z_index(z - 1)
+        parts.extend([cone, ray_u, ray_d])
+
+    ang_h = -0.68
+    u_vec = np.array([math.cos(ang_h), math.sin(ang_h), 0.0])
+    collar = RoundedRectangle(corner_radius=0.04, width=0.22, height=0.28, fill_color=C_SLATE, fill_opacity=1.0, stroke_color=col, stroke_width=1.8).rotate(ang_h + PI / 2).move_to(c + u_vec * (radius + 0.11)).set_z_index(z)
+    grip = RoundedRectangle(corner_radius=0.08, width=0.26, height=0.78, fill_color="#1D2632", fill_opacity=1.0, stroke_color=col, stroke_width=2.2).rotate(ang_h + PI / 2).move_to(c + u_vec * (radius + 0.54)).set_z_index(z)
+
+    outer_bezel = Circle(radius=radius * 1.055, fill_color="#1A222D", fill_opacity=0.98, stroke_color=C_GOLD_DEEP, stroke_width=2.2).move_to(c).set_z_index(z)
+    lens = Circle(radius=radius, fill_color="#0D151F", fill_opacity=0.97, stroke_color=col, stroke_width=3.0).move_to(c).set_z_index(z + 1)
+    inner_ring = Circle(radius=radius * 0.93, fill_opacity=0.0, stroke_color=C_CYAN, stroke_width=1.2, stroke_opacity=0.55).move_to(c).set_z_index(z + 2)
+    glare = Arc(radius=radius * 0.85, start_angle=2.05, angle=0.72, arc_center=c, color=WHITE, stroke_width=2.6, stroke_opacity=0.36).set_z_index(z + 2)
+    ticks = VGroup(
+        *[
+            Line(c + np.array([math.cos(a) * radius * 0.90, math.sin(a) * radius * 0.90, 0]), c + np.array([math.cos(a) * radius * 0.98, math.sin(a) * radius * 0.98, 0]), color=col, stroke_width=1.6, stroke_opacity=0.75)
+            for a in (0, PI / 2, PI, 3 * PI / 2)
+        ]
+    ).set_z_index(z + 2)
+    parts.extend([collar, grip, outer_bezel, lens, inner_ring, glare, ticks])
+    return VGroup(*parts)
+
+
+def make_stopwatch(center: np.ndarray | list[float], r: float = 0.28, col: str = C_AMBER, z: int = 7) -> tuple[VGroup, Line]:
+    """크라운 버튼과 눈금 다이얼을 갖춘 크로노그래프 초시계 본체와 바늘."""
+    c = np.array(center, dtype=float)
+    stem = Rectangle(width=r * 0.24, height=r * 0.24, fill_color=C_SLATE, fill_opacity=1.0, stroke_color=col, stroke_width=1.4).move_to(c + UP * (r * 1.10)).set_z_index(z)
+    crown = RoundedRectangle(corner_radius=0.02, width=r * 0.56, height=r * 0.16, fill_color=col, fill_opacity=0.95, stroke_width=0).move_to(c + UP * (r * 1.26)).set_z_index(z + 1)
+    pusher = Line(c + np.array([r * 0.72, r * 0.72, 0]), c + np.array([r * 0.94, r * 0.94, 0]), color=col, stroke_width=2.4).set_z_index(z)
+    dial = Circle(radius=r, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=col, stroke_width=2.2).move_to(c).set_z_index(z + 1)
+    ticks = VGroup(
+        *[
+            Line(c + np.array([math.cos(k * PI / 4) * r * 0.74, math.sin(k * PI / 4) * r * 0.74, 0]), c + np.array([math.cos(k * PI / 4) * r * 0.92, math.sin(k * PI / 4) * r * 0.92, 0]), color=C_INK_1, stroke_width=1.2)
+            for k in range(8)
+        ]
+    ).set_z_index(z + 2)
+    pin = Dot(c, radius=r * 0.12, color=WHITE).set_z_index(z + 4)
+    hand = Line(c, c + UP * (r * 0.72), color=col, stroke_width=2.6).set_z_index(z + 3)
+    return VGroup(stem, crown, pusher, dial, ticks, pin), hand
+
+
+def make_npu_chip(
+    pos: np.ndarray | list[float],
+    w: float = 2.08,
+    h: float = 1.04,
+    col: str = C_GOLD,
+    accent: str = C_CYAN,
+    label_mob: Mobject | None = None,
+    z: int = 6,
+) -> VGroup:
+    """회로 리드 핀과 내부 실리콘 다이 프레임을 갖춘 판정 모델 칩."""
+    p = np.array(pos, dtype=float)
+    pins = VGroup()
+    for i in range(6):
+        px = p[0] - w * 0.36 + i * (w * 0.72 / 5)
+        pins.add(
+            Line([px, p[1] + h / 2, 0], [px, p[1] + h / 2 + 0.10, 0], color=col, stroke_width=2.2),
+            Line([px, p[1] - h / 2, 0], [px, p[1] - h / 2 - 0.10, 0], color=col, stroke_width=2.2),
+        )
+    for j in range(3):
+        py = p[1] - h * 0.28 + j * (h * 0.28)
+        pins.add(
+            Line([p[0] - w / 2 - 0.10, py, 0], [p[0] - w / 2, py, 0], color=accent, stroke_width=2.0),
+            Line([p[0] + w / 2, py, 0], [p[0] + w / 2 + 0.10, py, 0], color=accent, stroke_width=2.0),
+        )
+    pins.set_z_index(z)
+    pkg = RoundedRectangle(corner_radius=0.09, width=w, height=h, fill_color="#16202E", fill_opacity=0.98, stroke_color=col, stroke_width=2.4).move_to(p).set_z_index(z + 1)
+    die = RoundedRectangle(corner_radius=0.05, width=w * 0.88, height=h * 0.80, fill_color="#1D2A3C", fill_opacity=0.96, stroke_color=accent, stroke_width=1.2, stroke_opacity=0.75).move_to(p).set_z_index(z + 2)
+    grp = VGroup(pins, pkg, die)
+    if label_mob is not None:
+        label_mob.move_to(p).set_z_index(z + 3)
+        grp.add(label_mob)
+    return grp
+
+
+def make_emitter_nozzle(
+    pos: np.ndarray | list[float],
+    w: float = 1.66,
+    h: float = 1.12,
+    col: str = C_CYAN,
+    accent: str = C_VIOLET,
+    label_mob: Mobject | None = None,
+    z: int = 5,
+) -> VGroup:
+    """압력 챔버와 수렴 노즐 콘, 방출 조리개 링을 갖춘 확률 분사 노즐."""
+    p = np.array(pos, dtype=float)
+    lx = p[0] - w / 2
+    mx = p[0] + w * 0.16
+    rx = p[0] + w / 2
+    hh = h / 2
+    nh = h * 0.24
+
+    body = VMobject(fill_color=C_PANEL_HI, fill_opacity=0.97, stroke_color=col, stroke_width=2.2).set_z_index(z)
+    body.start_new_path(np.array([lx, p[1] + hh, 0]))
+    body.add_line_to(np.array([mx, p[1] + hh, 0]))
+    body.add_cubic_bezier_curve_to(np.array([mx + 0.22, p[1] + hh, 0]), np.array([rx - 0.18, p[1] + nh, 0]), np.array([rx, p[1] + nh, 0]))
+    body.add_line_to(np.array([rx, p[1] - nh, 0]))
+    body.add_cubic_bezier_curve_to(np.array([rx - 0.18, p[1] - nh, 0]), np.array([mx + 0.22, p[1] - hh, 0]), np.array([mx, p[1] - hh, 0]))
+    body.add_line_to(np.array([lx, p[1] - hh, 0]))
+    body.close_path()
+
+    rear_cap = RoundedRectangle(corner_radius=0.04, width=0.10, height=h * 0.86, fill_color=accent, fill_opacity=0.85, stroke_width=0).move_to([lx + 0.05, p[1], 0]).set_z_index(z + 1)
+    collar = Line([mx, p[1] - hh * 0.88, 0], [mx, p[1] + hh * 0.88, 0], color=accent, stroke_width=1.6, stroke_opacity=0.75).set_z_index(z + 1)
+    aperture = Ellipse(width=0.12, height=nh * 2.0, fill_color=C_GOLD, fill_opacity=0.92, stroke_color=WHITE, stroke_width=1.4).move_to([rx, p[1], 0]).set_z_index(z + 2)
+    grp = VGroup(body, rear_cap, collar, aperture)
+    if label_mob is not None:
+        label_mob.move_to([lx + (mx - lx) * 0.54, p[1], 0]).set_z_index(z + 3)
+        grp.add(label_mob)
+    return grp
+
+
+def make_hopper_vessel(
+    cx: float,
+    top_y: float,
+    bot_y: float,
+    top_w: float = 1.22,
+    slot_w: float = 0.72,
+    col: str = C_GOLD,
+    label_mob: Mobject | None = None,
+    z: int = 7,
+) -> VGroup:
+    """좁은 사전 용량을 직관적으로 보여 주는 병목 호퍼 용기."""
+    tl = np.array([cx - top_w / 2, top_y, 0])
+    tr = np.array([cx + top_w / 2, top_y, 0])
+    bl = np.array([cx - slot_w / 2, bot_y, 0])
+    br = np.array([cx + slot_w / 2, bot_y, 0])
+    h_v = top_y - bot_y
+
+    vessel = VMobject(fill_color="#251F10", fill_opacity=0.94, stroke_color=col, stroke_width=2.2).set_z_index(z)
+    vessel.start_new_path(tl)
+    vessel.add_cubic_bezier_curve_to(tl + DOWN * (h_v * 0.45), bl + UP * (h_v * 0.35), bl)
+    vessel.add_line_to(br)
+    vessel.add_cubic_bezier_curve_to(br + UP * (h_v * 0.35), tr + DOWN * (h_v * 0.45), tr)
+
+    rim = Ellipse(width=top_w, height=0.13, fill_color="#121008", fill_opacity=0.96, stroke_color=col, stroke_width=2.0).move_to([cx, top_y, 0]).set_z_index(z + 1)
+    base_bar = RoundedRectangle(corner_radius=0.03, width=slot_w * 1.18, height=0.08, fill_color=col, fill_opacity=0.90, stroke_width=0).move_to([cx, bot_y, 0]).set_z_index(z + 1)
+    grp = VGroup(vessel, rim, base_bar)
+    if label_mob is not None:
+        label_mob.move_to([cx, (top_y + bot_y) / 2 - 0.04, 0]).set_z_index(z + 2)
+        grp.add(label_mob)
+    return grp
+
+
+def make_mini_browser(pos: np.ndarray | list[float], w: float = 0.66, h: float = 0.44, col: str = C_GOLD, z: int = 7) -> VGroup:
+    """상단 창 표시줄과 미니 막대 차트를 갖춘 단독 HTML 화면 축소 아이콘."""
+    p = np.array(pos, dtype=float)
+    win = RoundedRectangle(corner_radius=0.04, width=w, height=h, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=col, stroke_width=1.7).move_to(p).set_z_index(z)
+    hbar = Line(p + np.array([-w / 2 + 0.03, h / 2 - 0.10, 0]), p + np.array([w / 2 - 0.03, h / 2 - 0.10, 0]), color=C_SLATE, stroke_width=1.2).set_z_index(z + 1)
+    dots = VGroup(
+        Dot(p + np.array([-w / 2 + 0.07, h / 2 - 0.05, 0]), radius=0.016, color=C_CORAL),
+        Dot(p + np.array([-w / 2 + 0.13, h / 2 - 0.05, 0]), radius=0.016, color=C_GOLD),
+        Dot(p + np.array([-w / 2 + 0.19, h / 2 - 0.05, 0]), radius=0.016, color=C_MINT),
+    ).set_z_index(z + 2)
+    bars = VGroup(
+        Rectangle(width=0.08, height=0.11, fill_color=C_CYAN, fill_opacity=0.92, stroke_width=0).move_to(p + np.array([-0.14, -0.09, 0])),
+        Rectangle(width=0.08, height=0.19, fill_color=col, fill_opacity=0.96, stroke_width=0).move_to(p + np.array([-0.02, -0.05, 0])),
+        Rectangle(width=0.08, height=0.15, fill_color=C_MINT, fill_opacity=0.92, stroke_width=0).move_to(p + np.array([0.10, -0.07, 0])),
+    ).set_z_index(z + 2)
+    return VGroup(win, hbar, dots, bars)
+
+
+def make_domain_glyph(kind: str, pos: np.ndarray | list[float], col: str = C_CYAN, z: int = 7) -> VGroup:
+    """기관, 종형, 특약, 급부, 시장 소식을 나타내는 도메인 맞춤 벡터 기호."""
+    p = np.array(pos, dtype=float)
+    if kind == "org":
+        roof = Polygon(p + [-0.20, 0.08, 0], p + [0.0, 0.20, 0], p + [0.20, 0.08, 0], fill_color=col, fill_opacity=0.92, stroke_color=WHITE, stroke_width=1.2)
+        pillars = VGroup(*[Rectangle(width=0.045, height=0.18, fill_color=col, fill_opacity=0.88, stroke_width=0).move_to(p + [-0.11 + i * 0.11, -0.02, 0]) for i in range(3)])
+        base = Rectangle(width=0.38, height=0.05, fill_color=col, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.0).move_to(p + [0.0, -0.14, 0])
+        g = VGroup(pillars, roof, base)
+    elif kind == "variant":
+        back = RoundedRectangle(corner_radius=0.03, width=0.28, height=0.26, fill_color=C_PANEL_HI, fill_opacity=0.95, stroke_color=col, stroke_width=1.3).move_to(p + [0.05, 0.05, 0])
+        front = RoundedRectangle(corner_radius=0.03, width=0.28, height=0.26, fill_color=col, fill_opacity=0.92, stroke_color=WHITE, stroke_width=1.3).move_to(p + [-0.04, -0.03, 0])
+        ln = Line(p + [-0.12, -0.03, 0], p + [0.04, -0.03, 0], color=C_DARK_INK, stroke_width=1.8)
+        g = VGroup(back, front, ln)
+    elif kind == "rider":
+        g = make_shield_icon(p, scale_f=0.68, col=col, bg="#10222E", mark_mob=txt("+", size=11, color=WHITE, bold=True), z=z)
+    elif kind == "benefit":
+        outer = RegularPolygon(n=6, fill_color=col, fill_opacity=0.96, stroke_color=WHITE, stroke_width=1.4).scale(0.18).move_to(p)
+        inner = RegularPolygon(n=6, fill_opacity=0.0, stroke_color=C_DARK_INK, stroke_width=1.2).scale(0.11).move_to(p)
+        core = Dot(p, radius=0.035, color=WHITE)
+        g = VGroup(outer, inner, core)
+    else:
+        dot = Dot(p + [-0.08, -0.08, 0], radius=0.045, color=col)
+        w_a = Arc(radius=0.14, start_angle=0.0, angle=PI / 2, arc_center=p + [-0.08, -0.08, 0], color=col, stroke_width=2.0)
+        w_b = Arc(radius=0.24, start_angle=0.0, angle=PI / 2, arc_center=p + [-0.08, -0.08, 0], color=WHITE, stroke_width=1.8)
+        g = VGroup(dot, w_a, w_b)
+    g.set_z_index(z)
+    return g
+
+
+def make_compass_rose(center: np.ndarray | list[float], r: float = 0.48, col: str = C_GOLD, z: int = 10) -> tuple[VGroup, VGroup]:
+    """눈금 베젤을 갖춘 아스트롤라베 링과 투톤 다이아몬드 나침반 바늘."""
+    c = np.array(center, dtype=float)
+    outer = Circle(radius=r * 1.10, fill_color="#0D141E", fill_opacity=0.98, stroke_color=C_GOLD_DEEP, stroke_width=1.8).move_to(c).set_z_index(z)
+    ring = Circle(radius=r, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=col, stroke_width=2.6).move_to(c).set_z_index(z + 1)
+    ticks = VGroup(
+        *[
+            Line(c + np.array([math.cos(k * PI / 4) * r * 0.82, math.sin(k * PI / 4) * r * 0.82, 0]), c + np.array([math.cos(k * PI / 4) * r * 0.98, math.sin(k * PI / 4) * r * 0.98, 0]), color=col if k % 2 == 0 else C_SLATE, stroke_width=1.8 if k % 2 == 0 else 1.2)
+            for k in range(8)
+        ]
+    ).set_z_index(z + 2)
+    n_up = Polygon(c + LEFT * (r * 0.16), c + UP * (r * 0.78), c + RIGHT * (r * 0.16), fill_color=col, fill_opacity=0.98, stroke_color=WHITE, stroke_width=1.2)
+    n_dn = Polygon(c + LEFT * (r * 0.16), c + DOWN * (r * 0.78), c + RIGHT * (r * 0.16), fill_color=C_CYAN_DIM, fill_opacity=0.95, stroke_color=C_CYAN, stroke_width=1.2)
+    needle = VGroup(n_dn, n_up).rotate(PI / 4, about_point=c).set_z_index(z + 3)
+    return VGroup(outer, ring, ticks), needle
+
+
 def build_world_grid(span_x: float = 11.0, span_y: float = 6.5) -> VGroup:
     """세계 좌표 격자."""
     grid = VGroup()

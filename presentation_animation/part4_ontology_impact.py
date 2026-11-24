@@ -33,6 +33,13 @@ from common import (
     floor_grid_3d,
     glass_plane_3d,
     glow_dot,
+    make_compass_rose,
+    make_doc_icon,
+    make_domain_glyph,
+    make_hazard_badge,
+    make_hopper_vessel,
+    make_mini_browser,
+    make_shield_icon,
     num,
     pillar_3d,
     pill,
@@ -133,9 +140,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         card7_1 = VGroup(q7_1, m7_l1, m7_r1_c, m7_l2, m7_r2_c, m7_neqs, q7_1_cap)
 
         q7_2 = diag_frame(3.88, 1.18, C_CORAL, f"문제 ② 처음 {num(dict_init)}개 사전과 한화 매핑 대기")
-        cup_52 = VMobject(color=C_GOLD, stroke_width=2.4).set_z_index(7)
-        cup_52.set_points_as_corners([[2.34, 1.38, 0], [2.34, 0.82, 0], [3.46, 0.82, 0], [3.46, 1.38, 0]])
-        fun_lbl = txt(f"사전 {num(dict_init)}개", size=10.0, color=C_GOLD, bold=True, z=7).move_to([2.90, 1.06, 0])
+        fun_lbl = txt(f"사전 {num(dict_init)}개", size=9.6, color=C_GOLD, bold=True, z=9)
+        cup_52 = make_hopper_vessel(2.90, 1.42, 0.80, top_w=1.22, slot_w=0.72, col=C_GOLD, label_mob=fun_lbl, z=7)
         spill_dots = VGroup(
             *[Dot([3.78 + (k % 6) * 0.25, 1.38 - (k // 6) * 0.28, 0], radius=0.058, color=C_AMBER if k % 2 == 0 else C_CORAL) for k in range(12)]
         ).set_z_index(7)
@@ -144,7 +150,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             txt(f"재추출 전 대기 {num(hw_pend_b['rows'])}줄({num(hw_pend_b['kinds'])}종류), 재추출 뒤 {num(hw_pend_a)}줄 대기", size=9.8, color=C_CORAL, bold=True, z=7),
             max_w=3.52,
         ).move_to([3.88, 0.42, 0])
-        card7_2_base = VGroup(q7_2, cup_52, fun_lbl, spill_tag, q7_2_cap)
+        card7_2_base = VGroup(q7_2, cup_52, spill_tag, q7_2_cap)
         card7_2_full = VGroup(card7_2_base, spill_dots)
 
         q7_3 = diag_frame(-0.10, -1.14, C_VIOLET, "문제 ③ 통합 대 분리 오판, 대기 건 착시")
@@ -358,11 +364,11 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         layer_std = VGroup(b_std, h_std, s_grade, s_dag_grp, s_pay)
 
         b_fct, h_fct = make_layer_band(-1.38, 1.14, C_CYAN, "#101B24", "원천 사실 계층", f"화면 기준 {num(site_org_cnt)}개 회사 사본")
-        f_org_s = RegularPolygon(n=6, fill_color=C_CYAN, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.4).scale(0.17).move_to([-2.48, -1.24, 0]).set_z_index(7)
-        f_var_s = RoundedRectangle(corner_radius=0.04, width=0.32, height=0.28, fill_color=C_CYAN, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.4).move_to([-0.82, -1.24, 0]).set_z_index(7)
-        f_rid_s = Circle(radius=0.15, fill_color=C_CYAN, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.4).move_to([1.00, -1.24, 0]).set_z_index(7)
-        f_ben_s = Circle(radius=0.13, fill_color=C_GOLD, fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.5).move_to([2.88, -1.24, 0]).set_z_index(7)
-        f_nws_s = RegularPolygon(n=5, fill_color=C_VIOLET, fill_opacity=0.95, stroke_color=WHITE, stroke_width=1.4).scale(0.16).move_to([4.72, -1.24, 0]).set_z_index(7)
+        f_org_s = make_domain_glyph("org", [-2.48, -1.22, 0], col=C_CYAN, z=7)
+        f_var_s = make_domain_glyph("variant", [-0.82, -1.22, 0], col=C_CYAN, z=7)
+        f_rid_s = make_domain_glyph("rider", [1.00, -1.22, 0], col=C_CYAN, z=7)
+        f_ben_s = make_domain_glyph("benefit", [2.88, -1.22, 0], col=C_GOLD, z=7)
+        f_nws_s = make_domain_glyph("news", [4.72, -1.22, 0], col=C_VIOLET, z=7)
         layer_fct = VGroup(
             b_fct, h_fct, f_org_s, f_var_s, f_rid_s, f_ben_s, f_nws_s,
             txt(f"화면 {num(site_org_cnt)}개 기관", size=11.4, color=C_INK_0, bold=True, z=7).move_to([-2.48, -1.64, 0]),
@@ -1136,16 +1142,16 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         )
 
         comp_c = np.array([0.0, 0.08, 0.0])
-        comp_ring = Circle(radius=0.48, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=2.8).move_to(comp_c).set_z_index(10)
-        comp_needle = Line(comp_c + DOWN * 0.36, comp_c + UP * 0.36, color=C_GOLD, stroke_width=2.8).rotate(PI / 4).set_z_index(12)
-        comp_txt = fit(txt(f"{num(n_ins_cats)}분류", size=11.0, color=WHITE, bold=True, z=13), max_w=0.78).move_to(comp_c)
-        compass_hub = VGroup(comp_ring, comp_needle, comp_txt)
+        comp_ring, comp_needle = make_compass_rose(comp_c, r=0.50, col=C_GOLD, z=10)
+        comp_cap = Circle(radius=0.24, fill_color="#0D141E", fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=1.6).move_to(comp_c).set_z_index(14)
+        comp_txt = fit(txt(f"{num(n_ins_cats)}분류", size=10.6, color=WHITE, bold=True, z=15), max_w=0.44).move_to(comp_c)
+        compass_hub = VGroup(comp_ring, comp_needle, comp_cap, comp_txt)
         five_insights = VGroup(c_ins1, c_ins2, c_ins3, c_ins4, c_ins5, compass_hub)
 
         self.add(comp_needle)
         self.play(
             FadeOut(beat8b_all, scale=0.94),
-            FadeIn(VGroup(comp_ring, comp_txt), scale=0.6),
+            FadeIn(VGroup(comp_ring, comp_cap, comp_txt), scale=0.6),
             Rotate(comp_needle, angle=-TAU, about_point=comp_c),
             LaggedStart(*[FadeIn(q, shift=UP * 0.12) for q in [c_ins1, c_ins2, c_ins3, c_ins4, c_ins5]], lag_ratio=0.12),
             run_time=1.45,
@@ -1256,11 +1262,15 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             pill("회사별 표기 상이", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=9.6, px=0.08, py=0.04),
         ).arrange(RIGHT, buff=0.10)
 
-        ic_rad9_ring = Circle(radius=0.20, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_CYAN, stroke_width=1.9)
-        ic_rad9_hand = Line([0, 0, 0], [0.14, 0.13, 0], color=C_GOLD, stroke_width=2.4)
+        ic_rad9_ring = VGroup(
+            Circle(radius=0.22, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_CYAN, stroke_width=1.9),
+            Circle(radius=0.11, fill_opacity=0.0, stroke_color=C_CYAN, stroke_width=1.0, stroke_opacity=0.45),
+            Sector(radius=0.20, start_angle=0.2, angle=0.7, fill_color=C_CYAN, fill_opacity=0.28, stroke_width=0),
+        )
+        ic_rad9_hand = Line([0, 0, 0], [0.15, 0.14, 0], color=C_GOLD, stroke_width=2.4)
         ic_rad9 = VGroup(ic_rad9_ring, ic_rad9_hand)
-        ic_scr9 = RoundedRectangle(corner_radius=0.04, width=0.58, height=0.38, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_GOLD, stroke_width=1.7)
-        ic_a4_9 = VGroup(Rectangle(width=0.30, height=0.42, fill_color=C_IVORY, fill_opacity=1.0, stroke_color=C_GOLD, stroke_width=1.5), Line([-0.15, 0.21, 0], [0.15, 0.21, 0], color=C_CORAL, stroke_width=2.6))
+        ic_scr9 = make_mini_browser([0, 0, 0], w=0.62, h=0.40, col=C_GOLD, z=8)
+        ic_a4_9 = make_doc_icon(0.32, 0.42, col=C_GOLD, fill=C_IVORY, z=8)
         log_pill_9 = pill(f"화면 작업 로그 {num(wlog_site)}건", fg=C_GOLD, bg="#383016", border=C_GOLD, size=10.0, px=0.09, py=0.04)
         aw1 = VGroup(
             ic_rad9,
@@ -1278,7 +1288,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ic_rad9_hand.set_z_index(11)
 
         bv2 = VGroup(
-            Rectangle(width=0.30, height=0.38, fill_color=C_CORAL_DIM, fill_opacity=0.95, stroke_color=C_CORAL, stroke_width=1.5),
+            make_doc_icon(0.32, 0.40, col=C_CORAL, fill=C_CORAL_DIM, is_image=True, z=8),
             txt(f"{num(img_pages)}쪽 그림 ×", size=9.8, color=C_CORAL, bold=True),
             txt(",", size=11, color=C_SLATE),
             txt("특약명 ≠", size=10.0, color=C_AMBER, bold=True),
@@ -1312,12 +1322,12 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         bv3 = VGroup(
             Dot([0, 0, 0], radius=0.07, color=C_AMBER),
             txt("대기=미보유 착시 위험", size=9.6, color=C_AMBER, bold=True),
-            RegularPolygon(n=3, fill_color="#3D2B0D", fill_opacity=0.95, stroke_color=C_CORAL, stroke_width=1.5).scale(0.16),
+            make_hazard_badge([0, 0, 0], scale_f=0.50, col=C_CORAL, z=8),
             txt("단정, 추정 주의", size=9.6, color=C_CORAL, bold=True),
         ).arrange(RIGHT, buff=0.08)
 
         ic_sep9 = VGroup(Line([0, -0.16, 0], [0, 0.16, 0], color=C_MINT, stroke_width=2.4), DashedLine([0.14, -0.16, 0], [0.14, 0.16, 0], dash_length=0.06, color=C_AMBER, stroke_width=2.2))
-        ic_shd9 = VGroup(RegularPolygon(n=6, fill_color=C_BG_SUB, fill_opacity=1.0, stroke_color=C_MINT, stroke_width=1.9).scale(0.19), txt("✓", size=10.2, color=C_MINT, bold=True))
+        ic_shd9 = make_shield_icon([0, 0, 0], scale_f=0.70, col=C_MINT, bg="#112820", mark_mob=txt("✓", size=10.0, color=C_MINT, bold=True), z=8)
         aw3 = VGroup(
             ic_sep9,
             txt(f"화면 대기 {num(ms_site['대기'])}건, 미단정 {num(no_verd_sum)}쌍 분리", size=10.0, color=C_AMBER, bold=True),
@@ -1363,7 +1373,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 FadeIn(t_l1, scale=0.9),
                 MoveAlongPath(pulse9_1, Line([-2.42, 1.36, 0], [-1.56, 1.36, 0])),
                 FadeIn(VGroup(a_l1[0], a_l1[1], ic_rad9_ring, *aw1[1:]), shift=LEFT * 0.12),
-                Rotate(ic_rad9_hand, angle=-TAU, about_point=ic_rad9_ring.get_center()),
+                Rotate(ic_rad9_hand, angle=-TAU, about_point=ic_rad9_ring[0].get_center()),
             ],
             rt=1.50,
         )
