@@ -85,16 +85,23 @@ DISPLAY_GROUPS: dict[str, dict[str, str]] = {
 GRAPH_DISPLAY_GROUPS: dict[str, dict[str, str]] = {
     # 시트 허용값. summary.종형[].비교역할, 종형 노드(34, 35)
     "비교역할": {"관문전용": "인수기준만 수집", "직전개정시연": "직전 개정 상품"},
-    # hum_담보매핑 검토상태 값 가운데 대조표에 있는 것. summary.종형[].미연결사유의 열쇠(116)
-    "미연결사유": {"대상외": "매핑 대상 외"},
-    # 속성 이름(graph.json 의 keys). 해당(매핑) 엣지의 속성(115)
-    "속성 이름": {"검토상태": "검수 상태"},
+    # hum_담보매핑 검토상태 값 가운데 대조표에 있는 것. summary.종형[].미연결사유의 열쇠, 급부 노드의 매핑상태 값(111, 116)
+    "미연결사유": {"대기": "매핑 검수 대기", "대상외": "매핑 대상 외"},
+    # weekly.news_state 의 값. 시장 동향 노드의 선별상태(관계그래프_재설계_검토 3.2절)
+    "선별상태": {"passed": "통과", "below": "통과 기준 미달", "undecided": "판정 없음"},
+    # 속성 이름(graph.json 의 keys). 해당(매핑) 엣지의 검토상태(115), 개정 엣지의 종료(136)
+    "속성 이름": {"검토상태": "검수 상태", "종료": "삭제"},
 }
 
 # 관계 그래프의 노드 종류와 엣지 종류. build_data.py 는 안쪽 이름(왼쪽)으로 자료를 만들고, graph.json 의 kinds, ekinds 에는
 # 화면 이름(오른쪽)을 싣는다(화면은 종류를 번호로 다룬다. 133, 148~151, 153)
 GRAPH_NODE_KIND = {"보장분야": "보장 대분류", "소식": "시장 동향"}
 GRAPH_EDGE_KIND = {"해당": "매핑", "속함": "분류", "관계": "담보 관계", "일으킴": "발표"}
+# kinds, ekinds 의 글자(자료 이름) → 화면 이름(graph.json 의 kindLabels, ekindLabels). 2026-11-24 관계 그래프 스키마 개정
+# 1단계부터 kinds, ekinds 의 글자는 바꾸지 않는 자료 이름으로 두고(화면이 종류를 이름으로 찾게 된다), 화면 이름은 이 표로 준다.
+# 표에 없는 종류는 자료 이름이 곧 화면 이름이다. 결합제약은 시트 이름(sys_결합제약)에서 온 자료 이름이다(68)
+GRAPH_KIND_LABEL: dict[str, str] = {}
+GRAPH_EDGE_LABEL = {"결합제약": "특약 부가 조건"}
 
 
 def flat(groups: dict[str, dict[str, str]]) -> dict[str, str]:
@@ -120,6 +127,16 @@ def display_names() -> dict[str, str]:
 def graph_display_names() -> dict[str, str]:
     """graph.json 의 "표시명"."""
     return dict(GRAPH_DISPLAY)
+
+
+def graph_kind_labels(kinds: list[str]) -> list[str]:
+    """graph.json 의 kindLabels(kinds 와 같은 차례)."""
+    return [GRAPH_KIND_LABEL.get(k, k) for k in kinds]
+
+
+def graph_edge_labels(ekinds: list[str]) -> list[str]:
+    """graph.json 의 ekindLabels(ekinds 와 같은 차례)."""
+    return [GRAPH_EDGE_LABEL.get(k, k) for k in ekinds]
 
 
 def name(value: str) -> str:

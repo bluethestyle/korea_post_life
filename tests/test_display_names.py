@@ -155,8 +155,12 @@ def test_detail_codes_reach_the_screen_only_as_names(committed):
 
 def test_graph_kinds_are_exported_with_screen_names(committed):
     g = committed["graph.json"]
-    assert g["kinds"] == ["회사", "종형", "특약", "급부", "표준담보", "보장 대분류", "시장 동향"]
-    assert g["ekinds"] == ["판매", "포함", "매핑", "분류", "담보 관계", "발표"]
+    assert g["kinds"] == g["kindLabels"] == ["회사", "종형", "특약", "급부", "표준담보", "보장 대분류", "시장 동향"]
+    # 0~5는 2026-11-24 용어 교체로 화면 이름이 된 글자 그대로다. 6~10은 스키마 개정 1단계에서 끝에 붙인 종류이고,
+    # 자료 이름(ekinds)과 화면 이름(ekindLabels)이 다른 것은 결합제약(특약 부가 조건, 대조표 68)뿐이다
+    assert g["ekinds"][:6] == g["ekindLabels"][:6] == ["판매", "포함", "매핑", "분류", "담보 관계", "발표"]
+    assert g["ekinds"][6:] == ["보유", "결합제약", "개정", "언급 담보", "언급 상품"]
+    assert g["ekindLabels"][6:] == ["보유", "특약 부가 조건", "개정", "언급 담보", "언급 상품"]
 
 
 def test_user_picks_are_set_in_one_place():
@@ -206,7 +210,8 @@ SKIP_KEYS = {"틀", "열쇠", "요약", "출처URL", "급부명", "limit", "exc"
 def _display_strings(name: str, obj) -> list[tuple[str, str]]:
     """자료 파일 하나의 화면용 글자(경로, 값). 관계 그래프는 원문을 옮긴 노드와 엣지를 빼고 종류 이름과 표시명, 요약만 본다."""
     if name == "graph.json":
-        obj = {"kinds": obj["kinds"], "ekinds": obj["ekinds"], "표시명": list(obj["표시명"].values()), "summary": obj["summary"]}
+        obj = {"kinds": obj["kinds"], "ekinds": obj["ekinds"], "kindLabels": obj["kindLabels"],
+               "ekindLabels": obj["ekindLabels"], "표시명": list(obj["표시명"].values()), "summary": obj["summary"]}
     out: list[tuple[str, str]] = []
 
     def walk(o, path):
