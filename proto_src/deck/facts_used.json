@@ -1,0 +1,94 @@
+{
+ "cover": [
+  "snapshot_at",
+  "team_size",
+  "org_names",
+  "variant_count_site",
+  "benefit_count_site"
+ ],
+ "problem": [
+  "hanwha_summary_pages"
+ ],
+ "what": [
+  "sheet_tab_count",
+  "operating_cost_won"
+ ],
+ "screen": [
+  "reference_condition",
+  "default_base_variant",
+  "org_names",
+  "segment_map_cell_count",
+  "segment_map_open_together_cells",
+  "common_coverage_pairs",
+  "excluded_pending_pairs",
+  "compared_coverage_pairs",
+  "sales_insight_categories",
+  "sales_insight_count"
+ ],
+ "demo": [
+  "segment_map_grid",
+  "default_base_variant",
+  "reference_condition",
+  "segment_map_rows",
+  "sales_insight_categories",
+  "sales_insight_count"
+ ],
+ "roles": [
+  "disclosure_batch_org_count",
+  "code_review_items",
+  "disclosure_batch_pdf_count",
+  "models",
+  "daily_limit_extract",
+  "daily_limit_decide",
+  "disclosure_batch_auto_org_count"
+ ],
+ "safety": [
+  "verify_confirm_threshold",
+  "verify_reextract_threshold"
+ ],
+ "caught": [
+  "calibration_flipped_rows",
+  "verify_confirm_threshold",
+  "bundled_constraint_check",
+  "targeted_anticancer_misread",
+  "rider_limit_rows_protected"
+ ],
+ "compare": [
+  "default_base_variant",
+  "standard_coverage_rows",
+  "standard_coverage_in_use",
+  "coverage_relation_count",
+  "coverage_relations_by_kind",
+  "excluded_pending_pairs",
+  "no_verdict_pairs",
+  "relation_covered_coverages"
+ ],
+ "status": [
+  "org_names",
+  "benefit_count_site",
+  "site_org_count",
+  "variant_count_site",
+  "rider_count_site",
+  "mapping_status_site",
+  "epost_summary_rows_matched",
+  "goldset_epost_benefit",
+  "goldset_hanwha_benefit",
+  "work_log_count_site",
+  "test_count"
+ ],
+ "limits": [
+  "mapping_status_site",
+  "premium_example_rows",
+  "benefit_disease_code_rows",
+  "verify_confirm_threshold",
+  "verify_reextract_threshold",
+  "not_yet_measured"
+ ],
+ "plan": [
+  "comparison_target_counts",
+  "product_org_count"
+ ],
+ "closing": [
+  "snapshot_at"
+ ]
+}
