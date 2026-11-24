@@ -1,0 +1,79 @@
+{
+ "no": 2,
+ "id": "sample-02",
+ "kind": "body",
+ "chapter": 1,
+ "status": "revised",
+ "headline": "타사 상품 하나를 비교하려면 수백 쪽 문서 속 문장을 손으로 찾아야 합니다",
+ "diagram": [
+  {
+   "use": "C18",
+   "icon": "stack",
+   "pages": "{{fact:hanwha_summary_pages}}",
+   "box": [
+    0,
+    0,
+    480,
+    260
+   ]
+  },
+  {
+   "use": "C10",
+   "value": "{{fact:hanwha_summary_pages}}",
+   "unit": "쪽",
+   "caption": "한화생명 상품 하나의 상품요약서",
+   "box": [
+    0,
+    280,
+    560,
+    null
+   ]
+  },
+  {
+   "use": "C4",
+   "box": [
+    640,
+    0,
+    1120,
+    null
+   ],
+   "head": "간편심사 고지사항: 같은 질문도 회사마다 다릅니다",
+   "cols": [
+    "EPOST",
+    "HANWHALIFE",
+    "SAMSUNGFIRE"
+   ],
+   "label_w": 200,
+   "rows": [
+    {
+     "label": "묻는 병력",
+     "limit": 20,
+     "values": [
+      "{{fact:simple_uw_questions_by_org.EPOST.period_question}}",
+      "입원 또는 <u>수술</u>(제왕절개 포함)",
+      "입원 또는 <u>수술</u>"
+     ]
+    },
+    {
+     "label": "중대질병 수",
+     "values": [
+      "{{fact:simple_uw_questions_by_org.EPOST.major_diseases}}개",
+      "{{fact:simple_uw_questions_by_org.HANWHALIFE.major_diseases}}개",
+      "{{fact:simple_uw_questions_by_org.SAMSUNGFIRE.major_diseases}}개"
+     ]
+    }
+   ],
+   "tag": "세 상품 가운데 우체국만 수술 이력을 묻지 않습니다"
+  }
+ ],
+ "points": [
+  "차이는 보험료보다 문장 속 조건에 있습니다."
+ ],
+ "terms": [
+  "공시 문서",
+  "고지사항",
+  "간편심사"
+ ],
+ "source": "출처: docs/submission.md 2절, docs/limitations.md 2절, 자료 기준 {{asof:hanwha_summary_pages}}",
+ "notes": "견본: C4 의 값 안 <u>…</u> 는 빨강 밑줄. 묻는 병력의 한화생명, 삼성화재 값은 facts 의 같은 열쇠로 바꿔 쓸 수 있다."
+}

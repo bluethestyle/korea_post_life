@@ -1,0 +1,81 @@
+{
+ "no": 20,
+ "id": "sample-20",
+ "kind": "body",
+ "chapter": 5,
+ "status": "revised",
+ "headline": "회사마다 이름이 다른 암 수술비를 표준담보 하나로 맞추고, 담보끼리의 관계도 정했습니다",
+ "diagram": [
+  {
+   "use": "C9",
+   "layout": "converge",
+   "box": [
+    0,
+    0,
+    1120,
+    500
+   ],
+   "cards": [
+    {
+     "org": "EPOST",
+     "text": "{{fact:example_cancer_surgery_names.EPOST}}"
+    },
+    {
+     "org": "HANWHALIFE",
+     "text": "{{fact:example_cancer_surgery_names.HANWHALIFE}}"
+    },
+    {
+     "org": "SAMSUNGFIRE",
+     "text": "{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}"
+    }
+   ],
+   "target": {
+    "label": "암 수술비",
+    "sub": "표준담보"
+   },
+   "chip": "자동 확정: 판정 모델 {{fact:mapping_auto_confirm_threshold|f2}} 이상 또는 AI 둘의 결과 일치"
+  },
+  {
+   "use": "C10",
+   "size": "small",
+   "value": "{{fact:coverage_relation_count}}",
+   "unit": "건",
+   "caption": "담보 관계",
+   "box": [
+    1200,
+    0,
+    560,
+    180
+   ]
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "text": "포함 {{fact:coverage_relations_by_kind.포함}}건: {{fact:coverage_relation_examples.포함.5.broad}} 안에 {{fact:coverage_relation_examples.포함.5.narrow.0}}",
+   "limit": 60,
+   "box": [
+    1200,
+    200,
+    560,
+    90
+   ]
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "text": "통합 {{fact:coverage_relations_by_kind.통합}}건: {{fact:coverage_relation_examples.통합.0.broad}}을 여럿이 채움",
+   "limit": 60,
+   "box": [
+    1200,
+    300,
+    560,
+    90
+   ]
+  }
+ ],
+ "points": [
+  "관계가 없으면 나눠 갖춘 회사도 '미보유'로 보입니다."
+ ],
+ "source": "출처: hum_담보매핑, data/seed/표준담보_관계.jsonl",
+ "notes": "견본: C9 converge. 이름 카드는 원문 급부명이라 글자 수 상한을 limit 로 늘렸다."
+}

@@ -1,0 +1,75 @@
+{
+ "no": 22,
+ "id": "sample-22",
+ "kind": "body",
+ "chapter": 6,
+ "status": "revised",
+ "headline": "AI가 옮긴 값을 원문과 사람이 만든 정답표에 한 행씩 맞춰 보았습니다",
+ "diagram": [
+  {
+   "use": "C11",
+   "value": "{{fact:epost_summary_rows_matched.matched}}",
+   "total": "{{fact:epost_summary_rows_matched.total}}",
+   "caption": "우체국 상품요약서 급부의 원문 대조",
+   "hero": true,
+   "box": [
+    0,
+    0,
+    560,
+    430
+   ]
+  },
+  {
+   "use": "C11",
+   "value": "{{fact:goldset_epost_benefit.items}}",
+   "total": "{{fact:goldset_epost_benefit.items}}",
+   "split": [
+    {
+     "v": "{{fact:goldset_epost_benefit.auto_match}}"
+    },
+    {
+     "v": "{{fact:goldset_epost_benefit.manual_match}}",
+     "hatch": true
+    }
+   ],
+   "caption": "우체국 정답표(보장금액, 면책, 감액)",
+   "legend": [
+    "자동 일치",
+    "직접 확인"
+   ],
+   "box": [
+    600,
+    0,
+    560,
+    430
+   ]
+  },
+  {
+   "use": "C11",
+   "value": "{{fact:goldset_hanwha_benefit.match}}",
+   "total": "{{fact:goldset_hanwha_benefit.items}}",
+   "caption": "한화생명 정답표",
+   "box": [
+    1200,
+    0,
+    560,
+    430
+   ]
+  },
+  {
+   "use": "chip",
+   "text": "AI가 한 일 {{fact:work_log_count_site}}건을 작업 로그로 화면에 공개",
+   "box": [
+    0,
+    460,
+    900,
+    48
+   ]
+  }
+ ],
+ "points": [
+  "표본이 작습니다. 회사를 넓히며 다시 맞춥니다."
+ ],
+ "source": "출처: docs/submission.md 7절, 자료 기준 {{asof:work_log_count_site}}",
+ "notes": "견본: C11 큰 판 셋. 둘째 링의 둘째 구간은 빗금."
+}

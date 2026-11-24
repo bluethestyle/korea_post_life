@@ -1,0 +1,94 @@
+{
+ "no": 9,
+ "id": "sample-09",
+ "kind": "body",
+ "chapter": 3,
+ "status": "revised",
+ "headline": "사람 한 명이 방향을 정하고, AI 여럿이 구현, 점검, 조사, 화면을 나눠 맡았습니다",
+ "diagram": [
+  {
+   "use": "C9",
+   "layout": "org",
+   "box": [
+    0,
+    0,
+    1760,
+    560
+   ],
+   "nodes": [
+    {
+     "id": "u",
+     "tier": 0,
+     "label": "실무자(출품자)",
+     "sub": "방향과 결정"
+    },
+    {
+     "id": "cc",
+     "tier": 1,
+     "label": "Claude Code",
+     "sub": "지휘와 최종 검수"
+    },
+    {
+     "id": "sa",
+     "tier": 2,
+     "label": "서브에이전트",
+     "sub": "구현, 점검, 단순 점검"
+    },
+    {
+     "id": "gm",
+     "tier": 2,
+     "label": "제미나이 구독 패널",
+     "sub": "자료 조사, 설계 의견"
+    },
+    {
+     "id": "ag",
+     "tier": 2,
+     "label": "Antigravity",
+     "sub": "화면 구현과 브라우저 점검"
+    },
+    {
+     "id": "gh",
+     "side": true,
+     "label": "GitHub 저장소",
+     "sub": "두 컴퓨터를 잇는 통로"
+    }
+   ],
+   "edges": [
+    {
+     "from": "u",
+     "to": "cc"
+    },
+    {
+     "from": "cc",
+     "to": "sa"
+    },
+    {
+     "from": "cc",
+     "to": "gm"
+    },
+    {
+     "from": "cc",
+     "to": "gh",
+     "label": "요청서 {{fact:request_doc_count}}건"
+    },
+    {
+     "from": "ag",
+     "to": "gh",
+     "label": "PR {{fact:pr_counts.total}}건"
+    }
+   ],
+   "ring": {
+    "node": "cc",
+    "label": "결과는 다시 실행해 확인",
+    "hero": true
+   }
+  }
+ ],
+ "terms": [
+  "AI 에이전트",
+  "서브에이전트",
+  "PR"
+ ],
+ "source": "출처: CLAUDE.md, docs/gemini_requests/README.md, gh pr list",
+ "notes": "견본: C9 org. side 노드는 오른쪽 열에 서고, 선은 꺾인 선으로 잇는다."
+}

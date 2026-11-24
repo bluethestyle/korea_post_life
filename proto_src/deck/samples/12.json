@@ -1,0 +1,98 @@
+{
+ "no": 12,
+ "id": "sample-12",
+ "kind": "body",
+ "chapter": 3,
+ "status": "revised",
+ "headline": "AI는 글자를 옮기고 채점만 합니다. 숫자는 코드가 읽고, 기준은 사람이 정합니다",
+ "diagram": [
+  {
+   "use": "C2",
+   "mode": "lanes",
+   "box": [
+    0,
+    0,
+    1760,
+    390
+   ],
+   "on": [],
+   "lanes": {
+    "AI": [
+     {
+      "step": 1,
+      "label": "시장 동향 찾기"
+     },
+     {
+      "step": 2,
+      "label": "글자 옮기기"
+     },
+     {
+      "step": 3,
+      "label": "채점"
+     }
+    ],
+    "코드": [
+     {
+      "step": 2,
+      "label": "금액, 기간 계산"
+     },
+     {
+      "step": 3,
+      "label": "원문 대조"
+     },
+     {
+      "step": 5,
+      "label": "관계 연결"
+     },
+     {
+      "step": 6,
+      "label": "금지어 검사"
+     }
+    ],
+    "사람": [
+     {
+      "step": 3,
+      "label": "검수 대기 확인"
+     },
+     {
+      "step": 4,
+      "label": "기준값 정하기"
+     }
+    ]
+   }
+  },
+  {
+   "use": "C3",
+   "box": [
+    0,
+    410,
+    1760,
+    150
+   ],
+   "nodes": [
+    {
+     "label": "지시문 예시 글자",
+     "sub": "\"{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}} / {{fact:example_text_to_number.text.amount}}\""
+    },
+    {
+     "label": "코드가 읽음",
+     "icon": "code",
+     "hero": true
+    },
+    {
+     "label": "감액 {{fact:example_text_to_number.read.reduce_months}}개월",
+     "sub": "지급 {{fact:example_text_to_number.read.pay_manwon}}만 원"
+    },
+    {
+     "label": "원문과 대조",
+     "icon": "check"
+    }
+   ]
+  }
+ ],
+ "terms": [
+  "모델"
+ ],
+ "source": "모델과 하루 한도: 추출 {{fact:models.extract}} {{fact:daily_limit_extract}}회, 판정 {{fact:models.decide}} {{fact:daily_limit_decide}}회",
+ "notes": "견본: C2 lanes(=C20 역할 레인). 변환 예는 추출 기록이 저장소에 없어 지시문 예시 글자를 실제 코드로 읽은 값(example_text_to_number)이다."
+}

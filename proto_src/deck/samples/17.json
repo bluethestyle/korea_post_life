@@ -1,0 +1,56 @@
+{
+ "no": 17,
+ "id": "sample-17",
+ "kind": "body",
+ "chapter": 4,
+ "status": "revised",
+ "headline": "일부러 오류를 넣은 값 {{fact:calibration_flipped_rows.rows}}건 가운데 자동 확정을 통과한 값은 {{fact:calibration_flipped_rows.passed}}건입니다",
+ "diagram": [
+  {
+   "use": "C7",
+   "box": [
+    0,
+    0,
+    1760,
+    470
+   ],
+   "thresholds": [
+    "{{fact:verify_reextract_threshold}}",
+    "{{fact:verify_confirm_threshold}}"
+   ],
+   "zones": [
+    "다른 AI로 다시 추출",
+    "사람이 검수",
+    "자동 확정"
+   ],
+   "stack": {
+    "label": "일부러 오류를 넣은 값 {{fact:calibration_flipped_rows.rows}}건",
+    "segments": [
+     {
+      "zone": 0,
+      "pct": "{{fact:calibration_reextract_band.wrong_caught_pct}}",
+      "text": "{{fact:calibration_reextract_band.wrong_caught_pct|f1}}%"
+     },
+     {
+      "zone": 1,
+      "pct": "{{fact:calibration_review_band_pct}}",
+      "text": "{{fact:calibration_review_band_pct|f1}}%(계산값)",
+      "computed": true
+     }
+    ]
+   },
+   "big": {
+    "zone": 2,
+    "text": "{{fact:calibration_flipped_rows.passed}}건"
+   }
+  }
+ ],
+ "points": [
+  "맞게 옮긴 값 {{fact:calibration_reextract_band.correct_rows}}건 중 잘못 보낸 값 {{fact:calibration_reextract_band.correct_rows_caught}}건"
+ ],
+ "terms": [
+  "기준값"
+ ],
+ "source": "기준선은 정답을 아는 표본(우체국 상품요약서 2건)으로 맞췄습니다. 출처: docs/submission.md 7절",
+ "notes": "견본: C7 큰 판. 누적 막대의 둘째 구간은 계산값이라 빗금."
+}

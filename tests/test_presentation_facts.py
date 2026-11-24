@@ -69,11 +69,41 @@ def test_every_fact_has_value_label_as_of_and_source():
         assert {"value", "label", "as_of", "source"} <= set(f), key
         assert f["label"] and re.fullmatch(r"\d{4}-\d{2}-\d{2}", f["as_of"]), key
         kind = f["source"]["kind"]
-        assert kind in {"snapshot", "config", "schema", "seed", "code", "screen_data", "document", "manual"}, key
-        if kind in {"snapshot", "config", "schema", "seed", "code", "screen_data"}:
+        assert kind in {"snapshot", "config", "schema", "seed", "code", "screen_data", "document", "manual", "repo", "derived"}, key
+        if kind in {"snapshot", "config", "schema", "seed", "code", "screen_data", "repo"}:
             assert (ROOT / f["source"]["file"]).exists(), f"{key}: {f['source']['file']} 가 없다"
         if kind == "manual":
             assert f.get("note"), f"{key}: 손으로 적은 값은 다시 세는 방법을 note 에 적는다"
+        if kind == "derived":
+            assert f["source"]["from"] and set(f["source"]["from"]) <= set(data["facts"]), f"{key}: 계산의 바탕 열쇠가 없다"
+
+
+def test_deck_example_facts_agree_with_the_count_keys():
+    """발표 덱이 쓰는 예(암 수술비, 6개월 전 입원, 관계 그래프)가 같은 자료의 다른 열쇠와 어긋나지 않는다."""
+    facts = {k: f["value"] for k, f in _committed()["facts"].items()}
+    nodes = facts["graph_nodes_by_kind"]
+    assert nodes["급부"] == facts["benefit_count_site"]
+    assert nodes["표준담보"] == facts["standard_coverage_in_use"]
+    assert facts["graph_edges_by_kind"]["담보 관계"] == facts["coverage_relation_count"]
+    assert facts["graph_edges_by_kind"]["매핑"] == facts["mapping_status_site"]["자동확정"]
+    rel = facts["coverage_relation_examples"]
+    assert {k: sum(len(g["narrow"]) for g in v) for k, v in rel.items()} == facts["coverage_relations_by_kind"]
+    cancer = facts["example_cancer_surgery"]
+    assert list(cancer["orgs"]) == facts["site_orgs"]
+    assert cancer["missing_treatment_both_peers"]["count"] == len(cancer["missing_treatment_both_peers"]["names"])
+    assert facts["example_cancer_surgery_names"] == {o: v["benefit"] for o, v in cancer["orgs"].items()}
+    gate = facts["example_gate_6months"]
+    assert gate["age"] == facts["reference_condition"]["age"]
+    assert set(gate["cell"]["orgs"]) == set(facts["site_orgs"])
+    routes = facts["mapping_auto_confirm_by_route"]
+    for scope in routes.values():
+        assert scope["decision_model"] + scope["cross_check"] == scope["total"]
+    assert routes["site"]["total"] == facts["mapping_status_site"]["자동확정"]
+    assert sum(facts["sales_insight_by_category_display"].values()) == facts["sales_insight_count"]
+    assert set(facts["sales_insight_category_names"]) == set(facts["sales_insight_categories"])
+    assert sum(facts["commits_by_date"].values()) == facts["commit_count"]
+    assert sum(facts["commits_by_author"].values()) == facts["commit_count"]
+    assert facts["project_days"]["days"] == len(facts["commits_by_date"])
 
 
 def test_no_local_paths_or_secrets():

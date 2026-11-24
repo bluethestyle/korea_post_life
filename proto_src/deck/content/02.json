@@ -1,0 +1,77 @@
+{
+ "no": 2,
+ "id": "problem",
+ "kind": "body",
+ "chapter": 1,
+ "status": "revised",
+ "headline": "타사 상품 하나를 비교하려면 수백 쪽 문서 속 문장을 손으로 찾아야 합니다",
+ "diagram": [
+  {
+   "use": "C18",
+   "icon": "stack",
+   "pages": "{{fact:hanwha_summary_pages}}",
+   "box": [
+    0,
+    0,
+    480,
+    260
+   ]
+  },
+  {
+   "use": "C10",
+   "value": "{{fact:hanwha_summary_pages}}",
+   "unit": "쪽",
+   "caption": "한화생명 상품 하나의 상품요약서",
+   "box": [
+    0,
+    280,
+    560,
+    null
+   ]
+  },
+  {
+   "use": "C4",
+   "box": [
+    640,
+    0,
+    1120,
+    null
+   ],
+   "head": "가입 전 병력 질문([[고지사항]])도 회사마다 다릅니다",
+   "cols": [
+    "EPOST",
+    "HANWHALIFE",
+    "SAMSUNGFIRE"
+   ],
+   "label_w": 200,
+   "rows": [
+    {
+     "label": "비교 상품",
+     "values": [
+      "{{fact:simple_uw_questions_by_org.EPOST.product}}",
+      "{{fact:simple_uw_questions_by_org.HANWHALIFE.product}}",
+      "{{fact:simple_uw_questions_by_org.SAMSUNGFIRE.product}}"
+     ]
+    },
+    {
+     "label": "묻는 병력",
+     "limit": 20,
+     "values": [
+      "{{fact:simple_uw_questions_by_org.EPOST.period_question}}",
+      "입원 또는 <u>수술</u>(제왕절개 포함)",
+      "입원 또는 <u>수술</u>"
+     ],
+     "hero": true
+    }
+   ],
+   "tag": "세 상품 가운데 우체국만 수술 이력을 묻지 않습니다"
+  }
+ ],
+ "points": [],
+ "terms": [
+  "공시 문서",
+  "고지사항"
+ ],
+ "source": "출처: 각 사 공시 문서(상품요약서, 간편심사 고지사항), 자료 기준 {{asof:simple_uw_questions_by_org}}",
+ "notes": "보험사는 상품마다 상품요약서와 사업방법서 같은 공시 문서를 홈페이지 공시실에 공개합니다. 그런데 한화생명 상품 하나의 상품요약서만 {{fact:hanwha_summary_pages}}쪽이고, 회사마다 특약 이름, 면책기간, 감액기간, 가입금액 대비 지급 배수, 고지사항이 모두 다르게 적혀 있습니다. 오른쪽 표처럼 같은 간편심사 질문도 우체국은 입원 이력만 묻고, 한화생명과 삼성화재는 수술 이력까지 묻습니다. 이런 차이는 보험료보다 문장 속 조건에 많아서, 지금은 사람이 문서를 펴 놓고 한 줄씩 찾아 맞춰야 합니다. 협회 비교공시도 있지만, 회사별 대표 상품을 표준 가입조건으로 보여 주는 방식이라 특약 하나하나의 조건까지 나란히 놓아 주지는 않습니다({{ref:association_disclosure}}). 특약별 보험료는 공시 문서에 없어 이번 범위에서 뺐습니다. 표에서 뺀 차이도 있습니다. 중대질병을 묻는 질문의 질병 수가 우체국 {{fact:simple_uw_questions_by_org.EPOST.major_diseases}}개, 한화생명 {{fact:simple_uw_questions_by_org.HANWHALIFE.major_diseases}}개, 삼성화재 {{fact:simple_uw_questions_by_org.SAMSUNGFIRE.major_diseases}}개로 다릅니다. 출처 문서는 docs/submission.md 2절과 docs/limitations.md 2절입니다."
+}

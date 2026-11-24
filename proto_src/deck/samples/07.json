@@ -1,0 +1,90 @@
+{
+ "no": 7,
+ "id": "sample-07",
+ "kind": "body",
+ "chapter": 2,
+ "status": "new",
+ "headline": "암 수술비 하나를 세 회사 문서에서 찾아 같은 행에 놓고 비교합니다",
+ "diagram": [
+  {
+   "use": "C3",
+   "box": [
+    0,
+    0,
+    1760,
+    500
+   ],
+   "nodes": [
+    {
+     "num": "1",
+     "label": "찾기",
+     "sub": "요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽, {{fact:example_cancer_surgery.orgs.HANWHALIFE.doc_page}}쪽, {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.doc_page}}쪽",
+     "icon": "search"
+    },
+    {
+     "num": "2",
+     "label": "맞추기",
+     "sub": "이름은 셋 다 다릅니다",
+     "figure": {
+      "use": "C9",
+      "layout": "converge",
+      "cards": [
+       {
+        "org": "EPOST",
+        "text": ""
+       },
+       {
+        "org": "HANWHALIFE",
+        "text": ""
+       },
+       {
+        "org": "SAMSUNGFIRE",
+        "text": ""
+       }
+      ],
+      "target": {
+       "label": "암 수술비",
+       "hero": false
+      }
+     },
+     "fig_h": 220
+    },
+    {
+     "num": "3",
+     "label": "비교",
+     "sub": "면책 {{fact:example_cancer_surgery.orgs.EPOST.waiting_days}}일, 감액 {{fact:example_cancer_surgery.orgs.EPOST.reduce.0.months}}개월 {{fact:example_cancer_surgery.orgs.EPOST.reduce.0.rate|pct}}%",
+     "icon": "table",
+     "hero": true
+    },
+    {
+     "num": "4",
+     "label": "전달",
+     "sub": "영업 인사이트와 응대 화법",
+     "figure": {
+      "use": "C19",
+      "size": "s"
+     },
+     "fig_h": 200
+    }
+   ]
+  },
+  {
+   "use": "chip",
+   "tone": "red",
+   "text": "기준 가입금액이 달라 금액만으로 우열을 말하지 않습니다",
+   "box": [
+    0,
+    520,
+    1000,
+    48
+   ]
+  }
+ ],
+ "terms": [
+  "담보",
+  "표준담보",
+  "면책기간"
+ ],
+ "source": "출처: 담보 비교 자료(cover.json), 자료 기준 {{asof:example_cancer_surgery}}",
+ "notes": "견본: 노드 안에 다른 부품(figure)을 넣는 예. 지급액 비교는 C4 축소판을 따로 두는 편이 읽기 쉽다."
+}

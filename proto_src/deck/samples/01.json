@@ -1,0 +1,64 @@
+{
+ "no": 1,
+ "id": "sample-01",
+ "kind": "cover",
+ "chapter": 0,
+ "status": "revised",
+ "headline": "회사마다 다르게 적힌 보험 조건을 한 화면에서 비교합니다",
+ "diagram": [
+  {
+   "use": "C3",
+   "dir": "v",
+   "box": [
+    1180,
+    130,
+    660,
+    720
+   ],
+   "nodes": [
+    {
+     "label": "수백 쪽 공시 문서",
+     "figure": {
+      "use": "C18",
+      "icon": "stack",
+      "pages": "{{fact:hanwha_summary_pages}}"
+     },
+     "fig_h": 110
+    },
+    {
+     "label": "한 화면의 비교",
+     "figure": {
+      "use": "C12",
+      "img": "summary",
+      "alt": "요약 화면"
+     },
+     "fig_h": 130
+    },
+    {
+     "label": "응대 화법 A4 한 장",
+     "figure": {
+      "use": "C19",
+      "size": "s"
+     },
+     "fig_h": 120,
+     "hero": true
+    }
+   ]
+  }
+ ],
+ "meta": [
+  {
+   "l": "자료 기준",
+   "v": "{{asof:snapshot_at}}"
+  },
+  {
+   "l": "만든 사람",
+   "v": "{{fact:team_size}}명"
+  },
+  {
+   "l": "배포 형태",
+   "v": "인터넷 없이 열리는 HTML 파일 하나"
+  }
+ ],
+ "notes": "견본: C3 세로형 노드 안에 C18, C12, C19 를 그림으로 넣었다. 아래 챕터 바 큰 판은 표지 프레임이 그린다."
+}

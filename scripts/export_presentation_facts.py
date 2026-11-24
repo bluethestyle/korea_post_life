@@ -267,9 +267,48 @@ DOC_FACTS: list[tuple[str, Any, str, str, str, str, tuple[str, ...], str | None]
      "예전의 4MB 기준은 근거가 없어 없앴습니다. 영상에 4MB 상한이나 그 안에 든 크기를 쓰지 않습니다."),
 ]
 
+DOC_FACTS += [
+    # 발표 덱(proto_src/deck)이 더 쓰는 문서 값
+    ("simple_uw_questions_by_org",
+     {"EPOST": {"product": "우체국간편한건강보험 2606", "period_question": "최근 1년, 2년, 5년 이내 입원만", "major_diseases": 6},
+      "HANWHALIFE": {"product": "한화생명 시그니처 H통합보험", "period_question": "입원 또는 수술(제왕절개 포함)", "major_diseases": 7},
+      "SAMSUNGFIRE": {"product": "삼성화재 간편보험 새로고침", "period_question": "입원 또는 수술", "major_diseases": 5}},
+     "간편심사 고지사항의 회사별 차이: 기간 질문이 묻는 병력과 중대질병 질문의 질병 수", SUB_SCOPE_DATE, SUB, "2. 풀려는 문제",
+     ("| 우체국간편한건강보험 2606 | 최근 1년, 2년, 5년 이내 입원만 | 6대 질병 |",
+      "| 한화생명 시그니처 H통합보험 | 입원 또는 수술(제왕절개 포함) | 7개 질병 |",
+      "| 삼성화재 간편보험 새로고침 | 입원 또는 수술 | 5개 질병 |"), None),
+    ("hanwha_rerun_verify_result", {"rows": 1437, "confirmed": 1323, "review": 109, "excluded": 5},
+     "한화 급부 재추출(2026-11-19 저녁)의 검증 결과: 전체 줄, 확정, 사람 검토, 제외", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+     ("| 한화 급부 재추출 1,437줄 (2026-11-19 저녁) | 확정 1,323줄, 사람 검토 109줄, 제외 5줄",), None),
+    ("review_not_applied_items", 8, "제미나이의 표 추출기 검토 가운데 반영하지 않은 지적 수(실제 문서에서 패치가 안정되지 않음)", "2026-11-20", PRO,
+     "버전 1 방향 결정과 삼성화재 적재 (2026-11-20 오후, Claude Code)",
+     ("여덟 건을 세 갈래로 나눠 opus가 재현하고 sonnet이 점검했습니다", "고친 패치는 재점검 때마다 고치기 전보다 나빠지는 반례가 새로 나와 안정되지 않았습니다"),
+     "지어낸 입력으로는 모두 재현됐지만 실제 문서 세 개에서 해당하는 자리는 한 곳뿐이었습니다(같은 절)."),
+    ("site_file_size_mb", 6, "운영 화면 단독 파일의 크기(MB, 약)", "2026-11-23", "docs/validation/진행자_메모.md", "보내기 전에",
+     ("`site/proto/console4.html` 한 파일(약 6MB)",), "어림값입니다. 화면에는 \"약\"을 붙여 씁니다."),
+]
+
+# git 과 GitHub 에서 센 값. 사본에서 셀 수 없고 커밋할 때마다 바뀌므로 손으로 적고, note 에 다시 세는 명령을 적는다.
+GIT_COUNTED_AT = "2026-11-24"
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
-    ("test_count", 1404, "전체 자동 시험 수", "2026-11-24",
+    ("test_count", 1460, "전체 자동 시험 수", "2026-11-24",
      "메인 세션이 2026-11-24 main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
+    ("commit_count", 287, "main 의 커밋 수", GIT_COUNTED_AT,
+     "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),
+    ("commits_by_date", {"2026-11-18": 41, "2026-11-19": 54, "2026-11-20": 63, "2026-11-21": 8, "2026-11-22": 0,
+                         "2026-11-23": 87, "2026-11-24": 34},
+     "main 의 날짜별 커밋 수(한국 시간)", GIT_COUNTED_AT,
+     "`TZ=Asia/Seoul git log main --format=%ad --date=format-local:%Y-%m-%d | sort | uniq -c` 로 센 값입니다(커밋이 없는 날은 0). "
+     "제출 직전에 다시 셉니다."),
+    ("commits_by_author", {"Claude": 245, "Antigravity": 31, "github-actions[bot]": 11}, "main 의 작성자별 커밋 수", GIT_COUNTED_AT,
+     "`git shortlog -sn main` 으로 센 값입니다. github-actions[bot] 은 주간 스냅샷과 시장 동향 수집의 자동 커밋입니다."),
+    ("project_days", {"first": "2026-11-18", "last": "2026-11-24", "days": 7}, "첫 커밋 날부터 셈한 날까지의 날 수(양 끝 포함, 한국 시간)",
+     GIT_COUNTED_AT, "commits_by_date 의 첫 날과 센 날입니다. 제출 직전에 commits_by_date 와 함께 다시 셉니다."),
+    ("pr_counts", {"total": 8, "merged": 7, "open": 1}, "Antigravity 가 연 PR 수(전체, 머지, 열림)", GIT_COUNTED_AT,
+     "`gh pr list --state all` 로 센 값입니다. 열린 하나는 PR 7(발표 애니메이션)입니다."),
+    ("pages_status", {"status": "built", "url": "https://bluethestyle.github.io/korea_post_life/"},
+     "GitHub Pages 배포 상태와 공개 주소", GIT_COUNTED_AT,
+     "`gh api repos/bluethestyle/korea_post_life/pages` 의 status 와 html_url 입니다. 데모는 url 뒤에 proto/console4.html 을 붙입니다."),
 ]
 
 
@@ -738,6 +777,231 @@ def cover_facts(sales: dict[str, Any], cover: dict[str, Any], as_of: str) -> dic
 
 
 # ---------------------------------------------------------------------------
+# 발표 덱(proto_src/deck)이 더 쓰는 값. 사본, 화면 자료, 관계 그래프 자료, 설정, 코드에서 센다
+# ---------------------------------------------------------------------------
+GRAPH = Path("proto_src") / "graph" / "graph.json"
+WORKFLOWS = Path(".github") / "workflows"
+REQUESTS = Path("docs") / "gemini_requests"
+VIDEO_TIMINGS = Path("proto_src") / "deck" / "assets" / "stills_timings.json"   # 덱의 영상 정지 화면을 뽑은 렌더 기록
+EXAMPLE_STD = "STD_CA_SURG"                    # 암 수술비. 덱이 처음부터 끝까지 따라가는 담보 예
+EXAMPLE_GATE_ROW, EXAMPLE_GATE_ROW_LATER = "입원 3개월~1년 전", "입원 1~2년 전"   # 6개월 전 입원 고객 예와 1년 반 전 입원
+TEXT_EXAMPLE = {"amount": "1,000만원", "reduced_period": "1년미만", "reduced_amount": "500만원"}
+TEXT_EXAMPLE_QUOTE = "\"1년미만 500만원 / 1년이상 1,000만원\""
+
+
+def whole(x: float | None) -> float | int | None:
+    """정수로 떨어지는 실수는 정수로(1000.0 → 1000). 덱이 "1,000"으로 적게 한다."""
+    return int(x) if isinstance(x, float) and x.is_integer() else x
+
+
+def derived_source(keys: list[str], method: str) -> dict[str, Any]:
+    return {"kind": "derived", "from": keys, "method": method}
+
+
+def repo_source(file: str, method: str) -> dict[str, str]:
+    return {"kind": "repo", "file": file, "method": method}
+
+
+def kst_schedule(root: Path, file: str) -> dict[str, str]:
+    """워크플로의 cron(UTC)을 한국 시간(UTC+9)의 시각과 요일로. 분, 시, 요일 칸만 본다."""
+    text = (root / WORKFLOWS / file).read_text(encoding="utf-8")
+    m = re.search(r'cron:\s*"(\d+) (\d+) \* \* (\*|\d)"', text)
+    if not m:
+        raise FactsError(f"{file}: cron 을 읽지 못했다")
+    minute, hour, dow = int(m.group(1)), int(m.group(2)), m.group(3)
+    hour_kst = hour + 9
+    shift = hour_kst // 24
+    hour_kst %= 24
+    # cron 의 요일: 0=일, 1=월 … 6=토
+    days = "매일" if dow == "*" else ("일", "월", "화", "수", "목", "금", "토")[(int(dow) + shift) % 7]
+    return {"time": f"{hour_kst:02d}:{minute:02d}", "days": days, "cron_utc": m.group(0).split('"')[1]}
+
+
+def cover_cell_benefit(cover: dict[str, Any], cell: Any) -> list | None:
+    """담보 비교 칸(cover.json rows[k][1][i])이 대표로 쓰는 급부(ben 순번 r). 칸이 비었거나 대표가 없으면 None."""
+    if isinstance(cell, dict) and cell.get("r") is not None:
+        return cover["ben"][cell["r"]]
+    return None
+
+
+def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[str, Any], cover: dict[str, Any],
+               snapshot_at: str, as_of: str) -> dict[str, dict[str, Any]]:
+    from postlife.extract import benefits as B
+    from postlife.site import terms
+
+    out: dict[str, dict[str, Any]] = {}
+    code_terms = {"kind": "code", "file": "src/postlife/site/terms.py"}
+
+    # 화면 용어의 표시 이름(자료의 옛 값 → 화면 이름). 덱은 facts 의 옛 값을 이 표로 바꿔 보인다
+    out["display_names"] = fact(dict(terms.DISPLAY), "자료의 값과 화면에 보일 이름(사용자 승인 용어, 2026-11-24)", as_of,
+                                dict(code_terms, name="DISPLAY"))
+    cats = list(sales["분류"])
+    out["sales_insight_category_names"] = fact({c: terms.name(c) for c in cats},
+                                               "영업 인사이트 분류의 자료 이름과 화면 이름(분류 차례)", as_of,
+                                               dict(code_terms, name="DISPLAY_GROUPS['영업 인사이트 분류']"))
+    out["sales_insight_by_category_display"] = fact(
+        {terms.name(c): n for c, n in briefing(sales, sales["기준종형"][0]["종형ID"])["insights"]["by_category"].items()},
+        "분류별 영업 인사이트 건수를 화면 이름으로(화면이 처음 여는 기준 종형, 대표 조건)", as_of,
+        screen_source("기준별[기준종형[0].종형ID].브리핑[줄=마].값 와 terms.DISPLAY"))
+
+    # 관계 그래프 자료의 노드와 엣지
+    graph = json.loads((root / GRAPH).read_text(encoding="utf-8"))
+    if graph.get("snapshot_at") != snapshot_at:
+        raise FactsError(f"관계 그래프 자료의 자료 시각({graph.get('snapshot_at')})이 사본({snapshot_at})과 다르다. "
+                         "python proto_src/graph/build_data.py 를 먼저 돌린다")
+    kinds, ekinds = graph["kinds"], graph["ekinds"]
+    nodes = Counter(kinds[n[1]] for n in graph["nodes"])
+    edges = Counter(ekinds[e[2]] for e in graph["edges"])
+    graph_src = screen_source("nodes[].1 (kinds 의 번호)", GRAPH)
+    out["graph_nodes_by_kind"] = fact({k: nodes[k] for k in kinds}, "관계 그래프의 종류별 노드 수(kinds 차례)", as_of, graph_src)
+    out["graph_edges_by_kind"] = fact({k: edges[k] for k in ekinds}, "관계 그래프의 종류별 엣지 수(ekinds 차례)", as_of,
+                                      screen_source("edges[].2 (ekinds 의 번호)", GRAPH))
+    out["graph_counts"] = fact({"nodes": len(graph["nodes"]), "edges": len(graph["edges"]), "node_kinds": len(kinds),
+                                "edge_kinds": len(ekinds)}, "관계 그래프의 노드 수, 엣지 수, 노드 종류 수, 엣지 종류 수", as_of,
+                               screen_source("nodes, edges, kinds, ekinds 의 길이", GRAPH))
+    if "보장 대분류" not in nodes:
+        raise FactsError("관계 그래프에 보장 대분류 노드가 없다")
+    out["coverage_major_class_count"] = fact(nodes["보장 대분류"], "보장 대분류 수(관계 그래프의 보장 대분류 노드)", as_of, graph_src)
+
+    # 담보 관계의 예(넓은 담보마다 좁은 담보)
+    rel = [json.loads(line) for line in (root / RELATIONS).read_text(encoding="utf-8").splitlines() if line.strip()]
+    groups: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in rel:
+        g = groups.setdefault((r["관계"], r["넓은담보ID"]), {"relation": r["관계"], "broad": r["넓은담보"], "narrow": []})
+        g["narrow"].append(r["좁은담보"])
+    out["coverage_relation_examples"] = fact(
+        {kind: [g for g in groups.values() if g["relation"] == kind] for kind in ("포함", "통합")},
+        "담보 관계를 넓은 담보마다 묶은 것(포함: 넓은 담보가 좁은 담보를 포함, 통합: 좁은 담보들이 넓은 담보 하나를 채움)", as_of,
+        {"kind": "seed", "file": RELATIONS.as_posix(), "method": "관계와 넓은담보ID 로 묶어 좁은담보를 행 차례대로"})
+
+    # 암 수술비 예(화면이 처음 여는 기준 종형의 담보 비교 행. 칸의 대표 급부 r 을 그대로 읽는다)
+    first = sales["기준종형"][0]["종형ID"]
+    base = cover["b"][first]
+    row = next((r for r in base["rows"] if r[0] == EXAMPLE_STD), None)
+    if row is None:
+        raise FactsError(f"담보 비교 자료에 {EXAMPLE_STD} 행이 없다")
+    std_name = sales["표준담보"][EXAMPLE_STD]["이름"]
+    per_org: dict[str, Any] = {}
+    for vid, cell in zip(base["cols"], row[1]):
+        ben = cover_cell_benefit(cover, cell)
+        if ben is None:
+            raise FactsError(f"{EXAMPLE_STD}: {vid} 칸에 대표 급부가 없다")
+        name, _rid, _role, pay, basis, ratio, wait, reduce, _limit, _exc, doc, page, *_rest = ben
+        org = sales["종형"][vid]["기관코드"]
+        per_org[org] = {"variant": sales["종형"][vid]["종형명"], "benefit": name, "pay_manwon": pay, "basis_manwon": basis,
+                        "pay_is_ratio": bool(ratio), "waiting_days": wait,
+                        "reduce": [{"months": m, "rate": p} for m, p in reduce], "doc_kind": doc, "doc_page": page,
+                        "pay_form": ben[15]}
+    pairs = {sales["종형"][vid]["기관코드"]: {"items": [{"item": it[0], "ours": it[1], "peer": it[2], "verdict": terms.name(it[3])}
+                                                     for it in p["it"]],
+                                           "excluded": bool(p.get("x"))}
+             for vid, p in row[2].items()}
+    names = sales["표준담보"]
+
+    def held(cell: Any) -> bool:
+        return isinstance(cell, dict) and bool(cell.get("i"))
+
+    missing = [names[sid]["이름"] for sid, cells, *_ in base["rows"]
+               if names[sid]["급부유형"] == "치료" and not held(cells[0]) and all(held(c) for c in cells[1:])]
+    cover_src = screen_source(f"b[기준종형[0].종형ID].rows[{EXAMPLE_STD}] 의 칸마다 대표 급부(r)와 비교쌍(it)", COVER)
+    out["example_cancer_surgery"] = fact(
+        {"standard_coverage": std_name, "standard_coverage_id": EXAMPLE_STD, "orgs": per_org, "pairs": pairs,
+         "missing_treatment_both_peers": {"count": len(missing), "names": missing}},
+        "암 수술비 예: 화면이 처음 여는 기준 종형의 담보 비교 행에서 회사마다 대표 급부의 이름, 지급액, 기준 가입금액, 면책, 감액, "
+        "근거 문서와 쪽, 비교쌍의 항목별 판정. 그리고 치료 단계에서 우체국에 없고 두 타사가 모두 가진 담보", as_of, cover_src,
+        "pay_is_ratio 가 참이면 pay_manwon 은 가입금액 대비 비율(%)입니다. 기준 가입금액이 회사마다 달라 금액만으로 우열을 말하지 않습니다.")
+    out["example_cancer_surgery_names"] = fact({org: v["benefit"] for org, v in per_org.items()},
+                                               "암 수술비 예의 회사별 급부 이름(원문 급부명 그대로)", as_of, cover_src)
+
+    # AI 가 옮긴 글자를 코드가 숫자로 읽는 예. 추출 기록은 저장소에 없어 추출 지시문의 예시 글자를 실제 코드로 읽는다
+    src_text = (root / "src" / "postlife" / "extract" / "benefits.py").read_text(encoding="utf-8")
+    if TEXT_EXAMPLE_QUOTE not in src_text:
+        raise FactsError("benefits.py 지시문에서 감액 예시 글자를 찾지 못했다")
+    ep = per_org.get("EPOST")
+    out["example_text_to_number"] = fact(
+        {"source": "지시문 예시", "text": TEXT_EXAMPLE,
+         "read": {"pay_manwon": whole(B.parse_money(TEXT_EXAMPLE["amount"])),
+                  "reduced_manwon": whole(B.parse_money(TEXT_EXAMPLE["reduced_amount"])),
+                  "reduce_months": B.parse_months(TEXT_EXAMPLE["reduced_period"])},
+         "epost_row": {"benefit": ep["benefit"], "pay_manwon": ep["pay_manwon"], "basis_manwon": ep["basis_manwon"],
+                       "reduce": ep["reduce"], "doc_kind": ep["doc_kind"], "doc_page": ep["doc_page"]}},
+        "AI 가 원문 글자로 옮긴 금액과 감액 기간을 코드가 숫자로 읽는 예. text 는 추출 지시문의 예시 글자이고 read 는 "
+        "extract/benefits.py 의 parse_money, parse_months 가 읽은 값. epost_row 는 우체국 암 수술비 행에서 코드가 읽어 둔 값", as_of,
+        {"kind": "code", "file": "src/postlife/extract/benefits.py", "name": "parse_money, parse_months (지시문 예시 글자)"},
+        "추출 기록(원문 글자)은 저장소에 없어 지시문 예시를 썼습니다. 화면에는 \"지시문 예시\"라고 밝혀 씁니다.")
+
+    # 6개월 전 입원 고객 예(고객군별 가입 가능 현황의 입원 3개월~1년 전 행, 대표 조건 나이가 든 열)
+    m = sales["지도"]["전체"]
+    age = sales["기준조건"]["나이"]
+    col = next((i for i, c in enumerate(m["열"]) if c["lo"] <= age <= c["hi"]), None)
+    rows = {r["이름"]: i for i, r in enumerate(m["행"])}
+    if col is None or EXAMPLE_GATE_ROW not in rows or EXAMPLE_GATE_ROW_LATER not in rows:
+        raise FactsError("고객군 지도에서 6개월 전 입원 예의 칸을 찾지 못했다")
+
+    def cell_view(row_name: str) -> dict[str, Any]:
+        x = m["칸"][rows[row_name]][col]
+        only = [{"org": g["기관코드"], "variant": sales["종형"][g["종형ID"]]["종형명"],
+                 "simple_type": sales["종형"][g["종형ID"]]["간편고지약칭"], "note": g.get("안내")} for g in x.get("관문만수집") or []]
+        return {"row": row_name, "column": f"{m['열'][col]['lo']}~{m['열'][col]['hi']}세", "label": terms.name(x["라벨"]),
+                "sub": x.get("보조") or None, "orgs": {org: terms.name(st) for org, st in x["회사"].items()}, "gate_only": only}
+
+    out["example_gate_6months"] = fact(
+        {"age": age, "sex": sales["기준조건"]["성별"], "cell": cell_view(EXAMPLE_GATE_ROW), "later": cell_view(EXAMPLE_GATE_ROW_LATER)},
+        "6개월 전 입원 고객 예: 대표 조건 나이의 고객군 칸(입원 3개월~1년 전)과 1년 반 전 입원 칸(입원 1~2년 전)의 회사별 가입 가능 여부. "
+        "라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다", as_of,
+        screen_source(f"지도.전체.칸[{EXAMPLE_GATE_ROW}, {EXAMPLE_GATE_ROW_LATER}][나이 열].회사, 라벨, 관문만수집"))
+
+    # 담보 매핑 자동 확정의 두 경로(판정 모델 확률이 있는 줄, 교차 검증으로 확정해 확률이 빈 줄)
+    def routes(orgs: tuple[str, ...] | None) -> dict[str, int]:
+        snap = Snapshot(tables)
+        auto = [r for r in tables["hum_담보매핑"] if r["검토상태"] == "자동확정" and r["급부ID"] in snap.benefit
+                and (orgs is None or snap.org_of_benefit(r["급부ID"]) in orgs)]
+        with_p = sum(1 for r in auto if r.get("매핑확률") is not None)
+        return {"total": len(auto), "decision_model": with_p, "cross_check": len(auto) - with_p}
+
+    out["mapping_auto_confirm_by_route"] = fact(
+        {"all": routes(None), "site": routes(tuple(config.SITE_ORGS))},
+        "자동 확정 매핑을 경로로 나눈 수: 판정 모델 확률이 있는 줄(decision_model)과 두 판독 일치로 확정해 확률이 빈 줄(cross_check). "
+        "all 은 모든 기관, site 는 화면에 올린 기관", as_of,
+        snap_source("hum_담보매핑.jsonl", "검토상태가 자동확정인 행을 매핑확률이 있는지로 나눔(급부가 있는 줄)"))
+
+    # 판정 기준선 보정: 검수 구간에 남은 비율(재추출 구간 비율과 자동 확정 0건에서 계산)
+    doc_values = {k: v for k, v, *_ in DOC_FACTS}
+    caught_pct = doc_values["calibration_reextract_band"]["wrong_caught_pct"]
+    if doc_values["calibration_flipped_rows"]["passed"] != 0:
+        raise FactsError("자동 확정을 통과한 줄이 0이 아니면 검수 구간 비율의 계산을 다시 본다")
+    out["calibration_review_band_pct"] = fact(
+        round(100 - caught_pct, 1),
+        "일부러 틀리게 바꾼 줄 가운데 사람 검수 구간(0.40 이상 0.75 미만)에 남은 비율(%). 100에서 재추출 구간 비율을 뺀 계산값(자동 확정 0줄)", as_of,
+        derived_source(["calibration_reextract_band", "calibration_flipped_rows"], "100 - wrong_caught_pct (passed 가 0)"),
+        "문서에 적힌 값이 아니라 계산값입니다. 화면에는 \"계산값\"이라고 밝힙니다.")
+
+    # 배치 일정(워크플로 cron)
+    out["schedule_collect_kst"] = fact(kst_schedule(root, "collect.yml"), "시장 동향 수집 일정(한국 시간)", as_of,
+                                       {"kind": "config", "file": (WORKFLOWS / "collect.yml").as_posix(), "name": "on.schedule.cron"})
+    out["schedule_weekly_close_kst"] = fact(kst_schedule(root, "weekly-close.yml"), "주간 마감과 스냅샷 일정(한국 시간)", as_of,
+                                            {"kind": "config", "file": (WORKFLOWS / "weekly-close.yml").as_posix(),
+                                             "name": "on.schedule.cron"})
+
+    # 요청서 수(Antigravity 와 제미나이에 넘긴 지시문 파일. 부록은 본문과 한 건)
+    reqs = sorted(p.name for p in (root / REQUESTS).glob("*.md") if re.match(r"\d", p.name) and "부록" not in p.name)
+    out["request_doc_count"] = fact(len(reqs), "docs/gemini_requests 의 요청서 수(번호가 붙은 파일, 부록은 본문과 한 건으로 셈)", as_of,
+                                    repo_source(REQUESTS.as_posix(), "숫자로 시작하는 .md 파일 가운데 이름에 부록이 없는 것"))
+
+    # 발표 영상의 길이(덱의 영상 장 길이 칩). 정지 화면을 뽑은 렌더 기록을 읽는다. 영상을 다시 렌더하면 기록도 함께 바꾼다
+    timing_path = root / VIDEO_TIMINGS
+    if timing_path.exists():
+        videos = json.loads(timing_path.read_text(encoding="utf-8"))["videos"]
+        secs = {part: int(round(v["seconds"])) for part, v in sorted(videos.items())}
+        timing_src = repo_source(VIDEO_TIMINGS.as_posix(), "videos.<part>.seconds 를 반올림")
+        out["video_seconds"] = fact(secs, "발표 영상(part1~part4)의 길이(초, 반올림)", as_of, timing_src)
+        out["video_length_label"] = fact({p: (f"{s // 60}분 {s % 60}초" if s % 60 else f"{s // 60}분") if s >= 60 else f"{s}초"
+                                          for p, s in secs.items()},
+                                         "발표 영상의 길이를 화면에 적는 글(분과 초)", as_of, timing_src)
+    return out
+
+
+# ---------------------------------------------------------------------------
 def build(root: Path = ROOT) -> dict[str, Any]:
     meta = json.loads((root / SNAPSHOT / "meta.json").read_text(encoding="utf-8"))
     snapshot_at = meta["snapshot_at"]
@@ -755,7 +1019,7 @@ def build(root: Path = ROOT) -> dict[str, Any]:
     facts["snapshot_at"] = fact(snapshot_at, "자료 기준 시각(사본을 뜬 시각)", as_of, {"kind": "snapshot", "file": (SNAPSHOT / "meta.json").as_posix(),
                                                                           "method": "snapshot_at"})
     for part in (snapshot_facts(root, tables, as_of), config_facts(as_of), screen_facts(sales, as_of), cover_facts(sales, cover, as_of),
-                 doc_facts(root)):
+                 doc_facts(root), deck_facts(root, tables, sales, cover, snapshot_at, as_of)):
         dup = set(part) & set(facts)
         if dup:
             raise FactsError(f"열쇠가 겹친다: {sorted(dup)}")

@@ -1,0 +1,198 @@
+{
+ "no": 6,
+ "id": "sample-06",
+ "kind": "body",
+ "chapter": 2,
+ "status": "revised",
+ "headline": "화면은 담당자의 일 순서대로 넓게 보고, 좁혀 확인하고, 결론을 내고, 자료로 내보냅니다",
+ "diagram": [
+  {
+   "use": "text",
+   "text": "넓게 보기",
+   "size": "m",
+   "box": [
+    0,
+    0,
+    410,
+    40
+   ]
+  },
+  {
+   "use": "C12",
+   "img": "tab_market",
+   "alt": "넓게 보기",
+   "box": [
+    0,
+    48,
+    410,
+    231
+   ]
+  },
+  {
+   "use": "text",
+   "text": "어느 고객군이 가입할 수 있나",
+   "size": "s",
+   "limit": 22,
+   "box": [
+    0,
+    292,
+    410,
+    64
+   ]
+  },
+  {
+   "use": "text",
+   "text": "좁혀 확인",
+   "size": "m",
+   "box": [
+    450,
+    0,
+    410,
+    40
+   ]
+  },
+  {
+   "use": "C12",
+   "img": "tab_cover",
+   "alt": "좁혀 확인",
+   "box": [
+    450,
+    48,
+    410,
+    231
+   ]
+  },
+  {
+   "use": "text",
+   "text": "가입 조건과 보장 조건이 어떻게 다른가",
+   "size": "s",
+   "limit": 22,
+   "box": [
+    450,
+    292,
+    410,
+    64
+   ]
+  },
+  {
+   "use": "text",
+   "text": "결론",
+   "size": "m",
+   "box": [
+    900,
+    0,
+    410,
+    40
+   ]
+  },
+  {
+   "use": "C12",
+   "img": "tab_insight",
+   "alt": "결론",
+   "box": [
+    900,
+    48,
+    410,
+    231
+   ]
+  },
+  {
+   "use": "text",
+   "text": "무엇을 앞세우고 무엇을 개정 검토할까",
+   "size": "s",
+   "limit": 22,
+   "box": [
+    900,
+    292,
+    410,
+    64
+   ]
+  },
+  {
+   "use": "text",
+   "text": "내보내기",
+   "size": "m",
+   "box": [
+    1350,
+    0,
+    410,
+    40
+   ]
+  },
+  {
+   "use": "C12",
+   "img": "talk_preview",
+   "alt": "내보내기",
+   "box": [
+    1350,
+    48,
+    410,
+    231
+   ]
+  },
+  {
+   "use": "text",
+   "text": "지점 교육과 보고에 무엇을 넘기나",
+   "size": "s",
+   "limit": 22,
+   "box": [
+    1350,
+    292,
+    410,
+    64
+   ]
+  },
+  {
+   "use": "C11",
+   "size": "small",
+   "value": "{{fact:segment_map_open_together_cells}}",
+   "total": "{{fact:segment_map_cell_count}}",
+   "caption": "함께 가입 가능한 고객군",
+   "box": [
+    0,
+    360,
+    410,
+    230
+   ]
+  },
+  {
+   "use": "C10",
+   "size": "small",
+   "value": "{{fact:compared_coverage_pairs}}",
+   "unit": "/{{fact:common_coverage_pairs}}",
+   "caption": "우열을 비교한 공통 담보",
+   "box": [
+    450,
+    360,
+    410,
+    200
+   ]
+  },
+  {
+   "use": "C10",
+   "size": "small",
+   "value": "{{fact:sales_insight_count}}",
+   "unit": "건",
+   "caption": "영업 인사이트",
+   "box": [
+    900,
+    360,
+    410,
+    200
+   ]
+  },
+  {
+   "use": "C19",
+   "size": "m",
+   "hero": true,
+   "box": [
+    1350,
+    360,
+    410,
+    230
+   ]
+  }
+ ],
+ "source": "기본 조건: {{fact:reference_condition.age}}세 남성, 기준 종형 {{fact:default_base_variant.name}}, 자료 기준 {{asof:segment_map_cell_count}}",
+ "notes": "견본: 열마다 C12 썸네일, 질문, 대표 값(C11, C10, C19)을 따로 둔 블록으로 맞췄다."
+}

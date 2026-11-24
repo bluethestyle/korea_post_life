@@ -1,0 +1,79 @@
+{
+ "no": 23,
+ "id": "sample-23",
+ "kind": "body",
+ "chapter": 6,
+ "status": "new",
+ "headline": "매주 운영하는 데 드는 API 비용은 {{fact:operating_cost_won}}원이고, 화면은 공개 주소와 파일 하나로 전합니다",
+ "diagram": [
+  {
+   "use": "C16",
+   "box": [
+    0,
+    0,
+    1760,
+    560
+   ],
+   "items": [
+    {
+     "label": "AI 모델(Gemini 무료 등급)",
+     "won": "{{fact:operating_cost_won}}원"
+    },
+    {
+     "label": "마스터 데이터(구글 시트)",
+     "won": "{{fact:operating_cost_won}}원"
+    },
+    {
+     "label": "자동 실행(GitHub Actions)",
+     "won": "{{fact:operating_cost_won}}원",
+     "todo": "무료 범위 확인"
+    },
+    {
+     "label": "공개 주소(GitHub Pages)",
+     "won": "{{fact:operating_cost_won}}원"
+    }
+   ],
+   "total": "{{fact:operating_cost_won}}원",
+   "caption": "주간 운영의 API 비용 기준입니다",
+   "week": {
+    "daily": {
+     "time": "{{fact:schedule_collect_kst.time}}",
+     "label": "시장 동향 수집"
+    },
+    "sun": {
+     "time": "{{fact:schedule_weekly_close_kst.time}}",
+     "label": "주간 마감과 스냅샷"
+    },
+    "after": "화면 빌드 → 공개 주소 갱신"
+   }
+  },
+  {
+   "use": "C3",
+   "box": [
+    640,
+    400,
+    1120,
+    150
+   ],
+   "nodes": [
+    {
+     "label": "공개 주소",
+     "sub": "GitHub Pages",
+     "icon": "monitor"
+    },
+    {
+     "label": "파일 하나(약 {{fact:site_file_size_mb}}MB)",
+     "sub": "인터넷 없이도 볼 수 있음",
+     "icon": "doc"
+    }
+   ]
+  }
+ ],
+ "terms": [
+  "API",
+  "GitHub Actions",
+  "GitHub Pages"
+ ],
+ "source": "출처: .github/workflows, docs/submission.md 7절",
+ "notes": "견본: C16 both. 자동 실행 행의 확인 필요 태그는 공식 문서로 확인하기 전까지 둔다."
+}

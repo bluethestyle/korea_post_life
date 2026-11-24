@@ -1,0 +1,14 @@
+{
+ "no": 16,
+ "id": "sample-16",
+ "kind": "video",
+ "chapter": 4,
+ "status": "video",
+ "headline": "질문을 고치자 맞는 값과 오류 값의 확률이 뚜렷하게 나뉘었습니다",
+ "diagram": [],
+ "video": {
+  "part": 3,
+  "src": "media/part3.mp4"
+ },
+ "notes": "견본: 정지 화면이 없는 영상 장."
+}

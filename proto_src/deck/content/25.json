@@ -1,0 +1,122 @@
+{
+ "no": 25,
+ "id": "roadmap",
+ "kind": "body",
+ "chapter": 6,
+ "status": "revised",
+ "headline": "다음은 실무자가 실제로 비교하는 회사부터 하나씩 넓힙니다",
+ "diagram": [
+  {
+   "use": "C3",
+   "box": [
+    0,
+    0,
+    1760,
+    220
+   ],
+   "nodes": [
+    {
+     "label": "지금",
+     "sub": "우체국, 한화생명, 삼성화재",
+     "icon": "check"
+    },
+    {
+     "label": "다음: 교보생명",
+     "sub": "생명보험",
+     "icon": "building",
+     "hero": true
+    },
+    {
+     "label": "손해보험 대형",
+     "sub": "현대해상, DB손해보험, KB손해보험",
+     "icon": "building"
+    },
+    {
+     "label": "농협",
+     "sub": "NH농협생명, NH농협손해보험",
+     "icon": "building"
+    },
+    {
+     "label": "그 뒤",
+     "sub": "사용검증 의견으로 결정",
+     "icon": "person"
+    }
+   ],
+   "compact": true
+  },
+  {
+   "use": "chip",
+   "tone": "paper",
+   "text": "화면 반영 전: {{fact:org_names.SAMSUNGLIFE}}, {{fact:org_names.KBLIFE}}, {{fact:org_names.MERITZ}}",
+   "box": [
+    0,
+    236,
+    680,
+    52
+   ]
+  },
+  {
+   "use": "chip",
+   "tone": "paper",
+   "text": "처음 채울 준비: 교보생명, 현대해상",
+   "box": [
+    720,
+    236,
+    520,
+    52
+   ]
+  },
+  {
+   "use": "text",
+   "size": "m",
+   "tone": "ink",
+   "text": "다음에 더할 기능",
+   "box": [
+    0,
+    322,
+    600,
+    44
+   ]
+  },
+  {
+   "use": "C3",
+   "arrows": false,
+   "box": [
+    0,
+    378,
+    1760,
+    170
+   ],
+   "nodes": [
+    {
+     "label": "보험료 비교",
+     "sub": "각 사 보험가격공시실 계산기(인증 없이 조회되는지 확인 전)"
+    },
+    {
+     "label": "질병코드 범위 비교",
+     "sub": "약관 별표에서 질병코드를 읽어 보장 범위를 비교"
+    },
+    {
+     "label": "관계 그래프 개선",
+     "sub": "점과 선이 그물처럼 이어진 그림으로(검토 중)"
+    }
+   ]
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "text": "다루지 않는 것: 실제 인수 여부, 손해율, 판매 시책, 보유계약 합산 한도(비공개 자료)",
+   "box": [
+    0,
+    590,
+    1760,
+    40
+   ]
+  }
+ ],
+ "points": [],
+ "terms": [],
+ "source": "출처: 제출 설명 자료 3절과 8절, 기획서 2절, 자료 기준 {{asof:product_org_count}}",
+ "notes": "정밀 비교 대상으로 정한 회사는 생명보험 {{fact:comparison_target_counts.생명보험}}곳, 손해보험 {{fact:comparison_target_counts.손해보험}}곳이지만, 모든 회사를 같은 무게로 채우지 않고 실무자가 실제로 비교하는 회사부터 넣습니다. 순서는 교보생명, 손해보험 대형 세 곳, 농협 두 곳이고, 그 뒤는 사용검증 의견을 듣고 정합니다. 농협 두 곳은 창구에서 파는 방식이라 우체국과 고객층이 겹칩니다. 스냅샷에는 이미 {{fact:product_org_count}}개 회사의 상품 자료가 들어 있고, 메리츠화재는 종형 {{fact:variants_by_org.MERITZ}}개, 급부 {{fact:benefits_by_org.MERITZ}}건까지 적재했지만 화면에는 아직 올리지 않았습니다. 보험료 예시는 {{fact:premium_example_rows}}건, 급부 질병코드는 {{fact:benefit_disease_code_rows}}건으로 아직 비어 있어 다음 단계 과제입니다. 범위 밖으로는 공제(새마을금고, 신협, 수협)와 다른 상품 종류(암보험 단독, 치매와 간병, 어린이보험)를 검토하고 있고, 공제는 공시 문서를 같은 방식으로 받을 수 있는지부터 확인합니다. 관계 그래프 재설계는 아직 정할 일이 남아 있어 검토 중으로만 말씀드립니다."
+}

@@ -1,0 +1,85 @@
+{
+ "no": 18,
+ "id": "where-to-use",
+ "kind": "body",
+ "chapter": 4,
+ "status": "new",
+ "headline": "판정 모델은 매주 오는 새 자료에만 쓰고, 처음 채우는 대량 자료에는 쓰지 않았습니다",
+ "diagram": [
+  {
+   "use": "C3",
+   "box": [
+    0,
+    0,
+    1760,
+    440
+   ],
+   "nodes": [
+    {
+     "label": "들어오는 자료"
+    }
+   ],
+   "branch": {
+    "at": 1,
+    "label": "양이 많은가",
+    "hero": true,
+    "up_label": "적음",
+    "down_label": "많음",
+    "up": [
+     {
+      "label": "매주 새 자료",
+      "sub": "새 상품, 개정 상품, 시장 동향"
+     },
+     {
+      "label": "판정 모델 채점",
+      "figure": {
+       "use": "C7",
+       "size": "mini",
+       "thresholds": [
+        "{{fact:verify_reextract_threshold}}",
+        "{{fact:verify_confirm_threshold}}"
+       ]
+      },
+      "fig_h": 40
+     }
+    ],
+    "down": [
+     {
+      "label": "처음 채우는 대량 자료"
+     },
+     {
+      "label": "AI 둘이 따로 옮김"
+     },
+     {
+      "label": "코드가 대조",
+      "sub": "다르면 원문 재확인"
+     }
+    ]
+   }
+  },
+  {
+   "use": "chip",
+   "text": "많을 때의 문제: 다시 묻는 데만 약 {{fact:mapping_requery.estimated_minutes}}분",
+   "box": [
+    0,
+    476,
+    860,
+    50
+   ]
+  },
+  {
+   "use": "chip",
+   "text": "근거: 같은 AI로 다시 읽으면 같은 곳에서 틀림",
+   "box": [
+    900,
+    476,
+    860,
+    50
+   ]
+  }
+ ],
+ "points": [],
+ "terms": [],
+ "source": "출처: 만든 회사의 무료 한도 안내, 진행 기록(다시 묻는 시간은 어림값)",
+ "notes": "판정 모델은 호출 한 번에 특약 원문 전체와 문항을 함께 보내기 때문에 읽어야 할 글이 깁니다. 무료로 쓸 때 분당 읽을 수 있는 양이 정해져 있어, 한화생명 검수 대기 {{fact:mapping_requery.rows}}행을 다시 묻는 데만 약 {{fact:mapping_requery.estimated_minutes}}분이 걸린다고 어림했고, 그 가운데 {{fact:mapping_requery.waiting_minutes}}분은 한도 때문에 기다리는 시간이었습니다. 한때 분당 사용량이 {{fact:decide_tokens_per_minute_peak_k|f2}}천 토큰까지 올라 한도를 넘겼고, 그 뒤로는 최근 1분 동안 보낸 양을 {{fact:decide_tokens_per_minute_guard}} 토큰 아래로 맞추는 대기 장치를 넣었습니다. 그래서 양이 많은 기존 상품의 첫 적재는 판정 모델 없이, 서로 다른 AI 둘이 따로 옮기고 코드가 두 결과를 맞대어 다른 곳만 원문으로 다시 확인했습니다. 같은 AI로 다시 읽히면 같은 곳에서 같은 식으로 틀리는 일이 많았기 때문입니다. 초기 적재를 판정 모델 없이 하자는 것은 실무자의 제안이었고, 권고안으로 승인했습니다. 그 결과 스냅샷의 자동 확정 매핑 {{fact:mapping_auto_confirm_by_route.all.total}}행 가운데 판정 확률로 확정한 것은 {{fact:mapping_auto_confirm_by_route.all.decision_model}}행이고, 나머지 {{fact:mapping_auto_confirm_by_route.all.cross_check}}행은 교차 검증으로 확정했습니다. 이 장의 메시지는 새 기술을 무조건 쓰지 않고 맞는 곳에만 썼다는 것입니다."
+}

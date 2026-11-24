@@ -1,94 +1,204 @@
 {
- "cover": [
-  "snapshot_at",
-  "team_size",
-  "org_names",
-  "variant_count_site",
-  "benefit_count_site"
- ],
- "problem": [
-  "hanwha_summary_pages"
- ],
- "what": [
-  "sheet_tab_count",
-  "operating_cost_won"
- ],
- "screen": [
-  "reference_condition",
-  "default_base_variant",
-  "org_names",
-  "segment_map_cell_count",
-  "segment_map_open_together_cells",
-  "common_coverage_pairs",
-  "excluded_pending_pairs",
-  "compared_coverage_pairs",
-  "sales_insight_categories",
-  "sales_insight_count"
- ],
- "demo": [
-  "segment_map_grid",
-  "default_base_variant",
-  "reference_condition",
-  "segment_map_rows",
-  "sales_insight_categories",
-  "sales_insight_count"
- ],
- "roles": [
-  "disclosure_batch_org_count",
-  "code_review_items",
-  "disclosure_batch_pdf_count",
-  "models",
-  "daily_limit_extract",
-  "daily_limit_decide",
-  "disclosure_batch_auto_org_count"
- ],
- "safety": [
-  "verify_confirm_threshold",
-  "verify_reextract_threshold"
- ],
- "caught": [
-  "calibration_flipped_rows",
-  "verify_confirm_threshold",
-  "bundled_constraint_check",
-  "targeted_anticancer_misread",
-  "rider_limit_rows_protected"
- ],
- "compare": [
-  "default_base_variant",
-  "standard_coverage_rows",
-  "standard_coverage_in_use",
-  "coverage_relation_count",
-  "coverage_relations_by_kind",
-  "excluded_pending_pairs",
-  "no_verdict_pairs",
-  "relation_covered_coverages"
- ],
- "status": [
-  "org_names",
-  "benefit_count_site",
-  "site_org_count",
-  "variant_count_site",
-  "rider_count_site",
-  "mapping_status_site",
-  "epost_summary_rows_matched",
-  "goldset_epost_benefit",
-  "goldset_hanwha_benefit",
-  "work_log_count_site",
-  "test_count"
- ],
- "limits": [
-  "mapping_status_site",
-  "premium_example_rows",
-  "benefit_disease_code_rows",
-  "verify_confirm_threshold",
-  "verify_reextract_threshold",
-  "not_yet_measured"
- ],
- "plan": [
-  "comparison_target_counts",
-  "product_org_count"
- ],
- "closing": [
-  "snapshot_at"
- ]
+ "facts": {
+  "01": [
+   "snapshot_at",
+   "team_size",
+   "hanwha_summary_pages"
+  ],
+  "02": [
+   "hanwha_summary_pages",
+   "simple_uw_questions_by_org"
+  ],
+  "03": [
+   "comparison_target_counts"
+  ],
+  "04": [
+   "sheet_tab_count"
+  ],
+  "05": [
+   "video_length_label",
+   "site_screen_count",
+   "sheet_tab_count",
+   "hanwha_summary_pages",
+   "reference_condition",
+   "default_base_variant"
+  ],
+  "06": [
+   "segment_map_cell_count",
+   "segment_map_open_together_cells",
+   "reference_condition",
+   "common_coverage_pairs",
+   "excluded_pending_pairs",
+   "compared_coverage_pairs",
+   "sales_insight_count",
+   "forbidden_words",
+   "default_base_variant"
+  ],
+  "07": [
+   "example_cancer_surgery",
+   "no_verdict_pairs"
+  ],
+  "08": [
+   "example_gate_6months",
+   "pages_status"
+  ],
+  "09": [
+   "pr_counts",
+   "request_doc_count",
+   "team_size"
+  ],
+  "10": [
+   "project_days",
+   "commits_by_date",
+   "commit_count",
+   "test_count",
+   "text_switch_confirmed_rows",
+   "comparison_target_counts",
+   "commits_by_author"
+  ],
+  "11": [
+   "image_doc_same_reader_repeat",
+   "image_doc",
+   "code_review_items",
+   "image_doc_opus_reread_chars",
+   "local_ocr_test",
+   "review_not_applied_items",
+   "disclosure_batch_org_count",
+   "disclosure_batch_auto_org_count",
+   "disclosure_batch_pdf_count"
+  ],
+  "12": [
+   "example_text_to_number",
+   "targeted_anticancer_misread",
+   "work_log_count_site",
+   "models",
+   "daily_limit_upper",
+   "daily_limit_search",
+   "daily_limit_extract",
+   "daily_limit_decide",
+   "daily_limit_extract_alt"
+  ],
+  "13": [
+   "video_length_label",
+   "first_collect_news",
+   "image_doc",
+   "daily_limit_search",
+   "disclosure_batch_org_count"
+  ],
+  "14": [
+   "verify_reextract_threshold",
+   "verify_confirm_threshold",
+   "symmetric_choice_probability"
+  ],
+  "16": [
+   "video_length_label",
+   "symmetric_choice_probability",
+   "true_false_probability_range",
+   "verify_confirm_threshold",
+   "verify_reextract_threshold"
+  ],
+  "17": [
+   "calibration_flipped_rows",
+   "verify_reextract_threshold",
+   "verify_confirm_threshold",
+   "calibration_reextract_band",
+   "calibration_review_band_pct",
+   "bundled_constraint_check",
+   "hanwha_rerun_verify_result",
+   "mapping_auto_confirm_threshold"
+  ],
+  "18": [
+   "verify_reextract_threshold",
+   "verify_confirm_threshold",
+   "mapping_requery",
+   "decide_tokens_per_minute_peak_k",
+   "decide_tokens_per_minute_guard",
+   "mapping_auto_confirm_by_route"
+  ],
+  "19": [
+   "graph_nodes_by_kind",
+   "coverage_major_class_count"
+  ],
+  "20": [
+   "example_cancer_surgery_names",
+   "coverage_relation_count",
+   "coverage_relations_by_kind",
+   "coverage_relation_examples",
+   "dictionary_initial_size",
+   "dictionary_addition_rule",
+   "standard_coverage_rows",
+   "relation_covered_coverages",
+   "mapping_auto_confirm_threshold"
+  ],
+  "21": [
+   "video_length_label",
+   "coverage_relation_count"
+  ],
+  "22": [
+   "epost_summary_rows_matched",
+   "goldset_epost_benefit",
+   "goldset_hanwha_benefit",
+   "work_log_count_site",
+   "work_log_by_stage",
+   "site_browser_check_problems",
+   "mapping_status_site",
+   "test_count"
+  ],
+  "23": [
+   "operating_cost_won",
+   "schedule_collect_kst",
+   "schedule_weekly_close_kst",
+   "site_file_size_mb",
+   "hanwha_first_extract"
+  ],
+  "24": [
+   "segment_map_cell_count",
+   "standard_coverage_in_use",
+   "revision_changes",
+   "not_yet_measured"
+  ],
+  "25": [
+   "org_names",
+   "product_org_count",
+   "comparison_target_counts",
+   "variants_by_org",
+   "benefits_by_org",
+   "premium_example_rows",
+   "benefit_disease_code_rows"
+  ],
+  "26": [
+   "epost_summary_rows_matched",
+   "operating_cost_won",
+   "pages_status",
+   "snapshot_at"
+  ]
+ },
+ "refs": {
+  "02": [
+   "association_disclosure"
+  ],
+  "14": [
+   "gemini_decision_release",
+   "gemini_decision_spec"
+  ],
+  "15": [
+   "judgment_not_decision",
+   "openai_calibration_2023",
+   "openai_structured_2024",
+   "jev_release",
+   "gemini_decision_release"
+  ],
+  "19": [
+   "kg_definition",
+   "ontology_definition",
+   "kg_google_2012",
+   "owl_rdf",
+   "gql_2024",
+   "graphrag_2024",
+   "graphrag_not_always_better"
+  ],
+  "23": [
+   "gemini_decision_price"
+  ]
+ }
 }

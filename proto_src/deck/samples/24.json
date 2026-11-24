@@ -1,0 +1,54 @@
+{
+ "no": 24,
+ "id": "sample-24",
+ "kind": "body",
+ "chapter": 6,
+ "status": "new",
+ "headline": "담당자의 일은 문서 대조에서 화면 확인으로 바뀌고, 줄어드는 시간은 아직 재지 않았습니다",
+ "diagram": [
+  {
+   "use": "C5",
+   "labels": [
+    "지금까지",
+    "이 도구로"
+   ],
+   "box": [
+    0,
+    0,
+    1760,
+    560
+   ],
+   "before_merged": {
+    "text": "수백 쪽 공시 문서를 사람이 손으로 대조",
+    "icon": "stack",
+    "todo": "걸리는 시간과 방법: 확인 후 채움"
+   },
+   "badgeCol": {
+    "label": "효과",
+    "badge": "측정 전",
+    "note": "실무자 사용검증으로 잽니다"
+   },
+   "rows": [
+    {
+     "head": "고객군별 가입 가능 현황",
+     "after": "고객군 {{fact:segment_map_cell_count}}개의 가입 가능 여부를 한 화면에"
+    },
+    {
+     "head": "개정 검토",
+     "after": "개정 전후 달라진 담보 목록"
+    },
+    {
+     "head": "경쟁사 비교 보고",
+     "after": "근거 문서와 쪽수가 붙은 비교표 복사",
+     "hero": true
+    },
+    {
+     "head": "교육 자료 배포",
+     "after": "A4 응대 화법"
+    }
+   ]
+  }
+ ],
+ "source": "출처: docs/proposals/영업_인사이트_흐름.md 1절, docs/submission.md 7절",
+ "notes": "견본: C5 가로형의 매트릭스 변형(행 머리, 네 행을 합친 왼쪽 칸, 측정 전 배지 열)."
+}
