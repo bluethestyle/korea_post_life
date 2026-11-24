@@ -4,7 +4,7 @@
 
 견주는 코드는 `src/postlife/extract/reader_rows.py`, 묶음을 만드는 도구는 `scripts/split_pieces.py`, 견주는 도구는 `scripts/compare_readers.py`다.
 
-회사별 보충: 묶음 파일에 `읽을종`이 있는 회사(삼성생명)는 `docs/backfill_reader_guide_samsunglife.md`를, KB라이프생명 묶음(이름 앞머리 `331000106`, `335000106`)은 `docs/backfill_reader_guide_kblife.md`를 함께 읽는다. 이 지시문의 칸과 허용값은 그대로이고, 보충은 그 회사 문서에서 조심할 곳과 값 고르는 법만 더한다. 메리츠화재 묶음은 이 지시문만 읽는다.
+회사별 보충: 묶음 파일에 `읽을종`이 있는 회사(삼성생명)는 `docs/backfill_reader_guide_samsunglife.md`를, KB라이프생명 묶음(이름 앞머리 `331000106`, `335000106`)은 `docs/backfill_reader_guide_kblife.md`를, 묶음 파일에 `읽을단계`가 있는 교보생명 묶음(이름 앞머리 `1001031`, `1001042`)은 `docs/backfill_reader_guide_kyobo.md`를, 현대해상 묶음(이름 앞머리 `131A`, `11F0`)은 `docs/backfill_reader_guide_hyundai.md`를 함께 읽는다. 이 지시문의 칸과 허용값은 그대로이고, 보충은 그 회사 문서에서 조심할 곳과 값 고르는 법만 더한다. 메리츠화재 묶음은 이 지시문만 읽는다.
 
 ## 1. 받는 것
 

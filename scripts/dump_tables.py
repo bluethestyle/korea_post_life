@@ -7,6 +7,7 @@ PDF는 저장소에 두지 않는다. 받은 자리에서 조각만 뽑아 두�
   python scripts/dump_tables.py <요약서.pdf> --text <글자 파일> --variant "8종(일반형)" --out 조각.json
   python scripts/dump_tables.py <요약서.pdf> --org meritz --out 조각.json
   python scripts/dump_tables.py <요약서.pdf> --org kblife --out 조각.json
+  python scripts/dump_tables.py <요약서.pdf> --org hyundai --out <추출 단위.json>
 """
 from __future__ import annotations
 

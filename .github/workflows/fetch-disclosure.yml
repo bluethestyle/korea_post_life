@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       org:
-        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재), 초기 적재 회사(meritz 메리츠화재, samsunglife 삼성생명, kyobo 교보생명, shinhanlife 신한라이프, nhlife NH농협생명, dongyang 동양생명, kblife KB라이프생명, miraeasset 미래에셋생명, metlife 메트라이프생명, heungkuklife 흥국생명. 대상 설정 data/targets/<회사>.json)"
+        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재), 초기 적재 회사(meritz 메리츠화재, samsunglife 삼성생명, kyobo 교보생명, shinhanlife 신한라이프, nhlife NH농협생명, dongyang 동양생명, kblife KB라이프생명, miraeasset 미래에셋생명, metlife 메트라이프생명, heungkuklife 흥국생명, hyundai 현대해상. 대상 설정 data/targets/<회사>.json)"
         type: choice
-        options: [epost, hanwha, samsungfire, meritz, samsunglife, kyobo, shinhanlife, nhlife, dongyang, kblife, miraeasset, metlife, heungkuklife]
+        options: [epost, hanwha, samsungfire, meritz, samsunglife, kyobo, shinhanlife, nhlife, dongyang, kblife, miraeasset, metlife, heungkuklife, hyundai]
         default: epost
 
 permissions:

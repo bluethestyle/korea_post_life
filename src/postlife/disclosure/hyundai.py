@@ -20,6 +20,8 @@ curl 기본 설정은 TLS 연결 단계에서 끊겼다.
 실패해도 상태 코드는 200이다. 없는 첨부 ID는 값이 모두 null인 data가, 없는 파일은 경고창 스크립트(text/html)가 온다.
 상품코드는 응답에 없다(insCd는 모든 행이 null). repInsCd는 화면이 '연관상품' 조회에 쓰는 대표코드로,
 같은 상품의 판매채널판(예: 퍼펙트플러스와 하이콜퍼펙트)이 같은 값을 쓴다. 상품을 하나로 가리는 코드가 아니다.
+그래도 짧고 개정을 넘어 대체로 같아서 공시상품코드 자리에는 이 값을 쓰고, 행은 공시상품명(개정 표시를 뗀 상품명)으로 고른다
+(2026-11-24 결정, postlife.disclosure.sources).
 """
 from __future__ import annotations
 
@@ -181,6 +183,59 @@ def find(products: list[Product], keyword: str, on: str | None = None, selling: 
     out = [p for p in products if keyword in p.name and (selling is None or p.selling == selling)
            and (on is None or (p.start <= on and (p.end is None or on <= p.end)))]
     return sorted(out, key=lambda p: (p.start, p.name))
+
+
+# 상품명 앞의 배당 표시와 회사 이름, 이름 안의 개정 표시. 목록의 상품명은 개정마다 "(Hi2607)" → "(Hi2610)"처럼 바뀌고,
+# 지난 개정의 상품명은 회사 이름 없이("무배당가나다라…") 적히거나 배당 표시가 "(무)"와 "무배당"으로 갈리기도 한다 (2026-11-19 목록)
+_DIVIDEND = re.compile(r"^\s*(?:\(\s*무배당\s*\)|\(\s*무\s*\)|무배당)\s*")
+_COMPANY = re.compile(r"^현대해상\s*")
+_REVISION = re.compile(r"\(\s*Hi\s*\d{4}\s*\)")
+
+
+def series_name(name: str) -> str:
+    """개정을 넘어 바뀌지 않는 상품 이름. 배당 표시, 회사 이름, 개정 표시("(Hi2610)")를 떼고 빈칸을 하나로 줄인다.
+
+    "무배당현대해상가나다라보험(세만기형)(Hi9999) 1종(가형), 2종(나형)"
+    → "가나다라보험(세만기형) 1종(가형), 2종(나형)"(지어낸 이름). 종 구성("1종(가형), 2종(나형)")은 남긴다.
+    대상 설정의 공시상품명(개정 표시를 뗀 목록 상품명)과 목록 행을 비교할 때 쓴다(postlife.disclosure.sources). 대표코드(repInsCd)가
+    같은 행 가운데 종 구성과 판매채널 상품(하이콜)이 다른 행을 이 이름으로 가른다.
+    """
+    text = _COMPANY.sub("", _DIVIDEND.sub("", _name(name)))
+    return re.sub(r"\s+", " ", _REVISION.sub(" ", text)).strip()
+
+
+def same_series(name: str, series: str) -> bool:
+    """목록 상품명이 이 이름(series_name)의 상품인가. 빈칸은 비교하지 않는다("1종(가형),2종"처럼 붙여 적은 행이 있다)."""
+    return re.sub(r"\s+", "", series_name(name)) == re.sub(r"\s+", "", series_name(series))
+
+
+def is_rep_code(code: str) -> bool:
+    """대표코드(repInsCd. 예: 131A, 11F0)처럼 생긴 값인가. 영문과 숫자 3~5자다. 대상 설정의 공시상품코드는 이 값이어야 한다."""
+    return re.fullmatch(r"[0-9A-Za-z]{3,5}", code.strip()) is not None
+
+
+def keyword_of(series: str) -> str:
+    """서버 검색에 보낼 상품명 일부. 첫 괄호나 빈칸 앞까지다("가나다라보험(세만기형) 1종…" → "가나다라보험").
+
+    괄호 없는 이름("가나보험 1종(…)")은 목록 상품명에서 이름과 종 구성 사이에 개정 표시가 끼어 있어 빈칸에서도 자른다.
+    """
+    return re.split(r"[\s(]", series_name(series), maxsplit=1)[0]
+
+
+def pick_period(products: list[Product], on: str) -> Product | None:
+    """on(YYYY-MM-DD)이 판매기간에 드는 행. 여럿이면 개시일이 가장 늦은 행이다.
+
+    같은 이름의 판매기간 행이 겹쳐 실리기도 한다(2025년 행들. 판매 중지 목록). 개시일까지 같은데 첨부 서류가 다르면
+    어느 것인지 모르므로 ValueError.
+    """
+    rows = [p for p in products if p.start <= on and (p.end is None or on <= p.end)]
+    if not rows:
+        return None
+    latest = max(p.start for p in rows)
+    rows = [p for p in rows if p.start == latest]
+    if len({tuple(sorted(p.files.items())) for p in rows}) > 1:
+        raise ValueError(f"현대해상: {rows[0].name}의 {latest} 판매기간 행이 {len(rows)}개이고 서류가 서로 다름")
+    return rows[0]
 
 
 def _gid() -> str:

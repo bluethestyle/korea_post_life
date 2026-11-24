@@ -7,11 +7,14 @@ benefits_2reader.jsonl, 꼴은 data/crosscheck/README.md)에 둔다. 이 스크�
 1. 대상 설정과 공시 수집 결과(index.json)로 종형 행을 만든다(variants.build). 종형 행은 모든 종형을 쓴다.
 2. 정밀비교 종형마다 상품요약서 PDF에서 표를 다시 읽어 조각을 만든다. 쪽을 넘어 이어지는 표 하나인 요약서(--org meritz,
    kblife)는 tables.py, 특약마다 작은 표가 따로인 생명보험사 요약서(--org samsunglife)는 blocks.py로 읽는다(dump_tables.py,
-   dump_blocks.py와 같은 조각). 같은 요약서를 쓰는 종형은 한 번만 읽는다. KB라이프생명은 형(간편심사형, 일반심사형)으로 종형을
+   dump_blocks.py와 같은 조각. 교보생명도 --org kyobo로 blocks.py가 읽는다). 같은 요약서를 쓰는 종형은 한 번만 읽는다. KB라이프생명은 형(간편심사형, 일반심사형)으로 종형을
    고르고, 간편심사형 조각은 같은 형의 관문전용 종형(3.3.5)이 아니라 정밀비교 종형(3.5.5)에만 행이 된다.
    조각의 형과 종형은 reader_rows.variants_for로 잇는다("공통" 조각은 그 요약서의 모든 정밀비교 종형에 든다). 한 급부 표 안에
    종별 값이 함께 있는 요약서(삼성생명)는 대상 설정의 종형에 "읽을종"("2종")을 적고, 그 종이 아닌 조각과 줄은 빼고
    (reader_rows.for_kind) 남은 줄의 글자에서 다른 종의 토막을 뗀 뒤 행을 만든다. 조각 지문은 원래 조각으로 맞춘다.
+   한 특약 안에 계약 단계마다 표가 따로 있는 요약서(교보생명의 최초계약과 갱신계약, 보장형 계약과 연장전환형 계약)는 대상
+   설정의 종형에 "읽을단계"(["최초계약", "보장형 계약"])를 적고, 적용범위가 다른 계약 단계인 줄은 빼고(reader_rows.for_stages)
+   행을 만든다. 배치 나누기(split_pieces.py --stage)도 같은 줄을 빼므로 검증 결과 파일에도 그 줄은 없다.
 3. 값 파일의 번호마다 조각 지문(reader_rows.cover_fingerprint)을 다시 읽은 조각과 맞춰 본다. 지문이 다른 줄은 쓰지 않는다.
    한 요약서 안에서 형마다 공시상품코드가 따로 있는 상품(KB라이프생명)은 형마다 값 파일이 따로이고, 그 요약서를 쓰는 코드의
    값 파일을 모두 이어 쓴다(merged_lines).
@@ -37,6 +40,7 @@ benefits_2reader.jsonl, 꼴은 data/crosscheck/README.md)에 둔다. 이 스크�
 
   python scripts/load_reader_product.py --docs out --org samsunglife --targets data/targets/samsunglife.json --dry-run --result r.json
   python scripts/load_reader_product.py --docs out --org kblife --targets data/targets/kblife.json --dry-run --result r.json
+  python scripts/load_reader_product.py --docs out --org kyobo --targets data/targets/kyobo.json --dry-run --result r.json
 
 --docs는 scripts/fetch_disclosure.py --org <회사>의 결과 폴더다(index.json과 <저장이름>.pdf). 시트 접속 정보가 없어도
 --dry-run은 끝까지 돈다(빈 시트로 본다). --result에는 조각의 문장을 싣지 않는다. --rows(결과물)에는 만들어질 행과 행없음 줄의
@@ -136,6 +140,8 @@ class Group:
     written: set[str] = field(default_factory=set)         # 급부 행이 된 번호
     kinds: dict[str, str] = field(default_factory=dict)    # 종형명 → 대상 설정의 읽을종(있는 종형만)
     out_of_kind: list[str] = field(default_factory=list)   # 읽을 종이 아니어서 어느 정밀비교 종형에도 들지 않은 번호
+    stages: dict[str, list[str]] = field(default_factory=dict)     # 종형명 → 대상 설정의 읽을단계(있는 종형만)
+    out_of_stage: list[str] = field(default_factory=list)  # 읽을 계약 단계가 아니어서 어느 정밀비교 종형에도 들지 않은 번호
 
 
 @dataclass
@@ -244,6 +250,13 @@ def kinds_of(targets: Mapping[str, Any]) -> dict[tuple[str, str], str]:
             if v.get("읽을종")}
 
 
+def stages_of(targets: Mapping[str, Any]) -> dict[tuple[str, str], list[str]]:
+    """(공시상품코드, 종형명) → 대상 설정의 읽을단계(["최초계약", "보장형 계약"]). 한 특약 안에 계약 단계마다 표가 따로 있는
+    요약서(교보생명)의 정밀비교 종형에만 적는다. 적지 않은 종형은 넣지 않는다."""
+    return {(v["공시상품코드"], v["종형명"]): list(v["읽을단계"]) for product in targets["상품"] for v in product["종형"]
+            if v.get("읽을단계")}
+
+
 def check_values(group: Group, lines: Sequence[Mapping[str, Any]], clash: set[str] | None = None) -> dict[str, dict[str, Any]]:
     """값 파일을 다시 읽은 조각과 맞춰 보고 행 만들기에 넣을 판정 값을 고른다. 쓰지 않을 줄은 group.reasons에 사유를 남긴다.
     clash는 값 파일 여럿에 서로 다른 줄로 나온 번호(merged_lines)다."""
@@ -276,7 +289,8 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
 
     급부 행의 형식 오류는 그 행만 빼고 쓴다. 상품종형이나 특약에 형식 오류나 ID 겹침이 남거나 dry_run이면 쓰지 않는다.
     대상 설정의 종형에 읽을종이 있으면 그 종이 아닌 조각과 세부보장은 그 종형의 행을 만들지 않는다(variant_pieces). 값 파일에도
-    그 줄은 없다(묶음 나누기가 같은 규칙으로 뺀다).
+    그 줄은 없다(묶음 나누기가 같은 규칙으로 뺀다). 읽을단계가 있으면 적용범위가 다른 계약 단계인 세부보장도 행을 만들지 않는다
+    (reader_rows.for_stages. 배치 나누기의 --stage와 같은 줄).
 
     문서로 행을 만드는 단계(build)와 시트에 맞춰 쓰는 단계(finish)로 나뉜다. 행 패키지(--rows-out)는 build의 결과이고,
     패키지로 쓰는 길(--rows-in)은 build 대신 패키지를 읽어 같은 finish를 거친다.
@@ -295,6 +309,7 @@ def build(targets: dict[str, Any], index: list[dict[str, Any]], docs: Path, valu
         found = [v for v in found if v.row["공시상품코드"] in only]
     product = products_of(targets)
     kind_of = kinds_of(targets)
+    stage_of = stages_of(targets)
 
     precise = [v for v in found if not v.gate_only]
     for v in found:
@@ -327,15 +342,22 @@ def build(targets: dict[str, Any], index: list[dict[str, Any]], docs: Path, valu
         chosen: dict[str, list[RR.PieceView]] = {}
         in_variant: set[str] = set()
         cut: list[str] = []
+        staged: list[str] = []
         for v in group_variants:
             key = (v.row["공시상품코드"], v.row["종형명"])
             if key in kind_of:
                 group.kinds[v.row["종형명"]] = kind_of[key]
             chosen[v.id], dropped, _ = variant_pieces(group.pieces, v.row["종형명"], layout, kind_of.get(key))
+            if key in stage_of:
+                # 계약 단계 표가 따로 있는 요약서: 읽을 단계가 아닌 줄은 행을 만들지 않는다(배치 나누기의 --stage와 같은 줄)
+                group.stages[v.row["종형명"]] = stage_of[key]
+                chosen[v.id], gone, _ = RR.for_stages(chosen[v.id], stage_of[key])
+                staged += gone
             in_variant |= {c.number for p in chosen[v.id] for c in p.covers}
             cut += dropped
         group.used = [c.number for p in group.pieces for c in p.covers if c.number in in_variant]
         group.out_of_kind = [n for n in dict.fromkeys(cut) if n not in in_variant]
+        group.out_of_stage = [n for n in dict.fromkeys(staged) if n not in in_variant]
         lines, clash = merged_lines([values[c] for c in with_values])
         readings = check_values(group, lines, clash)
         other, notes = basis_pages(index, list(dict.fromkeys(codes + same_file)), readings, docs)
@@ -509,6 +531,10 @@ def markdown(report: Loaded) -> str:
         if g.kinds:
             out += (f"- 읽을 종({', '.join(sorted(set(g.kinds.values())))})이 아니어서 뺀 세부보장: {len(g.out_of_kind)}줄"
                     "(정밀비교 종형에 드는 줄로 세지 않음)\n")
+        if g.stages:
+            names = sorted({s for stages in g.stages.values() for s in stages})
+            out += (f"- 읽을 계약 단계({', '.join(names)})가 아니어서 뺀 세부보장: {len(g.out_of_stage)}줄"
+                    "(정밀비교 종형에 드는 줄로 세지 않음)\n")
         out += "".join(f"- {k}: {n}\n" for k, n in kinds.most_common())
         held = sorted((n for n, why in g.reasons.items() if why.startswith(RR.HOLD) and n not in g.written), key=RR._order)
         if held:
@@ -539,6 +565,8 @@ def result_of(report: Loaded) -> dict[str, Any]:
                                      if n not in g.written and n in set(g.used)} for g in report.groups},
         **({"읽을 종이 아니어서 뺀 줄": {g.code: len(g.out_of_kind) for g in report.groups if g.kinds}}
            if any(g.kinds for g in report.groups) else {}),
+        **({"읽을 단계가 아니어서 뺀 줄": {g.code: len(g.out_of_stage) for g in report.groups if g.stages}}
+           if any(g.stages for g in report.groups) else {}),
         "금액 없는 급부": dict(no_amount_counts(report).most_common()),
         "갱신형특약제외": report.excluded, "ID 겹침": report.clashes, "형식 오류": report.errors,
         "시트에서 빠지는 행": report.dropped, "주의": report.notes, "기록 행 수": len(report.logs), "시트에 씀": report.written,

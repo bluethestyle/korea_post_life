@@ -8,7 +8,8 @@
 
 회사마다 공시상품코드 자리의 값이 무엇인지(공시실의 상품코드, 게시 번호, 상품명)는 SOURCES의 각 줄 위에 적었다.
 상품명으로만 찾을 수 있는 회사는 공시상품명이 있어야 하고, 동양생명은 공시상품명이 없으면 공시상품코드 자리의 값을
-상품명으로 본다. 상품명은 공시 목록에 적힌 그대로(빈칸, 괄호 포함) 적는다.
+상품명으로 본다. 현대해상은 공시상품코드 자리에 목록 행의 대표코드(repInsCd)를 적고, 공시상품명은 목록의 상품명에서
+개정 표시("(Hi2610)")만 뗀 이름으로 적는다. 그 밖의 회사는 상품명을 공시 목록에 적힌 그대로(빈칸, 괄호 포함) 적는다.
 한 번의 find가 요청을 두 번 보내는 회사(상품코드로 상품명을 먼저 찾는 곳 등)는 그 사이에도 GAP초 쉰다.
 
 받는 서류는 kinds(기본 사업방법서와 상품요약서)와 optional이다. optional은 받으면 쓰고, 목록에 없거나 받지 못해도
@@ -22,7 +23,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from postlife.disclosure import (dongyang, heungkuklife, kblife, kyobo, meritz, metlife, miraeasset, nhlife,
+from postlife.disclosure import (dongyang, heungkuklife, hyundai, kblife, kyobo, meritz, metlife, miraeasset, nhlife,
                                  samsunglife, shinhanlife)
 
 KINDS = ("사업방법서", "상품요약서")
@@ -262,6 +263,35 @@ def _heungkuklife_find(session: Any, code: str, on: str, name: str | None = None
     return _listed(code, name, docs, lambda d: d.file_name)
 
 
+# ---------------------------------------------------------------------------
+# 현대해상: 상품코드가 목록 응답에 없다(insCd는 모든 행이 비어 있다). 공시상품코드 = 목록 행의 대표코드(repInsCd. 예: 131A).
+# 대표코드는 같은 상품의 다른 종 행(3종, 4종)과 판매채널 상품(하이콜)이 함께 쓰므로, 대상 설정의 종형마다 공시상품명(목록의
+# 상품명에서 개정 표시 "(Hi2610)"을 뗀 이름. 지어낸 예: "무배당현대해상가나다라보험(세만기형) 1종(가형), 2종(나형)")을
+# 적어 행을 고른다. 상품명 앞부분으로 검색해(요청 한 번) 대표코드가 같고 개정 표시를 뗀 이름이 같은 행(hyundai.same_series.
+# 배당 표시, 회사 이름, 빈칸은 비교하지 않음) 가운데 on이 판매기간에 드는 행을 고른다. 종형ID는 "HYUNDAI_131A_…"가 된다.
+# 대표코드가 개정 중에 바뀐 판매기간(내삶엔 1종의 2025-09-01~2025-11-13 행은 11F1)은 그 코드로만 찾는다
+# ---------------------------------------------------------------------------
+
+def _hyundai_find(session: Any, code: str, on: str, name: str | None = None) -> Found:
+    if not hyundai.is_rep_code(code):
+        raise ValueError(f"현대해상: 공시상품코드에는 목록 행의 대표코드(repInsCd. 예: 131A)를 적는다: {code!r}")
+    if not name:
+        raise ValueError(f"현대해상: 대표코드 {code}는 여러 상품 행이 함께 써서 대상 설정의 종형에 공시상품명이 있어야 함")
+    rows = [p for p in hyundai.search_products(session, hyundai.keyword_of(name))
+            if p.rep_code == code.strip() and hyundai.same_series(p.name, name)]
+    period = hyundai.pick_period(rows, on)
+    if period is None:
+        return None
+    return _listed(code, period.name, hyundai.documents_of(period), lambda d: f"{d.apnfl_id}.pdf")
+
+
+def _hyundai_download(session: Any, item: Listed) -> bytes:
+    """서류 정보와 파일을 차례로 받는다(요청 두 번. 그 사이에도 GAP초 쉰다)."""
+    info = hyundai.file_info(session, item.handle)
+    _rest()
+    return hyundai.fetch(session, info)
+
+
 SOURCES: dict[str, Source] = {
     "meritz": Source("meritz", "MERITZ", "메리츠화재", _meritz_find, lambda s, item: meritz.download(s, item.handle),
                      lookup="상품코드(nwPdCd)"),
@@ -283,4 +313,6 @@ SOURCES: dict[str, Source] = {
                       lambda s, item: metlife.download(s, item.handle), lookup="상품 순번(insProdSeq)"),
     "heungkuklife": Source("heungkuklife", "HEUNGKUKLIFE", "흥국생명", _heungkuklife_find,
                            lambda s, item: heungkuklife.download(s, item.handle), lookup="상품코드 칸의 코드(공시상품명 필요)"),
+    "hyundai": Source("hyundai", "HYUNDAI", "현대해상", _hyundai_find, _hyundai_download,
+                      lookup="대표코드 repInsCd(공시상품명 필요. 목록의 상품명에서 개정 표시를 뗀 이름)"),
 }

@@ -1396,6 +1396,46 @@ def for_kind(pieces: Sequence[PieceView], kind: str) -> tuple[list[PieceView], l
 
 
 # ---------------------------------------------------------------------------
+# 읽을 계약 단계: 한 특약 안에 계약 단계마다 표가 따로 있는 요약서(교보생명)
+# ---------------------------------------------------------------------------
+# 교보생명 요약서는 한 특약 안에서 "■ 최초계약" / "■ 갱신계약", "■ 보장형 계약" / "■ 연장전환형 계약" 줄이 표를 가르고,
+# 추출 단위를 만드는 코드(blocks.py)가 그 단계 이름을 세부보장의 적용범위에 둔다. 같은 세부보장이 단계마다 되풀이되므로
+# 정밀 비교는 가입 시점의 단계(최초계약, 보장형 계약) 하나만 읽는다.
+
+def stage_of(cover: CoverView) -> str:
+    """세부보장의 적용범위가 계약 단계 이름이면 그 이름. 종 표시("1,2종")이거나 적용범위가 없으면 ""."""
+    scope = (cover.only or "").strip()
+    return scope if scope and not scope_kinds(scope) else ""
+
+
+def for_stages(pieces: Sequence[PieceView], stages: Sequence[str]) -> tuple[list[PieceView], list[str], list[int]]:
+    """읽을 계약 단계의 추출 단위들. (남은 추출 단위, 뺀 세부보장 번호, 통째로 뺀 추출 단위 순번).
+
+    적용범위가 계약 단계 이름(stage_of)인데 stages(빈칸 무시)에 없는 세부보장을 뺀다. 적용범위가 없거나 종 표시인 줄은 두고,
+    글자도 바꾸지 않는다(번호, 이름, 쪽, 적용범위, 주석 그대로). 남는 줄이 없는 추출 단위는 뺀다. stages가 비면 아무것도 빼지 않는다.
+    """
+    wanted = {_squash(s) for s in stages if s and s.strip()}
+    if not wanted:
+        return list(pieces), [], []
+    kept: list[PieceView] = []
+    dropped_covers: list[str] = []
+    dropped_pieces: list[int] = []
+    for p in pieces:
+        covers = []
+        for c in p.covers:
+            stage = stage_of(c)
+            if stage and _squash(stage) not in wanted:
+                dropped_covers.append(c.number)
+                continue
+            covers.append(c)
+        if not covers:
+            dropped_pieces.append(p.index)
+            continue
+        kept.append(replace(p, covers=tuple(covers)) if len(covers) < len(p.covers) else p)
+    return kept, dropped_covers, dropped_pieces
+
+
+# ---------------------------------------------------------------------------
 # 판독 값에서 시트 행 만들기
 # ---------------------------------------------------------------------------
 
@@ -1443,8 +1483,9 @@ def reading_of(v: Mapping[str, Any], cover: CoverView, piece: PieceView | None, 
 
 HOLD = "보류"
 # 이름 칸에 든 지급사유 문장의 표시. 세부보장명에는 나오지 않는 말이다
-# "해약환급금 미지급형"처럼 특약 이름에 든 "미지급"은 문장의 말이 아니다
-_SENTENCE_NAME = re.compile(r"(?<!미)지급|경우|되고|되었|확정시|로써|한하여")
+# "해약환급금 미지급형"처럼 특약 이름에 든 "미지급"은 문장의 말이 아니다. 지급 방식을 이름에 붙인 "(수술회당지급)",
+# "(80%이상,월지급형)"도 문장이 아니다
+_SENTENCE_NAME = re.compile(r"(?<!미)(?<!회당)지급(?!형)|경우|되고|되었|확정시|로써|한하여")
 _QUOTED = re.compile(r"「([^」]{2,40})」")
 _DIAGNOSED = re.compile(r"(?:으로|로)\s*진단\s*확정")
 _SUBJECT_HEAD = re.compile(r"(?:에|중|후|「|」|※|·)\s*")
@@ -1501,19 +1542,35 @@ def _glued_tag(part: str) -> str | None:
     return None
 
 
+def broken_brackets(name: str) -> bool:
+    """소괄호와 대괄호의 짝이 맞지 않는가. 원문에서 괄호 하나가 빠진 이름이다("가나(다라(마바)")."""
+    depth = 0
+    for ch in name or "":
+        depth += ch in "(["
+        depth -= ch in ")]"
+        if depth < 0:
+            return True
+    return depth != 0
+
+
 def name_problem(cover: CoverView) -> str:
     """조각의 세부보장명으로 급부 행을 만들면 안 되는 사유. 괜찮으면 빈 글.
 
     급부ID는 이 이름으로 만들어 뒤에 고칠 수 없다(hum_담보매핑이 급부ID로 이어진다). 표 읽기가 이름을 잘못 낸 줄은 행을
     만들지 않고 보류로 남긴다. 조각 글자만 보고 정하므로 같은 문서를 다시 읽으면 같은 줄이 걸린다.
     - 이름 칸에 지급사유 문장: 이름에 "지급", "경우", "확정시" 같은 문장의 말이 있다(표 읽기에서 칸이 뒤바뀐 줄).
+      "미지급형", "(수술회당지급)", "월지급형"처럼 이름에 붙은 지급 방식은 문장의 말로 보지 않는다.
     - 이름 여럿이 이어 붙음: 칸 안의 여러 줄(세부보장 여럿)을 표 읽기가 한 줄로 합친 이름. "/"로 가른 이름 토막마다 본다.
       ① 지급사유의 대상 낱말(「」 안의 말, "…(으)로 진단확정"의 앞말) 둘 이상이 겹치지 않게 이름에 들어 있고, 그 낱말들이
       지급사유의 서로 다른 줄에서 나왔다(세부보장마다 지급사유 문단이 따로 있다).
       ② 같은 괄호 꼬리표가 두 번 이상 나오고 그중 하나 바로 뒤에 빈칸 없이 다른 이름이 이어진다("가암(체증형)나암(체증형)").
+    - 괄호 짝이 맞지 않음: 원문에서 괄호 하나가 빠진 이름(broken_brackets). 표 읽기는 빠진 자리가 분명한 것만 고친다
+      (tables.mend_brackets). 이름을 정해야 ID를 만들 수 있다.
     """
     if _SENTENCE_NAME.search(cover.name or ""):
         return f"{HOLD}: 이름 칸에 지급사유 문장이 들어 있음(표 읽기에서 칸이 뒤바뀜)"
+    if broken_brackets(cover.name):
+        return f"{HOLD}: 이름의 괄호 짝이 맞지 않음(원문에서 괄호가 빠짐)"
     for part in (cover.name or "").split("/"):
         found, lines = _subjects_in(_word(part), cover.reason)
         if (found >= 2 and lines >= 2) or _glued_tag(part):
@@ -1586,6 +1643,7 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
       이름이 여럿인 조각에 세부보장이 하나면 급부 이름을 특약 이름으로 바꿔 적는다(table_rules와 같다).
     - 행을 만들 수 없는 줄(행없음사유가 "그밖"인 줄, 모름, 기계 검사에 걸린 줄)은 skipped에 사유를 남긴다. 행없음 줄은
       행이 되든 안 되든 no_rows에 사유, 면책일수, 보장개시일, 한도 구절을 남긴다. 표 읽기가 이름을 잘못 낸 줄(name_problem)은 판독 값과 상관없이 "보류"로 남긴다.
+      특약명들 가운데 괄호 짝이 맞지 않는 이름(broken_brackets)이 있는 추출 단위는 특약 행을 만들지 않고 세부보장마다 "보류"로 남긴다.
     - 한 조각 안에 이름이 같은 세부보장이 여럿이면, 대상이 모두 있고 서로 다를 때 줄마다 "세부보장명(대상)"으로 급부
       행을 만든다(table_rules의 원시급부명 규칙). 대상으로 가려지지 않으면 삼성화재 적재(job._drop_repeats)처럼 행이
       글자까지 같을 때만 하나를 남기고 번호를 모두 단다. 값이 다르거나 그중 하나라도 행을 만들 수 없으면 그 이름의
@@ -1598,7 +1656,10 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
     for piece in pieces:
         names = piece.names or (piece.title,)
         role = "주급부" if len(piece.covers) == 1 else "대등복합"
-        problems = {c.number: name_problem(c) or row_problem(readings.get(c.number), c, piece, pages, docs)
+        # 특약 이름의 괄호 짝이 맞지 않으면(원문에서 괄호가 빠짐) 특약ID를 만들 수 없다. 그 추출 단위는 특약 행도 만들지 않는다
+        rider_hold = (f"{HOLD}: 특약 이름의 괄호 짝이 맞지 않음(원문에서 괄호가 빠짐)"
+                      if any(broken_brackets(n) for n in names) else "")
+        problems = {c.number: rider_hold or name_problem(c) or row_problem(readings.get(c.number), c, piece, pages, docs)
                     for c in piece.covers}
         for c in piece.covers:
             if problems[c.number]:
@@ -1606,6 +1667,8 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
             v = readings.get(c.number)
             if v is not None and v.get("꼴") == NO_ROW:
                 out.no_rows[c.number] = no_row_info(v, c, piece)
+        if rider_hold:
+            continue
         groups: dict[str, list[CoverView]] = {}
         for c in piece.covers:
             groups.setdefault(_squash(c.name), []).append(c)
