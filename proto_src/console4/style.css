@@ -170,6 +170,7 @@ button{cursor:pointer}
 .th-act-menu-btn{display:none!important}
 .th-act-btns{display:inline-flex;align-items:center;gap:5px;height:28px}
 .th-sep{width:1px;height:16px;background:var(--line-2);margin:0 2px;flex:none}
+.th-scope-grp{display:inline-flex;align-items:center;gap:4px;flex:none}
 .scope-tgl{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border:1px solid var(--line-2);
   background:transparent;font:600 13px/1 var(--f-ko);color:var(--ink-0);white-space:nowrap}
 .scope-tgl:hover,.scope-tgl[aria-expanded="true"]{background:var(--slate);color:var(--on-slate);border-color:transparent}
@@ -234,6 +235,9 @@ button{cursor:pointer}
 }
 @media (max-width:640px){
   .th-title{font-size:22px}
+  #th-act-sep{display:none}
+  .th-cond-btns{gap:4px}
+  .scope-tgl,.th-act-menu-btn{padding:0 6px;gap:3px}
 }
 
 /* ---------- 5. 눌러서 여는 조건 편집 판과 범위 띠 ---------- */
@@ -381,6 +385,8 @@ button{cursor:pointer}
 /* 조상에 backdrop-filter, transform, contain 을 두지 않아 380px 의 position:fixed 하단 시트가 정확히 창 아래에 붙는다 */
 .board{position:relative;background:transparent;border:0;box-shadow:none}
 .board[hidden]{display:none!important}
+.is-tab-out{pointer-events:none!important}
+.board:not(.is-tab-out) > .z-center > .view:not(.is-tab-out){pointer-events:auto}
 .board[data-layout="side"]{
   display:grid;grid-template-columns:68% 4% 28%;align-items:stretch;
   min-height:clamp(540px,calc(100vh - 236px),700px);padding-top:10px}
@@ -407,10 +413,9 @@ button{cursor:pointer}
 .z-left[hidden]{display:none!important}
 .z-center{position:relative;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;
   scrollbar-width:thin;background:transparent;container-type:inline-size;container-name:zcenter}
-.zc-scroll-cue{position:absolute;left:0;right:0;height:24px;pointer-events:none;z-index:4;
-  display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;
-  background:linear-gradient(180deg,transparent 0%,var(--fog-1) 92%);
-  font:600 13px/1 var(--f-ko);color:var(--ink-1)}
+.zc-scroll-cue{position:fixed;width:22px;height:26px;pointer-events:none;z-index:25;
+  display:grid;place-items:center;
+  background:var(--panel-t);border:1px solid var(--line-2);color:var(--ink-0)}
 .zc-scroll-cue[hidden]{display:none!important}
 
 /* 화면 전환 시 가로 기준축 높이를 이어 주는 다리 */
@@ -796,12 +801,15 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 .legend dt,.legend dd{margin:0}
 
 .toast{position:fixed;left:50%;bottom:24px;z-index:70;transform:translate(-50%,16px);opacity:0;pointer-events:none;
-  display:inline-flex;align-items:center;gap:10px;
+  display:inline-flex;align-items:center;gap:10px;word-break:keep-all;
   background:var(--slate-solid);color:#fff;padding:10px 16px;font:600 14px/1.4 var(--f-ko);border-top:3px solid #fff;
   transition:opacity 200ms,transform 200ms var(--ease);max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translate(-50%,0)}
-.toast.on.has-act{pointer-events:auto}
-.toast-act{flex:none;border:1px solid rgba(255,255,255,.55);background:transparent;color:#fff;padding:2px 8px;font:600 13px/1.2 var(--f-ko)}
+.toast-msg{word-break:keep-all}
+.toast-act{flex:none;pointer-events:none;min-width:48px;min-height:44px;display:inline-grid;place-items:center;
+  padding:0 10px;margin:-6px -8px -6px 2px;border:1px solid rgba(255,255,255,.55);
+  background:rgba(255,255,255,.08);color:#fff;font:600 13px/1 var(--f-ko)}
+.toast.on .toast-act{pointer-events:auto}
 .toast-act:hover,.toast-act:focus-visible{background:#fff;color:var(--slate-solid);border-color:#fff}
 body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 .foot{margin-top:8px;padding:6px 0;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;font:400 13px/1.4 var(--f-body);color:var(--ink-1)}
@@ -902,6 +910,7 @@ body.ev-open .toast{bottom:calc(var(--sheet-h) + 24px)}
 .slate .qhelp{border-color:rgba(255,255,255,.65);color:#fff}
 .slate .qhelp:hover,.slate .qhelp:focus-visible,.slate .qhelp[aria-expanded="true"]{background:#fff;border-color:#fff;color:#151D24}
 @media (max-width:999px){.qhelp{width:28px;height:28px}}
+@media (max-width:640px){.qhelp{width:26px;height:26px;margin-left:0}.qhelp::before{inset:-9px}}
 
 .help-pop{position:fixed;z-index:65;width:min(400px,calc(100vw - 20px));max-height:min(82vh,640px);overflow:auto;
   padding:12px 14px 14px 16px;background:var(--slate-solid);color:#fff;

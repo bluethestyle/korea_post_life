@@ -173,6 +173,7 @@ let stepSwitchToken = 0;
 let lastStageHost = null;
 let cachedHostW = 0;
 let lastHotSid = '';
+let userScrolledZc = false;
 const SUB_NAME_MAP = {};
 Object.values(S['포인트'] || {}).forEach(p => { if (p && p['세부'] && p['세부이름']) SUB_NAME_MAP[p['세부']] = p['세부이름']; });
 
@@ -662,23 +663,32 @@ function scrollSelectedBarIntoCenter() {
   if (App.state.tab !== 'cover' || innerWidth < 1000) return;
   const zc = document.getElementById('z-center');
   if (!zc) return;
+  if (!zc._cvUserScrollBound) {
+    zc._cvUserScrollBound = true;
+    const mark = () => { if (App.state.tab === 'cover') userScrolledZc = true; };
+    zc.addEventListener('wheel', mark, { passive: true });
+    zc.addEventListener('touchmove', mark, { passive: true });
+  }
   if (!App.state.sel.cover) {
-    if (zc.scrollTop > 0) zc.scrollTop = 0;
+    if (!userScrolledZc && zc.scrollTop > 0) zc.scrollTop = 0;
     if (App.syncZcScrollCue) App.syncZcScrollCue();
     return;
   }
+  if (userScrolledZc) {
+    if (App.syncZcScrollCue) App.syncZcScrollCue();
+    App.updateSelLink(false);
+    return;
+  }
   const selSlot = zc.querySelector('.cvp-slot.is-sel');
-  if (selSlot && zc.scrollHeight > zc.clientHeight + 2) {
+  if (selSlot && zc.scrollHeight > zc.clientHeight + 1) {
     const zcRect = zc.getBoundingClientRect();
     const barEl = selSlot.querySelector('.cvp-bar') || selSlot;
     const bRect = barEl.getBoundingClientRect();
-    if (bRect.bottom + 8 > zcRect.bottom - 24) {
-      const maxDelta = Math.max(0, bRect.top - (zcRect.top + 4));
-      const need = (bRect.bottom + 8) - (zcRect.bottom - 24);
-      const delta = Math.min(need, maxDelta);
-      if (delta > 0) {
-        zc.scrollTop = Math.min(zc.scrollHeight - zc.clientHeight, Math.round(zc.scrollTop + delta));
-      }
+    if (bRect.bottom > zcRect.bottom - 10) {
+      const need = bRect.bottom - (zcRect.bottom - 10);
+      const maxUp = Math.max(0, bRect.top - (zcRect.top + 6));
+      const delta = maxUp > 0 ? Math.min(need, maxUp) : need;
+      zc.scrollTop = Math.min(zc.scrollHeight - zc.clientHeight, Math.round(zc.scrollTop + delta));
     } else if (bRect.top < zcRect.top + 6) {
       zc.scrollTop = Math.max(0, Math.round(zc.scrollTop - ((zcRect.top + 6) - bRect.top)));
     }
@@ -2099,12 +2109,18 @@ function enter(body) {
 App.on('aim', aimEl => { if (App.state.tab === 'cover') syncCoverAimHot(aimEl); });
 App.on('select', tab => {
   if (tab !== 'cover') return;
+  userScrolledZc = false;
   const curSel = App.state.sel.cover || '';
   if (!curSel) lastSyncedSelKey = `${App.state.base}|`;
   const stageEl = document.getElementById('cv-pillar-stage');
   syncCoverSelectionAndFilter(stageEl);
   scrollSelectedBarIntoCenter();
   requestAnimationFrame(() => scrollSelectedBarIntoCenter());
+});
+App.on('ev-settled', tab => {
+  if (tab !== 'cover') return;
+  scrollSelectedBarIntoCenter();
+  requestAnimationFrame(scrollSelectedBarIntoCenter);
 });
 App.on('resize', () => {
   cachedHostW = 0;

@@ -1263,11 +1263,20 @@
   }
 
   function cancelBandAnims(el, innerEl, list) {
+    if (el && el._bandRaf) { cancelAnimationFrame(el._bandRaf); el._bandRaf = 0; }
     if (el && el._bandAnim) { el._bandAnim.cancel(); el._bandAnim = null; }
     if (innerEl && innerEl._bandAnim) { innerEl._bandAnim.cancel(); innerEl._bandAnim = null; }
     for (const b of (list || [])) {
       if (b && b._bandShiftAnim) { b._bandShiftAnim.cancel(); b._bandShiftAnim = null; }
-      if (b) b.style.transformOrigin = '';
+      if (b) {
+        b.style.transformOrigin = '';
+        b.style.height = '';
+        b.style.maxHeight = '';
+        b.style.minHeight = '';
+        b.style.flex = '';
+        b.style.marginBottom = '';
+        b.style.clipPath = '';
+      }
     }
     const bd = $('#board');
     if (bd) bd.style.overflow = '';
@@ -1306,9 +1315,8 @@
         const aft = afterBox.get(b);
         const dy = bef.top - aft.top;
         const dbot = bef.bot - aft.bot;
-        const sy = (aft.height > 1 && bef.height > 1 && Math.abs(bef.height - aft.height) >= 0.5)
-          ? (bef.height / aft.height) : 1;
-        deltaMap.set(b, { dy, sy });
+        const dh = bef.height - aft.height;
+        deltaMap.set(b, { bef, aft, dy, dh });
         maxShift = Math.max(maxShift, Math.abs(dy), Math.abs(dbot));
       }
       const { dur, easing } = panelTiming(true, maxShift);
@@ -1325,15 +1333,50 @@
           { opacity: 1, offset: 1 },
         ], { duration: dur, easing });
       }
+      const resizable = [];
       for (const b of below) {
-        const { dy, sy } = deltaMap.get(b) || { dy: 0, sy: 1 };
-        if ((Math.abs(dy) >= 0.5 || Math.abs(sy - 1) >= 0.002) && typeof b.animate === 'function') {
-          b.style.transformOrigin = '0 0';
+        const { bef, aft, dy, dh } = deltaMap.get(b) || { bef: null, aft: null, dy: 0, dh: 0 };
+        if (!bef || !aft || typeof b.animate !== 'function') continue;
+        if (Math.abs(dh) < 0.5) {
+          if (Math.abs(dy) >= 0.5) {
+            b._bandShiftAnim = b.animate([
+              { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+              { transform: 'translate3d(0,0,0)' },
+            ], { duration: dur, easing });
+          }
+        } else {
+          const isFlex = b.id === 'home-panel' || (bd && bd.dataset.layout === 'band' && (b.id === 'z-center' || b.id === 'z-right'));
+          b.style.maxHeight = 'none';
+          b.style.minHeight = '0px';
+          b.style.height = `${bef.height.toFixed(2)}px`;
+          b.style.marginBottom = `${(-(bef.height - aft.height)).toFixed(2)}px`;
+          if (isFlex) b.style.flex = `0 0 ${bef.height.toFixed(2)}px`;
           b._bandShiftAnim = b.animate([
-            { transform: `translate3d(0,${dy.toFixed(2)}px,0) scaleY(${sy.toFixed(5)})` },
-            { transform: 'translate3d(0,0,0) scaleY(1)' },
-          ], { duration: dur, easing });
+            { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+            { transform: 'translate3d(0,0,0)' },
+          ], { duration: dur, easing, fill: 'forwards' });
+          resizable.push({ b, isFlex, h0: bef.height, h1: aft.height, baseH: aft.height, dy });
         }
+      }
+      if (resizable.length) {
+        const tickOpen = () => {
+          if (token !== el._bandTok) return;
+          for (const it of resizable) {
+            let p = 1;
+            if (Math.abs(it.dy) >= 0.5) {
+              const m = new DOMMatrix(getComputedStyle(it.b).transform);
+              p = Math.max(0, Math.min(1, 1 - (m.m42 / it.dy)));
+            } else if (el._bandAnim && typeof el._bandAnim.currentTime === 'number') {
+              p = Math.max(0, Math.min(1, el._bandAnim.currentTime / dur));
+            }
+            const h = it.h0 + (it.h1 - it.h0) * p;
+            it.b.style.height = `${h.toFixed(2)}px`;
+            it.b.style.marginBottom = `${(-(h - it.baseH)).toFixed(2)}px`;
+            if (it.isFlex) it.b.style.flex = `0 0 ${h.toFixed(2)}px`;
+          }
+          el._bandRaf = requestAnimationFrame(tickOpen);
+        };
+        el._bandRaf = requestAnimationFrame(tickOpen);
       }
       el._bandAnim.onfinish = () => {
         if (token !== el._bandTok) return;
@@ -1365,9 +1408,8 @@
         const tgt = targetBox.get(b);
         const dy = tgt.top - cur.top;
         const dbot = tgt.bot - cur.bot;
-        const sy = (cur.height > 1 && tgt.height > 1 && Math.abs(tgt.height - cur.height) >= 0.5)
-          ? (tgt.height / cur.height) : 1;
-        deltaMap.set(b, { dy, sy });
+        const dh = tgt.height - cur.height;
+        deltaMap.set(b, { cur, tgt, dy, dh });
         maxShift = Math.max(maxShift, Math.abs(dy), Math.abs(dbot));
       }
       const { dur, easing } = panelTiming(false, maxShift);
@@ -1384,15 +1426,50 @@
           { opacity: 0, offset: 1 },
         ], { duration: dur, easing, fill: 'forwards' });
       }
+      const resizable = [];
       for (const b of below) {
-        const { dy, sy } = deltaMap.get(b) || { dy: 0, sy: 1 };
-        if ((Math.abs(dy) >= 0.5 || Math.abs(sy - 1) >= 0.002) && typeof b.animate === 'function') {
-          b.style.transformOrigin = '0 0';
+        const { cur, tgt, dy, dh } = deltaMap.get(b) || { cur: null, tgt: null, dy: 0, dh: 0 };
+        if (!cur || !tgt || typeof b.animate !== 'function') continue;
+        if (Math.abs(dh) < 0.5) {
+          if (Math.abs(dy) >= 0.5) {
+            b._bandShiftAnim = b.animate([
+              { transform: 'translate3d(0,0,0)' },
+              { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+            ], { duration: dur, easing, fill: 'forwards' });
+          }
+        } else {
+          const isFlex = b.id === 'home-panel' || (bd && bd.dataset.layout === 'band' && (b.id === 'z-center' || b.id === 'z-right'));
+          b.style.maxHeight = 'none';
+          b.style.minHeight = '0px';
+          b.style.height = `${cur.height.toFixed(2)}px`;
+          b.style.marginBottom = '0px';
+          if (isFlex) b.style.flex = `0 0 ${cur.height.toFixed(2)}px`;
           b._bandShiftAnim = b.animate([
-            { transform: 'translate3d(0,0,0) scaleY(1)' },
-            { transform: `translate3d(0,${dy.toFixed(2)}px,0) scaleY(${sy.toFixed(5)})` },
+            { transform: 'translate3d(0,0,0)' },
+            { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
           ], { duration: dur, easing, fill: 'forwards' });
+          resizable.push({ b, isFlex, h0: cur.height, h1: tgt.height, baseH: cur.height, dy });
         }
+      }
+      if (resizable.length) {
+        const tickClose = () => {
+          if (token !== el._bandTok) return;
+          for (const it of resizable) {
+            let p = 1;
+            if (Math.abs(it.dy) >= 0.5) {
+              const m = new DOMMatrix(getComputedStyle(it.b).transform);
+              p = Math.max(0, Math.min(1, m.m42 / it.dy));
+            } else if (el._bandAnim && typeof el._bandAnim.currentTime === 'number') {
+              p = Math.max(0, Math.min(1, el._bandAnim.currentTime / dur));
+            }
+            const h = it.h0 + (it.h1 - it.h0) * p;
+            it.b.style.height = `${h.toFixed(2)}px`;
+            it.b.style.marginBottom = `${(-(h - it.baseH)).toFixed(2)}px`;
+            if (it.isFlex) it.b.style.flex = `0 0 ${h.toFixed(2)}px`;
+          }
+          el._bandRaf = requestAnimationFrame(tickClose);
+        };
+        el._bandRaf = requestAnimationFrame(tickClose);
       }
       el._bandAnim.onfinish = () => {
         if (token !== el._bandTok) return;
@@ -1438,7 +1515,7 @@
         <i class="th-sep" id="th-act-sep" aria-hidden="true"></i>
         <button class="scope-tgl" id="cond-sum" type="button" aria-expanded="false" aria-controls="cond"><span class="act-t">${esc(cp('condOpenBtn'))}</span> ${IC.chevD}</button>
         <button class="scope-tgl peer-tgl" id="peer-tgl" type="button" data-peer-pop="1" aria-controls="help-pop" aria-expanded="false"><span id="peer-tgl-t"></span> ${IC.chevD}</button>
-        <button class="scope-tgl" id="scope-tgl" type="button" aria-expanded="false" aria-controls="scope">${esc(cp('scopeBtn'))} ${IC.chevD}</button>${help('scope-band', cp('scopeTitle'))}
+        <span class="th-scope-grp"><button class="scope-tgl" id="scope-tgl" type="button" aria-expanded="false" aria-controls="scope">${esc(cp('scopeBtn'))} ${IC.chevD}</button>${help('scope-band', cp('scopeTitle'))}</span>
       </div>`;
 
     const el = $('#cond');
@@ -2092,6 +2169,7 @@
   let tabOutCleanups = [];
   function clearTabOutStyle(el) {
     if (!el) return;
+    el.classList.remove('is-tab-out');
     el.style.position = '';
     el.style.left = '';
     el.style.right = '';
@@ -2099,6 +2177,7 @@
     el.style.width = '';
     el.style.removeProperty('height');
     el.style.pointerEvents = '';
+    el.style.opacity = '';
     el.style.zIndex = '';
     el.style.overflow = '';
   }
@@ -2109,6 +2188,16 @@
     for (const fn of list) {
       try { fn(); } catch (e) { /* */ }
     }
+    const bd = $('#board');
+    const hp = $('#home-panel');
+    const els = [bd, hp].concat(SCREEN_IDS.map(viewOf));
+    for (const el of els) {
+      if (!el) continue;
+      if (el._tabOutAnim) { el._tabOutAnim.cancel(); el._tabOutAnim = null; }
+      clearTabOutStyle(el);
+    }
+    if (bd) void bd.offsetWidth;
+    if (hp) void hp.offsetWidth;
   }
 
   function renderActiveScreen(c, why) {
@@ -2147,6 +2236,7 @@
       renderActBar(curC);
       placeGuides();
       syncZcScrollCue();
+      requestAnimationFrame(syncZcScrollCue);
       if (fadeOutBoard) {
         const tok = tabOutToken;
         board.hidden = false;
@@ -2155,13 +2245,15 @@
         board.style.top = `${bdRect.top}px`;
         board.style.width = `${bdRect.width}px`;
         board.style.setProperty('height', `${bdRect.height}px`, 'important');
-        board.style.pointerEvents = 'none';
+        board.classList.add('is-tab-out');
         board.style.zIndex = '2';
         board.style.overflow = 'hidden';
         const finishBoardOut = () => {
           if (board._tabOutAnim) { board._tabOutAnim.cancel(); board._tabOutAnim = null; }
           clearTabOutStyle(board);
-          if (st.tab === 'brief') board.hidden = true;
+          if (st.tab !== 'brief') return;
+          board.hidden = true;
+          syncZcScrollCue();
         };
         tabOutCleanups.push(finishBoardOut);
         board._tabOutAnim = board.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
@@ -2190,16 +2282,16 @@
       homePanel.style.top = `${hpRect.top}px`;
       homePanel.style.width = `${hpRect.width}px`;
       homePanel.style.height = `${hpRect.height}px`;
-      homePanel.style.pointerEvents = 'none';
+      homePanel.classList.add('is-tab-out');
       homePanel.style.zIndex = '2';
       homePanel.style.overflow = 'hidden';
       const finishHomeOut = () => {
         if (homePanel._tabOutAnim) { homePanel._tabOutAnim.cancel(); homePanel._tabOutAnim = null; }
         clearTabOutStyle(homePanel);
-        if (st.tab !== 'brief') {
-          homePanel.hidden = true;
-          homePanel.innerHTML = '';
-        }
+        if (st.tab === 'brief') return;
+        homePanel.hidden = true;
+        homePanel.innerHTML = '';
+        syncZcScrollCue();
       };
       tabOutCleanups.push(finishHomeOut);
       homePanel._tabOutAnim = homePanel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
@@ -2224,6 +2316,18 @@
     for (const x of SCREEN_IDS) {
       const v = viewOf(x);
       if (v) v.hidden = x !== st.tab && !(fadeOutView && x === prevTabId);
+    }
+
+    if (fadeOutView) {
+      prevView.hidden = false;
+      prevView.style.position = 'fixed';
+      prevView.style.left = `${pvRect.left}px`;
+      prevView.style.top = `${pvRect.top}px`;
+      prevView.style.width = `${pvRect.width}px`;
+      prevView.style.height = `${pvRect.height}px`;
+      prevView.style.overflow = 'hidden';
+      prevView.classList.add('is-tab-out');
+      prevView.style.zIndex = '0';
     }
 
     const id = st.tab;
@@ -2275,22 +2379,14 @@
     applySelectionState(false, curC);
     renderActBar(curC);
     placeGuides();
-    syncZcScrollCue();
     if (fadeOutView) {
       const tok = tabOutToken;
-      prevView.hidden = false;
-      prevView.style.position = 'absolute';
-      prevView.style.left = '0';
-      prevView.style.top = '0';
-      prevView.style.width = `${pvRect.width}px`;
-      prevView.style.height = `${pvRect.height}px`;
-      prevView.style.overflow = 'hidden';
-      prevView.style.pointerEvents = 'none';
-      prevView.style.zIndex = '0';
       const finishViewOut = () => {
         if (prevView._tabOutAnim) { prevView._tabOutAnim.cancel(); prevView._tabOutAnim = null; }
         clearTabOutStyle(prevView);
-        if (st.tab !== prevTabId) prevView.hidden = true;
+        if (st.tab === prevTabId) return;
+        prevView.hidden = true;
+        syncZcScrollCue();
       };
       tabOutCleanups.push(finishViewOut);
       prevView._tabOutAnim = prevView.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outDur, easing: outEase, fill: 'forwards' });
@@ -2299,6 +2395,8 @@
         finishViewOut();
       };
     }
+    syncZcScrollCue();
+    requestAnimationFrame(syncZcScrollCue);
     if (snap) {
       if (motionOn()) {
         const { dur, easing } = panelTiming(true);
@@ -2366,17 +2464,22 @@
 
   function syncZcScrollCue() {
     const board = $('#board'), zc = $('#z-center');
-    if (!board) return;
-    let cue = $('#zc-scroll-cue', board);
+    let cue = $('#zc-scroll-cue');
     const show = !!(
       st.tab === 'cover' &&
+      innerWidth >= 1280 &&
       mode() !== 'sheet' &&
-      !board.hidden &&
+      board && !board.hidden &&
       zc &&
-      zc.scrollHeight - zc.clientHeight > 2 &&
-      zc.scrollTop + zc.clientHeight < zc.scrollHeight - 3
+      zc.scrollHeight > zc.clientHeight + 1 &&
+      zc.scrollTop + zc.clientHeight < zc.scrollHeight - 2
     );
     if (!show) {
+      if (cue) cue.hidden = true;
+      return;
+    }
+    const zr = zc.getBoundingClientRect();
+    if (zr.width < 10 || zr.height < 10) {
       if (cue) cue.hidden = true;
       return;
     }
@@ -2386,10 +2489,11 @@
       cue.id = 'zc-scroll-cue';
       cue.hidden = true;
       cue.setAttribute('aria-hidden', 'true');
-      cue.innerHTML = '<span>아래로 스크롤해 기준선과 이름표 보기</span>';
-      board.appendChild(cue);
+      cue.innerHTML = IC.chevD;
+      document.body.appendChild(cue);
     }
-    cue.style.top = (zc.offsetTop + zc.clientHeight - 24) + 'px';
+    cue.style.left = Math.min(innerWidth - 26, Math.round(zr.right + 4)) + 'px';
+    cue.style.top = Math.round(zr.bottom - 28) + 'px';
     cue.hidden = false;
   }
 
@@ -2645,6 +2749,7 @@
     if (spec.body && typeof spec.body !== 'string') body.appendChild(spec.body);
     body.scrollTop = 0;
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
+    let deferredSettle = false;
     if (animate && motionOn()) {
       const afterZrTop = isBand ? zr.getBoundingClientRect().top : 0;
       const afterZcH = (isBand && zc) ? zc.getBoundingClientRect().height : 0;
@@ -2653,6 +2758,7 @@
       const dist = isBand ? Math.max(zr.offsetHeight || 0, Math.abs(rawDy)) : 0;
       const { dur, easing } = panelTiming(true, dist);
       if (!wasPicked && dur > 0 && typeof zrIn.animate === 'function') {
+        deferredSettle = true;
         if (isBand) {
           if (Math.abs(rawDy) >= 1 && zc && zcShrink >= 1) {
             const bTop = board.getBoundingClientRect().top;
@@ -2699,6 +2805,7 @@
             syncRightScrollCue();
             syncZcScrollCue();
             updateSelLink(false);
+            emit('ev-settled', st.tab);
           };
         } else {
           if (fadeUnsel) {
@@ -2717,6 +2824,15 @@
             { opacity: 0, transform: 'translate3d(16px,0,0)' },
             { opacity: 1, transform: 'translate3d(0,0,0)' },
           ], { duration: dur, easing });
+          zrIn._evAnim.onfinish = () => {
+            if (token !== evAnimToken) return;
+            cancelEvAnims(zr, zrIn, body);
+            if (unsel) unsel.hidden = true;
+            syncRightScrollCue();
+            syncZcScrollCue();
+            updateSelLink(false);
+            emit('ev-settled', st.tab);
+          };
         }
         body._evAnim = body.animate([
           { opacity: 0, offset: 0 },
@@ -2734,6 +2850,7 @@
       unsel.hidden = true;
       clearUnselStyle(unsel);
     }
+    if (!deferredSettle) emit('ev-settled', st.tab);
     requestAnimationFrame(() => { syncRightScrollCue(); syncZcScrollCue(); updateSelLink(animate === true); });
   }
 
@@ -3302,6 +3419,7 @@
     }
     renderActiveScreen(ctx(changed), 'change');
     refreshModalIfOpen();
+    syncZcScrollCue();
     emit('change', ctx(changed), opts);
   }
 
@@ -3982,7 +4100,7 @@
     const dm = el.closest('#data-modal:not([hidden])');
     if (dm) return dm;
     const zr = el.closest('#z-right.is-picked');
-    if (zr) {
+    if (zr && !zr._closingEv) {
       if (mode() === 'sheet') {
         if (document.body.classList.contains('ev-open')) return zr;
       } else if (!zr.hidden && zr.offsetHeight > 0) {
