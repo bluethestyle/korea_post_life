@@ -36,7 +36,8 @@ def test_short_annual_lead_and_bare_per_time_unit_are_found():
     assert RR.limit_phrase(ANNUAL, spaced) == "연 1회에 한함"
     assert RR.unit_phrase("1회당", spaced) == "수술 1회당"
     each = view("가나 수술 시 (치료구분별 각각연간 1회한)", "1만원")
-    assert RR.limit_phrase(ANNUAL, each) == "각각연간 1회한"
+    # 2026-11-24부터 "각각" 앞의 한정어("치료구분별")도 함께 자른다. 전에는 "각각연간 1회한"이었다
+    assert RR.limit_phrase(ANNUAL, each) == "치료구분별 각각연간 1회한"
 
 
 def test_annual_lead_does_not_hit_yeon_inside_a_word_or_other_counts():

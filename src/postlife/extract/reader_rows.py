@@ -524,8 +524,9 @@ def agreed(states: Mapping[str, str]) -> bool:
 _LEAD_RE = {
     "없음": "",
     "최초": r"최초\s*",
-    # "연간 1회", "연1회한", "연 1회". "연간" 없이 "연"만 쓴 꼴은 앞에 한글이 붙지 않은 자리("각각 연"은 된다)만 본다("전연"이 아니다)
-    "연간": r"(?:연간|(?:(?<![가-힣])|(?<=각))연)\s*(?:최대\s*)?",
+    # "연간 1회", "연1회한", "연 1회". "연간" 없이 "연"만 쓴 꼴은 앞에 한글이 붙지 않은 자리("각각 연"은 된다)만 본다("전연"이 아니다).
+    # "보험연도 기준연1회"처럼 "기준" 뒤에 빈칸 없이 붙은 "연"도 본다
+    "연간": r"(?:연간|(?:(?<![가-힣])|(?<=각)|(?<=기준))연)\s*(?:최대\s*)?",
     "월간": r"월간\s*(?:최대\s*)?",
     # "1회 입원당 180일", "1회 입원당 사용일수(는) 180일"(간병인, 간호간병 입원), "1회 입원당 지급일수 180일"
     "1회입원당": r"1\s*회\s*입원\s*당\s*(?:(?:사용|입원|지급)\s*일수\s*[은는]?\s*)?",
@@ -566,11 +567,75 @@ def _tidy(text: str) -> str:
     return " ".join(text.split())
 
 
+# 한도 구절 바로 앞(빈칸만 사이에 둔 자리)에 붙은 한정어. 지급 한도를 세는 단위나 대상을 가리킨다("동일한 가나병당 1회에
+# 한함"의 "동일한 가나병당"). 추출 모델은 한도를 {앞말, 수, 단위}로만 적으므로 코드가 원문에서 한도 구절과 함께 자른다.
+# 보기의 이름(가나병, 다라코드 따위)은 지어낸 것이다.
+_Q_START = r"(?<![가-힣A-Za-z0-9])"                       # 낱말 첫머리(앞 글자가 낱말 글자가 아님)
+_Q_NOUN = r"[가-힣A-Za-z0-9]{1,10}"
+_Q_QUOTED = r"[“\"「][^”\"」\n]{1,20}[”\"」]"
+_Q_NAME = rf"(?:{_Q_QUOTED}|{_Q_START}{_Q_NOUN})"          # 대상 이름 하나: 따옴표로 묶은 이름이나 낱말 하나
+# "가나암 또는 다라암", "“가나질환” 및 “다라질환”". 쉼표는 따옴표로 묶은 이름 사이만 받는다("다만, “가나”"를 잡지 않게)
+_Q_LIST = rf"{_Q_NAME}(?:\s*(?:및|또는)\s*{_Q_NAME}|(?<=[”\"」])\s*,\s*{_Q_QUOTED})+"
+_QUALIFIER = re.compile(
+    "(?:"
+    # 동일한 가나병으로 인한 “다라보험금”은
+    rf"{_Q_START}동일(?:한)?\s*{_Q_NOUN}\s*(?:으로|로)\s*인한\s*{_Q_NAME}\s*[은는]"
+    # 동일한 가나병당, 하나의 다라코드당, 각각의 질환(2종)당, 각 세부보장당
+    rf"|{_Q_START}(?:동일(?:한)?|같은|하나의|각각의|각)\s*{_Q_NOUN}(?:\([^()\n]{{1,10}}\))?\s*당"
+    # 신체부위별, 치료구분별, 해당 가나구분별, 종별. "특별", "개별", "구별" 같은 낱말은 뺀다
+    rf"|{_Q_START}(?:(?:해당|각)\s+)?(?!(?:특|개|구|차|분|식|판|선|감|작)별){_Q_NOUN}별"
+    # (가나병 및 다라상해) 각각에 대하여
+    rf"|{_Q_START}각각에\s*대(?:해|하여)"
+    # 각 1회한, 각 연간 1회한
+    rf"|{_Q_START}각"
+    r")\s*(?:보험연도\s*기준\s*)?\Z")                         # 한정어와 한도 구절 사이에 낀 "보험연도 기준"
+# 앞말 1사고당의 "사고당"이 "동일한 재해사고당"의 가운데에서 시작할 때 그 앞말
+_SAME_ACCIDENT = re.compile(rf"{_Q_START}동일(?:한)?\s*(?:재해|상해)?\s*\Z")
+# "각각"이 가리키는 대상 이름의 열거("“가나암” 또는 “다라암” 각각", "… 에 대해 각각")
+_EACH_TARGETS = re.compile(rf"{_Q_LIST}\s*(?:에\s*대(?:해|하여)\s*)?\Z")
+_QUALIFIER_MAX = 40         # 한도 구절 앞에 함께 자르는 한정어의 길이 한도(빈칸 정리 뒤 글자 수). 넘으면 붙이지 않는다
+_UNIT_ANY = re.compile("|".join(f"(?:{p})" for p in _UNIT_RE.values()))
+_CLOSE_QUOTES = "”\"」"
+
+
+def _clause_head(text: str, at: int) -> bool:
+    """at이 문장 조각의 첫머리인가: 글의 처음이거나, 바로 앞(빈칸 무시)이 여는 괄호, 줄바꿈, 쌍점, 쉼표다.
+    쉼표 앞이 따옴표로 묶은 이름이면 열거의 가운데라 첫머리가 아니다."""
+    before = text[:at].rstrip(" \t")
+    if not before or before[-1] in "([\n:":
+        return True
+    return before[-1] == "," and not before[:-1].rstrip().endswith(tuple(_CLOSE_QUOTES))
+
+
+def _qualifier_start(text: str, start: int) -> int:
+    """text[start:]에서 시작하는 한도 구절 앞에 붙은 한정어의 시작 자리. 한정어가 없으면 start.
+
+    한정어는 구절 바로 앞(빈칸만 사이에 둠)에 붙은 _QUALIFIER의 말이다. 한정어와 구절 사이의 "보험연도 기준"도 함께 자른다.
+    구절이나 한정어가 "각각"으로 시작하면 그 앞의 대상 이름 열거(_EACH_TARGETS)도 함께 자른다. 열거는 문장 조각의
+    첫머리(_clause_head)에서 시작해야 한다(열거의 가운데부터 자르지 않는다).
+    지급단위 구절(1일당, 수술 1회당 따위, _UNIT_RE)이 든 말은 한정어로 보지 않는다. 지급단위 칸에 따로 담기기 때문이다.
+    길이가 _QUALIFIER_MAX를 넘으면 열거를 빼고, 그래도 넘으면 붙이지 않는다.
+    """
+    found = _QUALIFIER.search(text, 0, start)
+    if found is None and text.startswith("사고", start):
+        found = _SAME_ACCIDENT.search(text, 0, start)
+    at = start
+    if found is not None and not _UNIT_ANY.search(text[found.start():start]):
+        at = found.start()
+    if text.startswith("각각", at):
+        listed = _EACH_TARGETS.search(text, 0, at)
+        if (listed is not None and _clause_head(text, listed.start())
+                and len(_tidy(text[listed.start():start])) <= _QUALIFIER_MAX):
+            return listed.start()
+    return at if len(_tidy(text[at:start])) <= _QUALIFIER_MAX else start
+
+
 def limit_phrase(x: Mapping[str, Any], cover: CoverView, piece: PieceView | None = None) -> str | None:
     """한도 구조({앞말, 수, 단위})에 맞는 원문 구절. 지급사유, 지급금액, 보장명, 주석의 차례로 찾는다. 없으면 None.
 
     앞말이 "없음"이면 뒤에 한도를 뜻하는 말(한도, 한, 에 한하여)이 붙은 자리만 본다. 그러지 않으면
     "90일이 지난 다음날" 같은 다른 숫자에 걸린다. 앞에 "각각"이 붙어 있으면 함께 자른다.
+    구절 앞에 붙은 한정어("동일한 가나병당", "신체부위별", "치료구분별 각각" 따위, _qualifier_start)도 함께 자른다.
     """
     lead = _LEAD_RE[x["앞말"]]
     tail = _BARE_TAIL if x["앞말"] == "없음" else _LIMIT_TAIL + "?"
@@ -581,7 +646,7 @@ def limit_phrase(x: Mapping[str, Any], cover: CoverView, piece: PieceView | None
         for text in _texts(cover, piece):
             m = pattern.search(text)
             if m:
-                return _tidy(m.group(0))
+                return _tidy(text[_qualifier_start(text, m.start()):m.end()])
     return None
 
 
