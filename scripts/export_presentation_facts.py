@@ -571,14 +571,14 @@ def config_facts(as_of: str) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     out["sheet_tab_count"] = fact(len(schema.TABS), "구글 시트 정본의 탭 수", as_of,
                                   {"kind": "schema", "file": "src/postlife/schema.py", "name": "TABS"})
-    out["market_news_institution_count"] = fact(len(config.INSTITUTIONS), "시장 소식을 모으는 기관 수", as_of,
-                                                config_source("INSTITUTIONS"))
+    out["market_news_institution_count"] = fact(len(config.TREND_INSTITUTIONS), "시장 소식을 모으는 기관 수", as_of,
+                                                config_source("TREND_INSTITUTIONS"))
     out["market_news_institutions_by_sector"] = fact(
-        {"생명보험": len(config.LIFE), "손해보험": len(config.NONLIFE), "우체국": len(config.POST)}, "시장 소식을 모으는 기관 수(업권별)",
-        as_of, config_source("LIFE, NONLIFE, POST"))
+        {"생명보험": len(config.TREND_LIFE), "손해보험": len(config.NONLIFE), "우체국": len(config.POST)}, "시장 소식을 모으는 기관 수(업권별)",
+        as_of, config_source("TREND_LIFE, NONLIFE, POST"))
     out["market_news_institution_names"] = fact(
-        {"생명보험": list(config.LIFE.values()), "손해보험": list(config.NONLIFE.values()), "우체국": list(config.POST.values())},
-        "시장 소식을 모으는 기관 이름", as_of, config_source("LIFE, NONLIFE, POST"))
+        {"생명보험": list(config.TREND_LIFE.values()), "손해보험": list(config.NONLIFE.values()), "우체국": list(config.POST.values())},
+        "시장 소식을 모으는 기관 이름", as_of, config_source("TREND_LIFE, NONLIFE, POST"))
     out["market_news_categories"] = fact(list(config.CATEGORIES), "모으는 시장 소식의 분류유형", as_of, config_source("CATEGORIES"))
     out["market_news_category_count"] = fact(len(config.CATEGORIES), "모으는 시장 소식의 분류유형 수", as_of, config_source("CATEGORIES"))
     out["news_excluded_topics"] = fact(config.EXCLUDED_TOPICS.split(", "), "버리는 소식 주제", as_of, config_source("EXCLUDED_TOPICS"))

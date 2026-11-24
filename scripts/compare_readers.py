@@ -11,6 +11,9 @@
 - 그 밖은 "판정필요". 메인 세션이 원문 쪽을 보고 값 파일의 판정 칸을 채운다: 확정(두 값이 같을 때), 판독 이름(그 판독의 값),
   수정(판정값 칸에 고친 값), 검토 대기.
 
+묶음에 읽을종이 있으면(삼성생명처럼 한 급부 표 안에 종별 값이 함께 있는 요약서) 지급사유와 지급금액에서 다른 종의 토막을
+뗀 글자로 기계 검사를 돌린다(bundle_pieces).
+
 값 파일(--out, JSONL)은 data/crosscheck/에 둘 꼴이다. 줄마다 번호, 쪽, 특약명, 급부명, 두 판독의 값, 칸별 일치, 기계 검사,
 자동판정, 판정, 판정값. 판독 값은 구조(숫자, 낱말, 허용값)만 담고 원문 구절과 판독자가 쓴 모름 이유는 싣지 않는다.
 
@@ -39,11 +42,21 @@ def _load(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def bundle_pieces(bundle: Mapping[str, Any]) -> list[RR.PieceView]:
+    """묶음의 조각. 묶음에 읽을종이 있으면(한 급부 표 안에 종별 값이 함께 있는 요약서) 세부보장의 지급사유와 지급금액에서
+    다른 종의 토막을 뗀 조각으로 견주고 검사한다(reader_rows.for_kind. 급부 적재가 행을 만들 때와 같은 글자). 묶음에는 이미
+    그 종의 줄만 있다."""
+    pieces = RR.load_pieces(bundle)
+    if bundle.get("읽을종"):
+        pieces, _, _ = RR.for_kind(pieces, bundle["읽을종"])
+    return pieces
+
+
 def compare_bundle(bundle: Mapping[str, Any], answers: Mapping[str, Any], names: Sequence[str],
                    pages: Mapping[int, str] | None = None) -> dict[str, Any]:
     """묶음 하나와 판독 둘({판독 이름: 판독 파일 내용})을 견준다. pages는 {쪽: 쪽 글자}(면책근거쪽 확인용)."""
     a_name, b_name = names
-    pieces = RR.load_pieces(bundle)
+    pieces = bundle_pieces(bundle)
     found = RR.covers_by_number(pieces)
     order = [c.number for p in pieces for c in p.covers]
     parsed, errors = {}, {}
@@ -101,7 +114,7 @@ def check_file(bundle: Mapping[str, Any], answer: Any) -> list[str]:
 
     기계 검사는 돌리지 않는다(판독자가 값을 검사에 맞추지 않게). 대상은 조각의 이름만 보고 정해지는 꼴이라 여기서 본다.
     """
-    pieces = RR.load_pieces(bundle)
+    pieces = bundle_pieces(bundle)
     order = [c.number for piece in pieces for c in piece.covers]
     values, problems = RR.parse_readings(answer)
     grouped = {c.number for p in pieces for g in RR.same_name_groups(p) for c in g}
@@ -147,11 +160,14 @@ def summary(results: Sequence[Mapping[str, Any]]) -> str:
         out.append("\n판정이 필요한 줄")
         for x in differ:
             absent = [name for name in names if x[name] is None]
-            fields = [f"{', '.join(absent)} 판독 없음"] if absent else [f for f, s in x["일치"].items() if s != RR.SAME]
+            fields = [f"{', '.join(absent)} 판독 없음"] if absent else \
+                [f for f, s in x["일치"].items() if s not in (RR.SAME, RR.BOTH_UNKNOWN)]
+            both = [] if absent else [f for f, s in x["일치"].items() if s == RR.BOTH_UNKNOWN]
             checks = [f"{name} {p}" for name in names for p in x["기계검사"][name]["문제"] + x["기계검사"][name]["표시"]]
             tail = checks + (["이름 같은 줄이 갈림"] if x["이름같은줄갈림"] else []) \
                 + (["이름 같은 줄의 대상이 비었거나 같음"] if x.get("대상확인필요") else [])
             out.append(f"- {x['번호']} ({x['쪽']}쪽) {x['급부명'][:40]} | 다른 칸: {', '.join(fields) or '없음'}"
+                       + (f" | {RR.BOTH_UNKNOWN}: {', '.join(both)}" if both else "")
                        + (f" | 검사: {'; '.join(tail)}" if tail else ""))
     kinds = collections.Counter(p.split(":", 1)[0] for x in lines for name in names for p in x["기계검사"][name]["문제"])
     marks = collections.Counter(p.split(":", 1)[0].split(" (", 1)[0] for x in lines for name in names

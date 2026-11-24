@@ -9,21 +9,27 @@ name: 추출·검증
 # 두 판독의 주계약 가입조건 값 파일(data/crosscheck/meritz_main_conditions_2reader.jsonl)로 sys_가입조건과, 시트에 없는 주계약
 # 특약 행을 쓴다(scripts/load_reader_conditions.py). 받은 사업방법서에서 그 쪽 글자를 다시 뽑아 기계 검사를 통과한 종형만 쓴다.
 # parts를 비우면 급부와 가입조건을 차례로 돈다(급부가 실패하면 가입조건은 돌지 않는다).
+# samsunglife(삼성생명)도 같은 초기 적재 길이다(값 파일 data/crosscheck/samsunglife_*_benefits_2reader.jsonl,
+# samsunglife_main_conditions_2reader.jsonl). 요약서는 특약별 작은 표라 blocks.py로 조각을 다시 만들고(scripts/dump_blocks.py와 같다),
+# 대상 설정의 읽을종으로 정밀비교 종형의 종이 아닌 줄을 뺀다.
+# kblife(KB라이프생명)도 같은 길이다(값 파일 data/crosscheck/kblife_*_benefits_2reader.jsonl, kblife_main_conditions_2reader.jsonl).
+# 요약서는 쪽을 넘어 이어지는 표 하나라 tables.py로 조각을 다시 만든다(scripts/dump_tables.py --org kblife와 같다). 한 요약서를
+# 간편심사형(331000106)과 일반심사형(335000106)이 함께 쓰고 값 파일은 코드마다 따로라, 같은 요약서를 쓰는 코드의 값 파일을 이어 쓴다.
 # pdfplumber는 버전을 고정한다. 표 읽기 결과(조각 순번과 글자)가 버전에 따라 달라지면 meritz의 조각 지문과 samsungfire의 대조 자료
-# 번호가 어긋난다. 두 회사의 조각과 대조 자료를 만든 버전(0.11.10)이다.
+# 번호가 어긋난다. 두 회사의 조각과 대조 자료를 만든 버전(0.11.10)이다. samsunglife와 kblife의 조각도 같은 버전으로 만들었다.
 on:
   workflow_dispatch:
     inputs:
       org:
-        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재, 급부는 표 규칙과 교차 확인, 가입조건은 주계약만), meritz(메리츠화재, 두 판독 값 파일로 급부와 주계약 가입조건 적재)"
+        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재, 급부는 표 규칙과 교차 확인, 가입조건은 주계약만), meritz(메리츠화재), samsunglife(삼성생명), kblife(KB라이프생명). meritz, samsunglife, kblife는 두 판독 값 파일로 급부와 주계약 가입조건 적재"
         type: choice
-        options: [epost, hanwha, samsungfire, meritz]
+        options: [epost, hanwha, samsungfire, meritz, samsunglife, kblife]
         default: epost
       only:
         description: "이 공시상품코드만 처리 (여러 개면 공백으로 구분). 비우면 전체"
         required: false
       parts:
-        description: "돌릴 부분: 급부,가입조건,관문 (비우면 모두. samsungfire는 비우면 급부만, meritz는 급부,가입조건 가운데 고르고 비우면 둘 다). 가입조건만 돌리면 시트의 특약을 기준으로 뽑는다(samsungfire는 주계약 가입조건만). 관문만 돌리면 관문전용 종형의 종형 행과 주계약 가입조건만 쓴다(급부는 다시 뽑지 않는다)"
+        description: "돌릴 부분: 급부,가입조건,관문 (비우면 모두. samsungfire는 비우면 급부만, meritz, samsunglife, kblife는 급부,가입조건 가운데 고르고 비우면 둘 다). 가입조건만 돌리면 시트의 특약을 기준으로 뽑는다(samsungfire는 주계약 가입조건만). 관문만 돌리면 관문전용 종형의 종형 행과 주계약 가입조건만 쓴다(급부는 다시 뽑지 않는다)"
         required: false
       dry_run:
         description: "시트에 쓰지 않고 흐름만 확인"
@@ -88,19 +94,19 @@ jobs:
               ran=1
             fi
             if [ "$ran" = 0 ]; then echo "samsungfire에서 돌릴 수 있는 부분은 급부, 가입조건입니다: $INPUT_PARTS"; exit 1; fi
-          elif [ "$INPUT_ORG" = "meritz" ]; then
+          elif [ "$INPUT_ORG" = "meritz" ] || [ "$INPUT_ORG" = "samsunglife" ] || [ "$INPUT_ORG" = "kblife" ]; then
             parts=",${INPUT_PARTS// /},"
             if [ "$parts" = ",," ]; then parts=",급부,가입조건,"; fi
             ran=0
             if [[ "$parts" == *",급부,"* ]]; then
-              python scripts/load_reader_product.py --docs out --targets data/targets/meritz.json --result result/extract.json --rows result/rows.json "${args[@]}"
+              python scripts/load_reader_product.py --docs out --org "$INPUT_ORG" --targets "data/targets/$INPUT_ORG.json" --result result/extract.json --rows result/rows.json "${args[@]}"
               ran=1
             fi
             if [[ "$parts" == *",가입조건,"* ]]; then
-              python scripts/load_reader_conditions.py --docs out --targets data/targets/meritz.json --result result/conditions.json --rows result/condition_rows.json "${args[@]}"
+              python scripts/load_reader_conditions.py --docs out --org "$INPUT_ORG" --targets "data/targets/$INPUT_ORG.json" --result result/conditions.json --rows result/condition_rows.json "${args[@]}"
               ran=1
             fi
-            if [ "$ran" = 0 ]; then echo "meritz에서 돌릴 수 있는 부분은 급부, 가입조건입니다: $INPUT_PARTS"; exit 1; fi
+            if [ "$ran" = 0 ]; then echo "${INPUT_ORG}에서 돌릴 수 있는 부분은 급부, 가입조건입니다: $INPUT_PARTS"; exit 1; fi
           else
             if [ -n "$INPUT_PARTS" ]; then args+=(--parts "$INPUT_PARTS"); fi
             python scripts/extract_product.py --docs out --targets "data/targets/$INPUT_ORG.json" --result result/extract.json "${args[@]}"

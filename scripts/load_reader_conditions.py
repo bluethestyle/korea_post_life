@@ -152,9 +152,10 @@ def accepted_marks(line: Mapping[str, Any]) -> set[str]:
 class Summaries:
     """정밀비교 종형의 주계약 행을 급부 적재와 같은 길로 만든다. 같은 요약서는 한 번만 읽는다."""
 
-    def __init__(self, docs: Path, targets: Mapping[str, Any], layout: tables.Layout):
+    def __init__(self, docs: Path, targets: Mapping[str, Any], layout: L.Layout):
         self.docs, self.layout = docs, layout
         self.product = L.products_of(targets)
+        self.kinds = L.kinds_of(targets)
         self.read: dict[str, tuple[list[RR.PieceView], dict[int, str]] | None] = {}
 
     def mains(self, v: variants.Variant) -> list[dict[str, Any]] | None:
@@ -169,16 +170,17 @@ class Summaries:
             return None
         pieces, pages = self.read[key]
         name = v.row["종형명"]
-        mine = [p for p in pieces if name in RR.variants_for(p.segment, [name], self.layout.common)]
+        mine, _, _ = L.variant_pieces(pieces, name, self.layout, self.kinds.get((v.row["공시상품코드"], name)))
         settings = self.product[(v.row["공시상품코드"], name)]
         banned = [x["특약명"] for x in settings.get("갱신형특약제외") or []]
         built = RR.build_rows(v.id, mine, {}, L.renewal_years(mine, v.plain_renewal_years, banned), pages)
+        L.main_renewal(built.riders, v)
         return [r for r in built.riders if r["담보구분"] == "주계약"]
 
 
 def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]], docs: Path, values: Path,
          now: datetime, dry_run: bool = False, only: Sequence[str] | None = None,
-         layout: tables.Layout = tables.MERITZ) -> Loaded:
+         layout: L.Layout = tables.MERITZ) -> Loaded:
     report = Loaded()
     found, problems = variants.build(targets, index)
     report.notes += problems
@@ -372,7 +374,7 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--docs", type=Path, required=True, help="fetch_disclosure.py의 결과 폴더(index.json과 사업방법서, 요약서 PDF)")
     p.add_argument("--targets", type=Path, default=TARGETS)
     p.add_argument("--values", type=Path, help="값 파일. 비우면 data/crosscheck/<회사>_main_conditions_2reader.jsonl")
-    p.add_argument("--org", default=tables.MERITZ.name, choices=sorted(tables.LAYOUTS), help="요약서 급부 표의 꼴(회사)")
+    p.add_argument("--org", default=tables.MERITZ.name, choices=sorted(L.LAYOUTS), help="요약서 급부 표의 꼴(회사)")
     p.add_argument("--only", action="extend", nargs="+", help="이 공시상품코드의 종형만 처리")
     p.add_argument("--dry-run", action="store_true", help="시트에 쓰지 않는다")
     p.add_argument("--snapshot", type=Path, help="시트 대신 이 사본 폴더를 읽는다. 시트에 쓰지 않는다")
@@ -406,7 +408,7 @@ def main(argv: list[str] | None = None) -> int:
     index = json.loads((args.docs / "index.json").read_text(encoding="utf-8"))
     values = args.values or CROSSCHECK / f"{args.org}_main_conditions_2reader.jsonl"
     report = load(store, targets, index, args.docs, values, datetime.now(KST), dry_run=dry_run, only=args.only,
-                  layout=tables.LAYOUTS[args.org])
+                  layout=L.LAYOUTS[args.org])
 
     text = markdown(report)
     print(text)

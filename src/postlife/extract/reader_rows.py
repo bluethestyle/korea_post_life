@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Iterable, Mapping, Sequence
 
 from .. import ids
@@ -157,6 +157,8 @@ class PieceView:
     last_page: int
     covers: tuple[CoverView, ...]
     notes: tuple[str, ...] = ()     # 그 특약에 걸린 주석의 글
+    only: str = ""                  # 조각(특약)의 적용범위. 생명보험사 요약서의 특약명 끝 종 표시("1,2,3종")
+    main: bool | None = None        # 조각 파일의 "주계약" 표시. 묶음 파일과 표시가 없는 회사(삼성화재)는 None. 지문에 넣지 않는다
 
     @property
     def number(self) -> str:
@@ -203,7 +205,8 @@ def load_pieces(data: Mapping[str, Any]) -> list[PieceView]:
             covers = tuple(CoverView(number(i, j), c["보장명"], c["지급사유"] or "", c["지급금액"] or "", int(c["쪽"]),
                                      c.get("적용범위") or "") for j, c in enumerate(p["세부보장"], 1))
             out.append(PieceView(i, p["특별약관"], tuple(p.get("특약명들") or ()), p.get("구분") or "", p.get("형") or "",
-                                 int(p["첫쪽"]), int(p["끝쪽"]), covers, tuple(note_owners(p, notes))))
+                                 int(p["첫쪽"]), int(p["끝쪽"]), covers, tuple(note_owners(p, notes)),
+                                 p.get("적용범위") or "", p.get("주계약")))
         return out
     if kind == BUNDLE_FORMAT:
         out = []
@@ -212,7 +215,8 @@ def load_pieces(data: Mapping[str, Any]) -> list[PieceView]:
             covers = tuple(CoverView(c["번호"], c["세부보장명"], c["지급사유"] or "", c["지급금액"] or "", int(c["쪽"]),
                                      c.get("적용범위") or "") for c in p["세부보장"])
             out.append(PieceView(index, p["특약명"], tuple(p.get("특약명들") or ()), p.get("구분") or "", p.get("형") or "",
-                                 int(p["쪽"][0]), int(p["쪽"][1]), covers, tuple(p.get("주석") or ())))
+                                 int(p["쪽"][0]), int(p["쪽"][1]), covers, tuple(p.get("주석") or ()),
+                                 p.get("적용범위") or ""))
         return out
     raise ValueError("조각 파일이나 묶음 파일이 아닙니다")
 
@@ -230,10 +234,12 @@ def cover_fingerprint(piece: PieceView, cover: CoverView) -> str:
     그 줄의 글자(세부보장명, 지급사유, 지급금액, 쪽, 적용범위)와 그 조각의 머리(특약명, 특약명들, 구분, 형)와 그 조각에
     걸린 주석을 빈칸을 떼고 이어 해시한다. 원문 글자는 남기지 않는다. 조각 파일(급부표조각/1)로 읽은 조각에서 만든다.
     묶음 파일에는 구분이 없어 같은 값이 나오지 않는다. 특약명들은 둘 이상일 때만 넣는다(하나뿐이면 특약명과 같다).
+    조각의 적용범위(생명보험사 요약서의 특약명 끝 종 표시)는 있을 때만 넣는다. 그래서 적용범위가 없는 회사(메리츠화재)의
+    지문은 이 칸이 생기기 전과 같다.
     """
     names = piece.names if len(piece.names) > 1 else ()
     parts = (piece.title, "/".join(names), piece.label, piece.segment, cover.name, cover.reason, cover.amount,
-             str(cover.page), cover.only, "\n".join(piece.notes))
+             str(cover.page), cover.only, "\n".join(piece.notes)) + ((piece.only,) if piece.only else ())
     return ids.short_hash(*(_squash(p) for p in parts), length=FINGERPRINT_LENGTH)
 
 
@@ -511,16 +517,23 @@ def agreed(states: Mapping[str, str]) -> bool:
 _LEAD_RE = {
     "없음": "",
     "최초": r"최초\s*",
-    "연간": r"연간\s*(?:최대\s*)?",
+    # "연간 1회", "연1회한", "연 1회". "연간" 없이 "연"만 쓴 꼴은 앞에 한글이 붙지 않은 자리("각각 연"은 된다)만 본다("전연"이 아니다)
+    "연간": r"(?:연간|(?:(?<![가-힣])|(?<=각))연)\s*(?:최대\s*)?",
     "월간": r"월간\s*(?:최대\s*)?",
     "1회입원당": r"1\s*회\s*입원\s*당\s*",
     "1사고당": r"(?:1\s*)?사고\s*당\s*",
     "보험기간": r"보험기간\s*(?:중\s*)?",
 }
 _LIMIT_TAIL = r"(?:\s*(?:에\s*)?(?:한하여|한함|한정|한도|한))"
+# 앞말이 없는 한도의 꼬리말. "각각 1회의 진단에 한함"처럼 "의" 뒤 열 자 안에서 한도를 뜻하는 말이 와도 된다
+# 앞말 없는 한도의 꼬리말. "1회의 … 에 한함"처럼 사이에 말이 끼면 끝이 한도를 뜻하는 낱말(한하여, 한함, 한정)이어야 한다.
+# "1회의 입원을 한 경우", "1회의 보험금을 지급한 경우" 같은 문장에 걸리지 않게 한 글자 "한"은 사이에 말이 없을 때만 받는다
+_BARE_TAIL = (r"(?:\s*의\s*[가-힣 ]{1,10}?\s*에\s*(?:한하여|한함|한정)"
+              r"|\s*(?:에\s*)?(?:한하여|한함|한정|한도|한(?![가-힣])))")
 _UNIT_RE = {
     "1일당": r"(?:(?:입원|통원|사용|간병인\s*사용|간호·?\s*간병통합서비스\s*사용)\s*)?1\s*일\s*당",
-    "1회당": r"(?:(?:수술|통원|입원)\s*)?1\s*회\s*(?:[가-힣]{1,8}\s*)?당",
+    # "수술 1회당", "1회 입원당", 숫자 없는 "회당 1만원". 숫자 없는 "회"는 앞에 숫자나 한글이 붙지 않은 자리만 본다("2회당", "사회당"이 아니다)
+    "1회당": r"(?:(?:수술|통원|입원)\s*)?(?:1\s*|(?<=수술|통원|입원)|(?<![\d가-힣]))회\s*(?:[가-힣]{1,8}\s*)?당",
     "1사고당": r"1\s*사고\s*당",
 }
 _TIMES_RE = re.compile(r"[×✕xX]\s*(?:해당\s*)?(?:장해\s*)?지급률")
@@ -546,7 +559,7 @@ def limit_phrase(x: Mapping[str, Any], cover: CoverView, piece: PieceView | None
     "90일이 지난 다음날" 같은 다른 숫자에 걸린다. 앞에 "각각"이 붙어 있으면 함께 자른다.
     """
     lead = _LEAD_RE[x["앞말"]]
-    tail = _LIMIT_TAIL if x["앞말"] == "없음" else _LIMIT_TAIL + "?"
+    tail = _BARE_TAIL if x["앞말"] == "없음" else _LIMIT_TAIL + "?"
     pattern = re.compile(rf"(?:각각\s*)?{lead}(?<![\d.]){x['수']}\s*{x['단위']}{tail}")
     for text in _texts(cover, piece):
         m = pattern.search(text)
@@ -645,6 +658,10 @@ _CUT_HINT = re.compile(r"\d+(?:년|개월|일)(?:경과[가-힣]{0,6}?시점)?(?
 _LIMIT_HINT = re.compile(r"\d+회한|\d+회에한|\d+일(?:을)?한도|최초\d+회|(?:연간|월간)\d+(?:회|일)|\d+(?:회|일)까지")
 # 한도가 줄 전체가 아니라 칸 안 표의 항목마다 걸리는 행없음사유. 한도 표시를 보지 않는다
 _ITEM_TABLES = ("가입금액구간별금액표", "항목별금액표")
+# 수술은 "수술 1회당" 주고 수술 이외의 치료에만 "연간 1회한"이 걸리는 지급사유(빈칸을 뗀 글에서). 지급단위가 1회당인 줄은
+# "수술 이외" 토막(닫는 괄호나 줄 끝까지)의 한도를 그 줄의 한도로 보지 않는다
+_SURGERY_EACH = re.compile(r"수술1회당")
+_NOT_SURGERY = re.compile(r"수술이외[^)\n]*")
 
 
 def _fmt(x: float) -> str:
@@ -661,8 +678,23 @@ def _period_in(n: int, unit: str, texts: Sequence[str]) -> bool:
     return any(pattern.search(t) for t in texts)
 
 
+# "500/250/250만원"처럼 "/"로 이은 금액 목록(생명보험사 요약서의 기준 줄과 가입금액 구간별 금액). 목록의 값마다 금액이다
+_MONEY_LIST = re.compile(r"(?<![\d.,])((?:\d[\d,]*(?:\.\d+)?\s*/\s*)+\d[\d,]*(?:\.\d+)?)\s*(?:만\s*원|만|万)")
+# "0.5만", "1,000万"처럼 "원" 없이 "만"이나 "万"으로 끝난 금액
+_MONEY_BARE = re.compile(r"(?<![\d.,/])(\d[\d,]*(?:\.\d+)?)\s*(?:万|만)(?!\s*원)(?!\s*\d)")
+
+
 def _money_in(manwon: float, texts: Sequence[str]) -> bool:
-    return any(re.search(B._spaced(f), t) for f in B.amount_forms(manwon) for t in texts)
+    if any(re.search(B._spaced(f), t) for f in B.amount_forms(manwon) for t in texts):
+        return True
+    for t in texts:
+        for m in _MONEY_LIST.finditer(t or ""):
+            if any(float(x.replace(",", "")) == manwon for x in re.split(r"\s*/\s*", m.group(1))):
+                return True
+        for m in _MONEY_BARE.finditer(t or ""):
+            if float(m.group(1).replace(",", "")) == manwon:
+                return True
+    return False
 
 
 _DEFINES = re.compile(r"\d+(?:일|개월|년)이?(?:지난|경과)|보장개시일[은는]")
@@ -935,6 +967,23 @@ def _check_limits(cover: CoverView, v: Mapping[str, Any], piece: PieceView | Non
 
 
 MISSED, NAME_MARK = "빠진 값", "이름 표식"
+_SUBCOLUMN_LINE = re.compile(r"^([^:\n]{1,40}):\s*(\S.*)$")
+
+
+def same_subcolumns(amount: str) -> bool:
+    """지급금액 칸이 하위 칸 줄("1년이내: 800만원" / "1년초과: 800만원")로만 되어 있고 값이 모두 같은가.
+
+    생명보험사 요약서(blocks.py)는 지급금액 하위 칸을 "머리: 값" 줄로 적는다. 종마다 값이 다른 칸에서 읽을 종의 토막만 남기면
+    (kind_text) 기간별 값이 같아지는 줄이 많다("1년이내" 칸이 있어도 감액이 없다). 옆으로 병합된 하위 칸 한 줄
+    ("1년이내, 1년초과: 1만원")도 같은 값이다. 이런 칸은 감액을 가리키는 말로 보지 않는다.
+    """
+    lines = [l.strip() for l in (amount or "").split("\n") if l.strip()]
+    found = [_SUBCOLUMN_LINE.match(l) for l in lines]
+    if not lines or not all(found) or any(re.search(r"[:：]", m.group(2)) for m in found if m):
+        return False        # 값 안에 다시 "180일이내: …" 같은 기간 칸이 있으면 감액을 가리킬 수 있다
+    if len(lines) == 1:
+        return "," in found[0].group(1)
+    return len({_squash(m.group(2)) for m in found}) == 1
 
 
 def _check_missed(cover: CoverView, v: Mapping[str, Any], unknown: set[str], marks: list[str]) -> None:
@@ -942,16 +991,37 @@ def _check_missed(cover: CoverView, v: Mapping[str, Any], unknown: set[str], mar
 
     두 판독이 같은 방식으로 빠뜨리면 견줌으로는 잡히지 않는다. 지급사유 끝에 붙은 ※ 풀이(split_remarks)는 그 특약의
     모든 줄에 붙으므로 보지 않는다. 감액은 행을 만드는 꼴(가입금액비율, 금액)만, 한도는 행없음 줄도 보되 칸 안 표의
-    항목마다 한도가 걸리는 행없음(_ITEM_TABLES)은 보지 않는다. 보장개시일을 가리키는데 면책일수가 0인 줄은 _check_wait가 낸다.
+    항목마다 한도가 걸리는 행없음(_ITEM_TABLES)은 보지 않는다. 지급단위가 1회당이고 지급사유가 "수술 1회당, 수술 이외의 치료는
+    연간 1회한" 꼴이면 수술 이외 토막의 한도는 보지 않는다. 보장개시일을 가리키는데 면책일수가 0인 줄은 _check_wait가 낸다.
     표시에는 원문 구절을 싣지 않는다(값 파일에 들어간다).
     """
-    flat = _squash(split_remarks(cover.reason)[0]) + "\n" + _squash(cover.amount)
+    flat = _squash(split_remarks(cover.reason)[0]) + "\n" + ("" if same_subcolumns(cover.amount) else _squash(cover.amount))
     form = v.get("꼴")
     if form in (RATIO, AMOUNT) and "감액" not in unknown and not v.get("감액") and _CUT_HINT.search(flat):
         marks.append(f"{MISSED}: 감액을 가리키는 말이 있는데 감액이 비어 있음")
-    if "한도" not in unknown and not v.get("한도") and _LIMIT_HINT.search(flat) \
+    limit_flat = flat
+    if v.get("지급단위") == "1회당" and _SURGERY_EACH.search(flat):
+        limit_flat = _NOT_SURGERY.sub("", flat)
+    if "한도" not in unknown and not v.get("한도") and _LIMIT_HINT.search(limit_flat) \
             and not (form == NO_ROW and v.get("행없음사유") in _ITEM_TABLES):
         marks.append(f"{MISSED}: 한도를 가리키는 말이 있는데 한도가 비어 있음")
+
+
+# 갱신형 특약의 주석에 있는 "최초계약의 1년 이내 감액은 갱신계약에는 적용하지 않는다"는 뜻의 문장(빈칸을 뗀 글에서)
+_RENEWAL_NO_CUT = re.compile(r"감액[^\n]{0,30}?갱신계약[^\n]{0,10}?적용하지")
+
+
+def _check_renewal_cut(v: Mapping[str, Any], piece: PieceView | None, unknown: set[str], marks: list[str]) -> None:
+    """감액이 있는 줄인데 그 특약의 주석이 갱신계약에는 감액을 적용하지 않는다고 하고, 감액예외에 갱신계약이 없는 줄.
+
+    두 판독이 함께 빠뜨리면 갱신 뒤에도 감액이 걸리는 것으로 확정되므로 표시를 내어 판정으로 보낸다.
+    """
+    if piece is None or not v.get("감액") or {"감액", "감액예외"} & unknown:
+        return
+    if not any(_RENEWAL_NO_CUT.search(_squash(note)) for note in piece.notes):
+        return
+    if not any("갱신" in (e.get("대상") or "") for e in v.get("감액예외") or []):
+        marks.append(f"{MISSED}: 주석에 갱신계약에는 감액을 적용하지 않는다는 문장이 있는데 감액예외에 갱신계약이 없음")
 
 
 _NAME_LIMIT = re.compile(r"(연간|최초)(\d+)회한")
@@ -1003,6 +1073,30 @@ def _check_name_marks(cover: CoverView, v: Mapping[str, Any], piece: PieceView |
         marks.append(f"{NAME_MARK}: 이름에 일당이 있는데 지급단위가 비어 있음")
 
 
+def exclusion_dropped(target: str, reason: str) -> bool:
+    """지급사유에서 대상 낱말 바로 뒤에 "제외"가 든 괄호가 이어지는가(빈칸과 따옴표를 뗀 글에서).
+
+    대상은 괄호 안의 제외 단서까지 원문 그대로 적는다(판독 지시문 4.11절). 급부ID를 만드는 다듬기는 괄호 글자만 떼고 안의 글은
+    남기므로, 단서를 뗀 대상은 단서를 둔 대상과 급부ID가 다르다. 대상이 원문에 그대로 없으면(낱말없음 검사가 본다) 보지 않는다.
+    """
+    t, flat = _word(target), _word(reason)
+    if not t:
+        return False
+    i = flat.find(t)
+    while i >= 0:
+        end = i + len(t)
+        if flat.startswith("(", end):
+            depth = 0
+            for j in range(end, len(flat)):
+                depth += {"(": 1, ")": -1}.get(flat[j], 0)
+                if depth == 0:
+                    break
+            if "제외" in flat[end:j + 1]:
+                return True
+        i = flat.find(t, i + 1)
+    return False
+
+
 def machine_checks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | None = None,
                    pages: Mapping[int, str] | None = None) -> tuple[list[str], list[str]]:
     """(문제, 표시). 문제는 원문에 근거가 없거나 범위를 벗어난 값, 표시는 판독이 쓰지 않은 숫자처럼 사람이 볼 곳.
@@ -1027,12 +1121,15 @@ def machine_checks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | No
     _check_wait(cover, v, piece, unknown, pages, problems, marks)
     _check_limits(cover, v, piece, unknown, problems)
     _check_missed(cover, v, unknown, marks)
+    _check_renewal_cut(v, piece, unknown, marks)
     _check_name_marks(cover, v, piece, unknown, marks)
     # 대상 낱말이 그 줄의 글자에 있는가(급부ID 다듬기 기준으로)
     if v.get("대상") and "대상" not in unknown:
         here = target_key(f"{cover.reason}\n{cover.amount}\n{cover.name}")
         if target_key(v["대상"]) not in here:
             problems.append("낱말없음: 대상")
+        elif exclusion_dropped(v["대상"], cover.reason):
+            marks.append("대상: 지급사유에서 대상 바로 뒤에 제외가 든 괄호가 이어지는데 대상에 없음")
     # 구절을 잘라 쓸 수 있는가
     if "지급단위" not in unknown:
         if unit_phrase(v.get("지급단위", ""), cover) is None:
@@ -1121,6 +1218,96 @@ def variants_for(segment: str, variant_names: Sequence[str], common: str = "공�
 
 
 # ---------------------------------------------------------------------------
+# 읽을 종: 한 급부 표 안에 종별 값이 함께 있는 요약서(삼성생명)
+# ---------------------------------------------------------------------------
+# 표 안의 종 표시. "[1종,2종]", "[3종]", "[1, 2종]", "[1/3종(가형)]". "[단, 3종(…)의 경우 …]" 같은 문장이나
+# "[가나 수술(1-3종수술)]" 같은 이름 토막은 표시가 아니다
+_KIND_MARK = re.compile(r"\[\s*((?:\d+\s*종?\s*[,·/~]\s*)*\d+\s*종)\s*(?:\([^()\[\]]*\))?\s*\]")
+_KIND_NAME = re.compile(r"^\s*(\d+)\s*종\s*$")
+_KIND_NUMBERS = re.compile(r"(\d+)\s*종?\s*(?:~\s*(\d+))?")
+
+
+def kind_number(kind: str) -> int:
+    """읽을 종("2종")의 번호. 꼴이 다르면 ValueError."""
+    m = _KIND_NAME.match(kind or "")
+    if not m:
+        raise ValueError(f"읽을 종은 '2종' 꼴이어야 합니다: {kind!r}")
+    return int(m.group(1))
+
+
+def scope_kinds(text: str) -> frozenset[int]:
+    """적용범위나 종 표시의 글자("1,2,3종", "1종,2종", "1/3종(가형)", "1~3종")가 가리키는 종 번호. 없으면 빈 집합."""
+    body = re.sub(r"\([^()]*\)", "", text or "")
+    out: set[int] = set()
+    for low, high in _KIND_NUMBERS.findall(body):
+        out.update(range(int(low), int(high or low) + 1))
+    return frozenset(out)
+
+
+def cover_kinds(cover: CoverView) -> frozenset[int]:
+    """세부보장 한 줄이 걸리는 종. 적용범위가 있으면 그것, 없으면 지급사유 칸의 종 표시들("[1/3종(…)] …[2/4종(…)] …")을
+    모두 합친 것. 둘 다 없으면 빈 집합(모든 종에 걸린다). 지급금액 칸의 표시는 보지 않는다(값만 종마다 다르다)."""
+    if cover.only:
+        return scope_kinds(cover.only)
+    found: set[int] = set()
+    for m in _KIND_MARK.finditer(cover.reason or ""):
+        found |= scope_kinds(m.group(1))
+    return frozenset(found)
+
+
+def kind_text(text: str, kind: int) -> str:
+    """글자에서 다른 종의 토막을 뗀다. 줄마다 첫 종 표시 앞의 글은 두고, 표시 뒤의 토막(다음 표시나 줄 끝까지)은 그 표시가
+    kind를 포함할 때만 둔다. 표시 글자와 토막 첫머리의 ":"는 뗀다. 표시가 없는 줄은 그대로다.
+
+    "1년이내: [1종,2종] 800만원 [3종] 400만원"은 2종으로 "1년이내: 800만원"이 된다.
+    """
+    out = []
+    for line in (text or "").split("\n"):
+        marks = list(_KIND_MARK.finditer(line))
+        if not marks:
+            out.append(line)
+            continue
+        kept = [line[:marks[0].start()].rstrip()]
+        for k, m in enumerate(marks):
+            end = marks[k + 1].start() if k + 1 < len(marks) else len(line)
+            if kind in scope_kinds(m.group(1)):
+                kept.append(line[m.end():end].strip().lstrip(":：").strip())
+        out.append(" ".join(x for x in kept if x))
+    return "\n".join(out)
+
+
+def for_kind(pieces: Sequence[PieceView], kind: str) -> tuple[list[PieceView], list[str], list[int]]:
+    """읽을 종의 조각들. (남은 조각, 뺀 세부보장 번호, 통째로 뺀 조각 순번).
+
+    조각의 적용범위가 그 종을 포함하지 않으면 조각을 통째로 빼고, 세부보장의 적용범위(cover_kinds)가 그 종을 포함하지 않는
+    줄은 뺀다. 남은 줄의 지급사유와 지급금액은 kind_text로 다른 종의 토막을 뗀다(번호와 이름, 쪽, 적용범위는 그대로). 남는
+    줄이 없는 조각도 뺀다. 조각 지문(cover_fingerprint)은 이것이 아니라 원래 조각으로 만든다.
+    """
+    n = kind_number(kind)
+    kept: list[PieceView] = []
+    dropped_covers: list[str] = []
+    dropped_pieces: list[int] = []
+    for p in pieces:
+        scope = scope_kinds(p.only)
+        if scope and n not in scope:
+            dropped_pieces.append(p.index)
+            dropped_covers += [c.number for c in p.covers]
+            continue
+        covers = []
+        for c in p.covers:
+            kinds = cover_kinds(c)
+            if kinds and n not in kinds:
+                dropped_covers.append(c.number)
+                continue
+            covers.append(replace(c, reason=kind_text(c.reason, n), amount=kind_text(c.amount, n)))
+        if not covers:
+            dropped_pieces.append(p.index)
+            continue
+        kept.append(replace(p, covers=tuple(covers)))
+    return kept, dropped_covers, dropped_pieces
+
+
+# ---------------------------------------------------------------------------
 # 판독 값에서 시트 행 만들기
 # ---------------------------------------------------------------------------
 
@@ -1168,7 +1355,8 @@ def reading_of(v: Mapping[str, Any], cover: CoverView, piece: PieceView | None, 
 
 HOLD = "보류"
 # 이름 칸에 든 지급사유 문장의 표시. 세부보장명에는 나오지 않는 말이다
-_SENTENCE_NAME = re.compile(r"지급|경우|되고|되었|확정시|로써|한하여")
+# "해약환급금 미지급형"처럼 특약 이름에 든 "미지급"은 문장의 말이 아니다
+_SENTENCE_NAME = re.compile(r"(?<!미)지급|경우|되고|되었|확정시|로써|한하여")
 _QUOTED = re.compile(r"「([^」]{2,40})」")
 _DIAGNOSED = re.compile(r"(?:으로|로)\s*진단\s*확정")
 _SUBJECT_HEAD = re.compile(r"(?:에|중|후|「|」|※|·)\s*")
@@ -1205,14 +1393,23 @@ def _subjects_in(part: str, reason: str) -> tuple[int, int]:
     return found, len(lines)
 
 
+_SQUARE = re.compile(r"\[[^\[\]]*\]")
+
+
 def _glued_tag(part: str) -> str | None:
-    """같은 괄호 꼬리표("(체증형)")가 두 번 이상 나오고, 그 가운데 하나 바로 뒤에 빈칸 없이 다른 이름이 이어지는가."""
-    ends: dict[str, list[int]] = {}
-    for m in _TAG.finditer(part):
-        ends.setdefault(m.group(0), []).append(m.end())
-    for tag, at in ends.items():
-        if len(at) > 1 and any(e < len(part) and not part[e].isspace() and part[e] not in "([/" for e in at):
-            return tag
+    """같은 괄호 꼬리표("(체증형)")가 두 번 이상 나오고, 그 가운데 하나 바로 뒤에 빈칸 없이 다른 이름이 이어지는가.
+
+    대괄호 안의 하위 이름은 따로 본다. "가나(다라)마바보험금[가나(다라) 사아치료]"처럼 하위 이름이 특약 이름의 앞토막을
+    되풀이하는 것은 원문 그대로의 한 이름이다. 그래서 대괄호 밖의 글(대괄호 토막을 뗀 것)과 대괄호 안의 글마다 꼬리표를 센다.
+    대괄호 밖에서 "가암(체증형)나암(체증형)"처럼 붙은 이름은 그대로 걸린다.
+    """
+    for text in [_SQUARE.sub("", part)] + [m.group(0)[1:-1] for m in _SQUARE.finditer(part)]:
+        ends: dict[str, list[int]] = {}
+        for m in _TAG.finditer(text):
+            ends.setdefault(m.group(0), []).append(m.end())
+        for tag, at in ends.items():
+            if len(at) > 1 and any(e < len(text) and not text[e].isspace() and text[e] not in "([/" for e in at):
+                return tag
     return None
 
 
@@ -1286,7 +1483,8 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
     """판정이 끝난 판독 값(번호 → 값)으로 sys_특약, sys_급부 행을 만든다.
 
     - 특약 행: 조각의 특약명들마다 하나(table_rules.build_rows와 같다). 같은 이름이 또 나오면 table_rules.id_name이
-      "(선택계약)" 같은 구분을 붙인 이름으로 ID를 만든다. 담보구분은 구분이 기본계약이면 주계약이다.
+      "(선택계약)" 같은 구분을 붙인 이름으로 ID를 만든다. 담보구분은 조각 파일의 주계약 표시가 참이거나(구분을 "주계약"으로
+      적는 KB라이프생명) 구분이 기본계약이면 주계약이다.
     - 갱신형 특약: 이름에 갱신형 표시가 있으면 갱신여부를 참으로 하고 renewal_years(사람이 정한 값. 정수 하나나
       {특약명: 값})의 주기를 적는다. 그 특약의 주기가 없으면 특약 행과 그 급부 행을 만들지 않고 skipped_riders에 사유를
       남기고 notes에 수를 센다. 이름은 ID를 만들 이름 목록(id_name)에 그대로 넣어, 나중에 주기를 주어 다시 만들어도
@@ -1331,7 +1529,7 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
                 out.skipped_riders[name] = "갱신형 특약인데 갱신주기년이 없음(사람이 정할 값)"
                 lost += len(piece.covers)
                 continue
-            rider = T.rider_row(variant_id, name, piece.label, years, key_name)
+            rider = T.rider_row(variant_id, name, T.MAIN_LABEL if piece.main else piece.label, years, key_name)
             if renewal:
                 rider["갱신여부"] = True
                 rider["갱신주기년"] = years

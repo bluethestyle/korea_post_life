@@ -66,8 +66,10 @@ def test_head_rows_name_the_first_column_rider_or_benefit():
     main = table(12, [["사망보험금", "가나로 사망시", "가입금액"]], head=["급부명", "지급사유", "지급금액"], label="주계약")
     rest = table(12, [["가나진단특약", "가나로 진단시", "가입금액"]])
     out = riders(main, rest)
+    # 주계약 표의 이름 칸은 급부명이라 조각의 특약 이름은 "주계약"이고, 급부명은 세부보장 이름으로 남는다(main_title)
     assert [(r.title, r.label, r.main, r.segment) for r in out] == [
-        ("사망보험금", "주계약", True, "간편심사형"), ("가나진단특약", "선택특약", False, "간편심사형")]
+        ("주계약", "주계약", True, "간편심사형"), ("가나진단특약", "선택특약", False, "간편심사형")]
+    assert [c.name for c in out[0].covers] == ["사망보험금"]
     # 삼성화재 꼴은 이 머리행을 급부 표로 보지 않는다
     assert riders_from_tables([rest]) == []
 

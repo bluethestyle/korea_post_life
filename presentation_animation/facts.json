@@ -812,7 +812,7 @@
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
-        "name": "INSTITUTIONS"
+        "name": "TREND_INSTITUTIONS"
       }
     },
     "market_news_institutions_by_sector": {
@@ -826,7 +826,7 @@
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
-        "name": "LIFE, NONLIFE, POST"
+        "name": "TREND_LIFE, NONLIFE, POST"
       }
     },
     "market_news_institution_names": {
@@ -862,7 +862,7 @@
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
-        "name": "LIFE, NONLIFE, POST"
+        "name": "TREND_LIFE, NONLIFE, POST"
       }
     },
     "market_news_categories": {

@@ -125,8 +125,7 @@ def run(tmp_path, monkeypatch):
 def test_registry_keys_are_cli_choices_and_known_institutions():
     assert "meritz" in sources.SOURCES
     for key, src in sources.SOURCES.items():
-        # 기관코드가 아직 config에 없는 회사는 sources.PENDING_ORGS의 임시 열쇠를 쓴다
-        assert src.key == key and (src.org in INSTITUTIONS or src.org in sources.PENDING_ORGS)
+        assert src.key == key and src.org in INSTITUTIONS
         assert src.targets == f"data/targets/{key}.json"
         assert src.kinds == ("사업방법서", "상품요약서") and src.pause > 0
     # 기존 세 회사의 열쇠와 겹치지 않는다

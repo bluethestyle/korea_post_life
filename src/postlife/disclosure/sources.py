@@ -24,10 +24,6 @@ from postlife.disclosure import (dongyang, heungkuklife, kblife, kyobo, meritz, 
                                  samsunglife, shinhanlife)
 
 KINDS = ("사업방법서", "상품요약서")
-# 기관코드가 아직 postlife.config.INSTITUTIONS에 없는 회사. 동향 수집 19곳(docs/planning.md 2.2) 밖이고 정밀 비교에만
-# 들어가는 회사라 config에 없다. 아래 열쇠는 수집 결과(index.json의 기관)에만 쓰는 임시 값이고, 시트에 적재하기 전에
-# 사람이 기관코드를 정해 config에 올린다(그때 여기서 지운다)
-PENDING_ORGS = {"KBLIFE": "KB라이프생명", "MIRAEASSET": "미래에셋생명", "METLIFE": "메트라이프생명"}
 GAP = 1.0            # find 안에서 같은 공시실에 요청을 두 번 보낼 때 그 사이에 쉬는 초
 pause = time.sleep   # 시험에서 바꿔 끼운다
 
@@ -51,7 +47,7 @@ Found = tuple[str, list[Listed]] | None
 @dataclass(frozen=True)
 class Source:
     key: str          # --org 값이자 저장 파일 이름의 앞머리
-    org: str          # 기관코드 (postlife.config.INSTITUTIONS의 열쇠. 아직 없는 회사는 PENDING_ORGS의 열쇠)
+    org: str          # 기관코드 (postlife.config.INSTITUTIONS의 열쇠. 정밀 비교에만 들어가는 회사는 COMPARE_ONLY_LIFE에도 있다)
     label: str        # 실행 요약에 쓰는 회사 이름
     find: Callable[[Any, str, str, str | None], Found]
     download: Callable[[Any, Listed], bytes]

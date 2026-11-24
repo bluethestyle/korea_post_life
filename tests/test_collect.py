@@ -75,8 +75,10 @@ def run(gemini, backend=None, **kw):
 def test_plan_matches_planning_doc():
     assert {d: len(q) for d, q in config.DAILY_PLAN.items()} == config.PLANNED_CALLS
     covered = {c for plan in config.DAILY_PLAN.values() for q in plan for c in q.orgs}
-    assert set(config.INSTITUTIONS) <= covered
-    assert len(config.INSTITUTIONS) == 19
+    assert set(config.TREND_INSTITUTIONS) <= covered
+    assert len(config.TREND_INSTITUTIONS) == 19
+    # 정밀 비교에만 들어가는 회사는 요일별 질의에 들지 않는다
+    assert not set(config.COMPARE_ONLY_LIFE) & covered
     # 재시도(질의당 최대 3회)를 다 써도 하루 검색 한도를 넘지 않는다
     assert max(config.PLANNED_CALLS.values()) * 3 <= config.SEARCH_DAILY_LIMIT
 
@@ -207,6 +209,9 @@ def test_association_query_attributes_news_to_the_insurer():
     assert [c.org for c in good] == ["HANWHALIFE", "KLIA"] and len(bad) == 1
     prompt = collect.build_structure_prompt(result, klia, date(2026, 11, 7), date(2026, 11, 21))
     assert "HANWHALIFE: 한화생명" in prompt and "SAMSUNGFIRE: 삼성화재" in prompt
+    # 정밀 비교에만 들어가는 회사(동향 수집 19곳 밖)에는 소식을 귀속시키지 않는다
+    assert "KBLIFE" not in prompt and "KB라이프생명" not in prompt
+    assert set(collect.allowed_orgs(klia)) == set(config.TREND_INSTITUTIONS) | {"KLIA"}
 
 
 def test_backfill_uses_the_week_of_publication():

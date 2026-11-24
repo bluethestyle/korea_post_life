@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from postlife import config
 from postlife.config import INSTITUTIONS
 from postlife.disclosure import (dongyang, heungkuklife, kblife, kyobo, metlife, miraeasset, nhlife, samsunglife,
                                  shinhanlife, sources)
@@ -41,11 +42,12 @@ def kinds(found):
 # 등록
 # ---------------------------------------------------------------------------
 
-def test_life_companies_are_registered_with_known_or_pending_org_codes():
+def test_life_companies_are_registered_with_known_org_codes():
     assert set(LIFE) <= set(sources.SOURCES)
-    # 기관코드가 config에 없는 세 회사만 임시 열쇠를 쓰고, 임시 열쇠는 config의 열쇠와 겹치지 않는다
-    assert not set(sources.PENDING_ORGS) & set(INSTITUTIONS)
-    assert {s.org for s in sources.SOURCES.values() if s.org not in INSTITUTIONS} == set(sources.PENDING_ORGS)
+    # 모든 회사의 기관코드가 config에 있다. 동향 수집 대상이 아닌 세 회사는 정밀 비교에만 들어가는 회사 표에 있다
+    assert all(s.org in INSTITUTIONS for s in sources.SOURCES.values())
+    assert {s.org for s in sources.SOURCES.values() if s.org not in config.TREND_INSTITUTIONS} == set(config.COMPARE_ONLY_LIFE)
+    assert all(config.LIFE[code] for code in config.COMPARE_ONLY_LIFE)       # 업권은 생명보험
     assert sources.SOURCES["dongyang"].org == "TONGYANG" and sources.SOURCES["kyobo"].org == "KYOBO"
     assert all(s.lookup for s in sources.SOURCES.values())
 
