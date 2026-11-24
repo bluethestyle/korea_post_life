@@ -363,14 +363,14 @@ def make_claude_orchestrator_hub(
             Dot(p1, radius=0.036, color=p_col).set_z_index(z + 3),
         )
 
-    ic = svg_icon("cpu_decide", size=radius * 0.56, col=C_GOLD, accent=C_CYAN, tile=False, sw=2.3, z=z + 3).move_to(
-        pt + UP * (radius * 0.30 if sub_s else radius * 0.18)
+    ic = svg_icon("cpu_decide", size=radius * 0.52, col=C_GOLD, accent=C_CYAN, tile=False, sw=2.3, z=z + 3).move_to(
+        pt + UP * (radius * 0.34 if sub_s else radius * 0.20)
     )
-    lbl_items: list[Mobject] = [txt(title_s, size=11.6, color=C_GOLD, bold=True, z=z + 4)]
+    lbl_items: list[Mobject] = [txt(title_s, size=13.8, color=C_GOLD, bold=True, z=z + 4)]
     if sub_s:
-        lbl_items.append(txt(sub_s, size=10.8, color=C_WHITE, bold=True, z=z + 4))
-    lbl_grp = fit(VGroup(*lbl_items).arrange(DOWN, buff=0.04), max_w=radius * 1.56).move_to(
-        pt + DOWN * (radius * 0.34 if sub_s else radius * 0.30)
+        lbl_items.append(txt(sub_s, size=12.6, color=C_WHITE, bold=True, z=z + 4))
+    lbl_grp = fit(VGroup(*lbl_items).arrange(DOWN, buff=0.04), max_w=radius * 1.72).move_to(
+        pt + DOWN * (radius * 0.32 if sub_s else radius * 0.28)
     )
 
     body = VGroup(halo, core, inner_ring, ports, ic, lbl_grp)
@@ -428,13 +428,13 @@ def make_dark_a4_sheet(
     ).set_z_index(z + 2)
 
     top_accent = Line([left + 0.02, top - 0.02, 0], [right - fold, top - 0.02, 0], color=C_CORAL, stroke_width=4.6).set_z_index(z + 2)
-    bdg = fit(pill(badge_s, fg=C_WHITE, bg=C_CORAL, border=C_CORAL, size=11.0, px=0.10, py=0.035, z=z + 3), max_w=w - 0.32).move_to(
-        [x0 - fold * 0.18, top - 0.36, 0]
+    bdg = fit(pill(badge_s, fg=C_WHITE, bg=C_CORAL, border=C_CORAL, size=12.6, px=0.10, py=0.04, z=z + 3), max_w=w - 0.22).move_to(
+        [x0 - fold * 0.16, top - 0.35, 0]
     )
-    hdr = fit(txt(title_s, size=13.8, color=C_GOLD, bold=True, z=z + 3), max_w=w - 0.28).move_to([x0, top - 0.80, 0])
-    hdr_rule = Line([left + 0.18, top - 1.04, 0], [right - 0.18, top - 1.04, 0], color=C_GOLD_DEEP, stroke_width=1.3).set_z_index(z + 2)
+    hdr = fit(txt(title_s, size=15.4, color=C_GOLD, bold=True, z=z + 3), max_w=w - 0.18).move_to([x0, top - 0.79, 0])
+    hdr_rule = Line([left + 0.14, top - 1.04, 0], [right - 0.14, top - 1.04, 0], color=C_GOLD_DEEP, stroke_width=1.3).set_z_index(z + 2)
 
-    foot_h = 0.44
+    foot_h = 0.48
     foot_bg = Rectangle(
         width=w - 0.04,
         height=foot_h,
@@ -443,20 +443,20 @@ def make_dark_a4_sheet(
         stroke_color=C_GOLD_DEEP,
         stroke_width=1.0,
     ).move_to([x0, bot + foot_h / 2 + 0.02, 0]).set_z_index(z + 1)
-    foot_t = fit(txt(foot_s, size=10.8, color=C_MINT, bold=True, z=z + 3), max_w=w - 0.24).move_to(foot_bg)
+    foot_t = fit(txt(foot_s, size=12.6, color=C_MINT, bold=True, z=z + 3), max_w=w - 0.16).move_to(foot_bg)
 
-    avail_top = top - 1.16
-    avail_bot = bot + foot_h + 0.14
+    avail_top = top - 1.14
+    avail_bot = bot + foot_h + 0.12
     n_r = max(len(rows), 1)
     slot_step = (avail_top - avail_bot) / n_r
-    row_h = min(0.48, slot_step * 0.82)
+    row_h = min(0.52, slot_step * 0.86)
 
     row_mobs = VGroup()
     for idx, (r_col, r_txt) in enumerate(rows):
         ry = avail_top - (idx + 0.5) * slot_step
         r_box = RoundedRectangle(
             corner_radius=0.04,
-            width=w - 0.30,
+            width=w - 0.18,
             height=row_h,
             fill_color="#1C2A3A",
             fill_opacity=0.96,
@@ -470,7 +470,7 @@ def make_dark_a4_sheet(
             fill_opacity=1.0,
             stroke_width=0,
         ).move_to(r_box.get_left() + RIGHT * 0.045).set_z_index(z + 2)
-        r_lbl = fit(txt(r_txt, size=10.8, color=C_INK_0, bold=True, z=z + 3), max_w=w - 0.56).move_to(
+        r_lbl = fit(txt(r_txt, size=12.8, color=C_INK_0, bold=True, z=z + 3), max_w=w - 0.36).move_to(
             r_box.get_center() + RIGHT * 0.04
         )
         row_mobs.add(VGroup(r_box, r_bar, r_lbl))
