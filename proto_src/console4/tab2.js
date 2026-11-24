@@ -611,7 +611,7 @@ App.registerTab((function () {
   function actions() {
     return [
       ui.btn(t('actModeTable'), { sm: true, ghost: true, icon: 'table', attrs: 'id="mk-btn-tally" data-mk-modal="tally"' }),
-      ui.btn(t('mkGroupRev'), { sm: true, ghost: true, attrs: 'id="mk-btn-rev" data-mk-modal="rev"' }),
+      ui.btn(t('mkGroupRev'), { sm: true, ghost: true, icon: 'doc', attrs: 'id="mk-btn-rev" data-mk-modal="rev"' }),
     ].join('');
   }
 

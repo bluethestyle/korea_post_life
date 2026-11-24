@@ -12,14 +12,14 @@
     appTitle: '영업 분석 콘솔',
     homeTitle: '영업 분석 요약',
     homePathRoot: '전체 요약',
-    tabGraph: '관계 지도',
+    tabGraph: '관계 그래프',
     bootAria: '화면 열기 진행률',
     tabsAria: '분석 화면',
-    skinDark: '짙은 화면',
-    skinLight: '밝은 화면',
-    motionWord: '움직임',
+    skinDark: '다크 모드',
+    skinLight: '라이트 모드',
+    motionWord: '애니메이션',
     motionOn: '켬',
-    motionCalm: '절제',
+    motionCalm: '줄임',
     motionOff: '끔',
     condAria: '조건 줄',
     condOpenBtn: '조건 바꾸기',
@@ -91,10 +91,10 @@
     evCloseAria: '상세 닫기',
     evMoreBtn: '아래로 스크롤해 더 보기',
     zlSecTitle: '구역 이동',
-    footNoticeHead: '고지.',
+    footNoticeHead: '유의사항.',
     footDisclaimer: '상품요약서와 사업방법서 같은 공시 문서에서 뽑은 값으로 계산했고, 판매 시책, 수수료, 손해율, 인수 판정은 다루지 않습니다.',
     footAsof: '자료 기준',
-    footFontHead: '글꼴.',
+    footFontHead: '글꼴 라이선스',
 
     scopeAll: '전체 고객군',
     scopeAllHint: '기준 종형과 조건을 바꿔도 그대로인 값',
@@ -288,7 +288,7 @@
     mkEvApplyBtn: '이 고객군으로 조건 바꾸기',
     mkEvChangedToastTpl: '조건을 바꿨습니다: {sum}',
     mkEvRuleNote: '관문 상태는 사업방법서의 고지 질문과 가입나이로 계산했습니다. 칸에 우열을 매기지 않습니다.',
-    mkEvGraphBtn: '관계 지도에서 보기',
+    mkEvGraphBtn: '관계 그래프에서 보기',
     mkEvRevKicker: '개정 변동 상세',
     mkEvRevVars: '해당 종형',
     mkEvRevStdNoteTpl: '{target} 이어 견줬습니다. 공시 문서(상품요약서와 사업방법서)의 개정 전후를 견준 값입니다.',
@@ -313,9 +313,9 @@
     grKindPt: '영업 포인트',
     grKindNews: '소식',
     grCenterDesc: '소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야의 일곱 열을 한 홉씩 펼쳐 비교합니다.',
-    grEvTitle: '관계 지도',
+    grEvTitle: '관계 그래프',
     grEvBodyTpl: '노드를 눌러 옆 열의 이웃을 펼치거나, 연결선을 눌러 검토상태와 급부역할 같은 관계 속성을 확인합니다.',
-    grLegendTitle: '관계 지도 도형과 선 안내',
+    grLegendTitle: '관계 그래프 도형과 선 안내',
     grLgNode: '직각 칸: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽, 비교 종형에 연결이 없는 담보는 옅은 단선 윤곽), 보장분야(넓은 띠), 소식(날짜). 우체국은 왼쪽 3px 변',
     grLgEdge: '연결선: 판매와 포함(실선), 해당(승인 및 수정은 굵은 실선), 속함(가는 선), 관계(이중선), 일으킴(점선)',
   };
@@ -344,6 +344,7 @@
     [S['탭'][2]]: 'gate',
     [S['탭'][3]]: 'cover',
     [S['탭'][4]]: 'insight',
+    '관계 지도': 'graph',
     [cp('tabGraph')]: 'graph',
   };
   const TAB_BRIEF_KEY = { market: '가', gate: '다', cover: '라', insight: '마' };
@@ -795,13 +796,12 @@
     if (changed.has('since') && st.since == null && st.surg) { st.surg = false; changed.add('surg'); }
     if (changed.has('skin')) applySkin();
     if (changed.has('motion')) applyMotion();
-    if (['age', 'sex', 'since', 'surg', 'base', 'renewal'].some(k => changed.has(k)) && !opts.keepCond && condOpen) {
-      setCondOpen(false);
-    }
+    const shouldAutoCloseCond = ['age', 'sex', 'since', 'surg', 'base', 'renewal'].some(k => changed.has(k)) && !opts.keepCond && condOpen;
     if (opts.push !== false && booted) pushHistory(changed);
     if (changed.has('tab') && changed.size === 1) { showTab(st.tab, opts); return; }
     if (changed.has('tab')) showTab(st.tab, { scroll: false });
     notify(changed, opts);
+    if (shouldAutoCloseCond) setCondOpen(false);
   }
   function on(ev, fn) { (listeners[ev] || (listeners[ev] = [])).push(fn); }
   function emit(ev, ...args) { for (const fn of (listeners[ev] || [])) { try { fn(...args); } catch (e) { console.error(e); } } }
@@ -919,6 +919,9 @@
     hatch: '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="2 1.5"/><path d="M2 9L9 2" stroke="currentColor" stroke-width="1.1"/></svg>',
     arrow: '<svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 5h11M8.5 1.5L12 5 8.5 8.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
     table: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1.5" width="10" height="9" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1 4.5h10M4.5 4.5v6" stroke="currentColor" stroke-width="1.1"/></svg>',
+    doc: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1.2h5.6L10 3.6v7.2H2Z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M4 5.5h4M4 7.8h4" stroke="currentColor" stroke-width="1.1"/></svg>',
+    moon: '<svg class="tgl-ic" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M8.8 7.8A4.2 4.2 0 0 1 4.2 3.2a4.2 4.2 0 1 0 4.6 4.6Z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
+    wave: '<svg class="tgl-ic" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 6h2.2l1.4-3.2 2.4 6.4 1.6-3.2H11" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
     legend: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1.5" width="2.5" height="2.5" fill="currentColor"/><path d="M5 2.8h6M5 6h6M5 9.2h6" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="4.8" width="2.5" height="2.5" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M2.2 8l1.3 2.3H1Z" fill="currentColor"/></svg>',
   };
 
@@ -1025,7 +1028,8 @@
     const ic = o.icon ? (IC[o.icon] || o.icon) : '';
     const ch = o.chev ? IC.chevR : '';
     const at = o.attrs || '';
-    return `<button type="button" class="${cls}" ${at}>${ic}<span>${esc(text)}</span>${ch}</button>`;
+    const ttl = ic && !/aria-label=/.test(at) ? ` aria-label="${esc(text)}" title="${esc(text)}"` : '';
+    return `<button type="button" class="${cls}"${ttl} ${at}>${ic}<span>${esc(text)}</span>${ch}</button>`;
   }
 
   const TERMS = {
@@ -1047,7 +1051,8 @@
     LEGENDS[key] = { titleKey, htmlFn };
   }
   function legendBtn(key, labelText) {
-    return `<button type="button" class="btn sm ghost leg-btn" data-legend="${esc(key || 'verdict')}" aria-controls="help-pop" aria-expanded="false">${IC.legend}<span>${esc(labelText || cp('legendBtn'))}</span></button>`;
+    const lb = labelText || cp('legendBtn');
+    return `<button type="button" class="btn sm ghost leg-btn" data-legend="${esc(key || 'verdict')}" aria-controls="help-pop" aria-expanded="false" aria-label="${esc(lb)}" title="${esc(lb)}">${IC.legend}<span>${esc(lb)}</span></button>`;
   }
 
   const NOTE_HEAD = {
@@ -1217,31 +1222,185 @@
     return `${st.age}${cp('condAgeUnit')} ${sexText(st.sex)}, ${hist}`;
   }
 
+  function parseDurMs(raw, fallback) {
+    if (!raw) return fallback;
+    const s = String(raw).trim();
+    if (s.endsWith('ms')) { const v = parseFloat(s); return isNaN(v) ? fallback : v; }
+    if (s.endsWith('s')) { const v = parseFloat(s); return isNaN(v) ? fallback : v * 1000; }
+    const v = parseFloat(s);
+    return isNaN(v) ? fallback : v;
+  }
+  function panelTiming(isOpen, distPx) {
+    if (!motionOn()) return { dur: 0, easing: 'linear' };
+    const cs = getComputedStyle(document.documentElement);
+    const prop = isOpen ? '--dur-panel-open' : '--dur-panel-close';
+    let dur = parseDurMs(cs.getPropertyValue(prop), isOpen ? 400 : 320);
+    if (st.motion === 'on' && distPx && Math.abs(distPx) > 184) {
+      dur = Math.min(600, Math.max(dur, Math.ceil(1.76 * Math.abs(distPx))));
+    }
+    const easing = (cs.getPropertyValue('--ease-panel') || '').trim() || 'cubic-bezier(0.2, 0, 0.8, 1)';
+    return { dur, easing };
+  }
+
+  function belowElementsOf(bandEl) {
+    const out = [];
+    if (bandEl && bandEl.id === 'cond') {
+      const sc = $('#scope');
+      if (sc && !sc.hidden) out.push(sc);
+    }
+    const rt = $('#rtabs-wrap');
+    if (rt && !rt.hidden) out.push(rt);
+    const hp = $('#home-panel');
+    if (hp && !hp.hidden) out.push(hp);
+    const bd = $('#board');
+    if (bd && !bd.hidden) {
+      const zl = $('#z-left'), zc = $('#z-center'), zr = $('#z-right');
+      if (zl && !zl.hidden) out.push(zl);
+      if (zc) out.push(zc);
+      if (zr) out.push(zr);
+    }
+    return out;
+  }
+
+  function cancelBandAnims(el, innerEl, list) {
+    if (el && el._bandAnim) { el._bandAnim.cancel(); el._bandAnim = null; }
+    if (innerEl && innerEl._bandAnim) { innerEl._bandAnim.cancel(); innerEl._bandAnim = null; }
+    for (const b of (list || [])) {
+      if (b && b._bandShiftAnim) { b._bandShiftAnim.cancel(); b._bandShiftAnim = null; }
+    }
+  }
+
+  function animateTopBand(el, innerSel, open) {
+    if (!el) return;
+    const token = (el._bandTok = (el._bandTok || 0) + 1);
+    const below = belowElementsOf(el);
+    const innerEl = innerSel ? $(innerSel, el) : el.firstElementChild;
+    cancelBandAnims(el, innerEl, below);
+    if (!motionOn() || typeof el.animate !== 'function') {
+      el._closingBand = false;
+      el.hidden = !open;
+      placeGuides();
+      requestAnimationFrame(() => updateSelLink(false));
+      return;
+    }
+    if (open) {
+      el._closingBand = false;
+      const beforeTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      el.hidden = false;
+      let maxShift = el.offsetHeight || 0;
+      const dyMap = new Map();
+      for (const b of below) {
+        const dy = beforeTop.get(b) - b.getBoundingClientRect().top;
+        dyMap.set(b, dy);
+        if (Math.abs(dy) > maxShift) maxShift = Math.abs(dy);
+      }
+      const { dur, easing } = panelTiming(true, maxShift);
+      if (!dur) { placeGuides(); requestAnimationFrame(() => updateSelLink(false)); return; }
+      el._bandAnim = el.animate([
+        { clipPath: 'inset(0% 0% 100% 0%)' },
+        { clipPath: 'inset(0% 0% 0% 0%)' },
+      ], { duration: dur, easing });
+      if (innerEl && typeof innerEl.animate === 'function') {
+        innerEl._bandAnim = innerEl.animate([
+          { opacity: 0, offset: 0 },
+          { opacity: 0, offset: 0.45 },
+          { opacity: 1, offset: 1 },
+        ], { duration: dur, easing });
+      }
+      for (const b of below) {
+        const dy = dyMap.get(b) || 0;
+        if (Math.abs(dy) >= 0.5 && typeof b.animate === 'function') {
+          b._bandShiftAnim = b.animate([
+            { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+            { transform: 'translate3d(0,0,0)' },
+          ], { duration: dur, easing });
+        }
+      }
+      el._bandAnim.onfinish = () => {
+        if (token !== el._bandTok) return;
+        el._bandAnim = null;
+        placeGuides();
+        updateSelLink(false);
+      };
+      placeGuides();
+      requestAnimationFrame(() => updateSelLink(false));
+    } else {
+      if (el.hidden) return;
+      el._closingBand = true;
+      const curTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      const prevH = el.offsetHeight || 0;
+      el.hidden = true;
+      const targetTop = new Map(below.map(b => [b, b.getBoundingClientRect().top]));
+      el.hidden = false;
+      let maxShift = prevH;
+      for (const b of below) {
+        const dy = (targetTop.get(b) || 0) - (curTop.get(b) || 0);
+        if (Math.abs(dy) > maxShift) maxShift = Math.abs(dy);
+      }
+      const { dur, easing } = panelTiming(false, maxShift);
+      if (!dur) { el._closingBand = false; el.hidden = true; placeGuides(); return; }
+      el._bandAnim = el.animate([
+        { clipPath: 'inset(0% 0% 0% 0%)' },
+        { clipPath: 'inset(0% 0% 100% 0%)' },
+      ], { duration: dur, easing });
+      if (innerEl && typeof innerEl.animate === 'function') {
+        innerEl._bandAnim = innerEl.animate([
+          { opacity: 1, offset: 0 },
+          { opacity: 0, offset: 0.55 },
+          { opacity: 0, offset: 1 },
+        ], { duration: dur, easing });
+      }
+      for (const b of below) {
+        const dy = targetTop.get(b) - curTop.get(b);
+        if (Math.abs(dy) >= 0.5 && typeof b.animate === 'function') {
+          b._bandShiftAnim = b.animate([
+            { transform: 'translate3d(0,0,0)' },
+            { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+          ], { duration: dur, easing });
+        }
+      }
+      el._bandAnim.onfinish = () => {
+        if (token !== el._bandTok) return;
+        el._closingBand = false;
+        el._bandAnim = null;
+        cancelBandAnims(null, innerEl, below);
+        el.hidden = true;
+        placeGuides();
+        updateSelLink(false);
+      };
+    }
+  }
+
   function setCondOpen(open) {
-    condOpen = !!open;
+    const next = !!open;
+    if (condOpen === next) return;
+    condOpen = next;
     const el = $('#cond'), b = $('#cond-sum');
-    if (el) el.hidden = !condOpen;
     if (b) {
       b.setAttribute('aria-expanded', String(condOpen));
       const act = $('.act-t', b);
       if (act) act.textContent = cp(condOpen ? 'condCloseBtn' : 'condOpenBtn');
     }
-    placeGuides();
-    requestAnimationFrame(updateSelLink);
+    animateTopBand(el, '#cond-body', condOpen);
   }
   function setScopeOpen(open) {
-    scopeOpen = !!open;
+    const next = !!open;
+    if (scopeOpen === next) return;
+    scopeOpen = next;
     const el = $('#scope'), b = $('#scope-tgl');
-    if (el) el.hidden = !scopeOpen;
     if (b) b.setAttribute('aria-expanded', String(scopeOpen));
-    placeGuides();
-    requestAnimationFrame(updateSelLink);
+    animateTopBand(el, '.fade-band', scopeOpen);
   }
 
   function renderCond() {
     const mid = $('#th-mid');
     mid.innerHTML = `<div class="th-cond-line" id="cond-sum-t"></div>
-      <div class="th-cond-btns">
+      <div class="th-cond-btns" id="th-cond-btns">
+        <span class="th-act-wrap" id="th-act-wrap">
+          <button class="scope-tgl th-act-menu-btn" id="act-menu-btn" type="button" aria-expanded="false" aria-controls="th-act-btns">화면 도구 ${IC.chevD}</button>
+          <span class="th-act-btns" id="th-act-btns" role="toolbar" aria-label="화면 조작"></span>
+        </span>
+        <i class="th-sep" id="th-act-sep" aria-hidden="true"></i>
         <button class="scope-tgl" id="cond-sum" type="button" aria-expanded="false" aria-controls="cond"><span class="act-t">${esc(cp('condOpenBtn'))}</span> ${IC.chevD}</button>
         <button class="scope-tgl peer-tgl" id="peer-tgl" type="button" data-peer-pop="1" aria-controls="help-pop" aria-expanded="false"><span id="peer-tgl-t"></span> ${IC.chevD}</button>
         <button class="scope-tgl" id="scope-tgl" type="button" aria-expanded="false" aria-controls="scope">${esc(cp('scopeBtn'))} ${IC.chevD}</button>${help('scope-band', cp('scopeTitle'))}
@@ -1351,7 +1510,7 @@
         ${states}${repT}${why.concat(g.sexNote ? [g.sexNote] : []).map(w => `<span class="why">${esc(w)}</span>`).join('')}${act}</div>`;
     }
     if (!g.cell && g.sexNote) line2 += `<div class="scope-l"><span class="k">${esc(cp('scopeNoData'))}</span><span class="why">${esc(g.sexNote)}</span></div>`;
-    el.hidden = !scopeOpen;
+    if (!el._closingBand) el.hidden = !scopeOpen;
     el.innerHTML = fadeBand(line1 + line2);
   }
 
@@ -1542,7 +1701,7 @@
     const scopeRoot = tabId === 'brief' ? $('#home-panel') : (viewOf(tabId) || $('#z-center'));
     if (!scopeRoot || scopeRoot.hidden) return null;
     const el = $('[data-main-axis]', scopeRoot)
-      || $('.hm-axis-wrap, .cv-stage-axis, .cv-axis-line, .gtf-axis-head, .mk-thead, .gr-head-bar, .ins-jump', scopeRoot);
+      || $('.hm-axis-wrap, .cv-stage-axis, .cv-axis-line, .gtf-axis-head, .mk-thead, .gr-head-bar, .ins-top-bar', scopeRoot);
     if (!el) return null;
     const r = el.getBoundingClientRect();
     if (r.width < 10) return null;
@@ -1779,7 +1938,7 @@
     }
   }
 
-  // ---------- 제목, 경로(#lpath), 하단 조작 막대(#actbar) ----------
+  // ---------- 제목, 경로(#lpath), 상단 화면 단추(#th-act-btns) ----------
   function syncHeaderAndPath(c) {
     const curC = c || ctx();
     const ttl = $('#th-title');
@@ -1809,12 +1968,13 @@
   }
 
   function renderActBar(c) {
-    const box = $('#actbar-l');
+    const box = $('#th-act-btns');
+    const sep = $('#th-act-sep');
     if (!box) return;
     const curC = c || ctx();
     const btns = [];
     if (st.tab !== 'brief') {
-      btns.push(btn(cp('actBack'), { sm: true, ghost: true, attrs: 'id="act-back" data-layer-up="1"' }));
+      btns.push(btn(cp('actBack'), { sm: true, ghost: true, icon: 'chevL', attrs: 'id="act-back" data-layer-up="1"' }));
     }
     const t = tabs[st.tab];
     if (t && typeof t.actions === 'function') {
@@ -1827,6 +1987,7 @@
     const legKey = LEGENDS[st.tab] ? st.tab : 'verdict';
     btns.push(legendBtn(legKey, cp('legendBtn')));
     box.innerHTML = btns.join('');
+    if (sep) sep.hidden = btns.length === 0;
   }
 
   // ---------- 본문 무대 렌더링 ----------
@@ -1915,14 +2076,20 @@
       renderActBar(curC);
       placeGuides();
       if (snap) {
+        if (motionOn() && typeof homePanel.animate === 'function') {
+          const { dur, easing } = panelTiming(true);
+          if (dur > 0) homePanel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+        }
         playAxisBridge(snap.axis, findVisibleMainAxis('brief'));
         playReturnRingToHome(snap);
       }
       return;
     }
 
+    if (!isHome && homePanel.innerHTML) homePanel.innerHTML = '';
     const lay = boardLayoutFor(st.tab);
     board.dataset.layout = lay;
+    board.dataset.tab = st.tab;
     const zl = $('#z-left');
     if (zl) zl.hidden = lay !== 'three';
 
@@ -1981,7 +2148,18 @@
     applySelectionState(false, curC);
     renderActBar(curC);
     placeGuides();
-    if (snap) playAxisBridge(snap.axis, findVisibleMainAxis(id));
+    if (snap) {
+      if (motionOn()) {
+        const { dur, easing } = panelTiming(true);
+        if (dur > 0) {
+          if (sec && typeof sec.animate === 'function') sec.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+          const zr = $('#z-right');
+          if (zr && !zr.hidden && typeof zr.animate === 'function') zr.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+          if (zl && !zl.hidden && typeof zl.animate === 'function') zl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+        }
+      }
+      playAxisBridge(snap.axis, findVisibleMainAxis(id));
+    }
   }
 
   // ---------- 읽기 영역(.z-right), 고른 표지 미끄러짐(#sel-glide), 1px 연결선(#sel-link) ----------
@@ -2176,14 +2354,37 @@
     });
   }
 
+  let evAnimToken = 0;
+  function cancelEvAnims(zr, zrIn, body) {
+    if (zr && zr._evAnim) { zr._evAnim.cancel(); zr._evAnim = null; }
+    if (zrIn && zrIn._evAnim) { zrIn._evAnim.cancel(); zrIn._evAnim = null; }
+    if (body && body._evAnim) { body._evAnim.cancel(); body._evAnim = null; }
+    if (zr) zr._closingEv = false;
+  }
+
   function setEvPicked(spec, animate) {
     const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
     const k = $('#ev-k'), t = $('#ev-t'), b = $('#ev-b'), body = $('#ev-body');
+    const backBtn = $('#ev-back-btn');
+    const board = $('#board');
     if (!zr || !zrIn || !k || !body) return;
-    const wasPicked = zr.classList.contains('is-picked') && !zrIn.hidden;
+    evAnimToken++;
+    const wasPicked = zr.classList.contains('is-picked') && !zrIn.hidden && !zr._closingEv;
+    cancelEvAnims(zr, zrIn, body);
+    const isBand = !!(board && board.dataset.layout === 'band' && mode() !== 'sheet');
+    const beforeZrTop = (!wasPicked && isBand && animate && motionOn()) ? zr.getBoundingClientRect().top : null;
+    zr.classList.remove('has-default-panel');
     zr.classList.add('is-picked');
     if (unsel) unsel.hidden = true;
     zrIn.hidden = false;
+    if (backBtn) {
+      if (spec.backLabel) {
+        backBtn.textContent = spec.backLabel;
+        backBtn.hidden = false;
+      } else {
+        backBtn.hidden = true;
+      }
+    }
     k.textContent = spec.kicker || cp('evKickerPick');
     t.textContent = spec.title || '';
     b.innerHTML = (spec.badges || []).join('');
@@ -2192,12 +2393,34 @@
     body.scrollTop = 0;
     if (spec.after) { try { spec.after(body); } catch (e) { console.error(e); } }
     if (animate && motionOn()) {
-      if (!wasPicked) {
-        zrIn.classList.remove('ev-anim');
-        void zrIn.offsetWidth;
-        zrIn.classList.add('ev-anim');
+      const dist = isBand ? Math.max(zr.offsetHeight || 0, Math.abs((beforeZrTop != null ? beforeZrTop - zr.getBoundingClientRect().top : 0))) : 0;
+      const { dur, easing } = panelTiming(true, dist);
+      if (!wasPicked && dur > 0 && typeof zrIn.animate === 'function') {
+        if (isBand) {
+          const rawDy = beforeZrTop != null ? (beforeZrTop - zr.getBoundingClientRect().top) : 0;
+          const dy = Math.abs(rawDy) >= 1 ? Math.max(-110, Math.min(110, rawDy)) : 14;
+          zr._evAnim = zr.animate([
+            { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+            { transform: 'translate3d(0,0,0)' },
+          ], { duration: dur, easing });
+          zrIn._evAnim = zrIn.animate([
+            { transform: 'scaleY(0)', opacity: 0 },
+            { transform: 'scaleY(1)', opacity: 1 },
+          ], { duration: dur, easing });
+        } else {
+          zrIn._evAnim = zrIn.animate([
+            { opacity: 0, transform: 'translate3d(16px,0,0)' },
+            { opacity: 1, transform: 'translate3d(0,0,0)' },
+          ], { duration: dur, easing });
+        }
+        body._evAnim = body.animate([
+          { opacity: 0, offset: 0 },
+          { opacity: 0, offset: 0.42 },
+          { opacity: 1, offset: 1 },
+        ], { duration: dur, easing });
+      } else {
+        staggerEvLines(zrIn);
       }
-      staggerEvLines(zrIn);
     }
     requestAnimationFrame(() => { syncRightScrollCue(); updateSelLink(animate === true); });
   }
@@ -2232,17 +2455,80 @@
     return { text: fb, flag: '' };
   }
 
-  function showUnselectedEv(c) {
-    const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in');
-    if (!zr || !unsel) return;
-    zr.classList.remove('is-picked');
-    if (zrIn) zrIn.hidden = true;
-    unsel.hidden = false;
-    const curC = c || ctx();
+  function populateUnselectedEv(zr, unsel, curC) {
+    const tb = tabs[st.tab];
+    if (tb && typeof tb.renderDefaultRight === 'function') {
+      zr.classList.add('has-default-panel');
+      unsel.classList.add('is-custom-panel');
+      tb.renderDefaultRight(unsel, curC);
+      return;
+    }
+    zr.classList.remove('has-default-panel');
+    unsel.classList.remove('is-custom-panel');
     const info = unselectedConclusion(curC);
     const scopeBadge = (curC.peerScope !== 'all' && st.tab !== 'graph' && !(info && info.scoped)) ? ' ' + fullScopeTag() : '';
     unsel.innerHTML = info && info.text ? `<p class="read-concl">${esc(info.text)}${scopeBadge}</p>` : '';
+  }
+
+  function showUnselectedEv(c, animateClose) {
+    const zr = $('#z-right'), unsel = $('#ev-unselected'), zrIn = $('#zr-in'), body = $('#ev-body');
+    const board = $('#board');
+    if (!zr || !unsel) return;
+    const curC = c || ctx();
     clearSelLink();
+    const wasPicked = zr.classList.contains('is-picked') && zrIn && !zrIn.hidden && !zr._closingEv;
+    const isBandNow = !!(board && board.dataset.layout === 'band' && mode() !== 'sheet');
+    const { dur, easing } = panelTiming(false, isBandNow ? (zr.offsetHeight || 0) : 0);
+    if (wasPicked && animateClose && dur > 0 && mode() !== 'sheet' && typeof zrIn.animate === 'function') {
+      const token = ++evAnimToken;
+      cancelEvAnims(zr, zrIn, body);
+      zr._closingEv = true;
+      const isBand = !!(board && board.dataset.layout === 'band');
+      populateUnselectedEv(zr, unsel, curC);
+      if (isBand) {
+        const curTop = zr.getBoundingClientRect().top;
+        zr.classList.remove('is-picked');
+        zrIn.hidden = true;
+        unsel.hidden = false;
+        const targetTop = zr.getBoundingClientRect().top;
+        unsel.hidden = true;
+        zrIn.hidden = false;
+        zr.classList.add('is-picked');
+        const rawDy = targetTop - curTop;
+        const dy = Math.abs(rawDy) >= 1 ? Math.max(-110, Math.min(110, rawDy)) : 14;
+        zr._evAnim = zr.animate([
+          { transform: 'translate3d(0,0,0)' },
+          { transform: `translate3d(0,${dy.toFixed(2)}px,0)` },
+        ], { duration: dur, easing });
+        zrIn._evAnim = zrIn.animate([
+          { transform: 'scaleY(1)', opacity: 1 },
+          { transform: 'scaleY(0)', opacity: 0 },
+        ], { duration: dur, easing });
+      } else {
+        zrIn._evAnim = zrIn.animate([
+          { opacity: 1, transform: 'translate3d(0,0,0)' },
+          { opacity: 0, transform: 'translate3d(16px,0,0)' },
+        ], { duration: dur, easing });
+      }
+      zrIn._evAnim.onfinish = () => {
+        if (token !== evAnimToken) return;
+        cancelEvAnims(zr, zrIn, body);
+        zr.classList.remove('is-picked');
+        zrIn.hidden = true;
+        unsel.hidden = false;
+        populateUnselectedEv(zr, unsel, ctx());
+        if (typeof unsel.animate === 'function' && motionOn()) {
+          unsel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: Math.min(200, dur), easing });
+        }
+      };
+      return;
+    }
+    evAnimToken++;
+    cancelEvAnims(zr, zrIn, body);
+    zr.classList.remove('is-picked');
+    if (zrIn) zrIn.hidden = true;
+    unsel.hidden = false;
+    populateUnselectedEv(zr, unsel, curC);
   }
 
   function showEv(spec, o = {}) {
@@ -2256,6 +2542,22 @@
   }
   function hideEv() {
     if (!EV.open) return;
+    const zr = $('#z-right');
+    const { dur, easing } = panelTiming(false);
+    if (mode() === 'sheet' && dur > 0 && zr && typeof zr.animate === 'function') {
+      const token = ++evAnimToken;
+      const anim = zr.animate([
+        { transform: 'translate3d(0,0,0)', opacity: 1 },
+        { transform: 'translate3d(0,28px,0)', opacity: 0 },
+      ], { duration: dur, easing });
+      anim.onfinish = () => {
+        if (token !== evAnimToken) return;
+        EV.open = false;
+        document.body.classList.remove('ev-open');
+        sheetPad();
+      };
+      return;
+    }
     EV.open = false; document.body.classList.remove('ev-open');
     sheetPad();
   }
@@ -2305,12 +2607,6 @@
         $$('input[data-act="ins-pick"]', li).forEach(ck => { ck.tabIndex = -1; });
       });
     }
-    const insJumps = $$('#view-insight .ins-jump a');
-    if (insJumps.length) {
-      let onIdx = insJumps.findIndex(a => a === document.activeElement);
-      if (onIdx < 0) onIdx = 0;
-      insJumps.forEach((a, k) => { a.tabIndex = k === onIdx ? 0 : -1; });
-    }
   }
 
   function remark(id) {
@@ -2348,12 +2644,12 @@
         delete st.sel[id];
         remark(id);
         hideSelGlide();
-        showUnselectedEv(curC);
+        showUnselectedEv(curC, false);
         hideEv();
       }
     } else {
       hideSelGlide();
-      showUnselectedEv(curC);
+      showUnselectedEv(curC, animate === true);
       hideEv();
     }
     syncHeaderAndPath(curC);
@@ -2393,7 +2689,7 @@
     hideSelGlide();
     if (o.push !== false && booted && had) pushHistory(new Set(['pick']));
     const curC = ctx();
-    applySelectionState(false, curC);
+    applySelectionState(o.animate !== false && had, curC);
     hideEv();
     if (o.restoreFocus !== false && prevKey != null) {
       const root = viewOf(st.tab) || $('#z-center');
@@ -2436,15 +2732,39 @@
   // ---------- 눌러서 여는 전체 표 및 문장 창(#data-modal) ----------
   let modalTrigger = null;
   let modalRefreshFn = null;
+  let modalAnimToken = 0;
+  function cancelModalAnims(m) {
+    const sc = m && $('.dm-scrim', m);
+    const bx = m && $('.dm-box', m);
+    if (sc && sc._dmAnim) { sc._dmAnim.cancel(); sc._dmAnim = null; }
+    if (bx && bx._dmAnim) { bx._dmAnim.cancel(); bx._dmAnim = null; }
+    if (m) m._closing = false;
+  }
   function openModal(spec) {
     const m = $('#data-modal');
     if (!m || !spec) return;
-    closeHelp(false);
+    closeHelp(false, true);
+    modalAnimToken++;
+    cancelModalAnims(m);
     modalTrigger = spec.trigger || document.activeElement || null;
     modalRefreshFn = typeof spec.render === 'function' ? spec.render : null;
     const content = modalRefreshFn ? modalRefreshFn(ctx()) : spec;
     fillModal(content);
     m.hidden = false;
+    const { dur, easing } = panelTiming(true);
+    if (dur > 0) {
+      const sc = $('.dm-scrim', m);
+      const bx = $('.dm-box', m);
+      if (sc && typeof sc.animate === 'function') {
+        sc._dmAnim = sc.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing });
+      }
+      if (bx && typeof bx.animate === 'function') {
+        bx._dmAnim = bx.animate([
+          { opacity: 0, transform: 'translate3d(0,16px,0)' },
+          { opacity: 1, transform: 'translate3d(0,0,0)' },
+        ], { duration: dur, easing });
+      }
+    }
     const closeBtn = $('#dm-x', m);
     if (closeBtn) { try { closeBtn.focus({ preventScroll: true }); } catch (e) { /* */ } }
   }
@@ -2464,24 +2784,64 @@
   }
   function refreshModalIfOpen() {
     const m = $('#data-modal');
-    if (!m || m.hidden || !modalRefreshFn) return;
+    if (!m || m.hidden || m._closing || !modalRefreshFn) return;
     fillModal(modalRefreshFn(ctx()));
   }
-  function closeModal(restoreFocus) {
+  function closeModal(restoreFocus, immediate) {
     const m = $('#data-modal');
     if (!m || m.hidden) return false;
-    m.hidden = true;
-    $('#dm-body', m).innerHTML = '';
+    if (m._closing && !immediate) return true;
     modalRefreshFn = null;
     const prev = modalTrigger;
     modalTrigger = null;
     if (restoreFocus && prev && document.contains(prev)) {
       try { prev.focus({ preventScroll: true }); } catch (e) { /* */ }
     }
+    const { dur, easing } = panelTiming(false);
+    const bx = $('.dm-box', m);
+    const sc = $('.dm-scrim', m);
+    if (!immediate && dur > 0 && bx && typeof bx.animate === 'function') {
+      const token = ++modalAnimToken;
+      cancelModalAnims(m);
+      m._closing = true;
+      if (sc && typeof sc.animate === 'function') {
+        sc._dmAnim = sc.animate([{ opacity: 1 }, { opacity: 0 }], { duration: dur, easing });
+      }
+      bx._dmAnim = bx.animate([
+        { opacity: 1, transform: 'translate3d(0,0,0)' },
+        { opacity: 0, transform: 'translate3d(0,16px,0)' },
+      ], { duration: dur, easing });
+      bx._dmAnim.onfinish = () => {
+        if (token !== modalAnimToken) return;
+        cancelModalAnims(m);
+        m.hidden = true;
+        $('#dm-body', m).innerHTML = '';
+      };
+      return true;
+    }
+    modalAnimToken++;
+    cancelModalAnims(m);
+    m.hidden = true;
+    $('#dm-body', m).innerHTML = '';
+    return true;
+  }
+
+  function closeActMenu() {
+    const wrap = $('#th-act-wrap'), btnEl = $('#act-menu-btn'), box = $('#th-act-btns');
+    if (!wrap || !wrap.classList.contains('is-open')) return false;
+    if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
+    const { dur, easing } = panelTiming(false);
+    if (dur > 0 && box && typeof box.animate === 'function') {
+      const anim = box.animate([{ opacity: 1, transform: 'translate3d(0,0,0)' }, { opacity: 0, transform: 'translate3d(0,-8px,0)' }], { duration: dur, easing });
+      anim.onfinish = () => wrap.classList.remove('is-open');
+      return true;
+    }
+    wrap.classList.remove('is-open');
     return true;
   }
 
   function stepUp() {
+    if (closeActMenu()) { const mb = $('#act-menu-btn'); if (mb) mb.focus(); return true; }
     if (closeHelp(true)) return true;
     if (closeModal(true)) return true;
     if (condOpen) { setCondOpen(false); const b = $('#cond-sum'); if (b) b.focus(); return true; }
@@ -2503,9 +2863,9 @@
   }
 
   function showTab(id, opts = {}) {
-    closeModal(false);
+    closeModal(false, true);
     renderActiveScreen(ctx(new Set(['tab'])), 'tab');
-    if (opts.scroll !== false && booted) scrollTo({ top: 0, behavior: 'auto' });
+    if (opts.scroll !== false && booted && innerWidth < 1280) scrollTo({ top: 0, behavior: 'auto' });
     emit('tab', id);
   }
 
@@ -2520,19 +2880,47 @@
     emit('change', ctx(changed), opts);
   }
 
+  function scrollInZone(target, behavior) {
+    if (!target) return;
+    const sm = behavior || (motionOn() ? 'smooth' : 'auto');
+    const sc = target.closest && target.closest('#dm-body, #ev-body, #z-center, #z-left, #home-panel');
+    if (sc && (innerWidth >= 1280 || sc.scrollHeight > sc.clientHeight + 2)) {
+      const scRect = sc.getBoundingClientRect();
+      const tRect = target.getBoundingClientRect();
+      const maxTop = Math.max(0, sc.scrollHeight - sc.clientHeight);
+      const nextTop = Math.max(0, Math.min(maxTop, sc.scrollTop + (tRect.top - scRect.top) - 6));
+      sc.scrollTo({ top: nextTop, behavior: sm });
+      return;
+    }
+    const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - 40);
+    window.scrollTo({ top, behavior: sm });
+  }
+
   function reveal(el) {
     if (!el) return;
+    const sm = motionOn() ? 'smooth' : 'auto';
+    const sc = el.closest && el.closest('#dm-body, #ev-body, #z-center, #z-left, #home-panel');
+    if (sc && (innerWidth >= 1280 || sc.scrollHeight > sc.clientHeight + 2)) {
+      const scRect = sc.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const pad = 12;
+      if (r.top < scRect.top + pad) {
+        sc.scrollBy({ top: r.top - scRect.top - pad, behavior: sm });
+      } else if (r.bottom > scRect.bottom - pad) {
+        sc.scrollBy({ top: Math.min(r.bottom - scRect.bottom + pad, r.top - scRect.top - pad), behavior: sm });
+      }
+      return;
+    }
     const r = el.getBoundingClientRect();
     const top = 36;
     const bottom = innerHeight - (EV.open && mode() === 'sheet' ? $('#z-right').offsetHeight : 0) - 12;
-    const sm = motionOn() ? 'smooth' : 'auto';
     if (r.top < top) scrollBy({ top: r.top - top, behavior: sm });
     else if (r.bottom > bottom) scrollBy({ top: Math.min(r.bottom - bottom, r.top - top), behavior: sm });
   }
   function go(tabId, o = {}) {
     if (!TAB_IDS.includes(tabId)) tabId = TAB_BY_NAME[tabId] || tabId;
     if (!TAB_IDS.includes(tabId)) return;
-    closeModal(false);
+    closeModal(false, true);
     if (o.grp != null) st.grp[tabId] = o.grp;
     set({ tab: tabId });
     const nextBtn = $('#tab-' + tabId);
@@ -2635,13 +3023,17 @@
       staticBox = $('.gl-static', g);
       redTk = $('.tk.red', g);
     }
-    let html = `<i class="hl" style="top:${topY}px"></i><i class="hl" style="top:${botY}px"></i>`;
-    for (const c of centers) {
-      if (c < 0 || c > W) continue;
-      html += `<i class="gl c" style="left:${c}px"></i>`;
-      html += `<i class="tk" style="left:${c}px;top:${topY}px"></i><i class="tk" style="left:${c}px;top:${botY}px"></i>`;
+    const sig = `${W}|${H}|${topY}|${botY}|${centers.join(',')}`;
+    if (staticBox._sig !== sig) {
+      staticBox._sig = sig;
+      let html = `<i class="hl" style="top:${topY}px"></i><i class="hl" style="top:${botY}px"></i>`;
+      for (const c of centers) {
+        if (c < 0 || c > W) continue;
+        html += `<i class="gl c" style="left:${c}px"></i>`;
+        html += `<i class="tk" style="left:${c}px;top:${topY}px"></i><i class="tk" style="left:${c}px;top:${botY}px"></i>`;
+      }
+      staticBox.innerHTML = html;
     }
-    staticBox.innerHTML = html;
     const activeTab = st.tab !== 'brief' ? $('#rtabs #tab-' + st.tab) : null;
     if (redTk) {
       if (activeTab) {
@@ -2661,7 +3053,14 @@
 
   function applySkin() {
     document.documentElement.dataset.theme = st.skin;
-    const b = $('#skin'); if (b) { b.textContent = st.skin === 'dark' ? cp('skinLight') : cp('skinDark'); b.setAttribute('aria-pressed', String(st.skin === 'dark')); }
+    const b = $('#skin');
+    if (b) {
+      const tx = st.skin === 'dark' ? cp('skinLight') : cp('skinDark');
+      b.innerHTML = `${IC.moon}<span class="tgl-tx">${esc(tx)}</span>`;
+      b.setAttribute('aria-label', tx);
+      b.title = tx;
+      b.setAttribute('aria-pressed', String(st.skin === 'dark'));
+    }
     store.set(LS_SKIN, st.skin);
   }
   function applyMotion() {
@@ -2670,7 +3069,10 @@
     const b = $('#motion');
     if (b) {
       const label = st.motion === 'on' ? cp('motionOn') : st.motion === 'calm' ? cp('motionCalm') : cp('motionOff');
-      b.innerHTML = `${esc(cp('motionWord'))} <b>${esc(label)}</b>`;
+      const full = `${cp('motionWord')} ${label}`;
+      b.innerHTML = `${IC.wave}<span class="tgl-tx">${esc(cp('motionWord'))} <b>${esc(label)}</b></span>`;
+      b.setAttribute('aria-label', full);
+      b.title = full;
       b.dataset.motionMode = st.motion;
       b.setAttribute('aria-pressed', String(st.motion !== 'off'));
     }
@@ -2680,18 +3082,57 @@
 
   // ---------- 물음표 풀이, 범례, 비교 범위 팝오버, 말풍선 ----------
   let helpAnchor = null;
-  function closeHelp(restoreFocus) {
+  let helpAnimToken = 0;
+  function cancelHelpAnim(pop) {
+    if (pop && pop._popAnim) { pop._popAnim.cancel(); pop._popAnim = null; }
+    if (pop) pop._closing = false;
+  }
+  function openHelpPop(pop, btnEl) {
+    helpAnimToken++;
+    cancelHelpAnim(pop);
+    pop.hidden = false;
+    positionPop(pop, btnEl);
+    const { dur, easing } = panelTiming(true);
+    if (dur > 0 && typeof pop.animate === 'function') {
+      pop._popAnim = pop.animate([
+        { opacity: 0, transform: 'translate3d(0,-10px,0)' },
+        { opacity: 1, transform: 'translate3d(0,0,0)' },
+      ], { duration: dur, easing });
+    }
+  }
+  function closeHelp(restoreFocus, immediate) {
     const pop = $('#help-pop');
     if (!pop || pop.hidden) return false;
-    pop.hidden = true;
-    pop.classList.remove('is-leg', 'is-peer');
-    pop.innerHTML = '';
+    if (pop._closing && !immediate) return false;
     const prev = helpAnchor;
     helpAnchor = null;
     if (prev) {
       prev.setAttribute('aria-expanded', 'false');
       if (restoreFocus) { try { prev.focus(); } catch (e) { /* */ } }
     }
+    const { dur, easing } = panelTiming(false);
+    if (!immediate && dur > 0 && typeof pop.animate === 'function') {
+      const token = ++helpAnimToken;
+      cancelHelpAnim(pop);
+      pop._closing = true;
+      pop._popAnim = pop.animate([
+        { opacity: 1, transform: 'translate3d(0,0,0)' },
+        { opacity: 0, transform: 'translate3d(0,-10px,0)' },
+      ], { duration: dur, easing });
+      pop._popAnim.onfinish = () => {
+        if (token !== helpAnimToken) return;
+        cancelHelpAnim(pop);
+        pop.hidden = true;
+        pop.classList.remove('is-leg', 'is-peer');
+        pop.innerHTML = '';
+      };
+      return true;
+    }
+    helpAnimToken++;
+    cancelHelpAnim(pop);
+    pop.hidden = true;
+    pop.classList.remove('is-leg', 'is-peer');
+    pop.innerHTML = '';
     return true;
   }
   function positionPop(pop, anchor) {
@@ -2707,29 +3148,30 @@
     const item = TERMS[btnEl.dataset.help];
     if (!item) return;
     const pop = $('#help-pop');
-    if (helpAnchor === btnEl && !pop.hidden) { closeHelp(false); return; }
-    closeHelp(false);
+    if (helpAnchor === btnEl && !pop.hidden && !pop._closing) { closeHelp(false); return; }
+    closeHelp(false, true);
     helpAnchor = btnEl;
     btnEl.setAttribute('aria-expanded', 'true');
     pop.classList.remove('is-leg', 'is-peer');
-    pop.innerHTML = `<div class="help-h"><span>${esc(cp(item.titleKey))}</span><button type="button" class="help-x" data-help-close="1" aria-label="${esc(cp('legendCloseAria'))}"><svg width="11" height="11" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button></div><p class="help-p">${esc(cp(item.bodyKey))}</p>`;
-    pop.hidden = false;
-    positionPop(pop, btnEl);
+    const fontSrc = $('#font-notice-src');
+    const fontTxt = (btnEl.dataset.help === 'scope-band' && fontSrc) ? fontSrc.textContent.trim() : '';
+    const fontSec = fontTxt ? `<div class="help-sec"><strong class="help-sub">${esc(cp('footFontHead'))}</strong><p class="help-font">${esc(fontTxt)}</p></div>` : '';
+    pop.innerHTML = `<div class="help-h"><span>${esc(cp(item.titleKey))}</span><button type="button" class="help-x" data-help-close="1" aria-label="${esc(cp('legendCloseAria'))}"><svg width="11" height="11" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button></div><div class="help-sec"><p class="help-p">${esc(cp(item.bodyKey))}</p></div>${fontSec}`;
+    openHelpPop(pop, btnEl);
   }
   function toggleLegend(btnEl) {
     const key = btnEl.dataset.legend || st.tab || 'verdict';
     const spec = LEGENDS[key] || LEGENDS.verdict;
     if (!spec) return;
     const pop = $('#help-pop');
-    if (helpAnchor === btnEl && !pop.hidden) { closeHelp(false); return; }
-    closeHelp(false);
+    if (helpAnchor === btnEl && !pop.hidden && !pop._closing) { closeHelp(false); return; }
+    closeHelp(false, true);
     helpAnchor = btnEl;
     btnEl.setAttribute('aria-expanded', 'true');
     pop.classList.remove('is-peer');
     pop.classList.add('is-leg');
     pop.innerHTML = `<div class="help-h"><span>${esc(cp(spec.titleKey))}</span><button type="button" class="help-x" data-help-close="1" aria-label="${esc(cp('legendCloseAria'))}"><svg width="11" height="11" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"/></svg></button></div>${spec.htmlFn(ctx())}`;
-    pop.hidden = false;
-    positionPop(pop, btnEl);
+    openHelpPop(pop, btnEl);
   }
   function renderPeerPopBody() {
     const modes = [
@@ -2756,15 +3198,14 @@
   }
   function togglePeerPop(btnEl) {
     const pop = $('#help-pop');
-    if (helpAnchor === btnEl && !pop.hidden) { closeHelp(false); return; }
-    closeHelp(false);
+    if (helpAnchor === btnEl && !pop.hidden && !pop._closing) { closeHelp(false); return; }
+    closeHelp(false, true);
     helpAnchor = btnEl;
     btnEl.setAttribute('aria-expanded', 'true');
     pop.classList.remove('is-leg');
     pop.classList.add('is-peer');
     pop.innerHTML = renderPeerPopBody();
-    pop.hidden = false;
-    positionPop(pop, btnEl);
+    openHelpPop(pop, btnEl);
   }
 
   // ---------- 이름표(#hud-tip), 조준 표식(#aim-reticle), 문지르기([data-scrub-row]) ----------
@@ -2776,10 +3217,17 @@
     const ttl = el.dataset.tipTitle;
     const sub = el.dataset.tipSub;
     const chip = el.dataset.tipChip;
+    const chipsJson = el.dataset.tipChips;
     const badge = el.dataset.tipBadge;
-    if (ttl || sub || chip || badge) {
+    if (ttl || sub || chip || chipsJson || badge) {
       const chips = [];
-      if (chip) chips.push(verdict(chip));
+      if (chipsJson) {
+        try {
+          for (const [k, label] of JSON.parse(chipsJson)) chips.push(verdict(k, label));
+        } catch (e) { /* */ }
+      } else if (chip) {
+        chips.push(verdict(chip));
+      }
       if (badge) chips.push(tag(badge));
       return `${ttl ? `<span class="ht-t">${esc(ttl)}</span>` : ''}${sub ? `<span class="ht-s">${esc(sub)}</span>` : ''}${chips.length ? `<span class="ht-b">${chips.join('')}</span>` : ''}`;
     }
@@ -3042,6 +3490,66 @@
       if (pop && !pop.hidden) pop.innerHTML = renderPeerPopBody();
       return;
     }
+    const am = e.target.closest('#act-menu-btn');
+    if (am) {
+      e.stopPropagation();
+      const wrap = $('#th-act-wrap'), box = $('#th-act-btns');
+      if (wrap) {
+        const opening = !wrap.classList.contains('is-open');
+        if (opening) {
+          wrap.classList.add('is-open');
+          am.setAttribute('aria-expanded', 'true');
+          const { dur, easing } = panelTiming(true);
+          if (dur > 0 && box && typeof box.animate === 'function') {
+            box.animate([{ opacity: 0, transform: 'translate3d(0,-8px,0)' }, { opacity: 1, transform: 'translate3d(0,0,0)' }], { duration: dur, easing });
+          }
+        } else {
+          closeActMenu();
+        }
+      }
+      return;
+    }
+    if (!e.target.closest('#th-act-wrap')) closeActMenu();
+    else if (e.target.closest('#th-act-btns button')) setTimeout(closeActMenu, 0);
+
+    const detSum = e.target.closest('details.zr-det > summary');
+    if (detSum && motionOn()) {
+      const det = detSum.parentElement;
+      const bodyEl = det && $('.zr-det-b', det);
+      if (det && bodyEl && typeof bodyEl.animate === 'function') {
+        e.preventDefault();
+        if (det._detAnim) { det._detAnim.cancel(); det._detAnim = null; }
+        if (!det.open) {
+          det.open = true;
+          det.dispatchEvent(new Event('toggle'));
+          const { dur, easing } = panelTiming(true, bodyEl.offsetHeight || 160);
+          if (dur > 0) {
+            det._detAnim = bodyEl.animate([
+              { opacity: 0, transform: 'scaleY(0)' },
+              { opacity: 1, transform: 'scaleY(1)' },
+            ], { duration: dur, easing });
+          }
+        } else {
+          const { dur, easing } = panelTiming(false, bodyEl.offsetHeight || 160);
+          if (dur > 0) {
+            det._detAnim = bodyEl.animate([
+              { opacity: 1, transform: 'scaleY(1)' },
+              { opacity: 0, transform: 'scaleY(0)' },
+            ], { duration: dur, easing });
+            det._detAnim.onfinish = () => {
+              det._detAnim = null;
+              det.open = false;
+              det.dispatchEvent(new Event('toggle'));
+            };
+          } else {
+            det.open = false;
+            det.dispatchEvent(new Event('toggle'));
+          }
+        }
+        return;
+      }
+    }
+
     const hb = e.target.closest('[data-help]');
     if (hb) { e.stopPropagation(); toggleHelp(hb); return; }
     const lb = e.target.closest('[data-legend]');
@@ -3088,9 +3596,14 @@
     const js = e.target.closest('[data-jump-sec]');
     if (js) {
       e.stopPropagation();
-      $$('#z-left [data-jump-sec]').forEach(x => x.classList.toggle('is-on', x === js));
+      $$('#z-left [data-jump-sec]').forEach(x => {
+        const on = x === js;
+        x.classList.toggle('is-on', on);
+        x.setAttribute('aria-selected', String(on));
+      });
+      syncRovingTabindex();
       const target = document.getElementById(js.dataset.jumpSec);
-      if (target) target.scrollIntoView({ block: 'start', behavior: motionOn() ? 'smooth' : 'auto' });
+      if (target) scrollInZone(target);
       return;
     }
 
@@ -3107,7 +3620,7 @@
     const mp = e.target.closest('#dm-body [data-pick]');
     if (mp && !e.target.closest('.live')) {
       const pickKey = mp.dataset.pick;
-      closeModal(false);
+      closeModal(false, true);
       select(pickKey, { focus: true });
       return;
     }
@@ -3192,7 +3705,7 @@
       e.preventDefault();
       if (trPick.closest('#dm-body')) {
         const pk = trPick.dataset.pick;
-        closeModal(false);
+        closeModal(false, true);
         select(pk, { focus: true });
       } else {
         select(trPick.dataset.pick, { focus: true });
@@ -3266,6 +3779,8 @@
       set({ motion: next });
     });
     $('#ev-x').addEventListener('click', () => unselect({ restoreFocus: true }));
+    const evBackBtn = $('#ev-back-btn');
+    if (evBackBtn) evBackBtn.addEventListener('click', () => unselect({ restoreFocus: true }));
     const rtabsEl = $('#rtabs'), rtCueL = $('#rt-cue-l'), rtCueR = $('#rt-cue-r');
     if (rtabsEl) {
       rtabsEl.addEventListener('scroll', () => { syncRtabsCue(false); placeGuides(); }, { passive: true });
@@ -3309,7 +3824,7 @@
   window.App = {
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
-    set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal,
+    set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal, scrollInZone, panelTiming,
     openModal, closeModal, updateSelLink, flipElement, countUp,
     aim: { set: setAimTarget, hide: hideAimReticle, showTip: showHudTip, hideTip: hideHudTip },
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },

@@ -4,6 +4,9 @@
 .home-panel[hidden]{display:none!important}
 
 .hm-stage{display:grid;grid-template-rows:62% 38%;min-height:clamp(540px,calc(100vh - 216px),700px)}
+@media (min-width:1280px){
+  .hm-stage{min-height:100%;height:100%;grid-template-rows:minmax(270px,62%) minmax(0,38%)}
+}
 .hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.44fr 1.04fr 1.02fr 0.98fr 0.76fr;
   align-items:stretch;border-bottom:2px solid var(--axis);padding-left:28px}
 .hm-ruler{height:124px;left:0;bottom:0}
@@ -43,8 +46,10 @@
 .hm-read-main{margin:0;max-width:1280px;font:400 15.5px/1.62 var(--f-body);color:var(--ink-0);word-break:keep-all}
 .hm-read-sub{margin:0;max-width:1280px;font:400 13.5px/1.58 var(--f-body);color:var(--ink-1);word-break:keep-all}
 
-@media (max-width:1599px) and (min-width:1000px){
+@media (max-width:1279px) and (min-width:1000px){
   .hm-stage{min-height:clamp(490px,calc(100vh - 204px),640px)}
+}
+@media (max-width:1599px) and (min-width:1000px){
   .hm-grp{padding:12px 12px 0}
   .hm-big{font-size:46px}
   .hm-big-empty{height:46px}
