@@ -222,6 +222,80 @@ def build_world_grid(span_x: float = 11.0, span_y: float = 6.5) -> VGroup:
     return grid
 
 
+def floor_grid_3d(
+    x_min: float,
+    x_max: float,
+    y_min: float,
+    y_max: float,
+    z_val: float = 0.0,
+    step_x: float = 1.0,
+    step_y: float = 1.0,
+    col: str = C_CYAN_DIM,
+) -> VGroup:
+    """삼차원 공간 바닥 기준 격자."""
+    plate = Rectangle(
+        width=x_max - x_min,
+        height=y_max - y_min,
+        fill_color="#0A121B",
+        fill_opacity=0.72,
+        stroke_color=col,
+        stroke_width=1.4,
+        stroke_opacity=0.65,
+    ).move_to([(x_min + x_max) / 2, (y_min + y_max) / 2, z_val])
+    lines = VGroup()
+    for x in np.arange(x_min, x_max + 1e-4, step_x):
+        lines.add(Line([x, y_min, z_val], [x, y_max, z_val], color=col, stroke_width=0.9, stroke_opacity=0.38))
+    for y in np.arange(y_min, y_max + 1e-4, step_y):
+        lines.add(Line([x_min, y, z_val], [x_max, y, z_val], color=col, stroke_width=0.9, stroke_opacity=0.38))
+    return VGroup(plate, lines)
+
+
+def pillar_3d(
+    x: float,
+    y: float,
+    w: float,
+    d: float,
+    h: float,
+    base_z: float = 0.0,
+    col: str = C_CYAN,
+    opacity: float = 0.80,
+    stroke_col: str | None = None,
+    sw: float = 1.3,
+) -> Prism:
+    """바닥 높이 base_z 에서 위로 솟는 삼차원 기둥."""
+    eff_h = max(h, 0.04)
+    return Prism(
+        dimensions=[w, d, eff_h],
+        fill_color=col,
+        fill_opacity=opacity,
+        stroke_color=stroke_col if stroke_col is not None else col,
+        stroke_width=sw,
+    ).move_to([x, y, base_z + eff_h / 2])
+
+
+def glass_plane_3d(
+    cx: float,
+    cy: float,
+    z_val: float,
+    w: float,
+    d: float,
+    col: str,
+    fill_op: float = 0.16,
+    sw: float = 2.0,
+) -> RoundedRectangle:
+    """삼차원 공간을 가로지르는 반투명 수평 기준면."""
+    return RoundedRectangle(
+        corner_radius=0.10,
+        width=w,
+        height=d,
+        fill_color=col,
+        fill_opacity=fill_op,
+        stroke_color=col,
+        stroke_width=sw,
+        stroke_opacity=0.90,
+    ).move_to([cx, cy, z_val])
+
+
 def build_hud_chrome() -> VGroup:
     """상하단 고정 자막 배경 바."""
     top_bar = Rectangle(width=14.6, height=0.74, fill_color="#05080C", fill_opacity=0.96, stroke_width=0).move_to([0, 3.65, 0])
@@ -296,6 +370,13 @@ class PostLifeBaseScene(ThreeDScene):
 
     def remove_billboard(self, *mobs: Mobject) -> None:
         self.remove_fixed_orientation_mobjects(*mobs)
+        self.remove(*mobs)
+
+    def register_billboards(self, *mobs: Mobject) -> None:
+        self.renderer.camera.add_fixed_orientation_mobjects(*mobs)
+
+    def clear_billboards(self, *mobs: Mobject) -> None:
+        self.renderer.camera.remove_fixed_orientation_mobjects(*mobs)
         self.remove(*mobs)
 
     def make_hud(self, ch_num: int, title: str, subtitle: str) -> tuple[VGroup, VGroup, VGroup]:

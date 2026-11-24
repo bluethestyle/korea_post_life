@@ -9,6 +9,7 @@ from common import (
     C_CORAL,
     C_CORAL_DIM,
     C_CYAN,
+    C_CYAN_DIM,
     C_DARK_INK,
     C_GOLD,
     C_GOLD_DEEP,
@@ -26,8 +27,10 @@ from common import (
     cross_mark,
     fact,
     fit,
+    floor_grid_3d,
     glow_dot,
     num,
+    pillar_3d,
     pill,
     txt,
 )
@@ -42,6 +45,8 @@ class Part1ServiceScene(PostLifeBaseScene):
         peer_site_names = ", ".join(org_names[o] for o in fact("site_orgs") if o != "EPOST")
         target_counts = fact("comparison_target_counts")
         target_total = sum(target_counts.values())
+        site_org_cnt = fact("site_org_count")
+        prod_org_cnt = fact("product_org_count")
         hw_pages = fact("hanwha_summary_pages")
         img_pages = fact("image_doc", "pages")
 
@@ -81,82 +86,181 @@ class Part1ServiceScene(PostLifeBaseScene):
         hl, hr, hb = self.make_hud(
             1,
             "우리가 만들려는 서비스: 공시 문서 비교 화면과 현장 응대 카드",
-            f"정밀 비교 대상 {num(target_total)}곳의 공시 문서를 같은 기준으로 맞추고, 본부 판단을 창구 응대 카드까지 잇습니다",
+            f"화면에 올린 {num(site_org_cnt)}개 회사(사본 {num(prod_org_cnt)}곳)의 공시 문서를 같은 기준으로 맞추고 창구 응대 카드까지 잇습니다",
         )
 
-        self.set_camera_orientation(phi=54 * DEGREES, theta=-54 * DEGREES, zoom=0.92, frame_center=[-0.6, 0.0, 0.2])
+        # -------------------------------------------------------------------
+        # Beat 1A-1: True 3D Document Canyon (X=회사군, Y=문서 종류, Z=실측 쪽수 비례 높이)
+        # -------------------------------------------------------------------
+        base_z = -0.95
+        canyon_floor = floor_grid_3d(-4.6, 4.6, -1.8, 1.8, z_val=base_z, step_x=1.15, step_y=0.90, col=C_CYAN_DIM)
 
-        monoliths = VGroup()
-        tower_specs = [
-            (-5.25, 1.05, 1.85, C_CYAN),
-            (-4.45, 1.10, 2.25, C_AMBER),
-            (-3.68, 0.95, 1.40, C_SLATE),
-            (-5.20, 0.08, 1.55, C_VIOLET),
-            (-4.40, 0.05, 1.95, C_CYAN),
-            (-3.65, 0.02, 1.25, C_SLATE),
-            (-5.15, -0.92, 1.35, C_SLATE),
-            (-4.35, -0.95, 1.70, C_GOLD),
-            (-3.60, -0.90, 1.15, C_VIOLET),
-        ]
-        for tx, ty, th, tcol in tower_specs:
-            pr = Prism(
-                dimensions=[0.56, 0.56, th],
-                fill_color=tcol,
-                fill_opacity=0.38 if tcol != C_SLATE else 0.26,
-                stroke_color=tcol,
-                stroke_width=1.3,
-            ).move_to([tx, ty, th / 2])
-            monoliths.add(pr)
+        h_hw = 2.55
+        h_img = h_hw * (img_pages / hw_pages)
+        h_ref = 0.72
 
-        doc_tag_top = fit(
-            pill(f"정밀 비교 대상 {num(target_total)}곳, 한화생명 요약서 {num(hw_pages)}쪽", fg=C_AMBER, bg=C_PANEL_HI, border=C_AMBER, size=9.8, px=0.10, py=0.04, z=9),
-            max_w=2.95,
-        ).move_to([-4.45, 1.88, 0])
-        doc_tag_img = fit(
-            pill(f"글자가 그림으로 든 요약서 {num(img_pages)}쪽", fg=C_VIOLET, bg=C_PANEL_HI, border=C_VIOLET, size=9.8, px=0.10, py=0.04, z=9),
-            max_w=2.95,
-        ).move_to([-4.45, -1.80, 0])
+        bg_towers = VGroup()
+        for gx in [-3.85, -2.55, 0.15, 2.75, 3.95]:
+            for gy in [0.88, -0.88]:
+                bg_towers.add(
+                    pillar_3d(gx, gy, 0.62, 0.54, h_ref, base_z=base_z, col=C_SLATE, opacity=0.22, stroke_col=C_SLATE, sw=1.0)
+                )
+
+        tower_hw = pillar_3d(-1.25, 0.88, 0.84, 0.72, h_hw, base_z=base_z, col=C_AMBER, opacity=0.78, stroke_col=WHITE, sw=1.6)
+        tower_img = pillar_3d(1.45, -0.88, 0.84, 0.72, h_img, base_z=base_z, col=C_VIOLET, opacity=0.78, stroke_col=WHITE, sw=1.6)
+        tower_ep = pillar_3d(-1.25, -0.88, 0.74, 0.64, h_ref, base_z=base_z, col=C_GOLD, opacity=0.45, stroke_col=C_GOLD, sw=1.3)
+        tower_sf = pillar_3d(1.45, 0.88, 0.74, 0.64, h_ref, base_z=base_z, col=C_CYAN, opacity=0.45, stroke_col=C_CYAN, sw=1.3)
+
+        hw_slabs = VGroup(
+            *[
+                Line(
+                    [-1.67, 0.50, base_z + (k + 1) * (h_hw / 6)],
+                    [-0.83, 0.50, base_z + (k + 1) * (h_hw / 6)],
+                    color=WHITE,
+                    stroke_width=1.1,
+                    stroke_opacity=0.55,
+                )
+                for k in range(5)
+            ]
+        )
+        img_slabs = VGroup(
+            *[
+                Line(
+                    [1.03, -1.26, base_z + (k + 1) * (h_img / 4)],
+                    [1.87, -1.26, base_z + (k + 1) * (h_img / 4)],
+                    color=WHITE,
+                    stroke_width=1.1,
+                    stroke_opacity=0.55,
+                )
+                for k in range(3)
+            ]
+        )
 
         tangle_3d = VGroup(
-            CubicBezier([-3.45, 0.95, 1.3], [-2.55, 1.25, 1.8], [-2.10, -0.45, 0.6], [-2.20, 0.55, 0.0], color=C_CORAL, stroke_width=2.2),
-            CubicBezier([-3.45, 0.05, 1.6], [-2.50, -0.95, 1.1], [-2.05, 0.95, 0.5], [-2.20, 0.10, 0.0], color=C_AMBER, stroke_width=2.2),
-            CubicBezier([-3.45, -0.85, 1.1], [-2.50, 0.45, 1.4], [-2.10, -0.85, 0.4], [-2.20, -0.40, 0.0], color=C_VIOLET, stroke_width=2.0),
+            CubicBezier(
+                [-1.25, 0.88, base_z + h_hw],
+                [-0.20, 1.35, base_z + h_hw + 0.55],
+                [0.55, -0.35, base_z + h_img + 0.45],
+                [1.45, -0.88, base_z + h_img],
+                color=C_CORAL,
+                stroke_width=2.6,
+            ),
+            CubicBezier(
+                [-1.25, -0.88, base_z + h_ref],
+                [-0.10, -0.15, base_z + 1.65],
+                [0.55, 0.55, base_z + 1.45],
+                [1.45, 0.88, base_z + h_ref],
+                color=C_CYAN,
+                stroke_width=2.2,
+            ),
+            CubicBezier(
+                [-2.55, 0.88, base_z + h_ref],
+                [-1.65, -0.10, base_z + 1.55],
+                [0.25, -1.10, base_z + 1.35],
+                [2.75, 0.88, base_z + h_ref],
+                color=C_AMBER,
+                stroke_width=2.0,
+            ),
         )
 
+        bb_hw = fit(
+            pill(f"한화생명 요약서 {num(hw_pages)}쪽", fg=C_DARK_INK, bg=C_AMBER, border=WHITE, size=10.2, px=0.10, py=0.04, z=14),
+            max_w=2.65,
+        ).move_to([-1.25, 0.88, base_z + h_hw + 0.34])
+        bb_img = fit(
+            pill(f"글자가 그림으로 든 요약서 {num(img_pages)}쪽", fg=WHITE, bg=C_VIOLET, border=WHITE, size=10.0, px=0.10, py=0.04, z=14),
+            max_w=3.05,
+        ).move_to([1.45, -0.88, base_z + h_img + 0.34])
+        bb_row_sum = pill("앞뒤 열: 상품요약서", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=9.2, px=0.09, py=0.03, z=12).move_to([-4.15, 1.35, base_z + 0.22])
+        bb_row_biz = pill("앞뒤 열: 사업방법서", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=9.2, px=0.09, py=0.03, z=12).move_to([-4.15, -1.35, base_z + 0.22])
+        canyon_bbs = [bb_hw, bb_img, bb_row_sum, bb_row_biz]
+
+        canyon_hud_top = fit(
+            pill(
+                f"정밀 비교 대상으로 정한 {num(target_total)}곳(총자산 기사 기준, 공식 순위 미확정, 현재 화면 {num(site_org_cnt)}곳, 사본 {num(prod_org_cnt)}곳): 요약서 쪽수 비교 (회색 기둥은 예시 그림)",
+                fg=C_GOLD,
+                bg=C_PANEL_HI,
+                border=C_GOLD_DEEP,
+                size=9.6,
+                z=25,
+            ),
+            max_w=11.95,
+        ).move_to([0.0, 2.66, 0])
+
+        self.set_camera_orientation(phi=60 * DEGREES, theta=-62 * DEGREES, zoom=0.98, frame_center=[0.0, 0.0, 0.15])
+        self.register_billboards(*canyon_bbs)
+        self.add_fixed_in_frame_mobjects(canyon_hud_top)
+
+        canyon_3d_grp = VGroup(canyon_floor, bg_towers, tower_ep, tower_sf, tower_hw, tower_img, hw_slabs, img_slabs, tangle_3d)
+        self.show_initial_hud(
+            hl,
+            hr,
+            hb,
+            extra_anims=[
+                FadeIn(canyon_floor),
+                LaggedStart(*[FadeIn(bt, shift=OUT * 0.25) for bt in bg_towers], lag_ratio=0.03),
+                FadeIn(VGroup(tower_ep, tower_sf), shift=OUT * 0.30),
+                FadeIn(VGroup(tower_hw, hw_slabs), shift=OUT * 0.45),
+                FadeIn(VGroup(tower_img, img_slabs), shift=OUT * 0.35),
+                FadeIn(VGroup(*canyon_bbs)),
+                FadeIn(canyon_hud_top, shift=DOWN * 0.08),
+            ],
+            rt=1.15,
+        )
+        self.cam_move(
+            phi=52 * DEGREES,
+            theta=-26 * DEGREES,
+            zoom=1.04,
+            center=[0.10, 0.0, 0.20],
+            anims=[Create(tangle_3d, lag_ratio=0.12)],
+            rt=1.35,
+        )
+        self.wait(0.45)
+
+        # -------------------------------------------------------------------
+        # Beat 1A-2: Pure 2D Comparison Mismatch & Counter Chasm (phi=0)
+        # -------------------------------------------------------------------
         chamber = RoundedRectangle(
-            corner_radius=0.10, width=3.68, height=3.68, fill_color=C_PANEL, fill_opacity=0.94, stroke_color=C_CORAL, stroke_width=2.0
-        ).move_to([-0.42, 0.12, 0]).set_z_index(3)
-        ch_hdr = fit(pill("왜 비교가 어렵나: 회사마다 기준과 표기가 다름", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=10.2, z=7), max_w=3.42).move_to([-0.42, 1.62, 0])
+            corner_radius=0.10, width=6.10, height=3.82, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=C_CORAL, stroke_width=2.0
+        ).move_to([-2.65, 0.14, 0]).set_z_index(3)
+        ch_hdr = fit(
+            pill("왜 비교가 어렵나: 회사마다 고지 질문, 담보 단위, 지급액 표기가 다름", fg=C_CORAL, bg=C_CORAL_DIM, border=C_CORAL, size=10.6, z=7),
+            max_w=5.75,
+        ).move_to([-2.65, 1.66, 0])
 
         mis_rows = VGroup()
         mis_lefts, mis_rights = [], []
         for my, l_s, l_c, r_s, r_c, sub_s in [
-            (0.78, f"{epost_name}: 입원만 질문", C_GOLD, f"{peer_site_names}: 입원 또는 수술", C_CYAN, "간편심사 고지 질문 범위가 다름"),
-            (-0.12, "상대: 뇌·심장질환 수술비", C_VIOLET, f"{epost_name}: 뇌혈관, 심장 분리", C_MINT, "특약을 묶거나 나눈 단위가 다름"),
+            (0.82, f"{epost_name}: 입원만 질문", C_GOLD, f"{peer_site_names}: 입원 또는 수술", C_CYAN, "간편심사 고지 질문 범위가 다름"),
+            (-0.10, "상대: 뇌·심장질환 수술비", C_VIOLET, f"{epost_name}: 뇌혈관, 심장 분리", C_MINT, "특약을 묶거나 나눈 단위가 다름"),
             (-1.02, f"기준 {num(basis_mw)}만에 지급 {num(pay_new_mw)}만", C_GOLD, f"{org_names['SAMSUNGFIRE']}: 가입금액의 N%", C_AMBER, "지급액을 금액 또는 가입금액비율로 표기"),
         ]:
-            lp = fit(pill(l_s, fg=l_c, bg=C_PANEL_HI, border=l_c, size=9.2, px=0.07, py=0.04, z=7), max_w=1.54).move_to([-1.34, my + 0.08, 0])
-            rp = fit(pill(r_s, fg=r_c, bg=C_PANEL_HI, border=r_c, size=9.2, px=0.07, py=0.04, z=7), max_w=1.54).move_to([0.50, my + 0.08, 0])
-            neq = txt("≠", size=16, color=C_CORAL, bold=True, z=8).move_to([-0.42, my + 0.08, 0])
-            st = fit(txt(sub_s, size=9.0, color=C_INK_1, z=7), max_w=3.36).move_to([-0.42, my - 0.28, 0])
+            lp = fit(pill(l_s, fg=l_c, bg=C_PANEL_HI, border=l_c, size=9.8, px=0.09, py=0.04, z=7), max_w=2.48).move_to([-4.18, my + 0.08, 0])
+            rp = fit(pill(r_s, fg=r_c, bg=C_PANEL_HI, border=r_c, size=9.8, px=0.09, py=0.04, z=7), max_w=2.48).move_to([-1.12, my + 0.08, 0])
+            neq = txt("≠", size=17, color=C_CORAL, bold=True, z=8).move_to([-2.65, my + 0.08, 0])
+            st = fit(txt(sub_s, size=9.4, color=C_INK_1, z=7), max_w=5.55).move_to([-2.65, my - 0.28, 0])
             mis_lefts.append(lp)
             mis_rights.append(rp)
             mis_rows.add(VGroup(lp, neq, rp, st))
 
-        brk_l = Line([1.46, 0.12, 0], [2.12, 0.12, 0], color=C_CORAL, stroke_width=3.2).set_z_index(6)
-        brk_r = Line([2.68, 0.12, 0], [3.38, 0.12, 0], color=C_SLATE, stroke_width=3.2).set_z_index(6)
-        chasm_x = cross_mark([2.40, 0.12, 0], size=0.18, color=C_CORAL, sw=3.6, z=10)
-        chasm_lbl = pill("창구 전달 끊김", fg=C_CORAL, bg=C_PANEL_HI, border=C_CORAL, size=9.8, px=0.09, py=0.03, z=9).move_to([2.40, 0.62, 0])
+        brk_l = Line([0.48, 0.14, 0], [1.28, 0.14, 0], color=C_CORAL, stroke_width=3.2).set_z_index(6)
+        brk_r = Line([1.88, 0.14, 0], [2.68, 0.14, 0], color=C_SLATE, stroke_width=3.2).set_z_index(6)
+        chasm_x = cross_mark([1.58, 0.14, 0], size=0.18, color=C_CORAL, sw=3.6, z=10)
+        chasm_lbl = pill("창구 전달 끊김", fg=C_CORAL, bg=C_PANEL_HI, border=C_CORAL, size=10.0, px=0.10, py=0.04, z=9).move_to([1.58, 0.66, 0])
 
-        field_ring = RoundedRectangle(corner_radius=0.10, width=2.48, height=3.68, fill_color=C_PANEL, fill_opacity=0.94, stroke_color=C_SLATE, stroke_width=1.8).move_to([4.68, 0.12, 0]).set_z_index(3)
-        field_hdr = pill("창구, 설계사 현장", fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=10.8, z=7).move_to([4.68, 1.62, 0])
-        p_head = Circle(radius=0.20, fill_color=C_PANEL_HI, fill_opacity=1.0, stroke_color=C_INK_1, stroke_width=2.0).move_to([4.15, 0.68, 0]).set_z_index(6)
-        p_body = Arc(radius=0.32, start_angle=0, angle=PI, color=C_INK_1, stroke_width=2.2).move_to([4.15, 0.25, 0]).set_z_index(6)
-        q_bub = RoundedRectangle(corner_radius=0.08, width=1.18, height=0.58, fill_color=C_CORAL_DIM, fill_opacity=0.95, stroke_color=C_CORAL, stroke_width=1.8).move_to([5.08, 0.68, 0]).set_z_index(7)
-        q_txt = txt("청약 기준은?", size=10.0, color=C_CORAL, bold=True, z=8).move_to(q_bub)
-        warn_tri = RegularPolygon(n=3, fill_color="#3D2B0D", fill_opacity=0.95, stroke_color=C_AMBER, stroke_width=2.0).scale(0.32).move_to([4.68, -0.45, 0]).set_z_index(7)
+        field_ring = RoundedRectangle(
+            corner_radius=0.10, width=3.02, height=3.82, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=C_SLATE, stroke_width=1.8
+        ).move_to([4.26, 0.14, 0]).set_z_index(3)
+        field_hdr = pill("창구, 설계사 현장", fg=C_INK_0, bg=C_PANEL_HI, border=C_SLATE, size=11.0, z=7).move_to([4.26, 1.66, 0])
+        p_head = Circle(radius=0.20, fill_color=C_PANEL_HI, fill_opacity=1.0, stroke_color=C_INK_1, stroke_width=2.0).move_to([3.58, 0.70, 0]).set_z_index(6)
+        p_body = Arc(radius=0.32, start_angle=0, angle=PI, arc_center=[3.58, 0.22, 0], color=C_INK_1, stroke_width=2.2).set_z_index(6)
+        q_bub = RoundedRectangle(
+            corner_radius=0.08, width=1.42, height=0.60, fill_color=C_CORAL_DIM, fill_opacity=0.95, stroke_color=C_CORAL, stroke_width=1.8
+        ).move_to([4.72, 0.70, 0]).set_z_index(7)
+        q_txt = txt("청약 기준은?", size=10.4, color=C_CORAL, bold=True, z=8).move_to(q_bub)
+        warn_tri = RegularPolygon(n=3, fill_color="#3D2B0D", fill_opacity=0.95, stroke_color=C_AMBER, stroke_width=2.0).scale(0.32).move_to([4.26, -0.44, 0]).set_z_index(7)
         warn_bang = txt("!", size=15, color=C_AMBER, bold=True, z=8).move_to(warn_tri.get_center() + DOWN * 0.04)
-        warn_cap = fit(txt("근거 문서와 쪽수 없이 구두 안내 위험", size=9.6, color=C_AMBER, bold=True, z=7), max_w=2.24).move_to([4.68, -1.12, 0])
+        warn_cap = fit(txt("근거 문서와 쪽수 없이 구두 안내 위험", size=10.0, color=C_AMBER, bold=True, z=7), max_w=2.72).move_to([4.26, -1.14, 0])
         field_vis = VGroup(field_ring, field_hdr, p_head, p_body, q_bub, q_txt, warn_tri, warn_bang, warn_cap)
 
         foot_1a = fit(
@@ -164,66 +268,55 @@ class Part1ServiceScene(PostLifeBaseScene):
             max_w=11.85,
         ).move_to([0.0, -2.55, 0])
 
-        self.show_initial_hud(
-            hl,
-            hr,
-            hb,
-            extra_anims=[
-                LaggedStart(*[FadeIn(m, shift=OUT * 0.4) for m in monoliths], lag_ratio=0.06),
-                Create(tangle_3d, lag_ratio=0.12),
-                FadeIn(VGroup(chamber, ch_hdr)),
-                FadeIn(VGroup(brk_l, brk_r, chasm_x, field_vis)),
-            ],
-            rt=1.25,
-        )
-
         self.cam_move(
             phi=0 * DEGREES,
             theta=-90 * DEGREES,
-            zoom=1.56,
-            center=[-0.42, 0.12, 0],
+            zoom=1.32,
+            center=[-2.65, 0.14, 0],
             anims=[
-                LaggedStart(*[FadeIn(mr, scale=0.9) for mr in mis_rows], lag_ratio=0.14),
-                FadeIn(doc_tag_top),
-                FadeIn(doc_tag_img),
+                FadeOut(canyon_3d_grp),
+                FadeOut(VGroup(*canyon_bbs)),
+                FadeOut(canyon_hud_top),
+                FadeIn(VGroup(chamber, ch_hdr)),
+                LaggedStart(*[FadeIn(mr, scale=0.92) for mr in mis_rows], lag_ratio=0.12),
+                FadeIn(VGroup(brk_l, brk_r, chasm_x, field_vis)),
             ],
-            rt=1.25,
+            rt=1.10,
         )
+        self.clear_billboards(*canyon_bbs)
+        self.remove_fixed_in_frame_mobjects(canyon_hud_top)
+        self.remove(canyon_3d_grp, canyon_hud_top)
+
         self.play(
             *[lp.animate.shift(RIGHT * 0.12) for lp in mis_lefts],
             *[rp.animate.shift(LEFT * 0.12) for rp in mis_rights],
             rate_func=there_and_back,
-            run_time=0.60,
+            run_time=0.55,
         )
-        self.wait(0.95)
+        self.wait(0.65)
 
-        dead_sig = glow_dot([1.46, 0.12, 0], color=C_GOLD, r=0.065, z=12)
+        dead_sig = glow_dot([0.48, 0.14, 0], color=C_GOLD, r=0.065, z=12)
         self.add(dead_sig)
         self.cam_move(
-            zoom=1.48,
-            center=[3.55, 0.12, 0],
+            zoom=1.36,
+            center=[2.95, 0.14, 0],
             anims=[
-                MoveAlongPath(dead_sig, Line([1.46, 0.12, 0], [2.36, 0.12, 0])),
+                MoveAlongPath(dead_sig, Line([0.48, 0.14, 0], [1.52, 0.14, 0])),
                 FadeIn(chasm_lbl, shift=UP * 0.06),
-                Flash([2.40, 0.12, 0], color=C_CORAL, line_length=0.22, num_lines=8),
+                Flash([1.58, 0.14, 0], color=C_CORAL, line_length=0.22, num_lines=8),
             ],
-            rt=1.10,
+            rt=1.00,
         )
-        self.play(FadeOut(dead_sig, scale=0.2), Circumscribe(q_bub, color=C_CORAL, stroke_width=2.2, buff=0.04), run_time=0.50)
+        self.play(FadeOut(dead_sig, scale=0.2), Circumscribe(q_bub, color=C_CORAL, stroke_width=2.2, buff=0.04), run_time=0.45)
         self.remove(dead_sig)
-        self.wait(0.80)
+        self.reset_cam_2d(anims=[FadeIn(foot_1a, shift=UP * 0.08)], rt=0.80)
 
-        self.reset_cam_2d(anims=[FadeIn(foot_1a, shift=UP * 0.08)], rt=0.90)
-        beat1a_all = VGroup(
-            monoliths, doc_tag_top, doc_tag_img, tangle_3d,
-            chamber, ch_hdr, mis_rows,
-            brk_l, brk_r, chasm_x, chasm_lbl, field_vis, foot_1a,
-        )
-        self.check_bounds(VGroup(doc_tag_top, chamber, field_vis, foot_1a), "CH1A PAIN MACRO")
-        self.wait(1.60)
+        beat1a_all = VGroup(chamber, ch_hdr, mis_rows, brk_l, brk_r, chasm_x, chasm_lbl, field_vis, foot_1a)
+        self.check_bounds(beat1a_all, "CH1A PAIN MACRO")
+        self.wait(1.30)
 
         # -------------------------------------------------------------------
-        # Beat 1B: Service Flow (Refinery -> HQ Screen -> A4 Card)
+        # Beat 1B: Pure 2D Service Flow (Refinery -> HQ Screen -> A4 Card)
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
@@ -411,7 +504,7 @@ class Part1ServiceScene(PostLifeBaseScene):
         self.wait(1.80)
 
         # ===================================================================
-        # 2장: 구현한 운영 화면 구성
+        # 2장: 구현한 운영 화면 구성 (Pure 2D 정면 다이얼 + 화면 카드 패닝)
         # ===================================================================
         hl, hr, hb = self.switch_hud(
             ch1_stage,
@@ -419,15 +512,15 @@ class Part1ServiceScene(PostLifeBaseScene):
             hr,
             hb,
             2,
-            f"구현한 {num(scr_cnt)}개 화면: 기준 조건으로 함께 바뀌는 구성",
-            f"대표 조건과 기준 종형을 고르면 {num(scr_cnt)}개 화면이 같은 사본 기준으로 맞춰집니다 (화면 기준 세 회사)",
+            f"구현한 운영 화면 {num(scr_cnt)}개: 조건 연동 화면과 조건 무관 화면",
+            f"가입 관문, 담보 비교와 빈자리 특약, 조합 지급액, 개정 전후 비교는 고른 조건을 따르고, 이번 주 달라진 점과 AI 작업 내역은 조건과 무관합니다 (화면 {num(site_org_cnt)}개 회사, 브리핑 문장은 대표 조건 계산값)",
         )
 
         hub_c = np.array([0.0, 0.22, 0.0])
-        hub_orbit_3d = Circle(radius=1.24, fill_opacity=0.0, stroke_color=C_GOLD_DEEP, stroke_width=1.8).rotate(PI / 5, axis=RIGHT).move_to(hub_c + OUT * 0.22)
+        hub_halo = Circle(radius=1.18, fill_opacity=0.0, stroke_color=C_GOLD_DEEP, stroke_width=1.4, stroke_opacity=0.65).move_to(hub_c).set_z_index(6)
         hub_outer_ring = DashedVMobject(Circle(radius=1.04, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=2.2).move_to(hub_c), num_dashes=28).set_z_index(7)
         hub_core = Circle(radius=0.86, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=2.8).move_to(hub_c).set_z_index(8)
-        dial_needle = Arrow(hub_c + UP * 0.62, hub_c + UP * 1.06, buff=0, color=C_GOLD, stroke_width=3.2, tip_length=0.14).set_z_index(12)
+        dial_needle = Arrow(hub_c + UP * 0.62, hub_c + UP * 1.08, buff=0, color=C_GOLD, stroke_width=3.2, tip_length=0.14).set_z_index(12)
         hub_txt = fit(
             VGroup(
                 txt("대표 조건, 기준 종형", size=10.2, color=C_GOLD, bold=True, z=9),
@@ -436,7 +529,8 @@ class Part1ServiceScene(PostLifeBaseScene):
             ).arrange(DOWN, buff=0.07),
             max_w=1.46,
         ).move_to(hub_c)
-        central_hub = VGroup(hub_orbit_3d, hub_outer_ring, hub_core, dial_needle, hub_txt)
+        central_hub_body = VGroup(hub_halo, hub_outer_ring, hub_core, hub_txt)
+        central_hub = VGroup(hub_halo, hub_outer_ring, hub_core, dial_needle, hub_txt)
 
         def make_radial_module(cx: float, cy: float, col: str, badge_s: str, title_s: str, cap_s: str, widget: VGroup) -> VGroup:
             card = RoundedRectangle(corner_radius=0.09, width=3.52, height=1.52, fill_color=C_PANEL, fill_opacity=0.95, stroke_color=col, stroke_width=2.0).move_to([cx, cy, 0]).set_z_index(4)
@@ -449,10 +543,10 @@ class Part1ServiceScene(PostLifeBaseScene):
 
         wg1 = VGroup(
             pill(f"{wk_news['week']} 소식 {num(wk_news['count'])}건", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD, size=8.4, px=0.07, py=0.03),
-            pill("신담보출시, 상품개정", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=8.4, px=0.07, py=0.03),
-        ).arrange(RIGHT, buff=0.10)
+            pill("조건 무관 (대표 조건 변화 표시)", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=8.2, px=0.07, py=0.03),
+        ).arrange(RIGHT, buff=0.08)
         m_1 = make_radial_module(
-            -4.35, 1.92, C_VIOLET, "화면 ①", "주간 시장 소식",
+            -4.35, 1.92, C_VIOLET, "화면 ①", "이번 주 달라진 점",
             f"{num(news_inst_cnt)}개 기관 소식 정리 (우열 변화는 지난주 사본 누적 뒤 표시)", wg1,
         )
 
@@ -482,7 +576,7 @@ class Part1ServiceScene(PostLifeBaseScene):
             pill("근거 문서와 쪽수, 카드 인쇄", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=8.2, px=0.08, py=0.03).move_to([1.08, 0, 0]),
         )
         m_4 = make_radial_module(
-            4.35, 1.92, C_CYAN, "화면 ③", f"표준담보 {num(cov_in_use)}개 비교표",
+            4.35, 1.92, C_CYAN, "화면 ③", f"표준담보 {num(cov_in_use)}개 비교와 빈자리 특약",
             f"견준 담보 쌍 {num(cmp_pairs)}개 비교 및 A4 한 장 카드 출력", wg4,
         )
 
@@ -509,20 +603,22 @@ class Part1ServiceScene(PostLifeBaseScene):
         )
         wg6 = VGroup(
             wg6_bars,
-            pill(f"작업 로그 {num(wlog_site)}건 공개 (화면 세 회사)", fg="#93C5FD", bg=C_BG_SUB, border="#93C5FD", size=8.2, px=0.08, py=0.03).move_to([0.48, 0, 0]),
+            pill(f"작업 로그 {num(wlog_site)}건 (화면 {num(site_org_cnt)}개 회사, 조건 무관)", fg="#93C5FD", bg=C_BG_SUB, border="#93C5FD", size=8.0, px=0.07, py=0.03).move_to([0.52, 0, 0]),
         )
-        m_6 = make_radial_module(4.35, -1.48, "#93C5FD", "화면 ⑥", "검증과 작업 로그", "추출, 코드 대조, 판정, 사람 검토 이관 기록 공개", wg6)
+        m_6 = make_radial_module(4.35, -1.48, "#93C5FD", "화면 ⑥", "AI 작업 내역", "추출, 코드 대조, 판정, 사람 검토 이관 기록 공개", wg6)
 
         modules_6 = VGroup(m_1, m_2, m_3, m_4, m_5, m_6)
-        spoke_pairs = [
-            (hub_c + np.array([-0.82, 0.56, 0]), np.array([-2.58, 1.82, 0]), C_VIOLET),
+        cond_spoke_pairs = [
             (hub_c + np.array([-0.98, 0.0, 0]), np.array([-2.58, 0.22, 0]), C_GOLD),
             (hub_c + np.array([-0.82, -0.56, 0]), np.array([-2.58, -1.38, 0]), C_MINT),
             (hub_c + np.array([0.82, 0.56, 0]), np.array([2.58, 1.82, 0]), C_CYAN),
             (hub_c + np.array([0.98, 0.0, 0]), np.array([2.58, 0.22, 0]), C_AMBER),
-            (hub_c + np.array([0.82, -0.56, 0]), np.array([2.58, -1.38, 0]), "#93C5FD"),
         ]
-        spokes = VGroup(*[arrow_2d(s0, s1, color=scol, sw=2.0, tip=0.10, z=6) for s0, s1, scol in spoke_pairs])
+        indep_links = VGroup(
+            DashedLine(hub_c + np.array([-0.82, 0.56, 0]), np.array([-2.58, 1.82, 0]), dash_length=0.09, color=C_SLATE, stroke_width=1.6).set_z_index(5),
+            DashedLine(hub_c + np.array([0.82, -0.56, 0]), np.array([2.58, -1.38, 0]), dash_length=0.09, color=C_SLATE, stroke_width=1.6).set_z_index(5),
+        )
+        spokes = VGroup(*[arrow_2d(s0, s1, color=scol, sw=2.1, tip=0.10, z=6) for s0, s1, scol in cond_spoke_pairs], *indep_links)
         guard_ribbon = fit(
             pill(
                 f"안전장치: 금지 표현 {num(forb_cnt)}개 빌드 차단, 공시에 없는 특약 보험료(적재 {num(prem_rows)}행)는 추정해 적지 않음 ✓",
@@ -536,57 +632,57 @@ class Part1ServiceScene(PostLifeBaseScene):
         ).move_to([0.0, -2.62, 0])
 
         shockwave = Circle(radius=0.85, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=3.6, stroke_opacity=0.95).move_to(hub_c).set_z_index(11)
-        spoke_pulses = VGroup(*[glow_dot(s0, color=scol, r=0.065, z=14) for s0, _, scol in spoke_pairs])
+        spoke_pulses = VGroup(*[glow_dot(s0, color=scol, r=0.065, z=14) for s0, _, scol in cond_spoke_pairs])
 
+        self.add(dial_needle)
         self.cam_move(
-            phi=44 * DEGREES,
-            theta=-64 * DEGREES,
-            zoom=0.92,
-            center=[0.0, 0.10, 0.0],
+            phi=0 * DEGREES,
+            theta=-90 * DEGREES,
+            zoom=1.52,
+            center=[0.0, 0.22, 0.0],
             anims=[
-                FadeIn(central_hub, scale=0.82),
-                LaggedStart(*[GrowArrow(sp) for sp in spokes], lag_ratio=0.05),
-                LaggedStart(*[FadeIn(md, scale=0.92) for md in modules_6], lag_ratio=0.07),
-            ],
-            rt=1.25,
-        )
-        self.add(shockwave, spoke_pulses)
-        self.cam_move(
-            theta=-48 * DEGREES,
-            anims=[
-                Rotate(dial_needle, angle=-2 * PI / 3, about_point=hub_c),
-                Rotate(hub_outer_ring, angle=PI / 3, about_point=hub_c),
-                Rotate(hub_orbit_3d, angle=PI / 2, axis=OUT),
-                shockwave.animate.scale(5.2).set_stroke(opacity=0.0),
-                *[MoveAlongPath(spoke_pulses[k], Line(spoke_pairs[k][0], spoke_pairs[k][1])) for k in range(scr_cnt)],
+                FadeIn(central_hub_body, scale=0.84),
+                Rotate(dial_needle, angle=-TAU, about_point=hub_c),
             ],
             rt=1.05,
+        )
+
+        self.add(shockwave, spoke_pulses)
+        self.cam_move(
+            zoom=1.00,
+            center=[0.0, 0.12, 0.0],
+            anims=[
+                Rotate(hub_outer_ring, angle=PI / 3, about_point=hub_c),
+                LaggedStart(*[Create(sp) for sp in spokes], lag_ratio=0.04),
+                LaggedStart(*[FadeIn(md, scale=0.94) for md in modules_6], lag_ratio=0.06),
+                shockwave.animate.scale(5.2).set_stroke(opacity=0.0),
+                *[MoveAlongPath(spoke_pulses[k], Line(cond_spoke_pairs[k][0], cond_spoke_pairs[k][1])) for k in range(len(cond_spoke_pairs))],
+            ],
+            rt=1.15,
         )
         self.remove(shockwave, spoke_pulses, *spoke_pulses)
 
         self.cam_move(
-            phi=0 * DEGREES,
-            theta=-90 * DEGREES,
             zoom=1.42,
             center=[-4.20, 0.35, 0],
             anims=[Circumscribe(m_2[0], color=C_GOLD, stroke_width=2.4, buff=0.03)],
-            rt=1.10,
+            rt=1.05,
         )
-        self.wait(0.85)
+        self.wait(0.80)
         self.cam_move(
             zoom=1.42,
             center=[4.20, 0.35, 0],
             anims=[Circumscribe(m_4[0], color=C_CYAN, stroke_width=2.4, buff=0.03)],
-            rt=1.10,
+            rt=1.05,
         )
-        self.wait(0.85)
+        self.wait(0.80)
 
         hb = self.update_subtitle(
             hb,
             "이어서 수집, 추출, 판정 검증, 표준담보 연결 각 단계에서 부딪힌 문제와 푼 방법을 살펴봅니다",
             rt=0.40,
         )
-        self.reset_cam_2d(anims=[FadeIn(guard_ribbon, shift=UP * 0.08)], rt=0.90)
+        self.reset_cam_2d(anims=[FadeIn(guard_ribbon, shift=UP * 0.08)], rt=0.85)
 
         ch2_stage = VGroup(central_hub, spokes, modules_6, guard_ribbon)
         self.check_bounds(ch2_stage, "CH2 RADIAL INFOGRAPHIC")

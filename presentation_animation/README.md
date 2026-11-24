@@ -1,6 +1,6 @@
 # 우체국보험 상품·청약 판단 지원 앱: 발표 시연 애니메이션
 
-발표 슬라이드 사이에 넣어 문제 해결 구조와 데이터 흐름을 기하 도형, 선택적 3차원(`ThreeDScene`) 구도, 카메라 이동(줌인, 패닝, 추적)으로 보여 주기 위한 Manim 애니메이션입니다.
+발표 슬라이드 사이에 넣어 문제 해결 구조와 데이터 흐름을 기하 도형, 세 축에 의미가 있는 진정한 3차원(`ThreeDScene` + 카메라 정면 빌보드 라벨) 공간, 그리고 정면 2차원 카메라 이동(줌인, 패닝, 추적)으로 나누어 보여 주기 위한 Manim 애니메이션입니다.
 
 화면에 띄우는 모든 숫자와 목록은 저장소 루트에서 `python scripts/export_presentation_facts.py`로 생성한 `presentation_animation/facts.json`에서 읽습니다. 영상 코드와 문서에서는 `facts.json`을 손으로 고치지 않습니다.
 
@@ -38,23 +38,27 @@ Add-Type -AssemblyName System.Drawing
 cd presentation_animation
 python -m venv .venv
 
-# Linux / macOS
-.venv/bin/pip install -r requirements.txt
+# Linux / macOS 가상환경 활성화 및 설치
+source .venv/bin/activate
+pip install -r requirements.txt
 
-# Windows PowerShell
-# .\.venv\Scripts\pip install -r requirements.txt
+# Windows PowerShell 가상환경 활성화 및 설치
+# .\.venv\Scripts\Activate.ps1
+# pip install -r requirements.txt
 ```
 
 ### 1) 저해상도(480p15) 검수용 프리뷰 렌더링
 
+가상환경을 활성화한 상태이거나 `.venv/bin/manim`(Windows는 `.\.venv\Scripts\manim`) 경로를 직접 지정해 실행합니다.
+
 ```bash
-manim -ql postlife_demo.py Part1ServiceScene Part2CollectExtractScene Part3DecisionScene Part4OntologyImpactScene
+.venv/bin/manim -ql postlife_demo.py Part1ServiceScene Part2CollectExtractScene Part3DecisionScene Part4OntologyImpactScene
 ```
 
 ### 2) 고해상도(1080p60) 분할본 렌더링 및 전체 통합본 생성
 
 ```bash
-manim -qh postlife_demo.py Part1ServiceScene Part2CollectExtractScene Part3DecisionScene Part4OntologyImpactScene
+.venv/bin/manim -qh postlife_demo.py Part1ServiceScene Part2CollectExtractScene Part3DecisionScene Part4OntologyImpactScene
 
 # 분할본 이름을 스토리보드 파일명에 맞춰 복사하고 FFmpeg concat으로 통합본 생성
 cp media/videos/postlife_demo/1080p60/Part1ServiceScene.mp4 우체국보험_발표시연_Part1_서비스목표와_구현기능_1080p60.mp4
