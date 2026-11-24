@@ -2381,11 +2381,26 @@ def pending_summary(data: Data, base: str, analysis: dict | None, relations: Rel
 
     분모는 insights 결과의 비교쌍목록(공통 담보 쌍 전체)이고, 뺀 쌍은 그 가운데 뺌이 참인 쌍(insights의 뺀비교)이다.
     사유별은 뺀 쌍의 사유(매핑 대기, 작업 로그 대기)마다 그 사유가 든 쌍의 수다. 한 쌍에 두 사유가 함께 들 수 있다.
+
+    기관별(2026-11-23 추가): 같은 수를 상대 회사(맞붙는 종형의 기관코드)마다 나눈 것이다. 화면이 고른 비교 범위의 회사 값만 더하면
+    범위의 수가 되게 한다. 열쇠는 맞붙는 상대의 기관코드 전부(쌍이 없는 회사도 0으로)이고 글자 순이다. 모든 회사를 더하면
+    공통담보쌍, 뺀쌍, 견준쌍, 사유별 값과 같다. 대분류 줄의 기관별도 같은 규칙이다(사유별은 없다).
     """
     ctx = _ctx(data, analysis, relations, ctx)
     result = ctx.result(base, peers)
     peer_ids = [x["종형ID"] for x in result["맞붙는종형"]]
     pairs = result["비교쌍목록"]
+    org_of = {p: _org(data, p) for p in peer_ids}
+    codes = sorted(set(org_of.values()))
+
+    def by_org(xs: list[dict]) -> dict[str, dict[str, int]]:
+        out = {}
+        for o in codes:
+            mine = [x for x in xs if org_of[x["비교종형ID"]] == o]
+            dropped = sum(1 for x in mine if x["뺌"])
+            out[o] = {"공통담보쌍": len(mine), "뺀쌍": dropped, "견준쌍": len(mine) - dropped}
+        return out
+
     rows = []
     for m in _majors(data):
         mine = [x for x in pairs if data.std[x["표준담보ID"]]["보장대분류"] == m]
@@ -2393,10 +2408,15 @@ def pending_summary(data: Data, base: str, analysis: dict | None, relations: Rel
             continue
         dropped = [x for x in mine if x["뺌"]]
         rows.append({"대분류": m, "공통담보쌍": len(mine), "뺀쌍": len(dropped), "견준쌍": len(mine) - len(dropped),
-                     "상대별": {p: sum(1 for x in dropped if x["비교종형ID"] == p) for p in peer_ids}})
+                     "상대별": {p: sum(1 for x in dropped if x["비교종형ID"] == p) for p in peer_ids},
+                     "기관별": by_org(mine)})
     reasons = {k: sum(1 for x in result["뺀비교"] if any(k in r for r in x["사유"])) for k in PENDING_KINDS}
+    orgs = by_org(pairs)
+    for o in codes:
+        orgs[o]["사유별"] = {k: sum(1 for x in result["뺀비교"] if org_of[x["비교종형ID"]] == o and any(k in r for r in x["사유"]))
+                           for k in PENDING_KINDS}
     return {"맞붙는종형": peer_ids, "공통담보쌍": result["비교쌍"], "뺀쌍": result["뺀비교쌍"],
-            "견준쌍": result["비교쌍"] - result["뺀비교쌍"], "대분류": rows, "사유별": reasons}
+            "견준쌍": result["비교쌍"] - result["뺀비교쌍"], "대분류": rows, "사유별": reasons, "기관별": orgs}
 
 
 # ---------- 개정 변동과 시장 소식 ----------

@@ -323,11 +323,32 @@ def inject_tab3(tab3_text: str, blob: str) -> str:
 
 
 # ---------- 담보 비교 탭(tab4)과 관계 그림 ----------
-# 담보별 판정 집계(판정기관코드)의 판정. 앞 다섯은 insights 의 비교쌍 판정(기준 종형 쪽에서 적는다. 나음은 우체국 조건이 낫다)이고,
-# 단정 주의는 sales.json 의 단정주의, 검토 대기는 insights 의 뺀 비교쌍이거나 우리 확정 급부 없이 매핑 대기 급부만 있는 것,
-# 우체국에 없음은 상대에게 확정 급부가 있고 우리에게 확정 급부도 매핑 대기 급부도 없는 것이다
-VERDICT_KEYS = ['나음', '같음', '못함', '엇갈림', '판정 보류', '단정 주의', '검토 대기', '우체국에 없음']
+# 담보와 상대 쌍마다의 판정(쌍판정)을 여기 한 군데에서 정하고, 담보별 판정 집계(판정기관코드, 판정상대수)와 표의 요약(판정요약)은
+# 그 쌍판정을 모은다. 쌍판정의 까닭(판정기관코드의 열쇠와 같은 이름):
+# - 둘 다 확정 급부가 있으면: 단정 주의(sales.json 의 단정주의에 그 상대가 들면. R10 대로 아래보다 먼저), 검토 대기(insights 의 뺀
+#   비교쌍), 지급 형태 다름(비교쌍 판정이 같음인데 지급 형태가 다름. 다름은 우열에 넣지 않는다), 아니면 insights 의 비교쌍 판정
+#   (나음, 같음, 못함, 엇갈림, 판정 보류. 기준 종형 쪽에서 적는다. 나음은 우체국 조건이 낫다)
+# - 상대에게만 확정 급부가 있으면: 우리에게 그 담보의 매핑 대기 급부가 있으면 검토 대기(대기는 없음이 아니라 모름), 없으면 우체국에 없음
+# - 우리에게만 확정 급부가 있으면: 상대에게 매핑 대기 급부가 있거나, 상대가 든 뺀 시사점(insights 의 뺀시사점. 고유와 범위 차이를
+#   검토 대기로 뺀 것)이 있으면 검토 대기, 상대가 관계 담보(넓은 담보, 부분 담보)로 덮으면 관계 담보로 덮음(insights 의 범위 차이.
+#   온톨로지 설계안 9절의 "우체국에만"은 담보관계로도 덮이지 않는 것이다), 아니면 상대에 없음
+# - 둘 다 확정 급부가 없으면: 어느 쪽에 매핑 대기 급부가 있으면 검토 대기, 아니면 판정 없음(null, 둘 다 없음)
+PAIR_KEYS = ['나음', '같음', '못함', '엇갈림', '판정 보류', '단정 주의', '지급 형태 다름', '관계 담보로 덮음', '검토 대기',
+             '우체국에 없음', '상대에 없음']
 CAUTION_KEY, PENDING_KEY, NONE_KEY = '단정 주의', '검토 대기', '우체국에 없음'
+FORM_KEY, COVER_KEY, ONLY_KEY = '지급 형태 다름', '관계 담보로 덮음', '상대에 없음'
+# 기둥에 쌓는 까닭(판정기관코드의 열쇠). 상대에 없음은 기둥 밖(그 상대는 이 담보를 갖지도 덮지도 않는다)
+VERDICT_KEYS = [k for k in PAIR_KEYS if k != ONLY_KEY]
+# 까닭마다의 판정 이름(화면의 칩 글)과 칩 종류(App.ui.verdict 의 kind)
+VERDICT_NAME = {'나음': '우체국 나음', '같음': '같음', '못함': '우체국 못함', '엇갈림': '우열을 매기지 않음',
+                '판정 보류': '판정 보류', '단정 주의': '우열을 매기지 않음', '지급 형태 다름': '우열을 매기지 않음',
+                '관계 담보로 덮음': '우열을 매기지 않음', '검토 대기': '검토 대기', '우체국에 없음': '우체국에 없음',
+                '상대에 없음': '우체국에만 있음'}
+BOTH_NONE = '둘 다 없음'
+NAME_ORDER = ['우체국 나음', '우체국 못함', '같음', '우열을 매기지 않음', '우체국에만 있음', '우체국에 없음', '검토 대기', '판정 보류',
+              BOTH_NONE]
+CHIP = {'우체국 나음': 'better', '같음': 'same', '우체국 못함': 'worse', '우열을 매기지 않음': 'diff', '판정 보류': 'unknown',
+        '검토 대기': 'unknown', '우체국에 없음': 'none', '우체국에만 있음': 'only', BOTH_NONE: None}
 
 
 def _has(cell) -> bool:
@@ -335,29 +356,71 @@ def _has(cell) -> bool:
     return isinstance(cell, dict) and bool(cell.get('i'))
 
 
-def verdict_codes(data: Data, sid: str, cells: list, peers: list[str], pair: dict, cautious: dict) -> dict[str, list[str]]:
-    """표준담보 하나의 판정별 상대 기관코드(판정기관코드의 한 줄). 그 담보의 확정 급부가 있는 상대(보유기관코드)만 판정 하나에
-    넣는다. 자료 쪽에 이미 있는 값만 쓴다(판정을 새로 만들지 않는다).
-    - 우리도 확정 급부가 있으면: 단정 주의(sales.json 의 단정주의에 그 상대가 들면. R10 대로 판정보다 먼저), 검토 대기(insights 의
-      뺀 비교쌍), 아니면 insights 의 비교쌍 판정(같음, 나음, 못함, 엇갈림, 판정 보류).
-    - 우리에게 확정 급부가 없으면: 매핑 대기 급부가 있으면 검토 대기(insights 의 규칙: 대기는 없음이 아니라 모름), 없으면 우체국에 없음.
-    값이 빈 판정은 싣지 않는다. 목록을 모두 합하면 그 담보의 보유기관코드다."""
-    base = cells[0]
+def _waiting(vid: str, cell) -> list[str]:
+    """매핑 대기 급부가 있는 칸의 사유 글. insights 의 Holding.blockers 와 같은 꼴("{종형ID} 매핑 대기 N줄")이다."""
+    return [f'{vid} 매핑 대기 {cell["w"]}줄'] if isinstance(cell, dict) and cell.get('w') else []
+
+
+def pair_verdict(sid: str, vids: list[str], cells: list, k: int, pair: dict, cautious: dict,
+                 notes: list[dict]) -> list | None:
+    """담보 sid 의 기준 종형(vids[0])과 상대 vids[k] 쌍의 판정: [까닭, 사유 목록] 또는 None(둘 다 없음). 규칙은 위 주석이다.
+    사유 목록은 검토 대기와 판정 보류의 사유 글(insights 의 뺀 비교쌍 사유, 보류비교 사유, 뺀 시사점 사유, 매핑 대기 줄 수)과
+    단정 주의의 종류이고, 나머지 까닭은 빈 목록이다. 자료 쪽에 이미 있는 값만 쓴다(판정을 새로 만들지 않는다)."""
+    base, cell, peer = cells[0], cells[k], vids[k]
+    if _has(cell):
+        if not _has(base):
+            waits = _waiting(vids[0], base)
+            return [PENDING_KEY, waits] if waits else [NONE_KEY, []]
+        q = pair.get((sid, peer))
+        if q is None:
+            raise ValueError(f'두 쪽 모두 확정 급부가 있는데 비교쌍이 없다: {sid}, {peer}')
+        if (sid, peer) in cautious:
+            return [CAUTION_KEY, [cautious[(sid, peer)]]]
+        if q.get('x'):
+            return [PENDING_KEY, list(q['x'])]
+        if q.get('f') == I.DIFF and q['v'] == I.SAME:
+            return [FORM_KEY, []]
+        if q['v'] not in PAIR_KEYS:
+            raise ValueError(f'모르는 판정: {q["v"]} ({sid}, {peer})')
+        return [q['v'], list(q.get('hs') or []) if q['v'] == I.HOLD else []]
+    if _has(base):
+        waits = _waiting(peer, cell)
+        if waits:
+            return [PENDING_KEY, waits]
+        drops = list(dict.fromkeys(r for x in notes if x.get('drop') and peer in (x.get('p') or []) for r in x['drop']))
+        if drops:
+            return [PENDING_KEY, drops]
+        if isinstance(cell, dict) and cell.get('c'):
+            return [COVER_KEY, []]
+        return [ONLY_KEY, []]
+    waits = _waiting(vids[0], base) + _waiting(peer, cell)
+    return [PENDING_KEY, waits] if waits else None
+
+
+def verdict_codes(data: Data, verdicts: list, peers: list[str]) -> dict[str, list[str]]:
+    """표준담보 하나의 쌍판정(상대 차례)을 까닭별 상대 기관코드로 모은 것(판정기관코드의 한 줄). 상대에 없음과 둘 다 없음은 넣지
+    않는다(기둥 밖). 값이 빈 까닭은 싣지 않는다. 목록을 모두 합하면 그 담보의 보유기관코드에, 우리에게 확정 급부가 있을 때 관계
+    담보로 덮는 상대와 검토 대기인 상대(매핑 대기만 있거나 뺀 시사점에 든 상대), 둘 다 확정 급부가 없을 때 매핑 대기 급부가 있는
+    상대를 더한 것이다."""
     out: dict[str, list[str]] = {}
-    for p, c in zip(peers, cells[1:]):
-        if not _has(c):
+    for p, v in zip(peers, verdicts):
+        if v is None or v[0] == ONLY_KEY:
             continue
-        if _has(base):
-            q = pair.get((sid, p))
-            if q is None:
-                raise ValueError(f'두 쪽 모두 확정 급부가 있는데 비교쌍이 없다: {sid}, {p}')
-            key = CAUTION_KEY if (sid, p) in cautious else (PENDING_KEY if q.get('x') else q['v'])
-        else:
-            key = PENDING_KEY if isinstance(base, dict) and base.get('w') else NONE_KEY
-        if key not in VERDICT_KEYS:
-            raise ValueError(f'모르는 판정: {key} ({sid}, {p})')
-        out.setdefault(key, []).append(data.variants[p].get('기관코드'))
+        out.setdefault(v[0], []).append(data.variants[p].get('기관코드'))
     return {k: sorted(out[k]) for k in VERDICT_KEYS if k in out}
+
+
+def verdict_summary(data: Data, rows_verdicts: dict[str, list], peers: list[str]) -> dict[str, dict[str, int]]:
+    """판정요약: 상대 회사마다 판정 이름별 쌍 수(담보 비교표 요약). 둘 다 없음도 센다. 회사마다 모두 더하면 담보 줄 수다."""
+    out: dict[str, dict[str, int]] = {}
+    for i, p in enumerate(peers):
+        org = data.variants[p].get('기관코드')
+        per = out.setdefault(org, {})
+        for verdicts in rows_verdicts.values():
+            v = verdicts[i]
+            name = BOTH_NONE if v is None else VERDICT_NAME[v[0]]
+            per[name] = per.get(name, 0) + 1
+    return {o: {n: out[o][n] for n in NAME_ORDER if n in out[o]} for o in sorted(out)}
 
 
 def num(x):
@@ -439,6 +502,7 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
         rows = []
         owners: dict[str, list[str]] = {}
         verdicts: dict[str, dict[str, list[str]]] = {}
+        by_pair: dict[str, list] = {}       # 쌍판정: {표준담보ID: [상대 차례의 [까닭, 사유] 또는 None]}
         cautious = {}                    # 단정 주의(sales.json)에 든 (표준담보ID, 상대 종형ID)
         for c in S['기준별'][bid0]['단정주의']:
             for p in c['상대종형ID']:
@@ -486,17 +550,22 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
             # 이 담보를 가진 상대 회사: 확정 급부가 있는 칸(화면의 has, 칸의 i 가 비지 않음)의 회사. 우리 기관은 뺀다
             owners[sid] = sorted({data.variants[v].get('기관코드') for v, c in zip(vids[1:], cells[1:])
                                   if isinstance(c, dict) and c.get('i')} - {SA.HOME_ORG, None})
-            verdicts[sid] = verdict_codes(data, sid, cells, peers, pair, cautious)
+            by_pair[sid] = [pair_verdict(sid, vids, cells, k, pair, cautious, ins.get(sid, []))
+                            for k in range(1, len(vids))]
+            verdicts[sid] = verdict_codes(data, by_pair[sid], peers)
             row = [sid, cells, prs]
             if sid in ins:
                 row.append(ins[sid])
             rows.append(row)
         bases[bid0] = {'cols': vids, 'rows': rows, 'pairs': r['비교쌍'], 'dropped': r['뺀비교쌍'], '보유기관코드': owners,
                        '판정기관코드': verdicts,
-                       '판정상대수': {sid: {k: len(v) for k, v in per.items()} for sid, per in verdicts.items()}}
+                       '판정상대수': {sid: {k: len(v) for k, v in per.items()} for sid, per in verdicts.items()},
+                       '쌍판정': by_pair, '판정요약': verdict_summary(data, by_pair, peers)}
 
     # 급부와 특약은 번호로 가리킨다(줄마다 긴 ID를 되풀이하지 않게)
-    out = {'t': A['자료시각'], 'ben': list(ben.values()), 'rid': list(rid.values()), 'b': bases}
+    out = {'t': A['자료시각'], 'ben': list(ben.values()), 'rid': list(rid.values()), 'b': bases,
+           '판정표': {k: {'판정': VERDICT_NAME[k], '칩': CHIP[VERDICT_NAME[k]]} for k in PAIR_KEYS},
+           '판정차례': list(NAME_ORDER)}
     if forms:
         # 금액 없는 급부(API.md "금액 없는 급부"). 그런 급부가 없으면 세 키를 싣지 않는다(지금 자료와 바이트까지 같다)
         out['지급기준'] = forms

@@ -139,7 +139,9 @@ BASE = {
     "고지유형별": Seq({"열쇠": str, "기준": bool, "상대수": int, "상대코드": Seq(str), "종형수": int, "우리종형수": int,
                       "맞붙는종형수": int}),
     "보류요약": {"맞붙는종형": Seq(str), "공통담보쌍": int, "뺀쌍": int, "견준쌍": int, "사유별": dict,
-                 "대분류": Seq({"대분류": str, "공통담보쌍": int, "뺀쌍": int, "견준쌍": int, "상대별": dict})},
+                 "대분류": Seq({"대분류": str, "공통담보쌍": int, "뺀쌍": int, "견준쌍": int, "상대별": dict,
+                               "기관별": Map({"공통담보쌍": int, "뺀쌍": int, "견준쌍": int})}),
+                 "기관별": Map({"공통담보쌍": int, "뺀쌍": int, "견준쌍": int, "사유별": Map(int)})},
     "브리핑": Seq({"줄": str, "범위": str, "값": dict, "문장": str, "갈곳": str, "틀": Seq(str)}),
 }
 MAP_CELL = {
@@ -204,14 +206,16 @@ CV = {
     "ben": Seq(Pos(str, int, str)),
     "rid": Seq(Pos(str, str)),
     "b": Map({"cols": Seq(str), "rows": Seq(Pos(str, Seq(One(int, dict)), Map(dict))), "pairs": int, "dropped": int,
-              "보유기관코드": Map(Seq(str)), "판정기관코드": Map(Map(Seq(str))), "판정상대수": Map(Map(int))}),
+              "보유기관코드": Map(Seq(str)), "판정기관코드": Map(Map(Seq(str))), "판정상대수": Map(Map(int)),
+              "쌍판정": Map(Seq(Opt(Pos(str, Seq(str))))), "판정요약": Map(Map(int))}),
+    "판정표": Map({"판정": str, "칩": str}), "판정차례": Seq(str),
 }
 
 # ---------- d.json (const D) ----------
 D = {
     "asOf": str,
     "orgs": Seq({"code": str, "name": str, "short": str, "업권": Opt(str)}),
-    "lineup": Map(Pos(str, str, str)), "defaultGrade": str,
+    "lineup": Map(Pos(str)), "defaultGrade": str,
     "bands": Seq(Pos(int, int)), "stds": Seq(str),
     "std": Map({"name": str, "group": str, "mid": str, "type": str, "unit": Opt(NUM)}),
     "groups": Seq(str), "types": Seq(str), "compare": Seq(str), "pool": Seq(str),
@@ -342,6 +346,7 @@ ADDED_BRIEF = ("열린상대수분포", "상대회사수", "상대보유분포",
                "나이자료없음회사코드", "관문차이상대코드", "구조다름회사코드")
 ADDED_POINT = ("관련기관코드",)
 ADDED_BASE = ("고지유형별",)
+ADDED_PENDING = ("기관별",)      # 보류요약과 그 대분류 줄의 회사별 쌍 수(2026-11-23)
 
 
 def without_added(S: dict) -> dict:
@@ -363,6 +368,10 @@ def without_added(S: dict) -> dict:
             b.pop(k, None)
         for k in ADDED_SCOPE:
             b["범위"].pop(k, None)
+        for k in ADDED_PENDING:
+            b["보류요약"].pop(k, None)
+            for row in b["보류요약"]["대분류"]:
+                row.pop(k, None)
         for line in b["브리핑"]:
             for k in ADDED_BRIEF:
                 line["값"].pop(k, None)
@@ -526,8 +535,14 @@ def test_d_shape_and_ids(files):
     assert set(d["std"]) == set(d["stds"])
     assert set(d["compare"]) <= set(d["pool"]) <= set(d["stds"])
     assert d["defaultGrade"] in d["lineup"]
-    assert {v for vs in d["lineup"].values() for v in vs} == set(d["variants"]) == set(d["cells"])
+    assert {v for vs in d["lineup"].values() for v in vs if v} == set(d["variants"]) == set(d["cells"])
     assert all(v["org"] in codes for v in d["variants"].values())
+    # lineup[등급][i] 는 orgs[i] 회사의 종형(고르지 못한 회사는 null)이고, 첫 자리는 우체국이다
+    order = [o["code"] for o in d["orgs"]]
+    for grade, vs in d["lineup"].items():
+        assert len(vs) == len(order) and order[0] == "EPOST" and vs[0], grade
+        assert all(v is None or (d["variants"][v]["org"] == order[i] and d["variants"][v]["grade"] == grade)
+                   for i, v in enumerate(vs)), grade
     want = {f"{g}|{i}|{s}" for g in d["lineup"] for i in range(len(d["bands"])) for s in ("M", "F")}
     assert set(d["conds"]) == want and all(0 <= i < len(d["payloads"]) for i in d["conds"].values())
     for p in d["payloads"]:
@@ -574,7 +589,16 @@ CELL_CODES = {"열린상대코드": "열린상대수", "관문만열린상대코
               "모르는상대코드": "모르는상대수", "일부열린상대코드": "일부열린상대수"}
 PARTIAL = "일부 나이만 열림"
 STOPS = ("걸림", "모름", "심사로 확인")
-VERDICTS = ("나음", "같음", "못함", "엇갈림", "판정 보류", "단정 주의", "검토 대기", "우체국에 없음")
+VERDICTS = ("나음", "같음", "못함", "엇갈림", "판정 보류", "단정 주의", "지급 형태 다름", "관계 담보로 덮음", "검토 대기",
+            "우체국에 없음")
+PAIR_ONLY = "상대에 없음"         # 쌍판정에만 있는 까닭(기둥 밖)
+BOTH_NONE = "둘 다 없음"
+# 쌍판정의 까닭마다 판정 이름과 칩(API.md "담보 비교의 쌍판정" 절). 화면은 이 표를 읽는다
+PAIR_TABLE = {"나음": ("우체국 나음", "better"), "같음": ("같음", "same"), "못함": ("우체국 못함", "worse"),
+              "엇갈림": ("우열을 매기지 않음", "diff"), "판정 보류": ("판정 보류", "unknown"),
+              "단정 주의": ("우열을 매기지 않음", "diff"), "지급 형태 다름": ("우열을 매기지 않음", "diff"),
+              "관계 담보로 덮음": ("우열을 매기지 않음", "diff"), "검토 대기": ("검토 대기", "unknown"),
+              "우체국에 없음": ("우체국에 없음", "none"), PAIR_ONLY: ("우체국에만 있음", "only")}
 
 
 def _flow_errors(at: str, c: dict, m: dict, S: dict, gate: dict, orgs: set) -> list[str]:
@@ -685,12 +709,13 @@ def added_value_errors(f: dict) -> list[str]:
         surgery = sorted(({gate["종형정보"][v]["질문"]["surgery"] for v in peer_vids.get(key, [])}), key=str)
         if sorted((x["값"] for x in a["수술포함별"]), key=str) != surgery:
             errs.append(f"고지유형속성 {key}: 수술포함별 값이 gate.json 과 다르다")
-    # 담보 비교 자료: 판정기관코드는 줄마다 있고, 판정마다 목록이 겹치지 않으며 합하면 그 담보의 보유기관코드다. 판정상대수는 목록 길이
+    # 담보 비교 자료: 판정기관코드는 줄마다 있고, 판정마다 목록이 겹치지 않으며 보유기관코드를 모두 담는다. 판정상대수는 목록 길이.
+    # 판정기관코드, 판정상대수, 판정요약은 쌍판정을 모은 것이고, 쌍판정은 정한 규칙대로다(_cover_pair_errors)
     for bid, b in CV["b"].items():
         for sid, per in b["판정기관코드"].items():
             codes = [o for v in per.values() for o in v]
-            if sorted(codes) != b["보유기관코드"].get(sid) or not set(per) <= set(VERDICTS) or \
-                    any(not v or not _codes_ok(v, orgs) for v in per.values()):
+            if len(codes) != len(set(codes)) or not set(b["보유기관코드"].get(sid, [])) <= set(codes) or \
+                    not set(per) <= set(VERDICTS) or any(not v or not _codes_ok(v, orgs) for v in per.values()):
                 errs.append(f"cover {bid} {sid}: 판정기관코드 {per} 와 보유기관코드 {b['보유기관코드'].get(sid)}")
             if b["판정상대수"].get(sid) != {k: len(v) for k, v in per.items()}:
                 errs.append(f"cover {bid} {sid}: 판정상대수가 판정기관코드의 목록 길이와 다르다")
@@ -702,6 +727,8 @@ def added_value_errors(f: dict) -> list[str]:
             if not (isinstance(mine, dict) and mine.get("i")) and \
                     not set(b["판정기관코드"][r[0]]) <= {"우체국에 없음", "검토 대기"}:
                 errs.append(f"cover {bid} {r[0]}: 우리에게 없는 담보에 비교쌍 판정이 있다")
+    errs += _cover_pair_errors(CV, S)
+    errs += _scope_pair_errors(CV, S)
     # 포인트: 관련기관코드 = 비교종형ID 가 속한 우리 밖 회사
     for pid, p in S["포인트"].items():
         want = sorted({kinds[v]["기관코드"] for v in p["비교종형ID"]} - {HOME})
@@ -802,6 +829,131 @@ def _brief_code_errors(S: dict, D: dict, orgs: set) -> list[str]:
         want = sorted({kinds[r["종형ID"]]["기관코드"] for r in b["범위"]["상대"] if r["구조다름"]})
         if not _codes_ok(struct, orgs) or len(struct) != da["구조다름회사수"] or struct != want:
             errs.append(f"브리핑 {bid} (다): 구조다름회사코드 {struct}, 구조다름회사수 {da['구조다름회사수']}, 범위로는 {want}")
+    return errs
+
+
+def _has_cell(c) -> bool:
+    return isinstance(c, dict) and bool(c.get("i"))
+
+
+def _waits(c) -> bool:
+    return isinstance(c, dict) and bool(c.get("w"))
+
+
+def expected_pair(sid: str, cols: list, cells: list, prs: dict, notes: list, cautious: set, k: int) -> str | None:
+    """쌍판정의 까닭을 API.md 의 규칙대로 다시 낸다(자료 쪽 console4.pair_verdict 와 따로 적어, 둘이 어긋나면 드러난다)."""
+    base, cell, peer = cells[0], cells[k], cols[k]
+    if _has_cell(cell) and _has_cell(base):
+        q = prs[peer]
+        if (sid, peer) in cautious:
+            return "단정 주의"
+        if q.get("x"):
+            return "검토 대기"
+        if q.get("f") == "다름" and q["v"] == "같음":
+            return "지급 형태 다름"
+        return q["v"]
+    if _has_cell(cell):                       # 상대에게만 있다: 우리 쪽 매핑 대기만 검토 대기로 본다(뺀 시사점은 보지 않는다)
+        return "검토 대기" if _waits(base) else "우체국에 없음"
+    if _has_cell(base):                       # 우리에게만 있다
+        if _waits(cell) or any(x.get("drop") and peer in (x.get("p") or []) for x in notes):
+            return "검토 대기"
+        return "관계 담보로 덮음" if isinstance(cell, dict) and cell.get("c") else PAIR_ONLY
+    return "검토 대기" if _waits(base) or _waits(cell) else None
+
+
+def _cover_pair_errors(CV: dict, S: dict) -> list[str]:
+    """쌍판정: 담보마다 상대 차례로 하나씩이고 까닭은 규칙(expected_pair)대로다. 판정기관코드는 상대에 없음과 둘 다 없음을 뺀 쌍판정을
+    까닭별로 모은 것, 판정요약은 상대 회사마다 판정 이름별 쌍 수(둘 다 없음 포함)다. 판정표는 까닭마다의 판정 이름과 칩이다."""
+    errs: list[str] = []
+    kinds = S["종형"]
+    if {k: (v["판정"], v["칩"]) for k, v in CV["판정표"].items()} != PAIR_TABLE:
+        errs.append(f"cover 판정표 {CV['판정표']}")
+    if set(CV["판정차례"]) != {n for n, _ in PAIR_TABLE.values()} | {BOTH_NONE}:
+        errs.append(f"cover 판정차례 {CV['판정차례']}")
+    for bid, b in CV["b"].items():
+        cautious = {(c["표준담보ID"], p) for c in S["기준별"][bid]["단정주의"] for p in c["상대종형ID"]}
+        kind_of = {(c["표준담보ID"], p): c["종류"] for c in S["기준별"][bid]["단정주의"] for p in c["상대종형ID"]}
+        peers = b["cols"][1:]
+        if set(b["쌍판정"]) != {r[0] for r in b["rows"]}:
+            errs.append(f"cover {bid}: 쌍판정의 담보가 rows 와 다르다")
+            continue
+        summary: dict[str, dict[str, int]] = {}
+        for r in b["rows"]:
+            sid, cells, prs, notes = r[0], r[1], r[2] or {}, (r[3] if len(r) > 3 else [])
+            got = b["쌍판정"][sid]
+            if len(got) != len(peers):
+                errs.append(f"cover {bid} {sid}: 쌍판정 {len(got)}개, 상대 {len(peers)}곳")
+                continue
+            per: dict[str, list[str]] = {}
+            for k, (peer, v) in enumerate(zip(peers, got), start=1):
+                want = expected_pair(sid, b["cols"], cells, prs, notes, cautious, k)
+                key = v[0] if v else None
+                if key != want or (v is not None and (key not in PAIR_TABLE or not all(isinstance(x, str) for x in v[1]))):
+                    errs.append(f"cover {bid} {sid} {peer}: 쌍판정 {v}, 규칙으로는 {want}")
+                    continue
+                if key == "검토 대기" and not v[1]:
+                    errs.append(f"cover {bid} {sid} {peer}: 검토 대기의 사유가 비었다")
+                if key == "검토 대기" and prs.get(peer, {}).get("x") and v[1] != prs[peer]["x"]:
+                    errs.append(f"cover {bid} {sid} {peer}: 검토 대기 사유가 뺀 비교쌍 사유와 다르다")
+                if key == "단정 주의" and v[1] != [kind_of[(sid, peer)]]:
+                    errs.append(f"cover {bid} {sid} {peer}: 단정 주의 사유 {v[1]}")
+                if key == "판정 보류" and v[1] != list(prs[peer].get("hs") or []):
+                    errs.append(f"cover {bid} {sid} {peer}: 판정 보류 사유 {v[1]}")
+                org = kinds[peer]["기관코드"]
+                if key is not None and key != PAIR_ONLY:
+                    per.setdefault(key, []).append(org)
+                name = BOTH_NONE if key is None else PAIR_TABLE[key][0]
+                summary.setdefault(org, {})
+                summary[org][name] = summary[org].get(name, 0) + 1
+            if b["판정기관코드"][sid] != {k: sorted(v) for k, v in per.items()}:
+                errs.append(f"cover {bid} {sid}: 판정기관코드 {b['판정기관코드'][sid]} 가 쌍판정을 모은 {per} 와 다르다")
+        if b["판정요약"] != summary or any(sum(x.values()) != len(b["rows"]) for x in b["판정요약"].values()):
+            errs.append(f"cover {bid}: 판정요약 {b['판정요약']} 이 쌍판정을 센 {summary} 와 다르다")
+    return errs
+
+
+def _scope_pair_errors(CV: dict, S: dict) -> list[str]:
+    """보류요약의 기관별: 맞붙는 상대의 회사 전부이고, 회사 값을 모두 더하면 전체 값(공통담보쌍, 뺀쌍, 견준쌍, 사유별)이다. 대분류 줄도
+    같다. 회사 값은 cover.json 의 비교쌍 기록(rows 의 상대별 쌍, 뺀 쌍은 x 가 있는 쌍)을 그 회사로 센 수와 같다."""
+    errs: list[str] = []
+    kinds = S["종형"]
+    for bid, base in S["기준별"].items():
+        p = base["보류요약"]
+        org = {v: kinds[v]["기관코드"] for v in base["맞붙는종형"]}
+        codes = sorted(set(org.values()))
+        by = p["기관별"]
+        if list(by) != codes:
+            errs.append(f"보류요약 {bid}: 기관별 열쇠 {list(by)}, 맞붙는 회사 {codes}")
+            continue
+        for key in ("공통담보쌍", "뺀쌍", "견준쌍"):
+            if sum(x[key] for x in by.values()) != p[key]:
+                errs.append(f"보류요약 {bid}: 기관별 {key} 의 합이 {p[key]} 와 다르다")
+        if any(x["공통담보쌍"] != x["뺀쌍"] + x["견준쌍"] for x in by.values()):
+            errs.append(f"보류요약 {bid}: 기관별 공통담보쌍이 뺀쌍과 견준쌍의 합과 다르다")
+        if {k: sum(x["사유별"][k] for x in by.values()) for k in p["사유별"]} != p["사유별"]:
+            errs.append(f"보류요약 {bid}: 기관별 사유별의 합이 사유별과 다르다")
+        for row in p["대분류"]:
+            if list(row["기관별"]) != codes or any(sum(x[key] for x in row["기관별"].values()) != row[key]
+                                                for key in ("공통담보쌍", "뺀쌍", "견준쌍")):
+                errs.append(f"보류요약 {bid} {row['대분류']}: 기관별의 합이 그 줄의 값과 다르다")
+        # cover.json 의 비교쌍 기록으로 센 수(화면의 scopedPairs 가 세던 값)
+        counted = {o: {"공통담보쌍": 0, "뺀쌍": 0} for o in codes}
+        majors: dict[str, dict[str, dict[str, int]]] = {}
+        for r in CV["b"][bid]["rows"]:
+            major = S["표준담보"][r[0]]["대분류"]
+            for peer, q in (r[2] or {}).items():
+                o = org[peer]
+                counted[o]["공통담보쌍"] += 1
+                counted[o]["뺀쌍"] += 1 if q.get("x") else 0
+                m = majors.setdefault(major, {}).setdefault(o, {"공통담보쌍": 0, "뺀쌍": 0})
+                m["공통담보쌍"] += 1
+                m["뺀쌍"] += 1 if q.get("x") else 0
+        if {o: {"공통담보쌍": x["공통담보쌍"], "뺀쌍": x["뺀쌍"]} for o, x in by.items()} != counted:
+            errs.append(f"보류요약 {bid}: 기관별 {by} 이 cover.json 의 비교쌍 기록으로 센 {counted} 와 다르다")
+        for row in p["대분류"]:
+            got = {o: {"공통담보쌍": x["공통담보쌍"], "뺀쌍": x["뺀쌍"]} for o, x in row["기관별"].items() if x["공통담보쌍"]}
+            if got != majors.get(row["대분류"], {}):
+                errs.append(f"보류요약 {bid} {row['대분류']}: 기관별이 cover.json 의 비교쌍 기록으로 센 수와 다르다")
     return errs
 
 
@@ -927,3 +1079,91 @@ def test_no_history_flow_matches_the_gate_tree(files):
     longer = any((x["질문"] or {}).get("hospYears") and x["질문"]["hospYears"] > 5
                  for x in files["gate"]["종형정보"].values() if x["회사"] != HOME and x["심사"] == "간편심사")
     assert bool(_final_pass_mismatches(files, five)) == longer
+
+
+# ---------- 담보 비교의 쌍판정과 범위별 쌍 수(2026-11-23) ----------
+def test_pair_verdict_rules_on_hand_made_cells():
+    """쌍판정의 규칙(console4.pair_verdict)을 손으로 만든 칸으로 본다. 화면의 verdictOf 와 기둥 집계가 갈리던 두 경우를 고정한다.
+    - 우리에게만 있고 상대가 관계 담보로 덮으면 관계 담보로 덮음(우열을 매기지 않음)이고 기둥(판정기관코드)에 든다.
+    - 상대에게만 있으면 우리 쪽 매핑 대기만 검토 대기로 본다. 그 줄에 뺀 시사점(빈자리를 검토 대기로 뺀 것)이 있어도 우체국에 없음이다."""
+    from types import SimpleNamespace
+    sid = "STD_X"
+    vids = ["B", "P1", "P2", "P3", "P4"]
+    data = SimpleNamespace(variants={v: {"기관코드": f"ORG{v}"} for v in vids})
+    pair = {(sid, "P1"): {"v": "같음", "h": None, "f": "다름", "x": 0}}
+    mine = {"r": 0, "i": [0], "n": 1}
+    cells = [mine, {"r": 1, "i": [1], "n": 1}, {"c": ["넓은 담보", ["STD_W"], False]}, 0, {"w": 1}]
+    got = [C4.pair_verdict(sid, vids, cells, k, pair, {}, []) for k in range(1, 5)]
+    assert got == [["지급 형태 다름", []], ["관계 담보로 덮음", []], ["상대에 없음", []], ["검토 대기", ["P4 매핑 대기 1줄"]]]
+    assert C4.verdict_codes(data, got, vids[1:]) == {"지급 형태 다름": ["ORGP1"], "관계 담보로 덮음": ["ORGP2"],
+                                                    "검토 대기": ["ORGP4"]}
+    assert C4.verdict_summary(data, {sid: got}, vids[1:]) == {"ORGP1": {"우열을 매기지 않음": 1}, "ORGP2": {"우열을 매기지 않음": 1},
+                                                             "ORGP3": {"우체국에만 있음": 1}, "ORGP4": {"검토 대기": 1}}
+    # 상대가 든 뺀 시사점(고유를 검토 대기로 뺀 것)은 검토 대기. 단정 주의는 비교쌍 판정보다 먼저다
+    notes = [{"k": "고유", "d": None, "p": ["P3"], "drop": ["기준 종형의 이 담보 급부가 모두 작업 로그 검토 대기"]}]
+    assert C4.pair_verdict(sid, vids, cells, 3, pair, {}, notes) == ["검토 대기", notes[0]["drop"]]
+    assert C4.pair_verdict(sid, vids, cells, 1, pair, {(sid, "P1"): "지급 형태 다름"}, []) == ["단정 주의", ["지급 형태 다름"]]
+    # 상대에게만 있으면: 뺀 시사점이 있어도 우체국에 없음, 우리 쪽 매핑 대기가 있으면 검토 대기
+    drop = [{"k": "범위 차이", "d": "기준에 없음", "p": ["P1"], "drop": ["가진 쪽의 이 담보 급부가 모두 작업 로그 검토 대기"]}]
+    theirs = [{"c": ["넓은 담보", ["STD_W"], False]}, {"r": 1, "i": [1], "n": 1}]
+    assert C4.pair_verdict(sid, vids[:2], theirs, 1, {}, {}, drop) == ["우체국에 없음", []]
+    assert C4.pair_verdict(sid, vids[:2], [{"w": 2}, theirs[1]], 1, {}, {}, drop) == ["검토 대기", ["B 매핑 대기 2줄"]]
+    # 둘 다 확정 급부가 없으면 매핑 대기가 있을 때만 검토 대기
+    assert C4.pair_verdict(sid, vids[:2], [0, {"w": 1}], 1, {}, {}, []) == ["검토 대기", ["P1 매핑 대기 1줄"]]
+    assert C4.pair_verdict(sid, vids[:2], [0, 0], 1, {}, {}, []) is None
+    # 테스트 쪽 규칙(expected_pair)과 같다
+    for k in range(1, 5):
+        assert expected_pair(sid, vids, cells, {"P1": pair[(sid, "P1")]}, [], set(), k) == got[k - 1][0]
+
+
+def test_added_pair_values_catch_mismatch(made):
+    """쌍판정, 판정요약, 보류요약의 기관별이 어긋나면 검사기가 잡는다."""
+    f = {k: copy.deepcopy(made[k]) for k in ("S", "D", "CV", "T3", "gate")}
+    bid = next(iter(f["CV"]["b"]))
+    b = f["CV"]["b"][bid]
+    sid, i = next((s, i) for s, vs in b["쌍판정"].items() for i, v in enumerate(vs) if v and v[0] == "우체국에 없음")
+    b["쌍판정"][sid][i] = ["검토 대기", ["뺀 시사점"]]                        # 화면이 만들던 판정(뺀 시사점이면 검토 대기)
+    org = next(iter(b["판정요약"]))
+    b["판정요약"][org]["같음"] = b["판정요약"][org].get("같음", 0) + 1
+    p = f["S"]["기준별"][bid]["보류요약"]
+    p["기관별"][org]["뺀쌍"] += 1
+    errs = added_value_errors(f)
+    assert any(f"{sid}" in e and "쌍판정" in e for e in errs), errs
+    assert any("판정요약" in e for e in errs) and any("기관별 뺀쌍" in e for e in errs)
+
+
+@pytest.fixture(scope="module")
+def made_all():
+    """사본의 모든 회사(--orgs all)로 만든 자료. 화면에 올린 회사 밖의 회사가 사본에 없으면 건너뛴다."""
+    from postlife import config
+    data = load(SNAPSHOT, "all")
+    extra = {v.get("기관코드") for v in data.variants.values()} - set(config.SITE_ORGS)
+    if not extra:
+        pytest.skip("사본에 화면에 올린 회사 밖의 회사가 없다")
+    out = unpack(C4.export_texts(data, SRC))
+    out["data"] = data
+    out["extra"] = extra
+    return out
+
+
+def test_all_companies_follow_the_same_contract(made_all):
+    """네 회사 이상의 자료(--orgs all)에서도 규약과 더한 값의 정합성(쌍판정, 판정요약, 보류요약의 기관별 포함)이 선다.
+    d.json 의 lineup 은 화면에 올린 회사 전부의 자리이고, 등급마다 회사마다 고를 수 있는 종형(정밀비교, 판매 중, 그 간편고지약칭인
+    종형이 하나뿐)이면 그 종형, 아니면 null 이다."""
+    f, data = made_all, made_all["data"]
+    assert check(f["S"], SALES) == [] and check(f["CV"], CV) == [] and check(f["D"], D) == []
+    assert added_value_errors(f) == []
+    d = f["D"]
+    order = [o["code"] for o in d["orgs"]]
+    assert set(order) == {v.get("기관코드") for v in data.variants.values()} and f["extra"] <= set(order)
+    for grade, vs in d["lineup"].items():
+        for code, v in zip(order, vs):
+            found = [x for x in data.variant_order if data.variants[x].get("기관코드") == code
+                     and data.variants[x].get("비교역할구분") == "정밀비교" and not data.variants[x].get("판매종료일")
+                     and data.variants[x].get("간편고지약칭") == grade]
+            assert v == (found[0] if len(found) == 1 else None), (grade, code, found)
+    if "MERITZ" in order:     # 메리츠화재 통합간편건강보험 2610 의 315, 325, 355 간편심사형
+        picked = [vs[order.index("MERITZ")] for vs in d["lineup"].values()]
+        assert all(picked), picked
+        names = [data.variants[v]["종형명"] for v in picked]
+        assert ["315" in names[0], "325" in names[1], "355" in names[2]] == [True] * 3, names
