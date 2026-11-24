@@ -221,3 +221,30 @@ def test_other_companies_do_not_go_through_the_registry(run, monkeypatch, tmp_pa
     monkeypatch.setattr(fd, "fetch_source", lambda *a: called.append(a))
     monkeypatch.setattr(fd, "fetch_samsungfire", lambda *a: ([], [], {}))
     assert run["go"]("--list-only", org="samsungfire") == 0 and called == []
+
+
+# ---------------------------------------------------------------------------
+# 받으면 쓰고 없어도 실패로 세지 않는 서류(Source.optional. KB라이프생명의 약관)
+# ---------------------------------------------------------------------------
+
+def test_optional_documents_are_saved_but_never_counted_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(fd, "pdf_pages", lambda data: ["첫 쪽"])
+    monkeypatch.setattr(fd, "pause", lambda s: None)
+    listed = {
+        A: ["사업방법서", "상품요약서", "약관"],       # 약관까지 있음
+        B: ["사업방법서", "상품요약서"],               # 약관이 목록에 없음
+    }
+
+    def find(session, code, on, name=None):
+        return f"가나 {code}", [sources.Listed(code, f"가나 {code}", k, f"{code}{k}.pdf", "2026-10-31") for k in listed[code]]
+
+    src = sources.Source("zz", "MERITZ", "가나생명", find, lambda s, item: b"%PDF-" + item.kind.encode(), optional=("약관",))
+    targets = tmp_path / "t.json"
+    targets.write_text(json.dumps({"상품": [{"종형": [{"공시상품코드": A}, {"공시상품코드": B}]}]}, ensure_ascii=False))
+    out = tmp_path / "out"
+    out.mkdir()
+    index, rows, missing = fd.fetch_source(src, None, out, targets, False, "2026-11-24")
+    assert [(e["상품코드"], e["문서"]) for e in index] == [(A, "사업방법서"), (A, "상품요약서"), (A, "약관"),
+                                                         (B, "사업방법서"), (B, "상품요약서")]
+    assert missing == {}
+    assert any("약관" in r and "서류 경로 없음" in r for r in rows)

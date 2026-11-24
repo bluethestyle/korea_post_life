@@ -16,6 +16,8 @@ benefits_2reader.jsonl, 꼴은 data/crosscheck/README.md)에 둔다. 이 스크�
    한 요약서 안에서 형마다 공시상품코드가 따로 있는 상품(KB라이프생명)은 형마다 값 파일이 따로이고, 그 요약서를 쓰는 코드의
    값 파일을 모두 이어 쓴다(merged_lines).
 4. reader_rows.build_rows로 특약 행과 급부 행을 만든다. 원문 구절이 들어가는 열(지급횟수제한, 감액예외)은 조각에서 잘라 쓴다.
+   판정값에 지급단위근거(요약서 밖 문서의 쪽. KB라이프생명 입원 특약의 "1일당"은 약관의 그 특약 조항에만 있다)가 있으면
+   공시 수집 결과에서 그 문서를 찾아 가리킨 쪽만 다시 뽑고, 그 쪽의 글자에서 지급단위 구절을 찾는다(basis_pages).
    갱신형 특약의 갱신주기년은 대상 설정의 갱신형특약주기년이고, 갱신형특약제외에 적은 특약은 만들지 않는다.
    행없음 줄은 금액 없는 급부 행(지급기준구분 차등지급, 실손보상, 분할지급, 현물급부. 두 금액과 감액은 비움)이 되고,
    그런 급부마다 작업 로그 한 줄(작업단계 추출, 대상열 지급기준구분, 결과 통과)에 판독 사유, 번호, 내용 지문을 남긴다.
@@ -173,6 +175,38 @@ def read_pieces(pdf: Path, layout: Layout) -> tuple[list[RR.PieceView], dict[int
     return RR.load_pieces(data), pages
 
 
+def page_subset(pdf: Path, numbers: set[int]) -> dict[int, str]:
+    """PDF에서 고른 쪽의 글자만(tables.page_texts와 같은 뽑기). 약관처럼 쪽이 많은 문서를 다 풀지 않으려고 쓴다."""
+    import pdfplumber
+
+    with pdfplumber.open(pdf) as f:
+        return {n: f.pages[n - 1].extract_text() or "" for n in sorted(numbers) if 0 < n <= len(f.pages)}
+
+
+def basis_pages(index: Sequence[Mapping[str, Any]], codes: Sequence[str], readings: Mapping[str, Mapping[str, Any]],
+                docs: Path) -> tuple[dict[str, dict[int, str]], list[str]]:
+    """판정값의 지급단위근거가 가리키는 요약서 밖 문서(사업방법서, 약관)의 쪽 글자와 주의.
+
+    그 요약서를 쓰는 코드(codes)의 공시 수집 결과에서 그 문서를 찾아 가리킨 쪽만 뽑는다. 문서가 없으면 주의를 남기고,
+    그 줄은 기계 검사(지급단위 구절없음)에 걸려 쓰지 않는다.
+    """
+    wanted: dict[str, set[int]] = {}
+    for v in readings.values():
+        basis = v.get("지급단위근거")
+        if basis and basis["문서"] != "상품요약서":
+            wanted.setdefault(basis["문서"], set()).add(basis["쪽"])
+    out: dict[str, dict[int, str]] = {}
+    notes: list[str] = []
+    for kind, numbers in sorted(wanted.items()):
+        entry = next((e for e in index if e.get("상품코드") in codes and e.get("문서") == kind), None)
+        pdf = docs / f"{entry['저장이름']}.pdf" if entry else None
+        if pdf is None or not pdf.exists():
+            notes.append(f"{', '.join(codes)}: 지급단위근거의 {kind}가 공시 수집 결과에 없어 그 문서를 가리킨 줄은 쓰지 않음")
+            continue
+        out[kind] = page_subset(pdf, numbers)
+    return out, notes
+
+
 def renewal_years(pieces: Sequence[RR.PieceView], years: int | None, excluded: Sequence[str]) -> dict[str, int]:
     """조각의 갱신형 특약 이름마다 갱신주기년. 갱신형특약제외에 적은 특약(빈칸 무시)과 주기가 없으면 넣지 않는다."""
     banned = {RR._squash(n) for n in excluded}
@@ -282,12 +316,14 @@ def load(store: SheetStore, targets: dict[str, Any], index: list[dict[str, Any]]
         group.out_of_kind = [n for n in dict.fromkeys(cut) if n not in in_variant]
         lines, clash = merged_lines([values[c] for c in with_values])
         readings = check_values(group, lines, clash)
+        other, notes = basis_pages(index, list(dict.fromkeys(codes + same_file)), readings, docs)
+        report.notes += notes
         report.groups.append(group)
         for v in group_variants:
             mine = chosen[v.id]
             settings = product[(v.row["공시상품코드"], v.row["종형명"])]
             banned = [x["특약명"] for x in settings.get("갱신형특약제외") or []]
-            built = RR.build_rows(v.id, mine, readings, renewal_years(mine, v.plain_renewal_years, banned), pages)
+            built = RR.build_rows(v.id, mine, readings, renewal_years(mine, v.plain_renewal_years, banned), pages, other)
             main_renewal(built.riders, v)
             for r in built.riders:          # 표는 가입 한도를 모른다. 시트에 있던 값을 잇는다(job.run과 같다)
                 old = on_sheet.get(r["특약ID"], {})

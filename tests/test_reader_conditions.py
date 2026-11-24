@@ -177,6 +177,29 @@ def test_limits_are_checked_against_the_page_and_compared():
     assert result["줄"][0]["일치"]["한도"] == RC.DIFF
 
 
+def test_amount_without_won_and_formula_with_premium_word_are_found_on_the_page():
+    # 지어낸 쪽 글자. 생명보험사 문서는 금액을 "4,900만"처럼 "원"을 빼고 적거나, 식의 기간 앞에 "보험료"를 붙여 적는다
+    pages = {"사업방법서": {2: "[가나보험 나이표]\n10년납\n90세만기 20년납\n"
+                               "주계약(가나보험) 만20세~(85-보험료 납입기간)세"},
+             "상품요약서": {4: "[가나보험 금액]\n하한 300만원, 상한 2억원\n선택계약을 더하면 4,900만 까지\n"
+                               "가나보험은 5천만원 미만"}}
+    table = {"표": "공통", "근거쪽": 2, "근거낱말": ["주계약"],
+             "줄": [line("90세만기", "10년납", 20, 75, "85-납입기간", page=2),
+                    line("90세만기", "20년납", 20, 65, "85-납입기간", page=2)],
+             "한도없음": False,
+             "한도": [{"쪽": 4, "문서": "상품요약서", "최저나이": 0, "최고나이": None, "보험기간": "", "납입기간": "",
+                     "최저금액만원": 300, "최고금액만원": 4900}], "모름": []}
+    assert RC.machine_checks(table, pages, [2, 5]) == ([], [])
+    # 글자에 없는 금액과 식의 숫자는 그대로 문제로 잡힌다. "미만"의 "만"을 금액으로 읽지 않는다
+    wrong = copy.deepcopy(table)
+    wrong["한도"][0]["최고금액만원"] = 4800
+    wrong["줄"][0]["최고나이식"] = "95-납입기간"
+    wrong["줄"][0]["최고나이"] = 85
+    problems = RC.machine_checks(wrong, pages, [2, 5])[0]
+    assert any("4800" in p for p in problems) and any("'95-납…'" in p for p in problems)
+    assert not RC._money_in(5, pages["상품요약서"][4])
+
+
 def test_unknown_in_one_reading_needs_judgement_and_reasons_are_not_stored():
     other = reading("opus", 모름=[{"칸": "한도", "이유": "가입한도 절을 찾지 못함"}])
     result = RC.compare_task(task(), {"sonnet": reading(), "opus": other}, ["sonnet", "opus"], PAGES)

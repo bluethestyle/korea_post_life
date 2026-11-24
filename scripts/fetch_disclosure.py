@@ -7,7 +7,8 @@
 대상 설정의 종형에 "급부구간"(구간 제목 줄. 예: "나. 8종(일반형)")을 적어 고른다. 절이 한 곳이면 적지 않는다.
 
 초기 적재 회사(--org meritz 등, postlife.disclosure.sources에 이은 회사)는 대상 설정(data/targets/<회사>.json)의
-공시상품코드마다 사업방법서와 상품요약서만 받고, 항목마다 파일 전체의 sha256을 더 적는다. 급부 표 조각은 만들지 않는다.
+공시상품코드마다 사업방법서와 상품요약서만 받고(KB라이프생명은 약관도 받는다. sources.Source.optional), 항목마다 파일 전체의
+sha256을 더 적는다. 급부 표 조각은 만들지 않는다.
 회사마다 공시상품코드 자리의 값(상품코드, 게시 번호, 상품명)과 공시상품명이 필요한지는 sources.SOURCES에 적었다.
 """
 from __future__ import annotations
@@ -187,7 +188,8 @@ def fetch_source(src: sources.Source, s, out: Path, targets: Path, list_only: bo
 
     대상 설정 파일의 공시상품코드마다 on(기준일)에 판매 중인 판매기간을 고른다. 같은 세션으로 목록과 서류를 받고,
     요청 사이에 src.pause초 쉰다. 항목은 다른 회사와 같은 열쇠에 파일 전체의 sha256을 더한다.
-    세 번째 값은 공시상품코드마다 받지 못한 서류다. 다 받은 코드는 빠진다.
+    세 번째 값은 공시상품코드마다 받지 못한 서류다. 다 받은 코드는 빠진다. src.optional의 서류(KB라이프생명의 약관)는
+    받으면 항목에 넣고, 받지 못해도 여기에 세지 않는다.
     종형에 "공시상품명"이 있으면 상품을 찾는 데 쓰도록 find에 넘긴다(상품명으로만 찾을 수 있는 회사가 있다).
     같은 공시상품코드의 종형끼리 공시상품명이 다르면 그 코드는 받지 않는다.
     """
@@ -220,7 +222,7 @@ def fetch_source(src: sources.Source, s, out: Path, targets: Path, list_only: bo
             continue
         name, docs = found
         docs = {d.kind: d for d in docs}
-        for kind in src.kinds:
+        for kind in src.kinds + src.optional:
             doc = docs.get(kind)
             if doc is None:
                 rows.append(f"| {code} | {name} | {kind} | (공시 목록에 서류 경로 없음) | | | |")

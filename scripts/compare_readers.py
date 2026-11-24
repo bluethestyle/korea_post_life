@@ -14,11 +14,15 @@
 묶음에 읽을종이 있으면(삼성생명처럼 한 급부 표 안에 종별 값이 함께 있는 요약서) 지급사유와 지급금액에서 다른 종의 토막을
 뗀 글자로 기계 검사를 돌린다(bundle_pieces).
 
-값 파일(--out, JSONL)은 data/crosscheck/에 둘 꼴이다. 줄마다 번호, 쪽, 특약명, 급부명, 두 판독의 값, 칸별 일치, 기계 검사,
-자동판정, 판정, 판정값. 판독 값은 구조(숫자, 낱말, 허용값)만 담고 원문 구절과 판독자가 쓴 모름 이유는 싣지 않는다.
+값 파일(--out, JSONL)은 data/crosscheck/에 둘 꼴이다. 줄마다 번호, 쪽, 특약명, 급부명, 조각지문, 두 판독의 값, 칸별 일치,
+기계 검사, 자동판정, 판정, 판정값. 판독 값은 구조(숫자, 낱말, 허용값)만 담고 원문 구절과 판독자가 쓴 모름 이유는 싣지 않는다.
+조각지문은 --pieces로 준 조각 파일(scripts/dump_tables.py, dump_blocks.py의 결과. 묶음을 나누기 전의 원래 조각)에서
+reader_rows.cover_fingerprint로 만든다. 적재(scripts/load_reader_product.py)가 받은 요약서에서 다시 만든 조각과 맞춰 보는 값이라
+묶음(읽을 종의 토막만 남긴 글자)으로 만들면 안 된다. 묶음의 번호가 조각 파일에 없거나 세부보장명이 다르면 값 파일을 쓰지 않는다.
+--pieces가 없으면 조각지문 칸을 쓰지 않는다(적재에서 모든 줄이 "조각 지문이 다름"으로 빠진다).
 
   python scripts/compare_readers.py 묶음.json --a 묶음.sonnet.json --b 묶음.opus.json --out 값.jsonl [--report 견줌.json] [--page-text 쪽글자.json]
-  python scripts/compare_readers.py 묶음폴더/6AFLT_B*.json --answers 판독폴더 --readers sonnet opus --out 값.jsonl
+  python scripts/compare_readers.py 묶음폴더/6AFLT_B*.json --answers 판독폴더 --readers sonnet opus --pieces 조각.json --out 값.jsonl
     (--answers 폴더에서는 묶음마다 <묶음>.<판독자>.json을 찾는다)
   python scripts/compare_readers.py 묶음.json --check 묶음.sonnet.json     # 판독 파일 하나의 꼴만 본다
 """
@@ -52,9 +56,28 @@ def bundle_pieces(bundle: Mapping[str, Any]) -> list[RR.PieceView]:
     return pieces
 
 
+def piece_prints(data: Mapping[str, Any]) -> dict[str, tuple[str, str]]:
+    """조각 파일(원래 조각)의 번호마다 (세부보장명, 조각지문)."""
+    return {n: (c.name, RR.cover_fingerprint(p, c)) for n, (p, c) in RR.covers_by_number(RR.load_pieces(data)).items()}
+
+
+def print_problems(bundle: Mapping[str, Any], prints: Mapping[str, tuple[str, str]]) -> list[str]:
+    """묶음의 번호가 조각 파일에 없거나 세부보장명이 다른 줄. 다른 문서나 다른 버전으로 만든 조각 파일이면 걸린다."""
+    out = []
+    for p in RR.load_pieces(bundle):
+        for c in p.covers:
+            if c.number not in prints:
+                out.append(f"{c.number}: 조각 파일에 없는 번호")
+            elif prints[c.number][0] != c.name:
+                out.append(f"{c.number}: 조각 파일의 세부보장명이 묶음과 다름")
+    return out
+
+
 def compare_bundle(bundle: Mapping[str, Any], answers: Mapping[str, Any], names: Sequence[str],
-                   pages: Mapping[int, str] | None = None) -> dict[str, Any]:
-    """묶음 하나와 판독 둘({판독 이름: 판독 파일 내용})을 견준다. pages는 {쪽: 쪽 글자}(면책근거쪽 확인용)."""
+                   pages: Mapping[int, str] | None = None,
+                   prints: Mapping[str, tuple[str, str]] | None = None) -> dict[str, Any]:
+    """묶음 하나와 판독 둘({판독 이름: 판독 파일 내용})을 견준다. pages는 {쪽: 쪽 글자}(면책근거쪽 확인용).
+    prints는 조각 파일의 {번호: (세부보장명, 조각지문)}(piece_prints). 주면 줄마다 조각지문을 적는다."""
     a_name, b_name = names
     pieces = bundle_pieces(bundle)
     found = RR.covers_by_number(pieces)
@@ -95,6 +118,7 @@ def compare_bundle(bundle: Mapping[str, Any], answers: Mapping[str, Any], names:
         lines.append({
             "번호": n, "쪽": cover.page, "특약명": piece.title, "급부명": cover.name,
             **({"형": piece.segment} if piece.segment else {}),
+            **({"조각지문": prints[n][1]} if prints is not None else {}),
             a_name: RR.stored_value(a[n]) if n in a else None,
             b_name: RR.stored_value(b[n]) if n in b else None,
             "일치": states[n],
@@ -187,6 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--answers", type=Path, help="판독 파일 폴더. 묶음마다 <묶음>.<판독자>.json을 찾는다")
     p.add_argument("--readers", nargs=2, default=None, help="두 판독의 이름. 비우면 판독 파일의 판독자 칸")
     p.add_argument("--page-text", type=Path, help="쪽별 글자 JSON({쪽: 글자}, tables.page_texts). 조각에 없는 면책 날수를 판독의 면책근거쪽에서 찾는다")
+    p.add_argument("--pieces", type=Path, help="묶음을 만든 조각 파일(dump_tables.py, dump_blocks.py의 결과). 줄마다 조각지문을 적는다")
     p.add_argument("--out", type=Path, help="값 파일(JSONL). data/crosscheck/에 둘 꼴")
     p.add_argument("--report", type=Path, help="견줌 결과 전체(JSON). 원문을 싣지 않지만 리포 밖에 둔다")
     p.add_argument("--check", type=Path, help="판독 파일 하나의 꼴만 본다(판독자가 내기 전에 스스로 돌린다). 견주지 않는다")
@@ -200,9 +225,14 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if problems else 0
 
     pages = {int(k): v for k, v in _load(args.page_text).items()} if args.page_text else None
+    prints = piece_prints(_load(args.pieces)) if args.pieces else None
     results = []
     for path in args.bundles:
         bundle = _load(path)
+        if prints is not None:
+            wrong = print_problems(bundle, prints)
+            if wrong:
+                p.error(f"{path.name}: 묶음이 조각 파일과 맞지 않음 ({len(wrong)}줄): {'; '.join(wrong[:5])}")
         if args.answers:
             if not args.readers:
                 p.error("--answers에는 --readers가 필요합니다")
@@ -215,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
         names = args.readers or [str(x.get("판독자") or tag) for x, tag in zip(answers, ("A", "B"))]
         if names[0] == names[1]:
             names = [f"{names[0]}1", f"{names[1]}2"]
-        results.append(compare_bundle(bundle, dict(zip(names, answers)), names, pages))
+        results.append(compare_bundle(bundle, dict(zip(names, answers)), names, pages, prints))
 
     print(summary(results))
     if args.out:

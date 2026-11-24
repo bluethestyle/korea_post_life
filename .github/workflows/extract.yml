@@ -15,6 +15,7 @@ name: 추출·검증
 # kblife(KB라이프생명)도 같은 길이다(값 파일 data/crosscheck/kblife_*_benefits_2reader.jsonl, kblife_main_conditions_2reader.jsonl).
 # 요약서는 쪽을 넘어 이어지는 표 하나라 tables.py로 조각을 다시 만든다(scripts/dump_tables.py --org kblife와 같다). 한 요약서를
 # 간편심사형(331000106)과 일반심사형(335000106)이 함께 쓰고 값 파일은 코드마다 따로라, 같은 요약서를 쓰는 코드의 값 파일을 이어 쓴다.
+# 입원 특약의 "1일당"은 약관에만 있어(값 파일 판정값의 지급단위근거) 공시 수집이 kblife는 약관도 받는다. 받지 못하면 그 줄만 빠진다.
 # pdfplumber는 버전을 고정한다. 표 읽기 결과(조각 순번과 글자)가 버전에 따라 달라지면 meritz의 조각 지문과 samsungfire의 대조 자료
 # 번호가 어긋난다. 두 회사의 조각과 대조 자료를 만든 버전(0.11.10)이다. samsunglife와 kblife의 조각도 같은 버전으로 만들었다.
 on:

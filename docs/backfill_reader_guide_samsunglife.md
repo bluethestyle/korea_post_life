@@ -138,4 +138,4 @@ PYTHONPATH=src python scripts/compare_readers.py <묶음 폴더>/<공시상품�
   --page-text <쪽별 글자.json> --out <값 파일.jsonl> --report <견줌 결과.json>
 ```
 
-값 파일은 `data/crosscheck/samsunglife_<공시상품코드>_benefits_2reader.jsonl`이다. 줄마다 `조각지문`은 묶음이 아니라 조각 파일(`scripts/dump_blocks.py`의 결과)의 조각으로 만든다(`reader_rows.cover_fingerprint`. 묶음에는 구분이 없다). 적재(`scripts/load_reader_product.py --org samsunglife`)는 받은 요약서에서 조각을 다시 만들어 지문을 맞춘다.
+값 파일은 `data/crosscheck/samsunglife_<공시상품코드>_benefits_2reader.jsonl`이다. 줄마다 `조각지문`은 묶음이 아니라 조각 파일(`scripts/dump_blocks.py`의 결과)의 조각으로 만든다(`reader_rows.cover_fingerprint`. 묶음에는 구분이 없다). 적재(`scripts/load_reader_product.py --org samsunglife`)는 받은 요약서에서 조각을 다시 만들어 지문을 맞춘다. 조각지문은 견줌 도구에 `--pieces <조각 파일>`을 주면 함께 쓴다.

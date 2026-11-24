@@ -11,7 +11,9 @@
 상품명으로 본다. 상품명은 공시 목록에 적힌 그대로(빈칸, 괄호 포함) 적는다.
 한 번의 find가 요청을 두 번 보내는 회사(상품코드로 상품명을 먼저 찾는 곳 등)는 그 사이에도 GAP초 쉰다.
 
-받는 서류는 kinds(기본 사업방법서와 상품요약서)뿐이다. 약관과 상품설명서는 받지 않는다.
+받는 서류는 kinds(기본 사업방법서와 상품요약서)와 optional이다. optional은 받으면 쓰고, 목록에 없거나 받지 못해도
+갖추지 못한 상품으로 세지 않는다. KB라이프생명은 약관을 optional로 받는다(입원 특약의 "1일당"이 요약서에 없고 약관의
+특약 조항에만 있어, 급부 적재가 판정값의 지급단위근거로 그 쪽을 본다). 상품설명서는 받지 않는다.
 급부 표 조각은 만들지 않는다(삼성화재 경로에만 있다).
 """
 from __future__ import annotations
@@ -52,6 +54,7 @@ class Source:
     find: Callable[[Any, str, str, str | None], Found]
     download: Callable[[Any, Listed], bytes]
     kinds: tuple[str, ...] = KINDS
+    optional: tuple[str, ...] = ()   # 받으면 쓰고 없어도 갖추지 못한 상품으로 세지 않는 서류
     pause: float = 1.0   # 같은 공시실에 보내는 요청(목록 조회, 서류 받기) 사이의 쉬는 초
     lookup: str = ""     # 공시상품코드 자리에 넣는 값(실행 요약과 오류 글에 쓴다)
 
@@ -273,7 +276,7 @@ SOURCES: dict[str, Source] = {
     "dongyang": Source("dongyang", "TONGYANG", "동양생명", _dongyang_find,
                        lambda s, item: dongyang.download(s, item.handle), lookup="상품명(코드 없음)"),
     "kblife": Source("kblife", "KBLIFE", "KB라이프생명", _kblife_find, lambda s, item: kblife.download(s, item.handle),
-                     lookup="상품코드(P_CODE)"),
+                     optional=("약관",), lookup="상품코드(P_CODE)"),
     "miraeasset": Source("miraeasset", "MIRAEASSET", "미래에셋생명", _miraeasset_find,
                          lambda s, item: miraeasset.download(s, item.handle), lookup="상품안내 메뉴의 상품코드(publicCd)"),
     "metlife": Source("metlife", "METLIFE", "메트라이프생명", _metlife_find,

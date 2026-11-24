@@ -391,8 +391,15 @@ def formula_value(line: Mapping[str, Any]) -> int | None:
     return int(m.group(1)) - years if years is not None else None
 
 
+# "4,900만"처럼 "만" 뒤에 "원"을 빼고 적은 금액(삼성생명 요약서의 가입한도). 숫자나 천, 백 바로 뒤의 "만"만 본다
+# ("미만", "만15세"의 "만"은 아니다)
+_BARE_MAN = re.compile(r"(?<=[\d천백])만(?![원\d])")
+
+
 def _money_in(manwon: float, text: str) -> bool:
-    return any(abs(value - manwon) < 1e-6 for _, value in B._amounts(_flat(text)))
+    flat = _flat(text)
+    return any(abs(value - manwon) < 1e-6 for source in (flat, _BARE_MAN.sub("만원", flat))
+               for _, value in B._amounts(source))
 
 
 def machine_checks(table: Mapping[str, Any], pages: Mapping[str, Mapping[int, str]] | None,
@@ -445,7 +452,8 @@ def machine_checks(table: Mapping[str, Any], pages: Mapping[str, Mapping[int, st
         formula = ids.normalize(line.get("최고나이식") or "")
         if formula:
             base, ref = _FORMULA.match(formula).groups()
-            if re.search(rf"(?<!\d){base}-{ref[:1]}", flat) is None:
+            # "(N-보험료 납입기간)"처럼 기간 앞에 "보험료"를 붙여 적은 식도 같은 식이다(KB라이프생명 사업방법서)
+            if re.search(rf"(?<!\d){base}-(?:보험료)?{ref[:1]}", flat) is None:
                 problems.append(f"식: {label} 최고나이식의 '{base}-{ref[:1]}…'이 {n}쪽에 없음")
             value = formula_value(line)
             if value is None:

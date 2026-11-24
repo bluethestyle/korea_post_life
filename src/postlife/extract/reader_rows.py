@@ -26,6 +26,8 @@
     한도                   [{앞말, 수, 단위(회|일)}] 지급 횟수나 일수 한도
     주의                   NOTICE_KINDS. 행은 만들지만 스키마가 담지 못하는 정보
     모름                   [{칸, 이유}] 읽지 못한 칸
+    지급단위근거           {문서(상품요약서|사업방법서|약관), 쪽}. 판정값에만 쓴다. 그 줄의 칸에 지급단위 구절이 없고 같은
+                           상품의 다른 문서 쪽(약관의 그 특약 조항 따위)에 있을 때, 코드가 그 쪽의 글자에서 구절을 찾는다
     행없음 줄도 면책일수, 보장개시일, 한도를 채우고 견준다. 행없음사유가 "그밖"이 아니면 이 셋으로 금액 없는 급부 행
     (지급기준구분 차등지급, 실손보상, 분할지급, 현물급부)을 만들고, "그밖"이면 행은 만들지 않고 정보만 남긴다.
 
@@ -95,6 +97,7 @@ NO_AMOUNT_BASIS: dict[str, str] = {
     "현물급부": "현물급부",
 }
 UNITS = ("", "1일당", "1회당", "1사고당")
+DOC_KINDS = ("상품요약서", "사업방법서", "약관")      # 지급단위근거의 문서
 CUT_UNITS = ("일", "개월", "년")
 CUT_BASES = ("가입금액", "보험금", "만원")
 PLACES = ("지급사유", "지급금액", "주석")
@@ -119,7 +122,7 @@ def needs_review(v: Mapping[str, Any] | None) -> bool:
 
 FIELDS = ("꼴", "행없음사유", "대상", "지급률", "기준가입금액만원", "지급액만원", "지급률곱", "지급단위", "감액",
           "감액대상", "감액예외", "면책일수", "보장개시일", "한도", "주의")
-_KEYS = set(FIELDS) | {"번호", "쪽", "모름", "면책근거쪽"}
+_KEYS = set(FIELDS) | {"번호", "쪽", "모름", "면책근거쪽", "지급단위근거"}
 _NUMBER = re.compile(r"^R\d{3}-\d+$")
 _SHORT = 30                 # 낱말 칸의 길이 한도. 원문 문장을 옮겨 적지 못하게 한다
 _REASON = 80                # 모름 이유의 길이 한도
@@ -340,6 +343,10 @@ def check_format(item: Any) -> list[str]:
         out.append("면책일수가 있는데 보장개시일 이름이 비어 있음")
     if v["면책근거쪽"] is not None and not _int(v["면책근거쪽"]):
         out.append("면책근거쪽이 정수가 아님")
+    basis = item.get("지급단위근거")
+    if basis is not None and not (isinstance(basis, Mapping) and set(basis) == {"문서", "쪽"}
+                                  and basis["문서"] in DOC_KINDS and _int(basis["쪽"]) and basis["쪽"] > 0):
+        out.append("지급단위근거가 {문서(상품요약서, 사업방법서, 약관), 쪽(양의 정수)}가 아님")
     limits = v["한도"]
     if not isinstance(limits, list):
         out.append("한도가 목록이 아님")
@@ -520,21 +527,28 @@ _LEAD_RE = {
     # "연간 1회", "연1회한", "연 1회". "연간" 없이 "연"만 쓴 꼴은 앞에 한글이 붙지 않은 자리("각각 연"은 된다)만 본다("전연"이 아니다)
     "연간": r"(?:연간|(?:(?<![가-힣])|(?<=각))연)\s*(?:최대\s*)?",
     "월간": r"월간\s*(?:최대\s*)?",
-    "1회입원당": r"1\s*회\s*입원\s*당\s*",
-    "1사고당": r"(?:1\s*)?사고\s*당\s*",
+    # "1회 입원당 180일", "1회 입원당 사용일수(는) 180일"(간병인, 간호간병 입원), "1회 입원당 지급일수 180일"
+    "1회입원당": r"1\s*회\s*입원\s*당\s*(?:(?:사용|입원|지급)\s*일수\s*[은는]?\s*)?",
+    # "1사고당 1회", 주석의 "동일한 (재해)사고를 … 경우에도 1회에 한하여"(한 문장 안, 80자까지)
+    "1사고당": r"(?:(?:1\s*)?사고\s*당\s*|동일한\s*(?:재해\s*)?사고[^\n.]{0,80}?경우에도\s*)",
     "보험기간": r"보험기간\s*(?:중\s*)?",
 }
 _LIMIT_TAIL = r"(?:\s*(?:에\s*)?(?:한하여|한함|한정|한도|한))"
 # 앞말이 없는 한도의 꼬리말. "각각 1회의 진단에 한함"처럼 "의" 뒤 열 자 안에서 한도를 뜻하는 말이 와도 된다
 # 앞말 없는 한도의 꼬리말. "1회의 … 에 한함"처럼 사이에 말이 끼면 끝이 한도를 뜻하는 낱말(한하여, 한함, 한정)이어야 한다.
-# "1회의 입원을 한 경우", "1회의 보험금을 지급한 경우" 같은 문장에 걸리지 않게 한 글자 "한"은 사이에 말이 없을 때만 받는다
+# "1회의 입원을 한 경우", "1회의 보험금을 지급한 경우" 같은 문장에 걸리지 않게 한 글자 "한"은 사이에 말이 없을 때만 받는다.
+# "15회 최고한도"처럼 "최고", "최대"가 붙은 한도도 받는다
 _BARE_TAIL = (r"(?:\s*의\s*[가-힣 ]{1,10}?\s*에\s*(?:한하여|한함|한정)"
+              r"|\s*(?:최고|최대)\s*한도"
               r"|\s*(?:에\s*)?(?:한하여|한함|한정|한도|한(?![가-힣])))")
+# 앞말 없는 한도가 기간 뒤 괄호 안에 든 꼴: "15년(15회) 최고한도". 기간과 괄호까지 함께 자른다
+_BARE_PAREN = r"(?<![\d.])\d+\s*(?:년|개월)\s*\(\s*{n}\s*{unit}\s*\)\s*(?:최고|최대)?\s*한도"
 _UNIT_RE = {
     "1일당": r"(?:(?:입원|통원|사용|간병인\s*사용|간호·?\s*간병통합서비스\s*사용)\s*)?1\s*일\s*당",
     # "수술 1회당", "1회 입원당", 숫자 없는 "회당 1만원". 숫자 없는 "회"는 앞에 숫자나 한글이 붙지 않은 자리만 본다("2회당", "사회당"이 아니다)
     "1회당": r"(?:(?:수술|통원|입원)\s*)?(?:1\s*|(?<=수술|통원|입원)|(?<![\d가-힣]))회\s*(?:[가-힣]{1,8}\s*)?당",
-    "1사고당": r"1\s*사고\s*당",
+    # "1사고당", "사고 1회당"
+    "1사고당": r"1\s*사고\s*당|사고\s*1\s*회\s*당",
 }
 _TIMES_RE = re.compile(r"[×✕xX]\s*(?:해당\s*)?(?:장해\s*)?지급률")
 
@@ -560,24 +574,90 @@ def limit_phrase(x: Mapping[str, Any], cover: CoverView, piece: PieceView | None
     """
     lead = _LEAD_RE[x["앞말"]]
     tail = _BARE_TAIL if x["앞말"] == "없음" else _LIMIT_TAIL + "?"
-    pattern = re.compile(rf"(?:각각\s*)?{lead}(?<![\d.]){x['수']}\s*{x['단위']}{tail}")
-    for text in _texts(cover, piece):
-        m = pattern.search(text)
-        if m:
-            return _tidy(m.group(0))
+    patterns = [re.compile(rf"(?:각각\s*)?{lead}(?<![\d.]){x['수']}\s*{x['단위']}{tail}")]
+    if x["앞말"] == "없음":
+        patterns.append(re.compile(_BARE_PAREN.format(n=x["수"], unit=x["단위"])))
+    for pattern in patterns:
+        for text in _texts(cover, piece):
+            m = pattern.search(text)
+            if m:
+                return _tidy(m.group(0))
     return None
 
 
 def unit_phrase(unit: str, cover: CoverView) -> str | None:
-    """지급단위(1일당 따위)의 원문 구절. 지급금액, 지급사유의 차례로 찾는다."""
+    """지급단위(1일당 따위)의 원문 구절. 지급금액, 지급사유, 세부보장명의 차례로 찾는다.
+
+    세부보장명에만 단위가 적힌 줄이 있다("… 중증외상치료(권역외상센터) (사고 1회당)").
+    """
     if not unit:
         return ""
     pattern = re.compile(_UNIT_RE[unit])
-    for text in (cover.amount, cover.reason):
+    for text in (cover.amount, cover.reason, cover.name):
         m = pattern.search(text or "")
         if m:
             return _tidy(m.group(0))
     return None
+
+
+_TITLE_TAG = re.compile(r"^\([가-힣]{1,4}\)")          # "(간편)" 같은 이름 앞 꼬리표
+_TITLE_TAIL = re.compile(r"(?:특별약관|특약)$")
+
+
+def _title_key(name: str) -> str:
+    """특약 이름에서 조항 제목과 견줄 열쇠: 빈칸을 떼고, 앞의 "(간편)" 같은 꼬리표와 끝의 "특약", "특별약관"을 뗀다."""
+    return _TITLE_TAIL.sub("", _TITLE_TAG.sub("", _squash(name)))
+
+
+def unit_on_page(unit: str, names: Sequence[str], page_text: str) -> str | None:
+    """다른 문서 쪽(약관의 특약 조항 따위)에서 그 특약의 지급단위 구절. 없으면 None.
+
+    그 쪽에서 특약 이름(names 가운데 하나, _title_key)에 "특약"이나 "특별약관"이 붙은 조항 제목이 줄 첫머리에 나오고,
+    그 제목 뒤에 지급단위 구절(_UNIT_RE)이 있어야 한다. 줄 가운데의 이름("상급종합병원입원(…)" 속의 "입원(…)" 따위)이나
+    제목 앞의 구절(앞 특약 조항의 표)은 세지 않는다.
+    """
+    if not unit:
+        return ""
+    text = page_text or ""
+    flat, pos = _flat_map(text)
+    pattern = re.compile(_UNIT_RE[unit])
+    for name in names:
+        key = _title_key(name)
+        if len(key) < 4:
+            continue
+        for m in re.finditer(re.escape(key) + r"(?:특별약관|특약)", flat):
+            if text[:pos[m.start()]].rsplit("\n", 1)[-1].strip():
+                continue                                    # 줄 첫머리가 아니면 조항 제목이 아니다
+            found = pattern.search(text, pos[m.end() - 1] + 1)
+            if found:
+                return _tidy(found.group(0))
+    return None
+
+
+def unit_basis(v: Mapping[str, Any], cover: CoverView, piece: PieceView | None,
+               docs: Mapping[str, Mapping[int, str]] | None = None) -> str | None:
+    """지급단위의 원문 구절. 그 줄의 칸(unit_phrase)에 없으면 지급단위근거(문서와 쪽)의 글자에서 찾는다(unit_on_page).
+
+    docs: {문서: {쪽: 글자}}. 문서는 DOC_KINDS. 그 쪽의 글자가 없으면 None.
+    """
+    unit = v.get("지급단위", "")
+    found = unit_phrase(unit, cover)
+    basis = v.get("지급단위근거")
+    if found is not None or not basis:
+        return found
+    page = ((docs or {}).get(basis["문서"]) or {}).get(basis["쪽"])
+    if page is None:
+        return None
+    names = [cover.name] + ([piece.title, *piece.names] if piece is not None else [])
+    return unit_on_page(unit, [n for n in names if n], page)
+
+
+def _with_summary(pages: Mapping[int, str] | None,
+                  docs: Mapping[str, Mapping[int, str]] | None) -> Mapping[str, Mapping[int, str]] | None:
+    """문서별 쪽 글자에 요약서 쪽 글자(pages)를 더한다."""
+    if not pages:
+        return docs
+    return {"상품요약서": pages, **(docs or {})}
 
 
 def times_phrase(cover: CoverView) -> str | None:
@@ -619,7 +699,9 @@ def clause_with(word: str, places: Sequence[str], cover: CoverView, piece: Piece
     return _tidy(min(found, key=len)) if found else None
 
 
-_EXCEPT_NEED = re.compile(r"감액|면책")
+# 감액하지 않는다는 문장의 표시(빈칸을 뗀 글에서). "감액", "삭감", "면책"이나, 감액 기간에도 "1년 초과시에 지급하는 보험금과
+# 동일한 보험금을 지급"처럼 감액 없는 금액을 준다는 말
+_EXCEPT_NEED = re.compile(r"감액|삭감|면책|동일한보험금을?지급")
 _TARGET_NEED = re.compile(r"\d+(?:\.\d+)?%|감액")
 
 
@@ -680,8 +762,9 @@ def _period_in(n: int, unit: str, texts: Sequence[str]) -> bool:
 
 # "500/250/250만원"처럼 "/"로 이은 금액 목록(생명보험사 요약서의 기준 줄과 가입금액 구간별 금액). 목록의 값마다 금액이다
 _MONEY_LIST = re.compile(r"(?<![\d.,])((?:\d[\d,]*(?:\.\d+)?\s*/\s*)+\d[\d,]*(?:\.\d+)?)\s*(?:만\s*원|만|万)")
-# "0.5만", "1,000万"처럼 "원" 없이 "만"이나 "万"으로 끝난 금액
-_MONEY_BARE = re.compile(r"(?<![\d.,/])(\d[\d,]*(?:\.\d+)?)\s*(?:万|만)(?!\s*원)(?!\s*\d)")
+# "0.5만", "1,000万"처럼 "원" 없이 "만"이나 "万"으로 끝난 금액. 뒤의 숫자는 같은 줄에서만 본다
+# ("1년이내: 0.5만" 다음 줄의 "1년초과: 1만"이 앞 금액을 막지 않게)
+_MONEY_BARE = re.compile(r"(?<![\d.,/])(\d[\d,]*(?:\.\d+)?)\s*(?:万|만)(?!\s*원)(?![^\S\n]*\d)")
 
 
 def _money_in(manwon: float, texts: Sequence[str]) -> bool:
@@ -758,8 +841,9 @@ def _boundary(flat: str, start: int, spaced: bool = False) -> bool:
     """flat[start:]에서 시작하는 이름이 다른 이름의 꼬리가 아닌가("유사암보장개시일" 속의 "암보장개시일"이 아닌가).
 
     spaced: 원문에서 이름 바로 앞이 빈칸이나 줄바꿈인가. 문장이 끝난 뒤("…합니다 가나보장개시일은")면 경계로 본다.
+    "이 계약의 가나보장개시일은", "이 특약의 가나보장개시일은"처럼 "계약의", "특약의" 바로 뒤도 경계다.
     """
-    if start == 0 or flat.endswith(("및", "보장개시일과", "보장개시일와"), 0, start):
+    if start == 0 or flat.endswith(("및", "보장개시일과", "보장개시일와", "계약의", "특약의"), 0, start):
         return True
     if spaced and flat.endswith(("다", "다.", "음", "함"), 0, start):
         return True
@@ -1098,11 +1182,13 @@ def exclusion_dropped(target: str, reason: str) -> bool:
 
 
 def machine_checks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | None = None,
-                   pages: Mapping[int, str] | None = None) -> tuple[list[str], list[str]]:
+                   pages: Mapping[int, str] | None = None,
+                   docs: Mapping[str, Mapping[int, str]] | None = None) -> tuple[list[str], list[str]]:
     """(문제, 표시). 문제는 원문에 근거가 없거나 범위를 벗어난 값, 표시는 판독이 쓰지 않은 숫자처럼 사람이 볼 곳.
 
     두 판독이 같은 방식으로 틀리는 것을 잡으려는 검사다. 값이 같아도 문제나 표시가 있으면 확정하지 않는다.
     pages: {쪽 번호: 쪽 글자}. 주면 조각에 없는 면책 날수를 판독 값의 면책근거쪽 글자에서 찾는다.
+    docs: {문서: {쪽: 글자}}. 지급단위근거가 가리키는 다른 문서의 쪽 글자(요약서 쪽은 pages로 충분하다).
     행없음 줄은 행을 만들지 않아도 남기는 칸(면책일수, 보장개시일, 한도)만 본다.
     """
     problems: list[str] = []
@@ -1132,8 +1218,10 @@ def machine_checks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | No
             marks.append("대상: 지급사유에서 대상 바로 뒤에 제외가 든 괄호가 이어지는데 대상에 없음")
     # 구절을 잘라 쓸 수 있는가
     if "지급단위" not in unknown:
-        if unit_phrase(v.get("지급단위", ""), cover) is None:
-            problems.append(f"구절없음: 지급단위 {v['지급단위']}")
+        if unit_basis(v, cover, piece, _with_summary(pages, docs)) is None:
+            basis = v.get("지급단위근거")
+            where = f" ({basis['문서']} {basis['쪽']}쪽에 그 특약의 지급단위로 없음)" if basis else ""
+            problems.append(f"구절없음: 지급단위 {v['지급단위']}{where}")
         expected = amount_unit(cover)
         if expected and v.get("지급단위", "") != expected:
             marks.append(f"지급단위: 지급금액 칸의 단위는 {expected}")
@@ -1331,13 +1419,13 @@ class Built:
 
 
 def reading_of(v: Mapping[str, Any], cover: CoverView, piece: PieceView | None, name: str,
-               target: str = "") -> T.Reading:
+               target: str = "", docs: Mapping[str, Mapping[int, str]] | None = None) -> T.Reading:
     """판독 값을 table_rules.Reading으로 바꾼다. 한도와 감액예외는 원문 구절로 채운다.
 
     target을 주면 급부명이 table_rules와 같이 "이름(대상)"이 된다(Reading.label).
     """
     steps = tuple(T.Step(m, r) for m, r in (cut_steps(v) or ()))
-    parts = [unit_phrase(v.get("지급단위", ""), cover) or ""]
+    parts = [unit_basis(v, cover, piece, docs) or ""]
     if v.get("지급률곱"):
         parts.append(times_phrase(cover) or "")
     parts += [limit_phrase(x, cover, piece) or "" for x in v.get("한도") or []]
@@ -1434,7 +1522,7 @@ def name_problem(cover: CoverView) -> str:
 
 
 def row_problem(v: Mapping[str, Any] | None, cover: CoverView, piece: PieceView,
-                pages: Mapping[int, str] | None = None) -> str:
+                pages: Mapping[int, str] | None = None, docs: Mapping[str, Mapping[int, str]] | None = None) -> str:
     """이 판독 값으로 행을 만들 수 없는 사유. 만들 수 있으면 빈 글."""
     if v is None:
         return "판독 값 없음"
@@ -1448,7 +1536,7 @@ def row_problem(v: Mapping[str, Any] | None, cover: CoverView, piece: PieceView,
         return f"모름인 칸: {', '.join(sorted(unknown))}"
     if check_format(v):
         return "판독 값의 꼴이 틀림"
-    problems, _ = machine_checks(cover, v, piece, pages)
+    problems, _ = machine_checks(cover, v, piece, pages, docs)
     if problems:
         return f"기계 검사: {'; '.join(problems)}"
     return ""
@@ -1479,7 +1567,8 @@ def years_for(name: str, renewal_years: RenewalYears) -> int | None:
 
 
 def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[str, Mapping[str, Any]],
-               renewal_years: RenewalYears = None, pages: Mapping[int, str] | None = None) -> Built:
+               renewal_years: RenewalYears = None, pages: Mapping[int, str] | None = None,
+               docs: Mapping[str, Mapping[int, str]] | None = None) -> Built:
     """판정이 끝난 판독 값(번호 → 값)으로 sys_특약, sys_급부 행을 만든다.
 
     - 특약 행: 조각의 특약명들마다 하나(table_rules.build_rows와 같다). 같은 이름이 또 나오면 table_rules.id_name이
@@ -1503,12 +1592,13 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
       줄은 모두 행을 만들지 않는다.
     """
     out = Built()
+    docs = _with_summary(pages, docs)       # 지급단위근거가 가리키는 문서별 쪽 글자(다른 문서는 docs로 받는다)
     taken: set[str] = set()
     lost = 0                    # 갱신주기년이 없어 뺀 특약에 걸린 세부보장 줄 수(특약마다 센다)
     for piece in pieces:
         names = piece.names or (piece.title,)
         role = "주급부" if len(piece.covers) == 1 else "대등복합"
-        problems = {c.number: name_problem(c) or row_problem(readings.get(c.number), c, piece, pages)
+        problems = {c.number: name_problem(c) or row_problem(readings.get(c.number), c, piece, pages, docs)
                     for c in piece.covers}
         for c in piece.covers:
             if problems[c.number]:
@@ -1539,7 +1629,7 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
                     for c in covers:
                         if not problems[c.number]:
                             _add(out, rider, readings[c.number], c, piece, role, c.name,
-                                 readings[c.number].get("대상") or "")
+                                 readings[c.number].get("대상") or "", docs)
                     continue
                 rows = []
                 for c in covers:
@@ -1547,7 +1637,7 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
                         rows = []
                         break
                     label = name if len(names) > 1 and len(piece.covers) == 1 else c.name
-                    rows.append((c, _row(rider, readings[c.number], c, piece, role, label)))
+                    rows.append((c, _row(rider, readings[c.number], c, piece, role, label, docs=docs)))
                 if len(covers) > 1:
                     blocked = any(problems[c.number] for c in covers)
                     distinct = {repr(sorted(r.items())) for _, r in rows}
@@ -1573,8 +1663,8 @@ def build_rows(variant_id: str, pieces: Sequence[PieceView], readings: Mapping[s
 
 
 def _row(rider: Mapping[str, Any], v: Mapping[str, Any], cover: CoverView, piece: PieceView, role: str, label: str,
-         target: str = "") -> dict[str, Any]:
-    row = T.benefit_row(rider["특약ID"], reading_of(v, cover, piece, label, target), role, cover.page)
+         target: str = "", docs: Mapping[str, Mapping[int, str]] | None = None) -> dict[str, Any]:
+    row = T.benefit_row(rider["특약ID"], reading_of(v, cover, piece, label, target, docs), role, cover.page)
     if v["꼴"] == AMOUNT:
         row.update({"기준가입금액만원": float(v["기준가입금액만원"]), "기준지급금액만원": float(v["지급액만원"]),
                     "지급기준구분": AMOUNT})
@@ -1590,8 +1680,8 @@ NO_AMOUNT_EMPTY = ("감액개월1", "감액지급률1", "감액개월2", "감액
 
 
 def _add(out: Built, rider: Mapping[str, Any], v: Mapping[str, Any], cover: CoverView, piece: PieceView, role: str,
-         label: str, target: str) -> None:
-    row = _row(rider, v, cover, piece, role, label, target)
+         label: str, target: str, docs: Mapping[str, Mapping[int, str]] | None = None) -> None:
+    row = _row(rider, v, cover, piece, role, label, target, docs)
     out.benefits.append(row)
     bid = row["급부ID"]
     out.numbers[bid] = tuple(dict.fromkeys(out.numbers.get(bid, ()) + (cover.number,)))
@@ -1639,5 +1729,7 @@ def final_readings(lines: Iterable[Mapping[str, Any]], a_name: str, b_name: str)
 def stored_value(v: Mapping[str, Any]) -> dict[str, Any]:
     """값 파일(data/crosscheck)에 적을 판독 값. 모름의 이유(판독자가 쓴 글)는 빼고 칸 이름만 남긴다."""
     out = {k: v[k] for k in ("쪽", "면책근거쪽") + FIELDS if k in v}
+    if v.get("지급단위근거") is not None:
+        out["지급단위근거"] = v["지급단위근거"]
     out["모름칸"] = sorted({b["칸"] for b in v.get("모름") or []})
     return out

@@ -127,4 +127,6 @@ PYTHONPATH=src python scripts/compare_readers.py <묶음 폴더>/331000106_B*.js
   --page-text <쪽별 글자.json> --out data/crosscheck/kblife_331000106_benefits_2reader.jsonl --report <견줌 결과.json>
 ```
 
-값 파일은 `data/crosscheck/kblife_331000106_benefits_2reader.jsonl`(간편심사형)과 `kblife_335000106_benefits_2reader.jsonl`(일반심사형)이다. 줄마다 `조각지문`은 묶음이 아니라 조각 파일(`scripts/dump_tables.py --org kblife`의 결과)의 조각으로 만든다(`reader_rows.cover_fingerprint`. 묶음에는 구분이 없다). 적재(`scripts/load_reader_product.py --org kblife`)는 받은 요약서에서 조각을 다시 만들어 지문을 맞추고, 같은 요약서를 쓰는 두 코드의 값 파일을 이어 쓴다.
+값 파일은 `data/crosscheck/kblife_331000106_benefits_2reader.jsonl`(간편심사형)과 `kblife_335000106_benefits_2reader.jsonl`(일반심사형)이다. 줄마다 `조각지문`은 묶음이 아니라 조각 파일(`scripts/dump_tables.py --org kblife`의 결과)의 조각으로 만든다(`reader_rows.cover_fingerprint`. 묶음에는 구분이 없다). 적재(`scripts/load_reader_product.py --org kblife`)는 받은 요약서에서 조각을 다시 만들어 지문을 맞추고, 같은 요약서를 쓰는 두 코드의 값 파일을 이어 쓴다. 조각지문은 견줌 도구에 `--pieces <조각 파일>`을 주면 함께 쓴다.
+
+입원 특약 줄(요약서에 "1일당"이 없는 줄)은 메인 세션이 약관의 그 특약 조항에서 "1일당"을 확인하고 `지급단위근거`(약관의 쪽)를 적은 `수정`으로 판정했다(2026-11-24, 본 지시문 7절). 그래서 이 회사는 공시 수집에서 약관도 받는다(`sources.SOURCES["kblife"].optional`). 약관을 받지 못하면 그 줄은 적재에서 빠진다.
