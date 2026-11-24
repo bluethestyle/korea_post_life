@@ -195,8 +195,8 @@ def print_limits(rows: list[dict]) -> None:
 
 
 def print_pending(data, s: dict) -> None:
-    print(f"== 보류 요약: 공통 담보 {s['공통담보쌍']}쌍 가운데 검토 대기 {s['뺀쌍']}쌍 "
-          f"(매핑 대기 {s['사유별']['매핑 대기']}, 작업 로그 대기 {s['사유별']['작업 로그 대기']})")
+    why = ", ".join(f"{k} {s['사유별'][k]}" for k in S.PENDING_KINDS)
+    print(f"== 보류 요약: 공통 담보 {s['공통담보쌍']}건 가운데 검수 대기 {s['뺀쌍']}건 ({why})")
     for r in s["대분류"]:
         per = ", ".join(f"{kind_name(data, p)} {n}" for p, n in r["상대별"].items())
         print(f"  {r['대분류']}: 공통 {r['공통담보쌍']}, 뺀 {r['뺀쌍']}, 견준 {r['견준쌍']} (뺀 쌍의 상대별: {per})")

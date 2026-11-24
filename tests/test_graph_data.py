@@ -46,7 +46,8 @@ G = graph_module()
 
 
 def recount(out: dict) -> dict[str, dict]:
-    """요약과 견줄 수를 엣지에서 다시 센다(build_data.summarize 를 쓰지 않는다)."""
+    """요약과 견줄 수를 엣지에서 다시 센다(build_data.summarize 를 쓰지 않는다). 종류 이름은 graph.json 에 실린 화면 이름이다
+    (엣지 속함은 분류, 해당은 매핑. 용어 대조표 148~151)."""
     K = {name: i for i, name in enumerate(out["kinds"])}
     EK = {name: i for i, name in enumerate(out["ekinds"])}
     nodes = out["nodes"]
@@ -54,7 +55,7 @@ def recount(out: dict) -> dict[str, dict]:
     cat: dict[int, str] = {}
     for s, t, k, _ in out["edges"]:
         kids[(s, k)].append(t)
-        if k == EK["속함"]:
+        if k == EK["분류"]:
             cat[s] = nodes[t][0]
     res = {}
     for i, n in enumerate(nodes):
@@ -62,8 +63,8 @@ def recount(out: dict) -> dict[str, dict]:
             continue
         riders = [r for r in kids[(i, EK["포함"])] if nodes[r][1] == K["특약"]]
         bens = [b for r in riders for b in kids[(r, EK["포함"])] if nodes[b][1] == K["급부"]]
-        linked = [b for b in bens if kids[(b, EK["해당"])]]
-        stds = sorted({s for b in bens for s in kids[(b, EK["해당"])]})
+        linked = [b for b in bens if kids[(b, EK["매핑"])]]
+        stds = sorted({s for b in bens for s in kids[(b, EK["매핑"])]})
         res[n[0]] = {"노드": i, "특약수": len(riders), "급부수": len(bens), "표준담보": stds,
                      "보장분야별": dict(Counter(cat[s] for s in stds)), "미연결급부": len(bens) - len(linked)}
     return res
@@ -74,7 +75,7 @@ def check_summary(out: dict) -> None:
     s, nodes = out["summary"], out["nodes"]
     again = recount(out)
     assert list(s["종형"]) == list(again), "요약의 종형이 종형 노드와 다르다(차례도 노드 차례)"
-    cat_order = [n[0] for n in nodes if out["kinds"][n[1]] == "보장분야"]
+    cat_order = [n[0] for n in nodes if out["kinds"][n[1]] == "보장 대분류"]
     for tid, t in s["종형"].items():
         r = again[tid]
         assert nodes[t["노드"]][0] == tid
@@ -133,7 +134,7 @@ def test_small_snapshot_carries_every_type_of_the_picked_orgs(small):
     # 목록 밖 회사(MERITZ)는 시장 소식의 회사 노드로만 남는다(소식은 거르지 않는다)
     ids = [n[0] for n in out["nodes"]]
     meritz = ids.index("ORG:MERITZ")
-    assert {out["ekinds"][e[2]] for e in out["edges"] if meritz in (e[0], e[1])} == {"일으킴"}
+    assert {out["ekinds"][e[2]] for e in out["edges"] if meritz in (e[0], e[1])} == {"발표"}
     assert not any(i.startswith("MERITZ_") for i in ids)
     # 급부가 없는 관문전용 종형은 종형 노드와 판매 엣지뿐이다
     gate = s["종형"]["EPOST_P2_aaaaaa"]
@@ -187,7 +188,7 @@ def test_real_graph_carries_every_type_of_site_orgs_only(real):
         assert org_of(real, kind) <= set(config.SITE_ORGS), kind
     others = {n[3] for n in real["nodes"] if real["kinds"][n[1]] == "회사"} - set(config.SITE_ORGS)
     other_ix = {i for i, n in enumerate(real["nodes"]) if real["kinds"][n[1]] == "회사" and n[3] in others}
-    assert {real["ekinds"][e[2]] for e in real["edges"] if e[0] in other_ix or e[1] in other_ix} <= {"일으킴"}
+    assert {real["ekinds"][e[2]] for e in real["edges"] if e[0] in other_ix or e[1] in other_ix} <= {"발표"}
     # 급부가 없는 관문전용 종형은 특약도 싣지 않는다
     for vid, t in s["종형"].items():
         if t["비교역할"] == "관문전용" and not t["급부수"]:

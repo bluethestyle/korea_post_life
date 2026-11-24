@@ -320,17 +320,19 @@ def test_pending_rows_are_left_out_and_counted(result):
     for sid in ("STD_CA_GAP2", "STD_CM_GAP3", "STD_CM_GAP4", "STD_CM_C6"):
         assert kinds(base, sid) == [], sid
     dropped = {(x["유형"], x["표준담보ID"]): x["사유"] for x in base["뺀시사점"]}
+    # 사유 글은 종형ID 대신 종형 이름(회사 이름과 종형명)을 적는다(용어 대조표 112의 비고)
     assert dropped == {
-        (I.GAP, "STD_CA_GAP2"): ["기준 종형에 이 담보로 덮일 수 있는 매핑 대기 급부가 있음"],
-        (I.GAP, "STD_CM_GAP3"): ["가진 회사 수가 매핑 대기 급부에 달림"],
-        (I.GAP, "STD_CM_GAP4"): ["가진 쪽의 이 담보 급부가 모두 작업 로그 검토 대기"],
-        (I.CONDITION, "STD_CM_C6"): [f"{HW} 매핑 대기 1줄", f"{SS} 매핑 대기 1줄"],
+        (I.GAP, "STD_CA_GAP2"): ["기준 종형에 이 담보를 보장할 수 있는 매핑 검수 대기 급부가 있음"],
+        (I.GAP, "STD_CM_GAP3"): ["보유 회사 수가 매핑 검수 대기 급부에 달려 있음"],
+        (I.GAP, "STD_CM_GAP4"): ["보유한 쪽의 이 담보 급부가 모두 추출 검수 대기"],
+        (I.CONDITION, "STD_CM_C6"): ["한화생명 간편가입325 매핑 검수 대기 1건", "삼성화재 간편가입325 매핑 검수 대기 1건"],
     }
+    assert not any(v in r for rs in dropped.values() for r in rs for v in (HW, SS))
     assert base["뺀수"] == {I.GAP: 3, I.CONDITION: 1, I.UNIQUE: 0, I.DESIGN: 0, I.SCOPE: 0}
-    # 한쪽만 작업 로그 대기면 그 비교 종형만 빼고 시사점은 남긴다
+    # 한쪽만 추출 검수 대기면 그 비교 종형만 빼고 시사점은 남긴다
     c5 = find(base, I.CONDITION, "STD_CM_C5", I.WORSE)
     assert c5["비교종형ID"] == [SS]
-    assert c5["뺀비교종형"] == [{"종형ID": HW, "사유": [f"{HW} 작업 로그 대기 1줄"]}]
+    assert c5["뺀비교종형"] == [{"종형ID": HW, "사유": ["한화생명 간편가입325 추출 검수 대기 1건"]}]
     assert base["뺀비교쌍"] == 3
 
 

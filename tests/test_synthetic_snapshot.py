@@ -103,7 +103,7 @@ def test_names_reach_the_sentences(made):
     pts = S.points(data, base, S.Profile(), None)
     orgs = {data.variants[p]["기관코드"] for p in pts["맞붙는종형"]}
     assert orgs == {"HANWHALIFE", "SAMSUNGFIRE", *SYN}                    # 상대 넷: 회사가 많을 때의 규칙을 탄다
-    assert pts["범위"]["문장"].startswith("견준 상품은 생명보험 2곳, 손해보험 2곳의 상품 4개입니다.")
+    assert pts["범위"]["문장"].startswith("비교한 상품은 생명보험 2개사, 손해보험 2개사의 상품 4개입니다.")
     assert pts["범위"]["업권별"] == {"생명보험": 2, "손해보험": 2}
 
 

@@ -44,18 +44,19 @@ def data():
 # ---------- 이름 나열 ----------
 def test_join_shortens_four_or_more_names_only_with_a_unit():
     four = ["가", "나", "다", "라"]
-    assert S.and_join(four, S.UNIT_ORG) == "가, 나, 다 등 4곳"
-    assert S.or_join(four, S.UNIT_ORG) == "가, 나, 다 등 4곳"
+    # 회사 수는 "개사"로 센다(용어 대조표 185)
+    assert S.and_join(four, S.UNIT_ORG) == "가, 나, 다 등 4개사"
+    assert S.or_join(four, S.UNIT_ORG) == "가, 나, 다 등 4개사"
     assert S.and_join(four, S.UNIT_KIND) == "가, 나, 다 등 4개"
     # 셋까지, 그리고 단위를 주지 않은 이름(표준담보, 조건 항목)은 지금 그대로다
     assert S.and_join(four[:3], S.UNIT_ORG) == S.and_join(four[:3]) == "가, 나와 다"
     assert S.or_join(four[:2], S.UNIT_ORG) == "가나 나"
     assert S.and_join(four) == "가, 나, 다와 라"
-    # 줄인 이름 뒤의 조사는 "곳", "개"의 받침을 따른다
+    # 줄인 이름 뒤의 조사는 "개사", "개"의 받침을 따른다
     assert S.render("G1_상대_기간", {"상대": S.and_join(four, S.UNIT_KIND), "상대기간": 1, "상대범위": "입원"}) == \
-        "가, 나, 다 등 4개는 1년 안의 입원을 묻습니다."
+        "가, 나, 다 등 4개는 1년 이내의 입원을 고지 대상으로 합니다."
     assert S.render("Q3_질문", {"담보": "암 진단비", "상대회사": S.or_join(four, S.UNIT_ORG)}) == \
-        "암 진단비는 가, 나, 다 등 4곳이 조건이 다르던데요."
+        "암 진단비는 가, 나, 다 등 4개사가 조건이 다르던데요."
 
 
 def test_org_names_and_sectors_come_from_the_meta_table_first(data):
@@ -71,17 +72,17 @@ def test_scope_sentence_counts_companies_by_sector(data):
     pts = S.points(data, E1, P(), None, REL)
     assert pts["맞붙는종형"] == list(PEERS5)
     s = pts["범위"]
-    assert s["문장"].startswith("견준 상품은 생명보험 3곳, 손해보험 2곳의 상품 5개입니다. 갱신과 환급 구조는 우체국이 갱신, 표준형이고 "
-                              "한화생명, 가상생명 01과 가상생명 02는 비갱신, 해약환급금 미지급형, 삼성화재와 가상화재 01은 갱신, "
-                              "해약환급금 미지급형입니다.")
+    assert s["문장"].startswith("비교한 상품은 생명보험 3개사, 손해보험 2개사의 상품 5개입니다. 갱신과 해약환급금 구조는 우체국이 "
+                              "갱신, 표준형이고 한화생명, 가상생명 01과 가상생명 02는 비갱신, 해약환급금 미지급형, 삼성화재와 "
+                              "가상화재 01은 갱신, 해약환급금 미지급형입니다.")
     assert s["업권별"] == {"생명보험": 3, "손해보험": 2}
     assert [r["종형ID"] for r in s["상대"]] == list(PEERS5)          # 목록은 값에 그대로 둔다
     assert all(r["머리말"].startswith("수집한 ") for r in s["상대"])
-    assert s["머리말"].startswith("수집한 5곳의 상품 5개 기준(2026-07-01~2026-10-01) / 구조 다름: 우체국 갱신, 표준형 대 ")
+    assert s["머리말"].startswith("수집한 5개사의 상품 5개 기준(2026-07-01~2026-10-01) / 구조 상이: 우체국 갱신, 표준형 대 ")
     # 업권을 모르는 상대가 있으면 구분을 빼고 회사 수만 적는다
     meta = {"기관이름": META["기관이름"], "기관업권": {"SYNFIRE01": "손해보험"}}
     unknown = S.points(Data(many_book().t, meta), E1, P(), None, REL)["범위"]
-    assert unknown["문장"].startswith("견준 상품은 상대 5곳의 상품 5개입니다.")
+    assert unknown["문장"].startswith("비교한 상품은 타사 5개사의 상품 5개입니다.")
     assert unknown["업권별"] == {"생명보험": 1, "손해보험": 2, S.SECTOR_UNKNOWN: 2}
 
 
@@ -93,27 +94,27 @@ def by_code(pts, code, sid=None):
 def test_point_sentences_shorten_company_lists_but_keep_evidence(data):
     pts = S.points(data, E1, P(), None, REL)
     q2 = by_code(pts, "Q2", "STD_CA_GAP")[0]
-    assert q2["문장"] == "한화생명, 삼성화재, 가상화재 01 등 5곳에 있는 암 빈자리는 우체국 1종(간편가입315)에 없습니다."
-    assert q2["카드질문"] == "한화생명, 삼성화재, 가상화재 01 등 5곳에는 암 빈자리가 있던데요."
+    assert q2["문장"] == "한화생명, 삼성화재, 가상화재 01 등 5개사에 있는 암 빈자리는 우체국 1종(간편가입315)에 없습니다."
+    assert q2["카드질문"] == "한화생명, 삼성화재, 가상화재 01 등 5개사에는 암 빈자리가 있던데요."
     assert q2["비교종형ID"] == list(PEERS5)
     assert {e["종형ID"] for e in q2["근거"]} == {*PEERS5}                  # 근거 목록은 줄이지 않는다
-    assert q2["머리말"].startswith("수집한 5곳의 상품 5개 기준")
+    assert q2["머리말"].startswith("수집한 5개사의 상품 5개 기준")
     a1 = by_code(pts, "A1", "STD_HT_ONLY")[0]
-    assert a1["문장"].startswith("심장 입원은 우체국 1종(간편가입315)에 따로 있는 담보입니다. "
-                               "견준 한화생명, 삼성화재, 가상화재 01 등 5곳의 상품에는 이 담보를 따로 주는 급부가 없습니다.")
+    assert a1["문장"].startswith("심장 입원은 우체국 1종(간편가입315)에 있는 별도 담보입니다. "
+                               "비교한 한화생명, 삼성화재, 가상화재 01 등 5개사의 상품에는 이 담보를 보장하는 별도 급부가 없습니다.")
     q3 = by_code(pts, "Q3", "STD_BR_C")[0]
-    assert "한화생명 간편가입형(1년), 가상화재 01 7종(간편315), 가상생명 01 간편가입형(1년) 등 4개는 감액 기간이 없습니다" \
+    assert "한화생명 간편가입형(1년), 가상화재 01 7종(간편315), 가상생명 01 간편가입형(1년) 등 4개는 감액기간이 없습니다" \
         in q3["문장"]
-    assert q3["카드질문"] == "뇌 조건은 한화생명, 가상화재 01, 가상생명 01 등 4곳이 조건이 다르던데요."
+    assert q3["카드질문"] == "뇌 조건은 한화생명, 가상화재 01, 가상생명 01 등 4개사가 조건이 다르던데요."
 
 
 def test_g2_groups_open_peers_by_age_span(data):
     # 17세: 우체국 간편 종형(20~80세)은 나이로 닫히고 상대 넷이 열린다(삼성화재는 나이 자료가 없다)
     g2 = by_code(S.points(data, E1, P(age=17, sex="M"), None, REL), "G2")[0]
-    assert g2["문장"] == ("17세는 우체국 1종(간편가입315)의 가입나이(20~80세) 밖입니다. "
+    assert g2["문장"] == ("17세는 우체국 1종(간편가입315)의 가입나이(20~80세) 범위 밖입니다. "
                          "한화생명 간편가입형(1년)과 가상생명 01 간편가입형(1년)의 가입나이는 15~80세입니다. "
                          "가상화재 01 7종(간편315)의 가입나이는 17~79세입니다. 가상생명 02 간편가입형(1년)의 가입나이는 16~80세입니다. "
-                         "우체국에서는 일반심사 종형(4종(일반가입), 15~65세)으로 심사를 받을 수 있습니다.")
+                         "우체국에서는 일반심사 종형(4종(일반가입), 15~65세)으로 인수심사를 받을 수 있습니다.")
     assert set(g2["비교종형ID"]) == {H1, F1, L1, L2}
     # 가입나이가 넷 이상으로 갈리면 하한과 상한의 범위만 적는다
     spread_data = Data(many_book(l1_ages=((15, 78),)).t, META)
@@ -170,7 +171,7 @@ def test_partial_peer_counts_as_open_and_marks_the_cell():
     line = S.briefing(d, E1, P(age=30), None, REL, seg=seg)[0]
     assert line["값"]["일부열림칸수"] >= line["값"]["일부나이로만열림칸수"] >= 1
     assert line["틀"][-1] == "가_일부나이만" and line["문장"].count(". ") <= 1
-    assert line["문장"].endswith(f"그 가운데 {line['값']['일부나이로만열림칸수']}칸은 열린 상대가 그 상대뿐입니다.")
+    assert line["문장"].endswith(f"그 가운데 {line['값']['일부나이로만열림칸수']}개 고객군은 가입 가능한 타사가 그 타사뿐입니다.")
 
 
 def test_notice_attributes_count_values_inside_a_key(data):
@@ -215,7 +216,7 @@ def test_map_cells_count_peers_and_briefing_adds_the_spread(data):
     held = sorted(r["보유수"] for r in ra["값"]["상대보유"])
     assert ra["값"]["상대회사수"] == 5 and ra["값"]["상대보유분포"]["최소"] == held[0]
     assert ra["틀"][1] == "라_보유_상대많음"
-    assert ra["문장"].endswith(f"상대 5곳의 보유 담보는 {ra['값']['상대보유요약']}입니다.")
+    assert ra["문장"].endswith(f"타사 5개사의 보유 담보는 {ra['값']['상대보유요약']}입니다.")
     assert ra["값"]["상대보유요약"] in (f"{held[0]}~{held[-1]}개(중앙값 {S.spread(held)['중앙']}개)", f"모두 {held[0]}개")
     assert S.spread([1, 2, 3, 10]) == {"최소": 1, "중앙": 2.5, "최대": 10} and S.spread([]) is None
 
@@ -235,4 +236,4 @@ def test_export_with_five_peers_passes_the_forbidden_word_check(data):
     assert b["범위"]["업권별"] == {"생명보험": 3, "손해보험": 2}
     assert out["종형"][L1]["회사"] == "가상생명 01"
     # 일반심사 기준 종형도 상대 다섯 곳으로 같은 규칙을 탄다
-    assert out["기준별"][EG]["범위"]["문장"].startswith("견준 상품은 ")
+    assert out["기준별"][EG]["범위"]["문장"].startswith("비교한 상품은 ")

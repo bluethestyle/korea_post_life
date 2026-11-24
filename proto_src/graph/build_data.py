@@ -29,6 +29,7 @@ from postlife.snapshot import read_snapshot  # noqa: E402
 from postlife.config import ALL_ORGS  # noqa: E402
 from postlife.site import orgs as site_orgs  # noqa: E402
 from postlife.site import sales  # noqa: E402
+from postlife.site import terms  # noqa: E402
 from postlife.site.model import Data  # noqa: E402
 
 SNAP = ROOT / 'data/snapshot'
@@ -36,6 +37,8 @@ STD = ROOT / 'data/seed/hum_표준담보사전.jsonl'
 REL = ROOT / 'data/proposals/표준담보_관계_두판독.jsonl'
 OUT_DEFAULT = HERE / 'graph.json'
 
+# 노드 종류와 엣지 종류의 안쪽 이름. 이 파일 안에서는 이 이름을 키로 쓰고, graph.json 의 kinds, ekinds 에는 화면 이름
+# (terms.GRAPH_NODE_KIND, GRAPH_EDGE_KIND. 보장분야는 보장 대분류, 소식은 시장 동향 따위)을 싣는다. 화면은 종류를 번호로 다룬다
 KIND = ['회사', '종형', '특약', '급부', '표준담보', '보장분야', '소식']
 EK = ['판매', '포함', '해당', '속함', '관계', '일으킴']
 MAPPED = ('자동확정', '승인', '수정')     # hum_담보매핑 에서 엣지로 싣는 검토상태
@@ -241,13 +244,16 @@ def build(snap_dir: Path = SNAP, orgs=None) -> tuple[dict, dict, list]:
             o[str(keys.index(k))] = v
         return o
 
-    out = {'snapshot_at': meta['snapshot_at'], 'kinds': KIND, 'ekinds': EK,
+    out = {'snapshot_at': meta['snapshot_at'],
+           'kinds': [terms.GRAPH_NODE_KIND.get(k, k) for k in KIND], 'ekinds': [terms.GRAPH_EDGE_KIND.get(k, k) for k in EK],
            'nodes': [[n['i'], KIND.index(n['k']), n['l'], n['o'], kc(n['p'])] for n in nl],
            'edges': [[idx[e['s']], idx[e['t']], EK.index(e['k']), kc(e['p'])] for e in edges]}
     out['keys'] = keys
     bases, peers = matchups(data)
     mapping = {m['급부ID']: m for m in snap['hum_담보매핑']}
     out['summary'] = summarize(nl, edges, idx, types, mapping, bases, peers)
+    # 화면 코드가 키로 쓰는 값(비교역할, 미연결사유, 속성 이름)의 화면 이름. sales.json 의 표시명과 같은 꼴(값 → 이름)이다
+    out['표시명'] = terms.graph_display_names()
     return out, nodes, edges
 
 
