@@ -3819,7 +3819,7 @@
       }
     },
     "request_doc_count": {
-      "value": 37,
+      "value": 38,
       "label": "docs/gemini_requests 의 요청서 수(번호가 붙은 파일, 부록은 본문과 한 건으로 셈)",
       "as_of": "2026-11-24",
       "source": {
