@@ -86,24 +86,68 @@ def pill(
     fg: str = C_INK_0,
     bg: str = C_PANEL_HI,
     border: str = C_SLATE,
-    size: float = 14,
+    size: float = 15,
     bold: bool = True,
-    px: float = 0.16,
-    py: float = 0.08,
+    px: float = 0.18,
+    py: float = 0.09,
     z: int = 6,
 ) -> VGroup:
     t = txt(label, size=size, color=fg, bold=bold, z=z + 1)
     b = RoundedRectangle(
-        corner_radius=0.08,
+        corner_radius=0.09,
         width=t.width + px * 2,
         height=t.height + py * 2,
         fill_color=bg,
-        fill_opacity=0.95,
+        fill_opacity=0.97,
         stroke_color=border,
-        stroke_width=1.3,
+        stroke_width=1.6,
     ).set_z_index(z)
     t.move_to(b.get_center())
     g = VGroup(b, t)
+    g.set_z_index(z)
+    return g
+
+
+def bb_badge(
+    label: str,
+    sub: str | None = None,
+    fg: str = C_WHITE,
+    bg: str = "#060B11",
+    border: str = C_GOLD,
+    size: float = 13.5,
+    sub_size: float = 11.2,
+    sub_col: str = C_INK_1,
+    px: float = 0.20,
+    py: float = 0.11,
+    z: int = 18,
+) -> VGroup:
+    """삼차원 공간 위에서도 선명하게 읽히는 고대비 정면 빌보드 배지."""
+    t1 = txt(label, size=size, color=fg, bold=True, z=z + 2)
+    if sub is not None:
+        t2 = txt(sub, size=sub_size, color=sub_col, bold=True, z=z + 2)
+        t_grp: Mobject = VGroup(t1, t2).arrange(DOWN, buff=0.05)
+    else:
+        t_grp = t1
+    rim = RoundedRectangle(
+        corner_radius=0.11,
+        width=t_grp.width + px * 2 + 0.06,
+        height=t_grp.height + py * 2 + 0.06,
+        fill_color="#020407",
+        fill_opacity=0.88,
+        stroke_width=0,
+    ).set_z_index(z)
+    box = RoundedRectangle(
+        corner_radius=0.09,
+        width=t_grp.width + px * 2,
+        height=t_grp.height + py * 2,
+        fill_color=bg,
+        fill_opacity=0.98,
+        stroke_color=border,
+        stroke_width=2.2,
+    ).set_z_index(z + 1)
+    t_grp.move_to(box.get_center())
+    rim.move_to(box.get_center())
+    g = VGroup(rim, box, t_grp)
     g.set_z_index(z)
     return g
 
@@ -177,9 +221,9 @@ def capacity_ring(
         .move_to(p)
         .set_z_index(z)
     )
-    t1 = txt(top_txt, size=11.0, color=col, bold=True, z=z + 2)
-    t2 = txt(sub_txt, size=9.6, color=C_INK_1, z=z + 2)
-    tg = fit(VGroup(t1, t2).arrange(DOWN, buff=0.04), max_w=radius * 1.68).move_to(p)
+    t1 = txt(top_txt, size=12.4, color=col, bold=True, z=z + 2)
+    t2 = txt(sub_txt, size=10.8, color=C_INK_0, bold=True, z=z + 2)
+    tg = fit(VGroup(t1, t2).arrange(DOWN, buff=0.05), max_w=radius * 1.74).move_to(p)
     if ratio is not None and ratio > 0.0:
         arc = Arc(
             radius=radius,
@@ -382,19 +426,19 @@ class PostLifeBaseScene(ThreeDScene):
     def make_hud(self, ch_num: int, title: str, subtitle: str) -> tuple[VGroup, VGroup, VGroup]:
         is_finale = ch_num == TOTAL_CHAPTERS
         badge = RoundedRectangle(
-            corner_radius=0.05,
-            width=0.68,
-            height=0.30,
+            corner_radius=0.06,
+            width=0.76,
+            height=0.34,
             fill_color=C_GOLD if is_finale else C_CYAN_DIM,
-            fill_opacity=0.95,
+            fill_opacity=0.98,
             stroke_color=C_GOLD if is_finale else C_CYAN,
-            stroke_width=1.2,
+            stroke_width=1.5,
         )
-        b_txt = txt(f"{ch_num}장", size=13, color=C_DARK_INK if is_finale else C_CYAN, bold=True, z=32).move_to(badge)
+        b_txt = txt(f"{ch_num}장", size=14.5, color=C_DARK_INK if is_finale else C_CYAN, bold=True, z=32).move_to(badge)
         tag = VGroup(badge.set_z_index(31), b_txt)
-        t_mob = txt(title, size=17.0, color=C_INK_0, bold=True, z=32)
+        t_mob = txt(title, size=18.8, color=C_WHITE, bold=True, z=32)
         left = VGroup(tag, t_mob).arrange(RIGHT, buff=0.16)
-        fit(left, max_w=7.65)
+        fit(left, max_w=8.10)
         left.move_to([-6.18 + left.width / 2, 3.63, 0]).set_z_index(31)
 
         dots = VGroup()
@@ -412,11 +456,11 @@ class PostLifeBaseScene(ThreeDScene):
                 )
             )
         dots.arrange(RIGHT, buff=0.055)
-        app_lbl = txt("우체국보험 상품·청약 판단 지원", size=12.6, color=C_INK_2, z=32)
+        app_lbl = txt("우체국보험 상품·청약 판단 지원", size=13.2, color=C_INK_1, z=32)
         right = VGroup(app_lbl, dots).arrange(RIGHT, buff=0.16)
         right.move_to([6.18 - right.width / 2, 3.63, 0]).set_z_index(31)
 
-        sub_mob = fit(txt(subtitle, size=15.6, color=C_INK_1, bold=False, z=32), max_w=12.4)
+        sub_mob = fit(txt(subtitle, size=17.2, color=C_INK_0, bold=True, z=32), max_w=12.5)
         sub_mob.move_to([0, -3.63, 0])
         bot = VGroup(sub_mob).set_z_index(31)
         return left, right, bot
@@ -483,8 +527,8 @@ class PostLifeBaseScene(ThreeDScene):
         self.remove(stage, hl, hr, hb)
         self.wait(0.10)
 
-    def update_subtitle(self, hb: VGroup, new_sub: str, rt: float = 0.38) -> VGroup:
-        new_mob = fit(txt(new_sub, size=15.6, color=C_INK_1, bold=False, z=32), max_w=12.4).move_to([0, -3.63, 0])
+    def update_subtitle(self, hb: VGroup, new_sub: str, rt: float = 0.48) -> VGroup:
+        new_mob = fit(txt(new_sub, size=17.2, color=C_INK_0, bold=True, z=32), max_w=12.5).move_to([0, -3.63, 0])
         nb = VGroup(new_mob).set_z_index(31)
         self.add_fixed_in_frame_mobjects(nb)
         self.play(FadeOut(hb, run_time=rt * 0.45), FadeIn(nb, run_time=rt * 0.55))
