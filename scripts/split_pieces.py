@@ -12,10 +12,17 @@
 뺀다(reader_rows.for_kind와 같은 규칙. 급부 적재도 같은 줄만 쓴다). 남은 줄의 번호는 원래 차례 그대로이고, 묶음 파일에
 "읽을종"을 적는다. 뺀 조각과 줄의 수는 화면과 색인 파일에 낸다. --kind가 없으면 묶음은 이 기능이 생기기 전과 같다.
 
+한 특약 안에 계약 단계마다 표가 따로 있는 요약서(교보생명의 최초계약과 갱신계약, 보장형 계약과 연장전환형 계약)는 --stage로
+읽을 단계를 준다(여러 번. 예: --stage 최초계약 --stage "보장형 계약"). 세부보장의 적용범위가 계약 단계 이름인데 그 단계가
+아닌 줄을 뺀다(reader_rows.for_stages와 같은 규칙. 급부 적재도 대상 설정의 읽을단계로 같은 줄만 쓴다). 적용범위가 없는 줄은
+그대로 두고, 그 특약의 주석(뺀 단계의 단계 줄과 그 아래 ※ 문단 포함)도 그대로 싣는다. 남은 줄의 번호는 원래 차례 그대로이고,
+배치 파일에 "읽을단계"를 적는다. --stage가 없으면 배치는 이 기능이 생기기 전과 같다.
+
 조각에는 공시 문서의 원문 글자가 들어 있으므로 묶음 파일은 리포 밖(임시 폴더)에 쓴다.
 
   python scripts/split_pieces.py 조각.json --out 묶음폴더 [--name 6AFLT] [--pages 10] [--segment 통합간편심사형 --segment 공통] [--pdf 요약서.pdf]
   python scripts/split_pieces.py 조각.json --out 묶음폴더 --name LP0842003AB01V10A01 --kind 2종 --pdf /절대경로/요약서.pdf
+  python scripts/split_pieces.py <추출 단위.json> --out <배치 폴더> --name 1001031 --stage 최초계약 --stage "보장형 계약" --pdf /절대경로/요약서.pdf
 """
 from __future__ import annotations
 
@@ -58,7 +65,7 @@ def _covers(p: dict[str, Any]) -> list[tuple[int, dict[str, Any]]]:
 
 
 def bundle(name: str, number: int, members: list[tuple[int, dict[str, Any]]], notes: Sequence[dict[str, Any]],
-           source: str, pdf: str | None, kind: str | None = None) -> dict[str, Any]:
+           source: str, pdf: str | None, kind: str | None = None, stages: Sequence[str] = ()) -> dict[str, Any]:
     pieces = []
     for i, p in members:
         item: dict[str, Any] = {"조각번호": f"R{i:03d}", "쪽": [int(p["첫쪽"]), int(p["끝쪽"])], "특약명": p["특별약관"]}
@@ -93,6 +100,8 @@ def bundle(name: str, number: int, members: list[tuple[int, dict[str, Any]]], no
     }
     if kind:
         out["읽을종"] = kind
+    if stages:
+        out["읽을단계"] = list(stages)
     if pdf:
         out["PDF"] = pdf
     out["조각"] = pieces
@@ -100,7 +109,7 @@ def bundle(name: str, number: int, members: list[tuple[int, dict[str, Any]]], no
 
 
 class Dropped:
-    """읽을 종이 아니어서 묶음에서 뺀 것. (시험이 이 스크립트를 sys.modules 밖에서 불러 dataclass를 쓰지 않는다)"""
+    """읽을 종이나 읽을 계약 단계가 아니어서 배치에서 뺀 것. (테스트가 이 스크립트를 sys.modules 밖에서 불러 dataclass를 쓰지 않는다)"""
 
     def __init__(self) -> None:
         self.pieces: list[str] = []     # 통째로 뺀 조각 번호(R012)
@@ -108,18 +117,26 @@ class Dropped:
 
 
 def split(data: dict[str, Any], name: str, pages: int = 10, segments: Sequence[str] = (),
-          pdf: str | None = None, kind: str | None = None, dropped: Dropped | None = None) -> list[dict[str, Any]]:
-    """kind(읽을 종, "2종")를 주면 그 종이 아닌 조각과 줄을 빼고(reader_rows.for_kind) dropped에 적는다."""
+          pdf: str | None = None, kind: str | None = None, dropped: Dropped | None = None,
+          stages: Sequence[str] = ()) -> list[dict[str, Any]]:
+    """kind(읽을 종, "2종")를 주면 그 종이 아닌 조각과 줄을 빼고(reader_rows.for_kind) dropped에 적는다.
+    stages(읽을 계약 단계들)를 주면 적용범위가 다른 계약 단계인 줄을 빼고(reader_rows.for_stages) dropped에 적는다."""
     if data.get("형식") != RR.PIECES_FORMAT:
         raise ValueError("급부 표 조각 파일이 아닙니다")
     dropped = dropped if dropped is not None else Dropped()
+    stages = [s for s in stages if s and s.strip()]
     kept: set[str] | None = None
-    if kind:
-        views = [v for v in RR.load_pieces(data) if not segments or v.segment in segments]
-        left, out_covers, out_pieces = RR.for_kind(views, kind)
+    if kind or stages:
+        left = [v for v in RR.load_pieces(data) if not segments or v.segment in segments]
+        if kind:
+            left, out_covers, out_pieces = RR.for_kind(left, kind)
+            dropped.pieces += [f"R{i:03d}" for i in out_pieces]
+            dropped.covers += out_covers
+        if stages:
+            left, out_covers, out_pieces = RR.for_stages(left, stages)
+            dropped.pieces += [f"R{i:03d}" for i in out_pieces]
+            dropped.covers += out_covers
         kept = {c.number for p in left for c in p.covers}
-        dropped.pieces += [f"R{i:03d}" for i in out_pieces]
-        dropped.covers += out_covers
     chosen = []
     for i, p in enumerate(data["조각"], 1):
         if segments and (p.get("형") or "") not in segments:
@@ -131,7 +148,7 @@ def split(data: dict[str, Any], name: str, pages: int = 10, segments: Sequence[s
             p = {**p, "_covers": covers}
         chosen.append({**p, "_index": i})
     source = (data.get("출처") or {}).get("문서", "")
-    return [bundle(name, n, members, data.get("주석") or [], source, pdf, kind)
+    return [bundle(name, n, members, data.get("주석") or [], source, pdf, kind, stages)
             for n, members in enumerate(groups(chosen, pages), 1)]
 
 
@@ -144,12 +161,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--segment", action="append", default=[], help="이 형의 조각만 담는다. 여러 번 줄 수 있다")
     p.add_argument("--pdf", help="판독자가 열 PDF의 경로. 묶음 파일에 적는다")
     p.add_argument("--kind", help='읽을 종(예: "2종"). 이 종이 아닌 조각과 세부보장을 빼고 묶음 파일에 "읽을종"을 적는다')
+    p.add_argument("--stage", action="append", default=[],
+                   help='읽을 계약 단계(예: 최초계약). 여러 번 줄 수 있다. 적용범위가 다른 계약 단계인 세부보장을 빼고 '
+                        '배치 파일에 "읽을단계"를 적는다')
     args = p.parse_args(argv)
 
     data = json.loads(args.pieces.read_text(encoding="utf-8"))
     name = args.name or ((data.get("출처") or {}).get("문서", "") or args.pieces.stem).split("_")[0]
     dropped = Dropped()
-    bundles = split(data, name, args.pages, args.segment, args.pdf, args.kind, dropped)
+    bundles = split(data, name, args.pages, args.segment, args.pdf, args.kind, dropped, args.stage)
     args.out.mkdir(parents=True, exist_ok=True)
     index: list[dict[str, Any]] = []
     for b in bundles:
@@ -157,12 +177,18 @@ def main(argv: list[str] | None = None) -> int:
         path.write_text(json.dumps(b, ensure_ascii=False, indent=1), encoding="utf-8")
         index.append({"파일": str(path), "묶음": b["묶음"], "쪽": b["쪽"], "조각수": b["조각수"], "세부보장수": b["세부보장수"]})
         print(f"{b['묶음']}  {b['쪽'][0]}~{b['쪽'][1]}쪽  조각 {b['조각수']}  세부보장 {b['세부보장수']}")
-    if args.kind:
-        index.append({"읽을종": args.kind, "뺀 조각": dropped.pieces, "뺀 세부보장": dropped.covers})
+    if args.kind or args.stage:
+        chosen: dict[str, Any] = {"읽을종": args.kind} if args.kind else {}
+        if args.stage:
+            chosen["읽을단계"] = args.stage
+        index.append({**chosen, "뺀 조각": dropped.pieces, "뺀 세부보장": dropped.covers})
     (args.out / f"{name}_index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"묶음 {len(bundles)}, 조각 {sum(b['조각수'] for b in bundles)}, 세부보장 {sum(b['세부보장수'] for b in bundles)}")
-    if args.kind:
-        print(f"읽을 종 {args.kind}: 뺀 조각 {len(dropped.pieces)}, 뺀 세부보장 {len(dropped.covers)}"
+    if args.kind or args.stage:
+        what = [f"읽을 종 {args.kind}"] if args.kind else []
+        if args.stage:
+            what.append(f"읽을 단계 {', '.join(args.stage)}")
+        print(f"{', '.join(what)}: 뺀 조각 {len(dropped.pieces)}, 뺀 세부보장 {len(dropped.covers)}"
               f"(통째로 뺀 조각의 줄 포함)")
     return 0
 

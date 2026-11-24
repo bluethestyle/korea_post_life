@@ -5,6 +5,7 @@
 조각에는 공시 문서의 원문 글자가 들어 있으므로 리포 밖(임시 폴더)에 쓴다.
 
   python scripts/dump_blocks.py <요약서.pdf> --org samsunglife --out 조각.json [--check 점검.json]
+  python scripts/dump_blocks.py <요약서.pdf> --org kyobo --out <추출 단위.json> [--check 점검.json]
 """
 from __future__ import annotations
 

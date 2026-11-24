@@ -41,6 +41,7 @@ class Part:
     label: str                  # 조각의 구분. 주계약은 "기본계약"이어야 뒤 단계가 담보구분을 주계약으로 적는다
     main: bool                  # 주계약 표의 소절인가(조각의 "주계약" 칸). 고르는 플랜의 소절은 아니다
     rider: str = ""             # 이 소절 표의 특약 이름(급부명 표처럼 특약명 칸이 없는 표). 비우면 하위 제목 줄이 정한다
+    named: bool = False         # 제목 줄 자체가 특약 이름이다(교보생명의 "-. 무배당 …특약"). pattern의 group(1)이 이름이다
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,13 @@ class LifeLayout:
     footer: re.Pattern = re.compile(r"^-\s*\d+\s*-$")      # 쪽 번호 줄
     top_margin: float = 0.0                 # 이보다 위에 찍힌 표 밖 글자는 읽지 않는다(병합된 칸의 글자가 쪽 위로 넘어가 가려진 것)
     unlabeled: str = UNLABELED               # 머리 없이 세로선으로만 갈린 지급금액 하위 칸의 머리("하위 칸 1", "하위 칸 2")
+    amount_more: tuple[str, ...] = ()        # 머리행에서 지급금액 칸으로 보는 다른 말("지급내용", "지급액")
+    variant: re.Pattern | None = None        # 한 특약 안에서 계약 단계를 가르는 줄("■ 최초계약"). group(1)을 세부보장의 적용범위로 둔다
+    head_tail: re.Pattern | None = None      # 이름 제목 줄(Part.named)이 두 줄로 갈렸을 때 둘째 줄의 형식("(무해약환급금형)")
+    repeat_head: bool = False                # 쪽마다 머리행이 다시 나온다. 머리행 아래 첫 행이 앞 쪽 행의 잘린 뒷부분일 수 있다
+    row_labels: bool = False                 # 머리 없는 지급금액 하위 칸 둘 가운데 왼쪽 칸이 행마다 기간을 적은 칸이다("…부터 …까지")
+    name_cols: bool = False                  # 이름 칸이 세로선으로 다시 갈리면 맨 오른쪽 칸만 세부보장 이름으로 읽는다
+    label_col: bool = False                  # 지급사유 칸과 지급금액 칸 사이에 머리 있는 칸("재해골절 등급")이 더 있으면 행마다 금액과 짝짓는다
 
 
 # 삼성생명: "2. 보험금 지급사유" ~ "3. 일반적인 보험금 지급제한사항". "가. 주계약"(급부명 표), "나. 플러스보장플랜"(주계약의
@@ -85,7 +93,36 @@ SAMSUNGLIFE = LifeLayout(
     top_margin=50.0,
 )
 
-LAYOUTS = {layout.name: layout for layout in (SAMSUNGLIFE,)}
+# 교보생명: "▶ 보험금 지급사유 및 보험급부별 보험금 지급제한 사유" ~ "▶ 일반적인 보험금 지급 제한 사유". 소절이 없고 특약마다
+# 제목 줄이 있다. 간편심사 요약서는 "-. 무배당 …특약(간편N)", 일반심사 요약서는 "2 무배당 …특약(갱신형)"(차례 번호와 빈칸)이다.
+# 첫 제목 줄 "…(무배당) 주계약"이 주계약이다. 표 머리는 "급부명 | 지급사유 | 지급금액"(이름 칸 말은 급부명, 구분, 급부명칭.
+# 지급금액 칸 말은 지급금액, 지급내용, 지급액)이고 이름 칸이 세부보장 이름이다. 표 아래 "(주)" 다음 줄부터 풀이 문단이다.
+# 한 특약 안에서 "■ 보장형 계약", "■ 연장전환형 계약", "■ 최초계약", "■ 갱신계약" 줄이 표를 가른다. 쪽을 넘는 표는 다음 쪽에
+# 머리행을 다시 적는다.
+_KYOBO_HEAD = r"^(?:-\.\s*|\d{1,3}\s*(?![\d.)%,\s]))"    # "-. 이름", "2 이름", "47이름"(빈칸이 빠진 줄도 있다)
+KYOBO = LifeLayout(
+    "kyobo",
+    section_start=re.compile(r"^▶\s*보험금\s*지급사유\s*및\s*보험급부별\s*보험금\s*지급제한\s*사유\s*$"),
+    section_end=re.compile(r"^▶\s*일반적인\s*보험금\s*지급\s*제한\s*사유"),
+    section_title="▶ 보험금 지급사유 및 보험급부별 보험금 지급제한 사유",
+    parts=(
+        Part(re.compile(_KYOBO_HEAD + r"\S.*\s주계약\s*$"), "기본계약", True, "주계약"),
+        # 일반심사 요약서의 "번호 이름" 형식은 풀이 문단의 줄과 헷갈리지 않게 특약 표시 말이 있고 문장의 말이 없을 때만 본다
+        Part(re.compile(_KYOBO_HEAD + r"(?!.*(?:니다|경우|하여|에는|\s:))(?=.*(?:특약|무배당))(\S.*?)\s*$"), "선택특약", False,
+             named=True),
+    ),
+    cover_words=("급부명", "구분", "급부명칭"),
+    amount_more=("지급내용", "지급액"),
+    note_start=re.compile(r"^(?:\(주\)|㈜|※)"),
+    variant=re.compile(r"^■\s*(\S.*?)\s*$"),
+    head_tail=re.compile(r"^(?:[^\s()]{0,12}\))?(?:\([^()]{1,20}\))*$"),
+    repeat_head=True,
+    row_labels=True,
+    name_cols=True,
+    label_col=True,
+)
+
+LAYOUTS = {layout.name: layout for layout in (SAMSUNGLIFE, KYOBO)}
 
 # 종 표시. "[1종,2종]", "[1,2종]", "[3종]", "[1, 2, 3종]"
 _SCOPE_BODY = r"(?:\d+\s*종?\s*[,·/~]\s*)*\d+\s*종"
@@ -235,6 +272,48 @@ def _name_lines(lines: list[str]) -> tuple[str, list[str]]:
     return "\n".join(taken), lines[i:]
 
 
+_REASON_END = re.compile(r"(?:경우|때|[)）.]|니다|한함|한도)$")
+_LABEL_END = re.compile(r"(?:까지|이후|이전|이내|초과|미만|이상|경과)$")
+
+
+def _row_cut(prev: Row, row: Row) -> bool:
+    """row(다음 쪽 머리행 아래 첫 행)가 prev(앞 쪽 마지막 행)의 잘린 뒷부분인가. 표가 쪽마다 머리행을 다시 적는 요약서에 쓴다.
+
+    - row의 지급사유가 비었거나 "("로 시작한다(앞 문장의 단서. 지급금액만 넘어온 행도 여기다)
+    - prev의 지급사유나 지급금액이 괄호가 열린 채 끝났다
+    - prev의 지급사유가 문장 끝("경우", "때", 닫는 괄호, 마침표, "한함", "한도")으로 끝나지 않았다
+    """
+    reason = row.reason.strip()
+    if not reason or reason.startswith(("(", "（")):
+        return True
+    if T._unclosed(prev.reason) > 0 or any(T._unclosed(text) > 0 for _, text in prev.amounts):
+        return True
+    return not _REASON_END.search(_SPACES.sub("", prev.reason))
+
+
+def _merge_rows(prev: Row, row: Row) -> Row:
+    """쪽 끝에서 잘린 행(prev)과 다음 쪽의 뒷토막(row)을 한 행으로 잇는다.
+
+    이름 칸과 지급사유 칸은 줄을 이어 붙인다. 지급금액은 하위 칸 머리가 같은 칸끼리 글을 잇는다. 행마다 기간을 적는 하위 칸
+    (LifeLayout.row_labels)은 앞 기간 글이 기간 끝말("까지", "이후" 따위)로 끝나지 않았을 때만 두 토막을 한 칸으로 잇고, 아니면
+    새 기간 칸으로 더한다. 쪽은 앞 행의 쪽이다.
+    """
+    name = prev.name
+    if (row.name or "").strip():
+        name = "\n".join(x for x in (prev.name, row.name) if x)
+    amounts = list(prev.amounts)
+    rest = list(row.amounts)
+    if amounts and rest:
+        (h1, t1), (h2, t2) = amounts[-1], rest[0]
+        if h1 == h2:
+            amounts[-1] = (h1, f"{t1}\n{t2}")
+            rest = rest[1:]
+        elif h1 and h2 and not _LABEL_END.search(h1):
+            amounts[-1] = (h1 + h2, f"{t1}\n{t2}")
+            rest = rest[1:]
+    return Row(prev.page, name, "\n".join(x for x in (prev.reason, row.reason) if x.strip()), tuple(amounts + rest))
+
+
 @dataclass
 class _Cover:
     name: str
@@ -279,12 +358,32 @@ class _Builder:
         self.held: tuple[str, str, Row, str] | None = None     # 지급금액이 빈 묶음 행(이름, 지급사유, 행, 적용범위)
         self.held_used = False
         self.ended = False          # 급부 절 다음 절의 제목 줄을 보았다. 그 뒤는 읽지 않는다
+        self.variant = ""           # 특약 안의 계약 단계 줄("■ 최초계약")의 이름. 세부보장의 적용범위가 된다
+        self.heading_open = False   # 바로 앞 줄이 이름 제목 줄(Part.named)이다. 다음 줄이 그 뒷토막일 수 있다
+        self._last_row: tuple[Row, str] | None = None     # (마지막 급부명 표 행, 그 행을 읽기 전의 묶음 이름). repeat_head에서만
 
     # -- 표 밖 글 --------------------------------------------------------
+    def _title(self) -> str:
+        part = self.part
+        return self.sub or (part.rider if part is not None else "")
+
+    def _heading_tail(self, t: str) -> bool:
+        """이름 제목 줄 바로 다음 줄이 그 제목의 뒷토막인가. 괄호가 닫히지 않았거나, 다음 줄이 괄호 토막("(무해약환급금형)")이다."""
+        lay = self.layout
+        if lay.base.match(t) or lay.note_start.match(t) or (lay.variant is not None and lay.variant.match(t)):
+            return False
+        return T._unclosed(self.sub) > 0 or bool(lay.head_tail is not None and lay.head_tail.match(t))
+
     def text(self, line: Text) -> None:
         t = line.text.strip()
         if self.ended or not t or self.layout.footer.match(t):
             return
+        self._last_row = None       # 표 밖 글이 나왔으면 앞 표는 끝났다
+        if self.heading_open:
+            self.heading_open = False
+            if self._heading_tail(t):
+                self.sub = _SPACES.sub(" ", self.sub + t).strip()
+                return
         if self.layout.section_end.match(t):
             self._close_note()
             self.ended = True
@@ -293,8 +392,26 @@ class _Builder:
         if part is not None:
             self._close_note()
             self.part, self.sub, self.base = part, "", []
+            if part.named:
+                self.sub = _SPACES.sub(" ", part.pattern.match(t).group(1)).strip()
+                self.heading_open = True
+            self.variant = ""
             self.after_table = False
             return
+        if self.layout.variant is not None and self.part is not None:
+            m = self.layout.variant.match(t)
+            if m:
+                self._close_note()
+                self.variant = m.group(1)
+                cur = self.current
+                if cur is not None and cur.covers and cur.title == self._title() and cur.label == self.part.label:
+                    # 같은 특약의 다음 단계. 이 줄과 그 아래 "※" 문단을 그 특약의 주석으로 단다
+                    self._pending.append((cur, line.page, t))
+                    self.table_riders, self.after_table = [cur], True
+                else:
+                    self.base.append((line.page, t))
+                    self.after_table = False
+                return
         if self.layout.sub_head is not None:
             m = self.layout.sub_head.match(t)
             if m and self.part is not None:
@@ -477,16 +594,42 @@ class _Builder:
             return
         if self.current is None or self.current.title != title or self.current.label != part.label:
             self._start(title, "", row.page)
+        elif self.base:
+            # 같은 특약의 다음 표("■ 연장전환형 계약" 아래 표) 위 기준 줄은 그 특약에 단다
+            for p, text in self.base:
+                self._pending.append((self.current, p, text))
+            self.base = []
+        elif self._cut(table, i, row):
+            # 앞 쪽 마지막 행이 쪽 끝에서 잘렸다. 그 행으로 만든 세부보장을 빼고 두 토막을 이은 행으로 다시 만든다
+            prev, group = self._last_row
+            self.current.covers.pop()
+            self.group = group
+            self._touch(self.current, row.page)
+            self.events.append({"쪽": row.page, "이유": "앞 쪽 끝에서 잘린 행을 다음 쪽 첫 행과 이어 세부보장 하나로 읽음"})
+            row = _merge_rows(prev, row)
+            lines = [l.strip() for l in row.reason.split("\n") if l.strip()]
         r = self.current
         assert r is not None
         if not lines and not amount_text(row.amounts):
             return
+        if self.layout.repeat_head:
+            self._last_row = (row, self.group)
         only, lines = self._scope(lines)
         if (row.name or "").strip():
             name, name_only = clean_name(row.name or "")
             self.group = name
             only = only or name_only
-        self._add(r, self.group, lines, row, only)
+        self._add(r, self.group, lines, row, only or self.variant)
+
+    def _cut(self, table: Table, i: int, row: Row) -> bool:
+        """쪽마다 머리행을 다시 적는 요약서(LifeLayout.repeat_head)에서 머리행 아래 첫 행이 앞 쪽 마지막 행의 잘린 뒷부분인가.
+        앞 표 뒤에 표 밖 글(풀이 문단, 제목, 기준 줄)이 없었을 때만 보고, 표시는 _row_cut이 정한다."""
+        if not (self.layout.repeat_head and i == 0 and not table.headless and self._last_row is not None):
+            return False
+        cur = self.current
+        if cur is None or not cur.covers:
+            return False
+        return _row_cut(self._last_row[0], row)
 
     # -- 마무리 ------------------------------------------------------------
     def finish(self) -> Result:
@@ -596,7 +739,7 @@ def stats(result: Result) -> dict[str, Any]:
         "이름 깨짐": dict(sorted(faults.items())),
         "주석": len(result.notes),
         "기준 줄": dict(sorted(Counter(_SPACES.sub("", n["글"]) for n in result.notes
-                                    if n["글"][:1] in "[(（" and "기준" in n["글"]).items())),
+                                    if n["글"][:1] in "[(（" and "기준" in n["글"] and not n["글"].startswith("(주)")).items())),
         "같은 제목 조각": sorted(t for t, n in Counter(r.title for r in riders).items() if n > 1),
     }
 
@@ -608,6 +751,7 @@ def stats(result: Result) -> dict[str, Any]:
 _SNAP = T._SNAP
 _LABEL = re.compile(r"이내|초과|경과|기간\s*중|확정\s*시|이후|이전|미만|이상")
 _MONEY = re.compile(r"\d[\d,.]*\s*(?:만|원|万|%)")
+_ROW_LABEL = re.compile(_LABEL.pattern + r"|까지|부터")
 
 
 @dataclass(frozen=True)
@@ -619,6 +763,7 @@ class _Columns:
     labels: tuple[str, ...]     # 하위 칸 머리. 하위 칸이 하나면 ("",)
     mode: str                   # "특약" 또는 "급부"
     head: str = ""              # 지급금액 머리 칸의 덧글
+    pair: bool = False          # 첫 하위 칸이 머리 있는 구분 칸("재해골절 등급")이다. 행마다 그 칸의 글과 금액 칸을 짝짓는다
 
     @property
     def right(self) -> float:
@@ -651,7 +796,8 @@ def _header(t: Any, chars: list[dict], v: list[dict], layout: LifeLayout,
     for k, row in enumerate(rows[:2]):
         words = _cell_words(chars, row)
         reason = next((c for c, w in words if w == layout.reason_word), None)
-        amount = next(((c, w) for c, w in words if layout.amount_word in w), None)
+        amount = next(((c, w) for c, w in words if layout.amount_word in w or any(a in w for a in layout.amount_more)),
+                      None)
         if reason is None or amount is None or not reason[0] < amount[0][0]:
             continue
         mode = ""
@@ -664,7 +810,7 @@ def _header(t: Any, chars: list[dict], v: list[dict], layout: LifeLayout,
             mode = "급부" if part is not None and part.main and part.rider else "특약"
         acell, aword = amount
         head = ""
-        if aword != layout.amount_word:
+        if aword != layout.amount_word and aword not in layout.amount_more:
             head = " ".join(_lines_in(chars, acell[0], acell[2], acell[1], acell[3]))
         body_top = reason[3]
         # 지급금액 머리 아래의 하위 칸 머리 행들(1년이내 | 1년초과)
@@ -691,8 +837,22 @@ def _header(t: Any, chars: list[dict], v: list[dict], layout: LifeLayout,
                             and e["top"] <= amount_top + 2 * _SNAP and e["bottom"] > amount_top + 5})
             subs = (acell[0], *inner, t.bbox[2])
             labels = [""] if not inner else [f"{layout.unlabeled} {n}" for n in range(1, len(subs))]
+            middle = _middle_cell(words, reason, acell) if layout.label_col and not inner else None
+            if middle is not None:
+                # 지급사유 칸과 지급금액 칸 사이의 구분 칸("재해골절 등급"). 지급사유 칸은 그 칸 왼쪽에서 끝난다
+                cell = middle
+                text = _label(_lines_in(chars, cell[0], cell[2], cell[1], cell[3]))
+                return (_Columns(t.bbox[0], reason[0], (cell[0], acell[0], t.bbox[2]), (text, ""), mode, head, True),
+                        body_top, max(amount_top, cell[3]))
         return _Columns(t.bbox[0], reason[0], subs, tuple(labels), mode, head), body_top, amount_top
     return None
+
+
+def _middle_cell(words: Sequence[tuple[Sequence[float], str]], reason: Sequence[float],
+                 amount: Sequence[float]) -> Sequence[float] | None:
+    """머리행에서 지급사유 칸과 지급금액 칸 사이에 글이 있는 칸이 꼭 하나면 그 칸. 둘 이상이거나 없으면 None."""
+    found = [c for c, w in words if w and c[0] >= reason[2] - _SNAP and c[2] <= amount[0] + _SNAP]
+    return found[0] if len(found) == 1 else None
 
 
 def _continued(t: Any, v: list[dict], prev: _Columns | None) -> _Columns | None:
@@ -722,13 +882,44 @@ def _has_v(v: list[dict], x: float, y: float) -> bool:
     return any(abs(e["x0"] - x) <= _SNAP and e["top"] - _SNAP <= y <= e["bottom"] + _SNAP for e in v)
 
 
+def _row_label_amounts(chars: list[dict], cols: _Columns, subs: list[list[tuple[float, float]]],
+                       band: tuple[float, float], mid: float, period: bool = True) -> list[tuple[str, str]] | None:
+    """지급금액 칸이 "기간 칸 | 금액 칸"으로 갈리고 기간 칸이 위아래로 여러 칸인 행(교보생명의 체증형 특약)의 (기간, 금액)들.
+    기간 칸마다 그 높이에 있는 금액 칸의 글을 짝짓는다. 기간 칸에 기간의 말이 없거나 금액이 섞였으면 None(보통 하위 칸으로 읽는다).
+
+    period가 거짓이면 왼쪽 칸이 머리행에 머리가 있는 구분 칸이다(_Columns.pair. "재해골절 등급" 아래 "1급", "2급"). 칸 글에
+    기간의 말을 보지 않고, 짝의 머리는 "구분 칸 머리 칸 글"("재해골절 등급 1급")이다."""
+    out = []
+    for cell in subs[0]:
+        cmid = (cell[0] + cell[1]) / 2
+        if not (band[0] <= cmid < band[1] or cell[0] <= mid < cell[1]):
+            continue
+        label = T.join_name("\n".join(_lines_in(chars, cols.subs[0], cols.subs[1], cell[0], cell[1])))
+        if not label or _MONEY.search(label) or (period and not _ROW_LABEL.search(label)):
+            return None
+        if not period:
+            label = f"{cols.labels[0]} {label}".strip()
+        values = ["\n".join(_lines_in(chars, cols.subs[1], cols.subs[2], c[0], c[1])) for c in subs[1]
+                  if cell[0] - _SNAP <= (c[0] + c[1]) / 2 <= cell[1] + _SNAP]
+        out.append((label, "\n".join(values)))
+    return out or None
+
+
 def _rows(t: Any, chars: list[dict], h: list[dict], v: list[dict], cols: _Columns, body_top: float,
-          amount_top: float, page: int) -> list[Row]:
+          amount_top: float, page: int, row_labels: bool = False, name_cols: bool = False) -> list[Row]:
     top, bottom = t.bbox[1], t.bbox[3]
     has_name = abs(t.bbox[0] - cols.left) <= 3
     bands = [b for b in _spans(h, cols.reason, cols.subs[0], top, bottom) if b[0] >= body_top - _SNAP]
+    name_left = cols.left
+    if has_name and name_cols:
+        # 이름 칸이 세로선으로 다시 갈린 표(교보생명 "급부명칭" 아래 묶음 칸 | 급부 칸). 맨 오른쪽 칸이 세부보장 이름이다.
+        # 왼쪽 묶음 칸("급여 수술보험금")은 오른쪽 이름들을 묶는 말이라 읽지 않는다
+        inner = sorted({round(e["x0"], 1) for e in v if cols.left + 2 * _SNAP < e["x0"] < cols.reason - 2 * _SNAP
+                        and e["bottom"] > body_top + 5 and e["top"] < bottom - 5})
+        if inner:
+            name_left = inner[-1]
     if has_name:
-        names = [b for b in _spans(h, cols.left, cols.reason, top, bottom) if b[1] > body_top + _SNAP]
+        names = [b for b in _spans(h, name_left, cols.reason, top, bottom) if b[1] > body_top + _SNAP]
         names = [(max(a, body_top), b) for a, b in names]
     else:
         names = [(top, bottom)]
@@ -742,10 +933,20 @@ def _rows(t: Any, chars: list[dict], h: list[dict], v: list[dict], cols: _Column
         name_band = next((b for b in names if b[0] - _SNAP <= mid <= b[1] + _SNAP), None)
         name: str | None = None
         if name_band is not None and name_band != last_name:
-            name = "\n".join(_lines_in(chars, cols.left, cols.reason, name_band[0], name_band[1]))
+            name = "\n".join(_lines_in(chars, name_left, cols.reason, name_band[0], name_band[1]))
             last_name = name_band
         amounts: list[tuple[str, str]] = []
         k = 0
+        if cols.pair and len(subs) == 2:
+            # 지급사유 칸과 지급금액 칸 사이의 구분 칸(LifeLayout.label_col). 구분 칸마다 같은 높이의 금액을 짝짓는다
+            paired = _row_label_amounts(chars, cols, subs, band, mid, period=False)
+            if paired:
+                amounts, k = paired, len(subs)
+        elif row_labels and len(subs) == 2 and not any(_LABEL.search(x) for x in cols.labels):
+            # 머리행에 하위 칸 머리가 없는 표(머리가 있으면 _LABEL의 말이 든다)
+            paired = _row_label_amounts(chars, cols, subs, band, mid)
+            if paired:
+                amounts, k = paired, len(subs)
         while k < len(subs):
             texts = []
             end = k + 1
@@ -790,7 +991,7 @@ def page_items(page: Any, number: int, layout: LifeLayout, state: dict[str, Any]
         state["cols"] = cols
         mine = _chars_in(T._numbered(page.chars, t.bbox), min(cols.left, t.bbox[0]), t.bbox[2] + _SNAP,
                          t.bbox[1], t.bbox[3])
-        rows = _rows(t, mine, h, v, cols, body_top, amount_top, number)
+        rows = _rows(t, mine, h, v, cols, body_top, amount_top, number, layout.row_labels, layout.name_cols)
         placed.append((t.bbox[1], 1, Table(number, tuple(rows), cols.mode, headless, "" if headless else cols.head)))
         regions.append((min(cols.left, t.bbox[0]) - _SNAP, t.bbox[1] - _SNAP, t.bbox[2] + _SNAP, t.bbox[3] + _SNAP))
     loose = [c for c in chars if not any(r[0] <= c["at"][0] < r[2] and r[1] <= c["at"][1] < r[3] for r in regions)]
