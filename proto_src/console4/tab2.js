@@ -53,7 +53,7 @@ App.registerTab((function () {
     ];
   }
   function renLabel(r) {
-    return r == null ? t('condRenAll') : r;
+    return r == null ? t('condRenAll') : r === '갱신' ? t('condRenRenew') : r === '비갱신' ? t('condRenNon') : r;
   }
 
   function tally(map) {
@@ -218,12 +218,12 @@ App.registerTab((function () {
         const noDataWhy = isNoData
           ? c.activeOrgs.map(o => txt.stateWhy(o, cell && cell['회사'] && cell['회사'][o])).filter(Boolean)[0] || t('scopeNoData')
           : '';
-        const tipTitle = `${it.period['이름']}, ${colText(it.col)}`;
+        const tipTitle = `${App.rowLabel(it.period)}, ${colText(it.col)}`;
         const tipSub = isNoData
           ? noDataWhy
-          : `${txt.orgShort('EPOST')} ${cc.oursState}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
+          : `${txt.orgShort('EPOST')} ${App.label(cc.oursState)}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
         const chipKind = cc.state === 'only' ? 'only' : cc.state === 'worse' ? 'worse' : cc.state === 'both' ? 'same' : cc.state === 'unknown' ? 'unknown' : 'none';
-        const tip = `${tipTitle}: ${cell['라벨']}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
+        const tip = `${tipTitle}: ${App.label(cell['라벨'])}${partNote}, ${t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) })}`;
         const pk = keyOf(it.ri, it.ci);
         trackParts.push(`<button type="button" class="mk-ring ${stateCls}" data-pick="${esc(pk)}" data-toggle="1" data-aim="circle"${isNoData ? ' data-nodata="1" aria-disabled="true"' : ''} data-grid-r="${rIdx}" data-grid-c="${cIdx}" data-tip="${esc(tip)}" data-tip-title="${esc(tipTitle)}" data-tip-sub="${esc(tipSub)}" data-tip-chip="${chipKind}" aria-pressed="false" aria-label="${esc(tip)}" style="--d:${(rIdx * 4 + cIdx) * 10}ms">
           ${needFlag ? ui.flag() : ''}
@@ -292,7 +292,7 @@ App.registerTab((function () {
       if (b) return b['문장'];
     }
     const tl = tally(map);
-    return `${renLabel(c.st.renewal)}: ${LABELS.filter(l => tl.lab[l]).map(l => `${l} ${fmt(tl.lab[l])}${t('mkClosedUnit')}`).join(', ')}.`;
+    return `${renLabel(c.st.renewal)}: ${LABELS.filter(l => tl.lab[l]).map(l => `${App.label(l)} ${fmt(tl.lab[l])}${t('mkClosedUnit')}`).join(', ')}.`;
   }
 
   function conclusion(c) {
@@ -348,9 +348,9 @@ App.registerTab((function () {
     const patchT = App.segPatchText(patch);
     const willChangeTip = t('mkEvWillChangeTpl', { target: txt.josa(patchT, '으로') });
 
-    const topHTML = `<p><b>${esc(cell['라벨'])}</b>${subNotes.length ? ` (${esc(subNotes.join(', '))})` : ''}. ${ui.fullScopeTag()}</p>
+    const topHTML = `<p><b>${esc(App.label(cell['라벨']))}</b>${subNotes.length ? ` (${esc(subNotes.join(', '))})` : ''}. ${ui.fullScopeTag()}</p>
       <dl class="kv" style="margin-top:6px">
-        <dt>${esc(txt.orgShort('EPOST'))}</dt><dd>${esc(oursState)}${cell['대표'] ? ` (${esc(vk(cell['대표']))})` : ''}</dd>
+        <dt>${esc(txt.orgShort('EPOST'))}</dt><dd>${esc(App.label(oursState))}${cell['대표'] ? ` (${esc(vk(cell['대표']))})` : ''}</dd>
         <dt>${esc(t('mkEvOpenPeersHeadTpl', { open: fmt(cc.openAny), total: fmt(cc.total) }))}</dt><dd>${esc(openSummary)}</dd>
       </dl>
       ${partialSpansHTML}
@@ -371,7 +371,7 @@ App.registerTab((function () {
       const why = txt.stateWhy(o, s);
       const pSpan = (cell['일부열린나이'] && cell['일부열린나이'][o]) ? formatSpans(cell['일부열린나이'][o]) : '';
       const go = gateOnly.filter(x => x['기관코드'] === o);
-      return `<li><span class="mk-est">${ST_IC[s] || ''}<b>${esc(txt.orgShort(o))}</b> ${esc(s)}${pSpan ? ` (${esc(pSpan + t('condAgeUnit'))})` : ''}</span>
+      return `<li><span class="mk-est">${ST_IC[s] || ''}<b>${esc(txt.orgShort(o))}</b> ${esc(App.label(s))}${pSpan ? ` (${esc(pSpan + t('condAgeUnit'))})` : ''}</span>
         <p class="note">${open.length ? esc(t('mkEvOpenVarCntTpl', { n: fmt(open.length), list: open.map(vk).join(', ') })) : esc(t('mkEvOpenVarNone'))}${why ? `. ${esc(why)}` : ''}</p>
         ${go.map(x => `<p class="note">${ui.tag(x['안내'])} ${esc(x['이름'])}</p>`).join('')}</li>`;
     }).join('');
@@ -384,7 +384,7 @@ App.registerTab((function () {
     );
 
     const nMap = cell['분류수'] || {};
-    const allCats = CATS.concat([t('mkCatWait')]);
+    const allCats = CATS.concat(['검토 대기']);
     const counted = allCats.filter(k => nMap[k] != null);
     const reps = c.activePeerOrgs.map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean);
     body += det(t('mkEvRepAndCnts'), `<dl class="kv">
@@ -396,12 +396,12 @@ App.registerTab((function () {
 
     const badges = [
       ui.scope('all'),
-      `<span class="tag">${ui.swatch(cell['라벨'])}${esc(cell['라벨'])}</span>`,
+      `<span class="tag">${ui.swatch(cell['라벨'])}${esc(App.label(cell['라벨']))}</span>`,
       cc.partialOnly ? ui.tag(t('mkPartialOnlyMark')) : '',
       now ? ui.tag(t('mkEvNowTag')) : '',
     ].filter(Boolean);
 
-    return { kicker: t('mkEvKickerCell'), title: `${row['이름']}, ${colText(col)}`, badges, body };
+    return { kicker: t('mkEvKickerCell'), title: `${App.rowLabel(row)}, ${colText(col)}`, badges, body };
   }
 
   function revSpec(i) {
@@ -409,7 +409,7 @@ App.registerTab((function () {
     const isStd = !/^급부:/.test(d['열쇠']);
     const stdObj = isStd ? S['표준담보'][d['열쇠']] : null;
     const stName = stdObj ? `${stdObj['이름']}(${[stdObj['대분류'], stdObj['급부유형']].filter(Boolean).join(', ')})` : d['담보'];
-    let body = sec('', `<p><b>${esc(d['담보'])}</b>: <b>${esc(d['종류'])}</b> (${esc(d['항목'].join(', '))}).</p>
+    let body = sec('', `<p><b>${esc(d['담보'])}</b>: <b>${esc(App.label(d['종류']))}</b> (${esc(d['항목'].join(', '))}).</p>
       <div style="margin-top:8px">${ui.btn(t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="${esc(isStd ? 'std:' + d['열쇠'] : 'var:' + (d['종형ID'][0] || ''))}"` })}</div>`);
     body += det(t('mkEvRevVars'), `<ul class="evl">${d['종형ID'].map(v => `<li><b>${esc(vk(v))}</b><br><span class="note">${esc((txt.vinfo(v) || {})['전체이름'] || '')}</span></li>`).join('')}</ul>`, true);
     body += sec('', `<p class="note">${esc(isStd ? t('mkEvRevStdNoteTpl', { target: txt.josa(stName, '으로') }) : t('mkEvRevRawNote'))}</p>`, true);
@@ -454,7 +454,7 @@ App.registerTab((function () {
       const short = full.map(nm => txt.shortName(nm).short);
       return [
         esc(d['담보']),
-        { h: ui.tag(d['종류']), cp: d['종류'] },
+        { h: ui.tag(d['종류']), cp: App.label(d['종류']) },
         esc(d['항목'].join(', ')),
         { h: `<span title="${esc(full.join(', '))}">${esc(short.join(', '))}</span>`, cp: full.join(', ') },
       ];
@@ -524,8 +524,8 @@ App.registerTab((function () {
     const map = App.mapOf(c.st.renewal);
     const tl = tally(map);
     const bGa = ((c.base && c.base['브리핑']) || []).find(x => x['줄'] === '가');
-    const rows = LABELS.map(l => [`${ui.swatch(l)} ${esc(l)}`, fmt(tl.lab[l] || 0)]);
-    // 닫힌 사유 단위("칸") 복원: "나이 12칸, 고지 질문 6칸"
+    const rows = LABELS.map(l => [`${ui.swatch(l)} ${esc(App.label(l))}`, fmt(tl.lab[l] || 0)]);
+    // 닫힌 사유 단위("개 고객군") 복원
     const closedT = Object.entries(tl.closed).map(([k, n]) => `${k} ${fmt(n)}${t('mkClosedUnit')}`).join(', ');
     const closedSum = Object.values(tl.closed).reduce((a, b) => a + b, 0);
     const gaps = Object.entries(tl.gap).map(([o, x]) => `<li>${ui.IC.hatch}<span>${esc(t('mkGapItemTpl', { org: txt.orgShort(o), n: fmt(x.n), why: txt.stateWhy(o, x.state) || '' }))}</span></li>`).join('');
@@ -537,10 +537,10 @@ App.registerTab((function () {
       cellRows.push({
         pk: keyOf(ri, ci),
         cells: [
-          esc(row['이름']),
+          esc(App.rowLabel(row)),
           esc(colText(col)),
-          `${ui.swatch(cell['라벨'])} <b>${esc(cell['라벨'])}</b>${cell['보조'] ? ` <span class="note">(${esc(cell['보조'])})</span>` : ''}`,
-          esc(cc.oursState + (cell['대표'] ? ` (${vk(cell['대표'])})` : '')),
+          `${ui.swatch(cell['라벨'])} <b>${esc(App.label(cell['라벨']))}</b>${cell['보조'] ? ` <span class="note">(${esc(cell['보조'])})</span>` : ''}`,
+          esc(App.label(cc.oursState) + (cell['대표'] ? ` (${vk(cell['대표'])})` : '')),
           { h: `<span class="num">${esc(`${fmt(cc.openAny)}/${fmt(cc.total)}`)}</span>`, cp: `${cc.openAny}/${cc.total}` },
           esc((cell['닫힌사유'] || []).join(', ')),
         ],
@@ -569,14 +569,14 @@ App.registerTab((function () {
         ${ui.table({
           id: 'mk-cells-tbl',
           caption: `${App.TAB_NAME.market} ${fmt(cellRows.length)}${t('mkClosedUnit')} (${txt.sexText(map['성별'])})`,
-          head: ['이력', t('condAge'), t('mkTallyCol1'), txt.orgShort('EPOST'), '열린 상대', t('scopeClosedWhy')],
+          head: ['이력', t('condAge'), t('mkTallyCol1'), txt.orgShort('EPOST'), t('mkOpenPeersCol'), t('scopeClosedWhy')],
           rows: cellRows.map(r => r.cells),
           num: [4],
           pick: i => cellRows[i].pk,
         })}
       </div>
       <div class="dm-sec">
-        ${ui.notes(App.TAB_NAME.market)}
+        ${ui.notes(S['탭'][1])}
       </div>
     </div>`;
 
@@ -596,7 +596,7 @@ App.registerTab((function () {
       if (m) {
         const map = App.mapOf(c.st.renewal);
         const r = map['행'][m.ri], col = map['열'][m.ci];
-        if (r && col) out.push(`${r['이름']}, ${colText(col)}`);
+        if (r && col) out.push(`${App.rowLabel(r)}, ${colText(col)}`);
       } else if (/^rv(\d+)$/.test(sel)) {
         const d = REV['담보'][+sel.slice(2)];
         if (d) out.push(d['담보']);
@@ -618,15 +618,15 @@ App.registerTab((function () {
   function copyCells() {
     const c = App.ctx();
     const map = App.mapOf(c.st.renewal);
-    const allCats = CATS.concat([t('mkCatWait')]);
+    const allCats = CATS.concat(['검토 대기']);
     const rows = [];
     map['행'].forEach((row, ri) => map['열'].forEach((col, ci) => {
       const cell = cellAt(map, ri, ci);
       const n = cell['분류수'] || {};
       const goT = (cell['관문만수집'] || []).map(x => `${x['이름']}: ${x['안내']}`).join(', ');
       rows.push([
-        row['종류'], timeShort(row), colText(col), cell['라벨'], cell['보조'] || '', (cell['닫힌사유'] || []).join(', '),
-        ...c.activeOrgs.map(o => (cell['회사'] && cell['회사'][o]) || ''),
+        App.label(row['종류']), timeShort(row), colText(col), App.label(cell['라벨']), cell['보조'] || '', (cell['닫힌사유'] || []).join(', '),
+        ...c.activeOrgs.map(o => App.label((cell['회사'] && cell['회사'][o]) || '')),
         vk(cell['대표']),
         c.activePeerOrgs.map(o => cell['상대대표'] && cell['상대대표'][o] ? `${txt.orgShort(o)} ${vk(cell['상대대표'][o])}` : '').filter(Boolean).join(', '),
         goT,
@@ -634,7 +634,7 @@ App.registerTab((function () {
       ]);
     }));
     App.copyRows(
-      ['이력', '기간', t('condAge'), t('mkTallyCol1'), '보조', t('scopeClosedWhy'), ...c.activeOrgs.map(o => txt.orgShort(o)), t('mkEvOursRep'), t('mkEvPeerRep'), '관문전용', ...allCats],
+      ['이력', '기간', t('condAge'), t('mkTallyCol1'), '보조', t('scopeClosedWhy'), ...c.activeOrgs.map(o => txt.orgShort(o)), t('mkEvOursRep'), t('mkEvPeerRep'), App.label('관문전용'), ...allCats.map(App.label)],
       rows,
       { title: `${App.TAB_NAME.market} (${txt.sexText(map['성별'])}, ${renLabel(c.st.renewal)})` }
     );

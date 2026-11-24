@@ -29,6 +29,8 @@ import re
 import sys
 from pathlib import Path
 
+import terms_check
+
 HERE = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[2]
 OUT_DEFAULT = ROOT / 'site/proto/console4.html'
@@ -42,7 +44,7 @@ NOTICE_SPAN = '<span id="notice-t">'   # tpl.html 의 맨 위 고지 자리. --b
 NOTICE_FIT = ' style="min-width:0;overflow:hidden;text-overflow:ellipsis"'
 EXPORT_CMD = 'python scripts/export_app_data.py'
 TABS = [1, 2, 3, 4, 5, 6]
-ALLOWED_DOT = ['교육·비교']           # 기획 확정본의 표식 문구 "내부 교육·비교 참고용(대외 배포 금지)"
+ALLOWED_DOT = ['교육·비교', '입원·수술']  # 기획 확정본 표식 문구와 용어 자체 표기("입원·수술")
 PLACEHOLDER = '이 탭은 다음 단계에서 채운다'
 
 errors: list[str] = []
@@ -180,6 +182,7 @@ def main() -> int:
 
     for name, text in [('tpl.html', tpl), ('style.css', style), ('core.js', core)] + tab_css + tab_js:
         check_authored(name, text)
+    errors.extend(terms_check.check_console4_sources(SRC, FONT_NOTICE if FONT_NOTICE.exists() else None))
     for name, text in tab_js:
         if PLACEHOLDER in text:
             warns.append(f'{name}: 자리 표시가 남았다("{PLACEHOLDER}")')

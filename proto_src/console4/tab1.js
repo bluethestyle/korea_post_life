@@ -439,7 +439,7 @@
   function copySummary(c) {
     const base = c.base || S['기준별'][c.baseId];
     if (!base) return;
-    const rows = (base['브리핑'] || []).map(b => [b['줄'], rowName(b), b['범위'], b['문장'], b['갈곳']]);
+    const rows = (base['브리핑'] || []).map(b => [b['줄'], rowName(b), b['범위'], b['문장'], App.label(b['갈곳'])]);
     App.copyRows(t('briefCopyCols').split(','), rows, { title: t('briefCopyTitle') });
   }
 

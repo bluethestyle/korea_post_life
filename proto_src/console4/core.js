@@ -7,13 +7,48 @@
   try { delete window.__BOOT_S; } catch (e) { /* */ }
   const DD = (typeof D !== 'undefined') ? D : null;
 
+  // ---------- 표시 이름(자료의 표시명 표)과 확정 이름 상수 ----------
+  const GATE_ONLY_ROLES = ['관문전용', '인수기준비교'];
+  const isGateOnlyRole = v => GATE_ONLY_ROLES.includes(v);
+  const LABELS = {};
+  function addLabels(map) {
+    if (map) Object.assign(LABELS, map);
+    const known = GATE_ONLY_ROLES.find(r => Object.prototype.hasOwnProperty.call(LABELS, r));
+    if (known) GATE_ONLY_ROLES.forEach(r => { if (!Object.prototype.hasOwnProperty.call(LABELS, r)) LABELS[r] = LABELS[known]; });
+  }
+  addLabels(S['표시명']);
+  function label(v) {
+    if (v == null) return v;
+    return Object.prototype.hasOwnProperty.call(LABELS, v) ? LABELS[v] : v;
+  }
+  function rowLabel(r) {
+    if (!r) return '';
+    const k = r['종류'], nm = String(r['이름'] == null ? '' : r['이름']);
+    return k && nm.startsWith(k) ? label(k) + nm.slice(k.length) : nm;
+  }
+  const TERM = {
+    app: '상품-영업 분석',
+    graph: '관계 그래프',
+    seg: '고객군별 가입 가능 현황',
+    segShort: '가입 가능 현황',
+    talk: '응대 화법',
+    brief: label(S['탭'][0]),
+    gate: label(S['탭'][2]),
+    noCompare: label('단정 주의'),
+    catGate: label('관문 차이'),
+    catStrong: label('앞세울 강점'),
+    catRel: label('관련 담보 안내'),
+    catWeak: label('조건 열위 방어'),
+    catMiss: label('개정 검토 후보'),
+  };
+
   // ---------- 화면 문구 표(한 곳에서 관리) ----------
   const COPY = {
-    appTitle: '영업 분석 콘솔',
+    appTitle: TERM.app,
     homeTitle: '영업 분석 요약',
     homePathRoot: '전체 요약',
-    tabGraph: '관계 그래프',
-    bootAria: '화면 열기 진행률',
+    tabGraph: TERM.graph,
+    bootAria: '로딩 진행률',
     tabsAria: '분석 화면',
     skinDark: '다크 모드',
     skinLight: '라이트 모드',
@@ -21,279 +56,278 @@
     motionOn: '켬',
     motionCalm: '줄임',
     motionOff: '끔',
-    condAria: '조건 줄',
-    condOpenBtn: '조건 바꾸기',
+    condAria: '조회 조건',
+    condOpenBtn: '조건 변경',
     condCloseBtn: '조건 접기',
     condBasePrefix: '기준',
-    condPeerPrefix: '상대',
+    condPeerPrefix: '타사',
     condPeerNone: '선택 없음',
-    condNoHist: '이력 없음',
-    condSurgOnly: '수술만',
-    condHospOrSurg: '입원이나 수술',
-    condSince5: '5년 넘음',
+    condNoHist: '입원·수술 이력 없음',
+    condNoHistShort: '이력 없음',
+    condSurgOnly: label('수술만'),
+    condHospOrSurg: '입원 또는 수술',
+    condSince5: '5년 초과',
     condSinceUnit: '년 전',
-    condGroupSeg: '지금 보는 고객군',
+    condGroupSeg: '현재 고객군',
     condAge: '나이',
     condAgeUnit: '세',
     condSex: '성별',
     condMale: '남성',
     condFemale: '여성',
-    condSince: '마지막 입원이나 수술',
-    condSurgKind: '이력의 종류',
-    condSurgSwitch: '입원 없이 수술만',
-    condSurgDisHint: '이력이 없으면 고르지 않습니다',
-    condSurgHint: '고지 질문이 수술을 묻는지에 따라 회사마다 관문이 갈립니다',
-    condGroupBase: '기준과 비교 상대',
+    condSince: '최종 입원·수술 시점',
+    condSurgKind: '이력 구분',
+    condSurgSwitch: '통원수술(입원 없는 수술)',
+    condSurgDisHint: '이력이 없으면 선택하지 않습니다',
+    condSurgHint: '고지항목이 수술을 고지 대상으로 하는지에 따라 회사마다 인수기준이 갈립니다',
+    condGroupBase: '기준과 비교 대상',
     condBase: '기준 종형',
-    condPeers: '비교 상대',
-    condPeersHint: '비교 범위에 맞춰 걸러집니다',
+    condPeers: '비교 대상',
+    condPeersHint: '비교 범위에 맞춰 필터링됩니다',
     condRenewal: '갱신 유형',
-    condRenewalHint: '고객군과 관문 지도에 씁니다',
+    condRenewalHint: `${TERM.seg}에 씁니다`,
     condRenAll: '전체',
-    condRenRenew: '갱신',
-    condRenNon: '비갱신',
+    condRenRenew: '갱신형',
+    condRenNon: '비갱신형',
 
     scopeBtn: '범위',
     peerBtnTpl: '비교: {s}',
     peerTitle: '비교 범위',
     peerAll: '전체',
-    peerLife: '생명보험만',
-    peerNonLife: '손해보험만',
-    peerCustom: '직접 고른 회사',
+    peerLife: '생명보험사',
+    peerNonLife: '손해보험사',
+    peerCustom: '회사 직접 선택',
     peerLifeGroup: '생명보험',
     peerNonLifeGroup: '손해보험',
-    peerCustomShortTpl: '선택 {n}곳',
-    peerEmptyHint: '선택한 비교 범위에 해당하는 상대 회사가 없습니다.',
-    peerRestTpl: '{first} 외 {rest}곳',
-    peerEtcTpl: '{names} 등 {total}곳',
+    peerCustomShortTpl: '선택 {n}개사',
+    peerEmptyHint: '선택한 비교 범위에 해당하는 타사가 없습니다.',
+    peerRestTpl: '{first} 외 {rest}개사',
+    peerEtcTpl: '{names} 등 {total}개사',
     fullScopeBadge: '전체 기준',
-    fullScopeHint: '자료의 문장과 집계는 전체 비교 상대 기준으로 작성한 값입니다',
-    sameCountSuffix: '개',
-    scopeAria: '범위 띠',
-    scopeTitle: '범위 띠',
+    fullScopeHint: '자료의 문장과 집계는 전체 타사 기준으로 작성한 값입니다',
+    scopeAria: '비교 범위 요약',
+    scopeTitle: '비교 범위 요약',
     scopeVsAria: '대',
-    scopeDiffStruct: '구조 다름',
-    scopeDiffStructHint: '갱신이나 환급 구조가 다름',
-    scopePairTpl: '공통 담보 {total}쌍 가운데 검토 대기로 뺀 쌍 {wait}',
-    scopeNowSeg: '지금 고객군',
-    scopeOurRep: '우리 대표 종형',
-    scopeSwitchBaseTpl: '기준 종형을 {target} 바꾸기',
-    scopeClosedWhy: '닫힌 사유',
+    scopeDiffStruct: '구조 상이',
+    scopeDiffStructHint: '갱신이나 해약환급금 구조가 상이',
+    scopePairTpl: '공통 담보 {total}건 가운데 검수 대기로 제외한 건 {wait}',
+    scopeNowSeg: '현재 고객군',
+    scopeOurRep: '우체국 대표 종형',
+    scopeSwitchBaseTpl: '기준 종형을 {target} 변경',
+    scopeClosedWhy: '제한 사유',
     scopeNoData: '자료 없음',
 
-    pathAria: '현재 층 경로',
+    pathAria: '현재 위치',
     zoneLeftAria: '분류',
-    zoneCenterAria: '단위 도형',
-    evAria: '고른 것의 상세',
+    zoneCenterAria: '차트',
+    evAria: '선택 항목 상세',
     evKickerDefault: '화면 결론',
     evKickerPick: '상세와 근거',
     evPanelName: '상세와 근거',
     evCloseAria: '상세 닫기',
     evMoreBtn: '아래로 스크롤해 더 보기',
-    zlSecTitle: '구역 이동',
+    zlSecTitle: '섹션 이동',
     footNoticeHead: '유의사항.',
-    footDisclaimer: '상품요약서와 사업방법서 같은 공시 문서에서 뽑은 값으로 계산했고, 판매 시책, 수수료, 손해율, 인수 판정은 다루지 않습니다.',
+    footDisclaimer: '상품요약서와 사업방법서 같은 공시 문서에서 추출한 값으로 계산했고, 판매 시책, 수수료, 손해율, 인수 판정은 다루지 않습니다.',
     footAsof: '자료 기준',
     footFontHead: '글꼴 라이선스',
 
     scopeAll: '전체 고객군',
-    scopeAllHint: '기준 종형과 조건을 바꿔도 그대로인 값',
-    scopeBase: '선택 종형',
-    scopeBaseHint: '기준 종형을 바꾸면 바뀌는 값',
-    scopeNow: '지금 조건',
-    scopeNowHint: '나이, 성별, 이력을 바꾸면 바뀌는 값',
+    scopeAllHint: '기준 종형과 조건을 변경해도 변하지 않는 값',
+    scopeBase: '기준 종형',
+    scopeBaseHint: '기준 종형을 변경하면 바뀌는 값',
+    scopeNow: '현재 조건',
+    scopeNowHint: '나이, 성별, 이력을 변경하면 바뀌는 값',
 
-    vdBetter: '우체국 나음',
-    vdOnly: '우체국에만 있음',
-    vdWorse: '우체국 못함',
-    vdSame: '같음',
-    vdDiff: '우열을 매기지 않음',
-    vdNone: '우체국에 없음',
-    vdUnknown: '모름',
+    vdBetter: label('우체국 나음'),
+    vdOnly: label('우체국에만 있음'),
+    vdWorse: label('우체국 못함'),
+    vdSame: label('같음'),
+    vdDiff: label('우열을 매기지 않음'),
+    vdNone: label('우체국에 없음'),
+    vdUnknown: '미확인',
     flagDefault: '사업방법서 원문 확인 필요',
     flagShort: '원문 확인',
 
     actBack: '뒤로',
     actModeText: '문장으로 보기',
     actModeTable: '표로 보기',
-    actModeShape: '도형으로 보기',
+    actModeShape: '차트로 보기',
     actCopySum: '요약 복사',
     legendBtn: '범례',
     legendCloseAria: '창 닫기',
     modalCloseBtn: '닫기',
-    helpSuffixAria: ' 뜻 보기',
-    legendVerdictTitle: '판정과 기둥 범례',
-    lgBetter: '같은 담보를 견줘 우체국 조건이 나은 것(금색)',
-    lgOnly: '견준 상대에는 없고 우체국에만 있는 담보나 우리만 열리는 고객군(금색 이중선)',
-    lgWorse: '같은 담보를 견줘 우체국 조건이 못하거나 우리만 닫힌 곳(먹색 채움)',
+    helpSuffixAria: ' 설명 보기',
+    legendVerdictTitle: '판정과 막대 범례',
+    lgBetter: '같은 담보를 비교해 우체국 조건이 우위인 것(금색)',
+    lgOnly: '비교한 타사에는 없고 우체국만 보유한 담보나 우체국만 가입 가능한 고객군(금색 이중선)',
+    lgWorse: '같은 담보를 비교해 우체국 조건이 열위이거나 우체국만 가입이 제한된 고객군(먹색 채움)',
     lgSame: '조건이 같은 것(중립)',
-    lgDiff: '지급 형태나 판매 구성이 달라 우열을 매기지 않은 것(중립)',
-    lgNone: '상대에는 있고 우체국에는 없는 담보나 닫힌 구간(점선 윤곽)',
-    lgUnknown: '검토 대기이거나 자료가 아직 없는 구간(빗금)',
+    lgDiff: '지급 형태나 판매 구성이 달라 우열을 판단하지 않은 것(중립)',
+    lgNone: '우체국 미보유 담보(타사 보유)나 가입이 제한된 구간(점선 윤곽)',
+    lgUnknown: '검수 대기이거나 자료가 아직 없는 구간(빗금)',
     lgFlag: '화면에 옮긴 값이 사업방법서 원문과 같은지 사람이 확인해야 합니다',
-    lgSel: '지금 고른 항목. 읽기 영역으로 1px 선이 이어집니다',
-    lgScopeAll: '기준 종형과 조건을 바꿔도 그대로인 값입니다.',
-    lgScopeBase: '기준 종형을 바꾸면 다시 계산하는 값입니다.',
-    lgScopeNow: '조건 줄의 나이, 성별, 이력을 따라 바뀌는 값입니다.',
+    lgSel: '현재 선택한 항목. 상세 패널과 1px 선으로 연결됩니다',
+    lgScopeAll: '기준 종형과 조건을 변경해도 변하지 않는 값입니다.',
+    lgScopeBase: '기준 종형을 변경하면 다시 계산하는 값입니다.',
+    lgScopeNow: '조회 조건의 나이, 성별, 이력에 따라 바뀌는 값입니다.',
 
-    termScopeTitle: '범위 띠',
-    termScopeBody: '위쪽 줄은 지금 고른 기준 종형과 맞붙는 상대 상품, 공통 담보 쌍의 수를 보여 줍니다. 아래쪽 줄은 조건 줄의 나이, 성별, 이력이 고객군 지도에서 어느 관문 칸에 해당하는지 보여 줍니다.',
-    termEvTitle: '읽기 영역',
-    termEvBody: '무대에서 도형을 고르면 그 단위의 이름, 판정, 문장, 관계 식, 원문 문서 쪽 번호를 이 영역에 보여 줍니다. 아무것도 고르지 않았을 때는 면 없이 지금 화면의 결론 한 문장만 보여 줍니다.',
-    termBaseTitle: '기준 종형과 선택 종형',
-    termBaseBody: '기준 종형은 조건 줄에서 고른 우체국 상품 종형이며, 비교 상대는 그 종형의 심사 유형과 갱신 구조에 맞춰 정해집니다. 선택 종형 배지가 붙은 숫자와 문장은 이 기준 종형을 바꿀 때 함께 다시 계산하는 값입니다.',
-    termJourneyTitle: '치료 여정 격자',
-    termJourneyBody: '암, 뇌혈관, 심장 같은 보장 대분류와 치료 단계가 만나는 칸마다 회사별 표준담보 수를 견준 표입니다. 빈 단계나 담보 수 차이를 한눈에 살피는 용도이며, 조건의 우열은 담보 비교표에서 따집니다.',
-    termCautionTitle: '단정 주의와 검토 대기',
-    termCautionBody: '단정 주의는 상대가 조건이 다른 특약을 함께 팔거나 지급 형태가 달라 우열 문장을 내지 않고 사실만 적은 담보입니다. 검토 대기는 급부의 표준담보 매핑(매핑 대기)이나 추출한 급부 줄(작업 로그 대기)을 아직 사람이 확인하지 않아 비교 계산에서 뺀 쌍입니다.',
+    termScopeTitle: '비교 범위 요약',
+    termScopeBody: `위쪽 행은 현재 선택한 기준 종형과 비교 대상 타사 상품, 공통 담보 건수를 보여 줍니다. 아래쪽 행은 조회 조건의 나이, 성별, 이력이 ${TERM.seg}에서 어느 고객군에 해당하는지 보여 줍니다.`,
+    termEvTitle: '상세 패널',
+    termEvBody: '차트에서 항목을 선택하면 그 항목의 이름, 판정, 문장, 관계 식, 원문 문서 쪽 번호를 이 패널에 보여 줍니다. 아무것도 선택하지 않았을 때는 면 없이 현재 화면의 결론 한 문장만 보여 줍니다.',
+    termBaseTitle: '기준 종형',
+    termBaseBody: '기준 종형은 조회 조건에서 선택한 우체국 상품 종형이며, 비교 대상은 그 종형의 심사 유형과 갱신 구조에 맞춰 결정됩니다. 기준 종형 배지가 붙은 숫자와 문장은 이 기준 종형을 변경할 때 함께 다시 계산하는 값입니다.',
+    termJourneyTitle: '치료 단계별 담보 현황',
+    termJourneyBody: '암, 뇌혈관, 심장 같은 보장 대분류와 치료 단계가 만나는 셀마다 회사별 표준담보 수를 비교한 표입니다. 빈 단계나 담보 수 차이를 한눈에 살피는 용도이며, 조건의 우열은 담보 비교표에서 따집니다.',
+    termCautionTitle: `${TERM.noCompare}와 검수 대기`,
+    termCautionBody: `${TERM.noCompare}는 타사가 조건이 다른 특약을 동시 판매하거나 지급 형태가 달라 우열 문장을 내지 않고 사실만 적은 담보입니다. 검수 대기는 급부의 표준담보 매핑(매핑 검수 대기)이나 추출한 급부 행(추출 검수 대기)을 아직 사람이 확인하지 않아 비교 계산에서 제외한 건입니다.`,
 
-    noteHeadMap: '지도가 보는 범위',
+    noteHeadMap: `${TERM.seg}의 범위`,
     noteHeadSimp: '간편심사의 대상',
-    noteHeadSurg: "'수술만' 행의 뜻",
+    noteHeadSurg: `'${label('수술만')}' 행의 뜻`,
     noteHeadGen: '일반심사 규칙',
-    notesTitle: '일러두기',
+    notesTitle: '참고 사항',
     notesAriaSuffix: ' 주석',
     notesSrcPrefix: '출처: ',
 
-    whyNoAgeTpl: '나이 자료 없음: {org}의 가입나이 자료가 아직 들어오지 않았습니다',
-    whyNoQstTpl: '질문 자료 없음: {org}의 고지 질문 자료가 아직 들어오지 않았습니다',
-    whySegAgeTpl: '나이 자료 없음: 고객군 지도는 {lo}~{hi}세만 계산했습니다',
-    whySegRow: '이력 자료 없음: 이 이력의 칸이 지도에 없습니다',
-    whySegSexTpl: '{sex} 지도 자료 없음: 고객군 지도는 {mapSex} 기준으로만 계산해 {mapSex} 칸을 보입니다',
-    flowAgeNoteTpl: '관문 흐름 통과 수는 지도 칸의 세부나이({age}세, {sex}) 기준입니다.',
-    flowAgeNoteNoHistTpl: '관문 흐름 통과 수는 이력 없는 고객의 세부나이({age}세, {sex}) 기준입니다.',
+    whyNoAgeTpl: '가입나이 미수집: {org}의 가입나이 자료가 아직 들어오지 않았습니다',
+    whyNoQstTpl: '고지항목 미수집: {org}의 고지항목 자료가 아직 들어오지 않았습니다',
+    whySegAgeTpl: `가입나이 미수집: ${TERM.seg}은 {lo}~{hi}세만 계산했습니다`,
+    whySegRow: `이력 자료 없음: 이 이력의 고객군이 ${TERM.segShort}에 없습니다`,
+    whySegSexTpl: `{sex} 현황 자료 없음: ${TERM.seg}은 {mapSex} 기준으로만 계산해 {mapSex} 고객군을 보입니다`,
+    flowAgeNoteTpl: '인수기준 단계별 통과 수는 해당 고객군의 세부나이({age}세, {sex}) 기준입니다.',
+    flowAgeNoteNoHistTpl: '인수기준 단계별 통과 수는 입원·수술 이력이 없는 고객의 세부나이({age}세, {sex}) 기준입니다.',
     docFallback: '문서',
     pageSuffix: '쪽',
     pageMissingSuffix: ': 쪽 번호 자료 없음',
-    pageWhy: '쪽 번호 자료 없음: 고지 질문과 가입나이는 사업방법서에서 읽은 값이고, 사본에 그 쪽 번호가 들어 있지 않습니다. 원문의 해당 조항을 찾아 대조합니다',
-    sameOnlyOneTpl: '{org}만 값이 있음',
-    sameNone: '값이 있는 회사 없음',
-    sameDiff: '회사마다 다름',
-    sameAllTpl: '{n} 회사 같음',
-    sameHaveTpl: '값이 있는 {n} 회사 같음',
-    wordTwo: '두',
-    wordThree: '세',
+    pageWhy: '쪽 번호 자료 없음: 고지항목과 가입나이는 사업방법서에서 읽은 값이고, 스냅샷에 그 쪽 번호가 들어 있지 않습니다. 원문의 해당 조항을 찾아 대조합니다',
+    sameOnlyOneTpl: '{org}만 자료 있음',
+    sameNone: '자료 있는 회사 없음',
+    sameDiff: '회사별 상이',
+    sameAllTpl: '{n}개사 동일',
+    sameHaveTpl: '자료 있는 {n}개사 동일',
 
     copyOk: '복사했습니다',
     copyFail: '복사하지 못했습니다. 브라우저가 막았습니다',
-    copyRowsOkTpl: '복사했습니다: {n}줄. 엑셀이나 한글 문서에 붙여 넣으면 됩니다',
-    scopeLineTpl: '범위: 기준 종형 {base} / 비교 상대 {peers} / 지금 고객군 {seg} / 자료 기준 {asof} / {notice}',
+    copyRowsOkTpl: '복사했습니다: {n}행. 엑셀이나 한글 문서에 붙여 넣으면 됩니다',
+    scopeLineTpl: '범위: 기준 종형 {base} / 비교 대상 {peers} / 현재 고객군 {seg} / 자료 기준 {asof} / {notice}',
     printMark: '내부 교육·비교 참고용(대외 배포 금지)',
     tabMissing: '이 화면의 파일이 아직 없습니다.',
-    tabErrorPrefix: '이 화면을 그리다 멈췄습니다: ',
-    chevPrevSuffix: ' 앞 값',
+    tabErrorPrefix: '화면 표시 중 오류가 발생했습니다: ',
+    chevPrevSuffix: ' 이전 값',
     chevNextSuffix: ' 다음 값',
-    stepDecSuffix: ' 하나 줄이기',
-    stepIncSuffix: ' 하나 늘리기',
+    stepDecSuffix: ' 감소',
+    stepIncSuffix: ' 증가',
 
-    // 첫 화면(전체 요약)과 상단 고리 탭 문구
-    homeListHeadTpl: '전체 결론 {n}줄',
-    homeListHint: '줄을 누르면 해당 화면으로 들어갑니다',
+    // 첫 화면(전체 요약)과 상단 탭 문구
+    homeListHeadTpl: '전체 결론 {n}건',
+    homeListHint: '행을 클릭하면 해당 화면으로 들어갑니다',
     homeRevBadgeTpl: '개정 {n}',
-    briefRowGa: '고객군 지형',
-    briefRowNa: '개정과 시장',
-    briefRowDa: '가입 관문과 한도',
-    briefRowRa: '담보 포지션',
+    briefRowGa: TERM.seg,
+    briefRowNa: '상품 개정과 시장 동향',
+    briefRowDa: '인수기준과 가입한도',
+    briefRowRa: '담보 비교',
     briefRowMa: '영업 인사이트',
-    briefCopyTitle: '브리핑 분석 요약',
-    briefCopyCols: '줄,구역,범위,문장,갈 곳',
-    briefOffCondTpl: '지금 조건({cond})은 대표 조건({ref})과 다릅니다. 요약 문장은 대표 조건 기준입니다.',
-    briefLimitOutTpl: '지금 조건 {who}: {kind}의 가입나이({lo}~{hi}세) 밖입니다.',
-    briefLimitInTpl: '지금 조건 {who}: 주계약 최대 가입금액 {max}만원({lo}~{hi}세 구간{extra}).',
-    briefLimitPend: ', 검토 대기',
-    briefLimitSameSex: ', 남녀 같음',
-    homeLegendTitle: '첫 화면 기준축과 기둥 읽는 법',
-    homeLgGold: '금색 기둥(이중 상단선): 우체국 조건이 나은 담보이거나 우리 간편만 열리는 고객군',
-    homeLgWorse: '먹색 채움 기둥: 우체국 조건이 못하거나 우리 간편은 닫히고 상대는 열리는 고객군',
-    homeLgNeutral: '중립 기둥: 함께 열리는 고객군, 조건이 같거나 우열을 매기지 않은 담보',
-    homeLgOutline: '일부 채움 기둥: 바깥 윤곽은 전체 상대 수, 안쪽 채움은 통과한 상대 수',
-    homeLgEmpty: '점선 윤곽과 빗금: 닫힌 구간, 우체국 미보유 담보, 검토 대기 및 자료 없음',
-    homeLgRed: '빨강 마름모와 세로선: 지금 올리거나 고른 묶음',
+    briefCopyTitle: '종합 요약',
+    briefCopyCols: '행,구역,범위,문장,이동 화면',
+    briefOffCondTpl: '현재 조건({cond})은 기본 조건({ref})과 다릅니다. 요약 문장은 기본 조건 기준입니다.',
+    briefLimitOutTpl: '현재 조건 {who}: {kind}의 가입나이({lo}~{hi}세) 범위 밖입니다.',
+    briefLimitInTpl: '현재 조건 {who}: 주계약 가입한도 {max}만원({lo}~{hi}세 구간{extra}).',
+    briefLimitPend: ', 검수 대기',
+    briefLimitSameSex: ', 남녀 동일',
+    homeLegendTitle: '첫 화면 기준축과 막대 읽는 법',
+    homeLgGold: '금색 막대(이중 상단선): 우체국 조건이 우위인 담보이거나 우체국 간편만 가입 가능한 고객군',
+    homeLgWorse: '먹색 채움 막대: 우체국 조건이 열위이거나 우체국 간편은 가입이 제한되고 타사는 가입 가능한 고객군',
+    homeLgNeutral: `중립 막대: 함께 가입 가능한 고객군, 조건이 동일하거나 ${TERM.noCompare}인 담보`,
+    homeLgOutline: '일부 채움 막대: 바깥 윤곽은 전체 타사 수, 안쪽 채움은 통과한 타사 수',
+    homeLgEmpty: '점선 윤곽과 빗금: 가입이 제한된 구간, 우체국 미보유 담보, 검수 대기 및 자료 없음',
+    homeLgRed: '포커스 표시(빨간 마름모와 세로선): 현재 호버하거나 선택한 그룹',
 
     // 고객군과 시장(tab2) 문구
     mkRenLabel: '갱신',
-    mkRenAria: '고객군 지도의 갱신 유형',
+    mkRenAria: `${TERM.seg}의 갱신 유형`,
     mkMaleBasis: '남성 기준',
     mkGroupAll: '고객군 전체',
     mkGroupHosp: '입원',
-    mkGroupSurg: '수술만',
+    mkGroupSurg: label('수술만'),
     mkGroupRev: '개정과 시장',
-    mkGroupTally: '집계와 일러두기',
-    mkCenterTitle: '고객군 시간축과 고리',
+    mkGroupTally: '집계와 참고 사항',
+    mkCenterTitle: '고객군 시간축과 링 차트',
     mkTimeOver5: '5년+',
     mkUnknownSym: '?',
-    mkOursOpenRatioTpl: '우리 열림 {open}/{total}',
-    mkPartialOnlyMark: '일부 나이만',
-    mkPartialHeadTpl: '일부 나이에서만 열리는 상대 {n}곳',
-    mkPartialSpanTpl: '{org} {spans}세만 열림',
-    mkRevTabVar: '개정 변동',
-    mkRevTabNews: '시장 소식',
-    mkRevHead: '우체국 직전 개정과 견준 변동',
+    mkOursOpenRatioTpl: '우체국 가능 {open}/{total}',
+    mkPartialOnlyMark: '일부 나이 가능',
+    mkPartialHeadTpl: '일부 나이에서만 가입 가능한 타사 {n}개사',
+    mkPartialSpanTpl: '{org} {spans}세만 가입 가능',
+    mkRevTabVar: '개정 내역',
+    mkRevTabNews: '시장 동향',
+    mkRevHead: '우체국 직전 개정 대비 변경 내역',
     mkRevCopyBtn: '표 복사',
-    mkRevNonAddTpl: '개정 짝 {c}개의 수를 더하면 {sum}건입니다. 같은 담보가 여러 짝에서 바뀌면 짝마다 세므로 전체 {total}건보다 큽니다.',
-    mkRevGateChg: '고지 질문이 바뀐 종형',
+    mkRevNonAddTpl: '개정 전후 비교 건 {c}개의 수를 더하면 {sum}건입니다. 같은 담보가 여러 비교 건에서 바뀌면 비교 건마다 세므로 전체 {total}건보다 큽니다.',
+    mkRevGateChg: '고지항목이 바뀐 종형',
     mkRevAgeChg: '가입나이가 바뀐 종형',
     mkRevNone: '없음',
-    mkRevNote: '짝마다 직전 개정 종형과 같은 담보를 견줘 신설, 변경, 종료로 셉니다. 직전 개정 종형은 판매를 마쳐 견준 상품 목록에 이름이 없습니다.',
+    mkRevNote: '비교 건마다 직전 개정 종형과 같은 담보를 비교해 신설, 변경, 삭제로 셉니다. 직전 개정 종형은 판매를 마쳐 비교한 상품 목록에 이름이 없습니다.',
     mkRevCols: '담보,종류,달라진 항목,종형',
     mkRevNew: '신설',
     mkRevChg: '변경',
-    mkRevEnd: '종료',
-    mkNewsHead: '시장 소식',
+    mkRevEnd: label('종료'),
+    mkNewsHead: '시장 동향',
     mkNewsQuoteTag: '인용',
-    mkNewsConnTpl: '표준담보에 이어진 소식 {n}건.',
-    mkNewsNoConn: ' 이어진 담보가 없어 대응 문장을 달지 않습니다.',
-    mkNewsNonAddNote: '시장 소식 건수는 개정 변동 담보 수와 단위가 달라 더하지 않습니다.',
-    mkNewsLinkedTpl: ', 표준담보 {n}개에 이어짐',
-    mkNewsUnlinked: ', 표준담보에 이어지지 않음',
+    mkNewsConnTpl: '표준담보와 연결된 시장 동향 {n}건.',
+    mkNewsNoConn: ' 연결된 담보가 없어 대응 문장을 달지 않습니다.',
+    mkNewsNonAddNote: '시장 동향 건수는 개정 내역 담보 수와 단위가 달라 더하지 않습니다.',
+    mkNewsLinkedTpl: ', 표준담보 {n}개와 연결',
+    mkNewsUnlinked: ', 연결된 표준담보 없음',
     mkNewsWarnTpl: '주의 표현 {w}',
     mkNewsWarnHint: '화면 문장에 쓰지 않는 말이 보도 요약에 들어 있습니다',
-    mkTallyHead: '라벨별 칸 수와 자료 점검',
+    mkTallyHead: '라벨별 고객군 수와 자료 점검',
     mkTallyCol1: '주 라벨',
-    mkTallyCol2: '칸 수',
+    mkTallyCol2: '고객군 수',
+    mkOpenPeersCol: '가입 가능 타사',
     mkTallyCopyBtn: '집계 복사',
-    mkCellsCopyBtn: '칸 목록 복사',
-    mkClosedUnit: '칸',
-    mkClosedNoteTpl: '우리 간편이 닫힌 칸 {cells}칸의 사유는 {why}입니다.',
-    mkClosedNonAddTpl: '한 칸에 사유 둘이 함께 들 수 있어 사유별 칸 수를 더하면 {sum}칸으로 {cells}칸보다 큽니다.',
-    mkClosedZero: '우리 간편이 닫힌 칸이 없습니다.',
-    mkGapItemTpl: '{org} 자료 없음 표지 {n}칸. {why}',
-    mkStaticNote: '칸의 수는 기준 종형과 조건을 바꿔도 그대로입니다. 갱신 유형 거르개를 바꾸면 그 유형의 종형만으로 다시 센 지도로 바뀝니다.',
-    mkLegendTitle: '고객군 시간축과 고리 읽는 법',
-    mkLgWorse: '먹색 채움 원(흰 숫자): 우리 간편은 닫히고 열린 상대가 있는 고객군',
-    mkLgGold: '금색 이중 고리: 우리 간편만 열리는 고객군(열린 상대 0곳)',
-    mkLgBoth: '짙은 선 고리: 우리 간편과 상대가 함께 열리는 고객군',
-    mkLgAllClosed: '옅은 회색 고리: 우리와 상대 모두 간편심사가 닫힌 고객군',
-    mkLgDash: '점선 고리와 빗금 트랙: 가입나이나 고지 질문 자료가 아직 없는 구간',
-    mkLgArc: '바깥 호: 실선은 확정 열림, 반굵기 실선은 일부 나이만 열림, 점선은 관문만 열림',
-    mkLgAxis: '마디 사이 선분: 우리 간편이 이어서 열리면 2px 실선, 닫히면 1px 점선(전환 자리에 12px 눈금)',
-    mkLgRed: '빨강 원과 네 귀 사선: 지금 고른 고객군. 오른쪽 읽기 영역으로 1px 선이 이어집니다',
+    mkCellsCopyBtn: '고객군 목록 복사',
+    mkClosedUnit: '개 고객군',
+    mkClosedNoteTpl: '우체국 간편 가입이 제한된 고객군 {cells}개의 사유는 {why}입니다.',
+    mkClosedNonAddTpl: '한 고객군에 사유 둘이 함께 들 수 있어 사유별 고객군 수를 더하면 {sum}개로 {cells}개보다 큽니다.',
+    mkClosedZero: '우체국 간편 가입이 제한된 고객군이 없습니다.',
+    mkGapItemTpl: '{org} 자료 없음 표시 {n}개 고객군. {why}',
+    mkStaticNote: '고객군 수는 기준 종형과 조건을 변경해도 그대로입니다. 갱신 유형 필터를 변경하면 그 유형의 종형만으로 다시 센 현황으로 바뀝니다.',
+    mkLegendTitle: '고객군 시간축과 링 차트 읽는 법',
+    mkLgWorse: '먹색 채움 원(흰 숫자): 우체국 간편은 가입이 제한되고 가입 가능 타사가 있는 고객군',
+    mkLgGold: '금색 이중 링: 우체국 간편만 가입 가능한 고객군(가입 가능 타사 0개사)',
+    mkLgBoth: '짙은 선 링: 우체국 간편과 타사가 함께 가입 가능한 고객군',
+    mkLgAllClosed: '옅은 회색 링: 우체국과 타사 모두 간편심사 가입이 제한된 고객군',
+    mkLgDash: '점선 링과 빗금 트랙: 가입나이나 고지항목 자료가 아직 없는 구간',
+    mkLgArc: '바깥 호: 실선은 확정 가입 가능, 반굵기 실선은 일부 나이만 가입 가능, 점선은 인수기준만 수집한 종형에서만 가입 가능',
+    mkLgAxis: '구간 사이 선: 우체국 간편이 연속으로 가입 가능하면 2px 실선, 가입이 제한되면 1px 점선(전환 자리에 12px 눈금)',
+    mkLgRed: '포커스 표시(빨간 원과 네 모서리 사선): 현재 선택한 고객군. 오른쪽 상세 패널과 1px 선으로 연결됩니다',
     mkEvKickerCell: '고객군 상세',
-    mkEvNowTag: '지금 조건',
-    mkEvOursHead: '우리 종형 상태',
-    mkEvOursRep: '우리 대표 종형',
-    mkEvOpenPeersHeadTpl: '열린 상대 {open}/{total}곳',
-    mkEvOpenAllSummaryTpl: '열린 상대 {n}곳 모두 보기',
-    mkEvOrgsSummaryTpl: '회사별 상태 {n}곳 모두 보기',
-    mkEvClosedSummaryTpl: '닫힘 및 심사 확인 상대 {n}곳 보기',
-    mkCatWait: '검토 대기',
-    mkEvOpenVarCntTpl: '열린 종형 {n}개: {list}',
-    mkEvOpenVarNone: '열린 종형 없음',
-    mkEvGatePtsTpl: '관문 포인트와 근거 ({n}건)',
-    mkEvGatePtsNone: '이 고객군에서 나온 관문 차이가 없습니다.',
+    mkEvNowTag: '현재 조건',
+    mkEvOursHead: '우체국 종형 상태',
+    mkEvOursRep: '우체국 대표 종형',
+    mkEvOpenPeersHeadTpl: '가입 가능 타사 {open}/{total}개사',
+    mkEvOpenAllSummaryTpl: '가입 가능 타사 {n}개사 모두 보기',
+    mkEvOrgsSummaryTpl: '회사별 상태 {n}개사 모두 보기',
+    mkEvClosedSummaryTpl: '가입 제한 및 일반심사 대상 타사 {n}개사 보기',
+    mkCatWait: label('검토 대기'),
+    mkEvOpenVarCntTpl: '가입 가능 종형 {n}개: {list}',
+    mkEvOpenVarNone: '가입 가능 종형 없음',
+    mkEvGatePtsTpl: `${TERM.catGate}와 근거 ({n}건)`,
+    mkEvGatePtsNone: `이 고객군에서 나온 ${TERM.catGate}가 없습니다.`,
     mkEvRepAndCnts: '대표 종형과 분류별 인사이트 수',
-    mkEvPeerRep: '상대 대표 종형',
-    mkEvSameCond: '지금 조건이 이미 이 고객군입니다.',
-    mkEvWillChangeTpl: '누르면 조건 줄이 {target} 바뀝니다.',
-    mkEvApplyBtn: '이 고객군으로 조건 바꾸기',
-    mkEvChangedToastTpl: '조건을 바꿨습니다: {sum}',
-    mkEvRuleNote: '관문 상태는 사업방법서의 고지 질문과 가입나이로 계산했습니다. 칸에 우열을 매기지 않습니다.',
-    mkEvGraphBtn: '관계 그래프에서 보기',
-    mkEvRevKicker: '개정 변동 상세',
+    mkEvPeerRep: '타사 대표 종형',
+    mkEvSameCond: '현재 조건이 이미 이 고객군입니다.',
+    mkEvWillChangeTpl: '클릭하면 조회 조건이 {target} 변경됩니다.',
+    mkEvApplyBtn: '이 고객군으로 조건 변경',
+    mkEvChangedToastTpl: '조건을 변경했습니다: {sum}',
+    mkEvRuleNote: '가입 가능 여부는 사업방법서의 고지항목과 가입나이로 계산했습니다. 고객군별로 우열을 판단하지 않습니다.',
+    mkEvGraphBtn: `${TERM.graph}에서 보기`,
+    mkEvRevKicker: '개정 내역 상세',
     mkEvRevVars: '해당 종형',
-    mkEvRevStdNoteTpl: '{target} 이어 견줬습니다. 공시 문서(상품요약서와 사업방법서)의 개정 전후를 견준 값입니다.',
-    mkEvRevRawNote: '표준담보에 이어지지 않은 급부라 급부 이름으로 견줬습니다. 공시 문서의 개정 전후를 견준 값입니다.',
-    mkEvNewsKickerTpl: '시장 소식 {week}',
+    mkEvRevStdNoteTpl: '{target} 연결해 비교했습니다. 공시 문서(상품요약서와 사업방법서)의 개정 전후를 비교한 값입니다.',
+    mkEvRevRawNote: '표준담보에 매핑되지 않은 급부라 급부 이름으로 비교했습니다. 공시 문서의 개정 전후를 비교한 값입니다.',
+    mkEvNewsKickerTpl: '시장 동향 {week}',
     mkEvNewsSrcHead: '출처',
     mkEvNewsOrg: '회사',
     mkEvNewsCat: '분류',
@@ -301,23 +335,35 @@
     mkEvNewsMedia: '매체',
     mkEvNewsUrlNote: '주소는 글자로만 둡니다. 이 화면은 바깥으로 요청하지 않습니다.',
     mkEvNewsStdHead: '표준담보와 주의 표현',
-    mkEvNewsStdLinkedTpl: '표준담보 {list}에 이어졌습니다.',
-    mkEvNewsWarnBodyTpl: '보도 요약에 "{list}" 같은 말이 들어 있습니다. 화면 문장에는 쓰지 않는 말이라 인용한 그대로 두고 표지만 붙였습니다.',
-    mkMissingSegWhyTpl: '지금 조건의 칸이 이 지도에 없습니다. {why}',
+    mkEvNewsStdLinkedTpl: '표준담보 {list}에 연결되었습니다.',
+    mkEvNewsWarnBodyTpl: '보도 요약에 "{list}" 같은 말이 들어 있습니다. 화면 문장에는 쓰지 않는 말이라 인용한 그대로 두고 표시만 붙였습니다.',
+    mkMissingSegWhyTpl: `현재 조건의 고객군이 ${TERM.segShort}에 없습니다. {why}`,
 
-    // 관계 지도(graph) 문구
-    grLeftHead: '보는 틀',
+    // 관계 그래프(graph) 문구
+    grLeftHead: '보기 방식',
     grKindOrg: '회사',
     grKindVar: '종형',
     grKindStd: '표준담보',
     grKindPt: '영업 포인트',
-    grKindNews: '소식',
-    grCenterDesc: '소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야의 일곱 열을 한 홉씩 펼쳐 비교합니다.',
-    grEvTitle: '관계 그래프',
-    grEvBodyTpl: '노드를 눌러 옆 열의 이웃을 펼치거나, 연결선을 눌러 검토상태와 급부역할 같은 관계 속성을 확인합니다.',
-    grLegendTitle: '관계 그래프 도형과 선 안내',
-    grLgNode: '직각 칸: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽, 비교 종형에 연결이 없는 담보는 옅은 단선 윤곽), 보장분야(넓은 띠), 소식(날짜). 우체국은 왼쪽 3px 변',
-    grLgEdge: '연결선: 판매와 포함(실선), 해당(승인 및 수정은 굵은 실선), 속함(가는 선), 관계(이중선), 일으킴(점선)',
+    grKindNews: '동향',
+    grCenterDesc: '시장 동향, 회사, 종형, 특약, 급부, 표준담보, 보장 대분류의 일곱 열을 한 단계씩 펼쳐 비교합니다.',
+    grEvTitle: TERM.graph,
+    grEvBodyTpl: '노드를 클릭해 인접 열의 노드를 펼치거나, 엣지를 클릭해 검수 상태와 급부역할 같은 관계 속성을 확인합니다.',
+    grLegendTitle: `${TERM.graph} 노드와 엣지 안내`,
+    grLgNode: '사각 노드: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽, 비교 종형에 연결이 없는 담보는 옅은 단선 윤곽), 보장 대분류(넓은 막대), 시장 동향(날짜). 우체국은 왼쪽 3px 변',
+    grLgEdge: '엣지: 판매와 포함(실선), 매핑(승인 및 수정은 굵은 실선), 분류(가는 선), 담보 관계(이중선), 발표(점선)',
+
+    shortLabel: {
+      '열림': '가능', '닫힘': '제한', '일부 나이만 열림': '일부 나이 가능', '함께 열림': '함께 가능',
+      '우체국만 가입 가능': '우체국만 가능', '우체국만 가입 제한': '우체국만 제한', '미확인': '미상',
+      '보장 대분류': '대분류', '시장 동향': '동향', '담보 관계': '관계',
+      '가입 가능': '가능', '가입 제한': '제한', '일부 나이만 가입 가능': '일부 나이 가능', '함께 가입 가능': '함께 가능',
+    },
+
+    // __COPY_GT_MARKER__
+    // __COPY_CV_MARKER__
+    // __COPY_INS_MARKER__
+    // __COPY_GR_MARKER__
   };
 
   function cp(key, vars) {
@@ -330,10 +376,10 @@
   const TAB_IDS = ['brief'].concat(SCREEN_IDS);
   const TAB_NAME = {
     brief: cp('homeTitle'),
-    market: S['탭'][1],
-    gate: S['탭'][2],
-    cover: S['탭'][3],
-    insight: S['탭'][4],
+    market: label(S['탭'][1]),
+    gate: label(S['탭'][2]),
+    cover: label(S['탭'][3]),
+    insight: label(S['탭'][4]),
     graph: cp('tabGraph'),
   };
   const TAB_BY_NAME = {
@@ -344,9 +390,9 @@
     [S['탭'][2]]: 'gate',
     [S['탭'][3]]: 'cover',
     [S['탭'][4]]: 'insight',
-    '관계 지도': 'graph',
     [cp('tabGraph')]: 'graph',
   };
+  S['탭'].forEach(k => { TAB_BY_NAME[label(k)] = TAB_BY_NAME[k]; });
   const TAB_BRIEF_KEY = { market: '가', gate: '다', cover: '라', insight: '마' };
 
   // ---------- 회사 목록과 업권 동적 수집 ----------
@@ -399,7 +445,7 @@
   const PEER_ORGS = ORG_ORDER.filter(o => o !== 'EPOST');
   const orgSector = code => (code === 'EPOST' ? 'ours' : (ORG_SECTOR[code] || inferSector(code, ORG_SHORT[code], '')));
   const BASES = S['기준종형'];
-  const MAP_KEY = { null: COPY.condRenAll, '갱신': COPY.condRenRenew, '비갱신': COPY.condRenNon };
+  const MAP_KEY = { null: '전체', '갱신': '갱신', '비갱신': '비갱신' };
   const REF = S['기준조건'];
 
   // ---------- 작은 도구 ----------
@@ -482,7 +528,7 @@
     return { short, full, changed: short !== full };
   }
   function countWord(n) {
-    return n === 2 ? cp('wordTwo') : n === 3 ? cp('wordThree') : fmt(n) + cp('sameCountSuffix');
+    return fmt(n);
   }
   function sameSummary(vals, eq = (a, b) => a === b) {
     const have = ORG_ORDER.filter(o => vals[o] != null && vals[o] !== '');
@@ -937,7 +983,7 @@
   function verdict(kind, text, titleText) {
     const v = VERDICT[kind] || VERDICT.unknown;
     const ttl = titleText ? ` title="${esc(titleText)}"` : '';
-    return `<span class="vd ${v.cls}"${ttl}>${v.ic}<span>${esc(text != null ? text : v.t())}</span></span>`;
+    return `<span class="vd ${v.cls}"${ttl}>${v.ic}<span>${esc(label(text != null ? text : v.t()))}</span></span>`;
   }
   const FLAG_TEXT = COPY.flagDefault;
   function flag(text) {
@@ -949,15 +995,15 @@
     return `<span class="flag-t"><span class="tri" aria-hidden="true"><i></i></span><span>${esc(t)}</span></span>`;
   }
   function scope(kind) {
-    if (kind === 'all' || kind === cp('scopeAll')) return `<span class="scb scb-all" title="${esc(cp('scopeAllHint'))}">${IC.grid}<span>${esc(cp('scopeAll'))}</span></span>`;
-    if (kind === 'now' || kind === cp('scopeNow')) return `<span class="scb scb-now" title="${esc(cp('scopeNowHint'))}">${IC.pin}<span>${esc(cp('scopeNow'))}</span></span>`;
+    if (kind === 'all' || kind === '전체 고객군') return `<span class="scb scb-all" title="${esc(cp('scopeAllHint'))}">${IC.grid}<span>${esc(cp('scopeAll'))}</span></span>`;
+    if (kind === 'now') return `<span class="scb scb-now" title="${esc(cp('scopeNowHint'))}">${IC.pin}<span>${esc(cp('scopeNow'))}</span></span>`;
     return `<span class="scb scb-base" title="${esc(cp('scopeBaseHint'))}">${IC.pin}<span>${esc(cp('scopeBase'))}</span></span>`;
   }
   function fullScopeTag() {
     return st.peerScope === 'all' ? '' : `<span class="tag" title="${esc(cp('fullScopeHint'))}">${esc(cp('fullScopeBadge'))}</span>`;
   }
   function tag(text, titleText, cls) {
-    return `<span class="tag${cls ? ' ' + cls : ''}"${titleText ? ` title="${esc(titleText)}"` : ''}>${esc(text)}</span>`;
+    return `<span class="tag${cls ? ' ' + cls : ''}"${titleText ? ` title="${esc(titleText)}"` : ''}>${esc(label(text))}</span>`;
   }
   function name(full, opts) {
     const r = shortName(full, opts);
@@ -1064,7 +1110,7 @@
   function notes(tabName) {
     const list = (S['주석'] || []).filter(n => !tabName || (n['탭'] || []).includes(tabName));
     if (!list.length) return '';
-    return `<aside class="snotes" aria-label="${esc((tabName || '') + cp('notesAriaSuffix'))}">
+    return `<aside class="snotes" aria-label="${esc((label(tabName) || '') + cp('notesAriaSuffix'))}">
       <h3 class="snotes-h">${esc(cp('notesTitle'))}${st.peerScope !== 'all' ? ' ' + fullScopeTag() : ''}</h3>
       <ul class="snotes-l">${list.map(n => {
         const hk = NOTE_HEAD[n['열쇠']];
@@ -1107,8 +1153,8 @@
       <div class="sb-s">${stats}</div>${foot}</div>`;
   }
   function eq(o) {
-    const head = o.total ? `<span>${esc(o.total.t)}</span> <span class="n">${esc(fmt(o.total.n))}</span> <span class="op">=</span> ` : '';
-    const body = o.parts.map((p, i) => `${i ? '<span class="op">+</span> ' : ''}<span>${esc(p.t)}</span> <span class="n">${esc(fmt(p.n))}</span>`).join(' ');
+    const head = o.total ? `<span>${esc(label(o.total.t))}</span> <span class="n">${esc(fmt(o.total.n))}</span> <span class="op">=</span> ` : '';
+    const body = o.parts.map((p, i) => `${i ? '<span class="op">+</span> ' : ''}<span>${esc(label(p.t))}</span> <span class="n">${esc(fmt(p.n))}</span>`).join(' ');
     const tail = o.tail ? ` <span class="nb">${esc(o.tail)}</span>` : '';
     const na = o.nonAdd ? `<div class="nadd">${esc(o.nonAdd)}</div>` : '';
     return `<div class="eq">${head}${body}${tail}</div>${na}`;
@@ -1183,7 +1229,7 @@
   const TXT = { josa, fixJosa, hasFinal, shortName, sameSummary, orgShort, orgSector, vname, vkind, vinfo, sinceText, sexText, stateWhy, pageText, PAGE_WHY, ORG_ORDER, PEER_ORGS, ORG_SHORT, firstSentence };
 
   // ---------- 진행 추적기 머리와 접히는 조건 편집 판 ----------
-  const SINCE_OPTS = [{ v: null, t: cp('condNoHist') }].concat(
+  const SINCE_OPTS = [{ v: null, t: cp('condNoHistShort') }].concat(
     S['지도']['전체']['행'].filter(r => r['종류'] === '입원').map(r => ({ v: r.since, t: r.since === 5 ? cp('condSince5') : r['이름'].replace(/^입원\s*/, '') })));
   const C = {};
 
@@ -1604,10 +1650,10 @@
     } else {
       const c = g.cell;
       const shownOrgs = activeOrgs().filter(o => o in c['회사']);
-      const restOrgStates = shownOrgs.slice(4).map(o => `${orgShort(o)} ${c['회사'][o]}`).join(', ');
+      const restOrgStates = shownOrgs.slice(4).map(o => `${orgShort(o)} ${label(c['회사'][o])}`).join(', ');
       const states = shownOrgs.slice(0, 4).map(o => {
         const s = c['회사'][o];
-        return `<span class="it">${esc(orgShort(o))} <span style="display:inline-flex;align-items:center;gap:4px">${STATE_IC[s] || ''}${esc(s)}</span></span>`;
+        return `<span class="it">${esc(orgShort(o))} <span style="display:inline-flex;align-items:center;gap:4px">${STATE_IC[s] || ''}${esc(label(s))}</span></span>`;
       }).join('') + (shownOrgs.length > 4 ? `<span class="it" title="${esc(restOrgStates)}" data-tip="${esc(restOrgStates)}">+${fmt(shownOrgs.length - 4)}</span>` : '');
       const why = shownOrgs.slice(0, 4).map(o => stateWhy(o, c['회사'][o])).filter(Boolean);
       const rep = c['대표'];
@@ -1618,7 +1664,7 @@
       if (c['닫힌사유'] && c['닫힌사유'].length) ns.push(`${cp('scopeClosedWhy')}: ${c['닫힌사유'].join(', ')}`);
       line2 = `<div class="scope-l"><span class="k">${esc(cp('scopeNowSeg'))}</span>
         <span class="it">${esc(condSegOnly())}</span>
-        <span class="it" style="display:inline-flex;align-items:center;gap:6px">${swatch(c['라벨'])}<b style="font-weight:600">${esc(c['라벨'])}</b>${ns.length ? `<span style="color:var(--ink-1)">(${esc(ns.join(', '))})</span>` : ''}</span>
+        <span class="it" style="display:inline-flex;align-items:center;gap:6px">${swatch(c['라벨'])}<b style="font-weight:600">${esc(label(c['라벨']))}</b>${ns.length ? `<span style="color:var(--ink-1)">(${esc(ns.join(', '))})</span>` : ''}</span>
         ${states}${repT}${why.concat(g.sexNote ? [g.sexNote] : []).map(w => `<span class="why">${esc(w)}</span>`).join('')}${act}</div>`;
     }
     if (!g.cell && g.sexNote) line2 += `<div class="scope-l"><span class="k">${esc(cp('scopeNoData'))}</span><span class="why">${esc(g.sexNote)}</span></div>`;
@@ -3541,7 +3587,7 @@
     const base = S['기준별'][st.base];
     if (!base) return;
     const NAMES = { '가': cp('briefRowGa'), '나': cp('briefRowNa'), '다': cp('briefRowDa'), '라': cp('briefRowRa'), '마': cp('briefRowMa') };
-    const rows = (base['브리핑'] || []).map(b => [b['줄'], NAMES[b['줄']] || '', b['범위'], b['문장'], b['갈곳']]);
+    const rows = (base['브리핑'] || []).map(b => [b['줄'], NAMES[b['줄']] || '', b['범위'], b['문장'], label(b['갈곳'])]);
     copyRows(cp('briefCopyCols').split(','), rows, { title: cp('briefCopyTitle') });
   }
   function print(el, o = {}) {
@@ -4673,6 +4719,7 @@
 
   window.App = {
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
+    label, rowLabel, addLabels, short: v => (COPY.shortLabel && (COPY.shortLabel[v] || COPY.shortLabel[label(v)])) || label(v), TERM, isGateOnlyRole,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
     set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal, scrollInZone, panelTiming,
     openModal, closeModal, updateSelLink, syncZcScrollCue, flipElement, countUp,
