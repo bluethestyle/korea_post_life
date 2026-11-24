@@ -161,7 +161,7 @@
 - 풀려면: 주간 마감이 사본을 한 주 쌓은 뒤 실제 사본으로 돌려 확인해야 합니다.
 
 **실제 환경에서 아직 확인하지 못한 동작이 있습니다.**
-- GitHub Pages 배포: 워크플로(`.github/workflows/pages.yml`)는 만들었습니다. 저장소 설정에서 Pages의 Source를 "GitHub Actions"로 바꾸기 전이라 실제로 돌려 보지 못했고, 그 전의 푸시에서는 이 워크플로가 실패로 끝납니다. Pages는 재추출로 바로잡힌 값으로 화면을 다시 만든 뒤에 켜기로 정했습니다.
+- GitHub Pages 배포는 이제 확인했습니다. 저장소 설정에서 Pages를 켜고 2026-11-20부터 워크플로(`.github/workflows/pages.yml`)로 배포하고 있습니다. 분석 화면은 `https://bluethestyle.github.io/korea_post_life/proto/console4.html`, 발표 덱은 `https://bluethestyle.github.io/korea_post_life/deck/`에서 열리고, `site/` 아래를 main에 푸시하면 다시 올라갑니다.
 - 응대 카드 인쇄: headless 브라우저의 PDF 출력으로 기본 상태와 줄이 많은 상태 모두 한 장임을 확인했습니다. 실제 브라우저의 인쇄 대화상자에서 누른 결과는 확인하지 못했습니다.
 - 삼성화재 수집: 로컬에서 실제로 받아 이전 문서와 해시가 같음을 확인했지만, Actions에서 돌려 결과물을 받아 보지는 못했습니다.
 

@@ -186,7 +186,7 @@
 **품질과 운영**
 - 자동 시험 1,006개가 통과합니다(2026-11-23 전체 시험).
 - 380px와 1280px 폭의 브라우저 점검에서 넘침, 잘림, 겹침, 콘솔 오류, 외부 요청이 모두 0건입니다.
-- Gemini 무료 티어, 구글 시트, GitHub Actions(무료 계정 월 2,000분 포함), GitHub Pages만으로 운영 비용이 들지 않게 짰습니다. 무료 한도는 AI Studio 화면에서 읽은 값이고, Pages는 아직 실제 배포 전입니다.
+- Gemini 무료 티어, 구글 시트, GitHub Actions(무료 계정 월 2,000분 포함), GitHub Pages만으로 운영 비용이 들지 않게 짰습니다. 무료 한도는 AI Studio 화면에서 읽은 값입니다. 화면은 2026-11-20부터 GitHub Pages의 공개 주소에 배포하고 있습니다(분석 화면 `https://bluethestyle.github.io/korea_post_life/proto/console4.html`, 발표 덱 `https://bluethestyle.github.io/korea_post_life/deck/`). `site/` 아래를 main에 푸시하면 배포 워크플로가 다시 올립니다.
 
 **아직 재지 못한 것**
 - 한화생명 가입조건 정답셋 가운데 주계약 가입나이와 한도 9항목 밖의 15항목 채점, 삼성화재 정답셋 50항목 채점

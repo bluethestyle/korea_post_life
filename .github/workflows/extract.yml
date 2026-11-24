@@ -16,27 +16,37 @@ name: 추출·검증
 # 요약서는 쪽을 넘어 이어지는 표 하나라 tables.py로 조각을 다시 만든다(scripts/dump_tables.py --org kblife와 같다). 한 요약서를
 # 간편심사형(331000106)과 일반심사형(335000106)이 함께 쓰고 값 파일은 코드마다 따로라, 같은 요약서를 쓰는 코드의 값 파일을 이어 쓴다.
 # 입원 특약의 "1일당"은 약관에만 있어(값 파일 판정값의 지급단위근거) 공시 수집이 kblife는 약관도 받는다. 받지 못하면 그 줄만 빠진다.
+# kyobo(교보생명)도 같은 길이다(검증 결과 파일 data/crosscheck/kyobo_*_benefits_2reader.jsonl, kyobo_main_conditions_2reader.jsonl).
+# 요약서는 특약마다 문단과 작은 표라 blocks.py로 추출 단위를 다시 만든다(scripts/dump_blocks.py --org kyobo와 같다). 한 특약 안에
+# 최초계약과 갱신계약, 보장형 계약과 연장전환형 계약 표가 따로 있어, 배치 나누기(scripts/split_pieces.py --stage 최초계약 --stage
+# "보장형 계약")와 같은 규칙으로 대상 설정의 읽을단계가 아닌 행을 뺀다. 사업방법서는 주계약만 다루는 별지라 가입나이 표에
+# '주계약' 글자가 없고, 주계약 행은 요약서의 '주계약' 행이다.
+# hyundai(현대해상)도 같은 길이다(검증 결과 파일 data/crosscheck/hyundai_*_benefits_2reader.jsonl, hyundai_main_conditions_2reader.jsonl).
+# 요약서는 쪽을 넘어 이어지는 표라 tables.py로 추출 단위를 다시 만든다(scripts/dump_tables.py --org hyundai와 같다). 사업방법서의
+# 기본계약 이름은 '가) 기본계약' 소제목 아래 표의 구분 열(131A)이나 줄 앞의 '기본계약 <담보 이름>'(11F0)에서 읽는다. 131A는
+# 기본계약 담보 둘(상해사망, 상해후유장해)이 가입나이 표 하나를 함께 써서, 요약서 표의 첫 주계약 행을 주계약 행으로 쓴다.
 # rows_in(행 패키지로 적재): 이 러너에서 공시실 접속이 막히는 회사(samsunglife는 PDF 다운로드가 417, kblife는 목록 응답이 JSON이
 # 아님. 2026-11-24 실행 45308408466, 45308470752)는 문서를 받지 않고, 로컬에서 받은 문서로 만들어 커밋한 행 패키지
 # (data/backfill_rows/<회사>_benefits.json, <회사>_conditions.json)를 읽어 쓴다. 두 적재 스크립트가 --rows-in으로 패키지의 대상
 # 설정 해시와 값 파일 해시를 체크아웃의 파일과 맞춰 보고(다르면 멈춤), 형식 검사, ID 겹침, 시트의 기존 행과의 관계(가입 한도 잇기,
 # 시트에 있던 주계약 행, 빠지는 행 보고)를 문서로 돌 때와 같은 규칙으로 본다. samsunglife와 kblife는 rows_in을 켜고 돌린다.
-# rows_in은 meritz, samsunglife, kblife만 받고 only는 함께 쓰지 않는다(패키지는 회사 전체를 담는다).
+# kyobo와 hyundai도 러너에서 공시실 접속이 막히면 같은 길(data/backfill_rows/<회사>_benefits.json, <회사>_conditions.json)로 쓴다.
+# rows_in은 meritz, samsunglife, kblife, kyobo, hyundai만 받고 only는 함께 쓰지 않는다(패키지는 회사 전체를 담는다).
 # pdfplumber는 버전을 고정한다. 표 읽기 결과(조각 순번과 글자)가 버전에 따라 달라지면 meritz의 조각 지문과 samsungfire의 대조 자료
-# 번호가 어긋난다. 두 회사의 조각과 대조 자료를 만든 버전(0.11.10)이다. samsunglife와 kblife의 조각도 같은 버전으로 만들었다.
+# 번호가 어긋난다. 두 회사의 조각과 대조 자료를 만든 버전(0.11.10)이다. samsunglife, kblife, kyobo, hyundai의 추출 단위도 같은 버전으로 만들었다.
 on:
   workflow_dispatch:
     inputs:
       org:
-        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재, 급부는 표 규칙과 교차 확인, 가입조건은 주계약만), meritz(메리츠화재), samsunglife(삼성생명), kblife(KB라이프생명). meritz, samsunglife, kblife는 두 판독 값 파일로 급부와 주계약 가입조건 적재"
+        description: "회사: epost(우체국), hanwha(한화생명), samsungfire(삼성화재, 급부는 표 규칙과 교차 확인, 가입조건은 주계약만), meritz(메리츠화재), samsunglife(삼성생명), kblife(KB라이프생명), kyobo(교보생명), hyundai(현대해상). meritz, samsunglife, kblife, kyobo, hyundai는 두 모델의 검증 결과 파일로 급부와 주계약 가입조건 적재"
         type: choice
-        options: [epost, hanwha, samsungfire, meritz, samsunglife, kblife]
+        options: [epost, hanwha, samsungfire, meritz, samsunglife, kblife, kyobo, hyundai]
         default: epost
       only:
         description: "이 공시상품코드만 처리 (여러 개면 공백으로 구분). 비우면 전체"
         required: false
       parts:
-        description: "돌릴 부분: 급부,가입조건,관문 (비우면 모두. samsungfire는 비우면 급부만, meritz, samsunglife, kblife는 급부,가입조건 가운데 고르고 비우면 둘 다). 가입조건만 돌리면 시트의 특약을 기준으로 뽑는다(samsungfire는 주계약 가입조건만). 관문만 돌리면 관문전용 종형의 종형 행과 주계약 가입조건만 쓴다(급부는 다시 뽑지 않는다)"
+        description: "돌릴 부분: 급부,가입조건,관문 (비우면 모두. samsungfire는 비우면 급부만, meritz, samsunglife, kblife, kyobo, hyundai는 급부,가입조건 가운데 고르고 비우면 둘 다). 가입조건만 돌리면 시트의 특약을 기준으로 뽑는다(samsungfire는 주계약 가입조건만). 관문만 돌리면 관문전용 종형의 종형 행과 주계약 가입조건만 쓴다(급부는 다시 뽑지 않는다)"
         required: false
       dry_run:
         description: "시트에 쓰지 않고 흐름만 확인"
@@ -46,7 +56,7 @@ on:
         description: "이미 끝난 '공시 문서 수집' 실행 번호. 주면 공시 사이트에 다시 접속하지 않고 그 실행이 남긴 문서를 쓴다 (사이트가 막혔을 때)"
         required: false
       rows_in:
-        description: "행 패키지로 적재(data/backfill_rows/<회사>_benefits.json, _conditions.json). 공시 문서를 받지 않는다. samsunglife, kblife는 켜고 돌린다(러너에서 공시실 접속이 막힘). meritz, samsunglife, kblife만, only와 함께 쓰지 않음"
+        description: "행 패키지로 적재(data/backfill_rows/<회사>_benefits.json, _conditions.json). 공시 문서를 받지 않는다. samsunglife, kblife는 켜고 돌린다(러너에서 공시실 접속이 막힘). meritz, samsunglife, kblife, kyobo, hyundai만, only와 함께 쓰지 않음"
         type: boolean
         default: false
 
@@ -96,8 +106,8 @@ jobs:
           if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           if [ "$INPUT_ROWS_IN" = "true" ]; then
             case "$INPUT_ORG" in
-              meritz|samsunglife|kblife) ;;
-              *) echo "rows_in은 meritz, samsunglife, kblife만 받습니다: $INPUT_ORG"; exit 1 ;;
+              meritz|samsunglife|kblife|kyobo|hyundai) ;;
+              *) echo "rows_in은 meritz, samsunglife, kblife, kyobo, hyundai만 받습니다: $INPUT_ORG"; exit 1 ;;
             esac
             if [ -n "$INPUT_ONLY" ]; then echo "rows_in은 only와 함께 쓰지 않습니다(패키지는 회사 전체를 담음)"; exit 1; fi
             benefits_src=(--rows-in "data/backfill_rows/${INPUT_ORG}_benefits.json")
@@ -119,7 +129,7 @@ jobs:
               ran=1
             fi
             if [ "$ran" = 0 ]; then echo "samsungfire에서 돌릴 수 있는 부분은 급부, 가입조건입니다: $INPUT_PARTS"; exit 1; fi
-          elif [ "$INPUT_ORG" = "meritz" ] || [ "$INPUT_ORG" = "samsunglife" ] || [ "$INPUT_ORG" = "kblife" ]; then
+          elif [ "$INPUT_ORG" = "meritz" ] || [ "$INPUT_ORG" = "samsunglife" ] || [ "$INPUT_ORG" = "kblife" ] || [ "$INPUT_ORG" = "kyobo" ] || [ "$INPUT_ORG" = "hyundai" ]; then
             parts=",${INPUT_PARTS// /},"
             if [ "$parts" = ",," ]; then parts=",급부,가입조건,"; fi
             ran=0

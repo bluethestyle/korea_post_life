@@ -52,6 +52,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from .. import ids
 from . import benefits as B
 from . import table_rules as T
+from .tables import WAIT_CUT_WORD
 
 FORMAT = "판독값/1"
 BUNDLE_FORMAT = "판독묶음/1"
@@ -529,7 +530,8 @@ _LEAD_RE = {
     "연간": r"(?:연간|(?:(?<![가-힣])|(?<=각)|(?<=기준))연)\s*(?:최대\s*)?",
     "월간": r"월간\s*(?:최대\s*)?",
     # "1회 입원당 180일", "1회 입원당 사용일수(는) 180일"(간병인, 간호간병 입원), "1회 입원당 지급일수 180일"
-    "1회입원당": r"1\s*회\s*입원\s*당\s*(?:(?:사용|입원|지급)\s*일수\s*[은는]?\s*)?",
+    # "입원 1회당 1회 한도"처럼 "입원"을 앞에 쓴 어순도 받는다("재입원 1회당"처럼 다른 낱말의 꼬리는 받지 않는다)
+    "1회입원당": r"(?:1\s*회\s*입원|(?<![가-힣])입원\s*1\s*회)\s*당\s*(?:(?:사용|입원|지급)\s*일수\s*[은는]?\s*)?",
     # "1사고당 1회", 주석의 "동일한 (재해)사고를 … 경우에도 1회에 한하여"(한 문장 안, 80자까지)
     "1사고당": r"(?:(?:1\s*)?사고\s*당\s*|동일한\s*(?:재해\s*)?사고[^\n.]{0,80}?경우에도\s*)",
     "보험기간": r"보험기간\s*(?:중\s*)?",
@@ -547,11 +549,16 @@ _BARE_PAREN = r"(?<![\d.])\d+\s*(?:년|개월)\s*\(\s*{n}\s*{unit}\s*\)\s*(?:최
 _UNIT_RE = {
     "1일당": r"(?:(?:입원|통원|사용|간병인\s*사용|간호·?\s*간병통합서비스\s*사용)\s*)?1\s*일\s*당",
     # "수술 1회당", "1회 입원당", 숫자 없는 "회당 1만원". 숫자 없는 "회"는 앞에 숫자나 한글이 붙지 않은 자리만 본다("2회당", "사회당"이 아니다)
-    "1회당": r"(?:(?:수술|통원|입원)\s*)?(?:1\s*|(?<=수술|통원|입원)|(?<![\d가-힣]))회\s*(?:[가-힣]{1,8}\s*)?당",
+    # "(입원 또는 통원) 치료당 1회", "입원 또는 통원당 1회"처럼 치료, 통원, 입원 한 번마다 한 번 준다는 말도 1회당이다.
+    # 횟수는 1회만 받고, 뒤에 한도를 뜻하는 말(한도, 한함, 최고, 까지)이 붙으면 한도 구절이라 받지 않는다
+    "1회당": r"(?:(?:수술|통원|입원)\s*)?(?:1\s*|(?<=수술|통원|입원)|(?<![\d가-힣]))회\s*(?:[가-힣]{1,8}\s*)?당"
+             r"|(?<![가-힣])(?:입원\s*또는\s*통원\s*치료|입원\s*또는\s*통원|치료|통원|입원)\s*당\s*1\s*회"
+             r"(?!\s*(?:에\s*)?(?:한|최고|최대|까지))",
     # "1사고당", "사고 1회당"
     "1사고당": r"1\s*사고\s*당|사고\s*1\s*회\s*당",
 }
-_TIMES_RE = re.compile(r"[×✕xX]\s*(?:해당\s*)?(?:장해\s*)?지급률")
+# "× 장해지급률", "× 해당 장해지급률", "× 후유장해지급률"
+_TIMES_RE = re.compile(r"[×✕xX]\s*(?:해당\s*)?(?:(?:후유\s*)?장해\s*)?지급률")
 
 
 def _texts(cover: CoverView, piece: PieceView | None, with_name: bool = True) -> list[str]:
@@ -735,32 +742,71 @@ def times_phrase(cover: CoverView) -> str | None:
 
 
 _CLAUSE_CUT = re.compile(r"\n|※|(?:,\s*)?단\s*,")
+_LINE_CUT = re.compile(r"\n|※")
+_DAN_CUT = re.compile(r"(?:,\s*)?단\s*,")
+
+
+def _clean_clause(piece: str) -> str:
+    piece = re.sub(r"^\s*주\d*\)\s*", "", piece).strip(" ,.")
+    # 짝이 맞지 않는 바깥 괄호를 뗀다
+    while piece.endswith(")") and piece.count(")") > piece.count("("):
+        piece = piece[:-1].rstrip()
+    while piece.startswith("(") and piece.count("(") > piece.count(")"):
+        piece = piece[1:].lstrip()
+    return piece
+
+
+def _parts(text: str) -> list[str]:
+    """글 전체와 괄호 안의 글들."""
+    return [text] + [text[a + 1:b - 1] for a, b in T._groups(text)]
 
 
 def _clauses(text: str) -> list[str]:
     """글을 문장 조각으로 나눈다. 줄, "※", "단,"에서 가르고, 괄호 안의 글도 따로 한 조각으로 본다."""
-    parts = [text] + [text[a + 1:b - 1] for a, b in T._groups(text)]
     out = []
-    for part in parts:
+    for part in _parts(text):
         for piece in _CLAUSE_CUT.split(part):
-            piece = re.sub(r"^\s*주\d*\)\s*", "", piece).strip(" ,.")
-            # 짝이 맞지 않는 바깥 괄호를 뗀다
-            while piece.endswith(")") and piece.count(")") > piece.count("("):
-                piece = piece[:-1].rstrip()
-            while piece.startswith("(") and piece.count("(") > piece.count(")"):
-                piece = piece[1:].lstrip()
+            piece = _clean_clause(piece)
             if piece:
                 out.append(piece)
     return out
 
 
+def _dan_pairs(text: str) -> list[tuple[str, str]]:
+    """"단,"으로 이어진 단서 문장과 그 바로 앞 문장을 이은 글. (이은 글, 단서 문장)의 목록.
+
+    "첫해 50% 감액 지급. 단, 재해가 원인이면 100% 지급"처럼 단서 문장에는 감액이라는 말이 없고 앞 문장에만 있는 형식을
+    읽으려는 것이다. 줄바꿈과 "※"는 넘지 않는다(_clauses와 같은 자리에서 가른다).
+    """
+    out = []
+    for part in _parts(text):
+        for line in _LINE_CUT.split(part):
+            cuts = list(_DAN_CUT.finditer(line))
+            bounds = [0] + [m.end() for m in cuts]
+            for i, m in enumerate(cuts):
+                end = cuts[i + 1].start() if i + 1 < len(cuts) else len(line)
+                joined = _clean_clause(line[bounds[i]:end])
+                tail = _clean_clause(line[m.end():end])
+                if joined and tail:
+                    out.append((joined, tail))
+    return out
+
+
 def clause_with(word: str, places: Sequence[str], cover: CoverView, piece: PieceView | None,
                 needs: re.Pattern) -> str | None:
-    """word(빈칸 무시)와 needs가 함께 든 가장 짧은 문장 조각. places는 찾을 자리(지급사유, 지급금액, 주석)."""
+    """word(빈칸 무시)와 needs가 함께 든 가장 짧은 문장 조각. places는 찾을 자리(지급사유, 지급금액, 주석).
+
+    그런 문장이 없으면, word가 든 "단," 단서 문장과 그 바로 앞 문장을 이은 글에 needs가 있을 때 그 글을 쓴다(_dan_pairs).
+    """
     texts = {"지급사유": [cover.reason], "지급금액": [cover.amount], "주석": list(piece.notes) if piece else []}
     key = _word(word)
+    if not key:
+        return None
     found = [c for place in places for text in texts[place] for c in _clauses(text)
-             if key and key in _word(c) and needs.search(_squash(c))]
+             if key in _word(c) and needs.search(_squash(c))]
+    if not found:
+        found = [joined for place in places for text in texts[place] for joined, tail in _dan_pairs(text)
+                 if key in _word(tail) and needs.search(_squash(joined))]
     return _tidy(min(found, key=len)) if found else None
 
 
@@ -832,8 +878,16 @@ _MONEY_LIST = re.compile(r"(?<![\d.,])((?:\d[\d,]*(?:\.\d+)?\s*/\s*)+\d[\d,]*(?:
 _MONEY_BARE = re.compile(r"(?<![\d.,/])(\d[\d,]*(?:\.\d+)?)\s*(?:万|만)(?!\s*원)(?![^\S\n]*\d)")
 
 
+def _money_forms(manwon: float) -> list[str]:
+    """금액이 문서에 적힐 수 있는 표기(benefits.amount_forms)에 "5백만원"처럼 백만 단위를 쓴 표기를 더한다(100만~900만원)."""
+    forms = B.amount_forms(manwon)
+    if float(manwon).is_integer() and 0 < manwon < 1000 and manwon % 100 == 0:
+        forms.append(f"{int(manwon) // 100}백만원")
+    return forms
+
+
 def _money_in(manwon: float, texts: Sequence[str]) -> bool:
-    if any(re.search(B._spaced(f), t) for f in B.amount_forms(manwon) for t in texts):
+    if any(re.search(B._spaced(f), t) for f in _money_forms(manwon) for t in texts):
         return True
     for t in texts:
         for m in _MONEY_LIST.finditer(t or ""):
@@ -950,11 +1004,88 @@ def _listed_days(flat: str, end: int) -> int | None:
     return T._days(int(m.group(1)), m.group(2)) if m else None
 
 
+_ITEM_HEAD_END = "에관한사항"
+_ITEM_HEAD_MAX = 150        # 안내 항목 머리 줄의 길이 한도(빈칸 뗀 글자 수). 넘으면 문장으로 보고 머리로 보지 않는다
+_ITEM_REACH = 600           # 안내 항목 본문에서 날수를 찾는 길이 한도(빈칸 뗀 글자 수)
+# 안내 항목 본문의 끝: 원문자 번호, 네모와 동그라미 같은 머리 부호, "2."나 "가." 같은 번호로 시작하는 줄.
+# 본문 안의 "1)", "2)" 같은 세부 번호와 "※" 줄에서는 끊지 않는다
+_ITEM_MARK = re.compile(r"^\s*(?:[①-⑳■□◆◇●○◦▶▷►]|\d+\.(?!\d)|[가나다라마바사아자차카타파하]\.)")
+_ITEM_NAME_TAIL = re.compile(rf"(?:보장특별약관|특별약관|보장특약|특약)?(?:및|,|{_ITEM_HEAD_END}\Z)")
+_ITEM_RIDER_TAIL = re.compile(r"(?:보장특별약관|특별약관|보장특약|특약)\Z")
+_ITEM_WAIT = re.compile(r"(?<!\d)(\d+)(일|개월|년)면책기간")
+# 면책기간을 두지 않는다는 문구("면책기간을 적용하지 않음", "면책기간 없음", "면책기간 미적용", "면책기간 제외").
+# 숫자(다음 세부 번호)를 넘어가지 않는 가까운 거리만 본다
+_ITEM_NO_WAIT = re.compile(r"면책기간[^\d.]{0,15}?(?:않|없|미적용|제외|아니)")
+# 날수가 적힌 줄이 머리 줄의 특약이 아닌 특약을 따로 가리키면("다라특약: 90일 면책기간") 머리 줄 특약의 날수라고 볼 수 없다
+_ITEM_OTHER_RIDER = re.compile(r"특약|특별약관")
+
+
+def _item_head(line: str) -> bool:
+    flat = _squash(line)
+    return flat.endswith(_ITEM_HEAD_END) and len(flat) <= _ITEM_HEAD_MAX
+
+
+def _head_riders(head: str) -> set[str]:
+    """안내 항목 머리 줄(빈칸 뗀 글)에 든 특약 이름들. "갱신형"과 꼬리말("보장특약" 등)을 떼어 같은 특약은 하나로 센다."""
+    body = re.sub(r"^[^가-힣A-Za-z0-9(]+", "", head[: -len(_ITEM_HEAD_END)])
+    out = set()
+    for part in re.split(r"및|,", body):
+        part = _ITEM_RIDER_TAIL.sub("", part.removeprefix("갱신형"))
+        if part:
+            out.add(part)
+    return out
+
+
+def _head_names(head: str, key: str) -> bool:
+    """안내 항목 머리 줄(빈칸 뗀 글)에 이름 key가 한 특약의 이름으로 들어 있는가.
+
+    이름 앞은 _boundary의 경계(줄 첫머리, 원문자 번호, "및", 쉼표)여야 하고 "갱신형"이 붙어도 된다. 이름 뒤는 꼬리말("보장특약",
+    "특약", "특별약관")을 지나 "및", 쉼표, 끝의 "에 관한 사항"이어야 한다. "다라가나진단비보장특약에 관한 사항" 속의
+    "가나진단비"나 "가나진단비(2년 대기형)보장특약" 속의 "가나진단비"는 세지 않는다.
+    """
+    for m in re.finditer(re.escape(key), head):
+        start = m.start() - 3 if head.endswith("갱신형", 0, m.start()) else m.start()
+        if _boundary(head, start) and _ITEM_NAME_TAIL.match(head, m.end()):
+            return True
+    return False
+
+
+def _item_days(keys: Sequence[str], text: str) -> set[int]:
+    """안내 항목 형식의 날수(wait_days_on_page의 네 번째 형식)."""
+    lines = text.split("\n")
+    out: set[int] = set()
+    for i, line in enumerate(lines):
+        if not _item_head(line):
+            continue
+        head = _squash(line)
+        if not any(_head_names(head, k) for k in keys):
+            continue
+        # 머리 줄에 서로 다른 특약이 둘 이상이면 본문의 날수가 어느 특약의 것인지 알 수 없어 받지 않는다
+        # (같은 특약의 갱신형과 비갱신형 이름만 나열한 머리는 하나로 센다)
+        if len(_head_riders(head)) != 1:
+            continue
+        body = []
+        for nxt in lines[i + 1:]:
+            if _ITEM_MARK.match(nxt) or _item_head(nxt):
+                break
+            body.append(_squash(nxt))
+        flat_body = "".join(body)[:_ITEM_REACH]
+        if _ITEM_NO_WAIT.search(flat_body):
+            continue
+        rider = next(iter(_head_riders(head)))
+        if any(_ITEM_WAIT.search(b) and _ITEM_OTHER_RIDER.search(b) and rider not in b for b in body):
+            continue
+        found ={T._days(int(n), unit) for n, unit in _ITEM_WAIT.findall(flat_body)}
+        if len(found) == 1:
+            out |= found
+    return out
+
+
 def wait_days_on_page(names: str | Sequence[str], page_text: str) -> set[int]:
     """쪽 글자에서 이름과 짝지어 적힌 날수. 이름이 없으면 빈 집합.
 
     메리츠화재 요약서는 보장개시일의 날수를 표 밖(쪽 아래 ※ 줄, 다른 쪽)에 적기도 해서 조각에 없을 수 있다.
-    판독자가 적은 면책근거쪽의 글자에서 세 가지 꼴을 본다.
+    판독자가 적은 면책근거쪽의 글자에서 네 가지 형식을 본다.
     - 정의 문장: "<보장개시일 이름>은 … N일이 지난 다음날"
     - 나열 문장: "가보장개시일, 나보장개시일 및 다보장개시일은 … 90일 …, 라보장개시일은 … 1년 …". 이름마다 그 이름이 든
       나열의 "은/는" 뒤에 처음 나오는 날수와 짝짓는다. "유사암보장개시일" 속의 "암보장개시일"은 세지 않는다.
@@ -962,15 +1093,25 @@ def wait_days_on_page(names: str | Sequence[str], page_text: str) -> set[int]:
       ("가보장개시일 및 나보장개시일의 경우 그 보장개시일은 … 90일").
     - 표: 면책기간 표의 "<보장명> 90일"처럼 이름 바로 옆 칸에 날수가 있다(글자로 풀면 이름 바로 뒤). 표의 칸은 글자로
       풀면 앞 칸에 붙으므로, 원문에서 이름 앞이 빈칸이나 줄바꿈이면 경계로 본다.
+    - 안내 항목: "⑩ 갱신형 가나진단비보장특약 및 가나진단비보장특약에 관한 사항"처럼 "에 관한 사항"으로 끝나는 머리 줄에
+      이름이 한 특약의 이름으로 들어 있고(_head_names: 앞은 경계나 "갱신형", 뒤는 꼬리말 "보장특약", "특약", "특별약관"을
+      지나 "및", 쉼표, "에 관한 사항"), 그 항목의 본문(다음 줄부터 원문자 번호 ①~⑳, "■" 같은 머리 부호, "2.", "가."
+      같은 번호로 시작하는 줄이나 다음 머리 줄 전까지, 빈칸 뗀 글자 _ITEM_REACH자까지)에 "N일 면책기간"(N일, N개월, N년)이
+      있으면 N. 다음은 받지 않는다: 본문에 서로 다른 날수의 "면책기간"이 둘 이상, 본문에 면책기간을 두지 않는다는 문구
+      ("적용하지 않음", "없음", "미적용", "제외"), 머리 줄에 서로 다른 특약이 둘 이상(같은 특약의 갱신형과 비갱신형은 하나로
+      센다), 날수가 적힌 줄이 다른 특약을 따로 가리킴("다라특약: 90일 면책기간"), 이름이 본문에만 있음(메리츠화재 요약서의
+      특약별 안내 항목).
     names에는 보장개시일 이름과 세부보장명, 특약명을 준다.
     """
     text = page_text or ""
     flat, pos = _flat_map(text)
     out: set[int] = set()
+    keys = []
     for name in ([names] if isinstance(names, str) else names):
         key = _squash(_word(name))
         if len(key) < 3:
             continue
+        keys.append(key)
         for m in re.finditer(re.escape(key), flat):
             spaced = m.start() > 0 and text[pos[m.start()] - 1].isspace()
             if _boundary(flat, m.start(), spaced):
@@ -983,7 +1124,7 @@ def wait_days_on_page(names: str | Sequence[str], page_text: str) -> set[int]:
             beside = re.match(r"(\d+)(일|개월|년)(?!\d)", flat[m.end():])
             if beside and not flat[m.end() + beside.end():].startswith(("이", "경과", "미만", "이내", "전", "후")):
                 out.add(T._days(int(beside.group(1)), beside.group(2)))
-    return out
+    return out | _item_days(keys, text)
 
 
 def leftovers(v: Mapping[str, Any], cover: CoverView) -> list[str]:
@@ -1032,9 +1173,38 @@ def amount_unit(cover: CoverView) -> str | None:
     return found.pop() if len(found) == 1 else None
 
 
+_WAIT_CUT_LINE = re.compile(rf"^(.+) {WAIT_CUT_WORD} (\d+)(년|개월)미만 50%감액지급$", re.M)
+
+
+def wait_cuts_on_pages(names: Sequence[str], pages: Mapping[int, str] | None) -> set[tuple[int, str]]:
+    """특약별 면책기간 표의 감액 줄(tables.wait_lines가 표 쪽 글자 뒤에 붙인 "<이름> 감액기간 1년미만 50%감액지급")에서
+    이름이 names 가운데 하나와 같은(빈칸 무시) 줄의 (기간, 단위). 그런 줄이 없는 쪽 글자(다른 회사 꼴)에서는 빈 집합이다."""
+    keys = {_squash(n) for n in names if n}
+    out: set[tuple[int, str]] = set()
+    for text in (pages or {}).values():
+        if WAIT_CUT_WORD not in (text or ""):
+            continue
+        for m in _WAIT_CUT_LINE.finditer(text):
+            if _squash(m.group(1)) in keys:
+                out.add((int(m.group(2)), m.group(3)))
+    return out
+
+
+def _cut_in_table(c: Mapping[str, Any], cover: CoverView, piece: PieceView | None,
+                  pages: Mapping[int, str] | None) -> bool:
+    """감액 항목(보험금의 50%)이 그 특약의 면책기간 표 감액 줄에 있는가."""
+    if c.get("값기준") != "보험금" or float(c.get("값") or 0) != 50:
+        return False
+    names = [cover.name] + ([piece.title, *piece.names] if piece else [])
+    return (c.get("기간"), c.get("단위")) in wait_cuts_on_pages(names, pages)
+
+
 def _check_numbers(cover: CoverView, v: Mapping[str, Any], piece: PieceView | None, unknown: set[str],
-                   problems: list[str], marks: list[str]) -> None:
-    """지급률, 금액, 감액의 숫자가 그 세부보장의 글자에 있는가(숫자 경계까지)와 범위."""
+                   problems: list[str], marks: list[str], pages: Mapping[int, str] | None = None) -> None:
+    """지급률, 금액, 감액의 숫자가 그 세부보장의 글자에 있는가(숫자 경계까지)와 범위.
+
+    감액은 그 세부보장의 글자에 없으면 특약별 면책기간 표의 감액 줄(wait_cuts_on_pages)에서도 찾는다(현대해상).
+    """
     form = v.get("꼴")
     texts = [cover.amount, cover.reason]
     rate = v.get("지급률")
@@ -1048,6 +1218,8 @@ def _check_numbers(cover: CoverView, v: Mapping[str, Any], piece: PieceView | No
                 problems.append(f"숫자없음: {name} {_fmt(v[name])}")
     if "감액" not in unknown:
         for c in v.get("감액") or []:
+            if _cut_in_table(c, cover, piece, pages):
+                continue
             if not _period_in(c["기간"], c["단위"], texts):
                 problems.append(f"숫자없음: 감액 기간 {c['기간']}{c['단위']}")
             ok = _money_in(float(c["값"]), texts) if c["값기준"] == "만원" else _percent_in(float(c["값"]), texts)
@@ -1252,7 +1424,8 @@ def machine_checks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | No
     """(문제, 표시). 문제는 원문에 근거가 없거나 범위를 벗어난 값, 표시는 판독이 쓰지 않은 숫자처럼 사람이 볼 곳.
 
     두 판독이 같은 방식으로 틀리는 것을 잡으려는 검사다. 값이 같아도 문제나 표시가 있으면 확정하지 않는다.
-    pages: {쪽 번호: 쪽 글자}. 주면 조각에 없는 면책 날수를 판독 값의 면책근거쪽 글자에서 찾는다.
+    pages: {쪽 번호: 쪽 글자}. 주면 조각에 없는 면책 날수를 판독 값의 면책근거쪽 글자에서 찾고, 조각에 없는 감액을
+    면책기간 표의 감액 줄(wait_cuts_on_pages)에서 찾는다.
     docs: {문서: {쪽: 글자}}. 지급단위근거가 가리키는 다른 문서의 쪽 글자(요약서 쪽은 pages로 충분하다).
     행없음 줄은 행을 만들지 않아도 남기는 칸(면책일수, 보장개시일, 한도)만 본다.
     """
@@ -1268,7 +1441,7 @@ def machine_checks(cover: CoverView, v: Mapping[str, Any], piece: PieceView | No
         _check_missed(cover, v, unknown, marks)
         _check_name_marks(cover, v, piece, unknown, marks)
         return problems, marks
-    _check_numbers(cover, v, piece, unknown, problems, marks)
+    _check_numbers(cover, v, piece, unknown, problems, marks, pages)
     _check_wait(cover, v, piece, unknown, pages, problems, marks)
     _check_limits(cover, v, piece, unknown, problems)
     _check_missed(cover, v, unknown, marks)

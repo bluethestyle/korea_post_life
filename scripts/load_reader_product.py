@@ -21,6 +21,8 @@ benefits_2reader.jsonl, 꼴은 data/crosscheck/README.md)에 둔다. 이 스크�
 4. reader_rows.build_rows로 특약 행과 급부 행을 만든다. 원문 구절이 들어가는 열(지급횟수제한, 감액예외)은 조각에서 잘라 쓴다.
    판정값에 지급단위근거(요약서 밖 문서의 쪽. KB라이프생명 입원 특약의 "1일당"은 약관의 그 특약 조항에만 있다)가 있으면
    공시 수집 결과에서 그 문서를 찾아 가리킨 쪽만 다시 뽑고, 그 쪽의 글자에서 지급단위 구절을 찾는다(basis_pages).
+   특약별 면책기간 표가 따로 있는 요약서(현대해상)는 그 표를 칸 단위로 읽은 줄을 표 쪽 글자에 붙여 면책 날수를 대조한다
+   (with_wait_table).
    갱신형 특약의 갱신주기년은 대상 설정의 갱신형특약주기년이고, 갱신형특약제외에 적은 특약은 만들지 않는다.
    행없음 줄은 금액 없는 급부 행(지급기준구분 차등지급, 실손보상, 분할지급, 현물급부. 두 금액과 감액은 비움)이 되고,
    그런 급부마다 작업 로그 한 줄(작업단계 추출, 대상열 지급기준구분, 결과 통과)에 판독 사유, 번호, 내용 지문을 남긴다.
@@ -195,6 +197,18 @@ def read_pieces(pdf: Path, layout: Layout) -> tuple[list[RR.PieceView], dict[int
     return RR.load_pieces(data), pages
 
 
+def with_wait_table(pdf: Path, pages: dict[int, str], pieces: Sequence[RR.PieceView], layout: Layout) -> dict[int, str]:
+    """특약별 면책기간 표가 따로 있는 요약서(Layout.wait_table. 현대해상)는 그 표를 칸 단위로 읽어(tables.wait_table) 특약 이름마다
+    "<이름> <N>일면책" 줄을 그 쪽 글자 뒤에 붙인다(tables.wait_lines). 판정값의 면책근거쪽이 표 쪽이면 기계 검사
+    (reader_rows.wait_days_on_page)가 이 줄에서 날수를 대조한다. 두 단으로 실린 표는 쪽 글자로 풀면 줄이 섞여 이름 옆의 날수를
+    찾지 못한다. 다른 꼴의 요약서는 쪽 글자를 그대로 돌려준다."""
+    if not getattr(layout, "wait_table", False):
+        return pages
+    names = [n for p in pieces for n in (p.names or (p.title,))]
+    extra = tables.wait_lines(tables.wait_table(pdf, pages), names)
+    return {p: (text + "\n" + extra[p] if p in extra else text) for p, text in pages.items()}
+
+
 def page_subset(pdf: Path, numbers: set[int]) -> dict[int, str]:
     """PDF에서 고른 쪽의 글자만(tables.page_texts와 같은 뽑기). 약관처럼 쪽이 많은 문서를 다 풀지 않으려고 쓴다."""
     import pdfplumber
@@ -339,6 +353,7 @@ def build(targets: dict[str, Any], index: list[dict[str, Any]], docs: Path, valu
             continue
         group = Group(code, group_variants)
         group.pieces, pages = read_pieces(pdf, layout)
+        pages = with_wait_table(pdf, pages, group.pieces, layout)
         chosen: dict[str, list[RR.PieceView]] = {}
         in_variant: set[str] = set()
         cut: list[str] = []

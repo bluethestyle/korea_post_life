@@ -45,11 +45,31 @@ def body(no: int, **kw) -> dict:
 def test_committed_deck_is_what_the_source_builds(tmp_path):
     out = tmp_path / "index.html"
     used = tmp_path / "facts_used.json"
-    r = subprocess.run([sys.executable, str(SRC / "build.py"), "--out", str(out), "--used", str(used), "--strict"],
+    # 영상은 배포본 옆(site/deck/media)에 있다. 다른 곳에 빌드하므로 영상 폴더를 배포본 폴더로 가리킨다
+    r = subprocess.run([sys.executable, str(SRC / "build.py"), "--out", str(out), "--media-root", str(OUT.parent),
+                        "--used", str(used), "--strict"],
                        cwd=ROOT, capture_output=True, text=True)
     assert r.returncode == 0, r.stdout + r.stderr
     assert out.read_bytes() == OUT.read_bytes(), "python proto_src/deck/build.py --out site/deck/index.html 로 다시 빌드한다"
     assert json.loads(used.read_text(encoding="utf-8")) == json.loads((SRC / "facts_used.json").read_text(encoding="utf-8"))
+
+
+VIDEO_MAX_BYTES = 10_000_000          # 영상 한 편(배포본의 site/deck/media/partN.mp4)
+VIDEO_TOTAL_BYTES = 40_000_000        # 네 편 합계
+
+
+def test_video_slides_play_the_media_next_to_the_deck_and_keep_the_still(tmp_path):
+    html = OUT.read_text(encoding="utf-8")
+    srcs = re.findall(r'<video src="([^"]+)"', html)
+    assert srcs == [f"media/part{n}.mp4" for n in range(1, 5)]
+    sizes = [(OUT.parent / src).stat().st_size for src in srcs]
+    assert max(sizes) <= VIDEO_MAX_BYTES and sum(sizes) <= VIDEO_TOTAL_BYTES, sizes
+    # 영상이 있어도 정지 화면은 남는다(인쇄, 전체 장 보기, 영상을 읽지 못할 때)
+    assert html.count('<div class="vph has-st"><div class="vst im-part') == 4
+    # 영상 폴더에 파일이 없으면 <video> 없이 정지 화면만 남는다
+    res = deck_build.build_deck(SRC / "content", FACTS, REFS, FONTS, media_root=tmp_path, only={5, 13, 16, 21})
+    assert res.videos == [] and "<video" not in res.html
+    assert res.html.count('<div class="vph has-st"><div class="vst im-part') == 4
 
 
 def test_deck_is_a_standalone_offline_file():

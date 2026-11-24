@@ -16,6 +16,9 @@ r"""초기 적재의 두 판독(교차 확인)이 판정을 마친 주계약 가
    주계약 행의 이름(요약서 기본계약 표의 이름. 관문전용은 "주계약")과 사업방법서 가입나이 표의 기본계약 이름은 글자가 다를 수 있다
    ("일반상해사망(통합간편가입)"과 "기본계약(일반상해사망(통합간편가입)보장)"). 둘이 conditions.near_main으로 겹치지 않으면
    다른 계약의 표를 읽은 것일 수 있으므로 그 종형은 쓰지 않는다. 시트에 종형 행이 없으면 종형 행도 쓴다.
+   기본계약 이름을 적는 형식은 회사마다 다르다(method_main_name: 메리츠화재의 "·기본계약(이름)", 현대해상의 줄 앞 "기본계약 이름"과
+   "가) 기본계약" 소제목 아래 표의 구분 열). 현대해상 131A처럼 기본계약 담보 여럿(상해사망, 상해후유장해)이 가입나이 표 하나를
+   함께 쓰면, 이름마다 요약서 주계약 행이 하나씩 맞을 때만 요약서 표의 첫 주계약 행을 쓴다(shared_table_main).
 5. 행은 reader_conditions.build_rows로 만든다(조건행ID 규칙은 conditions.build_rows 그대로. 주계약 행이라 특약ID는 비운다).
 
 시트 쓰기와 작업 로그는 기존 가입조건 적재(job._run_main)와 같다. 행을 만든 종형의 sys_가입조건만 바꾸고, 그 종형의 특약
@@ -89,6 +92,25 @@ NO_MAIN = "주계약 행을 정하지 못함"
 NO_ROWS = "가입조건 행이 나오지 않음"
 
 _MAIN_HEAD = re.compile(r"[·∙•ㆍ]\s*기본계약\s*\(")
+# 현대해상 간편심사 상품: 표의 구분 열이 "기본계약 상해사망(간편맞춤고지)"처럼 줄 앞에 나온다
+_MAIN_LABEL = re.compile(r"^\s*기본계약\s+(?=[가-힣])")
+# 현대해상 일반심사 상품: "가) 기본계약" 소제목 아래 표의 구분 열에 담보 이름을 적는다. 표는 다음 소제목("나) 의무부가 특약")에서 끝난다
+_MAIN_HEADING = re.compile(r"^\s*[가-힣]\)\s*기본계약\s*$")
+_NEXT_HEADING = re.compile(r"^\s*(?:[가-힣]\)|\d+\)|\d+\.|[가-힣]\.)\s")
+# 소제목 아래 표에서 이름이 아닌 글자(열 머리, 보험기간, 납입기간, 나이, 최고나이식). 지우는 차례가 중요하다("80세만기"를 "80세"보다 먼저)
+_NOT_NAME = [re.compile(p) for p in (
+    r"MIN\s*\([^()]*\)\s*세?",                  # MIN(85-납입기간,70)세
+    r"\([^()]*-[^()]*\)\s*세?",                 # (80-납입기간)세
+    r"\d+\s*세\s*만기", r"\d+\s*년\s*만기",      # 80세만기, 20년만기
+    r"[\d/]*\d\s*년\s*납",                       # 10년납, 25/30년납
+    r"만?\s*\d+\s*세/?",                         # 만15세, 60세, 90세/
+    r"\d+(?:/\d*)+",                             # 10/15/20/
+    r"전기납|일시납|종신",
+    r"구\s*분", r"보험료\s*납입기간", r"보험기간", r"납입기간", r"가입나이", r"보험료", r"\d+종",
+    r"[~∼,]",
+)]
+_NAME = re.compile(r"^[가-힣][가-힣A-Za-z0-9()·]*$")
+MAIN_NAMES_SEP = ", "      # 사업방법서 가입나이 표 하나를 기본계약 담보 여럿이 함께 쓸 때 이름을 잇는 글자
 
 
 @dataclass
@@ -133,20 +155,70 @@ def method_pages_needed(value: Mapping[str, Any]) -> set[int]:
 
 
 def method_main_name(pages: Mapping[int, str], first: int, last: int) -> str | None:
-    """사업방법서 가입나이 표의 기본계약 이름. "·기본계약(일반상해사망(통합간편가입)보장) 90세만기 …" → 괄호 안의 이름.
-    first~last쪽에서 처음 나오는 줄을 본다. 괄호가 닫히지 않거나 그런 줄이 없으면 None."""
-    for n in range(min(first, last), max(first, last) + 1):
-        for line in (pages.get(n) or "").split("\n"):
+    """사업방법서 가입나이 표의 기본계약 이름. first~last쪽에서 아래 형식을 차례로 찾는다. 앞 형식의 줄이 하나라도 있으면
+    뒤 형식은 보지 않는다(앞 형식만 읽던 때와 결과가 같게).
+
+    1. 메리츠화재: "·기본계약(일반상해사망(통합간편가입)보장) 90세만기 …" → 괄호 안의 이름. 괄호가 닫히지 않으면 None.
+    2. 현대해상 간편심사 상품: 줄 앞의 "기본계약 상해사망(간편맞춤고지) 20/25/30년납 …" → 띄어쓰기 앞까지의 이름. 이름 뒤에
+       기간 숫자가 오는 줄만 본다.
+    3. 현대해상 일반심사 상품: "가) 기본계약" 소제목 아래 표(다음 소제목까지)의 구분 열 이름. 이름이 여럿이면 표에 나온 순서대로
+       MAIN_NAMES_SEP로 잇는다(main_names로 나눈다). 이름이 아닌 글자가 남거나 그 쪽에서 표가 끝나지 않으면 None.
+    그런 줄이 없으면 None."""
+    numbers = range(min(first, last), max(first, last) + 1)
+    lines = [(n, (pages.get(n) or "").split("\n")) for n in numbers]
+    for _, page in lines:
+        for line in page:
             m = _MAIN_HEAD.search(line)
-            if not m:
-                continue
-            depth, start = 1, m.end()
-            for i in range(start, len(line)):
-                depth += {"(": 1, ")": -1}.get(line[i], 0)
-                if depth == 0:
-                    return line[start:i].strip() or None
-            return None
+            if m:
+                return _closed_name(line, m.end())
+    for _, page in lines:
+        for line in page:
+            m = _MAIN_LABEL.match(line)
+            name = _closed_name(line, m.end(), opened=False) if m else None
+            # 이름 뒤에 바로 기간 숫자가 오는 줄만 표의 행으로 본다("기본계약 표 없음" 같은 글은 아님)
+            if name and len(name) > 1 and _NAME.match(name) and re.match(r"\s+\d", line[m.end() + len(name):]):
+                return name
+    for _, page in lines:
+        for i, line in enumerate(page):
+            if _MAIN_HEADING.match(line):
+                return _names_under_heading(page[i + 1:])
     return None
+
+
+def _closed_name(line: str, start: int, opened: bool = True) -> str | None:
+    """start부터 괄호가 맞는 이름. opened면 start 앞에 여는 괄호가 있어 닫는 괄호 앞까지, 아니면 괄호 밖의 띄어쓰기 앞까지."""
+    depth = 1 if opened else 0
+    for i in range(start, len(line)):
+        depth += {"(": 1, ")": -1}.get(line[i], 0)
+        if opened and depth == 0:
+            return line[start:i].strip() or None
+        if depth < 0:
+            return None
+        if not opened and depth == 0 and line[i].isspace():
+            return line[start:i].strip() or None
+    if opened or depth:
+        return None
+    return line[start:].strip() or None
+
+
+def _names_under_heading(rest: Sequence[str]) -> str | None:
+    """소제목 다음 줄부터 다음 소제목 앞까지에서 이름이 아닌 글자를 지우고 남은 이름들. 남은 글자가 이름 형식이 아니면 None."""
+    names: list[str] = []
+    for line in rest:
+        if _NEXT_HEADING.match(line):
+            return MAIN_NAMES_SEP.join(dict.fromkeys(names)) or None
+        for pattern in _NOT_NAME:
+            line = pattern.sub(" ", line)
+        for word in line.split():
+            if not _NAME.match(word) or word.count("(") != word.count(")") or "특약" in word:
+                return None
+            names.append(word)
+    return None                                  # 그 쪽에서 표가 끝나지 않음
+
+
+def main_names(method_name: str | None) -> list[str]:
+    """method_main_name이 이은 기본계약 이름들."""
+    return [x for x in (method_name or "").split(MAIN_NAMES_SEP) if x]
 
 
 def names_match(rider_name: str, method_name: str | None) -> bool:
@@ -154,6 +226,19 @@ def names_match(rider_name: str, method_name: str | None) -> bool:
     if ids.normalize(rider_name) in ("주계약", "기본계약"):
         return True
     return bool(method_name) and C.near_main(method_name, [rider_name])
+
+
+def shared_table_main(fits: Sequence[Mapping[str, Any]], method_name: str | None) -> Mapping[str, Any] | None:
+    """요약서 주계약 행 여럿이 사업방법서 기본계약 이름에 맞을 때, 사업방법서 가입나이 표 하나를 그 담보들이 함께 쓰는지 본다.
+    기본계약 이름이 둘 이상이고, 이름마다 맞는 행이 꼭 하나씩이고 행마다 맞는 이름이 꼭 하나씩이면 요약서 표 순서의 첫 행
+    (급부 적재 뒤 시트의 첫 주계약 행, 화면의 main_rider가 고르는 행). 아니면 None(어느 행인지 정하지 못함)."""
+    names = main_names(method_name)
+    if len(names) < 2 or len(names) != len(fits):
+        return None
+    pairs = [[C.near_main(name, [r["원시특약명"]]) for r in fits] for name in names]
+    if all(sum(row) == 1 for row in pairs) and all(sum(col) == 1 for col in zip(*pairs)):
+        return fits[0]
+    return None
 
 
 def accepted_marks(line: Mapping[str, Any]) -> set[str]:
@@ -337,11 +422,15 @@ def finish(store: SheetStore, prepared: Prepared, now: datetime, dry_run: bool =
                 skip(rec, f"{NO_MAIN}: 시트에 주계약 행이 없고 받은 문서 폴더에 상품요약서 PDF가 없음")
                 continue
             fits = [r for r in mains if names_match(r["원시특약명"], method_name)]
-            if len(fits) != 1:
+            shared = shared_table_main(fits, method_name) if len(fits) > 1 else None
+            if len(fits) != 1 and shared is None:
                 skip(rec, f"{NO_MAIN}: 요약서 표의 주계약 행 {len(mains)}개 가운데 사업방법서 기본계약 이름과 맞는 행이 "
                           f"{len(fits)}개")
                 continue
-            main = fits[0]
+            main = shared or fits[0]
+            if shared is not None:
+                report.notes.append(f"{row['공시상품코드']} {row['종형명']}: 기본계약 담보 {len(fits)}개가 사업방법서 가입나이 표 "
+                                    f"하나를 함께 씀. 요약서 표의 첫 주계약 행 '{main['원시특약명']}'을 주계약 행으로 씀")
         if not names_match(main["원시특약명"], method_name):
             skip(rec, f"{NAME}: 주계약 행 '{main['원시특약명']}', 사업방법서 기본계약 '{method_name or '찾지 못함'}'")
             continue
