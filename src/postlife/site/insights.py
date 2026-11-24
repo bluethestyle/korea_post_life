@@ -69,18 +69,23 @@ GAP, CONDITION, UNIQUE, DESIGN, SCOPE = "빈자리", "조건 격차", "고유", 
 TYPES = (GAP, CONDITION, UNIQUE, DESIGN, SCOPE)
 MISSING_SIDE, ONLY_SIDE = "기준에 없음", "기준에만 있음"     # 범위 차이의 방향
 
+# 판정 값. 화면 코드가 이 글자로 분기하고 세므로(tab4.src.js) 값은 그대로 둔다. 화면에 보일 이름은 terms.DISPLAY_GROUPS 의
+# "판정 값"이다(나음은 우위, 못함은 열위)
 SAME, BETTER, WORSE, MIXED, HOLD, DIFF = "같음", "나음", "못함", "엇갈림", "판정 보류", "다름"
 VERDICTS = (SAME, BETTER, WORSE, MIXED, HOLD)
 
+# 판정 보류와 비교 제외의 사유 글(화면에 그대로 보인다. 용어 대조표 96, 163)
 WAIT, REDUCTION, PAY = "면책", "감액", "지급 형태"
-HOLD_EXCEPTION = "감액이 일부 경우에만 걸림"
-HOLD_NO_TEXT = "지급횟수제한 문구가 없어 견주지 않음"
-HOLD_UNREAD = "지급 형태 문구를 읽지 못해 견주지 않음"
-HOLD_NO_REP = "대표 급부를 고르지 못함"
-HOLD_FORM_CUT = "지급 형태가 달라 감액을 견주지 않음"
-HOLD_SAME_FORM_CUT = "금액 하나로 담기지 않는 지급 형태라 감액을 견주지 않음"
-HOLD_SAME_FORM = "두 쪽이 같은 지급 형태(금액 하나로 담기지 않음)라 견주지 않음"
-AMOUNT_FORM = "지급 형태가 달라 금액을 견주지 않음"
+HOLD_EXCEPTION = "감액이 일부 경우에만 적용"
+HOLD_NO_TEXT = "지급횟수제한 문구가 없어 비교하지 않음"
+HOLD_UNREAD = "지급 형태 문구를 읽지 못해 비교하지 않음"
+HOLD_NO_REP = "대표 급부를 선택할 수 없음"
+HOLD_FORM_CUT = "지급 형태가 달라 감액을 비교하지 않음"
+HOLD_SAME_FORM_CUT = "금액 하나로 담기지 않는 지급 형태라 감액을 비교하지 않음"
+HOLD_SAME_FORM = "두 쪽이 같은 지급 형태(금액 하나로 담기지 않음)라 비교하지 않음"
+AMOUNT_FORM = "지급 형태가 달라 금액을 비교하지 않음"
+# 검수 대기 사유의 두 종류(Holding.blockers. 용어 대조표 111, 112). 사유 글은 "{종형 이름} {종류} {n}건"이다(pending_text)
+PENDING_MAPPING, PENDING_EXTRACT = "매핑 검수 대기", "추출 검수 대기"
 FLAT_PAY = "정액 지급"                    # 금액 없는 급부와 견줄 때 금액 급부 쪽의 지급 형태 글
 CUT_IN_SOURCE = "원문 확인"               # 금액 없는 급부의 감액 글(감액을 읽지 않았다)
 
@@ -324,9 +329,9 @@ def compare_conditions(base: dict[str, Any], other: dict[str, Any]) -> dict[str,
     return {"판정": overall, "보류밖판정": rest, "지급형태": pay["판정"], "항목": items}
 
 
-AMOUNT_REASON = {"x": "금액 자료 없음", "p": "검토 대기 값이 있어 판정을 미룸", "q": "매핑 검토 대기 급부만 있음",
-                 "u": "상대 종형이 이 나이에 가입할 수 없음", "v": "기준 종형이 이 나이에 가입할 수 없음",
-                 "n": "상대 종형에 없음", "o": "기준 종형에 없음", "": "둘 다 없음"}
+AMOUNT_REASON = {"x": "금액 자료 없음", "p": "검수 대기 값이 있어 판정을 미룸", "q": "매핑 검수 대기 급부만 있음",
+                 "u": "타사 종형이 이 나이에 가입할 수 없음", "v": "기준 종형이 이 나이에 가입할 수 없음",
+                 "n": "타사 종형에 없음", "o": "기준 종형에 없음", "": "양사 미보유"}
 
 
 def amount_verdict(code: str) -> dict[str, Any]:
@@ -337,6 +342,17 @@ def amount_verdict(code: str) -> dict[str, Any]:
 
 
 # ---------- 보유 ----------
+def variant_label(data: Data, vid: str) -> str:
+    """사유 글에 적는 종형 이름: "한화생명 간편가입형(1년)"(회사 이름과 종형명. sales 의 _peer_name 과 같은 꼴)."""
+    v = data.variants.get(vid) or {}
+    return f"{data.org_name(v.get('기관코드'))} {v.get('종형명') or vid}"
+
+
+def pending_text(data: Data, vid: str, kind: str, n: int) -> str:
+    """검수 대기 사유 글: "한화생명 간편가입형(1년) 추출 검수 대기 6건". kind 는 PENDING_MAPPING 이나 PENDING_EXTRACT 다."""
+    return f"{variant_label(data, vid)} {kind} {n}건"
+
+
 class Holding:
     """한 종형의 표준담보별 급부. compare.collect를 그대로 쓴다."""
 
@@ -361,13 +377,14 @@ class Holding:
         return [r["id"] for r in (self.rep(s) for s in sids if s in self.confirmed) if r]
 
     def blockers(self, sid: str) -> list[str]:
-        """이 담보의 비교를 뺄 사유. 매핑 대기 급부와 작업 로그 대기 급부. 사유 앞에 종형ID를 붙인다."""
+        """이 담보의 비교를 뺄 사유. 매핑 검수 대기 급부(표준담보 매핑을 담당자가 확인하지 않음)와 추출 검수 대기 급부(작업
+        로그의 사람검토이관). 사유 앞에 종형 이름을 붙인다(pending_text)."""
         out = []
         if self.waiting.get(sid):
-            out.append(f"{self.vid} 매핑 대기 {len(self.waiting[sid])}줄")
+            out.append(pending_text(self.data, self.vid, PENDING_MAPPING, len(self.waiting[sid])))
         logs = [v for v in self.confirmed.get(sid, []) if v["id"] in self.data.pending_benefit]
         if logs:
-            out.append(f"{self.vid} 작업 로그 대기 {len(logs)}줄")
+            out.append(pending_text(self.data, self.vid, PENDING_EXTRACT, len(logs)))
         return out
 
     def other_lines(self, sid: str, rep: dict[str, Any] | None) -> int:
@@ -482,11 +499,11 @@ class _Base:
             sure = [h for h in holders if sid in h.certain]
             reasons = []
             if _cover_key(self.rel.cover(sid, B.possible)) != _cover_key(cov):
-                reasons.append("기준 종형에 이 담보로 덮일 수 있는 매핑 대기 급부가 있음")
+                reasons.append(f"기준 종형에 이 담보를 보장할 수 있는 {PENDING_MAPPING} 급부가 있음")
             if len(holders) < GAP_MIN:
-                reasons.append("가진 회사 수가 매핑 대기 급부에 달림")
+                reasons.append(f"보유 회사 수가 {PENDING_MAPPING} 급부에 달려 있음")
             elif len(sure) < GAP_MIN:
-                reasons.append("가진 쪽의 이 담보 급부가 모두 작업 로그 검토 대기")
+                reasons.append(f"보유한 쪽의 이 담보 급부가 모두 {PENDING_EXTRACT}")
             if reasons:
                 self.drop(kind, direction, sid, [h.vid for h in maybe], reasons)
                 continue
@@ -516,9 +533,9 @@ class _Base:
             kind, direction = (UNIQUE, None) if not any(c.held for c in covs.values()) else (SCOPE, ONLY_SIDE)
             reasons = []
             if any(_cover_key(self.rel.cover(sid, h.possible)) != _cover_key(covs[h.vid]) for h in self.P):
-                reasons.append("맞붙는 종형에 이 담보로 덮일 수 있는 매핑 대기 급부가 있음")
+                reasons.append(f"비교 대상 종형에 이 담보를 보장할 수 있는 {PENDING_MAPPING} 급부가 있음")
             if sid not in B.certain:
-                reasons.append("기준 종형의 이 담보 급부가 모두 작업 로그 검토 대기")
+                reasons.append(f"기준 종형의 이 담보 급부가 모두 {PENDING_EXTRACT}")
             peers = [h.vid for h in self.P]
             if reasons:
                 self.drop(kind, direction, sid, peers, reasons)

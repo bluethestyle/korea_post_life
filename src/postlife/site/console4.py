@@ -22,6 +22,7 @@ from typing import Any
 from . import combo, eligibility, lineup
 from . import insights as I
 from . import sales as SA
+from . import terms
 from .model import FORM_TEXT, MAX_AGE, Data
 from .relations import Relations, load_relations
 
@@ -201,7 +202,7 @@ def build_gate(data: Data) -> dict:
                 table[key] = merge(items)
     return {'형식': 1, '자료시각': data.meta.get('snapshot_at'), '종형': vids, '상태': STATES, '질문값': QUESTIONS,
             '나이값': AGES, '종형정보': info, '조건': table,
-            '규칙': {'일반심사': '이력과 무관하게 심사로 확인'}}
+            '규칙': {'일반심사': '이력과 관계없이 인수심사로 결정'}}
 
 
 def compact_combo(c: dict) -> dict:
@@ -339,7 +340,8 @@ CAUTION_KEY, PENDING_KEY, NONE_KEY = '단정 주의', '검토 대기', '우체�
 FORM_KEY, COVER_KEY, ONLY_KEY = '지급 형태 다름', '관계 담보로 덮음', '상대에 없음'
 # 기둥에 쌓는 까닭(판정기관코드의 열쇠). 상대에 없음은 기둥 밖(그 상대는 이 담보를 갖지도 덮지도 않는다)
 VERDICT_KEYS = [k for k in PAIR_KEYS if k != ONLY_KEY]
-# 까닭마다의 판정 이름(화면의 칩 글)과 칩 종류(App.ui.verdict 의 kind)
+# 까닭마다의 판정 이름(화면의 칩 글)과 칩 종류(App.ui.verdict 의 kind). 까닭과 판정 이름은 화면 코드가 글자로 분기하고 세므로
+# (tab4.src.js) 값은 그대로 둔다. 화면에 보일 이름은 terms.DISPLAY_GROUPS 의 "판정 집계", "판정 이름"이고, 판정표의 표시명에도 싣는다
 VERDICT_NAME = {'나음': '우체국 나음', '같음': '같음', '못함': '우체국 못함', '엇갈림': '우열을 매기지 않음',
                 '판정 보류': '판정 보류', '단정 주의': '우열을 매기지 않음', '지급 형태 다름': '우열을 매기지 않음',
                 '관계 담보로 덮음': '우열을 매기지 않음', '검토 대기': '검토 대기', '우체국에 없음': '우체국에 없음',
@@ -356,20 +358,23 @@ def _has(cell) -> bool:
     return isinstance(cell, dict) and bool(cell.get('i'))
 
 
-def _waiting(vid: str, cell) -> list[str]:
-    """매핑 대기 급부가 있는 칸의 사유 글. insights 의 Holding.blockers 와 같은 꼴("{종형ID} 매핑 대기 N줄")이다."""
-    return [f'{vid} 매핑 대기 {cell["w"]}줄'] if isinstance(cell, dict) and cell.get('w') else []
+def _waiting(label: str, cell) -> list[str]:
+    """매핑 검수 대기 급부가 있는 칸의 사유 글. insights 의 Holding.blockers 와 같은 꼴("{종형 이름} 매핑 검수 대기 N건")이다.
+    label 은 종형 이름(insights.variant_label)이다."""
+    return [f'{label} {I.PENDING_MAPPING} {cell["w"]}건'] if isinstance(cell, dict) and cell.get('w') else []
 
 
 def pair_verdict(sid: str, vids: list[str], cells: list, k: int, pair: dict, cautious: dict,
-                 notes: list[dict]) -> list | None:
+                 notes: list[dict], labels: dict[str, str] | None = None) -> list | None:
     """담보 sid 의 기준 종형(vids[0])과 상대 vids[k] 쌍의 판정: [까닭, 사유 목록] 또는 None(둘 다 없음). 규칙은 위 주석이다.
-    사유 목록은 검토 대기와 판정 보류의 사유 글(insights 의 뺀 비교쌍 사유, 보류비교 사유, 뺀 시사점 사유, 매핑 대기 줄 수)과
-    단정 주의의 종류이고, 나머지 까닭은 빈 목록이다. 자료 쪽에 이미 있는 값만 쓴다(판정을 새로 만들지 않는다)."""
+    사유 목록은 검토 대기와 판정 보류의 사유 글(insights 의 뺀 비교쌍 사유, 보류비교 사유, 뺀 시사점 사유, 매핑 검수 대기 급부 수)과
+    단정 주의의 종류이고, 나머지 까닭은 빈 목록이다. 자료 쪽에 이미 있는 값만 쓴다(판정을 새로 만들지 않는다).
+    labels 는 종형ID → 사유 글에 적을 종형 이름이다(없으면 종형ID 를 적는다)."""
+    name = (labels or {}).get
     base, cell, peer = cells[0], cells[k], vids[k]
     if _has(cell):
         if not _has(base):
-            waits = _waiting(vids[0], base)
+            waits = _waiting(name(vids[0], vids[0]), base)
             return [PENDING_KEY, waits] if waits else [NONE_KEY, []]
         q = pair.get((sid, peer))
         if q is None:
@@ -384,7 +389,7 @@ def pair_verdict(sid: str, vids: list[str], cells: list, k: int, pair: dict, cau
             raise ValueError(f'모르는 판정: {q["v"]} ({sid}, {peer})')
         return [q['v'], list(q.get('hs') or []) if q['v'] == I.HOLD else []]
     if _has(base):
-        waits = _waiting(peer, cell)
+        waits = _waiting(name(peer, peer), cell)
         if waits:
             return [PENDING_KEY, waits]
         drops = list(dict.fromkeys(r for x in notes if x.get('drop') and peer in (x.get('p') or []) for r in x['drop']))
@@ -393,7 +398,7 @@ def pair_verdict(sid: str, vids: list[str], cells: list, k: int, pair: dict, cau
         if isinstance(cell, dict) and cell.get('c'):
             return [COVER_KEY, []]
         return [ONLY_KEY, []]
-    waits = _waiting(vids[0], base) + _waiting(peer, cell)
+    waits = _waiting(name(vids[0], vids[0]), base) + _waiting(name(peer, peer), cell)
     return [PENDING_KEY, waits] if waits else None
 
 
@@ -477,6 +482,7 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
         if r is None or [p['종형ID'] for p in r['맞붙는종형']] != peers:
             r = I.analyze_pair(data, bid0, peers, rel, hold)
         vids = [bid0] + peers
+        labels = {v: I.variant_label(data, v) for v in vids}       # 매핑 검수 대기 사유 글의 종형 이름
         for v in vids:
             if v not in hold:
                 hold[v] = I.Holding(data, v)
@@ -550,7 +556,7 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
             # 이 담보를 가진 상대 회사: 확정 급부가 있는 칸(화면의 has, 칸의 i 가 비지 않음)의 회사. 우리 기관은 뺀다
             owners[sid] = sorted({data.variants[v].get('기관코드') for v, c in zip(vids[1:], cells[1:])
                                   if isinstance(c, dict) and c.get('i')} - {SA.HOME_ORG, None})
-            by_pair[sid] = [pair_verdict(sid, vids, cells, k, pair, cautious, ins.get(sid, []))
+            by_pair[sid] = [pair_verdict(sid, vids, cells, k, pair, cautious, ins.get(sid, []), labels)
                             for k in range(1, len(vids))]
             verdicts[sid] = verdict_codes(data, by_pair[sid], peers)
             row = [sid, cells, prs]
@@ -563,8 +569,10 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
                        '쌍판정': by_pair, '판정요약': verdict_summary(data, by_pair, peers)}
 
     # 급부와 특약은 번호로 가리킨다(줄마다 긴 ID를 되풀이하지 않게)
+    # 판정표의 판정(이름)은 화면 코드가 글자로 분기해 그대로 두고, 화면에 보일 이름은 표시명에 따로 싣는다(용어 대조표 1-1)
     out = {'t': A['자료시각'], 'ben': list(ben.values()), 'rid': list(rid.values()), 'b': bases,
-           '판정표': {k: {'판정': VERDICT_NAME[k], '칩': CHIP[VERDICT_NAME[k]]} for k in PAIR_KEYS},
+           '판정표': {k: {'판정': VERDICT_NAME[k], '칩': CHIP[VERDICT_NAME[k]], '표시명': terms.name(VERDICT_NAME[k])}
+                    for k in PAIR_KEYS},
            '판정차례': list(NAME_ORDER)}
     if forms:
         # 금액 없는 급부(API.md "금액 없는 급부"). 그런 급부가 없으면 세 키를 싣지 않는다(지금 자료와 바이트까지 같다)

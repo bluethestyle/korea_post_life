@@ -183,6 +183,7 @@ SALES = {
                               "출처표시": str, "주의표현": list, "인용": bool, "표준담보ID": Seq(str)})},
     "포인트": Map(POINT),
     "글": Seq(str),
+    "표시명": Map(str),          # 화면 코드가 키로 쓰는 값 → 화면에 보일 이름(tests/test_display_names.py)
 }
 
 # ---------- tab3.js 의 자료 줄 (const T3) ----------
@@ -208,7 +209,7 @@ CV = {
     "b": Map({"cols": Seq(str), "rows": Seq(Pos(str, Seq(One(int, dict)), Map(dict))), "pairs": int, "dropped": int,
               "보유기관코드": Map(Seq(str)), "판정기관코드": Map(Map(Seq(str))), "판정상대수": Map(Map(int)),
               "쌍판정": Map(Seq(Opt(Pos(str, Seq(str))))), "판정요약": Map(Map(int))}),
-    "판정표": Map({"판정": str, "칩": str}), "판정차례": Seq(str),
+    "판정표": Map({"판정": str, "칩": str, "표시명": str}), "판정차례": Seq(str),
 }
 
 # ---------- d.json (const D) ----------
@@ -588,7 +589,7 @@ HOME = "EPOST"
 CELL_CODES = {"열린상대코드": "열린상대수", "관문만열린상대코드": "관문만열린상대수", "닫힌상대코드": "닫힌상대수",
               "모르는상대코드": "모르는상대수", "일부열린상대코드": "일부열린상대수"}
 PARTIAL = "일부 나이만 열림"
-STOPS = ("걸림", "모름", "심사로 확인")
+STOPS = ("고지 해당", "미확인", "일반심사 대상")     # 관문흐름의 멈춘 값(화면이 글자 그대로 보인다. 용어 대조표 25, 39, 91)
 VERDICTS = ("나음", "같음", "못함", "엇갈림", "판정 보류", "단정 주의", "지급 형태 다름", "관계 담보로 덮음", "검토 대기",
             "우체국에 없음")
 PAIR_ONLY = "상대에 없음"         # 쌍판정에만 있는 까닭(기둥 밖)
@@ -1024,7 +1025,8 @@ def test_notice_texts_and_cover_steps_follow_the_tables(made):
 
 def test_map_columns_and_flow_on_three_companies(made):
     """세 회사 사본: 일부 나이만 열린 상대가 없고(지도 열이 우리 가입나이로 끊어도 상대 상태가 열 안에서 같다), 지도마다 칸이 24개다.
-    가입 관문 흐름은 실제로 가입나이, 입원과 수술의 기간, 수술 포함 여부에서 걸리고, 일반심사는 최근 소견에서 심사로 확인이다."""
+    인수기준 단계별 통과는 실제로 가입나이, 입원·수술 고지기간, 수술 포함 여부에서 고지 해당으로 멈추고, 일반심사는 필요소견에서
+    일반심사 대상으로 멈춘다."""
     S = made["S"]
     stops = set()
     for name, m in S["지도"].items():
@@ -1032,7 +1034,8 @@ def test_map_columns_and_flow_on_three_companies(made):
         assert len(m["열"]) == 2 and len(cells) == 24, name
         assert not any(c["일부열린상대수"] or c["일부열린나이"] or c["일부나이로만열림"] for c in cells), name
         stops |= {(S["관문마디"]["차례"][k], v) for c in cells for k, v in c["관문흐름"]["종형"].values()}
-    assert stops == {("가입나이", "걸림"), ("입원과 수술의 기간", "걸림"), ("수술 포함 여부", "걸림"), ("최근 소견", "심사로 확인")}
+    assert stops == {("가입나이", "고지 해당"), ("입원·수술 고지기간", "고지 해당"), ("수술 포함 여부", "고지 해당"),
+                     ("필요소견", "일반심사 대상")}
     assert [m["열"] for m in S["지도"].values()] == [[{"lo": 15, "hi": 19}, {"lo": 20, "hi": 80}]] * 2 + [
         [{"lo": 15, "hi": 65}, {"lo": 66, "hi": 80}]]
 
@@ -1094,22 +1097,25 @@ def test_pair_verdict_rules_on_hand_made_cells():
     mine = {"r": 0, "i": [0], "n": 1}
     cells = [mine, {"r": 1, "i": [1], "n": 1}, {"c": ["넓은 담보", ["STD_W"], False]}, 0, {"w": 1}]
     got = [C4.pair_verdict(sid, vids, cells, k, pair, {}, []) for k in range(1, 5)]
-    assert got == [["지급 형태 다름", []], ["관계 담보로 덮음", []], ["상대에 없음", []], ["검토 대기", ["P4 매핑 대기 1줄"]]]
+    assert got == [["지급 형태 다름", []], ["관계 담보로 덮음", []], ["상대에 없음", []], ["검토 대기", ["P4 매핑 검수 대기 1건"]]]
+    # 종형 이름(labels)을 주면 사유 글에 종형ID 대신 그 이름을 적는다
+    named = C4.pair_verdict(sid, vids, cells, 4, pair, {}, [], {"P4": "삼성화재 7종"})
+    assert named == ["검토 대기", ["삼성화재 7종 매핑 검수 대기 1건"]]
     assert C4.verdict_codes(data, got, vids[1:]) == {"지급 형태 다름": ["ORGP1"], "관계 담보로 덮음": ["ORGP2"],
                                                     "검토 대기": ["ORGP4"]}
     assert C4.verdict_summary(data, {sid: got}, vids[1:]) == {"ORGP1": {"우열을 매기지 않음": 1}, "ORGP2": {"우열을 매기지 않음": 1},
                                                              "ORGP3": {"우체국에만 있음": 1}, "ORGP4": {"검토 대기": 1}}
     # 상대가 든 뺀 시사점(고유를 검토 대기로 뺀 것)은 검토 대기. 단정 주의는 비교쌍 판정보다 먼저다
-    notes = [{"k": "고유", "d": None, "p": ["P3"], "drop": ["기준 종형의 이 담보 급부가 모두 작업 로그 검토 대기"]}]
+    notes = [{"k": "고유", "d": None, "p": ["P3"], "drop": ["기준 종형의 이 담보 급부가 모두 추출 검수 대기"]}]
     assert C4.pair_verdict(sid, vids, cells, 3, pair, {}, notes) == ["검토 대기", notes[0]["drop"]]
-    assert C4.pair_verdict(sid, vids, cells, 1, pair, {(sid, "P1"): "지급 형태 다름"}, []) == ["단정 주의", ["지급 형태 다름"]]
+    assert C4.pair_verdict(sid, vids, cells, 1, pair, {(sid, "P1"): "지급 형태 상이"}, []) == ["단정 주의", ["지급 형태 상이"]]
     # 상대에게만 있으면: 뺀 시사점이 있어도 우체국에 없음, 우리 쪽 매핑 대기가 있으면 검토 대기
-    drop = [{"k": "범위 차이", "d": "기준에 없음", "p": ["P1"], "drop": ["가진 쪽의 이 담보 급부가 모두 작업 로그 검토 대기"]}]
+    drop = [{"k": "범위 차이", "d": "기준에 없음", "p": ["P1"], "drop": ["보유한 쪽의 이 담보 급부가 모두 추출 검수 대기"]}]
     theirs = [{"c": ["넓은 담보", ["STD_W"], False]}, {"r": 1, "i": [1], "n": 1}]
     assert C4.pair_verdict(sid, vids[:2], theirs, 1, {}, {}, drop) == ["우체국에 없음", []]
-    assert C4.pair_verdict(sid, vids[:2], [{"w": 2}, theirs[1]], 1, {}, {}, drop) == ["검토 대기", ["B 매핑 대기 2줄"]]
+    assert C4.pair_verdict(sid, vids[:2], [{"w": 2}, theirs[1]], 1, {}, {}, drop) == ["검토 대기", ["B 매핑 검수 대기 2건"]]
     # 둘 다 확정 급부가 없으면 매핑 대기가 있을 때만 검토 대기
-    assert C4.pair_verdict(sid, vids[:2], [0, {"w": 1}], 1, {}, {}, []) == ["검토 대기", ["P1 매핑 대기 1줄"]]
+    assert C4.pair_verdict(sid, vids[:2], [0, {"w": 1}], 1, {}, {}, []) == ["검토 대기", ["P1 매핑 검수 대기 1건"]]
     assert C4.pair_verdict(sid, vids[:2], [0, 0], 1, {}, {}, []) is None
     # 테스트 쪽 규칙(expected_pair)과 같다
     for k in range(1, 5):
