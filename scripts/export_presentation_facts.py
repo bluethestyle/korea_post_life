@@ -367,6 +367,24 @@ MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
      "실무자 응답(사용자 전달) 2026-11-24. 실무자 1명이 보기에서 고른 답이고 측정값이 아닙니다. 응답자가 늘면 고칩니다."),
     ("practice_respondents", 1, "위 실무자 응답의 응답자 수", "2026-11-24",
      "실무자 응답(사용자 전달) 2026-11-24. 실무자 1명이 보기에서 고른 답이고 측정값이 아닙니다. 응답자가 늘면 고칩니다."),
+    # 실무자 의견(사용자가 전달한 요지, 2026-11-25). 원문을 옮기지 않고 요지만 싣는다. 실무자 1명의 의견이라 사실로 단정하지 않는다
+    ("practice_tool_need",
+     {"gist": "소비자가 보험료를 비교해 가입하는 서비스는 있지만, 영업 기획이나 상품 설계 담당자의 관점에서 회사별 상품을 비교해 주는 "
+              "도구는 없어 이 도구가 쓸모 있다고 봤다", "respondents": 1},
+     "도구의 쓸모에 대한 실무자 의견 요지와 응답자 수", "2026-11-25",
+     "실무자 의견(사용자 전달) 2026-11-25. 실무자 1명의 의견 요지이고 원문은 저장소에 옮기지 않았습니다. 사실로 단정하지 않습니다. "
+     "소비자용 서비스의 예(보험다모아)의 설명은 proto_src/deck/refs.json 의 insurance_damoa 입니다."),
+    ("practice_revision_concern",
+     {"gist": "보험 상품은 회사마다 다양하고 복잡하며 약관과 한국표준질병사인분류(KCD)는 고정돼 있지 않고 바뀌는데, 그것이 반영되는지",
+      "respondents": 1},
+     "개정 반영에 대한 실무자 걱정의 요지와 응답자 수", "2026-11-25",
+     "실무자 의견(사용자 전달) 2026-11-25. 실무자 1명의 걱정 요지이고 원문은 저장소에 옮기지 않았습니다. "
+     "지금 되는 것은 doc_hash_coverage_site, disease_group_draft, benefit_disease_code_rows 를 봅니다."),
+    # 리뉴얼 관계(담당자 확인 2026-11-25). 판매종료일은 사본(variant_sale_status_site.ended_dates)에서 센다
+    ("epost_renewal", {"before": "우체국간편건강보험 2504", "after": "우체국간편한건강보험 2606"},
+     "판매가 끝난 우체국 상품과 그 상품을 리뉴얼해 지금 판매하는 상품", "2026-11-25",
+     "담당자 확인 2026-11-25. 판매 기간은 우체국 공시실 목록과 사본의 판매종료일(variant_sale_status_site.ended_dates)이고, "
+     "before 는 variant_sale_status_site.ended_products 와 같은 이름입니다."),
 ]
 
 
@@ -632,6 +650,25 @@ def snapshot_facts(root: Path, tables: dict[str, list[dict[str, Any]]], as_of: s
                                        snap_source("sys_보험료예시.jsonl", "행 수"))
     out["benefit_disease_code_rows"] = fact(len(tables["sys_급부질병코드"]), "급부 질병코드 행 수(2단계 과제)", as_of,
                                             snap_source("sys_급부질병코드.jsonl", "행 수"))
+    # 표준질병군 초안(회사와 무관한 담당자 탭): 행 수, 질병군 수, KCD 버전별 행 수
+    groups = tables["hum_표준질병군"]
+    out["disease_group_draft"] = fact(
+        {"rows": len(groups), "groups": len({r["질병군ID"] for r in groups}),
+         "rows_by_kcd": dict(sorted(Counter(r["KCD버전"] for r in groups).items()))},
+        "표준질병군 초안의 행 수, 질병군 수, KCD 버전별 행 수(회사와 무관한 담당자 탭)", as_of,
+        snap_source("hum_표준질병군.jsonl", "행 수, 질병군ID 종류 수, KCD버전별 행 수"),
+        "담보별 질병코드(sys_급부질병코드)는 benefit_disease_code_rows 이고 지금 0행입니다.")
+    # 공시 문서 해시(화면에 올린 기관의 종형): 상품요약서, 사업방법서, 약관 별표 해시가 있는 종형 수
+    hash_rows = [r for r in tables["sys_상품종형"] if r["기관코드"] in site]
+    out["doc_hash_coverage_site"] = fact(
+        {"variants": len(hash_rows),
+         **{key: sum(1 for r in hash_rows if r.get(col)) for key, col in
+            (("summary", "요약서해시"), ("method", "사업방법서해시"), ("terms_annex", "약관별표해시"))},
+         "terms_annex_by_org": by_org(Counter(r["기관코드"] for r in hash_rows if r.get("약관별표해시")))},
+        "화면에 올린 기관의 종형 가운데 상품요약서, 사업방법서, 약관 별표의 파일 해시가 있는 종형 수", as_of,
+        snap_source("sys_상품종형.jsonl", "SITE_ORGS 기관의 행에서 요약서해시, 사업방법서해시, 약관별표해시가 비어 있지 않은 행 수"),
+        "해시는 보관만 합니다. 수집한 문서의 해시를 시트의 해시와 비교해 바뀐 상품만 다시 추출하는 단계는 아직 없습니다"
+        "(공시 문서 수집과 추출은 사람이 실행, .github/workflows 의 fetch-disclosure.yml, extract.yml).")
 
     # 기준값(검증 구간과 법정 한도)
     base = {r["기준키"]: r for r in tables["hum_기준값"]}
@@ -1217,6 +1254,9 @@ def build(root: Path = ROOT) -> dict[str, Any]:
         facts.update(part)
     for key, value, label, as_of_manual, note in MANUAL_FACTS:
         facts[key] = fact(value, label, as_of_manual, {"kind": "manual"}, note)
+    # 리뉴얼 전 상품(담당자 확인)은 사본에서 판매가 끝난 상품과 같아야 한다
+    if facts["epost_renewal"]["value"]["before"] not in facts["variant_sale_status_site"]["value"]["ended_products"]:
+        raise FactsError("epost_renewal.before 가 사본의 판매 종료 상품(variant_sale_status_site.ended_products)에 없다")
     # 정밀 비교 대상(목표) 가운데 시트에 적재한 회사와 화면에 올린 회사(이름으로 맞춤)
     names = facts["org_names"]["value"]
     targets = [n for group in facts["comparison_target_names"]["value"].values() for n in group]

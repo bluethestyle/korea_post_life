@@ -110,6 +110,6 @@
   "보장 대분류",
   "담보 관계"
  ],
- "source": "출처: 표준담보 사전 스냅샷, 관계 그래프 화면 자료, 표준담보 관계 자료, 자료 기준 {{asof:coverage_relation_count}}",
+ "source": "출처: 표준담보 사전 주간 마감 자료, 관계 그래프 화면 자료, 표준담보 관계 자료, 자료 기준 {{asof:coverage_relation_count}}",
  "notes": "앞 장의 범례, 곧 약속에 해당하는 것이 이 앱에서는 세 가지입니다. 첫째는 표준 이름입니다. 회사마다 다른 담보 이름 대신 쓰는 공통 이름을 표준담보라고 부르고, 사전에 {{fact:standard_coverage_in_use}}개를 두었습니다. 예를 들어 '{{fact:example_cancer_surgery.standard_coverage}}'가 표준 이름 하나입니다. 업계 표준이 아니라 이 앱이 정한 이름입니다. 둘째는 분류입니다. 표준담보를 {{fact:coverage_major_class_names}}의 보장 대분류 {{fact:coverage_major_class_count}}개로 묶었습니다. 화면에서 담보를 보장 분야별로 모아 볼 때 이 분류를 씁니다. 셋째는 관계입니다. 담보와 담보가 어떻게 이어지는지를 {{fact:coverage_relation_count}}건 적어 두었고, 종류는 둘입니다. 포함 {{fact:coverage_relations_by_kind.포함}}건은 넓은 담보가 좁은 담보를 포함하는 관계입니다. 예를 들어 '{{fact:coverage_relation_examples.포함.1.broad}}'는 '{{fact:coverage_relation_examples.포함.1.narrow.0}}'를 포함합니다. 통합 {{fact:coverage_relations_by_kind.통합}}건은 여러 담보를 합친 담보 하나입니다. 예를 들어 '{{fact:coverage_relation_examples.통합.1.broad}}'는 '{{fact:coverage_relation_examples.통합.1.narrow.0}}'와 '{{fact:coverage_relation_examples.통합.1.narrow.1}}'를 합친 담보입니다. 한 회사는 특약 하나로 팔고 다른 회사는 특약 여럿으로 나눠 파는 보장을 이 관계로 맞춥니다. 다음 장에서 실제 담보 하나로 따라가 보겠습니다."
 }

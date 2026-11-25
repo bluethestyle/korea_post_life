@@ -712,6 +712,43 @@
         "method": "행 수"
       }
     },
+    "disease_group_draft": {
+      "value": {
+        "rows": 58,
+        "groups": 22,
+        "rows_by_kcd": {
+          "KCD-8": 29,
+          "KCD-9": 29
+        }
+      },
+      "label": "표준질병군 초안의 행 수, 질병군 수, KCD 버전별 행 수(회사와 무관한 담당자 탭)",
+      "as_of": "2026-11-24",
+      "source": {
+        "kind": "snapshot",
+        "file": "data/snapshot/hum_표준질병군.jsonl",
+        "method": "행 수, 질병군ID 종류 수, KCD버전별 행 수"
+      },
+      "note": "담보별 질병코드(sys_급부질병코드)는 benefit_disease_code_rows 이고 지금 0행입니다."
+    },
+    "doc_hash_coverage_site": {
+      "value": {
+        "variants": 23,
+        "summary": 23,
+        "method": 23,
+        "terms_annex": 8,
+        "terms_annex_by_org": {
+          "EPOST": 8
+        }
+      },
+      "label": "화면에 올린 기관의 종형 가운데 상품요약서, 사업방법서, 약관 별표의 파일 해시가 있는 종형 수",
+      "as_of": "2026-11-24",
+      "source": {
+        "kind": "snapshot",
+        "file": "data/snapshot/sys_상품종형.jsonl",
+        "method": "SITE_ORGS 기관의 행에서 요약서해시, 사업방법서해시, 약관별표해시가 비어 있지 않은 행 수"
+      },
+      "note": "해시는 보관만 합니다. 수집한 문서의 해시를 시트의 해시와 비교해 바뀐 상품만 다시 추출하는 단계는 아직 없습니다(공시 문서 수집과 추출은 사람이 실행, .github/workflows 의 fetch-disclosure.yml, extract.yml)."
+    },
     "verify_confirm_threshold": {
       "value": 0.75,
       "label": "추출값 검증: 이 확률 이상이면 자동 확정",
@@ -4439,6 +4476,42 @@
         "kind": "manual"
       },
       "note": "실무자 응답(사용자 전달) 2026-11-24. 실무자 1명이 보기에서 고른 답이고 측정값이 아닙니다. 응답자가 늘면 고칩니다."
+    },
+    "practice_tool_need": {
+      "value": {
+        "gist": "소비자가 보험료를 비교해 가입하는 서비스는 있지만, 영업 기획이나 상품 설계 담당자의 관점에서 회사별 상품을 비교해 주는 도구는 없어 이 도구가 쓸모 있다고 봤다",
+        "respondents": 1
+      },
+      "label": "도구의 쓸모에 대한 실무자 의견 요지와 응답자 수",
+      "as_of": "2026-11-25",
+      "source": {
+        "kind": "manual"
+      },
+      "note": "실무자 의견(사용자 전달) 2026-11-25. 실무자 1명의 의견 요지이고 원문은 저장소에 옮기지 않았습니다. 사실로 단정하지 않습니다. 소비자용 서비스의 예(보험다모아)의 설명은 proto_src/deck/refs.json 의 insurance_damoa 입니다."
+    },
+    "practice_revision_concern": {
+      "value": {
+        "gist": "보험 상품은 회사마다 다양하고 복잡하며 약관과 한국표준질병사인분류(KCD)는 고정돼 있지 않고 바뀌는데, 그것이 반영되는지",
+        "respondents": 1
+      },
+      "label": "개정 반영에 대한 실무자 걱정의 요지와 응답자 수",
+      "as_of": "2026-11-25",
+      "source": {
+        "kind": "manual"
+      },
+      "note": "실무자 의견(사용자 전달) 2026-11-25. 실무자 1명의 걱정 요지이고 원문은 저장소에 옮기지 않았습니다. 지금 되는 것은 doc_hash_coverage_site, disease_group_draft, benefit_disease_code_rows 를 봅니다."
+    },
+    "epost_renewal": {
+      "value": {
+        "before": "우체국간편건강보험 2504",
+        "after": "우체국간편한건강보험 2606"
+      },
+      "label": "판매가 끝난 우체국 상품과 그 상품을 리뉴얼해 지금 판매하는 상품",
+      "as_of": "2026-11-25",
+      "source": {
+        "kind": "manual"
+      },
+      "note": "담당자 확인 2026-11-25. 판매 기간은 우체국 공시실 목록과 사본의 판매종료일(variant_sale_status_site.ended_dates)이고, before 는 variant_sale_status_site.ended_products 와 같은 이름입니다."
     },
     "comparison_targets_loaded": {
       "value": {

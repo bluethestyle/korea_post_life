@@ -44,6 +44,6 @@
  ],
  "points": [],
  "terms": [],
- "source": "출처: 담보 비교 자료(화면이 처음 여는 기준 종형), 담보 매핑 스냅샷, 자료 기준 {{asof:relation_covered_pairs}}",
+ "source": "출처: 담보 비교 자료(화면이 처음 여는 기준 종형), 담보 매핑 주간 마감 자료, 자료 기준 {{asof:relation_covered_pairs}}",
  "notes": "온톨로지가 왜 필요한지 세 가지로 정리하겠습니다. 첫째, 이름이 다른 담보를 같은 행에 놓을 수 있습니다. 온톨로지가 없으면 앞에서 본 것처럼 회사마다 이름이 달라 같은 보장이 다른 행으로 나뉩니다. 표준담보로 맞춘 덕분에 데모 화면이 처음 여는 기준 종형에서는 타사와 함께 가진 공통 담보 {{fact:common_coverage_pairs}}건을 같은 행에 놓습니다. 그 가운데 매핑이 검수 대기인 {{fact:excluded_pending_pairs}}건은 비교에서 빼고 {{fact:compared_coverage_pairs}}건을 비교합니다. 이 검수 대기 {{fact:excluded_pending_pairs}}건은 담보 비교에서 뺀 비교 건 수로, 앞에서 본 통합 관계 건수와는 다른 값입니다. 둘째, 타사 보장을 놓치지 않습니다. 미보유처럼 보이지만 실제로는 다른 담보로 보장하는 경우를 가려냅니다. 22장의 뇌와 심장 수술비처럼 타사가 통합 특약 하나로 보장하는 경우, 관계가 없으면 그 타사 항목이 비어 우체국 단독 보유로 셉니다. 담보 관계 덕분에 같은 기준 종형에서 {{fact:relation_covered_pairs.coverages}}개 담보, 타사와 짝지은 비교 {{fact:relation_covered_pairs.pairs}}건이 '관련 담보로 보장'으로 따로 표시됩니다. 담보 이름은 {{fact:relation_covered_pairs.names}}입니다. 영업 인사이트의 관련 담보 {{fact:sales_insight_by_category_display.관련 담보}}건도 같은 담보 관계로 찾은 것입니다. 셋째, 회사를 늘려도 같은 기준으로 비교할 수 있습니다. 새 회사의 급부를 같은 표준담보 사전 {{fact:standard_coverage_in_use}}개에 연결하면 기존 회사와 같은 기준으로 비교됩니다. 지금 구글 시트에는 {{len:mapping_status_by_org}}개 회사의 급부가 같은 사전에 연결돼 있고, 그 가운데 화면에 올린 곳은 우체국을 포함해 {{fact:site_org_count}}곳입니다. 줄어드는 작업 시간은 아직 측정하지 않았기 때문에 숫자로 말씀드리지 않습니다."
 }

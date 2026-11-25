@@ -11,7 +11,7 @@
 | 시장 소식 수집, 주간 마감 | GitHub Actions | 매일 소량 수집, 일요일 마감 |
 | 공시 문서 수집과 추출 | GitHub Actions (수동 실행) | 우체국과 한화생명은 모델 추출과 검증을 거쳐 시트에 쓰고, 삼성화재는 급부 표를 코드 규칙으로 읽어 급부와 주계약 가입조건을 시트에 씁니다. 메리츠화재, 삼성생명, KB라이프생명, 교보생명, 현대해상은 두 모델이 따로 읽은 검증 결과 파일(`data/crosscheck/`)로 적재합니다(`scripts/load_reader_product.py`) |
 | 분석 화면 (제출 데모) | `site/proto/console4.html` (원본 `proto_src/console4/`), [공개 주소](https://bluethestyle.github.io/korea_post_life/proto/console4.html) | 탭 6개(전체 요약, 고객군과 시장, 인수기준 비교, 담보 비교, 영업 인사이트, 관계 그래프)와 영업 인사이트 탭 안의 응대 화법 A4 패널. 자료와 CSS, JS, 글꼴을 모두 담은 HTML 한 파일이라 오프라인에서 열어도 동작합니다 |
-| 발표 덱 | `site/deck/index.html` (원본 `proto_src/deck/`), [공개 주소](https://bluethestyle.github.io/korea_post_life/deck/) | 발표 슬라이드 26장. 숫자는 사실 자료(`presentation_animation/facts.json`)에서 읽습니다 |
+| 발표 덱 | `site/deck/index.html` (원본 `proto_src/deck/`), [공개 주소](https://bluethestyle.github.io/korea_post_life/deck/) | 발표 슬라이드 32장. 숫자는 사실 자료(`presentation_animation/facts.json`)에서 읽습니다 |
 | 관계 그래프 화면 | `site/proto/graph2.html` (원본 `proto_src/graph/`), [공개 주소](https://bluethestyle.github.io/korea_post_life/proto/graph2.html) | 회사, 종형, 특약, 급부, 표준담보의 연결을 따라가는 단독 화면 |
 | 초기 버전 | `site/v1/index.html`, [공개 주소](https://bluethestyle.github.io/korea_post_life/v1/) | 처음 만든 판단 화면. 화면 6개, 해설 글, 응대 카드 |
 | 안내 화면 | `site/index.html`, [공개 주소](https://bluethestyle.github.io/korea_post_life/) | 위 네 화면으로 가는 링크만 있는 루트 화면. GitHub Pages에는 `site/` 폴더 전체를 배포합니다 |

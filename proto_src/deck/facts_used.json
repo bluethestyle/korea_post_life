@@ -15,6 +15,7 @@
    "practice_respondents"
   ],
   "03": [
+   "practice_tool_need",
    "practice_respondents",
    "comparison_target_counts",
    "comparison_targets_loaded",
@@ -170,7 +171,8 @@
    "dictionary_addition_rule",
    "standard_coverage_rows",
    "standard_coverage_in_use",
-   "variant_sale_status_site"
+   "variant_sale_status_site",
+   "epost_renewal"
   ],
   "24": [
    "common_coverage_pairs",
@@ -226,6 +228,7 @@
    "standard_coverage_in_use",
    "practice_respondents",
    "practice_compare_source",
+   "epost_renewal",
    "variant_sale_status_site",
    "revision_changes",
    "segment_map_cell_count",
@@ -243,7 +246,11 @@
    "variants_by_org",
    "benefits_by_org",
    "premium_example_rows",
-   "benefit_disease_code_rows"
+   "benefit_disease_code_rows",
+   "practice_revision_concern",
+   "doc_hash_coverage_site",
+   "epost_renewal",
+   "disease_group_draft"
   ],
   "32": [
    "epost_summary_rows_matched",
@@ -256,6 +263,9 @@
  "refs": {
   "02": [
    "association_disclosure"
+  ],
+  "03": [
+   "insurance_damoa"
   ],
   "14": [
    "gemini_decision_release",

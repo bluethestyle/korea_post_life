@@ -187,6 +187,14 @@
       "urls": ["https://docs.github.com/en/billing/concepts/product-billing/github-actions", "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows"],
       "kind": "official", "checked": "2026-11-24", "slides": [27],
       "note": "단서 둘: 대형 러너(larger runners)는 공개 저장소에서도 요금이 붙고, 공개 저장소의 schedule 실행은 저장소 활동이 60일 없으면 자동으로 꺼진다. 이 앱은 매일과 매주 예약 실행이 있어 60일 규칙이 실제로 관련된다."
+    },
+    "insurance_damoa": {
+      "label": "보험다모아 설명(금융위원회 보도자료 2016-11-30, 「보험다모아」 1년, 방문자수 100만명 돌파 및 저렴하고 가입도 간편한 온라인 보험 활성화 등 성과)",
+      "value": {"name": "보험다모아", "text": "다양한 보험상품의 보험료를 한곳에서 비교조회하고, 가입까지 바로 연결될 수 있는 온라인 보험 슈퍼마켓",
+                "date": "2016-11-30"},
+      "urls": ["https://www.fsc.go.kr/no010101/72454"],
+      "kind": "official", "checked": "2026-11-25", "slides": [3],
+      "note": "text 는 보도자료의 문구 그대로다. 소비자가 보험료를 비교해 가입하는 서비스의 예로만 쓰고, 운영 주체는 적지 않는다. 영업 기획과 상품 설계 담당자용 비교 도구가 없다는 말은 실무자 1명의 의견(facts.json 의 practice_tool_need)이고 이 출처의 내용이 아니다."
     }
   }
 }
