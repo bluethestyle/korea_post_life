@@ -449,7 +449,8 @@ async def stage4(pg, bases, names):
     pairs = {f'{names[a]}|{names[b]}': round(diff(a, b, True)[1], 2) for a, b in itertools.combinations([b1, b2, b3, b4, bt], 2)}
     out['cond_move'] = {'max_123_all_nodes': round(m123, 3), 'mean_3_4_all_nodes': round(diff(b3, b4, False)[1], 3),
                         'mean_4_unified_same_group': round(diff(b4, bt, True)[1], 2), 'same_group_pairs': pairs,
-                        'max_pair_same_group_mean': max(pairs.values())}
+                        'max_pair_same_group_mean': max(pairs.values()),
+                        'mean_all_pairs_same_group': round(sum(pairs.values()) / len(pairs), 2)}
     # 16번: 트랜지션 표본(requestAnimationFrame 마다 getBoundingClientRect)
     tr_ = {}
     for motion in ['on', 'calm', 'off']:
@@ -492,6 +493,226 @@ async def stage4(pg, bases, names):
     out['evidence_two_step'] = ev
     return out
 
+
+
+# ---------------------------------------------------------------- 5, 6단계: 종형 구성(6절)과 시장 동향(7절), 12절 1, 14, 15, 22번
+ALT_JS = r"""
+() => {
+  const svg = document.querySelector('#gr-vt-svg, #gr-mk-svg');
+  if (!svg) return null;
+  const tr = el => { const m = /translate\(([-\d.]+)[ ,]+([-\d.]+)\)/.exec(el.getAttribute('transform') || ''); return m ? [+m[1], +m[2]] : [0, 0]; };
+  const nodes = Array.from(svg.querySelectorAll('.gr-l-nodes > .gr-v')).map(el => { const [x, y] = tr(el); return { id: el.dataset.grId, kind: el.dataset.grKind, x, y, r: +el.dataset.grR, org: el.dataset.grOrg || '', state: el.dataset.grState || '' }; });
+  const edges = [];
+  svg.querySelectorAll('.gr-l-edges .gr-e').forEach(el => {
+    let pts;
+    if (el.tagName === 'line') pts = [[+el.getAttribute('x1'), +el.getAttribute('y1')], [+el.getAttribute('x2'), +el.getAttribute('y2')]];
+    else {
+      const v = (el.getAttribute('d') || '').match(/-?[\d.]+/g).map(Number);
+      const [x0, y0, cx, cy, x1, y1] = v; pts = [];
+      for (let i = 0; i <= 16; i++) { const u = i / 16; pts.push([(1 - u) * (1 - u) * x0 + 2 * (1 - u) * u * cx + u * u * x1, (1 - u) * (1 - u) * y0 + 2 * (1 - u) * u * cy + u * u * y1]); }
+    }
+    edges.push({ s: el.dataset.grS, t: el.dataset.grT, k: el.dataset.grEkind, pts, quad: el.tagName !== 'line', d: el.getAttribute('d') || '' });
+  });
+  const labels = Array.from(svg.querySelectorAll('.gr-l-labels [data-gr-lbox]')).map(el => {
+    const bb = el.getBBox();
+    return { type: el.dataset.grLb, for: el.dataset.grFor || '', box: el.dataset.grLbox.split(',').map(Number), bbox: [bb.x, bb.y, bb.x + bb.width, bb.y + bb.height],
+      text: el.textContent, body: (el.querySelector('.gr-vlb-b') || {}).textContent || '', suffix: ((el.querySelector('.gr-vlb-rn') || {}).textContent || '').trim(),
+      font: parseFloat(getComputedStyle(el).fontSize), more: el.dataset.grMore != null ? +el.dataset.grMore : null };
+  });
+  const bx = svg.querySelector('.gr-vbox');
+  let box = null, unmapped = null, varId = '';
+  if (bx) { const [x, y] = tr(bx); const r = bx.querySelector('rect'); box = [x + +r.getAttribute('x'), y + +r.getAttribute('y'), x + +r.getAttribute('x') + +r.getAttribute('width'), y + +r.getAttribute('y') + +r.getAttribute('height')]; unmapped = bx.dataset.grUnmapped != null ? +bx.dataset.grUnmapped : null; varId = bx.dataset.grId; }
+  const host = svg.parentElement;
+  return { view: svg.id, W: +svg.getAttribute('width'), H: +svg.getAttribute('height'), hostH: host.clientHeight, hscroll: host.scrollWidth - host.clientWidth,
+    nodes, edges, labels, box, unmapped, varId };
+}
+"""
+
+# 원자료(graph.json)에서 따로 세는 기대값: 종형의 특약, 급부, 매핑된 급부, 특약 갱신여부
+VT_EXPECT_JS = r"""
+(vid) => {
+  const raw = JSON.parse(document.getElementById('graph-data').textContent);
+  const NK = Object.fromEntries(raw.kinds.map((n, i) => [n, i])), EK = Object.fromEntries(raw.ekinds.map((n, i) => [n, i]));
+  const keys = raw.keys;
+  const prop = (n, k) => { const p = n[4] || {}; const j = keys.indexOf(k); return p[j]; };
+  const E = raw.edges.concat(raw.edges2 || []);
+  const vi = raw.nodes.findIndex(n => n[0] === vid);
+  const riders = E.filter(e => e[2] === EK['포함'] && e[0] === vi && raw.nodes[e[1]][1] === NK['특약']).map(e => e[1]);
+  const rs = new Set(riders);
+  const bens = Array.from(new Set(E.filter(e => e[2] === EK['포함'] && rs.has(e[0]) && raw.nodes[e[1]][1] === NK['급부']).map(e => e[1])));
+  const mapped = new Set(E.filter(e => e[2] === EK['매핑'] && raw.nodes[e[0]][1] === NK['급부']).map(e => e[0]));
+  const renew = {};
+  riders.forEach(r => { renew[raw.nodes[r][0]] = prop(raw.nodes[r], '갱신여부') || ''; });
+  const vs = raw.summary && raw.summary['종형'] && raw.summary['종형'][vid];
+  return { riders: riders.map(r => raw.nodes[r][0]), bens: bens.map(b => raw.nodes[b][0]), mappedBens: bens.filter(b => mapped.has(b)).map(b => raw.nodes[b][0]),
+    unmappedBens: bens.filter(b => !mapped.has(b)).length, summaryUnmapped: vs ? vs['미연결급부'] : null, renew };
+}
+"""
+
+MK_EXPECT_JS = r"""
+() => {
+  const raw = JSON.parse(document.getElementById('graph-data').textContent);
+  const NK = Object.fromEntries(raw.kinds.map((n, i) => [n, i]));
+  const keys = raw.keys;
+  const prop = (n, k) => { const p = n[4] || {}; return p[keys.indexOf(k)]; };
+  const news = raw.nodes.filter(n => n[1] === NK['시장 동향']);
+  return { sales: (App.S['시장소식']['소식'] || []).map(x => x['동향ID']), passed: news.filter(n => prop(n, '선별상태') === 'passed').length, all: news.length,
+    below: news.filter(n => prop(n, '선별상태') === 'below').map(n => [n[0], prop(n, '판정확률')]) };
+}
+"""
+
+RENEW_NAME = {'갱신': '(갱신형)', '비갱신': '(비갱신형)'}
+
+
+def alt_layout(sc):
+    nodes, edges, labels = sc['nodes'], sc['edges'], sc['labels']
+    ov = 0
+    for a, b in itertools.combinations(nodes, 2):
+        if math.hypot(a['x'] - b['x'], a['y'] - b['y']) < a['r'] + b['r'] - 0.01:
+            ov += 1
+    box_ov = sum(1 for n in nodes if sc['box'] and rect_circle(sc['box'], n['x'], n['y'], n['r']))
+    cross = 0
+    for a, b in itertools.combinations(edges, 2):
+        if {a['s'], a['t']} & {b['s'], b['t']}:
+            continue
+        for i in range(len(a['pts']) - 1):
+            hit = False
+            for j in range(len(b['pts']) - 1):
+                if seg_cross((*a['pts'][i], *a['pts'][i + 1]), (*b['pts'][j], *b['pts'][j + 1])):
+                    cross += 1
+                    hit = True
+                    break
+            if hit:
+                break
+    lb = [x for x in labels]
+    lab_ov = sum(1 for a, b in itertools.combinations(lb, 2) if rect_overlap(a['box'], b['box']))
+    lab_node = sum(1 for a in lb for n in nodes if a['for'] != n['id'] and rect_circle(a['box'], n['x'], n['y'], n['r']))
+    lab_box = sum(1 for a in lb if sc['box'] and rect_overlap(a['box'], sc['box']))
+    lab_out = sum(1 for a in lb if a['box'][0] < 0 or a['box'][1] < 0 or a['box'][2] > sc['W'] or a['box'][3] > sc['H'])
+    bbox_out = sum(1 for a in lb if a['bbox'][2] > a['box'][2] + 1.5 or a['bbox'][0] < a['box'][0] - 1.5)
+    orth = sum(1 for e in edges if e['quad'] and not re.fullmatch(r'M[-\d.]+,[-\d.]+ Q[-\d.]+,[-\d.]+ [-\d.]+,[-\d.]+', e['d']))
+    node_out = sum(1 for n in nodes if n['x'] - n['r'] < 0 or n['y'] - n['r'] < 0 or n['x'] + n['r'] > sc['W'] or n['y'] + n['r'] > sc['H'])
+    return {'nodes': len(nodes), 'edges': len(edges), 'node_overlap': ov, 'node_box_overlap': box_ov, 'crossings': cross,
+            'label_overlap': lab_ov, 'label_node_overlap': lab_node, 'label_box_overlap': lab_box, 'label_outside': lab_out,
+            'label_text_wider_than_box': bbox_out, 'label_font_min': min([a['font'] for a in lb] or [13]), 'orthogonal_edges': orth,
+            'node_outside': node_out, 'hscroll': sc['hscroll']}
+
+
+def vt_check(sc, exp):
+    ids = {n['id'] for n in sc['nodes']}
+    shown_r = [r for r in exp['riders'] if r in ids]
+    shown_b = [b for b in exp['bens'] if b in ids]
+    badge = sum(l['more'] or 0 for l in sc['labels'] if l['type'] == 'badge')
+    hidden_mapped = len([b for b in exp['mappedBens'] if b not in ids])
+    rl = [l for l in sc['labels'] if l['type'] == 'rider']
+    renew_bad = [l['for'] for l in rl if l['suffix'] != RENEW_NAME.get(exp['renew'].get(l['for'], ''), '') or not l['text'].endswith(l['suffix'])]
+    return {'riders': f"{len(shown_r)}/{len(exp['riders'])}", 'bens': f"{len(shown_b)}/{len(exp['bens'])}",
+            'riders_all_shown': len(shown_r) == len(exp['riders']), 'bens_all_shown': len(shown_b) == len(exp['bens']),
+            'badge_sum': badge, 'hidden_mapped_bens': hidden_mapped, 'badge_ok': badge == hidden_mapped,
+            'box_unmapped': sc['unmapped'], 'raw_unmapped_bens': exp['unmappedBens'], 'summary_unmapped': exp['summaryUnmapped'],
+            'unmapped_ok': sc['unmapped'] == exp['unmappedBens'], 'rider_labels': len(rl), 'rider_label_renew_bad': renew_bad,
+            'extra_kinds': sorted({n['kind'] for n in sc['nodes']} - {'특약', '급부', '표준담보'})}
+
+
+async def wait_alt(pg, sel):
+    await pg.wait_for_function(f"() => !!document.querySelector('{sel}')", timeout=8000)
+    await pg.wait_for_timeout(250)
+    await pg.wait_for_function("() => !document.querySelector('.gr-l-ghost > *')", timeout=8000)
+    await pg.wait_for_timeout(250)
+
+
+async def open_node(pg, node_id):
+    await pg.evaluate("(id) => { const raw = JSON.parse(document.getElementById('graph-data').textContent); const i = raw.nodes.findIndex(n => n[0] === id); const b = document.createElement('button'); b.dataset.grSelIdx = String(i); document.getElementById('z-left').appendChild(b); b.click(); b.remove(); }", node_id)
+
+
+def static_check():
+    src = (ROOT / 'proto_src/console4/tab6.js').read_text(encoding='utf-8')
+    gone = ['COL_KINDS', 'COL_OF_KIND', 'drawOrthogonalEdges', 'columnCountText', 'renderVariantRiderColHTML', 'expandDomainStep', 'expandStdStep',
+            'neighborGroupsOf', 'expandNeighborGroup', 'syncVariantDownstream', 'varStdPaths', 'varDomStds', 'matchedVariants', 'stdOwnershipClass',
+            'buildCoverStdColumns', 'RIDER_GRP_ORDER', 'riderGroupRank', 'lineStyleLabel', 'state.cols', 'batches', 'varLimits', 'varMores']
+    css = (ROOT / 'proto_src/console4/tab6.css').read_text(encoding='utf-8')
+    return {'kind_number_compare': re.findall(r'\.k\s*===\s*\d|\bek:\s*\d|\.ek\s*===\s*\d', src), 'math_random': src.count('Math.random'),
+            'removed_names_left': [n for n in gone if re.search(r'\b' + re.escape(n) + r'\b', src)],
+            'css_left': [s for s in ['.gr-col-bar', '.gr-cols-grid', '.gr-col{', '.gr-c-', '.gr-node', '.gr-vpath'] if s in css]}
+
+
+async def alt_checks(pg, b1):
+    out = {}
+    names = await pg.evaluate("() => { const raw = JSON.parse(document.getElementById('graph-data').textContent); return raw.nodes.filter(n => n[2].includes('간편가입형(1년)') && n[3] === 'HANWHALIFE').map(n => n[0]); }")
+    # 앞 측정의 Esc 로 다른 탭에 가 있을 수 있으므로 관계 그래프 탭으로 돌아온다
+    await pg.evaluate("() => { if (App.state.tab !== 'graph') App.go('graph'); }")
+    await pg.wait_for_timeout(600)
+    await set_cond(pg, b1, 'all')
+    await pg.evaluate("(s) => document.querySelector(s).click()", '[data-gr-preset="cover"]')
+    await wait_alt(pg, '#gr-net-svg')
+    out['org_code_text_cover'] = await pg.evaluate(ORG_TEXT_JS)
+    # 14번: 종형 구성
+    await pg.evaluate("(s) => document.querySelector(s).click()", '[data-gr-preset="variant"]')
+    await wait_alt(pg, '#gr-vt-svg')
+    for vid in [b1] + names[:1]:
+        if vid != b1:
+            await open_node(pg, vid)
+            await wait_alt(pg, '#gr-vt-svg')
+        sc = await pg.evaluate(ALT_JS)
+        exp = await pg.evaluate(VT_EXPECT_JS, vid)
+        out[f'variant|{vid}'] = {'layout': alt_layout(sc), 'data': vt_check(sc, exp), 'org_code_text': await pg.evaluate(ORG_TEXT_JS)}
+    # 15번: 시장 동향
+    await pg.evaluate("(s) => document.querySelector(s).click()", '[data-gr-preset="news"]')
+    await wait_alt(pg, '#gr-mk-svg')
+    mexp = await pg.evaluate(MK_EXPECT_JS)
+    mk = {}
+    for f in ['week', 'allweek', 'all']:
+        await pg.evaluate("(s) => document.querySelector(s).click()", f'[data-gr-nf="{f}"]')
+        await wait_alt(pg, '#gr-mk-svg')
+        sc = await pg.evaluate(ALT_JS)
+        news = [n for n in sc['nodes'] if n['kind'] == '시장 동향']
+        orgs = {n['id'] for n in sc['nodes'] if n['kind'] == '회사'}
+        nmap = {n['id']: n for n in news}
+        cross_group = sum(1 for e in sc['edges'] if not (e['t'] in nmap and nmap[e['t']]['org'] == e['s']))
+        btn = await pg.evaluate(f"() => +document.querySelector('[data-gr-nf=\"{f}\"] .num').textContent.replace(/,/g, '')")
+        mk[f] = {'layout': alt_layout(sc), 'news': len(news), 'button_count': btn, 'orgs': len(orgs),
+                 'var_or_std_nodes': sum(1 for n in sc['nodes'] if n['kind'] in ('종형', '표준담보')), 'edges_between_groups': cross_group,
+                 'below_shown': [n['id'] for n in news if n['state'] == 'below'], 'svg_h': sc['H'], 'host_h': sc['hostH']}
+        if f == 'week':
+            mk[f]['same_as_sales'] = sorted(n['id'] for n in news) == sorted(mexp['sales'])
+            mk[f]['org_code_text'] = await pg.evaluate(ORG_TEXT_JS)
+    mk['expect'] = {'sales': len(mexp['sales']), 'passed': mexp['passed'], 'all': mexp['all'], 'below': mexp['below']}
+    out['news'] = mk
+    await pg.evaluate("(s) => document.querySelector(s).click()", '[data-gr-preset="cover"]')
+    await wait_alt(pg, '#gr-net-svg')
+    return out
+
+
+def alt_fails(a):
+    f = []
+    for k, v in a.items():
+        if not k.startswith('variant|'):
+            continue
+        L, D = v['layout'], v['data']
+        one = k.endswith('_8dba92') or D['riders_all_shown'] and D['bens_all_shown']
+        lim = 25 if one else 70
+        if L['node_overlap'] or L['node_box_overlap']: f.append(k + ':overlap')
+        if L['crossings'] > lim: f.append(k + f":crossings>{lim}")
+        if L['label_overlap'] or L['label_node_overlap'] or L['label_box_overlap'] or L['label_outside'] or L['label_font_min'] < 13: f.append(k + ':labels')
+        if L['orthogonal_edges'] or L['node_outside'] or L['hscroll'] > 0: f.append(k + ':layout')
+        if not D['badge_ok'] or not D['unmapped_ok'] or D['rider_label_renew_bad'] or D['extra_kinds']: f.append(k + ':data')
+        if v['org_code_text']: f.append(k + ':org_code')
+    n = a.get('news', {})
+    e = n.get('expect', {})
+    for fk, want in (('week', e.get('sales')), ('allweek', e.get('passed')), ('all', e.get('all'))):
+        m = n.get(fk)
+        if not m:
+            f.append('news:' + fk)
+            continue
+        L = m['layout']
+        if m['news'] != want or m['button_count'] != want or m['var_or_std_nodes'] or m['edges_between_groups']: f.append('news:' + fk + ':data')
+        if L['node_overlap'] or L['label_overlap'] or L['label_node_overlap'] or L['label_font_min'] < 13 or L['hscroll'] > 0: f.append('news:' + fk + ':layout')
+    if n.get('week') and (not n['week'].get('same_as_sales') or n['week'].get('org_code_text')): f.append('news:week:sales_or_org_code')
+    if n.get('all') and sorted(n['all']['below_shown']) != sorted(x[0] for x in e.get('below', [])): f.append('news:all:below')
+    if a.get('org_code_text_cover'): f.append('cover:org_code')
+    st = a.get('static', {})
+    if st.get('kind_number_compare') or st.get('math_random') or st.get('removed_names_left') or st.get('css_left'): f.append('static')
+    return f
 
 async def set_cond(pg, base, scope):
     await pg.evaluate("(a) => App.set({ base: a[0], peerScope: a[1] })", [base, scope])
@@ -584,6 +805,14 @@ async def run(args):
                 st4 = await stage4(pg, bases, names) if (vw, vh) == sizes[0] else {'selection': await stage4_sel(pg, bases, names)}
             await pg.keyboard.press('Escape')
             await pg.wait_for_timeout(300)
+            if (vw, vh) == sizes[0] and not args.no_alt:
+                try:
+                    alt = await alt_checks(pg, base_ids(bases, names)[0])
+                except Exception as ex:  # 측정이 멈추면 그때의 콘솔 오류와 화면 상태를 남긴다
+                    alt = {'error': str(ex)[:300], 'console_errors_so_far': errs[:10],
+                           'state': await pg.evaluate("() => [document.querySelector('[data-gr-preset].is-on')?.dataset.grPreset, !!document.getElementById('gr-vt-svg'), !!document.getElementById('gr-net-svg'), document.querySelector('#gr-net')?.clientWidth, document.querySelector('#gr-net')?.clientHeight, (document.querySelector('#z-center')||{}).innerHTML?.slice(0, 200)]")}
+                alt['static'] = static_check()
+                result['alt'] = alt
             hscroll = await pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
             math_random = await pg.evaluate("() => (document.documentElement.outerHTML.match(/Math\\.random/g) || []).length")
             result['sizes'][f'{vw}x{vh}'] = {'states': per, 'determinism': det, 'selection': sel, 'org_code_text': org_hits,
@@ -639,8 +868,9 @@ async def run(args):
         cm = st4.get('cond_move')
         if cm and (cm['max_123_all_nodes'] > 0.5 or cm['mean_3_4_all_nodes'] > 4 or cm['mean_4_unified_same_group'] > 20):
             f4.append('cond_move')
-        # 13번의 넷째 기준(다섯 종형의 모든 조합 8px 이하)은 같은 절의 4종과 통합건강보험 사이 계산값(10.8px)과 맞지 않아 따로 적는다
-        if cm and cm['max_pair_same_group_mean'] > 8:
+        # 13번의 넷째 기준은 다섯 종형의 모든 조합의 평균 8px 이하로 읽는다(같은 절의 4종과 통합 20px, 계산값 10.8px 와 맞추려면).
+        # 조합별 최댓값(max_pair_same_group_mean)은 참고값으로 함께 적는다
+        if cm and cm['mean_all_pairs_same_group'] > 8:
             f4.append('cond_move_all_pairs_8px')
         for k, v in st4.get('transition', {}).items():
             if not v.get('moving_nodes'):
@@ -661,6 +891,8 @@ async def run(args):
         it = result['sizes'].get(size, {}).get('states', {}).get(rest)
         if it and it['layout'].get('std_label_on_bundle'):
             fails.append('std_label_on_bundle')
+    if 'alt' in result:
+        summ['alt'] = alt_fails(result['alt']) + (['alt_error'] if 'error' in result['alt'] else [])
     result['summary_fails'] = {k: v for k, v in summ.items() if v}
     result['summary_states'] = len(summ)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -670,14 +902,43 @@ async def run(args):
         print(' ', k, v)
 
 
+async def alt_run(args):
+    url = Path(args.html).resolve().as_uri() + '#t=graph'
+    vw, vh = [int(v) for v in args.sizes.split(',')[0].split('x')]
+    async with async_playwright() as p:
+        br = await p.chromium.launch()
+        pg = await br.new_page(viewport={'width': vw, 'height': vh})
+        errs, ext = [], []
+        pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.on('request', lambda r: ext.append(r.url) if not r.url.startswith(('file:', 'data:', 'blob:')) else None)
+        await pg.goto(url)
+        await pg.wait_for_function("() => !!document.getElementById('gr-net-svg')", timeout=10000)
+        await pg.wait_for_timeout(600)
+        bases = await pg.evaluate("() => Object.keys(App.S['기준별'])")
+        names = await pg.evaluate("() => Object.fromEntries(Object.entries(App.S['기준별']).map(([k, v]) => [k, (App.txt.vinfo(k) || {})['종형명'] || k]))")
+        alt = await alt_checks(pg, base_ids(bases, names)[0])
+        alt['static'] = static_check()
+        alt['console_errors'] = errs
+        alt['external_requests'] = ext
+        await br.close()
+    fails = alt_fails(alt) + (['console_errors'] if errs else []) + (['external_requests'] if ext else [])
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.out).write_text(json.dumps({'alt': alt, 'fails': fails}, ensure_ascii=False, indent=1), encoding='utf-8')
+    print('실패', fails)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--html', default=str(ROOT / 'site/proto/console4.html'))
     ap.add_argument('--sizes', default='1920x1080,1600x900,1366x768,1280x800')
     ap.add_argument('--out', default=str(ROOT / 'shots_console4/graph_check.json'))
     ap.add_argument('--no-stage4', action='store_true', help='4단계 측정(선택 펼침, 조건 이동, 트랜지션, 근거 경로)을 건너뛴다')
+    ap.add_argument('--no-alt', action='store_true', help='5, 6단계 측정(종형 구성, 시장 동향)을 건너뛴다')
+    ap.add_argument('--alt-only', action='store_true', help='5, 6단계 측정만 1920x1080 에서 한다')
     ap.add_argument('--cpu4', action='store_true', help='CPU 4배 느림에서 조건마다 레이아웃 계산 시간을 잰다')
-    asyncio.run(run(ap.parse_args()))
+    args = ap.parse_args()
+    asyncio.run(alt_run(args) if args.alt_only else run(args))
 
 
 if __name__ == '__main__':
