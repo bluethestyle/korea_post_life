@@ -512,3 +512,25 @@ def test_epost_moresimple_health_is_fetched(bench, monkeypatch, tmp_path):
     index = json.loads((tmp_path / "out/index.json").read_text(encoding="utf-8"))
     assert [e["상품코드"] for e in index] == ["P900011", "P900012"]
     assert {e["저장이름"] for e in index} == {"yoyak_shared"}          # 여러 종이 한 파일을 함께 쓴다
+
+
+def test_epost_hanarook_is_fetched_without_plus_period(bench, monkeypatch, tmp_path):
+    """우체국하나로OK보험 2609의 종형은 받고, 플러스보험기간 상품과 이름이 비슷한 직전 상품(하나로OK건강종신보험)은 받지 않는다."""
+    products = [epost.Product("P900021", "무배당 우체국하나로OK보험(표준형) 2609 1종(일반가입)(종신)", "2026-09-16", None),
+                epost.Product("P900022", "무배당 우체국하나로OK보험(해약환급금50%지급형) 2609 2종(간편가입)(90,100세)", "2026-09-16", None),
+                epost.Product("P900023", "무배당 우체국하나로OK보험 2609 2종(간편가입)(플러스보험기간)", "2026-09-16", None),
+                epost.Product("P900024", "무배당 우체국하나로OK건강종신보험 2504 2종(표준형)", "2025-04-03", None)]
+    asked = []
+
+    def list_documents(s, code, on):
+        asked.append(code)
+        return [epost.Document(code, "상품요약서", "yoyak_ok.pdf", "/dat_docs/04/yoyak_ok.pdf", "2026-09-10")]
+
+    monkeypatch.setattr(epost, "list_products", lambda s, selling=True: products if selling else [])
+    monkeypatch.setattr(epost, "list_documents", list_documents)
+    monkeypatch.setattr(epost, "download", lambda s, doc: b"%PDF-1.7\n" + doc.path.encode())
+    monkeypatch.setattr(fd, "pdf_pages", lambda data: ["첫 쪽"])
+    monkeypatch.setattr(fd, "session", lambda: object())
+    monkeypatch.setattr(sys, "argv", ["fetch_disclosure.py", "--out", "out", "--org", "epost"])
+    assert fd.main() == 0
+    assert asked == ["P900021", "P900022"]

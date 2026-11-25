@@ -541,6 +541,8 @@ def expand(text: str) -> list[str]:
 
     쉼표로 나눈 조각마다 하나씩이다. 숫자만 적힌 조각은 뒤쪽에서 가장 가까운 "숫자+단위" 조각의 단위를 물려받는다:
     "10,20,30년납,전기납" → ["10년납", "20년납", "30년납", "전기납"], "10년납, 20년납" → ["10년납", "20년납"].
+    단위의 앞부분만 적힌 조각은 나머지를 물려받는다: "종신, 90세,100세만기" → ["종신", "90세만기", "100세만기"]
+    (우체국하나로OK보험 2609 사업방법서 3쪽의 주계약 보험기간 칸이 이렇게 적는다).
     괄호 안의 쉼표에서는 나누지 않는다. 기간으로 보이지 않는 조각이 섞여 있거나 물려받을 단위가 없으면 나누지 않고 그대로 하나.
     """
     flat = str(text or "").replace(" ", "")
@@ -555,7 +557,11 @@ def expand(text: str) -> list[str]:
                 return [flat]
             piece += unit
         elif piece[0].isdigit():
-            unit = piece.lstrip("0123456789")
+            own = piece.lstrip("0123456789")
+            if unit and len(own) < len(unit) and unit.startswith(own):
+                piece += unit[len(own):]
+            else:
+                unit = own
         out.append(piece)
     return out[::-1]
 
@@ -1023,6 +1029,15 @@ class Target:
     # 이름이 조금 달라도 주계약으로 볼 때 견줄 주계약 이름(near_main). 기본계약 표 하나만 모델에 넣을 때(conditions_run.run의
     # main_only)만 채운다. 비어 있으면 이름을 느슨하게 맞추지 않는다
     near_names: frozenset[str] = frozenset()
+    # 갱신 표시를 뗀 이름의 특약계보키 → 그 이름을 함께 쓰는 특약ID들. 한 특약을 갱신형과 비갱신형 두 가지로 파는 문서가
+    # 가입한도 표에는 두 가지를 묶은 이름 하나로 적는다(우체국하나로OK보험 2609 사업방법서 5쪽: "무배당 재해치료보장특약 2609"가
+    # "…(20년갱신형) 2609"와 "…N(비갱신형) 2609"의 합산 한도). rider로 찾지 못한 이름만 이것으로 찾는다(members)
+    families: dict[str, tuple[str, ...]] = field(default_factory=dict)
+
+    def members(self, name: str) -> tuple[str, ...]:
+        """이름이 뽑아 둔 특약 둘 이상을 묶은 이름이면 그 특약ID들. 아니면 빈 튜플. rider로 찾은 이름에는 쓰지 않는다."""
+        found = self.families.get(ids.rider_lineage_key(name), ())
+        return found if len(found) > 1 else ()
 
     def rider(self, name: str, near: bool = False) -> tuple[bool, str | None]:
         """(찾았는가, 특약ID). 주계약은 (True, None). 뽑아 둔 특약 목록에 있는 이름은 "보험"이 들어 있어도 특약이다.
@@ -1045,12 +1060,22 @@ class Target:
         return (True, None) if main else (False, None)
 
 
+# 특약 이름의 갱신 표시. "…특약(20년갱신형)", "…특약N(비갱신형)", "…특약(갱신형)". 비갱신형의 "N"(사망시 계약자적립액 미지급형 표시)도 뗀다
+_RENEWAL_MARK = re.compile(r"N?\((?:\d+년)?(?:비)?갱신형\)")
+
+
 def target_of(variant_id: str, variant_name: str, rider_rows: list[dict[str, Any]]) -> Target:
     mine = [r for r in rider_rows if r["종형ID"] == variant_id]
     main = next((r for r in mine if r["담보구분"] == "주계약"), None)
+    families: dict[str, tuple[str, ...]] = {}
+    for r in mine:
+        name = str(r.get("원시특약명") or "")
+        if r["담보구분"] != "주계약" and _RENEWAL_MARK.search(name):
+            key = ids.rider_lineage_key(_RENEWAL_MARK.sub("", name))
+            families[key] = tuple(dict.fromkeys(families.get(key, ()) + (r["특약ID"],)))
     return Target(variant_id, variant_name, {r["특약계보키"]: r["특약ID"] for r in mine if r["담보구분"] != "주계약"},
                   main["특약ID"] if main else None, frozenset({main["특약계보키"]}) if main else frozenset(),
-                  main.get("원시특약명") if main else None)
+                  main.get("원시특약명") if main else None, families=families)
 
 
 _PAY_CYCLE = re.compile(r"\s*(?:월납|연납|일시납|\d+개월납)\s*$")
@@ -1142,7 +1167,7 @@ def build_rows(targets: list[Target], ages: list[AgeItem], limits: list[LimitIte
                 continue
             for name in l.subjects:
                 ok, rid = target.rider(name)
-                if ok and rid == rider_id:
+                if (ok and rid == rider_id) or (not ok and rider_id in target.members(name)):
                     found.append(l)
                     break
         return found
@@ -1186,14 +1211,15 @@ def build_rows(targets: list[Target], ages: list[AgeItem], limits: list[LimitIte
                 continue
             for name in l.subjects:
                 ok, rider_id = target.rider(name)
-                if not ok:
+                group = () if ok else target.members(name)       # 두 특약을 묶은 이름이면 두 특약 모두의 한도다
+                if not ok and not group:
                     unknown.add(name)
                     continue
-                rid = rider_id or target.main_id
-                if rid is None:
-                    continue
-                low, high = out.amounts.get(rid, (l.low, l.high))
-                out.amounts[rid] = (min(low, l.low), max(high, l.high))
+                for rid in group or (rider_id or target.main_id,):
+                    if rid is None:
+                        continue
+                    low, high = out.amounts.get(rid, (l.low, l.high))
+                    out.amounts[rid] = (min(low, l.low), max(high, l.high))
         for c in constraints:
             ok, base_id = target.rider(c.base)
             base_id = base_id or target.main_id
@@ -1203,20 +1229,22 @@ def build_rows(targets: list[Target], ages: list[AgeItem], limits: list[LimitIte
             value, unit = c.value
             for name in c.targets:
                 ok, rider_id = target.rider(name)
-                if not ok or rider_id is None:
+                group = () if ok else target.members(name)       # 두 특약을 묶은 이름이면 두 특약 모두가 대상이다
+                if not group and (not ok or rider_id is None):
                     if not ok:
                         unknown.add(name)
                     else:
                         out.notes.append(f"'{c.base}'에 대한 {c.kind} 제약의 대상 '{name}'이(가) 주계약이라 건너뜀")
                     continue
-                row_id = ids.constraint_id(target.variant_id, base_id, rider_id, c.kind)
-                if row_id in out.origin:
-                    continue
-                out.constraints.append({
-                    "제약ID": row_id, "종형ID": target.variant_id, "기준특약ID": base_id, "대상특약ID": rider_id,
-                    "제약유형": c.kind, "제약수치": value, "제약단위": unit, "근거문구": c.quote[:200] or None,
-                })
-                out.origin[row_id] = [c.key]
+                for rider_id in group or (rider_id,):
+                    row_id = ids.constraint_id(target.variant_id, base_id, rider_id, c.kind)
+                    if row_id in out.origin:
+                        continue
+                    out.constraints.append({
+                        "제약ID": row_id, "종형ID": target.variant_id, "기준특약ID": base_id, "대상특약ID": rider_id,
+                        "제약유형": c.kind, "제약수치": value, "제약단위": unit, "근거문구": c.quote[:200] or None,
+                    })
+                    out.origin[row_id] = [c.key]
     out.notes = list(dict.fromkeys(out.notes))
     for name in sorted(unknown):
         out.notes.append(f"'{name}'은(는) 뽑아 둔 특약 목록에 없어 건너뜀")
