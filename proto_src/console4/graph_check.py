@@ -357,6 +357,79 @@ SAMPLE_JS = r"""
 """
 
 
+# 담보 선택의 요약 노드: 보유 회사(종형)마다 하나, "특약 N, 급부 M" 이 원자료에서 따로 센 값과 상세 패널의 회사별 수와 같은지(2차 개선)
+# 기대값은 원자료의 포함, 매핑 엣지로 센다(종형 -> 특약 -> 급부 -> 매핑된 표준담보). 검수 대기 수는 보유 엣지 속성에서 읽는다
+SUM_JS = r"""
+(args) => {
+  const [base, scope, sid] = args;
+  const raw = JSON.parse(document.getElementById('graph-data').textContent);
+  const NK = Object.fromEntries(raw.kinds.map((n, i) => [n, i])), EK = Object.fromEntries(raw.ekinds.map((n, i) => [n, i]));
+  const key = k => raw.keys[+k];
+  const props = p => { const o = {}; for (const [k, v] of Object.entries(p || {})) o[key(k)] = v; return o; };
+  const nodes = raw.nodes, idx = new Map(nodes.map((n, i) => [n[0], i]));
+  const sector = {};
+  nodes.forEach(n => { if (n[1] === NK['회사']) sector[n[3]] = props(n[4])['업권'] || ''; });
+  const inScope = code => scope === 'all' || (scope === 'life' ? sector[code] === '생명보험' : sector[code] === '손해보험');
+  const types = [base].concat((raw.summary['맞붙는종형'][base] || []).filter(id => inScope(nodes[idx.get(id)][3])));
+  const si = idx.get(sid);
+  const E = raw.edges.concat(raw.edges2 || []);
+  const inc = new Map(), mapped = new Set();
+  E.forEach(e => {
+    if (e[2] === EK['포함']) { if (!inc.has(e[0])) inc.set(e[0], []); inc.get(e[0]).push(e[1]); }
+    if (e[2] === EK['매핑'] && e[1] === si && nodes[e[0]][1] === NK['급부']) mapped.add(e[0]);
+  });
+  const held = new Map();
+  (raw.edges2 || []).forEach(e => { if (e[2] === EK['보유'] && e[1] === si) held.set(e[0], props(e[3])); });
+  const expect = [];
+  types.forEach((vid, slot) => {
+    const vi = idx.get(vid);
+    if (!held.has(vi)) return;
+    const rs = new Set(), bs = new Set();
+    (inc.get(vi) || []).filter(x => nodes[x][1] === NK['특약']).forEach(ri => (inc.get(ri) || []).forEach(b => { if (mapped.has(b)) { rs.add(ri); bs.add(b); } }));
+    const hp = held.get(vi);
+    expect.push({ slot, vid, r: rs.size, b: bs.size, wm: +(hp['매핑검수대기급부수'] || 0), we: +(hp['추출검수대기급부수'] || 0) });
+  });
+  const svg = document.getElementById('gr-net-svg');
+  const screen = Array.from(svg.querySelectorAll('.gr-l-exp .gr-x-sum')).map(el => {
+    const lb = svg.querySelector(`.gr-l-exp [data-gr-lb="exp"][data-gr-for="${CSS.escape(el.dataset.grId)}"]`);
+    return { slot: +el.dataset.grSlot, vid: el.dataset.grVid, r: +el.dataset.grSumR, b: +el.dataset.grSumB, title: el.dataset.tipTitle,
+      lines: lb ? Array.from(lb.querySelectorAll('tspan')).map(t => t.textContent) : null };
+  }).sort((a, b) => a.slot - b.slot);
+  const panel = Array.from(document.querySelectorAll('#z-right .ev-body dl.kv')).slice(0, 1).flatMap(dl => Array.from(dl.querySelectorAll('dt')).map(dt => ({ org: dt.textContent.trim(), dd: (dt.nextElementSibling || {}).textContent || '' })));
+  const edges = Array.from(svg.querySelectorAll('.gr-l-xe line.gr-e-sum')).map(el => [el.dataset.grS, el.dataset.grT]);
+  return { expect, screen, panel, edges, sumIds: Array.from(svg.querySelectorAll('.gr-l-exp .gr-x-sum')).map(el => el.dataset.grId) };
+}
+"""
+
+
+def sum_check(d, std_id):
+    """요약 노드 대조. 틀린 항목 목록을 돌려준다(빈 목록이면 통과)"""
+    bad = []
+    ex, sc = d['expect'], d['screen']
+    if [e['vid'] for e in ex] != [s['vid'] for s in sc]:
+        bad.append(['companies', [e['vid'] for e in ex], [s['vid'] for s in sc]])
+    if len(d['panel']) != len(sc):
+        bad.append(['panel_rows', len(d['panel']), len(sc)])
+    for e, s, pn in itertools.zip_longest(ex, sc, d['panel']):
+        if not e or not s:
+            continue
+        want = [f"특약 {e['r']:,}, 급부 {e['b']:,}"]
+        wait = ([f"매핑 검수 대기 급부 {e['wm']:,}"] if e['wm'] else []) + ([f"추출 검수 대기 급부 {e['we']:,}"] if e['we'] else [])
+        if wait:
+            want.append(', '.join(wait))
+        if (s['r'], s['b']) != (e['r'], e['b']):
+            bad.append(['count', e['vid'], [e['r'], e['b']], [s['r'], s['b']]])
+        if s['lines'] != want:
+            bad.append(['label', e['vid'], want, s['lines']])
+        if pn and (not pn['dd'].startswith(want[0]) or not s['title'].startswith(pn['org'] + ' ')):
+            bad.append(['panel', e['vid'], pn, want[0], s['title']])
+    # 굵은 선: 요약 노드마다 앵커와 요약 노드, 요약 노드와 담보 둘
+    want_e = sorted([[e['vid'], 'SUM:' + e['vid']] for e in ex] + [['SUM:' + e['vid'], std_id] for e in ex])
+    if sorted(d['edges']) != want_e:
+        bad.append(['edges', len(d['edges']), len(want_e)])
+    return bad
+
+
 def cross_count(edges):
     c = 0
     for a, b in itertools.combinations(edges, 2):
@@ -405,12 +478,13 @@ async def stage4_sel(pg, bases, names):
     b1 = base_ids(bases, names)[0]
     await set_cond(pg, b1, 'all')
     sel = {}
-    for nm in ['암 수술비', '일반암 진단비']:
+    for nm in ['암 수술비', '일반암 진단비', '종별 수술비(최고 종 기준)']:
         before = await pg.evaluate(SCREEN_JS)
-        ok = await pg.evaluate("""(nm) => { const el = Array.from(document.querySelectorAll('#gr-net-svg .gr-n')).find(e => e.dataset.tipTitle === nm); if (!el) return false; const r = el.querySelector('.gr-n-c').getBoundingClientRect(); el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 })); return true; }""", nm)
+        ok = await pg.evaluate("""(nm) => { const el = Array.from(document.querySelectorAll('#gr-net-svg .gr-n')).find(e => e.dataset.tipTitle === nm); if (!el) return false; const r = el.querySelector('.gr-n-c').getBoundingClientRect(); el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 })); return el.dataset.grId; }""", nm)
         await pg.wait_for_timeout(700)
         after = await pg.evaluate(SCREEN_JS)
         ex = await pg.evaluate(EXP_JS)
+        sd = await pg.evaluate(SUM_JS, [b1, 'all', ok]) if ok else {'expect': [], 'screen': [], 'panel': [], 'edges': [], 'sumIds': []}
         amap = {n['id']: n for n in after['nodes']}
         move = max(math.hypot(n['x'] - amap[n['id']]['x'], n['y'] - amap[n['id']]['y']) for n in before['nodes'])
         ov = 0
@@ -431,7 +505,12 @@ async def stage4_sel(pg, bases, names):
                    'exp_crossings': cross_count(ex['edges']), 'attrs_ok': ex['attrsOk'],
                    'exp_node_label_overlap': sum(1 for a in xs for lb in after['labels'] if lb['type'] in ('anchor', 'group', 'badge', 'exp') and rect_circle(lb['box'], a['x'], a['y'], a['r'])),
                    'exp_label_overlap': sum(1 for a, b in itertools.combinations([lb for lb in after['labels'] if lb['type'] in ('anchor', 'group', 'badge', 'exp')], 2) if rect_overlap(a['box'], b['box'])),
-                   'exp_labels': [lb['text'] for lb in after['labels'] if lb['type'] == 'exp']}
+                   'exp_labels': [lb['text'] for lb in after['labels'] if lb['type'] == 'exp'],
+                   # 요약 노드마다 라벨이 있는지, 수가 원자료와 상세 패널과 같은지, 낱낱의 특약과 급부 노드가 없는지
+                   'sum_nodes': len(sd['screen']), 'sum_expect': len(sd['expect']),
+                   'sum_label_missing': [s_['vid'] for s_ in sd['screen'] if not s_['lines']],
+                   'sum_mismatch': sum_check(sd, ok) if ok else ['not clicked'],
+                   'exp_other_kinds': sorted({x['kind'] for x in xs} - {'summary'})}
     await pg.keyboard.press('Escape')
     await pg.wait_for_timeout(300)
     return sel
@@ -907,8 +986,10 @@ async def run(args):
         if not st4:
             continue
         f4 = []
-        s1, s2 = st4['selection'].get('암 수술비', {}), st4['selection'].get('일반암 진단비', {})
-        for nm, sv, lim in (('surgery', s1, 2), ('general', s2, 1)):
+        s1, s2, s3 = (st4['selection'].get(k, {}) for k in ('암 수술비', '일반암 진단비', '종별 수술비(최고 종 기준)'))
+        for nm, sv, lim in (('surgery', s1, 2), ('general', s2, 1), ('type_surgery', s3, 2)):
+            if not sv.get('sum_expect') or sv.get('sum_nodes') != sv.get('sum_expect') or sv.get('sum_label_missing') or sv.get('sum_mismatch') or sv.get('exp_other_kinds'):
+                f4.append('summary_' + nm)
             # 교차 상한(암 수술비 2, 일반암 진단비 1)은 1920x1080 기준. 다른 해상도는 값만 적는다
             first = size == next(iter(result['sizes']))
             if not sv.get('clicked') or sv['max_move'] > 0.5 or sv['area_change'] != [0, 0] or sv['exp_overlap'] or (first and sv['exp_crossings'] > lim) or not sv['attrs_ok'] or sv['exp_node_label_overlap'] or sv['exp_label_overlap']:
