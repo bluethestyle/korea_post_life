@@ -538,9 +538,10 @@
       const doms = domOrder(g);
       const dIdx = si => { const i = doms.indexOf(sc.info.get(si).dom); return i < 0 ? 4 : Math.min(i, 4); };
       const marks = new Set();
-      sc.stds.forEach(si => jd.per.get(si).marks.forEach(m => marks.add(m)));
-      // 표시 기호는 필터를 켰거나 선택했을 때(그리고 호버 때)만 보이고, 기본 화면에서는 검수 대기만 보인다
-      if (!state.filter && state.selStd == null && !state.selGroup) [...marks].forEach(m => { if (m !== 'wait') marks.delete(m); });
+      // 표시 기호는 필터 대상과 선택 강조(그리고 호버) 때만 보이고, 기본 화면에서는 검수 대기만 보인다
+      const fset = state.filter && lay ? filterSet(g, lay) : null;
+      const anyMark = !!fset || state.selStd != null || !!state.selGroup;
+      sc.stds.forEach(si => jd.per.get(si).marks.forEach(m => { if (m === 'wait' || (anyMark && (!fset || fset.has(si)))) marks.add(m); }));
       const edges = new Set();
       if (!lay || lay.bundles.length) edges.add('bundle');
       const si = state.selStd;
@@ -741,6 +742,8 @@
           if (off) { btn.setAttribute('aria-disabled', 'true'); btn.title = t('grFilterZeroTip'); } else { btn.removeAttribute('aria-disabled'); btn.removeAttribute('title'); }
         }
       });
+      // 필터를 바꾸면 그려진 표시 기호가 달라지므로 범례도 맞춘다
+      syncLegend();
     }
   }
 
@@ -1460,7 +1463,7 @@
         return;
       }
       const lead = gl.lead ? `<line class="gr-lead" x1="${f1(gl.lead[0])}" y1="${f1(gl.lead[1])}" x2="${f1(gl.lead[2])}" y2="${f1(gl.lead[3])}"/>` : '';
-      parts.push(`${lead}<g class="gr-lb gr-lb-g" tabindex="-1" role="button" aria-label="${esc(gl.lines.join(', '))}" data-gr-fk="g:${esc(grp.key)}" data-gr-lb="group" data-gr-glabel="${esc(grp.key)}" data-gr-lbox="${b.map(f1).join(',')}" data-aim="rect" data-tip-title="${esc(gl.lines[0])}" data-tip-sub="${esc([gl.lines[1], domCountText(g, grp.members), t('grTipGroupHint')].filter(Boolean).join(' / '))}"><rect class="gr-lb-hit" rx="3" x="${f1(b[0] - 3)}" y="${f1(b[1] - 2)}" width="${f1(b[2] - b[0] + 6)}" height="${f1(b[3] - b[1] + 4)}"/>${svgTextLines(b[0] + 2, b[1] + textAsc(), gl.lines, 'start', 'gr-tx')}</g>`);
+      parts.push(`${lead}<g class="gr-lb gr-lb-g gr-lb-g-${grp.cls}" tabindex="-1" role="button" aria-label="${esc(gl.lines.join(', '))}" data-gr-fk="g:${esc(grp.key)}" data-gr-lb="group" data-gr-glabel="${esc(grp.key)}" data-gr-lbox="${b.map(f1).join(',')}" data-aim="rect" data-tip-title="${esc(gl.lines[0])}" data-tip-sub="${esc([gl.lines[1], domCountText(g, grp.members), t('grTipGroupHint')].filter(Boolean).join(' / '))}"><rect class="gr-lb-hit" rx="3" x="${f1(b[0] - 3)}" y="${f1(b[1] - 2)}" width="${f1(b[2] - b[0] + 6)}" height="${f1(b[3] - b[1] + 4)}"/>${svgTextLines(b[0] + 2, b[1] + textAsc(), gl.lines, 'start', 'gr-tx')}</g>`);
     });
     lay.slabels.forEach((b, si) => {
       parts.push(`<text class="gr-tx gr-lb-s" data-gr-lb="std" data-gr-for="${esc(g.N[si].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + textAsc())}">${esc(g.N[si].l)}</text>`);

@@ -337,3 +337,6 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-lb-g:hover .gr-lb-hit,.gr-lb-g:focus-visible .gr-lb-hit{stroke:var(--ink-0)}
 .gr-alt-svg .gr-tx.gr-vbox-go{font-size:16px;font-weight:700;fill:var(--ink-0)}
 .gr-vbox:hover .gr-vbox-go{fill:var(--red)}
+/* 보유 구분을 그룹 라벨 테두리에도: 타사만 보유(우체국 미보유)는 그룹 원과 같은 굵은 파선, 우체국만 보유는 금색 테두리 */
+.gr-lb-g-peer .gr-lb-hit{stroke:var(--ink-1);stroke-width:1.5;stroke-dasharray:5 3}
+.gr-lb-g-only .gr-lb-hit{stroke:var(--gold-line);stroke-width:1.5}
