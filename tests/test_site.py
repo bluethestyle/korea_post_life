@@ -896,9 +896,9 @@ def test_작업_기록_요약(data):
     assert summary["retry"]["adopted"] == 1 and summary["retry"]["kept"] == 1
     assert summary["review"]["count"] == 6 and summary["review"]["targets"] == 6
     assert sorted(summary["review"]["status"]) == sorted([
-        "검토 대기", "검토 대기", "검토 대기", "나중 실행에서 다시 판정됨", "지금 사본에 없는 행", "매핑 대기"])
+        "검토 대기", "검토 대기", "검토 대기", "나중 실행에서 다시 검증됨", "지금 사본에 없는 행", "매핑 대기"])
     assert {m["model"]: m["n"] for m in summary["byModel"]}["gemini-decision-1"] == 8
-    assert summary["review"]["byStatus"] == [("검토 대기", 3), ("나중 실행에서 다시 판정됨", 1), ("매핑 대기", 1), ("지금 사본에 없는 행", 1)]
+    assert summary["review"]["byStatus"] == [("검토 대기", 3), ("나중 실행에서 다시 검증됨", 1), ("매핑 대기", 1), ("지금 사본에 없는 행", 1)]
     assert len(s6["rows"]) == 12 and s6["rows"][0][s6["cols"].index("실행일시")] >= s6["rows"][-1][s6["cols"].index("실행일시")]
     assert s6["labels"][f"{NEW_A}_Tnursing_Bnca"].endswith("요양병원암입원보험금(암)")
     # 줄 끝의 빈 값은 싣지 않는다. 모자란 칸을 None으로 채우면 원래 기록과 같다

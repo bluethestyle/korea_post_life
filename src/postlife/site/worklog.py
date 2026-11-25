@@ -58,11 +58,11 @@ def review_status(data: Data, row: dict) -> str:
     if tab == "sys_급부":
         if target not in data.benefits:
             return "지금 사본에 없는 행"
-        return "검토 대기" if target in data.pending_benefit else "나중 실행에서 다시 판정됨"
+        return "검토 대기" if target in data.pending_benefit else "나중 실행에서 다시 검증됨"
     if tab == "sys_가입조건":
         if target not in data.conditions:
             return "지금 사본에 없는 행"
-        return "검토 대기" if target in data.pending_condition else "나중 실행에서 다시 판정됨"
+        return "검토 대기" if target in data.pending_condition else "나중 실행에서 다시 검증됨"
     if tab == "hum_담보매핑":
         m = data.mapping.get(target)
         return f"매핑 {m['검토상태']}" if m else "지금 사본에 없는 행"
