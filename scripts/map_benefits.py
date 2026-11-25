@@ -9,11 +9,16 @@
   python scripts/map_benefits.py --plan --snapshot data/snapshot ...   # 접속 정보 없이 사본으로 어림한다
   python scripts/map_benefits.py --dry-run --result out.json
   python scripts/map_benefits.py --remap --skip-result 앞실행/mapping.json   # 앞 실행이 자동확정이나 대상외로 끝낸 급부는 다시 묻지 않는다 (대기로 남은 급부는 다시 묻는다)
+  python scripts/map_benefits.py --only-prefix EPOST_P610196,EPOST_P610197   # 급부ID가 이 글자로 시작하는 급부만 묻는다 (처음 묻기, 다시 묻기 모두)
 
 담당자가 정한 행(검토상태가 승인·수정·오류인 행, 담당자메모가 "대상외 확정"으로 시작하는 대상외 행)과 검토상태가 배치 값
 (대기, 자동확정, 대상외) 밖인 행은 어느 경우에도 다시 묻지 않고, --prune에서도 지우지 않는다(src/postlife/extract/mapping.py의
 protected). 검토상태는 앞뒤 공백을 떼고 견준다. 쓰기 직전에 시트를 다시 읽어 매핑이 도는 동안 담당자가 정한 행도 덮어쓰지
 않는다(mapping.upsert).
+
+--only-prefix를 주면 범위 밖 급부는 묻지 않으므로 그 매핑 행은 그대로 남는다(쓰기는 범위 안 급부의 추천만 합친다).
+--prune과 함께 주면 오류로 멈춘다: --prune은 탭 전체를 보고 행을 제거하므로 범위 제한 실행이 다른 회사의 행을 지울 수 있다.
+범위 밖 급부ID가 매핑 탭에 두 번 나오면 쓰는 실행은 멈춘다: 쓰기 직전의 중복 행 정리(mapping.upsert)가 그 행을 지운다.
 
 판정 모델의 답을 하나도 받지 못하면(호출이 모두 실패하는 등) 작업 기록만 시트에 남기고 종료 코드 1로 끝난다.
 """
@@ -23,6 +28,7 @@ import argparse
 import json
 import os
 import sys
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -108,10 +114,21 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--plan", action="store_true", help="시트에 쓰지 않고 판정 모델도 부르지 않는다. 바뀔 것과 호출 수만 보인다")
     p.add_argument("--snapshot", type=Path, help="--plan과 함께: 시트 대신 이 사본 폴더를 읽는다")
     p.add_argument("--prune", action="store_true", help="시트에 더는 없는 급부의 매핑 행을 걷어낸다 (담당자가 정한 행은 남김)")
+    p.add_argument("--only-prefix",
+                   help="급부ID가 이 글자로 시작하는 급부만 묻는다 (쉼표로 구분). 급부ID는 종형ID로 시작한다. "
+                        "범위 밖 급부의 매핑 행은 바꾸지 않는다. --prune과 함께 쓸 수 없다")
     p.add_argument("--result", type=Path)
     args = p.parse_args(argv)
     if args.snapshot and not args.plan:
         p.error("--snapshot은 --plan과 함께만 씁니다")
+    if args.only_prefix is not None:
+        args.only = tuple(x.strip() for x in args.only_prefix.split(",") if x.strip())
+        if not args.only:
+            p.error(f"--only-prefix {args.only_prefix!r}에 접두사가 없습니다")
+        if args.prune:
+            p.error("--only-prefix는 --prune과 함께 쓸 수 없습니다 (--prune이 범위 밖 회사의 매핑 행을 제거할 수 있습니다)")
+    else:
+        args.only = ()
     if args.chars_per_minute <= 0:
         p.error("--chars-per-minute 는 0보다 커야 합니다")
     return args
@@ -212,6 +229,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     existing = data["hum_담보매핑"]
+    if args.only and write:
+        # 쓰기 직전의 중복 행 정리(mapping.upsert의 without_repeats)가 범위 밖 행을 지우지 않게 미리 멈춘다
+        outside = Counter(r["급부ID"] for r in existing if not str(r["급부ID"]).startswith(args.only))
+        repeated = sorted(b for b, n in outside.items() if n > 1)
+        if repeated:
+            print(f"범위 밖 급부ID가 매핑 탭에 두 번 나와 쓰지 않고 멈춥니다(쓰면 중복 행이 지워집니다): {repeated[:5]}")
+            return 2
     if args.prune:
         existing, pruned, orphans, repeats = mapping.prune(existing, {b["급부ID"] for b in data["sys_급부"]})
         line = f"급부가 없어진 매핑 행 {pruned - len(repeats)}개를 걷어냄" + (
@@ -222,7 +246,8 @@ def main(argv: list[str] | None = None) -> int:
         if pruned and write:
             store.write_tab("hum_담보매핑", existing)
 
-    questions = mapping.prepare(data["sys_특약"], data["sys_급부"], data["hum_표준담보사전"], existing, rule, skip)
+    questions = mapping.prepare(data["sys_특약"], data["sys_급부"], data["hum_표준담보사전"], existing, rule, skip,
+                                args.only)
     estimate = mapping.plan_of(questions, data["sys_급부"])
     interval = decide_interval(estimate["호출당 입력 글자 최대"], args.chars_per_minute)
     per_minute_tokens = tokens_per_minute(args.chars_per_minute)
@@ -242,7 +267,8 @@ def main(argv: list[str] | None = None) -> int:
     gemini = Gemini(min_interval={**config.MIN_INTERVAL, config.MODEL_DECIDE: interval}, timeout=config.TIMEOUT, max_retries=3,
                     tokens_per_minute={**config.TOKENS_PER_MINUTE, config.MODEL_DECIDE: per_minute_tokens})
     result = mapping.run(gemini, data["sys_상품종형"], data["sys_특약"], data["sys_급부"], data["hum_표준담보사전"],
-                         existing, datetime.now(KST), mapping.thresholds_from(data["hum_기준값"]), remap=rule, skip=skip)
+                         existing, datetime.now(KST), mapping.thresholds_from(data["hum_기준값"]), remap=rule, skip=skip,
+                         only=args.only)
     # 판정 응답이 알려 준 실제 입력 토큰 합과 글자당 토큰 비율. 이 비율로 --chars-per-minute(글자 수 기준)를 다시 정한다
     seen = gemini_api.input_tokens_report(getattr(gemini, "input_tokens", None)).get(config.MODEL_DECIDE)
     outcome = (f"매핑 결과: {result.stats}\n모델별 호출 수: {gemini.calls}\n"

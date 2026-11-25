@@ -318,31 +318,47 @@ class Questions:
     new: int                           # 매핑 행이 없어 처음 묻는 급부 수
     reasked: Counter                   # 다시 묻는 급부의 지금 검토상태별 수
     skipped: set[str] = field(default_factory=set)     # 앞 실행이 판정해 이번에 묻지 않는 급부ID (known 밖의 것만)
+    only: tuple[str, ...] = ()                         # 범위 제한 접두사. 비면 제한하지 않는다
+    outside: set[str] = field(default_factory=set)     # 범위 제한 접두사에 맞지 않아 묻지 않는 급부ID
+
+
+def scope_prefixes(only: Any) -> tuple[str, ...]:
+    """범위 제한 접두사를 튜플로 정리한다. None이나 빈 목록이면 제한하지 않는다(빈 튜플). 빈 글자 접두사는 모든 급부ID에
+    맞아 제한이 풀리므로 ValueError로 막는다."""
+    prefixes = tuple(only or ())
+    if any(not isinstance(p, str) or not p.strip() for p in prefixes):
+        raise ValueError(f"범위 제한 접두사에 빈 값이 있습니다: {prefixes!r}")
+    return tuple(p.strip() for p in prefixes)
 
 
 def prepare(riders: list[dict[str, Any]], benefits: list[dict[str, Any]], dictionary: list[dict[str, Any]],
             existing: list[dict[str, Any]], remap: bool | Remap | None = False,
-            skip: set[str] | None = None) -> Questions:
+            skip: set[str] | None = None, only: Any = None) -> Questions:
     """물을 급부를 고르고 문항으로 묶는다. remap이 없으면 이미 행이 있는 급부는 묻지 않는다.
 
     skip: 이번에 묻지 않을 급부ID. 두 번에 나눠 돌릴 때 앞 실행의 결과(mapping.json의 rows)에 있는 급부를 넘긴다
     (scripts/map_benefits.py --skip-result). 입력문은 이번에 묻는 급부만 묶어 짜므로 같은 급부를 다시 물으면 함께 묶이는
     급부가 달라져 입력이 달라진다.
+    only: 범위 제한 접두사 목록(scripts/map_benefits.py --only-prefix). 주면 급부ID가 이 가운데 하나로 시작하는 급부만
+    처음 묻기와 다시 묻기의 대상이 된다. 범위 밖 급부는 묻지 않으므로 그 매핑 행에 대한 추천도 나오지 않는다.
     """
     rule = _remap_rule(remap)
+    prefixes = scope_prefixes(only)
     options = criteria(dictionary)
     rider_of = {r["특약ID"]: r for r in riders}
     current = {r["급부ID"]: r for r in existing}
     sys_names = {b["급부ID"]: b.get("원시급부명") for b in benefits}      # 지금 sys_급부의 이름 (Remap.match)
+    outside = {b["급부ID"] for b in benefits if prefixes and not b["급부ID"].startswith(prefixes)}
     known = {bid for bid, r in current.items() if rule is None or not rule.wants(r, sys_names.get(bid))}
-    skipped = {b["급부ID"] for b in benefits if b["급부ID"] in (skip or set()) and b["급부ID"] not in known}
+    skipped = {b["급부ID"] for b in benefits
+               if b["급부ID"] in (skip or set()) and b["급부ID"] not in known and b["급부ID"] not in outside}
 
     # 같은 특약·같은 급부는 한 번만 묻는다
     groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
     new, reasked = 0, Counter()
     for b in benefits:
         rider = rider_of.get(b["특약ID"])
-        if rider is None or b["급부ID"] in known or b["급부ID"] in skipped:
+        if rider is None or b["급부ID"] in outside or b["급부ID"] in known or b["급부ID"] in skipped:
             continue
         groups.setdefault(_group_key(rider, b), []).append(b)
         if b["급부ID"] in current:
@@ -361,14 +377,24 @@ def prepare(riders: list[dict[str, Any]], benefits: list[dict[str, Any]], dictio
             names = [groups[k][0]["원시급부명"] for k in chunk]
             text = f"특약 이름: {sample_rider['원시특약명']}\n이 특약의 급부: " + "; ".join(names)
             batches.append((text, {f"m{i}": question(name, options) for i, name in enumerate(names)}, chunk))
-    return Questions(options, groups, batches, known, new, reasked, skipped)
+    return Questions(options, groups, batches, known, new, reasked, skipped, prefixes, outside)
+
+
+def _known_inside(q: Questions, benefits: list[dict[str, Any]]) -> int:
+    """이미 행이 있어 건너뛰는 급부 수. 범위 제한이 있으면 범위 안의 급부만 센다(범위 밖은 건너뜀(범위 밖)으로 센다)."""
+    return sum(1 for b in benefits if b["급부ID"] in q.known and b["급부ID"] not in q.outside)
+
+
+def _scope_counts(q: Questions) -> dict[str, Any]:
+    """범위 제한을 주었을 때만 결과에 더하는 항목. 주지 않으면 빈 dict라 결과가 전과 같다."""
+    return {"범위 제한 접두사": list(q.only), "건너뜀(범위 밖)": len(q.outside)} if q.only else {}
 
 
 def plan(riders: list[dict[str, Any]], benefits: list[dict[str, Any]], dictionary: list[dict[str, Any]],
          existing: list[dict[str, Any]], remap: bool | Remap | None = False,
-         skip: set[str] | None = None) -> dict[str, Any]:
+         skip: set[str] | None = None, only: Any = None) -> dict[str, Any]:
     """판정 모델을 부르지 않고 물을 양을 센다. 입력 글자 수는 판정 API에 보내는 본문(JSON)을 한글 그대로 센 값이다."""
-    return plan_of(prepare(riders, benefits, dictionary, existing, remap, skip), benefits)
+    return plan_of(prepare(riders, benefits, dictionary, existing, remap, skip, only), benefits)
 
 
 def plan_of(q: Questions, benefits: list[dict[str, Any]]) -> dict[str, Any]:
@@ -377,8 +403,9 @@ def plan_of(q: Questions, benefits: list[dict[str, Any]]) -> dict[str, Any]:
              for text, qs, _ in q.batches]
     return {
         "선택지": len(q.options), "처음 묻는 급부": q.new, "다시 묻는 급부": dict(sorted(q.reasked.items())),
-        "건너뜀(이미 있음)": sum(1 for b in benefits if b["급부ID"] in q.known),
+        "건너뜀(이미 있음)": _known_inside(q, benefits),
         "건너뜀(앞 실행에서 판정)": len(q.skipped),
+        **_scope_counts(q),
         "문항": sum(len(qs) for _, qs, _ in q.batches), "호출": len(q.batches),
         "호출당 입력 글자 최대": max(sizes, default=0),
         "호출당 입력 글자 평균": round(sum(sizes) / len(sizes)) if sizes else 0,
@@ -389,16 +416,17 @@ def plan_of(q: Questions, benefits: list[dict[str, Any]]) -> dict[str, Any]:
 def run(gemini: Any, variants: list[dict[str, Any]], riders: list[dict[str, Any]], benefits: list[dict[str, Any]],
         dictionary: list[dict[str, Any]], existing: list[dict[str, Any]], now: datetime,
         thresholds: dict[str, float] | None = None, remap: bool | Remap | None = False,
-        skip: set[str] | None = None) -> Result:
+        skip: set[str] | None = None, only: Any = None) -> Result:
     """existing: 지금 hum_담보매핑의 행.
 
     remap이 거짓이면 이미 행이 있는 급부는 다시 묻지 않는다. 참이면 대기 행을 다시 묻고, Remap을 주면 그 규칙대로 고른다.
     담당자가 정한 행(settled)은 어느 경우에도 묻지 않는다. skip의 급부ID는 묻지 않는다(prepare).
+    only를 주면 급부ID가 그 접두사로 시작하는 급부만 묻고, 결과 행(rows)도 그 급부만 낸다(prepare).
     호출이 실패하거나, 답에 그 문항이 없거나, 선택지 확률이 모두 0이거나 비어 있으면 그 급부는 매핑 행을 내지 않고
     "보류" 기록만 남긴다. 시트의 기존 행은 그대로 남는다.
     """
     thresholds = thresholds or dict(DEFAULT_THRESHOLDS)
-    q = prepare(riders, benefits, dictionary, existing, remap, skip)
+    q = prepare(riders, benefits, dictionary, existing, remap, skip, only)
     by_name = {d["표준담보명"]: d for d in dictionary if in_use(d)}     # criteria가 선택지를 고르는 조건과 같다
     product = {v["종형ID"]: v["공시상품명"] for v in variants}
     rider_of = {r["특약ID"]: r for r in riders}
@@ -459,8 +487,9 @@ def run(gemini: Any, variants: list[dict[str, Any]], riders: list[dict[str, Any]
     result.logs = log.rows
     result.stats = {"물은 급부": len(picks), "답을 받지 못한 급부": unanswered, "행": len(states),
                     "자동확정": states.count("자동확정"), "대상외": states.count("대상외"), "대기": states.count("대기"),
-                    "건너뜀(이미 있음)": sum(1 for b in benefits if b["급부ID"] in q.known),
+                    "건너뜀(이미 있음)": _known_inside(q, benefits),
                     "건너뜀(앞 실행에서 판정)": len(q.skipped),
+                    **_scope_counts(q),
                     "다시 물은 행": sum(q.reasked.values())}
     return result
 

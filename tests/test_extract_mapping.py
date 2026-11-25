@@ -542,3 +542,96 @@ def test_prune_and_merge_keep_one_row_for_a_benefit_listed_twice():
     assert M.merge([a_approved, a_waiting], []) == [a_approved]
     proposed = {**b_second, "매핑확률": 0.95}
     assert M.merge([b_first, b_second], [proposed]) == [proposed]
+
+
+# ---------- 범위 제한(--only-prefix): 급부ID가 고른 접두사로 시작하는 급부만 묻는다 ----------
+def test_only_prefix_asks_only_benefits_in_scope():
+    variants, riders, benefits = world()
+    g = FakeGemini()
+    r = M.run(g, variants, riders, benefits, DICTIONARY, [], NOW, only=("V2_",))
+    # 범위를 주지 않으면 두 종형의 같은 급부를 한 번에 묻지만, 범위를 주면 V2의 급부만 묻고 V2의 행만 낸다
+    assert sorted(g.asked) == sorted(["재해사망보험금", "암진단보험금(암)", "암진단보험금(갑상선암·기타피부암)"])
+    assert {row["공시상품명"] for row in r.rows} == {"상품 V2"} and len(r.rows) == 3
+    assert r.stats["건너뜀(범위 밖)"] == 3 and r.stats["범위 제한 접두사"] == ["V2_"]
+    p = M.plan(riders, benefits, DICTIONARY, [], only=("V2_",))
+    assert p["처음 묻는 급부"] == 3 and p["건너뜀(범위 밖)"] == 3 and p["건너뜀(이미 있음)"] == 0
+    # 접두사 여럿은 어느 하나에 맞으면 범위 안이다
+    assert M.plan(riders, benefits, DICTIONARY, [], only=("V1_", "V2_"))["처음 묻는 급부"] == 6
+    with pytest.raises(ValueError):
+        M.prepare(riders, benefits, DICTIONARY, [], only=("V1_", " "))      # 빈 접두사는 모든 급부ID에 맞아 제한이 풀린다
+
+
+def test_only_prefix_reasks_only_in_scope_rows_and_leaves_the_rest_untouched(monkeypatch):
+    variants, riders, benefits = world()
+    sheet = merge_mapping([], M.run(FakeGemini(), variants, riders, benefits, DICTIONARY, [], NOW).rows)
+    every = M.Remap(states=frozenset(M.REMAP_STATES))
+    g = FakeGemini()
+    redo = M.run(g, variants, riders, benefits, DICTIONARY, sheet, NOW, remap=every, only=("V1_",))
+    assert len(g.asked) == 3 and {row["공시상품명"] for row in redo.rows} == {"상품 V1"}
+    assert redo.stats["다시 물은 행"] == 3 and redo.stats["건너뜀(범위 밖)"] == 3 and redo.stats["건너뜀(이미 있음)"] == 0
+
+    # 스크립트로 시트에 쓰는 실행: V1은 대기 행, V2는 매핑 행이 없다. 범위를 V2로 주면 V1의 대기 행은 다시 묻는 대상이지만
+    # 범위 밖이라 한 글자도 바뀌지 않는다(자동확정 재계산, 상태 변경, 삭제 없음)
+    tab = TABS["hum_담보매핑"]
+    key = tab.header.index("급부ID")
+    v1 = [{**r, "검토상태": "대기", "확정표준담보ID": None, "매핑확률": 0.5, "담당자메모": "범위 밖 메모"}
+          for r in sheet if r["공시상품명"] == "상품 V1"]
+    v1_ids = {r["급부ID"] for r in v1}
+    backend, _ = sheet_with(monkeypatch, FakeGemini(), v1)
+    before = [list(row) for row in backend.data["hum_담보매핑"]]
+    assert S.main(["--remap-states", "대기,자동확정,대상외", "--only-prefix", "V2_"]) == 0
+    after = backend.data["hum_담보매핑"]
+    assert [row for row in after[1:] if row[key] in v1_ids] == before[1:] and len(after) == 1 + 6   # V1 세 행 그대로, V2 세 행 추가
+    # 범위를 주지 않으면 같은 실행이 V1 행을 다시 판정해 바꾼다(위 확인이 의미 있는지 보는 대조)
+    backend, _ = sheet_with(monkeypatch, FakeGemini(), v1)
+    assert S.main(["--remap-states", "대기,자동확정,대상외"]) == 0
+    assert [row for row in backend.data["hum_담보매핑"][1:] if row[key] in v1_ids] != before[1:]
+
+
+def test_without_only_prefix_results_are_as_before(capsys):
+    variants, riders, benefits = world()
+    plain = M.run(FakeGemini(), variants, riders, benefits, DICTIONARY, [], NOW)
+    for none in (None, ()):
+        scoped = M.run(FakeGemini(), variants, riders, benefits, DICTIONARY, [], NOW, only=none)
+        assert (scoped.rows, scoped.stats) == (plain.rows, plain.stats)
+        assert M.plan(riders, benefits, DICTIONARY, [], only=none) == M.plan(riders, benefits, DICTIONARY, [])
+    assert "건너뜀(범위 밖)" not in plain.stats and "범위 제한 접두사" not in plain.stats
+    assert list(planned(capsys)) == [
+        "선택지", "처음 묻는 급부", "다시 묻는 급부", "건너뜀(이미 있음)", "건너뜀(앞 실행에서 판정)", "문항", "호출",
+        "호출당 입력 글자 최대", "호출당 입력 글자 평균", "입력 글자 합계", "호출 간격(초)", "분당 토큰 상한",
+        "걸리는 시간 어림(분)", "그 가운데 분당 토큰 창으로 기다림(분)"]
+
+
+def test_only_prefix_on_the_snapshot_counts_one_variant(capsys):
+    snap = read_snapshot(SNAPSHOT)
+    variant = next(v for v in sorted(v["종형ID"] for v in snap["sys_상품종형"] if v["종형ID"].startswith("HANWHALIFE"))
+                   if any(b["급부ID"].startswith(v) for b in snap["sys_급부"]))      # 급부가 있는 첫 한화생명 종형
+    inside = [b for b in snap["sys_급부"] if b["급부ID"].startswith(variant)]
+    every = ("--remap-states", "대기,자동확정,대상외")
+    p = planned(capsys, *every, "--only-prefix", variant)
+    assert inside and p["범위 제한 접두사"] == [variant]
+    assert p["건너뜀(범위 밖)"] == len(snap["sys_급부"]) - len(inside)
+    assert p["처음 묻는 급부"] + sum(p["다시 묻는 급부"].values()) + p["건너뜀(이미 있음)"] == len(inside)
+    assert 0 < p["문항"] < planned(capsys, *every)["문항"]
+
+
+def test_only_prefix_with_prune_or_without_a_prefix_is_an_error():
+    # --prune은 탭 전체를 보고 행을 제거하므로 범위 제한 실행과 함께 쓰면 다른 회사의 행을 지울 수 있다. 오류로 멈춘다
+    for argv in (["--only-prefix", "V1_", "--prune"], ["--prune", "--only-prefix=V1_"], ["--only-prefix", " , "]):
+        with pytest.raises(SystemExit) as e:
+            S.parse(argv)
+        assert e.value.code == 2, argv
+    assert S.parse(["--only-prefix= V1_ , V2_,"]).only == ("V1_", "V2_")       # 워크플로가 넘기는 형식
+    assert S.parse([]).only == ()
+
+
+def test_only_prefix_stops_before_writing_when_an_outside_benefit_is_listed_twice(monkeypatch):
+    # 쓰기 직전의 중복 행 정리(mapping.upsert)가 범위 밖 행을 지우지 않게, 범위 밖 급부ID가 두 번 나오면 쓰지 않고 멈춘다
+    variants, riders, benefits = world()
+    sheet = merge_mapping([], M.run(FakeGemini(), variants, riders, benefits, DICTIONARY, [], NOW).rows)
+    twice = next(r for r in sheet if r["공시상품명"] == "상품 V1")
+    backend, _ = sheet_with(monkeypatch, FakeGemini(), [twice, dict(twice)])
+    before = [list(row) for row in backend.data["hum_담보매핑"]]
+    assert S.main(["--only-prefix", "V2_"]) == 2
+    assert backend.data["hum_담보매핑"] == before and backend.data["sys_작업로그"] == [list(TABS["sys_작업로그"].header)]
+    assert S.main(["--plan", "--only-prefix", "V2_"]) == 0                  # 쓰지 않는 계획 실행은 멈추지 않는다
