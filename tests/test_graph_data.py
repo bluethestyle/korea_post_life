@@ -372,7 +372,7 @@ def test_small_snapshot_stage1_contract(small):
     # 언급 담보와 언급 상품: 그래프에 없는 ID(STD_NOT_THERE)는 넘긴다
     assert [(ids[s], ids[t]) for s, t, _ in edges_of(out, "언급 담보")] == [("TRD_MERITZ_1", "STD_CA_DX_GENERAL")]
     assert [(ids[s], ids[t]) for s, t, _ in edges_of(out, "언급 상품")] == [("TRD_MERITZ_1", vid)]
-    assert [p for _, _, p in edges_of(out, "매핑")] == [{"검토상태": "자동확정", "매핑확률": 0.97, "확정방식": "판정 모델"}]
+    assert [p for _, _, p in edges_of(out, "매핑")] == [{"검토상태": "자동확정", "매핑확률": 0.97, "확정방식": "확률 산정 모델"}]
     # 두 회사의 특약계보키가 같아도(main, rider) 회사를 넘어 한 계보로 묶지 않는다
     both = G.build(small, "all")[0]
     assert both["summary"]["특약계보"] == {} and props_of(both, "회사")["ORG:MERITZ"]["비교대상"] is True
@@ -554,4 +554,4 @@ def test_real_counts_of_the_pinned_snapshot(real):
     assert (sum("추천표준담보ID" in p for p in bens.values()), sum("추출검수대기항목" in p for p in bens.values())) == (69, 705)
     assert len(edges_of(real, "담보 관계")) == 32
     assert sum(len(d) for d in real["summary"]["특약계보"].values()) == 482
-    assert Counter(p.get("확정방식") for _, _, p in edges_of(real, "매핑")) == {"판정 모델": 2243, "교차 검증": 2036}
+    assert Counter(p.get("확정방식") for _, _, p in edges_of(real, "매핑")) == {"확률 산정 모델": 2243, "교차 검증": 2036}

@@ -42,174 +42,303 @@
 .gr-tr-btn.is-cur{background:var(--slate);color:var(--on-slate);border-color:transparent}
 .gr-tr-sep{font:600 13px/1 var(--f-num);color:var(--ink-2)}
 
-.gr-col-bar{display:flex;align-items:flex-end;gap:12px;padding:0 2px 6px;border-bottom:2px solid var(--axis)}
-.gr-col-hd{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:1px;min-width:0;padding:2px 2px;
-  transition:opacity 180ms var(--ease-in)}
-.gr-col-hd.is-folded{flex:0 0 36px;min-width:36px;opacity:.56;align-items:center;padding:2px 0}
-.gr-col-hd.gr-c-4.is-folded,.gr-col-hd.gr-c-5.is-folded{flex:0 0 56px;min-width:56px}
-.gr-col-nm{font:600 13px/1.2 var(--f-ko);color:var(--ink-0);white-space:nowrap;overflow:visible}
-.gr-col-cnt{font:600 13px/1.15 var(--f-num);color:var(--ink-1);white-space:nowrap}
-.gr-col-hd.is-folded .gr-col-cnt{color:var(--ink-2)}
+/* 담보별 연결: 보유 조합 그룹 네트워크(요청 38의 3절). 보장 대분류 채움은 테마마다 기존 토큰을 가리킨다 */
+:root{--gr-dom-0:var(--ink-0);--gr-dom-1:var(--slate-solid);--gr-dom-2:var(--dash);--gr-dom-3:var(--m-all);--gr-dom-4:var(--fog-1);--gr-n-line:var(--ink-0)}
+:root[data-theme="dark"]{--gr-dom-0:var(--ink-0);--gr-dom-1:var(--ink-2);--gr-dom-2:var(--geo-hi);--gr-dom-3:var(--m-both);--gr-dom-4:var(--m-all);--gr-n-line:var(--ink-1)}
+.gr-net{position:relative;width:100%;overflow:hidden}
+.gr-net-svg{display:block;overflow:hidden;touch-action:manipulation}
+.gr-net-svg .gr-tx,.gr-sw .gr-tx{font:400 13px/1 var(--f-body);fill:var(--ink-0)}
+.gr-net-svg .gr-tx .gl-1{font-weight:600}
+.gr-g{stroke-width:1}
+.gr-g-only{fill:var(--gold-soft);stroke:var(--gold-line);stroke-width:1.5}
+.gr-g-shared{fill:var(--hover);stroke:var(--ink-2)}
+.gr-g-peer{fill:url(#gr-hatch);stroke:var(--dash);stroke-dasharray:3 3}
+.gr-sw .gr-g-peer{fill:none}
+.gr-hatch-l{stroke:var(--hatch);stroke-width:1}
+.gr-g.is-gsel{stroke:var(--red);stroke-width:2;stroke-dasharray:none}
+.gr-e{fill:none}
+.gr-e-bundle{stroke:var(--ink-1);opacity:.55}
+.gr-e-held{stroke:var(--ink-1);stroke-width:1}
+.gr-e-rel{stroke:var(--ink-0);stroke-width:1.25}
+.gr-e-rel-inc{stroke-dasharray:4 3}
+.gr-e-rel-uni{stroke-dasharray:1.5 3}
+.gr-n-c{stroke:var(--gr-n-line);stroke-width:1}
+.gr-n.is-wait .gr-n-c{stroke:var(--unknown-edge);stroke-dasharray:2 1.5}
+.gr-mk-sole{fill:var(--gold);stroke:var(--gold-line);stroke-width:1}
+.gr-mk-peer-rel{fill:var(--panel-t);stroke:var(--gold-line);stroke-width:1.2}
+.gr-mk-wide{fill:var(--ink-0)}
+.gr-mk-part-o{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:1}
+.gr-mk-part-f{fill:var(--ink-0)}
+.gr-a-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:1.5}
+.gr-a.is-base .gr-a-c{stroke-width:2}
+.gr-lb-hit{fill:transparent}
+.gr-lb-badge rect{fill:var(--panel-t);stroke:var(--ink-2);stroke-width:1}
+.gr-lead{stroke:var(--ink-2);stroke-width:1}
+.gr-n.is-sel .gr-n-c{fill:var(--red)!important;stroke:#fff;stroke-width:2}
+.gr-n.is-sel{filter:drop-shadow(0 0 0 var(--red))}
+.gr-net-svg .gr-n,.gr-net-svg .gr-g,.gr-net-svg .gr-a,.gr-net-svg .gr-lb-s{transition:opacity 120ms var(--ease-in)}
+.gr-net-svg .gr-e-bundle{transition:opacity 120ms var(--ease-in)}
+.gr-net-svg.is-hl :is(.gr-n,.gr-g,.gr-a,.gr-lb-s):not(.is-keep){opacity:.35}
+.gr-net-svg.is-hl .gr-e-bundle:not(.is-keep){opacity:.2}
+.gr-net-svg.is-selm :is(.gr-n,.gr-g,.gr-a,.gr-lb-s):not(.is-keep){opacity:.45;transition-duration:220ms}
+.gr-net-svg.is-selm .gr-e-bundle:not(.is-keep){opacity:.25;transition-duration:220ms}
+.gr-net-svg.is-flt :is(.gr-n,.gr-lb-s):not(.is-on){opacity:.35}
+.gr-net-svg.is-flt .gr-e-bundle{opacity:.2}
 
-/* 열 비율(열린 열과 접힌 열이 같은 폭 규칙을 공유해 머리와 본문 열이 정확히 일치한다) */
-.gr-c-6.is-open{flex:1.1 1 88px}
-.gr-c-0.is-open{flex:.96 1 92px}
-.gr-c-1.is-open{flex:1.15 1 102px}
-.gr-c-2.is-open{flex:1.2 1 104px}
-.gr-c-3.is-open{flex:1.15 1 98px}
-.gr-c-4.is-open{flex:1.65 1 142px}
-.gr-c-5.is-open{flex:1.05 1 102px}
+.gr-flts{display:flex;flex-direction:column;gap:3px}
+.gr-flt{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:30px;padding:4px 10px;
+  border:1px solid var(--line-2);background:transparent;color:var(--ink-0);font:600 13px/1.2 var(--f-ko);text-align:left}
+.gr-flt:hover{background:var(--hover)}
+.gr-flt.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent}
+.gr-flt .num{font:600 13px/1 var(--f-num)}
+/* 타사 4개사 이상: 보유 비율 링 차트와 그룹 기준 안내(8.1) */
+.gr-ring{pointer-events:none;transition:opacity 220ms var(--ease-move)}
+.gr-net-svg.is-exp .gr-n:not(.is-big) .gr-ring{opacity:0}
+.gr-ring-bg{fill:none;stroke:var(--line-2);stroke-width:2}
+.gr-ring-fg{fill:none;stroke:var(--ink-0);stroke-width:2}
+.gr-lg-note{margin:0 0 6px;padding:4px 6px;border-left:2px solid var(--red);font:600 13px/1.35 var(--f-ko);color:var(--ink-0)}
+.gr-lg-sec{display:grid;grid-template-columns:1fr;gap:0 6px;margin:0 0 6px}
+.gr-lg-sec.is-2col{grid-template-columns:1fr 1fr}
+.gr-lg-sec .gr-lg-h{grid-column:1/-1}
+.gr-lg-h{font:600 13px/1.2 var(--f-ko);color:var(--ink-1);margin:2px 0 3px}
+.gr-lg-it{display:flex;align-items:center;gap:6px;width:100%;min-height:21px;padding:0 4px;border:0;background:transparent;
+  color:var(--ink-0);font:400 13px/1.3 var(--f-body);text-align:left;word-break:keep-all}
+button.gr-lg-it:hover{background:var(--hover)}
+button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
+.gr-sw{flex:none;overflow:visible}
+.gr-legend.is-pop{min-width:260px}
+.gr-verd li{margin-bottom:6px}
+.gr-glist li{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px}
+@media (max-width:999px){.gr-legend{display:none}}
 
-.gr-canvas-scroll{position:relative;width:100%;max-height:calc(100vh - 250px);min-height:420px;overflow-y:auto;overflow-x:hidden;padding:8px 2px 16px}
-.gr-canvas{position:relative;width:100%;min-height:380px}
+/* 4단계(요청 38의 4절): 위치 트랜지션 변수, 선택 펼치기, 엣지 선택, 키보드 포커스, 왼쪽 영역 높이 정리 */
+:root{--dur-graph-move:480ms;--ease-graph-move:cubic-bezier(0.65, 0, 0.35, 1)}
+.gr-l-ghost{pointer-events:none}
+.gr-net-svg [data-gr-fk]{outline:none}
+/* 담보 선택: 선택한 담보와 담보 관계로 이어진 담보만 원래 크기, 나머지는 반지름 3px로 줄여 .45 */
+.gr-n-c{transform-box:fill-box;transform-origin:center;transition:transform 220ms var(--ease-move)}
+.gr-net-svg.is-exp .gr-n:not(.is-big) .gr-n-c{transform:scale(var(--gr-sh,1))}
+.gr-net-svg.is-exp .gr-n:not(.is-big) .gr-mk{opacity:0}
+.gr-net-svg.is-exp .gr-lb-s:not(.is-big){opacity:0}
+.gr-net-svg.is-exp .gr-n:not(.is-big),.gr-net-svg.is-exp .gr-g,.gr-net-svg.is-exp .gr-e-bundle{opacity:.45}
+.gr-net-svg.is-exp .gr-e-bundle{opacity:.2}
+.gr-x-c{stroke-width:1.25}
+.gr-x-r .gr-x-c{fill:var(--panel-t);stroke:var(--ink-0)}
+.gr-x-b .gr-x-c{fill:var(--fog-1);stroke:var(--ink-1)}
+.gr-x-more .gr-x-c,.gr-x-sum .gr-x-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-dasharray:2 1.5}
+.gr-x.is-rec .gr-x-c,.gr-x.is-wait .gr-x-c{stroke:var(--unknown-edge);stroke-dasharray:2 1.5}
+.gr-x.is-sel .gr-x-c{fill:var(--red);stroke:#fff;stroke-width:2;stroke-dasharray:none}
+.gr-x-lb.is-note{font-weight:600}
+.gr-e-inc{stroke:var(--ink-1);stroke-width:1}
+.gr-e-map{stroke:var(--ink-1);stroke-width:1}
+.gr-e-map.is-strong{stroke-width:2}
+.gr-e-rec{stroke:var(--unknown-edge);stroke-width:1;stroke-dasharray:3 2}
+.gr-e.is-esel,.gr-e.is-ehov{stroke:var(--red);opacity:1}
+/* 펼친 노드는 특약 다음 급부, 노드마다 14ms씩 늦게 전체 320ms 안. 엣지는 출발 노드에서 도착 노드 쪽으로 그어진다 */
+@keyframes gr-x-in{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes gr-e-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes gr-fade-in{from{opacity:0}to{opacity:1}}
+.gr-l-exp .gr-x .gr-x-c{transform-box:fill-box;transform-origin:center;animation:gr-x-in 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-l-exp .gr-x-lb{animation:gr-fade-in 120ms var(--ease-in) both;animation-delay:200ms}
+.gr-l-xe .gr-e-x:not(.gr-e-rec){stroke-dasharray:1;animation:gr-e-draw 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-l-xe .gr-e-rec{animation:gr-fade-in 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-x-out{opacity:0;transition:opacity 192ms var(--ease-out)}
+:root[data-motion="calm"] .gr-l-exp .gr-x .gr-x-c,:root[data-motion="calm"] .gr-l-xe .gr-e-x{animation-duration:88ms}
+:root[data-motion="calm"] .gr-l-exp .gr-x-lb{animation-delay:110ms}
+:root[data-motion="off"] .gr-l-exp .gr-x .gr-x-c,:root[data-motion="off"] .gr-l-exp .gr-x-lb,:root[data-motion="off"] .gr-l-xe .gr-e-x{animation:none}
+:root[data-motion="off"] .gr-n-c{transition:none}
+.gr-ch-h{margin:8px 0 2px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
+.gr-ch>li{margin-bottom:4px}
+.gr-bl{margin:2px 0 0 12px}
+.gr-bl li{font-size:13px}
 
-/* 연결선 SVG 층: 노드 사이 골짜기와 수 배지에서 포인터 이벤트를 직접 받는다(1-2) */
-.gr-edges-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
-.gr-edge-g{pointer-events:none;cursor:pointer;transition:opacity 180ms var(--ease-in)}
-.gr-edge-g.is-dim{opacity:.35}
-.gr-edge-hit{fill:none;stroke:rgba(0,0,0,.012);stroke-width:14;pointer-events:stroke;cursor:pointer}
-.gr-edge-vis{fill:none;stroke:var(--ink-1);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none;transition:opacity 180ms var(--ease-in)}
-.gr-edge-vis.ek-0,.gr-edge-vis.ek-1{stroke-width:1.5}
-.gr-edge-vis.ek-2{stroke-width:1.5}
-.gr-edge-vis.ek-2.is-human{stroke:var(--ink-0);stroke-width:2.8}
-.gr-edge-vis.ek-3{stroke-width:1;stroke-opacity:.82}
-.gr-edge-vis.ek-5{stroke-dasharray:5 3.5;stroke-width:1.5}
-/* 관계(포함, 통합): 이중선(바깥 굵은 선 + 안쪽 바탕색 가름선) */
-.gr-edge-dbl-out{fill:none;stroke:var(--ink-0);stroke-width:3.6;vector-effect:non-scaling-stroke;pointer-events:none}
-.gr-edge-dbl-in{fill:none;stroke:var(--panel-t);stroke-width:1.4;vector-effect:non-scaling-stroke;pointer-events:none}
-.gr-edge-g:is(:hover,.is-hot,.is-esel) .gr-edge-vis{stroke:var(--red)}
-.gr-edge-g:is(:hover,.is-hot,.is-esel) .gr-edge-dbl-out{stroke:var(--red)}
-.gr-edge-cnt-bg{fill:var(--panel-t);stroke:var(--ink-1);stroke-width:1;pointer-events:all;cursor:pointer}
-.gr-edge-g:is(:hover,.is-hot,.is-esel) .gr-edge-cnt-bg{stroke:var(--red)}
-.gr-edge-cnt-tx{fill:var(--ink-0);font:600 13px/1 var(--f-num);dominant-baseline:central;text-anchor:middle;pointer-events:none}
-
-/* 엣지를 가리킬 때 가운데 뜨는 작은 관계 이름 칩 */
-.gr-edge-chip{position:absolute;left:0;top:0;z-index:6;padding:2px 8px;pointer-events:none;
-  background:var(--slate-solid);color:#fff;border-top:1.5px solid #fff;font:600 13px/1.3 var(--f-ko);white-space:nowrap;
-  transform:translate3d(var(--ec-x,0px),var(--ec-y,0px),0) translate(-50%,-50%);
-  transition:opacity 90ms var(--ease-in),transform 80ms var(--ease-snap)}
-.gr-edge-chip.is-press{transform:translate3d(var(--ec-x,0px),calc(var(--ec-y,0px) + 1px),0) translate(-50%,-50%)}
-.gr-edge-chip[hidden]{display:none!important}
-
-/* 본문 7열 기둥 줄: 열과 격자는 pointer-events:none 이고 노드와 단추만 auto 로 두어 골짜기 엣지가 잡힌다 */
-.gr-cols-grid{position:relative;z-index:2;display:flex;align-items:flex-start;gap:12px;width:100%;pointer-events:none}
-.gr-col{display:flex;flex-direction:column;gap:6px;min-width:0;pointer-events:none}
-.gr-col.is-folded{flex:0 0 36px;min-width:36px;min-height:1px;pointer-events:none}
-.gr-col.gr-c-4.is-folded,.gr-col.gr-c-5.is-folded{flex:0 0 56px;min-width:56px}
-.gr-col.gr-c-4{gap:4px;padding-right:12px}
-
-.gr-node-wrap{display:flex;flex-direction:column;gap:3px;min-width:0;pointer-events:auto;transition:opacity 180ms var(--ease-in)}
-.gr-node-wrap.is-dim{opacity:.35}
-
-/* 종형 구성 틀의 담보구분 묶음 머리 */
-.gr-grp-hd{display:flex;align-items:baseline;justify-content:space-between;gap:4px;padding:4px 6px 2px;margin-top:4px;
-  border-bottom:1.5px solid var(--ink-1);font:600 13px/1.2 var(--f-ko);color:var(--ink-0);pointer-events:auto}
-.gr-grp-hd:first-child{margin-top:0}
-.gr-grp-hd.is-rest{opacity:.68;border-bottom-style:dashed}
-.gr-grp-hd .num{font:600 13px/1.1 var(--f-num);color:var(--ink-1)}
-
-/* 직각 노드 일곱 꼴 공통(.gr-node: 둥근 모서리 0, 최소 폭 24px 이상) */
-.gr-node{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:2px;
-  width:100%;min-width:28px;min-height:32px;padding:5px 6px;border-radius:0;border:1px solid var(--ink-0);
-  background:rgba(244,247,250,.82);color:var(--ink-0);text-align:left;pointer-events:auto;
-  transition:transform 80ms var(--ease-snap),opacity 180ms var(--ease-in)}
-:root[data-theme="dark"] .gr-node{background:rgba(19,26,35,.84)}
-.gr-node:hover,.gr-node:focus-visible{box-shadow:inset 0 0 0 1px var(--ink-0)}
-.gr-node:active{transform:translateY(1px)}
-
-/* 0 회사: 먹색 면의 칸, 흰 글자 */
-.gr-node.k-0{min-height:38px;padding:5px 6px;background:var(--slate);color:var(--on-slate);border-color:var(--ink-0)}
-.gr-node.k-0 .gn-t{display:block;color:#fff;font-weight:700;-webkit-line-clamp:unset;white-space:normal;word-break:keep-all;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
-.gr-node.k-0 .gn-s{color:rgba(255,255,255,.82)}
-
-/* 1 종형: 2px 윤곽 칸, 상품명과 종형명 두 줄 */
-.gr-node.k-1{min-height:46px;padding:5px 6px;border-width:2px}
-
-/* 2 특약: 1px 윤곽 칸 */
-.gr-node.k-2{min-height:34px;padding:5px 6px;border-width:1px}
-
-/* 3 급부: 작은 칸, 이름과 한 줄 요약(기준지급액, 면책, 감액) */
-.gr-node.k-3{min-height:42px;padding:5px 6px;border-width:1px}
-
-/* 우체국 노드는 모든 종류(회사, 종형, 특약, 급부)에서 왼쪽에 3px 굵은 변을 둔다(1-6: k-0~k-3 뒤에 선언) */
-.gr-node.is-epost{border-left-width:3px}
-.gr-node.k-0.is-epost{border-left:3px solid var(--gold-line);box-shadow:inset 2px 0 0 #fff}
-.gr-node.k-1.is-epost{border-left-width:3px;box-shadow:inset 2px 0 0 var(--panel-t),inset 3px 0 0 var(--ink-0)}
-.gr-node.k-2.is-epost,.gr-node.k-3.is-epost{border-left-width:3px;border-left-color:var(--ink-0)}
-
-/* 4 표준담보: 이중 윤곽 칸(이름이 두 줄이면 높이가 자연스럽게 늘어나 잘림 0 유지) */
-.gr-node.k-4{min-height:28px;padding:4px 6px;border:1px solid var(--ink-0);
-  box-shadow:inset 0 0 0 2px var(--panel-t),inset 0 0 0 3px var(--ink-0);flex-direction:row;align-items:center;justify-content:space-between;gap:4px}
-.gr-node.k-4.is-miss{border-style:dashed;border-color:var(--ink-2);box-shadow:none;
-  background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px),rgba(244,247,250,.68)}
-:root[data-theme="dark"] .gr-node.k-4.is-miss{background:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 5px),rgba(19,26,35,.68)}
-.gr-node.k-4.is-only{border-color:var(--gold-line);box-shadow:inset 0 0 0 2px var(--panel-t),inset 0 0 0 3px var(--gold-line)}
-.gr-node.k-4.is-unlinked{border:1px solid var(--line-2);box-shadow:none;background:rgba(244,247,250,.5)}
-:root[data-theme="dark"] .gr-node.k-4.is-unlinked{background:rgba(19,26,35,.5)}
-.gr-node.k-4.is-unlinked .gn-t{color:var(--ink-2)}
-.gr-gold-mk{flex:none;width:7px;height:7px;background:var(--gold);border:1px solid var(--gold-line);transform:rotate(45deg)}
-
-/* 5 보장분야: 넓은 띠 */
-.gr-node.k-5{min-height:48px;padding:5px 6px;border-width:2px 1px 2px 3px;border-color:var(--ink-0);
-  flex-direction:row;align-items:center;justify-content:space-between;gap:4px}
-
-/* 6 소식: 날짜가 붙은 작은 칸 */
-.gr-node.k-6{min-height:42px;padding:5px 6px;border-color:var(--ink-1)}
-
-/* +N 더 묶음 칸 */
-.gr-node.gr-more{min-height:30px;border-style:dashed;border-color:var(--ink-1);flex-direction:row;align-items:center;justify-content:center;
-  font:600 13px/1.2 var(--f-ko);color:var(--ink-1);pointer-events:auto}
-
-/* 고른 노드: 시안 4 공통 빨강(#A30D0D) 3px 바깥 테 + 2px 흰 안쪽 테 */
-.gr-node.is-sel{outline:3px solid var(--red);outline-offset:0;box-shadow:inset 0 0 0 2px #fff!important;z-index:3}
-
-.gn-ktag{font:600 13px/1.15 var(--f-num);color:var(--ink-2)}
-.gn-t{display:-webkit-box;width:100%;font:600 13px/1.26 var(--f-ko);color:var(--ink-0);
-  -webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
-.gr-node.k-1 .gn-p{display:-webkit-box;width:100%;font:400 13px/1.24 var(--f-body);color:var(--ink-1);
-  -webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
-/* 회사(k-0), 표준담보(k-4), 보장분야(k-5) 이름은 모든 데스크톱 창(1280~1920)에서 잘림 0 */
-.gr-node.k-4 .gn-t,.gr-node.k-5 .gn-t{display:block;width:auto;flex:1;min-width:0;-webkit-line-clamp:unset;overflow:visible;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
-.gn-s,.gr-ben-sub{display:block;width:100%;font:400 13px/1.25 var(--f-body);color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gn-cnt{flex:none;font:600 13px/1 var(--f-num);color:var(--ink-1)}
-
-/* 고른 노드 양옆 이웃 펼치기 손잡이 줄 */
-.gr-hop-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px;padding-top:2px;pointer-events:auto}
-.gr-hop-side{display:inline-flex;flex-wrap:wrap;gap:3px}
-.gr-hop-btn{display:inline-flex;align-items:center;gap:4px;min-height:24px;min-width:26px;padding:1px 6px;
-  border:1px solid var(--ink-1);background:var(--panel-t);color:var(--ink-0);font:600 13px/1.15 var(--f-ko)}
-.gr-hop-btn:hover{background:var(--slate);color:var(--on-slate);border-color:transparent}
-.gr-hop-btn.is-done{border-style:dashed;color:var(--ink-2)}
-.gr-hop-btn .num{font-weight:700}
-
-/* 1280~1599px: 열 사이 간격을 좁히고 급부 칸의 한 줄 요약을 가리키거나 고를 때만 보인다 */
-@media (max-width:1599px) and (min-width:1000px){
-  .gr-col-bar,.gr-cols-grid{gap:8px}
-  .gr-col.gr-c-4{padding-right:8px}
-  .gr-c-6.is-open{flex:1.05 1 82px}
-  .gr-c-0.is-open{flex:.96 1 88px}
-  .gr-c-1.is-open{flex:1.08 1 94px}
-  .gr-c-2.is-open{flex:1.12 1 96px}
-  .gr-c-3.is-open{flex:1.04 1 88px}
-  .gr-c-4.is-open{flex:1.68 1 136px}
-  .gr-c-5.is-open{flex:1.02 1 98px}
-  .gr-node.k-3:not(:hover):not(:focus-visible):not(.is-sel) .gr-ben-sub{display:none}
-  .gr-node.k-3:not(:hover):not(:focus-visible):not(.is-sel){min-height:32px}
+/* 왼쪽 영역: 1920x1080, 1600x900 에서 검색과 탐색 이동까지 스크롤 없이 보이게(3.11의 차례 유지) */
+.gr-left-wrap{gap:7px;container-type:inline-size}
+.gr-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.gr-preset{min-height:34px;padding:6px 4px;align-items:center;justify-content:center;text-align:center}
+.gr-preset .gp-s{display:none}
+.gr-flts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+.gr-flt{min-height:27px;padding:2px 8px;gap:4px}
+.gr-flt>span:first-child{min-width:0;word-break:keep-all}
+.gr-legend .gr-lg-sec{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 2px}
+.gr-legend .gr-lg-h{margin:0 0 2px}
+.gr-lg-it{min-height:18px;line-height:1.2;min-width:0}
+.gr-lg-it>span{min-width:0}
+.gr-sec-k{margin:0 0 4px}
+@container (max-width:240px){
+  .gr-flts,.gr-legend .gr-lg-sec,.gr-presets{grid-template-columns:minmax(0,1fr)}
+  .gr-preset{justify-content:flex-start;align-items:flex-start;text-align:left;padding:6px 10px}
 }
+.gr-preset .gp-t{word-break:keep-all}
 
-/* 1000px 미만: 고른 노드의 조상과 자손 길만 세로로 세운 한 열 그림 */
-.gr-vpath{display:none}
+/* 1,000px 미만 세로 목록(8.3): 그룹 카드, 보장 대분류 누적 막대, 담보 이름 칩, 칩 아래 회사별 종형, 특약, 급부 */
+.gr-nl{display:flex;flex-direction:column;gap:10px;padding:6px 0 14px}
+.gr-nl-step{display:flex;flex-direction:column;gap:6px;padding:8px 0 10px 12px;border-left:2px solid var(--axis)}
+.gr-nl-card{display:flex;flex-direction:column;gap:6px;padding:8px 10px 10px 12px;border-left:2px solid var(--axis)}
+.gr-nl-card.gr-nl-only{border-left-color:var(--ink-0)}
+.gr-nl-card.gr-nl-peer{border-left-style:dashed}
+.gr-nl-hd{display:flex;flex-direction:column;gap:2px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1);word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-hd .gl-1{font-weight:700;color:var(--ink-0)}
+.gr-nl-bar{display:flex;gap:1px;height:8px;border:1px solid var(--line-2)}
+.gr-nl-bar span{display:block;min-width:2px}
+.gr-nl-dc{font:500 13px/1.3 var(--f-ko);color:var(--ink-1);word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-chips{display:flex;flex-wrap:wrap;gap:4px}
+.gr-nl-chip{display:inline-flex;align-items:center;gap:2px;max-width:100%;min-height:32px;padding:3px 8px 3px 2px;border:1px solid var(--line-2);background:transparent;
+  color:var(--ink-0);font:600 13px/1.3 var(--f-ko);text-align:left;word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-chip:hover,.gr-nl-chip:focus-visible{background:var(--hover)}
+.gr-nl-chip.is-sel{outline:2px solid var(--red);outline-offset:-2px}
+.gr-nl-sw{flex:none}
+.gr-nl-mk{font-weight:500;color:var(--ink-1);margin-left:4px}
+.gr-nl-exp{flex-basis:100%;display:flex;flex-direction:column;gap:8px;padding:4px 0 6px 10px;border-left:2px solid var(--red)}
+.gr-nl-more{align-self:flex-start;min-height:32px;padding:4px 10px;border:1px solid var(--line-2);background:transparent;color:var(--ink-0);font:600 13px/1.3 var(--f-ko)}
+.gr-nl-more:hover,.gr-nl-more:focus-visible{background:var(--hover)}
+.gr-nl-oh{display:flex;flex-direction:column;font:600 13px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-rs,.gr-nl-bens{list-style:none;margin:0;padding:0}
+.gr-nl-r{padding:3px 0 3px 8px;border-left:1px solid var(--line-2);font:600 13px/1.35 var(--f-ko);color:var(--ink-0);word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-bens li{padding-left:12px;font:400 13px/1.35 var(--f-ko);color:var(--ink-1)}
+.gr-nl-bens li.is-rec{border-left:1px dashed var(--ink-1)}
+.gr-nl-items{display:flex;flex-direction:column;gap:4px}
+.gr-nl-it{display:block;width:100%;min-height:32px;padding:5px 8px;border:1px solid var(--line-2);background:transparent;color:var(--ink-0);
+  font:600 13px/1.3 var(--f-ko);text-align:left;word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-it:hover,.gr-nl-it:focus-visible{background:var(--hover)}
+.gr-nl-it.is-sel{outline:2px solid var(--red);outline-offset:-2px}
+
+/* 종형 구성 보기(요청 38의 6절)와 시장 동향 보기(7절) */
+.gr-flts-2{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+@container (max-width:240px){.gr-flts-2{grid-template-columns:1fr}}
+.gr-net.is-scroll{overflow-y:auto;overflow-x:hidden}
+.gr-alt-svg .gr-v{cursor:pointer;transition:opacity 220ms var(--ease-in)}
+.gr-v-c{stroke:var(--ink-0);stroke-width:1}
+.gr-v-r .gr-v-c{fill:var(--panel-t);stroke-width:1}
+.gr-v-r.is-ours .gr-v-c{stroke-width:2}
+.gr-v-b .gr-v-c{fill:var(--fog-1);stroke:var(--ink-1)}
+.gr-v-b.is-ours .gr-v-c{stroke:var(--ink-0);stroke-width:1.5}
+.gr-v-s .gr-v-c{stroke:var(--gr-n-line)}
+.gr-v.is-mwait .gr-v-c{stroke:var(--ink-0);stroke-dasharray:1.5 1.5}
+.gr-v.is-wait .gr-v-c{stroke:var(--unknown-edge);stroke-dasharray:2 1.5}
+.gr-v-newrev{fill:none;stroke:var(--gold-line);stroke-width:1.5}
+.gr-v-link{fill:var(--gold);stroke:var(--gold-line);stroke-width:1}
+.gr-v.is-sel .gr-v-c{fill:var(--red)!important;stroke:#fff;stroke-width:2;stroke-dasharray:none}
+.gr-alt-svg .gr-v:focus-visible .gr-v-c,.gr-alt-svg .gr-v:hover .gr-v-c{stroke:var(--red);stroke-width:2}
+.gr-vbox{cursor:pointer}
+.gr-vbox-r{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:2}
+.gr-vbox:hover .gr-vbox-r,.gr-vbox:focus-visible .gr-vbox-r{stroke:var(--red)}
+.gr-vbox.is-sel .gr-vbox-r{stroke:var(--red);stroke-width:2.5}
+.gr-alt-svg .gr-tx.gr-vbox-nm,.gr-alt-svg .gr-tx.gr-vsec,.gr-alt-svg .gr-tx.gl-1{font-weight:600}
+.gr-alt-svg .gr-tx.gr-vbox-um{fill:var(--ink-1)}
+.gr-alt-svg .gr-l-labels .gr-tx{paint-order:stroke;stroke:var(--panel-t);stroke-width:3px;stroke-linejoin:round}
+.gr-alt-svg .gr-vmore .gr-tx{stroke:none}
+.gr-vsec-l{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
+.gr-ve{fill:none;stroke:var(--ink-1);stroke-width:1;transition:opacity 220ms var(--ease-in)}
+.gr-ve-inc{stroke:var(--ink-2)}
+.gr-ve-map{stroke:var(--ink-1)}
+.gr-ve-map.is-human{stroke:var(--ink-0);stroke-width:2}
+.gr-ve-cons{stroke:var(--ink-0);stroke-width:1.25;stroke-dasharray:4 3}
+.gr-arrow-h{fill:var(--ink-0)}
+.gr-alt-svg .gr-e.is-esel{stroke:var(--red)}
+.gr-alt-svg .gr-e:hover{stroke:var(--red)}
+.gr-vmore{cursor:pointer}
+.gr-vmore rect{fill:var(--panel-t);stroke:var(--ink-1);stroke-width:1;stroke-dasharray:2 1.5}
+.gr-alt-svg .gr-vmore .gr-tx{font-weight:600}
+.gr-alt-svg.is-selm :is(.gr-v,.gr-ve,.gr-me,.gr-vlb,.gr-mlb,.gr-vmore):not(.is-keep){opacity:.3}
+.gr-mk-o .gr-v-c{fill:var(--slate-solid);stroke:var(--ink-0);stroke-width:1.5}
+.gr-mk-o.is-ours .gr-v-c{stroke:var(--gold-line);stroke-width:2.5}
+.gr-mk-n .gr-v-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:1.25}
+.gr-mk-n.is-below .gr-v-c{fill:none;stroke:var(--ink-2);stroke-dasharray:2 1.5}
+.gr-me{stroke:var(--ink-1);stroke-width:1}
 @media (max-width:999px){
   .gr-left-wrap{gap:8px;padding-right:0}
   .gr-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
   .gr-preset{min-height:36px;padding:6px 6px;align-items:center;justify-content:center;text-align:center}
   .gr-preset .gp-s{display:none}
   .gr-ctrl-row .btn{height:32px}
-  .gr-col-bar,.gr-canvas-scroll{display:none}
-  .gr-vpath{display:flex;flex-direction:column;gap:0;padding:6px 0 14px}
-  .gr-vp-step{position:relative;display:flex;flex-direction:column;gap:6px;padding:10px 0 12px 18px;border-left:2px solid var(--axis)}
-  .gr-vp-step::before{content:"";position:absolute;left:-5px;top:15px;width:8px;height:8px;background:var(--panel-t);border:2px solid var(--ink-0)}
-  .gr-vp-step.is-cur::before{background:var(--red);border-color:var(--red)}
-  .gr-vp-hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
-  .gr-vp-nodes{display:flex;flex-direction:column;gap:6px}
 }
+
+/* 2차 개선: 왼쪽 패널, 상세 배지, 시장 동향 */
+.gr-tools{display:flex;flex-direction:column;gap:6px}
+.gr-flt-sub{margin:0 0 5px;font:400 13px/1.35 var(--f-body);color:var(--ink-1);word-break:keep-all}
+.gr-flt.is-off{border-color:var(--line);color:var(--ink-2);background:transparent;cursor:default}
+.gr-flt.is-off:hover{background:transparent}
+.gr-flt.is-off .num{color:var(--ink-2)}
+.gr-lg-tg{display:flex;align-items:center;gap:6px;width:100%;min-height:26px;padding:0;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink-1);text-align:left;margin:0 0 4px}
+.gr-lg-tg .gr-sec-k{margin:0}
+.gr-lg-tg-s{margin-left:auto;font:400 13px/1.2 var(--f-body);color:var(--ink-2)}
+.gr-lg-tg:hover .gr-lg-tg-s,.gr-lg-tg:focus-visible .gr-lg-tg-s{color:var(--ink-0)}
+.gr-lg-chev{flex:none;transition:transform 160ms var(--ease-in)}
+.gr-legend.is-closed .gr-lg-chev{transform:rotate(-90deg)}
+.gr-lg-body[hidden]{display:none!important}
+.gr-lg-foot{margin:2px 0 0;font:400 13px/1.35 var(--f-body);color:var(--ink-2)}
+.gr-left-more{position:sticky;bottom:0;margin:0;padding:5px 4px;background:var(--slate);color:var(--on-slate);
+  font:600 13px/1.3 var(--f-ko);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gr-left-more[hidden]{display:none!important}
+.board[data-tab="graph"] > .z-left{scrollbar-width:auto;padding-bottom:0}
+.board[data-tab="graph"] .gr-left-wrap{padding-bottom:10px}
+.board[data-tab="graph"] .gr-left-wrap:has(> .gr-left-more:not([hidden])){padding-bottom:0}
+.gr-mk-note{margin:0;font:400 13px/1.35 var(--f-body);color:var(--ink-1);word-break:keep-all}
+.gr-mk-o .gr-v-c{fill:var(--slate-solid);stroke:var(--ink-0);stroke-width:1}
+.gr-mk-o.is-cmp .gr-v-c{fill:var(--panel-t);stroke-width:4}
+.gr-mk-o.is-ours .gr-v-c{stroke:var(--gold-line)}
+.gr-mk-c .gr-v-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:2}
+.gr-alt-svg .gr-mk-c{cursor:default}
+.gr-mc{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2;pointer-events:none;transition:opacity 220ms var(--ease-in)}
+.gr-alt-svg.is-selm .gr-mc:not(.is-keep){opacity:.3}
+@media (max-width:999px){.gr-left-more,.gr-mk-note{display:none!important}}
+/* 2차 개선: 담보 선택 펼침과 선택 표시 */
+/* 담보 선택: 보유 회사마다 요약 노드 하나, 앵커와 요약 노드와 담보를 잇는 굵은 선은 선택 강조(빨강) */
+.gr-l-xe .gr-e-sum{stroke:var(--red);stroke-width:3;stroke-linecap:round;opacity:1}
+.gr-x-sum .gr-x-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:2;stroke-dasharray:none}
+.gr-x-sum.is-wait .gr-x-c{stroke:var(--unknown-edge);stroke-dasharray:3 2}
+.gr-x-sum{cursor:pointer}
+.gr-net-svg .gr-x-lb{paint-order:stroke;stroke:var(--panel-t);stroke-width:3px;stroke-linejoin:round}
+.gr-x-lb .gr-x-lb2{font-weight:400;fill:var(--ink-1)}
+/* 선택하지 않은 그룹, 담보, 앵커, 번들 엣지는 더 흐리게(선택한 담보, 그 그룹, 이어진 앵커와 요약 노드가 먼저 보이게) */
+.gr-net-svg.is-exp .gr-g:not(.is-keep){opacity:.18}
+.gr-net-svg.is-exp .gr-n:not(.is-big){opacity:.25}
+.gr-net-svg.is-exp .gr-a:not(.is-keep){opacity:.35}
+.gr-net-svg.is-exp .gr-e-bundle:not(.is-ssel){opacity:.08}
+.gr-net-svg.is-exp .gr-l-labels :is(.gr-lb-g,.gr-lb-badge):not(.is-keep){opacity:.3}
+/* 그룹 선택: 그 그룹과 회사 앵커를 잇는 번들 엣지를 빨강으로 */
+.gr-net-svg .gr-e-bundle.is-ssel{stroke:var(--red);opacity:1}
+
+/* 3차 개선: 필터 대상 표시, 보장 대분류 구역 이름, 표시 기호 */
+/* 필터를 켜면 대상이 아닌 담보는 채움 없는 가는 점선 원, 대상은 굵은 테두리(명암과 상관없이 대상이 보이게) */
+.gr-net-svg.is-flt .gr-n:not(.is-on){opacity:1}
+.gr-net-svg.is-flt .gr-n:not(.is-on) .gr-n-c{fill:none!important;stroke:var(--ink-2);stroke-width:1;stroke-dasharray:2 2}
+.gr-net-svg.is-flt .gr-n.is-on .gr-n-c{stroke:var(--ink-0);stroke-width:2.5;stroke-dasharray:none}
+/* 그룹을 호버하거나 선택하면 보이는 보장 대분류 구역 이름 */
+.gr-net-svg .gr-dz{font-size:12px;font-weight:600;fill:var(--ink-0);paint-order:stroke;stroke:var(--panel-t);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+/* 담보 원 가장자리의 표시 기호는 필터를 켰을 때(대상)와 호버, 선택 강조 때만. 검수 대기(점선 테두리)는 늘 보인다 */
+.gr-net-svg .gr-n .gr-mk{opacity:0;transition:opacity 120ms var(--ease-in)}
+.gr-net-svg.is-flt .gr-n.is-on .gr-mk,.gr-net-svg .gr-n:hover .gr-mk,.gr-net-svg:is(.is-hl,.is-selm) .gr-n.is-keep .gr-mk{opacity:1}
+.gr-net-svg.is-flt .gr-n.is-on.is-wait .gr-n-c{stroke-dasharray:3 1.5}
+/* 검수 대기는 기본 화면에서도 또렷하게(진한 점선 테두리) */
+:is(.gr-net-svg,.gr-sw) .gr-n.is-wait .gr-n-c{stroke:var(--ink-0);stroke-width:1.5;stroke-dasharray:2 1.5}
+
+/* 4차 개선: 라벨 외곽선, 담보 이름 줄이기, 앵커, 타사만 보유 그룹, 클릭 가능 표시 */
+/* 모든 라벨 글자 뒤에 배경색 외곽선을 두어 선이 지나가도 읽히게 */
+.gr-net-svg .gr-tx{paint-order:stroke;stroke:var(--panel-t);stroke-width:3px;stroke-linejoin:round}
+/* 기본 화면에서는 담보 이름을 감추고 그룹 이름을 앞세운다. 호버, 선택 강조 때는 강조한 담보, 필터 때는 대상 담보의 이름만 */
+.gr-net-svg .gr-lb-s{opacity:0}
+.gr-net-svg:is(.is-hl,.is-selm) .gr-lb-s.is-keep,.gr-net-svg.is-flt .gr-lb-s.is-on,.gr-net-svg.is-exp .gr-lb-s.is-big{opacity:1}
+.gr-net-svg:is(.is-hl,.is-selm) .gr-lb-s:not(.is-keep){opacity:0}
+.gr-net-svg.is-flt .gr-lb-s:not(.is-on){opacity:0}
+/* 회사 종형 앵커: 이중 원과 굵은 테두리, 회사 이름 굵게 */
+.gr-a-o{fill:none;stroke:var(--ink-0);stroke-width:1}
+.gr-a .gr-a-c{stroke-width:2.5}
+.gr-a.is-base .gr-a-c{stroke-width:3}
+.gr-lb-a .gl-1{font-weight:700}
+/* 타사만 보유(우체국 미보유) 그룹: 굵은 파선 테두리와 진한 빗금 */
+.gr-net-svg .gr-g-peer{stroke:var(--ink-1);stroke-width:2;stroke-dasharray:7 4}
+.gr-net-svg .gr-g-peer.is-gsel{stroke:var(--red)}
+.gr-hatch-l{stroke-width:1.4}
+/* 클릭할 수 있는 그룹 이름표는 버튼형 테두리 */
+.gr-lb-g .gr-lb-hit{fill:var(--panel-t);fill-opacity:.55;stroke:var(--line-2);stroke-width:1}
+.gr-lb-g{cursor:pointer}
+.gr-lb-g:hover .gr-lb-hit,.gr-lb-g:focus-visible .gr-lb-hit{stroke:var(--ink-0)}
+.gr-alt-svg .gr-tx.gr-vbox-go{font-size:16px;font-weight:700;fill:var(--ink-0)}
+.gr-vbox:hover .gr-vbox-go{fill:var(--red)}
+/* 보유 구분을 그룹 라벨 테두리에도: 타사만 보유(우체국 미보유)는 그룹 원과 같은 굵은 파선, 우체국만 보유는 금색 테두리 */
+.gr-lb-g-peer .gr-lb-hit{stroke:var(--ink-1);stroke-width:1.5;stroke-dasharray:5 3}
+.gr-lb-g-only .gr-lb-hit{stroke:var(--gold-line);stroke-width:1.5}
+/* 위로 올린 검색 라벨이 배경 장식의 어두운 면 위에 놓여도 명암비 4.5 이상이 되게 */
+.gr-search-box .gr-sec-k{color:var(--ink-0)}

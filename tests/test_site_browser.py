@@ -166,7 +166,7 @@ def test_기준_종형의_가입_한도가_없어_판정하지_않은_담보는_
     assert "기준 종형 가입 한도 자료 없음" in cell, cell
     page.click('[data-key="s3-card"]')
     page.wait_for_selector("#card[open] .sheet")
-    assert "금액 자료가 없어 판정하지 않은 담보" not in page.inner_text("#card-body .sheet")
+    assert "금액 자료가 없어 비교하지 않은 담보" not in page.inner_text("#card-body .sheet")
 
 
 def test_화면3_해설은_판정할_수_있는_담보가_있는_열과_견주고_그_이름을_적는다(site):
@@ -223,9 +223,9 @@ def test_검토가_끝나_판정이_생긴_것은_정정과_따로_적는다(sit
     now = rep_tables()
     page = site(now, previous=Data(pending_private(now), {"snapshot_at": PREV}))
     text = page.inner_text("#main")
-    assert "자료 정정이라" not in text and "검토가 끝나 판정이 생긴 1건" in text
+    assert "자료 정정이라" not in text and "검토가 끝나 비교 결과가 생긴 1건" in text
     page.click("#tab-s6")
-    assert "검토가 끝나 판정이 생김" in page.inner_text("#main .tiles")
+    assert "검토가 끝나 비교 결과가 생김" in page.inner_text("#main .tiles")
 
 
 # ---------- 화면 2 ----------
