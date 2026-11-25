@@ -220,16 +220,16 @@
    "practice_compare_time",
    "practice_compare_frequency",
    "practice_respondents",
-   "practice_compare_source"
+   "practice_compare_source",
+   "example_cancer_surgery"
   ],
   "29": [
-   "default_base_variant",
    "example_cancer_surgery",
+   "default_base_variant",
    "excluded_pending_pairs"
   ],
   "30": [
    "practice_respondents",
-   "example_cancer_surgery",
    "standard_coverage_in_use",
    "practice_compare_time",
    "practice_compare_frequency",
@@ -239,7 +239,6 @@
    "revision_changes",
    "segment_map_cell_count",
    "mapping_status_site",
-   "excluded_pending_pairs",
    "not_yet_measured"
   ],
   "31": [
