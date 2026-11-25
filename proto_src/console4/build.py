@@ -29,9 +29,11 @@ import re
 import sys
 from pathlib import Path
 
-import terms_check
-
 HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+import terms_check  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 OUT_DEFAULT = ROOT / 'site/proto/console4.html'
 FONTS = ROOT / 'proto_src/fonts/fonts_v4.css'

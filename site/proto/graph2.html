@@ -363,10 +363,10 @@ svg#g{position:absolute;inset:0;width:100%;height:100%;touch-action:none;user-se
 <div id="app" class="m-rich boot">
 <header id="hd">
   <div class="brand"><div class="crumb">POSTLIFE <b>//</b> ONTOLOGY NAV</div><h1>관계망 탐색</h1></div>
-  <div class="srch"><input id="q" type="search" placeholder="이름 찾기: 표준담보, 특약, 종형, 회사" autocomplete="off" aria-label="이름 찾기"><div id="sugg"></div></div>
-  <div class="hb"><button class="hbtn" id="bUndo"><span class="k">Z</span>되돌리기</button><button class="hbtn" id="bHome">처음</button></div>
-  <div class="seg" id="skin"><span class="sl">SKIN</span><button data-v="dark" class="on">짙게</button><button data-v="light">밝게</button></div>
-  <div class="seg" id="mot"><span class="sl">MOTION</span><button data-v="rich" class="on">풍부함</button><button data-v="calm">절제</button><button data-v="off">끔</button></div>
+  <div class="srch"><input id="q" type="search" placeholder="검색: 표준담보, 특약, 종형, 회사" autocomplete="off" aria-label="검색"><div id="sugg"></div></div>
+  <div class="hb"><button class="hbtn" id="bUndo"><span class="k">Z</span>실행 취소</button><button class="hbtn" id="bHome">처음</button></div>
+  <div class="seg" id="skin"><span class="sl">SKIN</span><button data-v="dark" class="on">다크</button><button data-v="light">라이트</button></div>
+  <div class="seg" id="mot"><span class="sl">MOTION</span><button data-v="rich" class="on">풍부함</button><button data-v="calm">줄임</button><button data-v="off">끔</button></div>
   <div class="stamp"><span>SNAPSHOT</span><b id="snap"></b></div>
   <i class="hd-line"></i>
 </header>
@@ -532,23 +532,23 @@ function otherOrgRiders(startBens,org){const stdK=new Map(),benK=new Map(),ridK=
     ()=>{const o=[];for(const [r] of ridK){o.push(...reveal('n'+r,nb(r,1).filter(x=>N[x.j].k===1),{lane:1}))}return o}]}
 function hopSameStd(k){const v=VN.get(k),n=N[v.n];let bens=[v.n],pre=[];
   if(n.k===2){bens=nb(v.n,1).filter(x=>N[x.j].k===3&&nb(x.j,2).length).slice(0,3).map(x=>x.j);pre=[()=>reveal(k,nb(v.n,1).filter(x=>bens.includes(x.j)),{lane:1})]}
-  if(!bens.length){toast('표준담보로 이어진 급부가 없습니다');return}
-  staged(pre.concat(otherOrgRiders(bens,n.o))).then(a=>toast('여러 홉 펼치기: 새 노드 '+a.length+'개를 단계별 기둥으로 놓았습니다','MULTI HOP'))}
+  if(!bens.length){toast('표준담보와 연결된 급부가 없습니다');return}
+  staged(pre.concat(otherOrgRiders(bens,n.o))).then(a=>toast('여러 단계 펼치기: 새 노드 '+a.length+'개를 단계별 열로 놓았습니다','MULTI HOP'))}
 function hopStdByOrg(k){const v=VN.get(k);staged([()=>reveal(k,nb(v.n,2),{group:true,lane:1})])}
 function hopStdRel(k){const v=VN.get(k);const lv1=[];staged([
   ()=>{const pr=nb(v.n,4);pr.forEach(x=>lv1.push(x.j));return reveal(k,pr,{lane:1})},
   ()=>{const o=[];lv1.forEach(j=>o.push(...reveal('n'+j,nb(j,4),{lane:1})));return o},
-  ()=>reveal(k,nb(v.n,3),{lane:1})]).then(a=>{if(!a.length)toast('이어진 상위, 통합 담보가 없습니다')})}
-function hopNews(k){const v=VN.get(k);const pr=nb(v.n,5).sort((a,b)=>String(E[b.e].p.발표일).localeCompare(String(E[a.e].p.발표일)));if(!pr.length){toast('이 회사의 시장 소식은 사본에 없습니다');return}staged([()=>reveal(k,pr,{lane:1})])}
+  ()=>reveal(k,nb(v.n,3),{lane:1})]).then(a=>{if(!a.length)toast('연결된 상위, 통합 담보가 없습니다')})}
+function hopNews(k){const v=VN.get(k);const pr=nb(v.n,5).sort((a,b)=>String(E[b.e].p.발표일).localeCompare(String(E[a.e].p.발표일)));if(!pr.length){toast('이 회사의 시장 동향은 스냅샷에 없습니다');return}staged([()=>reveal(k,pr,{lane:1})])}
 function hopSiblings(k){const v=VN.get(k);let org=null;staged([()=>{const pr=nb(v.n,0);org=pr[0]&&pr[0].j;return reveal(k,pr,{lane:1})},()=>org==null?[]:reveal('n'+org,nb(org,0),{lane:1})])}
 function bfs(a,b){const prev=new Map([[a,-1]]);const q=[a];while(q.length){const i=q.shift();if(i===b)break;for(const e of adj[i]){if(!filt.ek.has(E[e].k))continue;const j=other(e,i);if(prev.has(j)||!orgOn(j))continue;prev.set(j,e);q.push(j)}}
   if(!prev.has(b))return null;const path=[];let c=b;while(c!==a){const e=prev.get(c);path.unshift({e,j:c,from:other(e,c)});c=other(e,c)}return path}
 function findPath(){const A=VN.get(pathFrom),B=VN.get(sel);if(!A||!B||A.n<0||B.n<0)return;const p=bfs(A.n,B.n);if(!p){toast('켜 둔 관계로는 길이 없습니다');return}
   pathE=new Set(p.map(x=>x.e));pathN=new Set([A.n,...p.map(x=>x.j)]);
   const back=sel;sel=pathFrom;
-  staged(p.map(x=>()=>reveal('n'+x.from,[{e:x.e,j:x.j}],{lane:1}))).then(()=>{sel=back;refresh();toast('가장 짧은 길: '+p.length+'홉','PATH');fitView([...pathN].map(i=>'n'+i).filter(k=>VN.has(k)))})}
+  staged(p.map(x=>()=>reveal('n'+x.from,[{e:x.e,j:x.j}],{lane:1}))).then(()=>{sel=back;refresh();toast('최단 경로: '+p.length+'단계','PATH');fitView([...pathN].map(i=>'n'+i).filter(k=>VN.has(k)))})}
 function togglePin(){if(!sel)return;pinned.has(sel)?pinned.delete(sel):pinned.add(sel);refresh();toast(pinned.has(sel)?'고정했습니다. 노드가 많아져도 이 노드와 그 위 가지는 접지 않습니다':'고정을 풀었습니다','PIN')}
-function setFrom(){if(!sel)return;if(pathFrom&&pathFrom!==sel&&VN.has(pathFrom)){findPath();return}pathFrom=pathFrom===sel?null:sel;refresh();if(pathFrom)toast('길 찾기의 시작점으로 삼았습니다. 다른 노드를 고르고 "길 찾기"를 누르세요','PATH')}
+function setFrom(){if(!sel)return;if(pathFrom&&pathFrom!==sel&&VN.has(pathFrom)){findPath();return}pathFrom=pathFrom===sel?null:sel;refresh();if(pathFrom)toast('경로 탐색의 시작점으로 삼았습니다. 다른 노드를 선택하고 "경로 탐색"을 클릭하세요','PATH')}
 
 /* ---------- view ---------- */
 const cv=$('#cv'),svg=$('#g'),world=$('#world'),lE=$('#lE'),lN=$('#lN'),lFx=$('#lFx'),lL=$('#lL'),lEP=$('#lEP'),lSel=$('#lSel'),lBg=$('#lBg'),lLane=$('#lLane'),dock=$('#dock'),panel=$('#panel');
@@ -589,13 +589,13 @@ function mkNode(v){const I=vnInfo(v),g=el('g',{class:'nd','data-vn':v.key});draw
   const fd=el('text',{class:'fd','text-anchor':'middle',y:I.r+16},g);
   el('circle',{r:Math.max(I.r+6,24),fill:'transparent'},g);g.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'){hov=v.key;kick()}});g.addEventListener('pointerleave',()=>{hov=null;kick()});
   lN.appendChild(g);const L=mkLabel(trunc(I.label,I.k===-1?22:18),'lb');return{g,r:I.r,L,fd,full:I.label}}
-function eShort(e){const x=E[e],p=x.p;switch(x.k){case 0:return['판매',''];case 1:return['포함',p.담보구분||p.급부역할||''];case 2:return typeof p.매핑확률==='number'?['해당',p.매핑확률.toFixed(2)]:['해당','교차'];case 3:return['속함',p.보장중분류||''];case 4:return['관계',p.관계||''];case 5:return['일으킴',p.분류유형||'']}}
+function eShort(e){const x=E[e],p=x.p;switch(x.k){case 0:return['판매',''];case 1:return['포함',p.담보구분||p.급부역할||''];case 2:return typeof p.매핑확률==='number'?[EK[2],p.매핑확률.toFixed(2)]:[EK[2],'교차'];case 3:return[EK[3],p.보장중분류||''];case 4:return[EK[4],p.관계||''];case 5:return[EK[5],p.분류유형||'']}}
 function eLabel(e){const s=eShort(e);return s[1]?s[0]+' · '+s[1]:s[0]}
 function eWarn(e){const x=E[e];return x.k===4||(x.k===2&&x.p.검토상태&&x.p.검토상태!=='자동확정'&&x.p.검토상태!=='확정')}
 function mkEdge(ve){const g=el('g',{class:'ed','data-ve':ve.key});const glw=el('line',{class:'glw'},g);const l=el('line',{class:'vis'},g);const hit=el('line',{class:'hit'},g);
   const pg=el('g',{class:'ep','data-ve':ve.key},lEP);const cap=el('path',{class:'cap'},pg);const t=el('text',{x:9,y:5},pg);
   if(ve.e!=null){const s=eShort(ve.e);t.textContent=s[0];if(s[1]){t.appendChild(document.createTextNode(' · '));const v=el('tspan',{class:'v'},t);v.textContent=s[1]}if(E[ve.e].k===4)g.classList.add('dash');if(eWarn(ve.e))pg.classList.add('warn')}
-  else{const G=VN.get(ve.grp);t.textContent=G?EK[G.grp.ek]+' 묶음':'';g.classList.add('grp')}
+  else{const G=VN.get(ve.grp);t.textContent=G?EK[G.grp.ek]+' 그룹':'';g.classList.add('grp')}
   lE.appendChild(g);return{g,l,hit,glw,pg,cap,t,w:0}}
 function vnHidden(v){if(v.grp)return!(v.grp.org==null||filt.org.has(orgGroup(v.grp.org)));return!orgOn(v.n)}
 const ov=(a,b)=>a.x0<b.x1&&b.x0<a.x1&&a.y0<b.y1&&b.y0<a.y1;
@@ -677,12 +677,12 @@ function updateDeco(K){if(!deco)return false;const v=VN.get(deco.key);if(!v){lSe
 
 /* ---------- dock ---------- */
 function hopsFor(v){const n=N[v.n],o=[];if(n.k===3||n.k===2)o.push(['4','같은 담보를 가진 다른 회사의 특약',()=>hopSameStd(sel)]);
-  if(n.k===4){o.push(['1','이 담보를 가진 회사별 급부',()=>hopStdByOrg(sel)]);o.push(['2','상위와 통합 담보, 보장 분야',()=>hopStdRel(sel)])}
-  if(n.k===0)o.push(['1','최근 시장 소식',()=>hopNews(sel)]);if(n.k===1)o.push(['2','같은 회사의 다른 종형',()=>hopSiblings(sel)]);return o}
+  if(n.k===4){o.push(['1','이 담보를 가진 회사별 급부',()=>hopStdByOrg(sel)]);o.push(['2','상위와 통합 담보, 보장 대분류',()=>hopStdRel(sel)])}
+  if(n.k===0)o.push(['1','최근 시장 동향',()=>hopNews(sel)]);if(n.k===1)o.push(['2','같은 회사의 다른 종형',()=>hopSiblings(sel)]);return o}
 function closeHop(){$('#hopm').classList.remove('open');const b=$('#bHop');if(b)b.classList.remove('on')}
 function buildDock(pop){const v=sel&&VN.get(sel);if(!v){dock.hidden=true;closeHop();layoutChrome();return}
   dock.hidden=false;const I=vnInfo(v);const id=dock.querySelector('.dk-id');id.textContent='';id.style.setProperty('--i',0);const ic=document.createElementNS(svgNS,'svg');iconSvg(ic,I.k,I.col,I.org);id.appendChild(ic);
-  const tx=h('div');tx.style.minWidth='0';tx.appendChild(h('div',{class:'nm',title:I.label},I.label));tx.appendChild(h('div',{class:'sb'},(I.k>=0?KIND[I.k]:'묶음')+(I.org?' · '+(ORGNAME[I.org]||I.org):'')));id.appendChild(tx);
+  const tx=h('div');tx.style.minWidth='0';tx.appendChild(h('div',{class:'nm',title:I.label},I.label));tx.appendChild(h('div',{class:'sb'},(I.k>=0?KIND[I.k]:'그룹')+(I.org?' · '+(ORGNAME[I.org]||I.org):'')));id.appendChild(tx);
   $('#dkt').textContent=I.k>=0?KIND_EN[I.k]:'GROUP';
   const rel=dock.querySelector('.dk-rel');rel.textContent='';let i=1;
   if(v.n<0){const b=h('button',{class:'rb'});b.innerHTML='<span class="ky">1</span><span class="nm">다음 12개 풀기</span><span class="ct">'+(v.grp.items.length-v.grp.next)+'</span>';b.style.setProperty('--i',1);b.addEventListener('click',()=>tapGroup(v.key));if(busy)b.disabled=true;rel.appendChild(b)}
@@ -694,11 +694,11 @@ function buildDock(pop){const v=sel&&VN.get(sel);if(!v){dock.hidden=true;closeHo
   const ab=(ic,txt,fn,cls='',dis=false,id)=>{const b=h('button',{class:'ab '+cls});if(id)b.id=id;b.innerHTML='<span class="ic">'+ic+'</span><span>'+txt+'</span>';b.style.setProperty('--i',i++);b.disabled=dis||busy;b.addEventListener('click',fn);act.appendChild(b);return b};
   ab('−','접기',()=>collapse(sel),'',!hasKids);
   ab('◆','고정',togglePin,pinned.has(sel)?'on':'');
-  if(v.n>=0){const ready=pathFrom&&pathFrom!==sel&&VN.has(pathFrom);ab(ready?'⇢':'◎',ready?'길 찾기':'시작점',setFrom,ready?'amb':(pathFrom===sel?'on':''))
-    const hs=hopsFor(v);ab('▴','여러 홉',e=>{e.stopPropagation();const m=$('#hopm');const open=!m.classList.contains('open');if(open){buildHop(v);m.classList.add('open');e.currentTarget.classList.add('on')}else closeHop()},'',!hs.length,'bHop')}
+  if(v.n>=0){const ready=pathFrom&&pathFrom!==sel&&VN.has(pathFrom);ab(ready?'⇢':'◎',ready?'경로 탐색':'시작점',setFrom,ready?'amb':(pathFrom===sel?'on':''))
+    const hs=hopsFor(v);ab('▴','여러 단계',e=>{e.stopPropagation();const m=$('#hopm');const open=!m.classList.contains('open');if(open){buildHop(v);m.classList.add('open');e.currentTarget.classList.add('on')}else closeHop()},'',!hs.length,'bHop')}
   if(pop){dock.classList.remove('pop');void dock.offsetWidth;dock.classList.add('pop')}
   layoutChrome()}
-function buildHop(v){const m=$('#hopm');m.textContent='';m.appendChild(h('div',{class:'frm'}));m.appendChild(h('div',{class:'tag'},'MULTI-HOP QUERY // 여러 홉'));
+function buildHop(v){const m=$('#hopm');m.textContent='';m.appendChild(h('div',{class:'frm'}));m.appendChild(h('div',{class:'tag'},'MULTI-HOP QUERY // 여러 단계'));
   for(const [hp,txt,fn] of hopsFor(v)){const b=h('button',{class:'hi'});b.innerHTML='<b>'+hp+' HOP</b><span>'+esc(txt)+'</span>';b.addEventListener('click',()=>{closeHop();fn()});m.appendChild(b)}
   if(pathE.size){const b=h('button',{class:'hi'});b.innerHTML='<b>CLR</b><span>길 표시 지우기</span>';b.addEventListener('click',()=>{closeHop();pathE.clear();pathN.clear();pathFrom=null;refresh()});m.appendChild(b)}}
 
@@ -713,13 +713,13 @@ function gauge(label,frac,val,warn){const r=h('div',{class:'gr'+(warn?' warn':''
 function phead(hd,title,sub,col,tag){const p=h('div',{class:'ph'});const bar=h('div',{class:'bar'});bar.appendChild(h('span',{class:'tag'},tag));bar.appendChild(h('span',{class:'tag'},'SEL ◆'));p.appendChild(bar);p.appendChild(h('div',{class:'hd'},hd));p.appendChild(h('div',{class:'t'},title));
   if(sub!=null){const s=h('div',{class:'s'});if(col){const i=h('i');i.style.background=col;s.appendChild(i)}s.appendChild(document.createTextNode(sub));p.appendChild(s)}return p}
 function buildPanel(pop){panel.textContent='';secI=0;
-  if(selEdge&&VE.has(selEdge)){const ve=VE.get(selEdge);const nm=ve.e!=null?EK[E[ve.e].k]:'묶음';panel.appendChild(phead('엣지 · '+nm,nodeName(ve.a)+' → '+nodeName(ve.b),ve.e!=null?(eWarn(ve.e)?'담당자 확정 전':'확정된 관계'):'묶음 엣지',null,'LINK // '+(ve.e!=null?'E-'+String(ve.e).padStart(4,'0'):'GROUP')));
+  if(selEdge&&VE.has(selEdge)){const ve=VE.get(selEdge);const nm=ve.e!=null?EK[E[ve.e].k]:'그룹';panel.appendChild(phead('엣지 · '+nm,nodeName(ve.a)+' → '+nodeName(ve.b),ve.e!=null?(eWarn(ve.e)?'담당자 확정 전':'확정된 관계'):'그룹 엣지',null,'LINK // '+(ve.e!=null?'E-'+String(ve.e).padStart(4,'0'):'GROUP')));
     if(ve.e!=null){const p=E[ve.e].p;if(typeof p.매핑확률==='number')panel.appendChild(sec('확정 근거','EVIDENCE',h('div',{class:'gg'},gauge('확률',p.매핑확률,p.매핑확률.toFixed(4)),gauge('기준',.75,'0.75 확정'))));
-      const base={관계이름:nm};Object.assign(base,p);base.선=E[ve.e].k===4?'점선 (두 판독 제안, 담당자 확정 전)':'실선';panel.appendChild(sec('엣지 속성','PROPERTIES',propList(base)))}
+      const base={관계이름:nm};Object.assign(base,p);base.선=E[ve.e].k===4?'점선 (담보 관계 제안, 담당자 확정 전)':'실선';panel.appendChild(sec('엣지 속성','PROPERTIES',propList(base)))}
     panel.appendChild(sec('양 끝 노드','ENDPOINTS',pbtn('◁ 출발: '+trunc(nodeName(ve.a),20),()=>{selectNode(ve.a);centerOn(VN.get(ve.a).tx,VN.get(ve.a).ty)}),pbtn('▷ 도착: '+trunc(nodeName(ve.b),20),()=>{selectNode(ve.b);centerOn(VN.get(ve.b).tx,VN.get(ve.b).ty)})));popP(pop);return}
   const v=sel&&VN.get(sel);
-  if(!v){panel.appendChild(phead('대기','고른 노드 없음',null,null,'NODE // STANDBY'));panel.appendChild(sec('쓰는 법','GUIDE',h('div',{class:'muted'},'노드를 누르면 둘레에 조준 고리가 생기고, 아래 행동 띠에 관계 단추가 뜹니다. 단추(또는 숫자 키 1~9)를 누르면 그 관계의 이웃이 펼쳐집니다. 바탕을 끌어 옮기고, 두 손가락이나 휠로 확대합니다.')));popP(pop);return}
-  if(v.n<0){const G=v.grp;panel.appendChild(phead('묶음 노드',vnInfo(v).label,(ORGNAME[G.org]||'')+' · '+KIND[G.kind],orgVar(G.org),'GROUP // '+G.items.length));panel.appendChild(sec('묶음','BATCH',h('div',{class:'gg'},gauge('푼 것',Math.min(G.next,G.items.length)/G.items.length,Math.min(G.next,G.items.length)+' / '+G.items.length)),h('div',{class:'muted'},'누를 때마다 12개씩 풉니다.'),pbtn('다음 12개 풀기',()=>tapGroup(v.key),'pri')));popP(pop);return}
+  if(!v){panel.appendChild(phead('대기','선택한 노드 없음',null,null,'NODE // STANDBY'));panel.appendChild(sec('쓰는 법','GUIDE',h('div',{class:'muted'},'노드를 클릭하면 둘레에 포커스 표시가 생기고, 아래 작업 바에 관계 버튼이 뜹니다. 버튼(또는 숫자 키 1~9)을 클릭하면 그 관계의 인접 노드가 펼쳐집니다. 바탕을 끌어 옮기고, 두 손가락이나 휠로 확대합니다.')));popP(pop);return}
+  if(v.n<0){const G=v.grp;panel.appendChild(phead('그룹 노드',vnInfo(v).label,(ORGNAME[G.org]||'')+' · '+KIND[G.kind],orgVar(G.org),'GROUP // '+G.items.length));panel.appendChild(sec('그룹','BATCH',h('div',{class:'gg'},gauge('푼 것',Math.min(G.next,G.items.length)/G.items.length,Math.min(G.next,G.items.length)+' / '+G.items.length)),h('div',{class:'muted'},'누를 때마다 12개씩 풉니다.'),pbtn('다음 12개 풀기',()=>tapGroup(v.key),'pri')));popP(pop);return}
   const n=N[v.n];panel.appendChild(phead(KIND[n.k],n.l,(n.o?(ORGNAME[n.o]||n.o):'공통')+' · '+KIND[n.k],orgVar(n.o),'NODE // '+KIND_EN[n.k]+' · '+String(v.n).padStart(4,'0')));
   if(n.k===3){const p=n.p,pay=man(p.기준지급액),base=p.기준가입금액만원,gg=h('div',{class:'gg'});
     const pc=/(\d+(?:\.\d+)?)\s*%/.exec(String(p.기준지급액||''));if(pay!=null&&base)gg.appendChild(gauge('지급',pay/base,pay+'만원'));else if(pc)gg.appendChild(gauge('지급',+pc[1]/100,pc[1]+'%'));else if(p.기준지급액)gg.appendChild(gauge('지급',1,trunc(String(p.기준지급액),8)));
@@ -728,11 +728,11 @@ function buildPanel(pop){panel.textContent='';secI=0;
     panel.appendChild(sec('급부 계기','GAUGE',gg,h('div',{class:'muted',style:'font-size:14px'},'지급은 기준 가입금액 '+(base||'-')+'만원 대비, 면책은 180일 기준입니다.')))}
   const order={3:['기준지급액','기준가입금액만원','면책일수','감액','지급횟수제한','근거']}[n.k];if(Object.keys(n.p).length)panel.appendChild(sec('속성','PROPERTIES',propList(n.p,order)));
   const box=h('div');EK.forEach((name,ek)=>{const pr=nb(v.n,ek);if(!pr.length)return;const shown=pr.filter(x=>VE.has('e'+x.e));
-    const r=h('button',{class:'lnk'});r.innerHTML='<span class="rk">'+esc(name)+'</span><span class="num">'+pr.length+'</span><span class="mu">'+(shown.length?'펼침 '+shown.length:'누르면 펼침')+'</span>';r.addEventListener('click',()=>expand(sel,ek));box.appendChild(r);
+    const r=h('button',{class:'lnk'});r.innerHTML='<span class="rk">'+esc(name)+'</span><span class="num">'+pr.length+'</span><span class="mu">'+(shown.length?'펼침 '+shown.length:'클릭하면 펼침')+'</span>';r.addEventListener('click',()=>expand(sel,ek));box.appendChild(r);
     shown.slice(0,6).forEach(x=>{const b=h('button',{class:'lnk sub'});b.innerHTML='<span class="mu" style="margin:0">└</span><span>'+esc(eLabel(x.e))+' · '+esc(trunc(N[x.j].l,20))+'</span>';b.addEventListener('click',()=>{selEdge='e'+x.e;refresh()});box.appendChild(b)})});
   panel.appendChild(sec('달린 엣지','LINKS',box));popP(pop)}
 function popP(pop){if(pop){panel.classList.remove('pop');void panel.offsetWidth;panel.classList.add('pop')}}
-function buildTrail(){const t=$('#trail');t.textContent='';t.appendChild(h('span',{class:'tl'},'TRACE'));if(!trail.length){t.appendChild(h('span',{class:'muted'},'아직 고른 노드가 없습니다'));return}
+function buildTrail(){const t=$('#trail');t.textContent='';t.appendChild(h('span',{class:'tl'},'TRACE'));if(!trail.length){t.appendChild(h('span',{class:'muted'},'아직 선택한 노드가 없습니다'));return}
   trail.forEach((k,i)=>{if(i)t.appendChild(h('span',{class:'sep'},'»'));const b=h('button',{class:k===sel?'cur':''});b.innerHTML='<span class="ix">'+String(i+1).padStart(2,'0')+'</span><span>'+esc(trunc(nodeName(k),14))+'</span>';b.addEventListener('click',()=>{const v=VN.get(k);if(!v)return;sel=k;selEdge=null;ring(k);refresh(true);centerOn(v.tx,v.ty)});t.appendChild(b)});t.scrollLeft=t.scrollWidth}
 let lastSel=null;
 function refresh(pop){const changed=sel!==lastSel;lastSel=sel;buildDeco(false);buildDock(pop||changed);buildPanel(pop||changed);buildTrail();startCard();drawLanes();buildFilters();kick()}
@@ -740,7 +740,7 @@ function rebuildAll(){nodeEls.forEach(o=>{o.g.remove();o.L.g.remove()});nodeEls.
 
 /* ---------- filters / minimap / start ---------- */
 const fpop=$('#fpop');
-function buildFilters(){const t=$('#ftog');t.innerHTML='<span>거르기</span><span class="num">관계 '+filt.ek.size+'/'+EK.length+' · 회사 '+filt.org.size+'/4</span><span>'+(fpop.classList.contains('open')?'▴':'▾')+'</span>';
+function buildFilters(){const t=$('#ftog');t.innerHTML='<span>필터</span><span class="num">관계 '+filt.ek.size+'/'+EK.length+' · 회사 '+filt.org.size+'/4</span><span>'+(fpop.classList.contains('open')?'▴':'▾')+'</span>';
   fpop.textContent='';fpop.appendChild(h('div',{class:'tag'},'FILTER // 관계'));let r=h('div',{class:'row'});
   EK.forEach((name,ek)=>{const b=h('button',{class:'fc'+(filt.ek.has(ek)?' on':'')},name);b.addEventListener('click',()=>{filt.ek.has(ek)?filt.ek.delete(ek):filt.ek.add(ek);refresh()});r.appendChild(b)});fpop.appendChild(r);
   fpop.appendChild(h('div',{class:'tag'},'FILTER // 회사'));r=h('div',{class:'row'});
@@ -755,7 +755,7 @@ mini.addEventListener('pointerdown',e=>{const m=mini._m;if(!m)return;const r=min
 const STARTS=['일반암 진단비','유사암 진단비(통합)','뇌졸중 진단비','급성심근경색증 진단비','암 수술비'];
 function startCard(){let c=$('.st');if(VN.size){if(c)c.remove();return}if(c)return;c=h('div',{class:'st frm'});
   const hd=h('div',{class:'hd'});hd.appendChild(h('span',{class:'tag'},'INITIALIZE // ENTRY POINT'));hd.appendChild(h('span',{class:'tag'},N.length.toLocaleString('en-US')+' NODES'));c.appendChild(hd);
-  c.appendChild(h('h2',null,'어디서부터 넘어가 볼까요'));c.appendChild(h('p',null,'시작점을 고르면 그 노드 하나가 가운데 놓입니다. 노드를 고른 뒤 아래 행동 띠의 관계 단추로 이웃을 펼치며 홉을 넘어갑니다.'));
+  c.appendChild(h('h2',null,'어디서부터 넘어가 볼까요'));c.appendChild(h('p',null,'시작점을 선택하면 그 노드 하나가 가운데 놓입니다. 노드를 선택한 뒤 아래 작업 바의 관계 버튼으로 인접 노드를 펼치며 단계를 넘어갑니다.'));
   let i=0;const tile=(k,col,org,txt,fn)=>{const b=h('button');b.style.setProperty('--i',i++);const s=document.createElementNS(svgNS,'svg');iconSvg(s,k,col,org);b.appendChild(s);b.appendChild(h('span',null,txt));b.addEventListener('click',fn);return b};
   const l1=h('div',{class:'lab'});l1.innerHTML='<b>01</b>회사에서 시작';c.appendChild(l1);let r=h('div',{class:'row'});MAIN.forEach(o=>{const ix=N.findIndex(n=>n.k===0&&n.o===o);r.appendChild(tile(0,orgVar(o),o,ORGNAME[o],()=>startAt(ix)))});c.appendChild(r);
   const l2=h('div',{class:'lab'});l2.innerHTML='<b>02</b>표준담보에서 시작';c.appendChild(l2);r=h('div',{class:'row'});STARTS.forEach(nm=>{const ix=N.findIndex(n=>n.k===4&&n.l===nm);if(ix<0)return;r.appendChild(tile(4,'',null,nm,()=>startAt(ix)))});c.appendChild(r);cv.appendChild(c)}

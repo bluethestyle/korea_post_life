@@ -4,6 +4,7 @@ const CV = {"t":"2026-11-24T14:29:59+09:00","ben":[["암수술보험금(암\u00b
    이 파일은 tab4.src.js 이고, tab4.js 는 gen_cover.py --assemble 이 자료 한 줄(const CV)을 앞에 붙여 만든다. */
 const { ui, txt } = App;
 const { esc, fmt } = ui;
+const t = (k, v) => App.t(k, v);
 const S = App.S;
 const STEPS = (Object.values(S['기준별'] || {})[0] && Object.values(S['기준별'] || {})[0]['치료여정'] && Object.values(S['기준별'] || {})[0]['치료여정']['열']) || [];
 const ROMAN = { 'Ⅰ': 'I', 'Ⅱ': 'II', 'Ⅲ': 'III', 'Ⅳ': 'IV', 'Ⅴ': 'V' };
@@ -11,13 +12,13 @@ const fixG = s => String(s == null ? '' : s).replace(/[ⅠⅡⅢⅣⅤ]/g, m => 
 const nf = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 });
 const N = n => nf.format(n);
 
-ui.registerLegend('cover', 'legendVerdictTitle', () => `<p class="note" style="margin:0 0 8px">같은 담보를 둘 다 가지면 대표 급부끼리 면책, 감액, 지급 형태로 판정하고, 한쪽에만 있으면 누구에게 없는지 적습니다. 기둥의 높이는 같은 담보를 가졌거나 관계 담보로 덮는 상대의 비율입니다. 담보 비교는 나이 조건 없이 대표 급부끼리 견준 값이고, 기준 종형을 바꿀 때만 다시 셉니다.</p><dl class="legend">
-    <dt>${ui.verdict('better')}</dt><dd>금색 층(이중 상단선): 같은 담보를 견줘 우체국 조건이 나은 상대</dd>
-    <dt>${ui.verdict('only')}</dt><dd>축 위 금색 마름모: 같은 담보를 가졌거나 관계 담보로 덮는 상대가 없고 우체국만 가진 담보</dd>
-    <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>중립 층: 조건이 같거나 엇갈림, 단정 주의, 지급 형태 다름, 관계 담보로 덮음으로 우열을 매기지 않은 상대</dd>
-    <dt>${ui.verdict('worse')}</dt><dd>먹색 층: 같은 담보를 견줘 우체국 조건이 못한 상대</dd>
-    <dt>${ui.verdict('unknown')}</dt><dd>빗금 층: 검토 대기나 판정 보류로 아직 견주지 않은 상대</dd>
-    <dt>${ui.verdict('none')}</dt><dd>점선 윤곽과 옅은 빗금 기둥: 상대에게는 있고 우체국에는 없는 담보</dd>
+ui.registerLegend('cover', 'legendVerdictTitle', () => `<p class="note" style="margin:0 0 8px">${esc(t('cvLgIntro'))}</p><dl class="legend">
+    <dt>${ui.verdict('better')}</dt><dd>${esc(t('cvLgBetter'))}</dd>
+    <dt>${ui.verdict('only')}</dt><dd>${esc(t('cvLgOnly'))}</dd>
+    <dt><i class="cq m-both" aria-hidden="true"></i></dt><dd>${esc(t('cvLgNeutral'))}</dd>
+    <dt>${ui.verdict('worse')}</dt><dd>${esc(t('cvLgWorse'))}</dd>
+    <dt>${ui.verdict('unknown')}</dt><dd>${esc(t('cvLgUnknown'))}</dd>
+    <dt>${ui.verdict('none')}</dt><dd>${esc(t('cvLgNone'))}</dd>
     <dt>${ui.flagText(App.t('flagShort'))}</dt><dd>${esc(App.t('lgFlag'))}</dd>
   </dl>`);
 
@@ -63,7 +64,7 @@ const waitText = w => `${N(w || 0)}일`;
 const monthsText = m => (m % 12 === 0 ? `${m / 12}년` : `${m}개월`);
 const redText = (red, b) => {
   if (b && nonMonKind(b)) return nonMonCopy('감액') || '원문 확인';
-  return red && red.length ? red.map(([m, r]) => `${monthsText(m)} 안 ${N(Math.round(r * 1000) / 10)}%`).join(', ') : '감액 없음';
+  return red && red.length ? red.map(([m, r]) => t('cvRedWithinTpl', { period: monthsText(m), rate: N(Math.round(r * 1000) / 10) })).join(', ') : '감액 없음';
 };
 const redShort = (red, b) => {
   if (b && nonMonKind(b)) return nonMonCopy('감액') || '원문 확인';
@@ -87,6 +88,7 @@ const repOf = c => (has(c) ? ben(c.r != null ? c.r : c.i[0]) : null);
 // ---------- 판정 모형(자료의 쌍판정과 판정표, 보류요약.기관별을 그대로 읽는다) ----------
 const BOTH_NONE_TEXT = (CV && Array.isArray(CV['판정차례']) && CV['판정차례'][CV['판정차례'].length - 1]) || '둘 다 없음';
 const cache = {};
+const verdictName = cause => (CV && CV['판정표'] && CV['판정표'][cause] && CV['판정표'][cause]['표시명']) || App.label(cause);
 function model(baseId) {
   if (cache[baseId]) return cache[baseId];
   const B = CV && CV.b[baseId];
@@ -137,16 +139,16 @@ function verdictOf(B, row, cols, k) {
     const d = q && q.it ? q.it.filter(t => t[3] === '나음' || t[3] === '못함').map(t => `${t[0]} ${t[1]} 대 ${t[2]}`).join(', ') : '';
     why = cau ? `${cau['문장']}${d ? ` 대표 급부끼리 다른 항목(${d})이 있지만 우열에 넣지 않았습니다.` : ''}` : reasonText(reasons);
   } else if (cause === '검토 대기') {
-    why = reasons.length ? `검토 대기라 견주지 않았습니다: ${reasonText(reasons)}` : '검토 대기라 견주지 않았습니다';
+    why = reasons.length ? t('cvWhyWaitTpl', { reasons: reasonText(reasons) }) : t('cvWhyWait');
   } else if (cause === '판정 보류') {
     why = `판정을 미뤘습니다: ${reasons.length ? reasonText(reasons) : '사유 자료 없음'}`;
   } else if (cause === '지급 형태 다름') {
-    why = '지급 형태가 달라 우열을 매기지 않았습니다';
+    why = t('cvWhyDiffForm');
   } else if (cause === '엇갈림') {
-    why = '면책, 감액, 지급 형태의 우열이 항목마다 엇갈려 우열을 매기지 않았습니다';
+    why = t('cvWhyMixed');
   } else if (cause === '관계 담보로 덮음') {
     const c = row.cells[k];
-    why = c && c.c ? `${txt.josa(po, '은')} ${c.c[0]}인 ${txt.josa(c.c[1].map(stdN).join(', '), '으로')} 덮습니다` : `${txt.josa(po, '은')} 관계 담보로 덮습니다`;
+    why = c && c.c ? t('cvWhyRelCoverTpl', { org: txt.josa(po, '은'), kind: c.c[0], covs: txt.josa(c.c[1].map(stdN).join(', '), '으로') }) : t('cvWhyRelCoverTplShort', { org: txt.josa(po, '은') });
   } else if (cause === '우체국에 없음') {
     const b = row.cells[0];
     const rel = b && b.c ? `우체국은 ${b.c[0]}인 ${txt.josa(b.c[1].map(stdN).join(', '), '이')} 관련 보장을 합니다` : '';
@@ -156,14 +158,14 @@ function verdictOf(B, row, cols, k) {
   }
   return { cause, name: meta['판정'], kind: meta['칩'], text: meta['판정'], reasons, why, q };
 }
-const chip = (v, title) => (v ? ui.verdict(v.kind, v.text || v.name, title || v.why) : `<span class="cv-both">${esc(BOTH_NONE_TEXT)}</span>`);
-const chipText = v => (v ? (v.text || v.name) : BOTH_NONE_TEXT);
+const chip = (v, title) => (v ? ui.verdict(v.kind, v.text || v.name, title || v.why) : `<span class="cv-both">${esc(App.label(BOTH_NONE_TEXT))}</span>`);
+const chipText = v => (v ? App.label(v.text || v.name) : App.label(BOTH_NONE_TEXT));
 
 // ---------- 두 층 담보 비교: 위 전체 띠(79개 눈금 + 거르개 셋) + 아래 고른 단계 확대 구역 ----------
 const FILTERS = [
-  { k: 'miss', label: '우체국에 없는 담보' },
-  { k: 'split', label: '조건이 다른 담보' },
-  { k: 'only', label: '우체국만 가진 담보' },
+  { k: 'miss', label: t('cvFltMiss') },
+  { k: 'split', label: t('cvFltSplit') },
+  { k: 'only', label: t('cvFltOnly') },
 ];
 let curStepByBase = {};
 let curPageByStep = {};
@@ -202,7 +204,7 @@ function rowStackMetrics(row, m, B, c, totPeerOrgs) {
   const pIdxs = peerIdxOf(m, c);
   const hasSplit = pIdxs.some(i => {
     const v = row.verd[i];
-    return !!(v && (v.name === '우체국 나음' || v.name === '우체국 못함' || v.name === '우열을 매기지 않음'));
+    return !!(v && ['better', 'worse', 'diff'].includes(v.kind));
   });
   const isMiss = miss > 0;
   const isOnly = oursHas && stackN === 0;
@@ -237,16 +239,16 @@ function slotTipChips(row, rm, B, c, rawPeerOrgs) {
 }
 
 function pillarSubText(rm, rawPeerOrgs) {
-  if (rawPeerOrgs <= 0) return rm.oursHas ? '우체국 보유, 선택한 비교 타사 없음' : '선택한 비교 타사 없음';
+  if (rawPeerOrgs <= 0) return rm.oursHas ? t('cvSubOursNoPeer') : t('cvSubNoPeer');
   if (rm.oursHas) {
-    if (rm.stackN <= 0) return '우체국 단독 보유';
-    if (rm.coverN > 0 && rm.stackN === rm.coverN) return `우체국 보유, 관련 담보로 보장하는 타사 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
-    if (rm.coverN > 0) return `우체국 보유, 같은 담보나 관련 담보 타사 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
-    return `우체국 보유, 같은 담보 타사 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
+    if (rm.stackN <= 0) return t('cvSubOnly');
+    if (rm.coverN > 0 && rm.stackN === rm.coverN) return t('cvSubRelCoverTpl', { n: fmt(rm.stackN), tot: fmt(rawPeerOrgs) });
+    if (rm.coverN > 0) return t('cvSubSameOrRelTpl', { n: fmt(rm.stackN), tot: fmt(rawPeerOrgs) });
+    return t('cvSubSameTpl', { n: fmt(rm.stackN), tot: fmt(rawPeerOrgs) });
   }
-  if (rm.miss > 0) return `우체국 미보유, 타사 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
-  if (rm.wait > 0) return `검수 대기, 타사 ${fmt(rm.stackN)}/${fmt(rawPeerOrgs)}곳`;
-  return (S['표시명'] && S['표시명'][BOTH_NONE_TEXT]) || BOTH_NONE_TEXT;
+  if (rm.miss > 0) return t('cvSubMissTpl', { n: fmt(rm.stackN), tot: fmt(rawPeerOrgs) });
+  if (rm.wait > 0) return t('cvSubWaitTpl', { n: fmt(rm.stackN), tot: fmt(rawPeerOrgs) });
+  return App.label(BOTH_NONE_TEXT);
 }
 
 function matchesCoverFilter(rm) {
@@ -563,10 +565,10 @@ function buildZoomedHTML(c, m, B, curStep, pageIdx, pIdxs, totPeerOrgs, rawPeerO
   }).join('');
 
   const pagerHTML = pCount > 1
-    ? `<div class="cv-pager" role="navigation" aria-label="보장 분야 쪽 이동">
-        <button type="button" class="btn sm ghost" data-cv-page="${safePage - 1}"${safePage <= 0 ? ' disabled' : ''}>${ui.IC.chevL}<span>앞 묶음</span></button>
+    ? `<div class="cv-pager" role="navigation" aria-label="${esc(t('cvPagerAria'))}">
+        <button type="button" class="btn sm ghost" data-cv-page="${safePage - 1}"${safePage <= 0 ? ' disabled' : ''}>${ui.IC.chevL}<span>${esc(t('cvPagerPrev'))}</span></button>
         <span class="cv-page-ind num">${safePage + 1}/${pCount}</span>
-        <button type="button" class="btn sm ghost" data-cv-page="${safePage + 1}"${safePage >= pCount - 1 ? ' disabled' : ''}><span>다음 묶음</span>${ui.IC.chevR}</button>
+        <button type="button" class="btn sm ghost" data-cv-page="${safePage + 1}"${safePage >= pCount - 1 ? ' disabled' : ''}><span>${esc(t('cvPagerNext'))}</span>${ui.IC.chevR}</button>
       </div>`
     : '';
 
@@ -575,12 +577,12 @@ function buildZoomedHTML(c, m, B, curStep, pageIdx, pIdxs, totPeerOrgs, rawPeerO
     ? stRows.filter(r => matchesCoverFilter(rowStackMetrics(r, m, B, c, totPeerOrgs))).length
     : stRows.length;
   const subInfo = activeFilters.size
-    ? `거르개 통과 ${fmt(stageFilteredCnt)}/${fmt(stRows.length)}개`
-    : `우체국 보유 ${fmt(stageOursCnt)}/${fmt(stRows.length)}개`;
+    ? t('cvFltPassTpl', { n: fmt(stageFilteredCnt), tot: fmt(stRows.length) })
+    : t('cvOursHoldTpl', { n: fmt(stageOursCnt), tot: fmt(stRows.length) });
 
   return `<div class="cv-zoom-head">
       <div class="cv-zh-l">
-        <span class="cv-zh-step">${esc(curStep)} 단계 확대</span>
+        <span class="cv-zh-step">${esc(t('cvStepDetailTpl', { step: curStep }))}</span>
         <span class="cv-zh-sub num">${esc(subInfo)}</span>
       </div>
       ${pagerHTML}
@@ -810,7 +812,7 @@ function renderStage(center, c) {
   const m = model(c.baseId);
   const B = CV && CV.b[c.baseId];
   if (!m || !B) {
-    center.innerHTML = '<div class="placeholder">비교 자료 없음: 이 기준 종형의 비교쌍 자료가 없습니다.</div>';
+    center.innerHTML = `<div class="placeholder">${esc(t('cvNoDataStage'))}</div>`;
     return;
   }
   const pIdxs = peerIdxOf(m, c);
@@ -889,7 +891,7 @@ function renderStage(center, c) {
         <div class="cv-ov-segs" id="cv-ov-segs">${ovSegsHTML}</div>
         <div class="cv-ov-brk" id="cv-ov-brk" hidden aria-hidden="true"><i class="b-l"></i><i class="b-b"></i><i class="b-r"></i></div>
       </div>
-      <div class="cv-flt-bar" role="group" aria-label="담보 거르개">
+      <div class="cv-flt-bar" role="group" aria-label="${esc(t('cvFltBarAria'))}">
         ${filterBtnsHTML}
         ${filterCountHTML}
       </div>
@@ -937,8 +939,8 @@ function applyCoverFiltersInPlace(stageEl) {
   const zhSub = stageEl.querySelector('.cv-zh-sub');
   if (zhSub) {
     zhSub.textContent = activeFilters.size
-      ? `거르개 통과 ${fmt(stageFilteredCnt)}/${fmt(stRows.length)}개`
-      : `우체국 보유 ${fmt(stageOursCnt)}/${fmt(stRows.length)}개`;
+      ? t('cvFltPassTpl', { n: fmt(stageFilteredCnt), tot: fmt(stRows.length) })
+      : t('cvOursHoldTpl', { n: fmt(stageOursCnt), tot: fmt(stRows.length) });
   }
   stageEl.querySelectorAll('.cv-tick[data-cv-tick]').forEach(tk => {
     tk.classList.toggle('is-filtered-out', !passMap.get(tk.dataset.cvTick));
@@ -1016,7 +1018,7 @@ function relSVG(baseId, sid, W) {
       y += h + 8;
     }
     if (!has(c)) {
-      const why = !c ? '이 종형에는 이 담보가 없습니다' : c.w ? `매핑 검토 대기 급부 ${c.w}줄만 있습니다` : c.c ? `${c.c[0]}인 ${txt.josa(c.c[1].map(stdN).join(', '), '으로')} 덮습니다` : '이 종형에는 이 담보가 없습니다';
+      const why = !c ? '이 종형에는 이 담보가 없습니다' : c.w ? t('cvRelWaitTpl', { w: c.w }) : c.c ? t('cvRelCoverTpl', { kind: c.c[0], covs: txt.josa(c.c[1].map(stdN).join(', '), '으로') }) : '이 종형에는 이 담보가 없습니다';
       const al = wrapT(why, GF(400), benR - rX - 20, 2);
       const h = PY * 2 + LH * al.lines.length - 2;
       s += box(rX, y, benR - rX, h, 'absent') + lines(al.lines, rX + 12, y + PY + 12, 'rl-t rl-s');
@@ -1063,14 +1065,14 @@ function relSVG(baseId, sid, W) {
     if (mids.length > 1) mids.slice(0, -1).forEach(mid => dias.push([TRX, mid]));
     const more = (c.n || 0) - ids.length;
     if (more > 0) {
-      const ml = wrapT(`같은 담보 급부 ${c.n}개 가운데 ${ids.length}개(대표 급부와 조건이 다른 줄)를 그렸습니다`, GF(400), benR - rX, 2);
+      const ml = wrapT(t('cvRelMoreTpl', { n: c.n, shown: ids.length }), GF(400), benR - rX, 2);
       s += lines(ml.lines, rX, y + 10, 'rl-s');
       y += 2 + LH * ml.lines.length;
     }
     y += 12;
   });
   if (pIdxsAll.length > pIdxs.length) {
-    const restMsg = `나머지 상대 ${pIdxsAll.length - pIdxs.length}곳은 아래 조건 비교 목록에서 함께 확인합니다.`;
+    const restMsg = t('cvRelRestPeersTpl', { n: pIdxsAll.length - pIdxs.length });
     s += `<text class="rl-s" x="${f1(rX)}" y="${f1(y + 10)}">${esc(restMsg)}</text>`;
     y += 22;
   }
@@ -1083,7 +1085,7 @@ function relSVG(baseId, sid, W) {
 function relLegend() {
   const ln = (dash, t) => `<span><svg width="20" height="6" aria-hidden="true"><line x1="0" y1="3" x2="20" y2="3" class="rl-e${dash ? ' dash' : ''}"/></svg>${t}</span>`;
   const bx = (ch, t) => `<span><b class="rl-lb" aria-hidden="true">${ch}</b>${t}</span>`;
-  return `<div class="rl-lg"><div>${ln(false, '확정')}${ln(true, '작업 로그 검토 대기')}<span><svg width="10" height="10" viewBox="-5 -5 10 10" aria-hidden="true"><path class="rl-dia" d="M0-4.5L4.5 0 0 4.5-4.5 0Z"/></svg>갈림</span><span><b class="rl-lb rep" aria-hidden="true">급</b>굵은 테두리는 대표 급부</span></div>
+  return `<div class="rl-lg"><div>${ln(false, '확정')}${ln(true, esc(t('cvRelLgWait')))}<span><svg width="10" height="10" viewBox="-5 -5 10 10" aria-hidden="true"><path class="rl-dia" d="M0-4.5L4.5 0 0 4.5-4.5 0Z"/></svg>${esc(t('cvRelLgBranch'))}</span><span><b class="rl-lb rep" aria-hidden="true">급</b>굵은 테두리는 대표 급부</span></div>
     <div>${bx('종', '종형')}${bx('특', '특약')}${bx('급', '급부')}${bx('표', '표준담보')}</div></div>`;
 }
 function drawRel(el, baseId, sid) {
@@ -1126,22 +1128,22 @@ function condTable(m, row, c) {
       (peerIdxsByOrg[code] = peerIdxsByOrg[code] || []).push(i);
     });
     const buckets = [
-      { key: 'better', label: '우체국 나음', vd: 'better', codes: scopedCodes(perCodes['나음']) },
-      { key: 'same', label: '같음', vd: 'same', codes: scopedCodes(perCodes['같음']) },
-      { key: 'worse', label: '우체국 못함', vd: 'worse', codes: scopedCodes(perCodes['못함']) },
-      { key: 'diff', label: '우열을 매기지 않음', vd: 'diff', codes: [...new Set([].concat(scopedCodes(perCodes['엇갈림']), scopedCodes(perCodes['단정 주의']), scopedCodes(perCodes['지급 형태 다름']), scopedCodes(perCodes['관계 담보로 덮음'])))] },
-      { key: 'wait', label: '검토 대기', vd: 'unknown', codes: scopedCodes(perCodes['검토 대기']) },
-      { key: 'hold', label: '판정 보류', vd: 'unknown', codes: scopedCodes(perCodes['판정 보류']) },
-      { key: 'miss', label: '우체국에 없음', vd: 'none', codes: scopedCodes(perCodes['우체국에 없음']) },
+      { key: 'better', label: verdictName('나음'), vd: 'better', codes: scopedCodes(perCodes['나음']) },
+      { key: 'same', label: verdictName('같음'), vd: 'same', codes: scopedCodes(perCodes['같음']) },
+      { key: 'worse', label: verdictName('못함'), vd: 'worse', codes: scopedCodes(perCodes['못함']) },
+      { key: 'diff', label: verdictName('엇갈림'), vd: 'diff', codes: [...new Set([].concat(scopedCodes(perCodes['엇갈림']), scopedCodes(perCodes['단정 주의']), scopedCodes(perCodes['지급 형태 다름']), scopedCodes(perCodes['관계 담보로 덮음'])))] },
+      { key: 'wait', label: verdictName('검토 대기'), vd: 'unknown', codes: scopedCodes(perCodes['검토 대기']) },
+      { key: 'hold', label: verdictName('판정 보류'), vd: 'unknown', codes: scopedCodes(perCodes['판정 보류']) },
+      { key: 'miss', label: verdictName('우체국에 없음'), vd: 'none', codes: scopedCodes(perCodes['우체국에 없음']) },
     ].filter(bk => bk.codes.length > 0);
 
     const inStackCodes = new Set(Object.keys(perCodes).flatMap(k => scopedCodes(perCodes[k])));
     const absentPeerOrgs = [...new Set(allPIdxs.map(i => orgOf(m.cols[i + 1])))].filter(code => !inStackCodes.has(code));
 
-    const onlyChip = (oursHas && inStackCodes.size === 0 && allPIdxs.length > 0) ? `${ui.verdict('only', '우체국에만 있음')} ` : '';
-    const absentLabel = oursHas ? '상대에 없음' : BOTH_NONE_TEXT;
-    const summaryChips = onlyChip + buckets.map(bk => `<span class="cv-vg-chip">${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)}</span>`).join(' ')
-      + (absentPeerOrgs.length ? ` <span class="tag">${esc(absentLabel)} ${fmt(absentPeerOrgs.length)}곳</span>` : '');
+    const onlyChip = (oursHas && inStackCodes.size === 0 && allPIdxs.length > 0) ? `${ui.verdict('only', verdictName('상대에 없음'))} ` : '';
+    const absentLabel = oursHas ? App.label('상대에 없음') : App.label(BOTH_NONE_TEXT);
+    const summaryChips = onlyChip + buckets.map(bk => `<span class="cv-vg-chip">${ui.verdict(bk.vd, t('cvVerdictCntTpl', { nm: bk.label, n: fmt(bk.codes.length) }))}</span>`).join(' ')
+      + (absentPeerOrgs.length ? ` <span class="tag">${esc(t('cvVerdictCntTpl', { nm: absentLabel, n: fmt(absentPeerOrgs.length) }))}</span>` : '');
 
     const oursCells = items.map(([lab, f]) => `<div class="cv-ours-kv"><span>${esc(lab)}</span><b>${oursRep ? esc(f(oursRep)) : '없음'}</b></div>`).join('');
 
@@ -1157,7 +1159,7 @@ function condTable(m, row, c) {
             const c2 = row.cells[k];
             const rp = repOf(c2);
             const v = verdFor(row, m, i, allPIdxs);
-            const emptyPay = c2 && c2.w ? `<span class="cv-na">검토 대기 ${c2.w}줄</span>` : c2 && c2.c ? `<span class="cv-na">없음(${esc(c2.c[0])} 덮음)</span>` : '<span class="cv-na">없음</span>';
+            const emptyPay = c2 && c2.w ? `<span class="cv-na">${esc(t('cvCellWaitTpl', { w: c2.w }))}</span>` : c2 && c2.c ? `<span class="cv-na">${esc(t('cvCellCoverTpl', { kind: txt.josa(c2.c[0], '으로') }))}</span>` : '<span class="cv-na">없음</span>';
             if (mobDet) {
               const kvHTML = rp
                 ? [['지급', payText(rp)], ['면책', waitText(rp.wait)], ['감액', redText(rp.red, rp)], ['지급 형태', formText(rp, hasAnyNonMon)]]
@@ -1186,25 +1188,25 @@ function condTable(m, row, c) {
       });
       const detTblHTML = mobDet
         ? `<table class="cv-ct cv-ct-mob">
-          <tr><th scope="col">상대 회사</th><th scope="col">조건과 판정</th></tr>
+          <tr><th scope="col">${esc(t('cvColPeer'))}</th><th scope="col">조건과 판정</th></tr>
           ${pRows.join('')}
         </table>`
         : `<table class="cv-ct">
-          <tr><th scope="col">상대 회사</th><th scope="col">지급</th><th scope="col">면책</th><th scope="col">감액</th><th scope="col">지급 형태</th><th scope="col">판정</th></tr>
+          <tr><th scope="col">${esc(t('cvColPeer'))}</th><th scope="col">지급</th><th scope="col">면책</th><th scope="col">감액</th><th scope="col">지급 형태</th><th scope="col">판정</th></tr>
           ${pRows.join('')}
         </table>`;
       return `<details class="zr-det cv-vg-det"${bIdx === 0 ? ' open' : ''}>
-        <summary><span>${ui.verdict(bk.vd, `${bk.label} ${fmt(bk.codes.length)}곳`)} <span class="note">${esc(txt.peerNamesEtc(bk.codes.map(txt.orgShort), 4))}</span></span>${ui.IC.chevD}</summary>
+        <summary><span>${ui.verdict(bk.vd, t('cvVerdictCntTpl', { nm: bk.label, n: fmt(bk.codes.length) }))} <span class="note">${esc(txt.peerNamesEtc(bk.codes.map(txt.orgShort), 4))}</span></span>${ui.IC.chevD}</summary>
         <div class="zr-det-b"><div class="cv-ct-w">${detTblHTML}</div></div>
       </details>`;
     }).join('');
 
     return `<div class="cv-ct-w"><table class="cv-ct cv-ct-fold">
-        <tr><th scope="col">${esc(orgN(m.cols[0]))} (기준)</th><th scope="col">판정별로 묶은 상대 (${fmt(allPIdxs.length)}개 종형)</th></tr>
-        <tr><td><div class="cv-ours-grid">${oursCells}</div></td><td><div class="cv-vg-sum">${summaryChips || '<span class="note">보유 상대 없음</span>'}</div></td></tr>
+        <tr><th scope="col">${esc(orgN(m.cols[0]))} (기준)</th><th scope="col">${esc(t('cvFoldPeerHeadTpl', { n: fmt(allPIdxs.length) }))}</th></tr>
+        <tr><td><div class="cv-ours-grid">${oursCells}</div></td><td><div class="cv-vg-sum">${summaryChips || `<span class="note">${esc(t('cvFoldNoPeer'))}</span>`}</div></td></tr>
       </table></div>
       <div class="cv-vg-list">${groupsAccordion}</div>
-      <p class="note">상대가 넷 이상이라 우체국과 판정별 상대 묶음으로 접었습니다. 묶음을 누르면 그 회사들의 줄이 펼쳐집니다.</p>`;
+      <p class="note">${esc(t('cvFoldNote'))}</p>`;
   }
 
   const cols = allColIdxs.map(k => m.cols[k]);
@@ -1240,13 +1242,13 @@ function condTable(m, row, c) {
       <tr><th scope="col">회사</th><th scope="col">대표 급부 조건</th></tr>
       ${mobRows}
       <tr><th scope="row">요약</th><td class="sm"><div class="cv-ours-grid">${sumDetail}</div></td></tr>
-    </table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
+    </table></div><p class="note">${esc(t('cvCondNoteTpl', { rule: payRuleTxt }))}</p>`;
   }
 
   const head = `<tr><th scope="col">항목</th>${cols.map(v => `<th scope="col" title="${esc(fullN(v))}">${esc(orgN(v))}</th>`).join('')}<th scope="col">요약</th></tr>`;
   const body = items.map(([lab, f], idx) => `<tr><th scope="row">${esc(lab)}</th>${cols.map((v, k) => `<td>${reps[k] ? esc(f(reps[k])) : '<span class="cv-na">없음</span>'}</td>`).join('')}<td class="sm">${esc(summaries[idx][1])}</td></tr>`).join('');
 
-  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">대표 급부끼리 견줍니다. 판정은 면책, 감액, 지급 형태로 하고, ${esc(payRuleTxt)}</p>`;
+  return `<div class="cv-ct-w"><table class="cv-ct">${head}${body}</table></div><p class="note">${esc(t('cvCondNoteTpl', { rule: payRuleTxt }))}</p>`;
 }
 
 function evidenceList(m, row, extra, c) {
@@ -1282,24 +1284,24 @@ function rowEvidence(c, sid, mode) {
     const v = verdFor(row, m, i, pIdxs);
     const q = v && v.q;
     const noRank = !v || (v.kind !== 'better' && v.kind !== 'worse');
-    const word = t => (t === '나음' || t === '못함') ? (noRank ? '다름' : t === '나음' ? '우체국 나음' : '우체국 못함') : t;
-    const its = q && q.it ? `<div class="cv-ct-w"><table class="cv-it"><tr><th scope="col">항목</th><th scope="col">우체국</th><th scope="col">${esc(orgN(peer))}</th><th scope="col">비교</th></tr>${q.it.map(t => `<tr><th scope="row">${esc(t[0])}</th><td>${esc(t[1])}</td><td>${esc(t[2])}</td><td>${esc(word(t[3]))}${t[4] ? `<br><span class="note">${esc(t[4])}</span>` : ''}</td></tr>`).join('')}</table></div>` : '';
-    return `<div class="cv-jd"><p><b>${esc(txt.josa(fullN(peer), '과'))} 견줌</b> ${chip(v)}</p>${v && v.why ? `<p class="note">${esc(v.why)}</p>` : ''}${noRank && q && q.it && q.it.some(t => t[3] === '나음' || t[3] === '못함') ? `<p class="note">대표 급부끼리는 조건이 다른 항목이 있지만, 위 까닭으로 우열을 매기지 않았습니다. 아래 표는 "다름"으로만 적습니다.</p>` : ''}${its}</div>`;
+    const word = w => (w === '나음' || w === '못함') ? (noRank ? App.label('다름') : w === '나음' ? App.label('우체국 나음') : App.label('우체국 못함')) : App.label(w);
+    const its = q && q.it ? `<div class="cv-ct-w"><table class="cv-it"><tr><th scope="col">항목</th><th scope="col">우체국</th><th scope="col">${esc(orgN(peer))}</th><th scope="col">비교</th></tr>${q.it.map(r => `<tr><th scope="row">${esc(r[0])}</th><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(word(r[3]))}${r[4] ? `<br><span class="note">${esc(r[4])}</span>` : ''}</td></tr>`).join('')}</table></div>` : '';
+    return `<div class="cv-jd"><p><b>${esc(t('cvPeerCmpTpl', { peer: txt.josa(fullN(peer), '과') }))}</b> ${chip(v)}</p>${v && v.why ? `<p class="note">${esc(v.why)}</p>` : ''}${noRank && q && q.it && q.it.some(r => r[3] === '나음' || r[3] === '못함') ? `<p class="note">${esc(t('cvNoRankNote'))}</p>` : ''}${its}</div>`;
   };
   judge += pIdxs.slice(0, 3).map(renderPeerJudge).join('');
   if (pIdxs.length > 3) {
     const restIdxs = pIdxs.slice(3);
     const restNames = txt.peerNamesEtc(restIdxs.map(i => orgN(m.cols[i + 1])), 4);
-    judge += `<details class="zr-det cv-vg-det" style="margin-top:8px"><summary><span>나머지 상대 ${fmt(restIdxs.length)}개 종형의 판정 표 보기 (${esc(restNames)})</span>${ui.IC.chevD}</summary><div class="zr-det-b">${restIdxs.map(renderPeerJudge).join('')}</div></details>`;
+    judge += `<details class="zr-det cv-vg-det" style="margin-top:8px"><summary><span>${esc(t('cvRestPeersJudgeTpl', { n: fmt(restIdxs.length), names: restNames }))}</span>${ui.IC.chevD}</summary><div class="zr-det-b">${restIdxs.map(renderPeerJudge).join('')}</div></details>`;
   }
   const scopedPts = c.peerScope === 'all' ? row.pts : row.pts.filter(p => (p['관련기관코드'] || []).some(o => pSet.has(o)));
-  const pts = scopedPts.map(p => `<li>${ui.tag(p['분류'])} ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}${scBadge}</p>${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}</li>`).join('');
+  const pts = scopedPts.map(p => `<li>${ui.tag(App.label(p['분류']))} ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}${scBadge}</p>${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}</li>`).join('');
   const cauEv = mode === 'caution' ? scopedCau.flatMap(x => (x['근거'] || []).filter(g => g['종형ID'] === c.baseId || c.peerScope === 'all' || pSet.has(orgOf(g['종형ID']))).map(g => `<li><b>${esc(orgN(g['종형ID']))}</b> ${ui.tag(txt.pageText(g['문서'], g['쪽']))} ${g['구분'] ? ui.tag(g['구분']) : ''} <span>${esc(fixG(g['급부명'] || ''))}</span></li>`)).join('') : '';
   const out = [];
-  pIdxs.forEach(i => { const v = row.verd[i]; if (v && v.kind === 'unknown') out.push(`${orgN(m.cols[i + 1])}: ${v.why || v.text}`); });
+  pIdxs.forEach(i => { const v = row.verd[i]; if (v && v.kind === 'unknown') out.push(`${orgN(m.cols[i + 1])}: ${v.why || App.label(v.text)}`); });
   row.omit.filter(o => c.peerScope === 'all' || (o['비교종형ID'] || []).some(v => pSet.has(orgOf(v)))).forEach(o => {
-    const subNm = SUB_NAME_MAP[o['세부']] || '';
-    out.push(`${o['분류']}${subNm ? `(${subNm})` : ''}: ${reasonText(o['사유'])}`);
+    const subNm = SUB_NAME_MAP[o['세부']] || App.label(o['세부']);
+    out.push(`${App.label(o['분류'])}${subNm ? `(${subNm})` : ''}: ${reasonText(o['사유'])}`);
   });
   const stRowsForNav = STEPS.includes(row.type)
     ? buildDomainGroups(m.rows.filter(r => r.type === row.type), domainOrderOf(c)).flatMap(g => g.items)
@@ -1323,7 +1325,7 @@ function rowEvidence(c, sid, mode) {
       <div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}
       <h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">근거 문서와 쪽</h3>
       ${mode === 'caution' && cauEv ? `<ul class="cv-evl">${cauEv}</ul><p class="note">"대표 밖"은 대표 급부 밖에 조건이 다른 급부입니다.</p>` : evidenceList(m, row, '', c)}
-      ${out.length ? `<h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">뺀 것</h3><ul class="cv-evl">${out.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+      ${out.length ? `<h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">${esc(t('cvOmitHead'))}</h3><ul class="cv-evl">${out.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
     </div></details>`;
 
   let verdBadges = '';
@@ -1340,18 +1342,19 @@ function rowEvidence(c, sid, mode) {
     const orderList = (CV && Array.isArray(CV['판정차례']) && CV['판정차례'].length)
       ? CV['판정차례']
       : ['우체국 나음', '우체국 못함', '같음', '우열을 매기지 않음', '우체국에만 있음', '우체국에 없음', '검토 대기', '판정 보류', BOTH_NONE_TEXT];
-    const allOnly = (countsByName.get('우체국에만 있음') || 0) === pIdxs.length && pIdxs.length > 0;
+    const onlyNm = [...chipByName].find(([, k]) => k === 'only');
+    const allOnly = ((onlyNm && countsByName.get(onlyNm[0])) || 0) === pIdxs.length && pIdxs.length > 0;
     const badgeParts = [];
     orderList.forEach(nm => {
       const cnt = countsByName.get(nm) || 0;
       if (!cnt) return;
-      if (nm === '우체국에만 있음') {
-        if (allOnly) badgeParts.push(ui.verdict('only', `우체국에만 있음 ${fmt(cnt)}곳`));
-        else badgeParts.push(`<span class="tag">상대에 없음 ${fmt(cnt)}곳</span>`);
+      if (chipByName.get(nm) === 'only') {
+        if (allOnly) badgeParts.push(ui.verdict('only', t('cvVerdictCntTpl', { nm: App.label('우체국에만 있음'), n: fmt(cnt) })));
+        else badgeParts.push(`<span class="tag">${esc(t('cvVerdictCntTpl', { nm: App.label('상대에 없음'), n: fmt(cnt) }))}</span>`);
       } else if (nm === BOTH_NONE_TEXT) {
-        badgeParts.push(`<span class="tag">${esc(BOTH_NONE_TEXT)} ${fmt(cnt)}곳</span>`);
+        badgeParts.push(`<span class="tag">${esc(t('cvVerdictCntTpl', { nm: App.label(BOTH_NONE_TEXT), n: fmt(cnt) }))}</span>`);
       } else {
-        badgeParts.push(ui.verdict(chipByName.get(nm) || 'unknown', `${nm} ${fmt(cnt)}곳`));
+        badgeParts.push(ui.verdict(chipByName.get(nm) || 'unknown', t('cvVerdictCntTpl', { nm: App.label(nm), n: fmt(cnt) })));
       }
     });
     verdBadges = badgeParts.join(' ');
@@ -1359,7 +1362,7 @@ function rowEvidence(c, sid, mode) {
     verdBadges = pIdxs.slice(0, 3).map(i => { const v = verdFor(row, m, i, pIdxs); return v ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(v)}</span>` : ''; }).join('');
   }
   return {
-    kicker: mode === 'caution' ? '단정 주의, 선택 종형' : '담보 비교, 선택 종형', title: stdN(sid),
+    kicker: mode === 'caution' ? t('cvEvKickerCaution') : t('cvEvKickerCover'), title: stdN(sid),
     badges: [ui.scope('base'), ui.tag(`${st['대분류'] || ''} ${st['급부유형'] || ''}`.trim()), verdBadges].filter(Boolean),
     body,
     after(el) {
@@ -1393,7 +1396,7 @@ function journeyHTML(c) {
   const compactPeers = cols.length > 4;
   const dispVals = rawVals => compactPeers ? [rawVals[0], Math.max(0, ...rawVals.slice(1))] : rawVals;
   const dispLabels = compactPeers
-    ? [{ nm: orgN(cols[0]['종형ID']), title: cols[0]['이름'] }, { nm: `상대 최대(${cols.length - 1}곳)`, title: cols.slice(1).map(x => orgN(x['종형ID'])).join(', ') }]
+    ? [{ nm: orgN(cols[0]['종형ID']), title: cols[0]['이름'] }, { nm: t('cvPeerMaxTpl', { n: cols.length - 1 }), title: cols.slice(1).map(x => orgN(x['종형ID'])).join(', ') }]
     : cols.map(x => ({ nm: orgN(x['종형ID']), title: x['이름'] }));
   const max = Math.max(1, ...cols.flatMap(x => rowsG.flatMap(g => STEPS.map(s => (x['칸'][g] || {})[s] || 0))));
   const maxT = Math.max(1, ...cols.flatMap(x => STEPS.map(s => x['합계'][s] || 0)));
@@ -1421,13 +1424,13 @@ function journeyHTML(c) {
   const etcList = cols.map(x => `${orgN(x['종형ID'])} ${x['기타'] || 0}개`);
   const etc = etcList.length <= 4 ? etcList.join(', ') : txt.peerNamesEtc(etcList, 4);
   return `<section class="panel cv-jr" id="cover-journey" aria-labelledby="cover-journey-h">
-    <div class="panel-h"><div><span class="k">${ui.scope('base')} 보장 대분류와 치료 단계마다 표준담보를 셉니다</span><h2 id="cover-journey-h"><span>치료 여정 격자</span>${ui.help('journey-grid', '치료 여정 격자')}</h2></div>
-      <div class="r"><span class="cvj-lg">${dispLabels.map((d, i) => `<span><i class="${journeyTone(i).lg}"></i>${esc(d.nm)}</span>`).join('')}<span><i class="lgz"></i>우체국 0인 칸</span></span>
-      <span class="live">${ui.btn('격자 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-journey"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-journey" data-title="치료 여정 격자"' })}</span></div></div>
-    <div class="cvj-w"><div class="cvj" role="group" aria-label="치료 여정 격자">${h}</div></div>
+    <div class="panel-h"><div><span class="k">${ui.scope('base')} 보장 대분류와 치료 단계마다 표준담보를 셉니다</span><h2 id="cover-journey-h"><span>${esc(t('cvJourneyTitle'))}</span>${ui.help('journey-grid', t('cvJourneyTitle'))}</h2></div>
+      <div class="r"><span class="cvj-lg">${dispLabels.map((d, i) => `<span><i class="${journeyTone(i).lg}"></i>${esc(d.nm)}</span>`).join('')}<span><i class="lgz"></i>${esc(t('cvJourneyZero'))}</span></span>
+      <span class="live">${ui.btn(t('cvCopyTableBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-journey"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="cover-journey" data-title="${esc(t('cvJourneyTitle'))}"` })}</span></div></div>
+    <div class="cvj-w"><div class="cvj" role="group" aria-label="${esc(t('cvJourneyTitle'))}">${h}</div></div>
     <div class="panel-f">${ui.eq({ total: { t: `${orgN(ours['종형ID'])} 담보`, n: ours['전체'] }, parts, tail: '개' })}
-      <div class="nadd">기타(주요 단계 밖의 급부유형)는 ${esc(etc)}입니다. 칸 하나에 담보 하나만 셉니다. 회사별 수는 같은 담보를 회사마다 세므로 서로 더하지 않습니다.</div>
-      <p class="note" style="margin:6px 0 0">막대 길이는 칸끼리(합계 줄은 합계끼리) 견준 것입니다. 칸을 누르면 그 칸의 담보 목록이 아래 읽기 띠에 뜹니다. 우열은 이 격자에 매기지 않고 아래 비교표에서 봅니다.</p></div>
+      <div class="nadd">${esc(t('cvJourneyEtcTpl', { etc }))}</div>
+      <p class="note" style="margin:6px 0 0">${esc(t('cvJourneyNote'))}</p></div>
   </section>`;
 }
 function journeyPick(c, key) {
@@ -1442,7 +1445,7 @@ function journeyPick(c, key) {
   all.sort((a, b) => (order[a] ?? 999) - (order[b] ?? 999));
   const peerCols = cols.slice(1);
   const foldPeers = peerCols.length >= 4;
-  let tblHTML = '<p>이 칸에는 비교 대상 회사 모두 담보가 없습니다.</p>';
+  let tblHTML = `<p>${esc(t('cvJourneyEmptyCell'))}</p>`;
   if (all.length) {
     if (foldPeers) {
       const rows = all.map(sid => {
@@ -1459,18 +1462,18 @@ function journeyPick(c, key) {
           const pc = (B['판정기관코드'] && B['판정기관코드'][sid]) || {};
           const cntCode = k => (c.peerScope === 'all' ? ((pc[k] || []).length) : c.inScope(pc[k]));
           const bks = [
-            ['better', '우체국 나음', cntCode('나음')],
-            ['same', '같음', cntCode('같음')],
-            ['worse', '우체국 못함', cntCode('못함')],
-            ['diff', '우열을 매기지 않음', cntCode('엇갈림') + cntCode('단정 주의') + cntCode('지급 형태 다름') + cntCode('관계 담보로 덮음')],
-            ['unknown', '검토 대기', cntCode('검토 대기')],
-            ['unknown', '판정 보류', cntCode('판정 보류')],
-            ['none', '우체국에 없음', cntCode('우체국에 없음')],
+            ['better', verdictName('나음'), cntCode('나음')],
+            ['same', verdictName('같음'), cntCode('같음')],
+            ['worse', verdictName('못함'), cntCode('못함')],
+            ['diff', verdictName('엇갈림'), cntCode('엇갈림') + cntCode('단정 주의') + cntCode('지급 형태 다름') + cntCode('관계 담보로 덮음')],
+            ['unknown', verdictName('검토 대기'), cntCode('검토 대기')],
+            ['unknown', verdictName('판정 보류'), cntCode('판정 보류')],
+            ['none', verdictName('우체국에 없음'), cntCode('우체국에 없음')],
           ].filter(x => x[2] > 0);
           if (!bks.length && oursHas && pIdxs.length > 0) {
-            vHTML = ui.verdict('only', '우체국에만 있음');
+            vHTML = ui.verdict('only', verdictName('상대에 없음'));
           } else {
-            vHTML = bks.map(([vd, lb, n]) => ui.verdict(vd, `${lb} ${fmt(n)}곳`)).join(' ');
+            vHTML = bks.map(([vd, lb, n]) => ui.verdict(vd, t('cvVerdictCntTpl', { nm: lb, n: fmt(n) }))).join(' ');
           }
         }
         const peerDetail = `<details class="zr-det cv-vg-det" style="border-top:0"><summary style="padding:2px 0"><span>보유 <b class="num">${fmt(heldNames.length)}</b>/${fmt(peerCols.length)}개 종형</span>${ui.IC.chevD}</summary><div class="zr-det-b" style="padding:4px 0 2px"><div class="note"><b>있음(${fmt(heldNames.length)}):</b> ${heldNames.length ? esc(heldNames.join(', ')) : '없음'}</div><div class="note"><b>없음(${fmt(absentNames.length)}):</b> ${absentNames.length ? esc(absentNames.join(', ')) : '없음'}</div></div></details>`;
@@ -1480,7 +1483,7 @@ function journeyPick(c, key) {
           <td>${peerDetail}</td>
         </tr>`;
       }).join('');
-      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정 묶음</th><th scope="col">${esc(orgN(cols[0]['종형ID']))}</th><th scope="col">상대 보유 현황 (${fmt(peerCols.length)}개 종형)</th></tr>${rows}</table></div><p class="note">상대가 넷 이상이라 판정 묶음과 보유 수로 접었습니다. 상대 보유 현황을 누르면 회사별 있음과 없음 전체 목록이 펼쳐집니다.</p>`;
+      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">${esc(t('cvJourneyColGrp'))}</th><th scope="col">${esc(orgN(cols[0]['종형ID']))}</th><th scope="col">${esc(t('cvJourneyColPeersTpl', { n: fmt(peerCols.length) }))}</th></tr>${rows}</table></div><p class="note">${esc(t('cvJourneyFoldNote'))}</p>`;
     } else {
       const rows = all.map(sid => {
         const row = m && m.byId[sid];
@@ -1488,7 +1491,7 @@ function journeyPick(c, key) {
         const v = row ? pIdxs.map(i => { const vv = verdFor(row, m, i, pIdxs); return vv ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(vv)}</span>` : ''; }).join('') : '';
         return `<tr><th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}<div class="cv-bds">${v}</div></th>${marks}</tr>`;
       }).join('');
-      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">담보 이름을 누르면 해당 기둥과 상세로 이동합니다.</p>`;
+      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">${esc(t('cvJourneyGotoNote'))}</p>`;
     }
   }
   const cntItems = cols.map((x, i) => `${orgN(x['종형ID'])} ${lists[i].length}개`);
@@ -1496,9 +1499,9 @@ function journeyPick(c, key) {
     ? `<p>${esc(cntItems.join(', '))}</p>`
     : `<p>${esc(txt.peerNamesEtc(cntItems, 5))}</p><details class="zr-det cv-vg-det"><summary><span>전체 ${fmt(cntItems.length)}개 종형 담보 수 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b"><p class="note">${esc(cntItems.join(', '))}</p></div></details>`;
   return {
-    kicker: '치료 여정 격자, 선택 종형', title: `${g} ${s}`, badges: [ui.scope('base')],
-    body: `<div class="ev-sec"><h3>칸의 담보 수</h3>${cntLine}
-        <div class="nadd">같은 담보를 회사마다 센 수라 서로 더하지 않습니다. 이 칸에 한 회사라도 가진 담보는 ${all.length}개입니다.</div></div>
+    kicker: t('cvJourneyKicker'), title: `${g} ${s}`, badges: [ui.scope('base')],
+    body: `<div class="ev-sec"><h3>${esc(t('cvJourneyCellCntHead'))}</h3>${cntLine}
+        <div class="nadd">${esc(t('cvJourneyCellCntNoteTpl', { n: all.length }))}</div></div>
       <div class="ev-sec"><h3>담보 목록</h3>${tblHTML}</div>`,
   };
 }
@@ -1519,15 +1522,15 @@ function cautionHTML(c) {
     return txt.peerNamesEtc(vids.map(fullN), 3);
   };
   return `<section class="panel cv-cau" id="cover-caution" aria-labelledby="cover-caution-h">
-    <div class="panel-h"><div><span class="k">${ui.scope('base')} 우열 문장을 내지 않은 비교와 까닭</span><h2 id="cover-caution-h">단정 주의 ${cau.length}건</h2></div>
-      <div class="r"><span class="live">${ui.btn('목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-caution"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-caution" data-title="단정 주의 목록"' })}</span></div></div>
+    <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(t('cvCautionKicker'))}</span><h2 id="cover-caution-h">${esc(t('cvCautionTitleTpl', { n: cau.length }))}</h2></div>
+      <div class="r"><span class="live">${ui.btn('목록 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-caution"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="cover-caution" data-title="${esc(t('cvCautionListTitle'))}"` })}</span></div></div>
     ${kinds.map(k => `<div class="cv-kh"><span>${esc(k.k)}</span><b class="num">${k.xs.length}</b></div>
       <ul class="lrows">${k.xs.map(x => `<li class="lrow cv-cr" data-pick="c:${esc(x['표준담보ID'])}">
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(`${x['담보']}, ${k.k}. 근거 보기`)}"></button>
         <div class="cv-crh selbar">${ui.verdict('diff')}<span class="cv-cn">${esc(x['담보'])}</span></div>
-        <p class="cv-cpe">상대 ${esc(peerName(x))}</p>
+        <p class="cv-cpe">${esc(t('cvCautionPeerTpl', { peer: peerName(x) }))}</p>
         <p class="cv-ctx">${esc(x['문장'])}${c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : ''}</p>
-        <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`).join('')}</ul>`).join('') || '<p class="placeholder">단정 주의에 든 담보가 없습니다.</p>'}
+        <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`).join('')}</ul>`).join('') || `<p class="placeholder">${esc(t('cvCautionEmpty'))}</p>`}
   </section>`;
 }
 function pendingHTML(c) {
@@ -1557,24 +1560,24 @@ function pendingHTML(c) {
     if (restPeers.length) peerCells.push(`<span class="num" title="${esc(restPeers.map(orgN).join(', '))}">${restWait}</span>`);
     return [`<span class="nw">${esc(x['대분류'])}</span>`, `<span class="num">${rowTot}</span>`, `<span class="num">${rowCmp}</span>`, `<span class="num">${rowWait}</span>`, ...peerCells];
   });
-  const headCols = ['보장 대분류', '공통 쌍', '견줌', '검토 대기', ...shownPeers.map(v => `${esc(orgN(v))} 대기`)];
+  const headCols = ['보장 대분류', t('cvPdColCommon'), t('cvPdColCmp'), t('cvPdColWait'), ...shownPeers.map(v => `${esc(orgN(v))} 대기`)];
   const numCols = [1, 2, 3, ...shownPeers.map((_, i) => i + 4)];
   if (restPeers.length) {
-    headCols.push(`그 밖 ${fmt(restPeers.length)}곳 대기`);
+    headCols.push(t('cvPdColRestWaitTpl', { n: fmt(restPeers.length) }));
     numCols.push(headCols.length - 1);
   }
   const sumNote = restPeers.length
-    ? `상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 앞의 ${fmt(shownPeers.length)}개 열과 그 밖 ${fmt(restPeers.length)}곳 열을 더하면 그 줄의 검토 대기 쌍과 같습니다.`
-    : '상대별 대기 수는 그 상대와의 쌍에서 뺀 수이고, 선택한 상대를 더하면 그 줄의 검토 대기 쌍과 같습니다.';
+    ? t('cvPdSumNoteRestTpl', { shown: fmt(shownPeers.length), rest: fmt(restPeers.length) })
+    : t('cvPdSumNoteAll');
   const cellsBar = sp.total <= 80 ? ui.cells(Array(sp.cmp).fill('cmp').concat(Array(sp.wait).fill('wait'))) : '';
   return `<section class="panel tbl-wrap cv-pd" id="cover-pending" aria-labelledby="cover-pending-h">
-    <div class="panel-h"><div><span class="k">${ui.scope('base')} 공통 담보 쌍 가운데 검토 대기로 뺀 쌍</span><h2 id="cover-pending-h">검토 대기 보류 요약</h2></div>
-      <div class="r"><span class="live">${ui.btn('표 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-copy="cover-pd-tbl" data-title="검토 대기 보류 요약"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-pending" data-title="검토 대기 보류 요약"' })}</span></div></div>
-    <div class="cv-pd-eq">${ui.eq({ total: { t: '공통 담보', n: sp.total }, parts: [{ t: '견줌', n: sp.cmp }, { t: '검토 대기로 뺌', n: sp.wait }], tail: '쌍' })}
+    <div class="panel-h"><div><span class="k">${ui.scope('base')} ${esc(t('cvPdKicker'))}</span><h2 id="cover-pending-h">${esc(t('cvPdTitle'))}</h2></div>
+      <div class="r"><span class="live">${ui.btn(t('cvCopyTableBtn'), { sm: true, ghost: true, icon: 'copy', attrs: `data-copy="cover-pd-tbl" data-title="${esc(t('cvPdTitle'))}"` })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="cover-pending" data-title="${esc(t('cvPdTitle'))}"` })}</span></div></div>
+    <div class="cv-pd-eq">${ui.eq({ total: { t: t('cvPdColCommon'), n: sp.total }, parts: [{ t: t('cvPdColCmp'), n: sp.cmp }, { t: t('cvPdWaitExcl'), n: sp.wait }], tail: t('cvPdTailUnit') })}
       ${cellsBar}
-      ${sp.wait > 0 && Object.keys(why).length ? `<div class="nadd">뺀 사유는 ${esc(Object.entries(why).map(([a, b]) => `${a} ${b}`).join(', '))}쌍입니다. ${whySum > sp.wait ? `한 쌍에 두 사유가 함께 들 수 있어 더하면 ${esc(txt.josa(String(whySum), '으로'))} ${sp.wait}보다 큽니다.` : `사유를 더하면 ${whySum}쌍입니다.`}</div>` : ''}</div>
+      ${sp.wait > 0 && Object.keys(why).length ? `<div class="nadd">${esc(t('cvPdWhyHeadTpl', { list: Object.entries(why).map(([a, b]) => `${a} ${b}`).join(', '), tail: whySum > sp.wait ? t('cvPdWhyOverlapTpl', { sum: txt.josa(String(whySum), '으로'), wait: sp.wait }) : t('cvPdWhySumTpl', { sum: whySum }) }))}</div>` : ''}</div>
     <div class="cv-pd-t">${ui.table({ id: 'cover-pd-tbl', head: headCols, rows, num: numCols })}</div>
-    <div class="panel-f">${cellsBar ? '띠의 칸 하나가 한 쌍입니다: <span class="kd-l"><i class="cq cmp"></i>견준 쌍</span> <span class="kd-l"><i class="cq wait"></i>검토 대기로 뺀 쌍</span>. ' : ''}${esc(sumNote)}</div>
+    <div class="panel-f">${cellsBar ? `${esc(t('cvPdCellsLegendPrefix'))}<span class="kd-l"><i class="cq cmp"></i>${esc(t('cvPdCellsCmp'))}</span> <span class="kd-l"><i class="cq wait"></i>${esc(t('cvPdCellsWait'))}</span>. ` : ''}${esc(sumNote)}</div>
   </section>`;
 }
 
@@ -1584,11 +1587,11 @@ function midBand(c) {
   const cau = scopedCaution(c);
   const kinds = {};
   cau.forEach(x => { kinds[x['종류']] = (kinds[x['종류']] || 0) + 1; });
-  const stats = [{ n: sp.cmp, d: sp.total, l: '견준 공통 담보 쌍', bar: [sp.cmp, Math.max(1, sp.total)] },
-    { n: sp.wait, d: sp.total, l: '검토 대기로 뺀 쌍', bar: [sp.wait, Math.max(1, sp.total), 'other'] }]
-    .concat(Object.entries(kinds).map(([k, n]) => ({ n, u: '건', l: `단정 주의: ${k}` })));
-  return ui.band({ kicker: '우열을 단정하지 않은 것과 견주지 못한 것', title: '단정 주의와 검토 대기', help: 'caution-pending', sc: 'base', stats,
-    note: `단정 주의 ${cau.length}건은 견준 쌍 안에서 우열 문장을 내지 않은 담보이고, 검토 대기로 뺀 쌍과는 다른 수라 더하지 않습니다.` });
+  const stats = [{ n: sp.cmp, d: sp.total, l: t('cvMidStatCmp'), bar: [sp.cmp, Math.max(1, sp.total)] },
+    { n: sp.wait, d: sp.total, l: t('cvMidStatWait'), bar: [sp.wait, Math.max(1, sp.total), 'other'] }]
+    .concat(Object.entries(kinds).map(([k, n]) => ({ n, u: '건', l: t('cvMidStatCauTpl', { kind: k }) })));
+  return ui.band({ kicker: t('cvMidKicker'), title: t('cvMidTitle'), help: 'caution-pending', sc: 'base', stats,
+    note: t('cvMidNoteTpl', { n: cau.length }) });
 }
 
 function chipKindByName(nm) {
@@ -1616,10 +1619,10 @@ function sumVerdictSummary(B, c) {
 function tableBand(c, m, byName, peerN) {
   const total = m.rows.length * peerN;
   const denom = Math.max(1, total);
-  const st = (nm, cls) => ({ n: byName[nm] || 0, d: total, l: nm, bar: [byName[nm] || 0, denom, cls] });
-  return ui.band({ kicker: `우체국 ${kindN(c.baseId)} 기준, 담보 ${m.rows.length}줄과 상대 ${peerN}곳`, title: '담보 비교표의 판정', sc: 'base',
+  const st = (nm, cls) => ({ n: byName[nm] || 0, d: total, l: App.label(nm), bar: [byName[nm] || 0, denom, cls] });
+  return ui.band({ kicker: t('cvTblBandKickerTpl', { kind: kindN(c.baseId), rows: m.rows.length, peers: peerN }), title: '담보 비교표의 판정', sc: 'base',
     stats: [st('우체국 나음', 'gold'), st('우체국에만 있음', 'gold'), st('우체국 못함', ''), st('우체국에 없음', 'other')],
-    note: `판정 칸 ${total}개 가운데 넷을 크게 보였습니다. 나머지(같음, 우열을 매기지 않음, 검토 대기, 판정 보류, ${BOTH_NONE_TEXT})는 아래 줄에 수를 적었습니다.` });
+    note: t('cvTblBandNoteTpl', { total, bothNone: App.label(BOTH_NONE_TEXT) }) });
 }
 
 function payHTML(text, hasExtra) {
@@ -1635,11 +1638,11 @@ function compCell(row, k, vid) {
   const c = row.cells[k];
   if (has(c)) {
     const b = repOf(c);
-    const extra = [c.n > 1 ? `같은 담보 급부 ${c.n}개 가운데 대표 급부` : '', c.o ? `대표와 조건이 다른 줄 ${c.o}개` : '', c.w ? `매핑 대기 ${c.w}줄` : ''].filter(Boolean).join(', ');
+    const extra = [c.n > 1 ? `같은 담보 급부 ${c.n}개 가운데 대표 급부` : '', c.o ? t('cvCellRepOtherTpl', { n: c.o }) : '', c.w ? t('cvCellMapWaitTpl', { w: c.w }) : ''].filter(Boolean).join(', ');
     return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-v${extra ? ' has-x' : ''}"${extra ? ` title="${esc(extra)}"` : ''}><span class="pv num">${payHTML(payText(b), !!extra)}</span><span class="wv num">${esc(waitText(b.wait))}</span><span class="rv num">${esc(redShort(b.red, b))}</span></span></td>`;
   }
-  const t = c && c.w ? `검토 대기 ${c.w}줄` : c && c.c ? `없음, ${txt.josa(c.c[0], '으로')} 덮음` : '없음';
-  return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-x${c && c.w ? ' wait' : ''}">${esc(t)}</span></td>`;
+  const emptyTxt = c && c.w ? t('cvCellWaitTpl', { w: c.w }) : c && c.c ? t('cvCellNoneCoverTpl', { kind: txt.josa(c.c[0], '으로') }) : '없음';
+  return `<td class="cv-c k${k}" data-l="${esc(orgN(vid))}"><span class="cv-x${c && c.w ? ' wait' : ''}">${esc(emptyTxt)}</span></td>`;
 }
 function stickyVerdictCellHTML(r, m, pIdxs) {
   if (!pIdxs.length) return `<span class="cv-both">${esc(App.t('condPeerNone'))}</span>`;
@@ -1660,18 +1663,19 @@ function stickyVerdictCellHTML(r, m, pIdxs) {
   const orderList = (CV && Array.isArray(CV['판정차례']) && CV['판정차례'].length)
     ? CV['판정차례']
     : ['우체국 나음', '우체국 못함', '같음', '우열을 매기지 않음', '우체국에만 있음', '우체국에 없음', '검토 대기', '판정 보류', BOTH_NONE_TEXT];
-  const allOnly = (countsByName.get('우체국에만 있음') || 0) === pIdxs.length;
+  const onlyNm = [...chipByName].find(([, k]) => k === 'only');
+  const allOnly = ((onlyNm && countsByName.get(onlyNm[0])) || 0) === pIdxs.length && pIdxs.length > 0;
   const parts = [];
   orderList.forEach(nm => {
     const cnt = countsByName.get(nm) || 0;
     if (!cnt) return;
-    if (nm === '우체국에만 있음') {
-      if (allOnly) parts.push(ui.verdict('only', `우체국에만 있음 ${fmt(cnt)}곳`));
-      else parts.push(`<span class="tag">타사 미보유 ${fmt(cnt)}곳</span>`);
+    if (chipByName.get(nm) === 'only') {
+      if (allOnly) parts.push(ui.verdict('only', t('cvVerdictCntTpl', { nm: App.label('우체국에만 있음'), n: fmt(cnt) })));
+      else parts.push(`<span class="tag">${esc(t('cvVerdictCntTpl', { nm: App.label('상대에 없음'), n: fmt(cnt) }))}</span>`);
     } else if (nm === BOTH_NONE_TEXT) {
-      parts.push(`<span class="tag">${esc(BOTH_NONE_TEXT)} ${fmt(cnt)}곳</span>`);
+      parts.push(`<span class="tag">${esc(t('cvVerdictCntTpl', { nm: App.label(BOTH_NONE_TEXT), n: fmt(cnt) }))}</span>`);
     } else {
-      parts.push(ui.verdict(chipByName.get(nm) || 'unknown', `${nm} ${fmt(cnt)}곳`));
+      parts.push(ui.verdict(chipByName.get(nm) || 'unknown', t('cvVerdictCntTpl', { nm: App.label(nm), n: fmt(cnt) })));
     }
   });
   return `<span class="cv-vds-list is-wrap">${parts.join(' ')}</span>`;
@@ -1693,7 +1697,7 @@ function tableRows(c) {
   rows.forEach(r => {
     if (r.major !== last) {
       last = r.major;
-      html += `<tr class="cv-gh no-copy"><th colspan="${colSpan}" scope="colgroup"><span class="cv-gh-pin"><span class="cv-ghn">${esc(r.major)}</span> <span class="num">${cnt[r.major]}</span>줄</span></th></tr>`;
+      html += `<tr class="cv-gh no-copy"><th colspan="${colSpan}" scope="colgroup"><span class="cv-gh-pin"><span class="cv-ghn">${esc(r.major)}</span> <span class="num">${cnt[r.major]}</span>${esc(t('cvRowUnit'))}</span></th></tr>`;
     }
     const flag = r.pts.some(p => p['원문대조'] && (c.peerScope === 'all' || (p['관련기관코드'] || []).some(o => pSet.has(o)))) ? ui.flag() : '';
     if (manyOrgs) {
@@ -1705,7 +1709,7 @@ function tableRows(c) {
       html += `<tr class="pick" data-pick="s:${esc(r.sid)}" tabindex="0" aria-label="${esc(`${stdN(r.sid)}. 근거 보기`)}">
         <td class="cv-n">${flag}<span class="nm">${esc(stdN(r.sid))}</span><span class="sub">${esc(r.type)}</span></td>
         ${colIdxs.map(k => compCell(r, k, m.cols[k])).join('')}
-        ${pIdxs.map(i => { const v = verdFor(r, m, i, pIdxs); return `<td data-l="${esc(txt.josa(orgN(m.cols[i + 1]), '과'))} 견줌" class="cv-vd${v && v.kind === 'better' ? ' vl-better' : v && v.kind === 'worse' ? ' vl-worse' : ''}">${chip(v)}</td>`; }).join('')}
+        ${pIdxs.map(i => { const v = verdFor(r, m, i, pIdxs); return `<td data-l="${esc(t('cvPeerCmpTpl', { peer: txt.josa(orgN(m.cols[i + 1]), '과') }))}" class="cv-vd${v && v.kind === 'better' ? ' vl-better' : v && v.kind === 'worse' ? ' vl-worse' : ''}">${chip(v)}</td>`; }).join('')}
         <td class="cv-ch" aria-hidden="true">${ui.IC.chevR}</td></tr>`;
     }
   });
@@ -1714,14 +1718,14 @@ function tableRows(c) {
 function tableHTML(c) {
   const m = model(c.baseId);
   const B = CV && CV.b[c.baseId];
-  if (!m || !B) return `<section class="panel"><p class="placeholder">비교 자료 없음: 이 기준 종형의 비교쌍 자료가 tab4 자료에 없습니다.</p></section>`;
+  if (!m || !B) return `<section class="panel"><p class="placeholder">${esc(t('cvNoDataTable'))}</p></section>`;
   const pIdxs = peerIdxOf(m, c);
   const colIdxs = [0].concat(pIdxs.map(i => i + 1));
   const manyOrgs = colIdxs.length >= 4;
   const peerN = pIdxs.length;
   const totCells = m.rows.length * peerN;
   const groups = [...new Set(m.rows.map(r => r.major))];
-  const t = tableRows(c);
+  const tr = tableRows(c);
   const { order, byName } = sumVerdictSummary(B, c);
   const chipNames = order.filter(nm => nm !== BOTH_NONE_TEXT);
   const sumChipsHTML = chipNames.map(nm => `${ui.verdict(chipKindByName(nm), nm)} <b class="num" data-sum-name="${esc(nm)}">${byName[nm] || 0}</b>`).join(' ');
@@ -1741,25 +1745,25 @@ function tableHTML(c) {
         <th scope="col" class="cv-vd cv-vd-sticky" rowspan="2">판정<br><span class="sub">우체국 기준</span></th></tr>
         <tr class="cv-h2">${colIdxs.map(k => `<th scope="col" class="cv-c k${k}">${head2}</th>`).join('')}</tr></thead>`
     : `<thead><tr><th scope="col" rowspan="2" class="cv-n">담보</th>${colIdxs.map(k => { const v = m.cols[k]; return `<th scope="col" class="cv-c k${k}" title="${esc(fullN(v))}">${esc(orgN(v))} <span class="sub">${esc(txt.shortName(kindN(v)).short)}</span>${k ? '' : ' ' + ui.tag('기준')}</th>`; }).join('')}
-        ${pIdxs.map(i => { const v = m.cols[i + 1]; return `<th scope="col" class="cv-vd" rowspan="2">${esc(txt.josa(orgN(v), '과'))} 견줌<br><span class="sub">우체국 기준</span></th>`; }).join('')}<th rowspan="2" class="cv-ch"><span class="sr">고르기</span></th></tr>
+        ${pIdxs.map(i => { const v = m.cols[i + 1]; return `<th scope="col" class="cv-vd" rowspan="2">${esc(t('cvPeerCmpTpl', { peer: txt.josa(orgN(v), '과') }))}<br><span class="sub">우체국 기준</span></th>`; }).join('')}<th rowspan="2" class="cv-ch"><span class="sr">${esc(t('cvColSelectSr'))}</span></th></tr>
         <tr class="cv-h2">${colIdxs.map(k => `<th scope="col" class="cv-c k${k}">${head2}</th>`).join('')}</tr></thead>`;
   return `${tableBand(c, m, byName, peerN)}<section class="panel tbl-wrap cv-tb" id="cover-table" aria-labelledby="cover-table-h">
     <div class="panel-h"><div><span class="k">${ui.scope('base')} 표준담보마다 대표 급부끼리, 우체국 기준</span><h2 id="cover-table-h">담보 비교표</h2></div>
-      <div class="r"><span class="live">${ui.btn('표 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-table"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-table" data-title="담보 비교표"' })}</span></div></div>
+      <div class="r"><span class="live">${ui.btn(t('cvCopyTableBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-table"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: 'data-print="cover-table" data-title="담보 비교표"' })}</span></div></div>
     <div class="cv-tools">
-      <div class="cv-seg" role="group" aria-label="보장 대분류 거르기">
+      <div class="cv-seg" role="group" aria-label="${esc(t('cvMajorFltAria'))}">
         <button type="button" class="cv-sb" data-act="cv-group" data-v="" aria-pressed="${!fGroup}">전체</button>
         ${groups.map(g => `<button type="button" class="cv-sb" data-act="cv-group" data-v="${esc(g)}" aria-pressed="${fGroup === g}">${esc(g)}</button>`).join('')}
       </div>
-      <button type="button" class="sw" role="switch" aria-checked="${diffOnly}" data-act="cv-diff"><i></i>다른 것만 보기</button>
-      <span class="cv-cnt" aria-live="polite">${t.n === t.total ? `${t.total}줄` : `${t.total}줄 가운데 ${t.n}줄`}</span>
+      <button type="button" class="sw" role="switch" aria-checked="${diffOnly}" data-act="cv-diff"><i></i>${esc(t('cvDiffOnlyBtn'))}</button>
+      <span class="cv-cnt" aria-live="polite">${esc(tr.n === tr.total ? t('cvRowCntAllTpl', { total: tr.total }) : t('cvRowCntPartTpl', { total: tr.total, n: tr.n }))}</span>
     </div>
-    <div class="cv-sum">판정 칸 ${totCells}개(담보 ${m.rows.length}줄, 상대 ${peerN}곳): ${sumChipsHTML} <span class="note">나머지 <b class="num" data-sum-name="${esc(BOTH_NONE_TEXT)}">${byName[BOTH_NONE_TEXT] || 0}</b>칸은 ${esc(BOTH_NONE_TEXT)}</span></div>
+    <div class="cv-sum">${esc(t('cvSumCellsTpl', { tot: totCells, rows: m.rows.length, peers: peerN }))}: ${sumChipsHTML} <span class="note">나머지 <b class="num" data-sum-name="${esc(BOTH_NONE_TEXT)}">${byName[BOTH_NONE_TEXT] || 0}</b>${esc(t('cvSumRestSuffixTpl', { bothNone: App.label(BOTH_NONE_TEXT) }))}</span></div>
     ${scrollBarHTML}
     <div class="cv-tw" id="cover-tw"><table class="tbl cv-t ${manyOrgs ? 'is-many-orgs' : 'is-compact-orgs'}" id="cover-tbl">
       ${theadHTML}
-      <tbody>${t.html}</tbody></table></div>
-    <div class="panel-f">같은 담보를 둘 다 가지면 대표 급부끼리 면책, 감액, 지급 형태로 판정하고, 한쪽에만 있으면 누구에게 없는지 적습니다. 대표 급부는 같은 담보의 급부 가운데 주급부, 금액이 큰 줄, 조건이 엄격한 줄 차례로 고릅니다. 담보 비교는 나이 조건 없이 대표 급부끼리 견준 값이고, 기준 종형을 바꿀 때만 다시 셉니다. 지급액은 기준 가입금액에서의 금액이라 회사끼리 바로 견주지 않습니다.</div>
+      <tbody>${tr.html}</tbody></table></div>
+    <div class="panel-f">${esc(t('cvTblFoot'))}</div>
   </section>`;
 }
 function syncCoverTwScroll(root) {
@@ -1801,11 +1805,11 @@ function bindCoverTw(root) {
 function refreshTable(body, c) {
   const tb = body.querySelector('#cover-tbl tbody');
   if (!tb) return;
-  const t = tableRows(c);
-  tb.innerHTML = t.html;
+  const tr = tableRows(c);
+  tb.innerHTML = tr.html;
   body.querySelectorAll('[data-act="cv-group"]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v || null) === fGroup)));
   const sw = body.querySelector('[data-act="cv-diff"]'); if (sw) sw.setAttribute('aria-checked', String(diffOnly));
-  const cn = body.querySelector('.cv-cnt'); if (cn) cn.textContent = t.n === t.total ? `${t.total}줄` : `${t.total}줄 가운데 ${t.n}줄`;
+  const cn = body.querySelector('.cv-cnt'); if (cn) cn.textContent = tr.n === tr.total ? t('cvRowCntAllTpl', { total: tr.total }) : t('cvRowCntPartTpl', { total: tr.total, n: tr.n });
   const key = App.state.sel.cover;
   tb.querySelectorAll('[data-pick]').forEach(el => el.classList.toggle('is-sel', el.dataset.pick === key));
   syncCoverTwScroll(body);
@@ -1818,13 +1822,13 @@ function copyJourney() {
   j['행'].forEach(g => cols.forEach(x => rows.push([g, x['이름'], ...STEPS.map(s => (x['칸'][g] || {})[s] || 0), STEPS.reduce((a, s) => a + ((x['칸'][g] || {})[s] || 0), 0)])));
   cols.forEach(x => rows.push(['단계 합계', x['이름'], ...STEPS.map(s => x['합계'][s] || 0), x['전체'] - (x['기타'] || 0)]));
   cols.forEach(x => rows.push(['기타(주요 단계 밖)', x['이름'], '', '', '', '', '', x['기타'] || 0]));
-  App.copyRows(['보장 대분류', '종형', ...STEPS, '합계'], rows, { title: '치료 여정 격자(표준담보 수)' });
+  App.copyRows(['보장 대분류', '종형', ...STEPS, '합계'], rows, { title: t('cvCopyJourneyTitle') });
 }
 function copyCaution() {
   const c = App.ctx();
-  const rows = scopedCaution(c).map(x => [x['종류'], x['담보'], (x['상대종형ID'] || []).map(fullN).join(', '), '우열을 매기지 않음', x['문장'],
+  const rows = scopedCaution(c).map(x => [x['종류'], x['담보'], (x['상대종형ID'] || []).map(fullN).join(', '), App.label('우열을 매기지 않음'), x['문장'],
     (x['근거'] || []).map(g => `${orgN(g['종형ID'])} ${txt.pageText(g['문서'], g['쪽'])}${g['구분'] ? `(${g['구분']})` : ''}`).join('; ')]);
-  App.copyRows(['종류', '담보', '상대', '판정', '문장', '근거'], rows, { title: '단정 주의 목록' });
+  App.copyRows(['종류', '담보', t('cvCopyCauColPeer'), '판정', '문장', '근거'], rows, { title: t('cvCautionListTitle') });
 }
 function copyTable() {
   const c = App.ctx();
@@ -1836,19 +1840,19 @@ function copyTable() {
   if (diffOnly) rows = rows.filter(r => pIdxs.some(i => { const v = verdFor(r, m, i, pIdxs); return v && v.kind !== 'same'; }));
   const head = ['보장 대분류', '담보', '급부유형'];
   colIdxs.forEach(k => { const v = m.cols[k]; head.push(`${orgN(v)} 지급`, `${orgN(v)} 면책`, `${orgN(v)} 감액`); });
-  pIdxs.forEach(i => { const v = m.cols[i + 1]; head.push(`${txt.josa(orgN(v), '과')} 견줌(우체국 기준)`); });
-  head.push('까닭');
+  pIdxs.forEach(i => { const v = m.cols[i + 1]; head.push(t('cvCopyCmpColTpl', { peer: txt.josa(orgN(v), '과') })); });
+  head.push(t('cvCopyWhyCol'));
   App.copyRows(head, rows.map(r => {
     const out = [r.major, stdN(r.sid), r.type];
     colIdxs.forEach(k => {
       const c2 = r.cells[k], b = repOf(c2);
       if (b) out.push(payText(b), waitText(b.wait), redShort(b.red, b));
-      else out.push(c2 && c2.w ? `검토 대기 ${c2.w}줄` : c2 && c2.c ? `없음(${c2.c[0]})` : '없음', '', '');
+      else out.push(c2 && c2.w ? t('cvCellWaitTpl', { w: c2.w }) : c2 && c2.c ? `없음(${c2.c[0]})` : '없음', '', '');
     });
     pIdxs.forEach(i => out.push(chipText(verdFor(r, m, i, pIdxs))));
     out.push(pIdxs.map(i => { const v = verdFor(r, m, i, pIdxs); return v && v.why ? `${orgN(m.cols[i + 1])}: ${v.why}` : ''; }).filter(Boolean).join(' / '));
     return out;
-  }), { title: `담보 비교표${fGroup ? ` (${fGroup})` : ''}${diffOnly ? ' (다른 것만)' : ''}` });
+  }), { title: `담보 비교표${fGroup ? ` (${fGroup})` : ''}${diffOnly ? t('cvCopyDiffSuffix') : ''}` });
 }
 
 function concl(c) {
@@ -1858,12 +1862,12 @@ function concl(c) {
   const sp = (c.peerScope === 'all' ? scopedPairs(c.baseId, null) : scopedPairs(c.baseId, pSet)) || { total: 0, wait: 0, cmp: 0 };
   const j = journeyData(c).cols[0];
   const cau = scopedCaution(c);
-  return `<p class="concl">공통 담보 ${sp.total}쌍 가운데 ${sp.cmp}쌍을 견줬고(검토 대기 ${sp.wait}쌍 뺌), 우체국 ${esc(kindN(c.baseId))}의 담보 ${j['전체']}개는 ${STEPS.map(s => `${s} ${j['합계'][s] || 0}`).join(', ')}입니다. 우열을 단정하지 않은 담보는 ${cau.length}건입니다.</p>`;
+  return `<p class="concl">${esc(t('cvConclTpl', { total: sp.total, cmp: sp.cmp, wait: sp.wait, kind: kindN(c.baseId), all: j['전체'], steps: STEPS.map(s => `${s} ${j['합계'][s] || 0}`).join(', '), cau: cau.length }))}</p>`;
 }
 function refNote(c) {
   const parts = [];
-  if (!c.isRef) parts.push(`지금 조건(${App.condSegOnly()})을 바꿔도 이 탭의 값은 그대로입니다. 담보 비교는 나이 조건 없이 대표 급부끼리 견준 값이고, 기준 종형을 바꿀 때만 다시 셉니다.`);
-  if (c.st.renewal) parts.push('갱신 유형 거르개는 고객군 지도에만 씁니다.');
+  if (!c.isRef) parts.push(t('cvRefCondTpl', { cond: App.condSegOnly() }));
+  if (c.st.renewal) parts.push(t('cvRefRenewal'));
   return parts.length ? `<p class="cv-ref">${esc(parts.join(' '))}</p>` : '';
 }
 
@@ -1876,7 +1880,7 @@ function renderFullTablesModal(c) {
   </div>`;
   return {
     kicker: App.TAB_NAME.cover,
-    title: '치료 여정 격자, 단정 주의, 담보 비교표',
+    title: t('cvModalTitle'),
     badges: [ui.scope('base'), ui.fullScopeTag()].filter(Boolean),
     actions: ui.btn('비교표 복사', { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-table"' }),
     html,
@@ -1891,7 +1895,7 @@ function conclusion(c) {
     const j = journeyData(c).cols[0];
     const cau = scopedCaution(c);
     return {
-      text: `공통 담보 ${sp.total}쌍 가운데 ${sp.cmp}쌍을 견줬고(검토 대기 ${sp.wait}쌍 뺌), 우체국 ${kindN(c.baseId)}의 담보 ${j['전체']}개 가운데 우열을 단정하지 않은 담보는 ${cau.length}건입니다.`,
+      text: t('cvConclScopedTpl', { total: sp.total, cmp: sp.cmp, wait: sp.wait, kind: kindN(c.baseId), all: j['전체'], cau: cau.length }),
       flag: '',
       scoped: true,
     };
