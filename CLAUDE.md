@@ -138,4 +138,4 @@ gh run list --limit 5 ; gh run view <id> --log ; gh run download <id> -n <artifa
 
 ## 커밋
 
-한국어로, 무엇을 왜 바꿨는지 적는다. 생성물(`data/snapshot/*`, `site/index.html`)이 충돌하면 손으로 합치지 말고 다시 만든다.
+한국어로, 무엇을 왜 바꿨는지 적는다. 생성물(`data/snapshot/*`, `site/v1/index.html`, `site/proto/console4.html`, `site/proto/graph2.html`, `site/deck/index.html`)이 충돌하면 손으로 합치지 말고 다시 만든다.
