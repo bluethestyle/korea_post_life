@@ -1333,8 +1333,27 @@ def c12(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
             zw, zh = min(zw, iw - zx), min(zh, ih - zy)
             svg.append(f'<rect x="{px(zx)}" y="{px(zy)}" width="{px(zw)}" height="{px(zh)}" class="c12-zn"/>')
             sx, sy = zx + zw, zy + zh / 2
-            svg.append(f'<path d="M{px(sx)} {px(sy)}H{px(sx + (lx - sx) * 0.5)}V{px(ly)}H{px(lx)}" class="c12-ld"/>')
-            out.append(f'<span class="c12-zk" style="left:{px(zx)}px;top:{px(zy)}px">{n}</span>')
+            lead = mk.get("lead")
+            if lead:
+                # 리더 선이 사진 속 글자를 지나지 않게: 구역의 윗변이나 아랫변의 x 에서 나와 lead 의 y 까지 세로로 간 뒤 가로로
+                fx, fy = iw * float(lead[0]), ih * float(lead[1])
+                ey = zy if fy < zy else zy + zh
+                mid = max(fx, sx) + (lx - max(fx, sx)) * 0.5
+                svg.append(f'<path d="M{px(fx)} {px(ey)}V{px(fy)}H{px(mid)}V{px(ly)}H{px(lx)}" class="c12-ld"/>')
+            else:
+                svg.append(f'<path d="M{px(sx)} {px(sy)}H{px(sx + (lx - sx) * 0.5)}V{px(ly)}H{px(lx)}" class="c12-ld"/>')
+            # 번호 칩: 기본은 구역의 왼쪽 위 안쪽. 작은 버튼을 짚을 때는 칩이 대상을 가리지 않게 구역 밖에 둔다
+            kx, ky = zx, zy
+            chip = mk.get("chip", "tl")
+            if chip == "above":
+                ky = zy - 46
+            elif chip == "below":
+                ky = zy + zh + 6
+            elif chip == "left":
+                kx, ky = zx - 46, zy + zh / 2 - 20
+            elif chip == "right":
+                kx = zx + zw + 6
+            out.append(f'<span class="c12-zk" style="left:{px(kx)}px;top:{px(ky)}px">{n}</span>')
         else:
             mx, my = iw * float(mk.get("x", 0.5)), ih * float(mk.get("y", 0.5))
             svg.append(f'<path d="M{px(mx + 22)} {px(my)}H{px(mx + 22 + (lx - mx - 22) * 0.5)}V{px(ly)}H{px(lx)}" class="c12-ld"/>')

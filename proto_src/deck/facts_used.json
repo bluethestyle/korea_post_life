@@ -142,30 +142,51 @@
    "mapping_auto_confirm_by_route"
   ],
   "19": [
+   "example_cancer_surgery_names",
+   "benefit_count_site"
+  ],
+  "21": [
+   "example_cancer_surgery",
+   "standard_coverage_in_use",
+   "coverage_major_class_names",
+   "coverage_major_class_count",
+   "coverage_relation_count",
+   "coverage_relations_by_kind",
+   "coverage_relation_examples"
+  ],
+  "22": [
+   "example_split_rider"
+  ],
+  "23": [
+   "example_cancer_surgery_names",
+   "mapping_auto_confirm_threshold",
    "graph_company_nodes_with_variants",
    "graph_nodes_by_kind",
    "coverage_major_class_count",
-   "standard_coverage_rows",
-   "standard_coverage_in_use"
-  ],
-  "20": [
-   "example_cancer_surgery_names",
-   "mapping_auto_confirm_threshold",
-   "coverage_relation_count",
-   "coverage_relations_by_kind",
-   "coverage_relation_examples",
+   "example_cancer_surgery",
    "mapping_auto_confirm_by_route",
+   "mapping_status_site",
    "dictionary_initial_size",
    "dictionary_addition_rule",
    "standard_coverage_rows",
    "standard_coverage_in_use",
-   "relation_covered_coverages"
+   "variant_sale_status_site"
   ],
-  "21": [
+  "24": [
+   "common_coverage_pairs",
+   "compared_coverage_pairs",
+   "excluded_pending_pairs",
+   "relation_covered_pairs",
+   "mapping_status_by_org",
+   "site_org_count",
+   "standard_coverage_in_use",
+   "sales_insight_by_category_display"
+  ],
+  "25": [
    "video_length_label",
    "coverage_relation_count"
   ],
-  "22": [
+  "26": [
    "epost_summary_rows_matched",
    "epost_summary_rows_by_doc",
    "goldset_epost_benefit",
@@ -180,7 +201,7 @@
    "mapping_status_site",
    "test_count"
   ],
-  "23": [
+  "27": [
    "operating_cost_won",
    "subscription_claude_usd_per_month",
    "subscription_gemini_krw_per_month",
@@ -189,19 +210,30 @@
    "site_file_size_mb",
    "hanwha_first_extract"
   ],
-  "24": [
-   "segment_map_cell_count",
+  "28": [
+   "hanwha_summary_pages",
    "practice_compare_time",
    "practice_compare_frequency",
    "practice_respondents",
-   "practice_compare_source",
+   "practice_compare_source"
+  ],
+  "29": [
+   "default_base_variant",
+   "example_cancer_surgery",
+   "excluded_pending_pairs"
+  ],
+  "30": [
    "standard_coverage_in_use",
+   "practice_respondents",
+   "practice_compare_source",
+   "variant_sale_status_site",
    "revision_changes",
+   "segment_map_cell_count",
    "mapping_status_site",
    "excluded_pending_pairs",
    "not_yet_measured"
   ],
-  "25": [
+  "31": [
    "org_names",
    "next_load_orgs",
    "combination_constraints_by_org",
@@ -213,7 +245,7 @@
    "premium_example_rows",
    "benefit_disease_code_rows"
   ],
-  "26": [
+  "32": [
    "epost_summary_rows_matched",
    "operating_cost_won",
    "pages_status",
@@ -240,16 +272,19 @@
    "insurance_claim_example"
   ],
   "19": [
+   "kg_google_2012"
+  ],
+  "20": [
+   "ontology_definition",
+   "kg_definition",
    "owl_rdf",
    "kg_google_2012",
    "gql_2024",
    "graphrag_2024",
-   "kg_definition",
-   "ontology_definition",
    "graphrag_not_always_better",
    "fibo_acord"
   ],
-  "23": [
+  "27": [
    "github_actions_public_free",
    "gemini_decision_price"
   ]

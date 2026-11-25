@@ -26,19 +26,19 @@
       "label": "Gemini Decision 1 무료 한도: 하루 호출 수, 분당 호출 수, 분당 입력 토큰",
       "value": {"per_day": 10000, "per_minute_calls": 200, "per_minute_input_tokens": 50000},
       "urls": ["https://aistudio.google.com/docs/rate-limits"],
-      "kind": "official", "checked": "2026-11-24", "slides": [18, 23]
+      "kind": "official", "checked": "2026-11-24", "slides": [18, 27]
     },
     "gemini_free_tier_data_use": {
       "label": "무료 등급 입력의 쓰임",
       "value": "무료 등급 입력은 Google 제품 개선에 쓰일 수 있습니다(유료 등급은 쓰이지 않음)",
       "urls": ["https://aistudio.google.com/docs/models/gemini-decision-1"],
-      "kind": "official", "checked": "2026-11-24", "slides": [23]
+      "kind": "official", "checked": "2026-11-24", "slides": [27]
     },
     "gemini_decision_price": {
       "label": "Gemini Decision 1 유료 가격(입력 100만 토큰당 달러)",
       "value": {"usd_per_million_input_tokens": 0.1},
       "urls": ["https://aistudio.google.com/docs/pricing"],
-      "kind": "official", "checked": "2026-11-24", "slides": [23]
+      "kind": "official", "checked": "2026-11-24", "slides": [27]
     },
     "calibration_is_aggregate": {
       "label": "확률 보정의 뜻",
@@ -111,37 +111,37 @@
       "label": "지식그래프의 정의(Hogan 외 2021)",
       "value": {"text": "관심 대상은 노드, 대상 사이의 관계는 엣지인 데이터 그래프", "cite": "Hogan 외 2021", "practice": "현업 지식그래프의 온톨로지는 대개 가벼운 분류 체계 수준"},
       "urls": ["https://arxiv.org/abs/2003.02320"],
-      "kind": "academic", "checked": "2026-11-24", "slides": [19]
+      "kind": "academic", "checked": "2026-11-24", "slides": [20]
     },
     "ontology_definition": {
       "label": "온톨로지의 정의(Studer 외 1998)",
       "value": {"text": "공유된 개념화의 형식적이고 명시적인 명세", "cite": "Studer 외 1998"},
       "urls": ["https://publikationen.bibliothek.kit.edu/189497/3003"],
-      "kind": "academic", "checked": "2026-11-24", "slides": [19]
+      "kind": "academic", "checked": "2026-11-24", "slides": [20]
     },
     "kg_google_2012": {
       "label": "Google Knowledge Graph 공개",
       "value": {"date": "2012-05-16", "year": "2012", "org": "Google", "phrase": "things, not strings", "text": "글자가 아니라 사물을 이해하는 검색"},
       "urls": ["https://blog.google/products/search/introducing-knowledge-graph-things-not/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19]
+      "kind": "official", "checked": "2026-11-24", "slides": [19, 20]
     },
     "gql_2024": {
       "label": "속성 그래프 질의 언어 국제 표준 GQL",
       "value": {"date": "2024-04", "year": "2024", "standard": "ISO/IEC 39075:2024", "text": "점과 선 데이터를 찾는 국제 표준 질의 언어(GQL)"},
       "urls": ["https://webstore.iec.ch/publication/94107"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19]
+      "kind": "official", "checked": "2026-11-24", "slides": [20]
     },
     "graphrag_2024": {
       "label": "GraphRAG: AI로 문서에서 지식그래프를 먼저 만들고 그것으로 답함",
       "value": {"year": "2024", "text": "AI가 문서로 지도를 먼저 만들고 답하는 방식(GraphRAG)"},
       "urls": ["https://arxiv.org/abs/2404.16130", "https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/"],
-      "kind": "academic", "checked": "2026-11-24", "slides": [19]
+      "kind": "academic", "checked": "2026-11-24", "slides": [20]
     },
     "graphrag_not_always_better": {
       "label": "그래프 방식이 많은 실제 과제에서 일반 검색 방식보다 낫지는 않다는 보고(프리프린트)",
       "value": "모든 질문에 지도가 더 낫지는 않다는 보고도 있습니다",
       "urls": ["https://arxiv.org/abs/2506.05690"],
-      "kind": "academic", "checked": "2026-11-24", "slides": [19],
+      "kind": "academic", "checked": "2026-11-24", "slides": [20],
       "note": "학회 게재 여부는 확인하지 못했다. 프리프린트로만 소개한다."
     },
     "owl_rdf": {
@@ -149,28 +149,28 @@
       "value": {"owl2_year": "2009", "owl2_date": "2009-10-27", "owl2_second_edition_year": "2012", "rdf11_year": "2014",
                 "text": "웹 표준 언어(OWL, RDF)", "short": "웹 표준 기구 W3C가 온톨로지 표준 OWL 2 발행"},
       "urls": ["https://www.w3.org/TR/2009/REC-owl2-overview-20091027/", "https://www.w3.org/TR/owl2-overview/", "https://www.w3.org/TR/rdf11-concepts/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19],
+      "kind": "official", "checked": "2026-11-24", "slides": [20],
       "note": "owl2_year 는 OWL 2 초판 권고안(W3C Recommendation 27 October 2009, 2009년 원본 주소를 직접 열어 확인)이다. 2012-12-11 은 문서 2판, RDF 1.1 Concepts 는 2014-02-25 권고안이다. 연표에는 초판 연도를 쓰고 2판과 RDF 1.1 은 노트에만 둔다."
     },
     "graph_database": {
       "label": "그래프 데이터베이스의 저장 방식(벤더 공식 문서)",
       "value": "표 대신 노드, 관계, 속성으로 저장하는 그래프 데이터베이스",
       "urls": ["https://neo4j.com/docs/getting-started/graph-database/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19],
+      "kind": "official", "checked": "2026-11-24", "slides": [20],
       "note": "옛 주소(get-started-with-neo4j/graph-database/)는 이 주소로 넘어간다. 근거 문장: A Neo4j graph database stores data as nodes, relationships, and properties instead of in tables or documents."
     },
     "fibo_domains": {
       "label": "금융 온톨로지 FIBO: OWL로 만들었고 보험 전용 영역은 없음(보험 관련 클래스는 일부 있음)",
       "value": "금융 온톨로지 FIBO는 OWL로 만들었고 보험 전용 영역은 없습니다(보험증권, 보험회사 같은 보험 관련 클래스는 일부 있음)",
       "urls": ["https://github.com/edmcouncil/fibo", "https://spec.edmcouncil.org/fibo/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19],
+      "kind": "official", "checked": "2026-11-24", "slides": [20],
       "note": "README: FIBO is developed as an ontology in the Web Ontology Language (OWL). 영역은 BE, BP, CAE, DER, FBC, FND, IND, LOAN, MD, SEC 이고 보험 전용 영역은 없다. 보험 관련 클래스(InsurancePolicy, Insurer, InsuranceCompany 따위)는 FBC, LOAN, SEC 모듈에 있다(저장소 복제본 검색, 2026-11-24). 노트에만 쓴다."
     },
     "fibo_acord": {
       "label": "금융 온톨로지 FIBO와 보험 표준 단체 ACORD(ACORD 쪽 근거는 보도자료 배포본)",
       "value": "금융 온톨로지 FIBO는 OWL로 만들었고 보험 전용 영역은 없습니다(보험 관련 클래스는 일부 있음). 보험 표준 단체 ACORD는 용어집과 데이터 모델을 냅니다",
       "urls": ["https://spec.edmcouncil.org/fibo/", "https://github.com/edmcouncil/fibo", "https://prnewswire.com/news-releases/acord-releases-update-to-the-reference-architecture-301891074.html"],
-      "kind": "press", "checked": "2026-11-24", "slides": [19],
+      "kind": "press", "checked": "2026-11-24", "slides": [20],
       "note": "노트에만 쓴다. ACORD 근거는 ACORD 가 PR Newswire 로 배포한 보도자료(2023-08-02, Reference Architecture 2.11 의 Business Glossary, Data Model, Information Model 갱신)라 press 로 둔다. FIBO 만 말할 때는 fibo_domains(official)를 쓴다."
     },
     "association_disclosure": {
@@ -185,7 +185,7 @@
       "value": {"text": "공개 저장소에서 표준 GitHub 호스팅 러너 사용은 무료입니다", "schedule_off_after_days": 60,
                 "short": "공개 저장소는 기본 실행 환경이 무료"},
       "urls": ["https://docs.github.com/en/billing/concepts/product-billing/github-actions", "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows"],
-      "kind": "official", "checked": "2026-11-24", "slides": [23],
+      "kind": "official", "checked": "2026-11-24", "slides": [27],
       "note": "단서 둘: 대형 러너(larger runners)는 공개 저장소에서도 요금이 붙고, 공개 저장소의 schedule 실행은 저장소 활동이 60일 없으면 자동으로 꺼진다. 이 앱은 매일과 매주 예약 실행이 있어 60일 규칙이 실제로 관련된다."
     }
   }

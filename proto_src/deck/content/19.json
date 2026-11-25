@@ -1,216 +1,79 @@
 {
  "no": 19,
- "id": "kg-ontology",
+ "id": "why-ontology",
  "kind": "body",
  "chapter": 5,
  "status": "new",
- "headline": "회사마다 다른 담보 이름을 약속대로 한 지도에 잇습니다",
+ "headline": "이름이 다르면 컴퓨터는 같은 보장인지 알아보지 못합니다",
  "diagram": [
   {
-   "use": "C9",
-   "layout": "legend",
-   "captions": [
-    "온톨로지 = 범례",
-    "지식그래프 = 노선도"
-   ],
-   "node_kinds": [
-    {
-     "label": "회사",
-     "shape": "square"
-    },
-    {
-     "label": "상품",
-     "shape": "diamond"
-    },
-    {
-     "label": "담보",
-     "shape": "circle"
-    }
-   ],
-   "edge_kinds": [
-    {
-     "label": "판매",
-     "style": "solid"
-    },
-    {
-     "label": "포함",
-     "style": "dash"
-    }
-   ],
-   "graph": {
-    "nodes": [
-     {
-      "id": "a",
-      "label": "우체국",
-      "shape": "square"
-     },
-     {
-      "id": "b",
-      "label": "한화생명",
-      "shape": "square"
-     },
-     {
-      "id": "c",
-      "label": "암 수술비",
-      "shape": "circle"
-     },
-     {
-      "id": "d",
-      "label": "암보험",
-      "shape": "diamond"
-     },
-     {
-      "id": "e",
-      "label": "암보험",
-      "shape": "diamond"
-     }
-    ],
-    "edges": [
-     {
-      "from": "a",
-      "to": "d"
-     },
-     {
-      "from": "b",
-      "to": "e"
-     },
-     {
-      "from": "d",
-      "to": "c",
-      "style": "dash"
-     },
-     {
-      "from": "e",
-      "to": "c",
-      "style": "dash"
-     }
-    ]
-   },
-   "size": "large",
-   "box": [
-    0,
-    0,
-    600,
-    560
-   ],
-   "build": 1
-  },
-  {
    "use": "text",
    "size": "s",
    "tone": "muted",
-   "text": "이 앱의 지도: 층마다 점의 수",
+   "text": "세 회사의 암 수술비를 문서에 적힌 이름 그대로 비교표에 옮기면(●는 그 회사 문서에 있는 이름)",
    "box": [
-    640,
     0,
-    460,
+    0,
+    1760,
     44
    ],
-   "build": 2
-  },
-  {
-   "use": "C9",
-   "layout": "ladder",
-   "nodes": [
-    {
-     "label": "회사",
-     "count": "{{fact:graph_company_nodes_with_variants.count}}곳"
-    },
-    {
-     "label": "종형",
-     "count": "{{fact:graph_nodes_by_kind.종형}}개"
-    },
-    {
-     "label": "특약",
-     "count": "{{fact:graph_nodes_by_kind.특약}}개"
-    },
-    {
-     "label": "급부(지급 사유)",
-     "count": "{{fact:graph_nodes_by_kind.급부}}개"
-    },
-    {
-     "label": "표준담보",
-     "count": "{{fact:graph_nodes_by_kind.표준담보}}개",
-     "hero": true
-    },
-    {
-     "label": "보장 대분류",
-     "count": "{{fact:coverage_major_class_count}}개"
-    }
-   ],
-   "box": [
-    640,
-    60,
-    460,
-    500
-   ],
-   "build": 2
-  },
-  {
-   "use": "text",
-   "size": "s",
-   "tone": "muted",
-   "text": "지식그래프 기술의 연표",
-   "box": [
-    1140,
-    0,
-    620,
-    44
-   ],
-   "build": 3
-  },
-  {
-   "use": "C8",
-   "dir": "v",
-   "dots": [
-    {
-     "d": "{{ref:owl_rdf.owl2_date}}",
-     "label": "{{ref:owl_rdf.short}}"
-    },
-    {
-     "d": "{{ref:kg_google_2012.date}}",
-     "label": "Google이 검색에 지식그래프 도입"
-    },
-    {
-     "d": "{{ref:gql_2024.date}}",
-     "label": "그래프 조회 언어의 국제 표준 GQL"
-    },
-    {
-     "d": "{{ref:graphrag_2024.year}}",
-     "label": "AI가 문서로 지도를 먼저 만드는 GraphRAG"
-    }
-   ],
-   "box": [
-    1140,
-    60,
-    620,
-    500
-   ],
-   "build": 3
+   "build": 1,
+   "limit": 56
   },
   {
    "use": "svg",
    "box": [
     0,
-    584,
+    56,
     1760,
-    72
+    316
    ],
    "vb": [
     1760,
-    72
+    316
    ],
-   "alt": "구글 시트의 한 행이 점 하나가 되고, 행끼리 잇는 번호가 선 하나가 된다는 그림",
-   "svg": "<rect x='0' y='4' width='1760' height='64' class='sv-paper'/><use href='{{icon:마스터 데이터}}' x='24' y='14' width='44' height='44'/><text x='84' y='46'>구글 시트의 한 행 = 점 하나</text><use href='{{icon:관계 그래프}}' x='600' y='14' width='44' height='44'/><text x='660' y='46'>행끼리 잇는 번호(ID) = 선 하나</text><text x='1240' y='46'>그래프 전용 데이터베이스는 안 씀</text>",
-   "build": 4
+   "limit": 60,
+   "alt": "문서에 적힌 암 수술비 이름 셋을 그대로 비교표에 옮기면 같은 보장이 세 행으로 나뉘고 행마다 한 회사만 채워지는 그림",
+   "svg": "<rect x='0' y='0' width='1760' height='60' class='sv-paper'/><text x='24' y='40' class='b'>문서에 적힌 급부 이름</text><text x='1230' y='40' text-anchor='middle' class='b'>우체국</text><text x='1440' y='40' text-anchor='middle' class='b'>한화생명</text><text x='1650' y='40' text-anchor='middle' class='b'>삼성화재</text><path d='M0 60H1760M0 144H1760M0 228H1760M0 312H1760' class='sv-line'/><path d='M1125 0V312M1335 0V312M1545 0V312' class='sv-line'/><text x='24' y='112'>{{fact:example_cancer_surgery_names.EPOST}}</text><circle cx='1230' cy='102' r='14' class='sv-fill-ink'/><text x='1440' y='110' text-anchor='middle' class='aux'>없음</text><text x='1650' y='110' text-anchor='middle' class='aux'>없음</text><text x='24' y='196'>{{fact:example_cancer_surgery_names.HANWHALIFE}}</text><text x='1230' y='194' text-anchor='middle' class='aux'>없음</text><circle cx='1440' cy='186' r='14' class='sv-fill-ink'/><text x='1650' y='194' text-anchor='middle' class='aux'>없음</text><text x='24' y='280'>{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}</text><text x='1230' y='278' text-anchor='middle' class='aux'>없음</text><text x='1440' y='278' text-anchor='middle' class='aux'>없음</text><circle cx='1650' cy='270' r='14' class='sv-fill-ink'/>",
+   "build": 1
+  },
+  {
+   "use": "text",
+   "size": "m",
+   "tone": "red",
+   "hero": true,
+   "text": "같은 암 수술비가 세 행으로 나뉘어 나란히 비교할 수 없습니다",
+   "box": [
+    0,
+    400,
+    1760,
+    56
+   ],
+   "build": 2
+  },
+  {
+   "use": "svg",
+   "box": [
+    0,
+    488,
+    1760,
+    112
+   ],
+   "vb": [
+    1760,
+    112
+   ],
+   "alt": "사람은 세 이름을 모두 암 수술비로 알아보지만 컴퓨터는 글자가 달라 서로 다른 세 항목으로 센다는 대비",
+   "svg": "<rect x='0' y='2' width='860' height='108' class='sv-paper'/><text x='28' y='46' class='b'>사람이 읽으면</text><text x='28' y='88'>세 이름 모두 암 수술비로 알아봄</text><rect x='900' y='2' width='860' height='108' class='sv-ink'/><text x='928' y='46' class='b'>컴퓨터가 읽으면</text><text x='928' y='88'>글자가 달라 서로 다른 세 항목으로 셈</text>",
+   "build": 2
   }
  ],
- "points": [],
- "terms": [
-  "온톨로지",
-  "지식그래프",
-  "종형"
+ "points": [
+  "같은 것을 같은 이름으로 부르는 약속이 필요합니다"
  ],
- "source": "정의: {{ref:kg_definition.cite}}, 자료 기준 {{asof:graph_nodes_by_kind}}",
- "notes": "7장에서 본 것처럼 같은 암 수술비도 회사마다 이름이 다릅니다. 이 이름들을 잇는 방법이 이 장의 주제입니다. 온톨로지는 한 분야에서 쓰는 말과 말 사이의 관계를 미리 정해 둔 약속이고, 지식그래프는 그 약속대로 실제 사실을 점과 선으로 이어 놓은 것입니다. 지하철 노선도에 빗대면 범례가 온톨로지, 노선도 자체가 지식그래프인데, 이 비유는 이해를 돕기 위해 저희가 든 것이고 지식그래프의 정의는 화면 아래의 논문({{ref:kg_definition.cite}}), 온톨로지의 정의는 {{ref:ontology_definition.cite}}의 논문에서 가져왔습니다. 가운데 층 그림이 이 앱의 실제 지도입니다. 회사 {{fact:graph_company_nodes_with_variants.count}}곳({{fact:graph_company_nodes_with_variants.names}})의 종형 {{fact:graph_nodes_by_kind.종형}}개, 특약 {{fact:graph_nodes_by_kind.특약}}개, 급부 {{fact:graph_nodes_by_kind.급부}}개가 표준담보 {{fact:graph_nodes_by_kind.표준담보}}개로 모이고, 표준담보는 보장 대분류 {{fact:coverage_major_class_count}}개로 묶입니다. 급부 수천 개가 표준담보 수십 개로 줄어드는 것이 이 지도의 쓸모입니다. 표준담보 사전은 {{fact:standard_coverage_rows}}행이고 그 가운데 쓰는 것이 {{fact:standard_coverage_in_use}}개입니다. 관계 그래프에는 시장 동향에 나온 회사까지 점으로 있지만 층의 맨 위에는 상품을 올린 회사만 셉니다. 특약 수가 화면 자료의 특약 수보다 적은 것은 인수기준만 수집한 종형의 특약을 그래프에 포함하지 않았기 때문입니다. 연표: {{ref:owl_rdf.owl2_year}}년 W3C가 웹 온톨로지 언어 OWL 2를 권고안으로 냈고(문서 2판 {{ref:owl_rdf.owl2_second_edition_year}}년, RDF 1.1은 {{ref:owl_rdf.rdf11_year}}년), {{ref:kg_google_2012.year}}년 구글이 {{ref:kg_google_2012.text}}을 내놓으며 지식그래프가 널리 알려졌습니다. {{ref:gql_2024.year}}년에는 그래프 데이터베이스의 국제 표준 질의 언어 GQL이, 같은 해 {{ref:graphrag_2024.text}}이 나왔습니다. {{ref:graphrag_not_always_better}}. 그래서 저희는 필요한 만큼만 썼습니다. 이 앱은 정식 온톨로지 언어나 그래프 데이터베이스를 쓰지 않고, 구글 시트의 행을 점으로, 행끼리 잇는 번호(ID) 칸을 선으로 삼은 가벼운 구성입니다. 정확히 부르면 표준담보 사전과 담보 관계를 추가한 속성 그래프 형식의 지식그래프입니다. 해외에는 금융 온톨로지와 보험 표준 단체가 있습니다. {{ref:fibo_acord}}. 담보 이름을 하나로 맞춘 국내 공개 체계는 저희가 찾지 못했습니다. 없다고 단정하지는 않습니다."
+ "terms": [
+  "급부"
+ ],
+ "source": "출처: 각 사 상품요약서의 급부 이름(담보 비교 자료), 자료 기준 {{asof:example_cancer_surgery_names}}",
+ "notes": "7장에서 암 수술비 하나를 세 회사 문서에서 찾아 같은 행에 놓았습니다. 그런데 문서에 적힌 이름은 이렇게 다릅니다. 우체국은 '{{fact:example_cancer_surgery_names.EPOST}}', 한화생명은 '{{fact:example_cancer_surgery_names.HANWHALIFE}}', 삼성화재는 '{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}'입니다. 보험을 아는 사람은 세 이름을 읽고 모두 암 수술비라는 것을 바로 알아봅니다. 하지만 컴퓨터는 글자가 하나라도 다르면 서로 다른 항목으로 셉니다. 그래서 이름을 그대로 비교표에 옮기면 같은 보장이 세 행으로 나뉘고, 행마다 한 회사만 채워집니다. 화면은 세 회사가 서로 다른 담보를 하나씩 가진 것처럼 보여 주고, 어느 회사든 다른 두 회사에는 암 수술비가 없다는 잘못된 결과가 나옵니다. {{ref:kg_google_2012.year}}년 구글이 지식그래프를 내놓으며 내세운 {{ref:kg_google_2012.text}}도, 글자가 같은지가 아니라 같은 것을 가리키는지를 따지자는 발상입니다. 이 문제를 사람이 손으로 풀기도 어렵습니다. 화면에 올린 세 회사의 급부(보험금을 주는 사유 한 건)만 {{fact:benefit_count_site}}개이고, 회사를 늘릴 때마다 이름 대조를 처음부터 다시 해야 합니다. 그래서 같은 것을 같은 이름으로 부르자는 약속을 먼저 정했습니다. 이 약속을 온톨로지라고 부르고, 다음 장에서 쉽게 풀어 설명하겠습니다."
 }

@@ -1,116 +1,125 @@
 {
  "no": 20,
- "id": "name-matching",
+ "id": "kg-ontology",
  "kind": "body",
  "chapter": 5,
  "status": "revised",
- "headline": "회사마다 다른 담보 이름과 특약 구성을 표준담보 기준으로 맞췄습니다",
+ "headline": "온톨로지는 같은 것을 같은 이름으로 부르자는 약속과, 그 사이의 관계 목록입니다",
  "diagram": [
   {
    "use": "C9",
-   "layout": "converge",
-   "box": [
-    0,
-    0,
-    1120,
-    470
+   "layout": "legend",
+   "captions": [
+    "온톨로지 = 범례",
+    "지식그래프 = 노선도"
    ],
-   "cards": [
+   "node_kinds": [
     {
-     "org": "EPOST",
-     "text": "{{fact:example_cancer_surgery_names.EPOST}}"
+     "label": "회사",
+     "shape": "square"
     },
     {
-     "org": "HANWHALIFE",
-     "text": "{{fact:example_cancer_surgery_names.HANWHALIFE}}"
+     "label": "상품",
+     "shape": "diamond"
     },
     {
-     "org": "SAMSUNGFIRE",
-     "text": "{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}"
+     "label": "담보",
+     "shape": "circle"
     }
    ],
-   "target": {
-    "label": "암 수술비",
-    "sub": "표준담보"
+   "edge_kinds": [
+    {
+     "label": "판매",
+     "style": "solid"
+    },
+    {
+     "label": "보장",
+     "style": "dash"
+    }
+   ],
+   "graph": {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "우체국",
+      "shape": "square"
+     },
+     {
+      "id": "b",
+      "label": "한화생명",
+      "shape": "square"
+     },
+     {
+      "id": "c",
+      "label": "암 수술비",
+      "shape": "circle"
+     },
+     {
+      "id": "d",
+      "label": "암보험",
+      "shape": "diamond"
+     },
+     {
+      "id": "e",
+      "label": "암보험",
+      "shape": "diamond"
+     }
+    ],
+    "edges": [
+     {
+      "from": "a",
+      "to": "d"
+     },
+     {
+      "from": "b",
+      "to": "e"
+     },
+     {
+      "from": "d",
+      "to": "c",
+      "style": "dash"
+     },
+     {
+      "from": "e",
+      "to": "c",
+      "style": "dash"
+     }
+    ]
    },
-   "chip": "자동 확정: 확률 {{fact:mapping_auto_confirm_threshold|f2}} 이상,<br>또는 AI 둘의 답이 같을 때",
+   "size": "large",
+   "box": [
+    0,
+    0,
+    760,
+    576
+   ],
    "build": 1
-  },
-  {
-   "use": "text",
-   "size": "s",
-   "tone": "muted",
-   "text": "이 확률 기준이 틀린 연결을 얼마나 거르는지는",
-   "box": [
-    0,
-    510,
-    490,
-    48
-   ],
-   "build": 2
-  },
-  {
-   "use": "C15",
-   "kind": "unmeasured",
-   "box": [
-    500,
-    510,
-    160,
-    48
-   ],
-   "build": 2
-  },
-  {
-   "use": "C10",
-   "size": "small",
-   "value": "{{fact:coverage_relation_count}}",
-   "unit": "건",
-   "caption": "담보끼리 정한 관계",
-   "box": [
-    1200,
-    0,
-    560,
-    124
-   ],
-   "hero": false,
-   "build": 3
-  },
-  {
-   "use": "text",
-   "size": "s",
-   "tone": "muted",
-   "text": "포함 {{fact:coverage_relations_by_kind.포함}}건, 통합 {{fact:coverage_relations_by_kind.통합}}건. 아래는 통합의 예",
-   "box": [
-    1200,
-    136,
-    560,
-    40
-   ],
-   "build": 3
   },
   {
    "use": "svg",
    "box": [
-    1200,
-    204,
-    560,
-    344
+    820,
+    0,
+    940,
+    576
    ],
    "vb": [
-    560,
-    344
+    940,
+    576
    ],
-   "alt": "유사암 진단비(통합) 특약 하나가, 나눠 갖춘 회사의 갑상선암, 기타피부암, 제자리암 진단비 등과 같은 보장임을 잇는 그림",
-   "svg": "<text x='0' y='28' class='muted'>특약 하나로 갖춘 회사</text><text x='320' y='28' class='muted'>나눠 갖춘 회사</text><rect x='0' y='122' width='264' height='60' class='sv-ink'/><text x='14' y='162' class='b'>{{fact:coverage_relation_examples.통합.0.broad}}</text><rect x='320' y='52' width='240' height='56' class='sv-line'/><text x='334' y='90'>{{fact:coverage_relation_examples.통합.0.narrow.0}}</text><rect x='320' y='124' width='240' height='56' class='sv-line'/><text x='334' y='162'>{{fact:coverage_relation_examples.통합.0.narrow.1}}</text><rect x='320' y='196' width='240' height='56' class='sv-line'/><text x='334' y='234'>{{fact:coverage_relation_examples.통합.0.narrow.2}}</text><path d='M320 80H294V224H320M294 152H268' class='sv-ink'/><text x='320' y='290' class='muted'>모두 {{len:coverage_relation_examples.통합.0.narrow}}개 담보</text><text x='0' y='336' class='muted'>관계가 없으면 미보유로 잘못 보임</text>",
-   "build": 3
+   "limit": 32,
+   "hero": true,
+   "alt": "온톨로지는 점과 선의 종류를 정한 범례, 지식그래프는 그 약속대로 실제 회사와 상품과 담보를 이은 노선도이고, 약속과 문서의 사실을 합치면 관계 그래프 탭의 지식그래프가 된다는 그림",
+   "svg": "<rect x='0' y='0' width='940' height='170' class='sv-line'/><text x='28' y='48' class='b'>온톨로지 = 범례</text><text x='28' y='96'>점과 선의 종류와 이름을 미리 정한 약속</text><text x='28' y='138' class='aux'>예: 담보는 동그라미, 상품이 담보를 보장하면 점선</text><rect x='0' y='196' width='940' height='170' class='sv-line'/><text x='28' y='244' class='b'>지식그래프 = 노선도</text><text x='28' y='292'>약속대로 실제 회사, 상품, 담보를 이은 그림</text><text x='28' y='334' class='aux'>두 회사의 상품이 같은 점 '암 수술비'로 이어짐</text><rect x='0' y='420' width='250' height='104' class='sv-line'/><text x='125' y='464' text-anchor='middle' class='b'>약속</text><text x='125' y='502' text-anchor='middle' class='aux'>온톨로지</text><text x='280' y='482' text-anchor='middle' class='b'>+</text><rect x='310' y='420' width='270' height='104' class='sv-line'/><text x='445' y='464' text-anchor='middle' class='b'>문서의 사실</text><text x='445' y='502' text-anchor='middle' class='aux'>회사, 상품, 급부</text><path d='M590 472H640' class='sv-red' marker-end='url(#ah-r)'/><rect x='654' y='420' width='284' height='104' class='sv-red'/><text x='796' y='464' text-anchor='middle' class='b red'>지식그래프</text><text x='796' y='502' text-anchor='middle' class='aux'>관계 그래프 탭</text><text x='0' y='566' class='aux'>노선도 비유는 이해를 돕기 위해 저희가 든 것입니다</text>",
+   "build": 2
   }
  ],
- "points": [
-  "관계를 정해야 특약 구성이 달라도 같은 보장으로 봅니다"
- ],
+ "points": [],
  "terms": [
-  "표준담보"
+  "온톨로지",
+  "지식그래프",
+  "관계 그래프"
  ],
- "source": "출처: 담보 매핑 자료, 표준담보 관계 자료, 자료 기준 {{asof:coverage_relation_count}}",
- "notes": "이 장의 메시지는 하나입니다. 회사마다 담보 이름도 다르고 특약을 나누는 방식도 다르지만, 표준담보를 기준으로 맞춰야 같은 보장끼리 비교할 수 있습니다. 왼쪽은 이름 맞추기입니다. 같은 암 수술비라도 우체국, 한화생명, 삼성화재의 공시 문서에는 이름이 이렇게 다르게 적혀 있습니다. 카드는 문서의 급부 이름을 그대로 옮긴 것입니다. 그래서 이 앱이 정한 공통 이름인 표준담보 사전을 두고, 회사마다 다른 이름을 표준담보 하나에 연결했습니다(매핑). 확률 산정 결과가 기준값 {{fact:mapping_auto_confirm_threshold|f2}} 이상이거나, 서로 다른 AI 둘이 따로 고른 결과가 같으면 자동으로 확정하고, 나머지는 담당자가 검수합니다. 지금 자동 확정된 매핑 {{fact:mapping_auto_confirm_by_route.all.total}}행 가운데 확률 산정 결과로 확정한 것이 {{fact:mapping_auto_confirm_by_route.all.decision_model}}행, AI 둘의 답이 같아 확정한 것이 {{fact:mapping_auto_confirm_by_route.all.cross_check}}행입니다. 다만 매핑 쪽의 확률 기준값은 앞의 기준값 보정 장처럼 일부러 오류 값을 넣어 보는 테스트를 아직 하지 않아, 틀린 연결을 얼마나 거르는지는 측정 전입니다. 표준담보 사전은 처음에 우체국 상품 기준으로 {{fact:dictionary_initial_size}}개로 시작했고, 우체국이 가졌거나 공시 요약서에서 {{fact:dictionary_addition_rule.min_holder_orgs}}곳 이상이 가진 담보를 더해 지금 {{fact:standard_coverage_rows}}행(사용 {{fact:standard_coverage_in_use}}개)이 됐습니다. 오른쪽은 담보끼리의 관계입니다. 관계는 두 가지입니다. 포함은 넓은 담보가 좁은 담보를 포함하는 관계로, 예를 들어 {{fact:coverage_relation_examples.포함.5.broad}}가 {{fact:coverage_relation_examples.포함.5.narrow.0}}를 포함합니다. 통합은 한 회사가 특약 하나로 묶어 파는 보장을 다른 회사는 여러 특약으로 나눠 파는 경우입니다. 그림의 {{fact:coverage_relation_examples.통합.0.broad}}가 그 예입니다. 이 관계가 없으면 나눠 갖춘 회사는 통합 특약이 없다는 이유로 미보유로 잘못 보입니다. 담보 관계는 Claude와 제미나이가 따로 만들고 두 쪽이 같은 행만 넣었습니다. 관련 담보로만 보장하는 표준담보 {{fact:relation_covered_coverages.count}}개는 실제로 가진 것은 아니어서 보유 담보 수에 넣지 않습니다."
+ "source": "정의: {{ref:ontology_definition.cite}}, {{ref:kg_definition.cite}}",
+ "notes": "앞 장의 문제를 푸는 방법이 온톨로지입니다. 말이 어렵지만 뜻은 간단합니다. 같은 것을 같은 이름으로 부르자는 약속, 그리고 그 이름들 사이의 관계를 적어 둔 목록입니다. 지하철 노선도에 빗대 보겠습니다. 노선도 귀퉁이의 범례는 네모는 회사, 마름모는 상품, 동그라미는 담보, 실선은 회사가 상품을 판매한다는 뜻, 점선은 상품이 담보를 보장한다는 뜻이라고 미리 정해 둔 약속입니다. 이것이 온톨로지입니다. 그 약속대로 실제 회사와 상품과 담보를 이어 그린 노선도 자체가 지식그래프입니다. 왼쪽 그림에서 우체국의 암보험과 한화생명의 암보험이 '암 수술비'라는 같은 점으로 이어져 있습니다. 두 회사가 문서에 적은 이름은 다르지만, 약속에 따라 같은 이름의 점 하나로 모였기 때문에 같은 보장이라는 것을 컴퓨터도 알 수 있습니다. 정리하면 약속인 온톨로지에 공시 문서에서 옮긴 사실, 곧 회사, 상품, 특약, 급부를 맞춰 이으면 지식그래프가 되고, 그것이 데모 화면의 관계 그래프 탭입니다. 이 비유는 이해를 돕기 위해 저희가 든 것이고, 온톨로지의 정의는 {{ref:ontology_definition.cite}}의 논문, 지식그래프의 정의는 {{ref:kg_definition.cite}}의 논문에서 가져왔습니다. 다음 장에서 이 앱의 약속이 실제로 무엇으로 이뤄졌는지 보겠습니다. (질문이 나오면 덧붙일 배경) 이 앱은 정식 온톨로지 언어나 그래프 데이터베이스를 쓰지 않았습니다. 구글 시트의 행 하나를 점 하나로, 행끼리 잇는 번호(ID) 항목을 선 하나로 삼은 가벼운 구성입니다. 정확히 부르면 표준담보 사전과 담보 관계를 추가한 속성 그래프 형식의 지식그래프입니다. {{ref:owl_rdf.owl2_year}}년 W3C가 웹 온톨로지 언어 OWL 2를 권고안으로 냈고(문서 2판 {{ref:owl_rdf.owl2_second_edition_year}}년, RDF 1.1은 {{ref:owl_rdf.rdf11_year}}년), {{ref:kg_google_2012.year}}년 구글이 {{ref:kg_google_2012.text}}을 내놓으며 지식그래프가 널리 알려졌습니다. {{ref:gql_2024.year}}년에는 그래프 데이터베이스의 국제 표준 질의 언어 GQL이, 같은 해 {{ref:graphrag_2024.text}}이 나왔습니다. {{ref:graphrag_not_always_better}}. 그래서 저희는 필요한 만큼만 썼습니다. 해외에는 금융 온톨로지와 보험 표준 단체가 있습니다. {{ref:fibo_acord}}. 담보 이름을 하나로 맞춘 국내 공개 체계는 저희가 찾지 못했습니다. 없다고 단정하지는 않습니다."
 }

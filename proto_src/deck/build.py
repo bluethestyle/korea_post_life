@@ -6,7 +6,7 @@
     python3 build.py --out ../../site/deck/index.html  # 배포본
     python3 build.py --content-dir <폴더> --facts <facts.json> --out <index.html> --only 7,12-14 [--strict]
 
-- 장마다 파일 하나(content/01.json ~ 26.json). 덱 공통 설정(챕터, 일곱 단계, 회사 칩, 용어 풀이 표)은 content/_deck.json.
+- 장마다 파일 하나(content/01.json ~ 32.json). 덱 공통 설정(챕터, 일곱 단계, 회사 칩, 용어 풀이 표)은 content/_deck.json.
   --content-dir 의 폴더에 _deck.json 이 없으면 이 파일 옆 content/_deck.json 을 쓴다(--deck 으로 따로 줄 수 있다).
 - 글의 자리 표시를 채운다.
     {{fact:열쇠}}, {{fact:열쇠.하위키}}, {{fact:열쇠.0}}  facts.json 의 값(정수는 천 단위 쉼표, 목록은 쉼표로 이음)

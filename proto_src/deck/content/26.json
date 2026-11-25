@@ -1,114 +1,107 @@
 {
  "no": 26,
- "id": "closing",
- "kind": "closing",
- "chapter": 7,
+ "id": "goldset",
+ "kind": "body",
+ "chapter": 6,
  "status": "revised",
- "headline": "공시 문서의 조건을 근거 쪽수와 함께 한 화면에서",
+ "headline": "AI가 옮긴 값이 원문과 정답표에 맞는지 한 행씩 확인했습니다",
  "diagram": [
   {
-   "use": "C1",
-   "mode": "answers",
+   "use": "svg",
    "box": [
     0,
     0,
     1760,
-    602
+    56
    ],
-   "answers": [
-    {
-     "n": 1,
-     "a": "차이는 수백 쪽 문서 속 문장에 있습니다",
-     "ref": [
-      2
-     ]
-    },
-    {
-     "n": 2,
-     "a": "공시 문서를 넣으면 비교 화면과 응대 화법이 나옵니다",
-     "ref": [
-      4
-     ]
-    },
-    {
-     "n": 3,
-     "a": "사람이 정하고 AI 여럿이 만들었고, 결과는 다시 실행해 확인했습니다",
-     "ref": [
-      9
-     ]
-    },
-    {
-     "n": 4,
-     "a": "글을 쓰지 않고 확률만 매기는 AI로 옮긴 값을 검증합니다",
-     "ref": [
-      14,
-      17
-     ]
-    },
-    {
-     "n": 5,
-     "a": "회사마다 다른 담보 이름을 표준담보로 맞추고 점과 선으로 이었습니다",
-     "ref": [
-      19,
-      20
-     ]
-    },
-    {
-     "n": 6,
-     "a": "우체국 요약서 {{fact:epost_summary_rows_matched.matched}}/{{fact:epost_summary_rows_matched.total}} 일치, 매주 AI 비용 {{fact:operating_cost_won}}원, 효과 측정 전",
-     "ref": [
-      22,
-      23,
-      24
-     ]
-    }
-   ]
+   "vb": [
+    1760,
+    56
+   ],
+   "alt": "왼쪽 링은 원문 표와 대조한 결과, 오른쪽 두 링은 사람이 만든 정답표와 대조한 결과임을 묶어 보이는 머리글",
+   "svg": "<path d='M8 42V50H552V42' class='sv-line' fill='none'/><use href='{{icon:공시 문서}}' x='112' y='2' width='36' height='36'/><text x='160' y='30' class='b'>원문 표와 한 행씩 대조</text><path d='M608 42V50H1752V42' class='sv-line' fill='none'/><use href='{{icon:사람 검수}}' x='906' y='2' width='36' height='36'/><text x='954' y='30' class='b'>사람이 만든 정답표와 대조</text>",
+   "build": 1
   },
   {
-   "use": "links",
-   "box": [
-    0,
-    632,
-    760,
-    40
-   ],
-   "items": [
-    {
-     "l": "공개 주소",
-     "v": "{{fact:pages_status.url}}"
-    }
-   ]
-  },
-  {
-   "use": "links",
-   "box": [
-    800,
-    632,
-    700,
-    40
-   ],
-   "items": [
-    {
-     "l": "저장소",
-     "v": "github.com/bluethestyle/korea_post_life"
-    }
-   ]
-  },
-  {
-   "use": "button",
+   "use": "C11",
+   "value": "{{fact:epost_summary_rows_matched.matched}}",
+   "total": "{{fact:epost_summary_rows_matched.total}}",
+   "caption": "원문과 일치한 우체국 급부",
+   "scope": "요약서 {{len:epost_summary_rows_by_doc}}건의 급부 행 전부",
    "hero": true,
    "box": [
-    1552,
-    620,
-    208,
-    68
-   ]
+    0,
+    64,
+    560,
+    412
+   ],
+   "build": 1
+  },
+  {
+   "use": "C11",
+   "value": "{{fact:goldset_epost_benefit.items}}",
+   "total": "{{fact:goldset_epost_benefit.items}}",
+   "split": [
+    {
+     "v": "{{fact:goldset_epost_benefit.auto_match}}"
+    },
+    {
+     "v": "{{fact:goldset_epost_benefit.manual_match}}",
+     "hatch": true
+    }
+   ],
+   "caption": "우체국 정답표와 일치",
+   "scope": "정답표 {{fact:goldset_item_totals.EPOST}}항목 중 보장금액 영역 {{fact:goldset_epost_benefit.items}}항목",
+   "legend": [
+    "자동 일치 {{fact:goldset_epost_benefit.auto_match}}",
+    "사람이 직접 확인 {{fact:goldset_epost_benefit.manual_match}}"
+   ],
+   "box": [
+    600,
+    64,
+    560,
+    412
+   ],
+   "build": 2
+  },
+  {
+   "use": "C11",
+   "value": "{{fact:goldset_hanwha_benefit.match}}",
+   "total": "{{fact:goldset_hanwha_benefit.items}}",
+   "caption": "한화생명 정답표와 일치",
+   "scope": "정답표 {{fact:goldset_item_totals.HANWHALIFE}}항목 중 보장금액 영역 {{fact:goldset_hanwha_benefit.items}}항목",
+   "box": [
+    1200,
+    64,
+    560,
+    412
+   ],
+   "build": 2
+  },
+  {
+   "use": "svg",
+   "box": [
+    0,
+    500,
+    1760,
+    56
+   ],
+   "vb": [
+    1760,
+    56
+   ],
+   "alt": "보장금액 밖의 영역은 아직 덜 맞고, 삼성화재 정답표는 정답 대조 전임을 보이는 띠",
+   "svg": "<rect x='0' y='0' width='1760' height='56' rx='8' class='sv-paper'/><text x='28' y='37' class='b'>아직 덜 맞는 영역</text><text x='330' y='37'>우체국 가입조건 {{fact:goldset_epost_conditions.match}}/{{fact:goldset_epost_conditions.items}}</text><text x='700' y='37'>우체국 결합 제약 {{fact:goldset_epost_constraints.match}}/{{fact:goldset_epost_constraints.items}}</text><path d='M1060 12V44' class='sv-line'/><text x='1100' y='37'>삼성화재 정답표 {{fact:goldset_not_scored.SAMSUNGFIRE}}항목은 정답 대조 전</text>",
+   "build": 3
   }
  ],
  "points": [
-  "보험료, 질병코드, 인수 심사 결과는 다루지 않습니다."
+  "표본이 작습니다. 회사를 넓히며 다시 맞춥니다."
  ],
- "terms": [],
- "source": "공모전 시연용 화면이며 영업 자료가 아닙니다. 비교 범위: 우체국과 타사 {{fact:comparison_targets_loaded.site}}곳(간편심사 상품 기준). 자료 기준 {{asof:snapshot_at}}",
- "notes": "처음에 드린 여섯 질문에 한 문장씩 답하며 마치겠습니다. 차이는 수백 쪽 문서 속 문장에 있고, 이 앱은 공시 문서를 넣으면 비교 화면과 응대 화법을 내놓습니다. 사람 한 명이 방향을 정하고 AI 여럿이 나눠 만들었으며, AI의 결과는 다시 실행해 확인한 것만 반영했습니다. 확률 산정 모델은 옮긴 값을 검증하는 데, 지식그래프와 온톨로지는 회사마다 다른 담보 이름을 맞추는 데 썼습니다. 마지막 행의 일치는 우체국 상품요약서 두 건의 급부를 원문 표와 한 행씩 맞춰 본 결과입니다. 매주 자동 실행의 AI 호출 비용은 들지 않고, 개발과 초기 적재에 쓴 구독 도구는 비용을 다룬 장에서 말씀드렸습니다. 효과는 실무자 사용검증으로 측정하겠습니다. 지금 화면의 비교 범위는 우체국과 타사 두 곳의 간편심사 상품이고, 보험료, 질병코드, 실제 인수 심사 결과는 다루지 않습니다. 데모 열기 버튼을 클릭하면 비교 화면이 열립니다. 데모와 발표 자료는 같은 GitHub Pages 공개 주소 아래에 배포돼 있고(데모는 주소 뒤 proto/console4.html, 발표 자료는 deck/), 저장소에는 코드와 문서, 진행 기록이 공개돼 있습니다. 질문을 받겠습니다."
+ "terms": [
+  "급부",
+  "정답표"
+ ],
+ "source": "출처: 제출 설명 자료 7절, 화면의 작업 로그 자료, 자료 기준 {{asof:work_log_count_site}}",
+ "notes": "AI가 옮긴 값이 맞는지는 두 가지로 확인했습니다. 왼쪽 링은 우체국 상품요약서 {{len:epost_summary_rows_by_doc}}건의 급부를 원문 표와 한 행씩 맞춘 결과로, {{fact:epost_summary_rows_matched.total}}행이 모두 일치했습니다. 오른쪽 두 링은 사람이 원문을 직접 읽어 보장금액, 면책, 감액을 적어 둔 정답표와의 대조입니다. 우체국은 정답표 {{fact:goldset_item_totals.EPOST}}항목 가운데 보장금액 영역 {{fact:goldset_epost_benefit.items}}항목을 정답과 대조했고, {{fact:goldset_epost_benefit.auto_match}}항목은 자동으로, {{fact:goldset_epost_benefit.manual_match}}항목은 사람이 직접 확인해 일치했습니다. 그래서 링의 빗금 부분은 자동 일치가 아닙니다. 한화생명은 정답표 {{fact:goldset_item_totals.HANWHALIFE}}항목 가운데 보장금액 영역 {{fact:goldset_hanwha_benefit.items}}항목이 모두 맞았습니다. 아래 띠는 덜 맞는 영역입니다. 우체국 가입조건은 {{fact:goldset_epost_conditions.items}}항목 중 {{fact:goldset_epost_conditions.match}}항목, 결합 제약은 {{fact:goldset_epost_constraints.items}}항목 중 {{fact:goldset_epost_constraints.match}}항목이 맞았고, 맞지 않은 항목의 대부분은 지금 스키마에 담을 자리가 없는 값입니다. 삼성화재 정답표 {{fact:goldset_not_scored.SAMSUNGFIRE}}항목은 아직 정답과 대조하지 않았습니다. AI와 코드가 한 일은 단계별로 작업 로그에 남아 초기 버전 화면에서 열어 볼 수 있습니다. 그 화면의 {{fact:work_log_count_site}}건은 화면에 올린 회사 기준입니다. 모든 회사 기준으로는 추출 {{fact:work_log_by_stage.추출}}건, 코드 대조 {{fact:work_log_by_stage.코드대조}}건, 확률 산정 {{fact:work_log_by_stage.판정}}건, 재추출 {{fact:work_log_by_stage.재추출}}건, 사람 검수로 넘긴 것이 {{fact:work_log_by_stage.사람검토이관}}건입니다. 초기 버전 화면은 브라우저 점검에서 오버플로, 잘림, 겹침, 콘솔 오류, 외부 요청이 {{fact:site_browser_check_problems}}건이었습니다. 약점도 말씀드립니다. 대조한 범위가 우체국 요약서 두 건과 정답표의 보장금액 영역뿐이고, 화면 기준 담보 매핑 {{fact:mapping_status_site.대기}}건이 아직 검수 대기이며, 관계 그래프는 담보 비교 탭의 비교 결과를 아직 읽지 않아 재설계를 검토하고 있습니다. 자동 테스트 {{fact:test_count}}개는 제출 직전에 다시 셉니다. 출처 문서는 docs/submission.md 7절입니다."
 }

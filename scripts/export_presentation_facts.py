@@ -505,6 +505,29 @@ def snapshot_facts(root: Path, tables: dict[str, list[dict[str, Any]]], as_of: s
                                     snap_source("sys_상품종형.jsonl", "행 수"))
     out["variant_count_site"] = fact(total(by_org(v_org), site), "화면에 올린 기관의 상품 종형 수", as_of,
                                      snap_source("sys_상품종형.jsonl", "SITE_ORGS 기관의 행 수"))
+    # 판매 중과 판매 종료(화면에 올린 기관). 판매 종료 종형은 개정 전후 비교에만 쓴다(비교역할구분 직전개정시연)
+    site_rows = [r for r in tables["sys_상품종형"] if r["기관코드"] in site]
+    ended = [r for r in site_rows if r.get("판매종료일")]
+    on_sale = [r for r in site_rows if not r.get("판매종료일")]
+
+    def product_short(r: dict[str, Any]) -> str:
+        """공시상품명에서 무배당, 괄호, 개정 번호 뒤의 종 이름을 뺀 상품 이름과 개정 번호(예: 우체국간편건강보험 2504)."""
+        text = re.sub(r"\([^)]*\)", "", r["공시상품명"]).replace("무배당", " ")
+        m = re.match(r"\s*(.+?)\s*(\d{4})\b", text)
+        return f"{m.group(1).strip()} {m.group(2)}" if m else r["공시상품명"]
+
+    out["variant_sale_status_site"] = fact(
+        {"total": len(site_rows), "on_sale": len(on_sale), "ended": len(ended),
+         "on_sale_by_role": dict(Counter(r["비교역할구분"] for r in on_sale)),
+         "ended_by_role": dict(Counter(r["비교역할구분"] for r in ended)),
+         "ended_products": sorted({product_short(r) for r in ended}),
+         "ended_variants": [r["종형명"] for r in ended],
+         "ended_dates": sorted({r["판매종료일"] for r in ended})},
+        "화면에 올린 기관의 상품 종형을 판매 중(판매종료일 없음)과 판매 종료로 나눈 수, 비교역할구분별 수, 판매 종료 상품 이름과 판매종료일",
+        as_of, snap_source("sys_상품종형.jsonl", "SITE_ORGS 기관의 행을 판매종료일이 있는지로 나눔. 상품 이름은 공시상품명에서 "
+                           "무배당과 괄호를 빼고 개정 번호까지"),
+        "판매 종료 종형(비교역할 직전개정시연, 화면 이름 직전 개정 상품)은 개정 전후 비교에만 쓰고 담보 비교의 기준 종형이나 타사로 "
+        "쓰지 않습니다.")
 
     # 특약
     r_org = by_org(Counter(snap.variant_org[r["종형ID"]] for r in tables["sys_특약"]))
@@ -842,6 +865,8 @@ WORKFLOWS = Path(".github") / "workflows"
 REQUESTS = Path("docs") / "gemini_requests"
 VIDEO_TIMINGS = Path("proto_src") / "deck" / "assets" / "stills_timings.json"   # 덱의 영상 정지 화면을 뽑은 렌더 기록
 EXAMPLE_STD = "STD_CA_SURG"                    # 암 수술비. 덱이 처음부터 끝까지 따라가는 담보 예
+EXAMPLE_SPLIT_BROAD = "STD_CV_SURG"             # 뇌·심장질환 수술비. 타사는 통합 특약 하나, 우체국은 나눈 특약 둘로 가진 예
+EXAMPLE_SPLIT_NARROW = ("STD_BR_SURG", "STD_HT_SURG")   # 뇌혈관질환 수술비, 심장질환 수술비
 EXAMPLE_GATE_ROW, EXAMPLE_GATE_ROW_LATER = "입원 3개월~1년 전", "입원 1~2년 전"   # 6개월 전 입원 고객 예와 1년 반 전 입원
 TEXT_EXAMPLE = {"amount": "1,000만원", "reduced_period": "1년미만", "reduced_amount": "500만원"}
 TEXT_EXAMPLE_QUOTE = "\"1년미만 500만원 / 1년이상 1,000만원\""
@@ -981,6 +1006,60 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
         "pay_is_ratio 가 참이면 pay_manwon 은 가입금액 대비 비율(%)입니다. 기준 가입금액이 회사마다 달라 금액만으로 우열을 말하지 않습니다.")
     out["example_cancer_surgery_names"] = fact({org: v["benefit"] for org, v in per_org.items()},
                                                "암 수술비 예의 회사별 급부 이름(원문 급부명 그대로)", as_of, cover_src)
+
+    # 나눈 특약과 통합 특약의 예(뇌·심장질환 수술비). 화면이 처음 여는 기준 종형의 담보 비교 행을 읽는다
+    by_id = {r[0]: r for r in base["rows"]}
+    for sid in (EXAMPLE_SPLIT_BROAD, *EXAMPLE_SPLIT_NARROW):
+        if sid not in by_id:
+            raise FactsError(f"담보 비교 자료에 {sid} 행이 없다")
+    rel_kinds = {(r["넓은담보ID"], r["좁은담보ID"]): r["관계"] for r in rel}
+    kinds_found = {rel_kinds.get((EXAMPLE_SPLIT_BROAD, n)) for n in EXAMPLE_SPLIT_NARROW}
+    if len(kinds_found) != 1 or None in kinds_found:
+        raise FactsError(f"{EXAMPLE_SPLIT_BROAD} 와 좁은 담보의 관계가 표준담보 관계 자료에 하나로 있지 않다: {kinds_found}")
+
+    def ben_view(cell: Any, where: str) -> dict[str, Any]:
+        ben = cover_cell_benefit(cover, cell)
+        if ben is None:
+            raise FactsError(f"{where}: 대표 급부가 없다")
+        return {"benefit": ben[0], "rider": cover["rid"][ben[1]][0], "doc_kind": ben[10], "doc_page": ben[11]}
+
+    def verdicts(sid: str) -> dict[str, str]:
+        return {org: terms.name(k) for k, orgs_ in base["판정기관코드"][sid].items() for org in orgs_}
+
+    narrow = []
+    for sid in EXAMPLE_SPLIT_NARROW:
+        v = ben_view(by_id[sid][1][0], f"{sid} 우체국 칸")
+        narrow.append(dict(v, id=sid, name=names[sid]["이름"], verdicts=verdicts(sid)))
+    ours_broad = by_id[EXAMPLE_SPLIT_BROAD][1][0]
+    if not (isinstance(ours_broad, dict) and ours_broad.get("c") and not ours_broad.get("i")):
+        raise FactsError(f"{EXAMPLE_SPLIT_BROAD}: 우체국 칸이 관계 담보로 덮는 칸이 아니다")
+    peers = {}
+    for vid, cell in zip(base["cols"][1:], by_id[EXAMPLE_SPLIT_BROAD][1][1:]):
+        peers[sales["종형"][vid]["기관코드"]] = dict(ben_view(cell, f"{EXAMPLE_SPLIT_BROAD} {vid} 칸"),
+                                                    variant=sales["종형"][vid]["종형명"])
+    out["example_split_rider"] = fact(
+        {"broad": {"id": EXAMPLE_SPLIT_BROAD, "name": names[EXAMPLE_SPLIT_BROAD]["이름"], "verdicts": verdicts(EXAMPLE_SPLIT_BROAD),
+                   "ours_cover": ours_broad["c"][0]},
+         "relation": kinds_found.pop(), "narrow": narrow, "peers": peers, "ours_variant": sales["종형"][first]["종형명"]},
+        "나눈 특약과 통합 특약의 예: 우체국은 좁은 담보 둘(narrow)을 특약 둘로, 타사는 넓은 담보(broad) 하나로 가진 경우. "
+        "칸마다 대표 급부의 원문 이름, 특약 이름, 근거 문서와 쪽, 담보마다 타사별 비교 결과(화면 이름). ours_cover 는 넓은 담보 행의 "
+        "우체국 칸이 관계 담보로 덮는 종류(부분 담보)", as_of,
+        screen_source(f"b[기준종형[0].종형ID].rows[{EXAMPLE_SPLIT_BROAD}, {', '.join(EXAMPLE_SPLIT_NARROW)}] 의 대표 급부(r), "
+                      "rid, 판정기관코드", COVER),
+        "관계는 data/seed/표준담보_관계.jsonl 의 행입니다. 화면 기준 종형(화면이 처음 여는 것)에서 센 값입니다.")
+
+    # 관계가 있어 "관련 담보로 보장"으로 보이는 비교 건(관계가 없으면 그 타사에 담보가 없어 우체국 단독 보유로 보였을 것)
+    covered = [(sid, org) for sid, *_ in base["rows"] for org in base["판정기관코드"][sid].get("관계 담보로 덮음", [])]
+    out["relation_covered_pairs"] = fact(
+        {"pairs": len(covered), "coverages": len({s for s, _ in covered}),
+         "names": list(dict.fromkeys(names[s]["이름"] for s, _ in covered)),
+         "by_org": dict(Counter(org for _, org in covered))},
+        "기준 종형의 담보 비교에서 비교 결과가 관련 담보로 보장(우체국은 그 담보를 가졌고 타사는 넓은 담보나 부분 담보로 보장)인 "
+        "비교 건 수(담보와 타사의 짝), 담보 수와 이름, 타사별 수(화면이 처음 여는 기준 종형)", as_of,
+        screen_source("b[기준종형[0].종형ID].판정기관코드[표준담보ID]['관계 담보로 덮음']", COVER),
+        "담보 관계 자료가 없으면 이 타사 칸에는 그 담보가 없어 우체국 단독 보유로 셉니다(API.md 의 쌍판정 절).")
+    out["coverage_major_class_names"] = fact(
+        [n[2] for n in graph["nodes"] if kinds[n[1]] == "보장 대분류"], "보장 대분류의 이름(관계 그래프 노드 차례)", as_of, graph_src)
 
     # AI 가 옮긴 글자를 코드가 숫자로 읽는 예. 추출 기록은 저장소에 없어 추출 지시문의 예시 글자를 실제 코드로 읽는다
     src_text = (root / "src" / "postlife" / "extract" / "benefits.py").read_text(encoding="utf-8")

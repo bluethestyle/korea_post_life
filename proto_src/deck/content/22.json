@@ -1,10 +1,10 @@
 {
  "no": 22,
- "id": "goldset",
+ "id": "follow-one-coverage",
  "kind": "body",
- "chapter": 6,
- "status": "revised",
- "headline": "AI가 옮긴 값이 원문과 정답표에 맞는지 한 행씩 확인했습니다",
+ "chapter": 5,
+ "status": "new",
+ "headline": "우체국은 특약 둘, 삼성화재는<br>특약 하나로 파는 같은 보장을 관계로 맞춥니다",
  "diagram": [
   {
    "use": "svg",
@@ -12,96 +12,77 @@
     0,
     0,
     1760,
-    56
+    440
    ],
    "vb": [
     1760,
-    56
+    440
    ],
-   "alt": "왼쪽 링은 원문 표와 대조한 결과, 오른쪽 두 링은 사람이 만든 정답표와 대조한 결과임을 묶어 보이는 머리글",
-   "svg": "<path d='M8 42V50H552V42' class='sv-line' fill='none'/><use href='{{icon:공시 문서}}' x='112' y='2' width='36' height='36'/><text x='160' y='30' class='b'>원문 표와 한 행씩 대조</text><path d='M608 42V50H1752V42' class='sv-line' fill='none'/><use href='{{icon:사람 검수}}' x='906' y='2' width='36' height='36'/><text x='954' y='30' class='b'>사람이 만든 정답표와 대조</text>",
-   "build": 1
-  },
-  {
-   "use": "C11",
-   "value": "{{fact:epost_summary_rows_matched.matched}}",
-   "total": "{{fact:epost_summary_rows_matched.total}}",
-   "caption": "원문과 일치한 우체국 급부",
-   "scope": "요약서 {{len:epost_summary_rows_by_doc}}건의 급부 행 전부",
+   "limit": 30,
+   "alt": "우체국의 뇌질환 수술 급부와 심질환 수술 급부, 삼성화재의 2대주요기관질병 수술비가 각각 표준담보에 연결되고, 통합 관계로 같은 보장임이 드러나 우체국의 두 담보 행 모두 삼성화재가 관련 담보로 보장이 되는 네 단계 그림",
+   "svg": "<text x='0' y='32' class='b'>1단계 문서의 급부 이름</text><text x='780' y='32' class='b'>2단계 표준담보에 연결</text><text x='1176' y='32' class='b'>3단계 관계</text><text x='1396' y='32' class='b'>4단계 비교 결과</text><rect x='0' y='56' width='700' height='100' class='sv-line'/><text x='20' y='116' class='b'>우체국</text><text x='684' y='116' text-anchor='end' class='aux'>요약서 {{fact:example_split_rider.narrow.0.doc_page}}쪽</text><rect x='0' y='172' width='700' height='100' class='sv-line'/><text x='20' y='232' class='b'>우체국</text><text x='684' y='232' text-anchor='end' class='aux'>요약서 {{fact:example_split_rider.narrow.1.doc_page}}쪽</text><rect x='0' y='300' width='700' height='120' class='sv-line'/><text x='20' y='370' class='b'>삼성화재</text><text x='684' y='370' text-anchor='end' class='aux'>요약서 {{fact:example_split_rider.peers.SAMSUNGFIRE.doc_page}}쪽</text><path d='M706 106H770' class='sv-muted' marker-end='url(#ah)'/><path d='M706 222H770' class='sv-muted' marker-end='url(#ah)'/><path d='M706 360H770' class='sv-muted' marker-end='url(#ah)'/><rect x='780' y='70' width='360' height='72' class='sv-ink'/><text x='960' y='116' text-anchor='middle'>{{fact:example_split_rider.narrow.0.name}}</text><rect x='780' y='186' width='360' height='72' class='sv-ink'/><text x='960' y='232' text-anchor='middle'>{{fact:example_split_rider.narrow.1.name}}</text><rect x='780' y='324' width='360' height='72' class='sv-ink'/><text x='960' y='370' text-anchor='middle'>{{fact:example_split_rider.broad.name}}</text><path d='M1140 222H1196' class='sv-red'/><path d='M1140 106H1196V360H1152' class='sv-red' marker-end='url(#ah-r)'/><text x='1212' y='214' class='b red'>{{fact:example_split_rider.relation}}</text><text x='1212' y='250' class='aux'>둘을 합친 보장</text><rect x='1380' y='56' width='380' height='100' class='sv-red'/><text x='1400' y='96' class='b'>{{fact:example_split_rider.narrow.0.name}}</text><text x='1400' y='136'>삼성화재</text><text x='1510' y='136' class='red'>{{fact:example_split_rider.narrow.0.verdicts.SAMSUNGFIRE}}</text><rect x='1380' y='172' width='380' height='100' class='sv-red'/><text x='1400' y='212' class='b'>{{fact:example_split_rider.narrow.1.name}}</text><text x='1400' y='252'>삼성화재</text><text x='1510' y='252' class='red'>{{fact:example_split_rider.narrow.1.verdicts.SAMSUNGFIRE}}</text>",
    "hero": true,
+   "build": 1
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "text": "{{fact:example_split_rider.narrow.0.benefit}}",
+   "limit": 40,
    "box": [
-    0,
-    64,
-    560,
-    412
+    140,
+    84,
+    410,
+    48
    ],
    "build": 1
   },
   {
-   "use": "C11",
-   "value": "{{fact:goldset_epost_benefit.items}}",
-   "total": "{{fact:goldset_epost_benefit.items}}",
-   "split": [
-    {
-     "v": "{{fact:goldset_epost_benefit.auto_match}}"
-    },
-    {
-     "v": "{{fact:goldset_epost_benefit.manual_match}}",
-     "hatch": true
-    }
-   ],
-   "caption": "우체국 정답표와 일치",
-   "scope": "정답표 {{fact:goldset_item_totals.EPOST}}항목 중 보장금액 영역",
-   "legend": [
-    "자동 일치 {{fact:goldset_epost_benefit.auto_match}}",
-    "사람이 직접 확인 {{fact:goldset_epost_benefit.manual_match}}"
-   ],
+   "use": "text",
+   "size": "s",
+   "text": "{{fact:example_split_rider.narrow.1.benefit}}",
+   "limit": 40,
    "box": [
-    600,
-    64,
-    560,
-    412
+    140,
+    200,
+    410,
+    48
    ],
-   "build": 2
+   "build": 1
   },
   {
-   "use": "C11",
-   "value": "{{fact:goldset_hanwha_benefit.match}}",
-   "total": "{{fact:goldset_hanwha_benefit.items}}",
-   "caption": "한화생명 정답표와 일치",
-   "scope": "정답표 {{fact:goldset_item_totals.HANWHALIFE}}항목 중 보장금액 영역",
+   "use": "text",
+   "size": "s",
+   "text": "{{fact:example_split_rider.peers.SAMSUNGFIRE.benefit}}",
+   "limit": 40,
    "box": [
-    1200,
-    64,
-    560,
-    412
+    150,
+    320,
+    400,
+    84
    ],
-   "build": 2
+   "build": 1
   },
   {
-   "use": "svg",
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "text": "관계가 없으면 삼성화재 항목이 비어 우체국 단독 보유로 보입니다",
    "box": [
     0,
-    500,
+    468,
     1760,
-    56
+    44
    ],
-   "vb": [
-    1760,
-    56
-   ],
-   "alt": "보장금액 밖의 영역은 아직 덜 맞고, 삼성화재 정답표는 정답 대조 전임을 보이는 띠",
-   "svg": "<rect x='0' y='0' width='1760' height='56' rx='8' class='sv-paper'/><text x='28' y='37' class='b'>아직 덜 맞는 영역</text><text x='330' y='37'>우체국 가입조건 {{fact:goldset_epost_conditions.match}}/{{fact:goldset_epost_conditions.items}}</text><text x='700' y='37'>우체국 결합 제약 {{fact:goldset_epost_constraints.match}}/{{fact:goldset_epost_constraints.items}}</text><path d='M1060 12V44' class='sv-line'/><text x='1100' y='37'>삼성화재 정답표 {{fact:goldset_not_scored.SAMSUNGFIRE}}항목은 정답 대조 전</text>",
-   "build": 3
+   "build": 2
   }
  ],
- "points": [
-  "표본이 작습니다. 회사를 넓히며 다시 맞춥니다."
- ],
+ "points": [],
  "terms": [
-  "급부",
-  "정답표"
+  "매핑",
+  "담보 관계",
+  "관련 담보로 보장"
  ],
- "source": "출처: 제출 설명 자료 7절, 화면의 작업 로그 자료, 자료 기준 {{asof:work_log_count_site}}",
- "notes": "AI가 옮긴 값이 맞는지는 두 가지로 확인했습니다. 왼쪽 링은 우체국 상품요약서 {{len:epost_summary_rows_by_doc}}건의 급부를 원문 표와 한 행씩 맞춘 결과로, {{fact:epost_summary_rows_matched.total}}행이 모두 일치했습니다. 오른쪽 두 링은 사람이 원문을 직접 읽어 보장금액, 면책, 감액을 적어 둔 정답표와의 대조입니다. 우체국은 정답표 {{fact:goldset_item_totals.EPOST}}항목 가운데 보장금액 영역 {{fact:goldset_epost_benefit.items}}항목을 정답과 대조했고, {{fact:goldset_epost_benefit.auto_match}}항목은 자동으로, {{fact:goldset_epost_benefit.manual_match}}항목은 사람이 직접 확인해 일치했습니다. 그래서 링의 빗금 부분은 자동 일치가 아닙니다. 한화생명은 정답표 {{fact:goldset_item_totals.HANWHALIFE}}항목 가운데 보장금액 영역 {{fact:goldset_hanwha_benefit.items}}항목이 모두 맞았습니다. 아래 띠는 덜 맞는 영역입니다. 우체국 가입조건은 {{fact:goldset_epost_conditions.items}}항목 중 {{fact:goldset_epost_conditions.match}}항목, 결합 제약은 {{fact:goldset_epost_constraints.items}}항목 중 {{fact:goldset_epost_constraints.match}}항목이 맞았고, 맞지 않은 항목의 대부분은 지금 스키마에 담을 자리가 없는 값입니다. 삼성화재 정답표 {{fact:goldset_not_scored.SAMSUNGFIRE}}항목은 아직 정답과 대조하지 않았습니다. AI와 코드가 한 일은 단계별로 작업 로그에 남아 초기 버전 화면에서 열어 볼 수 있습니다. 그 화면의 {{fact:work_log_count_site}}건은 화면에 올린 회사 기준입니다. 모든 회사 기준으로는 추출 {{fact:work_log_by_stage.추출}}건, 코드 대조 {{fact:work_log_by_stage.코드대조}}건, 확률 산정 {{fact:work_log_by_stage.판정}}건, 재추출 {{fact:work_log_by_stage.재추출}}건, 사람 검수로 넘긴 것이 {{fact:work_log_by_stage.사람검토이관}}건입니다. 초기 버전 화면은 브라우저 점검에서 오버플로, 잘림, 겹침, 콘솔 오류, 외부 요청이 {{fact:site_browser_check_problems}}건이었습니다. 약점도 말씀드립니다. 대조한 범위가 우체국 요약서 두 건과 정답표의 보장금액 영역뿐이고, 화면 기준 담보 매핑 {{fact:mapping_status_site.대기}}건이 아직 검수 대기이며, 관계 그래프는 담보 비교 탭의 비교 결과를 아직 읽지 않아 재설계를 검토하고 있습니다. 자동 테스트 {{fact:test_count}}개는 제출 직전에 다시 셉니다. 출처 문서는 docs/submission.md 7절입니다."
+ "source": "출처: 각 사 상품요약서, 담보 비교 자료(기준 종형 우체국 {{fact:example_split_rider.ours_variant}}), 표준담보 관계 자료, 자료 기준 {{asof:example_split_rider}}",
+ "notes": "온톨로지가 실제로 어떻게 쓰이는지 담보 하나를 따라가 보겠습니다. 뇌와 심장 질환의 수술비입니다. 1단계는 문서의 급부 이름입니다. 우체국은 이 보장을 특약 둘로 나눠 팝니다. '{{fact:example_split_rider.narrow.0.rider}}'의 '{{fact:example_split_rider.narrow.0.benefit}}'(상품요약서 {{fact:example_split_rider.narrow.0.doc_page}}쪽)과 '{{fact:example_split_rider.narrow.1.rider}}'의 '{{fact:example_split_rider.narrow.1.benefit}}'({{fact:example_split_rider.narrow.1.doc_page}}쪽)입니다. 삼성화재는 특약 하나 '{{fact:example_split_rider.peers.SAMSUNGFIRE.benefit}}'(상품요약서 {{fact:example_split_rider.peers.SAMSUNGFIRE.doc_page}}쪽)로 팝니다. 이름만 봐서는 같은 보장인지 알기 어렵습니다. 2단계는 표준담보에 연결하는 매핑입니다. 우체국의 두 급부는 '{{fact:example_split_rider.narrow.0.name}}'와 '{{fact:example_split_rider.narrow.1.name}}'에, 삼성화재의 급부는 '{{fact:example_split_rider.broad.name}}'에 연결됩니다. 여기까지만 하면 표준 이름이 셋이라 아직 같은 행에 놓이지 않습니다. 3단계가 관계입니다. 온톨로지에는 '{{fact:example_split_rider.broad.name}}'가 두 담보를 합친 보장이라는 {{fact:example_split_rider.relation}} 관계가 적혀 있습니다. 4단계 비교 결과에서, 우체국의 {{fact:example_split_rider.narrow.0.name}}와 {{fact:example_split_rider.narrow.1.name}} 행에 삼성화재는 '{{fact:example_split_rider.narrow.0.verdicts.SAMSUNGFIRE}}'으로 표시됩니다. 삼성화재에 같은 이름의 담보는 없지만, 더 넓은 담보 하나로 이 보장을 갖고 있다는 뜻입니다. 이 관계가 없으면 삼성화재 항목이 비어서 화면은 우체국 단독 보유라고 잘못 보여 주게 됩니다. 이 예는 데모 화면이 처음 여는 기준 종형(우체국 {{fact:example_split_rider.ours_variant}})의 담보 비교 자료에서 그대로 가져왔습니다. 한화생명도 이 보장을 통합 특약으로 갖고 있어 {{fact:example_split_rider.narrow.0.name}} 행은 '{{fact:example_split_rider.narrow.0.verdicts.HANWHALIFE}}'이고, {{fact:example_split_rider.narrow.1.name}} 행은 매핑이 아직 '{{fact:example_split_rider.narrow.1.verdicts.HANWHALIFE}}'라 비교에서 뺐습니다. 이 장면은 뒤의 영상에서도 움직이는 그림으로 다시 봅니다."
 }

@@ -153,6 +153,39 @@
         "method": "SITE_ORGS 기관의 행 수"
       }
     },
+    "variant_sale_status_site": {
+      "value": {
+        "total": 23,
+        "on_sale": 20,
+        "ended": 3,
+        "on_sale_by_role": {
+          "정밀비교": 16,
+          "관문전용": 4
+        },
+        "ended_by_role": {
+          "직전개정시연": 3
+        },
+        "ended_products": [
+          "우체국간편건강보험 2504"
+        ],
+        "ended_variants": [
+          "간편가입355",
+          "1종(간편가입)",
+          "2종(일반가입)"
+        ],
+        "ended_dates": [
+          "2026-06-16"
+        ]
+      },
+      "label": "화면에 올린 기관의 상품 종형을 판매 중(판매종료일 없음)과 판매 종료로 나눈 수, 비교역할구분별 수, 판매 종료 상품 이름과 판매종료일",
+      "as_of": "2026-11-24",
+      "source": {
+        "kind": "snapshot",
+        "file": "data/snapshot/sys_상품종형.jsonl",
+        "method": "SITE_ORGS 기관의 행을 판매종료일이 있는지로 나눔. 상품 이름은 공시상품명에서 무배당과 괄호를 빼고 개정 번호까지"
+      },
+      "note": "판매 종료 종형(비교역할 직전개정시연, 화면 이름 직전 개정 상품)은 개정 전후 비교에만 쓰고 담보 비교의 기준 종형이나 타사로 쓰지 않습니다."
+    },
     "riders_by_org": {
       "value": {
         "EPOST": 166,
@@ -3889,6 +3922,113 @@
         "kind": "screen_data",
         "file": "proto_src/console4/cover.json",
         "path": "b[기준종형[0].종형ID].rows[STD_CA_SURG] 의 칸마다 대표 급부(r)와 비교쌍(it)"
+      }
+    },
+    "example_split_rider": {
+      "value": {
+        "broad": {
+          "id": "STD_CV_SURG",
+          "name": "뇌·심장질환 수술비",
+          "verdicts": {
+            "HANWHALIFE": "우체국 미보유",
+            "SAMSUNGFIRE": "우체국 미보유"
+          },
+          "ours_cover": "부분 담보"
+        },
+        "relation": "통합",
+        "narrow": [
+          {
+            "benefit": "뇌질환수술보험금(관혈수술)",
+            "rider": "무배당 뇌질환입원수술특약(20년갱신형) 2606",
+            "doc_kind": "요약서",
+            "doc_page": 20,
+            "id": "STD_BR_SURG",
+            "name": "뇌혈관질환 수술비",
+            "verdicts": {
+              "HANWHALIFE": "관련 담보로 보장",
+              "SAMSUNGFIRE": "관련 담보로 보장"
+            }
+          },
+          {
+            "benefit": "심질환수술보험금(심질환·관혈수술)",
+            "rider": "무배당 심질환입원수술특약(20년갱신형) 2606",
+            "doc_kind": "요약서",
+            "doc_page": 23,
+            "id": "STD_HT_SURG",
+            "name": "심장질환 수술비",
+            "verdicts": {
+              "SAMSUNGFIRE": "관련 담보로 보장",
+              "HANWHALIFE": "검수 대기"
+            }
+          }
+        ],
+        "peers": {
+          "HANWHALIFE": {
+            "benefit": "수술자금(특정순환계질환)",
+            "rider": "특정순환계질환 통합치료보장특약(1억원한도)(고지통합)(KTA1.1) 무배당",
+            "doc_kind": "요약서",
+            "doc_page": 417,
+            "variant": "간편가입형(1년)"
+          },
+          "SAMSUNGFIRE": {
+            "benefit": "[갱신형][간편]2대주요기관질병 수술비Ⅱ(1년감액)",
+            "rider": "[갱신형][간편]2대주요기관질병 수술비Ⅱ(1년감액)",
+            "doc_kind": "요약서",
+            "doc_page": 114,
+            "variant": "7종(해약환급금 미지급형) 315·5"
+          }
+        },
+        "ours_variant": "1종(간편가입315)"
+      },
+      "label": "나눈 특약과 통합 특약의 예: 우체국은 좁은 담보 둘(narrow)을 특약 둘로, 타사는 넓은 담보(broad) 하나로 가진 경우. 칸마다 대표 급부의 원문 이름, 특약 이름, 근거 문서와 쪽, 담보마다 타사별 비교 결과(화면 이름). ours_cover 는 넓은 담보 행의 우체국 칸이 관계 담보로 덮는 종류(부분 담보)",
+      "as_of": "2026-11-24",
+      "source": {
+        "kind": "screen_data",
+        "file": "proto_src/console4/cover.json",
+        "path": "b[기준종형[0].종형ID].rows[STD_CV_SURG, STD_BR_SURG, STD_HT_SURG] 의 대표 급부(r), rid, 판정기관코드"
+      },
+      "note": "관계는 data/seed/표준담보_관계.jsonl 의 행입니다. 화면 기준 종형(화면이 처음 여는 것)에서 센 값입니다."
+    },
+    "relation_covered_pairs": {
+      "value": {
+        "pairs": 10,
+        "coverages": 6,
+        "names": [
+          "유사암 진단비(통합)",
+          "뇌혈관질환 수술비",
+          "뇌경색증 진단비",
+          "뇌경색 혈전용해치료비",
+          "심장질환 수술비",
+          "급성심근경색 혈전용해치료비"
+        ],
+        "by_org": {
+          "HANWHALIFE": 5,
+          "SAMSUNGFIRE": 5
+        }
+      },
+      "label": "기준 종형의 담보 비교에서 비교 결과가 관련 담보로 보장(우체국은 그 담보를 가졌고 타사는 넓은 담보나 부분 담보로 보장)인 비교 건 수(담보와 타사의 짝), 담보 수와 이름, 타사별 수(화면이 처음 여는 기준 종형)",
+      "as_of": "2026-11-24",
+      "source": {
+        "kind": "screen_data",
+        "file": "proto_src/console4/cover.json",
+        "path": "b[기준종형[0].종형ID].판정기관코드[표준담보ID]['관계 담보로 덮음']"
+      },
+      "note": "담보 관계 자료가 없으면 이 타사 칸에는 그 담보가 없어 우체국 단독 보유로 셉니다(API.md 의 쌍판정 절)."
+    },
+    "coverage_major_class_names": {
+      "value": [
+        "암보장",
+        "뇌혈관보장",
+        "심장보장",
+        "뇌심장보장",
+        "공통보장"
+      ],
+      "label": "보장 대분류의 이름(관계 그래프 노드 차례)",
+      "as_of": "2026-11-24",
+      "source": {
+        "kind": "screen_data",
+        "file": "proto_src/graph/graph.json",
+        "path": "nodes[].1 (kinds 의 번호)"
       }
     },
     "example_text_to_number": {
