@@ -46,8 +46,9 @@
     if (scriptEl && scriptEl.textContent.trim()) {
       try { raw = JSON.parse(scriptEl.textContent); } catch (e) { console.error(e); }
     }
-    const kinds = raw.kinds && raw.kinds.length ? raw.kinds : ['회사', '종형', '특약', '급부', '표준담보', '보장분야', '소식'];
-    const ekinds = raw.ekinds && raw.ekinds.length ? raw.ekinds : ['판매', '포함', '해당', '속함', '관계', '일으킴'];
+    App.addLabels(raw['표시명']);
+    const kinds = raw.kinds && raw.kinds.length ? raw.kinds : t('grKindsFallback').split(',');
+    const ekinds = raw.ekinds && raw.ekinds.length ? raw.ekinds : t('grEkindsFallback').split(',');
     const keys = raw.keys || [];
     const dec = obj => {
       const out = {};
@@ -436,7 +437,7 @@
       const newsIdxs = g.N.filter(n => n.k === 6)
         .sort((a, b) => String(b.p['발표일자'] || '').localeCompare(String(a.p['발표일자'] || '')) || a.i - b.i)
         .map(n => n.i);
-      setColWithBatch(0, newsIdxs, '소식');
+      setColWithBatch(0, newsIdxs, t('grPresetNews'));
       const orgSet = new Set();
       state.cols[0].forEach(ni => {
         g.adj[ni].forEach(x => { if (x.ek === 5 && g.N[x.j].k === 0) orgSet.add(x.j); });
@@ -449,18 +450,18 @@
       });
       state.cols[1] = Array.from(orgSet);
       state.cols[2] = mVars;
-      recordTrail('시장 소식');
+      recordTrail(t('grPresetNews'));
       return;
     }
 
-    // 기본 보는 틀: "담보 대응"(회사, 맞붙는 종형, 보장분야 다섯 + 묶은 엣지)
+    // 기본 보는 틀: "담보별 연결"(회사, 맞붙는 종형, 보장 대분류 다섯 + 그룹 엣지)
     state.preset = 'cover';
     state.mode = 'cover-0';
     const vars = matchedVariants(g, c);
     state.cols[1] = orgNodesForVariants(g, vars);
     state.cols[2] = vars;
     state.cols[6] = domainNodesInOrder(g, c);
-    recordTrail('담보 대응');
+    recordTrail(t('grPresetCover'));
   }
 
   function setColWithBatch(colIdx, fullList, label) {
@@ -831,12 +832,12 @@
           if (!cnt) return;
           const waitCnt = (vSum && vSum['미연결사유'] && vSum['미연결사유']['대기']) || 0;
           const props = {
-            연결구분: '종형별 분야 보유 요약(묶은 엣지)',
+            연결구분: t('grEdgeVarDomType'),
             종형: vNode.l,
-            보장분야: dNode.l,
+            [t('grPropDomain')]: dNode.l,
             표준담보수: cnt,
           };
-          if (waitCnt > 0) props['검토대기안내'] = `이 종형 전체에 매핑 검토 대기 급부 ${waitCnt}건이 있어 담보가 더 이어질 수 있습니다`;
+          if (waitCnt > 0) props[t('grPropWaitNote')] = t('grEdgeWaitNoteTpl', { n: waitCnt });
           edges.push({
             key: `vb:${vi}:${di}`,
             kind: 'var-dom',
@@ -880,8 +881,8 @@
             tNode: si,
             intraCol: false,
             props: {
-              연결구분: '종형에서 표준담보로 이어지는 보유 연결',
-              안내: '표준담보를 누르면 회사별 특약과 급부 열이 펼쳐집니다',
+              연결구분: t('grEdgeVarStdType'),
+              안내: t('grEdgeVarStdGuide'),
             },
             pathObj: pObj,
             count: null,
@@ -1014,11 +1015,11 @@
       const waitCnt = (vSum && vSum['미연결사유'] && vSum['미연결사유']['대기']) || 0;
       const roleNote = endDt
         ? `판매종료(${endDt})`
-        : role === '관문전용'
-          ? '관문전용(담보 비교 대상 아님)'
+        : App.isGateOnlyRole(role)
+          ? t('grRoleNotCoverTpl', { role: App.label(role) })
           : role === '직전개정시연'
-            ? '직전개정시연(담보 비교 대상 아님)'
-            : `표준담보 ${fmt(vSum && Array.isArray(vSum['표준담보']) ? vSum['표준담보'].length : 0)}개${waitCnt > 0 ? `, 검토 대기 ${fmt(waitCnt)}건` : ''}`;
+            ? t('grRoleNotCoverTpl', { role: App.label(role) })
+            : `표준담보 ${fmt(vSum && Array.isArray(vSum['표준담보']) ? vSum['표준담보'].length : 0)}개${waitCnt > 0 ? t('grWaitCntSuffixTpl', { n: fmt(waitCnt) }) : ''}`;
       inner = `<span class="gn-p">${esc(orgLabel(n.o))} ${esc(prodNm)}</span><span class="gn-t">${esc(kindNm || n.l)}</span>`;
       tipSub = `${orgLabel(n.o)} / ${p['심사유형'] || ''} / ${roleNote}`;
     } else if (n.k === 2) {
@@ -1084,7 +1085,7 @@
       if (!filtered.length) return;
       const isCurCol = state.selNode != null && g.N[state.selNode] && g.N[state.selNode].k === k;
       steps.push(`<div class="gr-vp-step${isCurCol ? ' is-cur' : ''}">
-        <div class="gr-vp-hd"><span>${esc(g.kinds[k])}</span><span class="num">${fmt(filtered.length)}/${fmt(raw.length)}</span></div>
+        <div class="gr-vp-hd"><span>${esc(App.short(g.kinds[k]))}</span><span class="num">${fmt(filtered.length)}/${fmt(raw.length)}</span></div>
         <div class="gr-vp-nodes">${filtered.map(ni => renderNodeCardHTML(g, ni, { active: false, nodes: new Set() }, c)).join('')}</div>
       </div>`);
     });
@@ -1094,14 +1095,14 @@
   function renderLeftZone(leftEl) {
     if (!leftEl) return;
     const presets = [
-      { id: 'cover', nm: '담보 대응', sub: '회사, 종형, 보장분야에서 담보 길 비교' },
-      { id: 'variant', nm: '종형 구성', sub: '기준 종형의 특약과 급부를 담보구분별 탐색' },
-      { id: 'news', nm: '시장 소식', sub: '소식에서 회사와 종형으로 이어 보기' },
+      { id: 'cover', nm: t('grPresetCover'), sub: t('grPresetCoverSub') },
+      { id: 'variant', nm: t('grPresetVariant'), sub: t('grPresetVariantSub') },
+      { id: 'news', nm: t('grPresetNews'), sub: t('grPresetNewsSub') },
     ];
     leftEl.innerHTML = `<div class="gr-left-wrap">
       <div>
-        <span class="gr-sec-k">보는 틀</span>
-        <div class="gr-presets" role="listbox" aria-label="관계 지도 보는 틀">
+        <span class="gr-sec-k">${esc(t('grLeftHead'))}</span>
+        <div class="gr-presets" role="listbox" aria-label="${esc(t('grPresetsAria'))}">
           ${presets.map(p => `<button type="button" class="gr-preset${state.preset === p.id ? ' is-on' : ''}" role="option" aria-selected="${state.preset === p.id}" data-gr-preset="${p.id}">
             <span class="gp-t">${esc(p.nm)}</span>
             <span class="gp-s">${esc(p.sub)}</span>
@@ -1109,15 +1110,15 @@
         </div>
       </div>
       <div class="gr-search-box">
-        <label class="gr-sec-k" for="gr-search">이름 찾기</label>
+        <label class="gr-sec-k" for="gr-search">${esc(t('grSearchLabel'))}</label>
         <input id="gr-search" class="gr-search-in" type="search" autocomplete="off" placeholder="담보, 특약, 종형, 회사" value="${esc(state.query)}">
         <div id="gr-sugg" class="gr-sugg" hidden></div>
       </div>
       <div>
         <span class="gr-sec-k">탐색 이동</span>
         <div class="gr-ctrl-row">
-          <button type="button" class="btn sm ghost" id="gr-btn-undo" data-gr-act="undo"${undoStack.length ? '' : ' disabled'}>되돌리기</button>
-          <button type="button" class="btn sm ghost" id="gr-btn-reset" data-gr-act="reset">처음으로</button>
+          <button type="button" class="btn sm ghost" id="gr-btn-undo" data-gr-act="undo"${undoStack.length ? '' : ' disabled'}>${esc(t('grUndoBtn'))}</button>
+          <button type="button" class="btn sm ghost" id="gr-btn-reset" data-gr-act="reset">${esc(t('grResetBtn'))}</button>
         </div>
       </div>
     </div>`;
@@ -1389,7 +1390,7 @@
       const cnt = state.cols[colIdx].length;
       const open = cnt > 0 || !!state.batches[colIdx] || !!(state.varMores[colIdx] && state.varMores[colIdx].length);
       return `<div class="gr-col-hd gr-c-${k} ${open ? 'is-open' : 'is-folded'}">
-        <span class="gr-col-nm">${esc(g.kinds[k])}</span>
+        <span class="gr-col-nm">${esc(App.short(g.kinds[k]))}</span>
         <span class="gr-col-cnt num">${columnCountText(g, colIdx)}</span>
       </div>`;
     }).join('');
@@ -1440,7 +1441,7 @@
     const vpathHTML = isNarrow ? renderVerticalMobileHTML(g, edges, hl, curC) : '';
 
     lastCenterEl.innerHTML = `<div class="gr-wrap" id="gr-stage-root">
-      <nav class="gr-trail" aria-label="지나온 길"><span class="gr-trail-k">지나온 길</span>${trailHTML}</nav>
+      <nav class="gr-trail" aria-label="${esc(t('grTrailLabel'))}"><span class="gr-trail-k">${esc(t('grTrailLabel'))}</span>${trailHTML}</nav>
       ${isNarrow ? `<div class="gr-vpath">${vpathHTML}</div>` : `<div class="gr-col-bar" data-main-axis="1" aria-label="노드 일곱 열 머리">${colHeadsHTML}</div>
       <div class="gr-canvas-scroll" id="gr-scroll">
         <div class="gr-canvas" id="gr-canvas">
@@ -1499,7 +1500,7 @@
       rows.push([k, valStr]);
     }
     if (!rows.length) return '<p class="note">추가 속성이 없습니다.</p>';
-    return `<dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd${/^\d/.test(v) ? ' class="num"' : ''}>${esc(v)}</dd>`).join('')}</dl>`;
+    return `<dl class="kv">${rows.map(([k, v]) => `<dt>${esc(App.label(k))}</dt><dd${/^\d/.test(v) ? ' class="num"' : ''}>${esc(App.label(v))}</dd>`).join('')}</dl>`;
   }
 
   function crossTabButtonsHTML(g, n) {
@@ -1532,7 +1533,7 @@
     const gateFocus = gateVid ? ` data-focus="g:${esc(gateVid)}"` : '';
     return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
       ${ui.btn('담보 비교에서 보기', { sm: true, ghost: true, chev: true, attrs: `data-go="cover"${coverFocus}` })}
-      ${ui.btn('가입 관문에서 보기', { sm: true, ghost: true, chev: true, attrs: `data-go="gate"${gateFocus}` })}
+      ${ui.btn(t('grGoGateBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="gate"${gateFocus}` })}
     </div>`;
   }
 
@@ -1555,7 +1556,7 @@
         const otherIdx = ed.leftNode === ni ? ed.rightNode : ed.leftNode;
         return `<li><button type="button" class="cv-lk" data-gr-pick-edge="${esc(ed.key)}">${esc(ed.ekName)}: ${esc(g.N[otherIdx].l)} 속성 보기</button></li>`;
       }).join('')}</ul>`
-      : '<p class="note">옆 열 이웃을 펼치면 연결선을 눌러 속성을 볼 수 있습니다.</p>';
+      : `<p class="note">${esc(t('grEdgeListEmpty'))}</p>`;
 
     const badges = [ui.tag(g.kinds[n.k])];
     if (n.o) badges.push(ui.tag(orgLabel(n.o)));
@@ -1566,26 +1567,26 @@
       else if (ownCls === 'is-unlinked') badges.push(ui.tag('비교 종형에 없음'));
     }
 
-    const extraRows = [['식별자', n.id]];
+    const extraRows = [[t('grPropId'), n.id]];
     let summarySec = '';
     if (n.k === 1 && g.summary && g.summary['종형'] && g.summary['종형'][n.id]) {
       const vs = g.summary['종형'][n.id];
-      if (vs['비교역할']) extraRows.push(['비교역할', vs['비교역할']]);
+      if (vs['비교역할']) extraRows.push(['비교역할', App.label(vs['비교역할'])]);
       if (vs['판매종료일']) extraRows.push(['판매종료일', vs['판매종료일']]);
       extraRows.push(['특약 수 (요약)', `${fmt(vs['특약수'] || 0)}개`]);
       extraRows.push(['급부 수 (요약)', `${fmt(vs['급부수'] || 0)}개`]);
-      if (vs['비교역할'] === '관문전용' || vs['비교역할'] === '직전개정시연' || vs['판매종료일']) {
-        summarySec = `<div class="ev-sec"><p class="note">${vs['판매종료일'] ? `판매를 마친 직전 개정 종형(${esc(vs['판매종료일'])} 종료)이라 현재 담보 비교 대상이 아닙니다.` : '가입 관문만 수집한 종형이라 담보 비교 대상이 아닙니다.'}</p></div>`;
+      if (App.isGateOnlyRole(vs['비교역할']) || vs['비교역할'] === '직전개정시연' || vs['판매종료일']) {
+        summarySec = `<div class="ev-sec"><p class="note">${esc(vs['판매종료일'] ? t('grVarEndNoteTpl', { dt: vs['판매종료일'] }) : t('grVarGateOnlyNote'))}</p></div>`;
       } else {
         const stdLen = Array.isArray(vs['표준담보']) ? vs['표준담보'].length : 0;
         const reasons = vs['미연결사유'] || {};
         const waitN = reasons['대기'] || 0;
         const outN = reasons['대상외'] || 0;
         extraRows.push(['연결 표준담보 수 (요약)', `${fmt(stdLen)}개`]);
-        if (vs['미연결급부']) extraRows.push(['미연결 급부 수', `${fmt(vs['미연결급부'])}개`]);
+        if (vs['미연결급부']) extraRows.push([t('grPropUnmappedBen'), `${fmt(vs['미연결급부'])}개`]);
         const notes = [];
-        if (waitN > 0) notes.push(`매핑 검토 대기 급부 ${fmt(waitN)}건이 있어 담당자 검토 뒤 표준담보가 더 이어질 수 있습니다.`);
-        if (outN > 0) notes.push(`대상외 급부 ${fmt(outN)}건은 표준담보 사전 범위 밖 급부이며 빠진 담보가 아닙니다.`);
+        if (waitN > 0) notes.push(t('grVarWaitNoteTpl', { n: fmt(waitN) }));
+        if (outN > 0) notes.push(t('grVarOutNoteTpl', { label: App.label('대상외'), n: fmt(outN) }));
         if (notes.length) summarySec = `<div class="ev-sec"><p class="note">${esc(notes.join(' '))}</p></div>`;
       }
     } else if (n.k === 4 && g.summary && g.summary['표준담보별종형'] && Array.isArray(g.summary['표준담보별종형'][n.id])) {
@@ -1594,11 +1595,11 @@
 
     const body = `<div class="ev-sec"><h3>노드 속성</h3>${propTableHTML(n.p, extraRows)}${crossTabButtonsHTML(g, n)}</div>
       ${summarySec}
-      <div class="ev-sec"><h3>이웃 펼치기 (자료 목록 수)</h3>${hopBtns ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${hopBtns}</div>` : '<p class="note">연결 가능한 이웃이 없습니다.</p>'}</div>
-      <div class="ev-sec lo"><h3>화면에 이어진 엣지 (${fmt(attachedEdges.length)})</h3>${edgeListHTML}</div>`;
+      <div class="ev-sec"><h3>${esc(t('grNeighborsHead'))}</h3>${hopBtns ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${hopBtns}</div>` : `<p class="note">${esc(t('grNeighborsEmpty'))}</p>`}</div>
+      <div class="ev-sec lo"><h3>${esc(t('grVisEdgesHeadTpl', { n: fmt(attachedEdges.length) }))}</h3>${edgeListHTML}</div>`;
 
     return {
-      kicker: `관계 지도 노드, ${g.kinds[n.k]}`,
+      kicker: t('grNodeKickerTpl', { kind: g.kinds[n.k] }),
       title: n.l,
       badges,
       body,
@@ -1607,14 +1608,14 @@
 
   function lineStyleLabel(ed) {
     if (ed.ek === 4) return '이중선 (표준담보 사이 포함 또는 통합 관계)';
-    if (ed.ek === 5) return '점선 (회사가 일으킨 시장 소식)';
-    if (ed.ek === 3) return '가는 실선 (표준담보가 보장분야에 속함)';
+    if (ed.ek === 5) return t('grLineDashNews');
+    if (ed.ek === 3) return t('grLineThinDom');
     if (ed.ek === 2) {
       const st = ed.props && ed.props['검토상태'];
       if (st === '승인' || st === '수정') return `굵은 실선 (담당자 ${st})`;
       return '실선 (자동확정 매핑)';
     }
-    if (ed.kind === 'var-dom') return `묶은 실선 (표준담보 ${ed.count}개 비례 굵기)`;
+    if (ed.kind === 'var-dom') return t('grLineGroupDomTpl', { n: ed.count });
     return '실선 (판매 또는 포함)';
   }
 
@@ -1625,7 +1626,7 @@
         const rawE = g.E[+edgeKey.slice(2)];
         if (!rawE) return null;
         return {
-          kicker: `관계 지도 엣지, ${g.ekinds[rawE.k]}`,
+          kicker: t('grEdgeKickerTpl', { kind: g.ekinds[rawE.k] }),
           title: `${g.N[rawE.s].l} -> ${g.N[rawE.t].l}`,
           badges: [ui.tag(g.ekinds[rawE.k])],
           body: `<div class="ev-sec"><h3>엣지 속성</h3>${propTableHTML(rawE.p)}</div>`,
@@ -1643,9 +1644,9 @@
     ];
     let listSec = '';
     if (ed.stdList && ed.stdList.length) {
-      listSec = `<div class="ev-sec"><h3>묶인 표준담보 (${fmt(ed.stdList.length)}개)</h3>
+      listSec = `<div class="ev-sec"><h3>${esc(t('grGroupStdsHeadTpl', { n: fmt(ed.stdList.length) }))}</h3>
         <div style="display:flex;flex-wrap:wrap;gap:4px">${ed.stdList.map(si => ui.tag(g.N[si].l)).join('')}</div>
-        <div style="margin-top:8px">${ui.btn(`${nT.l} 분야 펼치기`, { sm: true, main: true, chev: true, attrs: `data-gr-open-dom="${ed.tNode}"` })}</div>
+        <div style="margin-top:8px">${ui.btn(t('grOpenDomBtnTpl', { dom: nT.l }), { sm: true, main: true, chev: true, attrs: `data-gr-open-dom="${ed.tNode}"` })}</div>
       </div>`;
     }
     const jumpEnds = `<div class="ev-sec lo"><h3>양 끝 노드로 이동</h3>
@@ -1656,7 +1657,7 @@
     </div>`;
 
     return {
-      kicker: '관계 지도 엣지 속성',
+      kicker: t('grEdgePropKicker'),
       title: `${nS.l} -> ${nT.l}`,
       badges: [ui.tag(ed.ekName)],
       body: `<div class="ev-sec"><h3>엣지 속성</h3>${propTableHTML(ed.props, extra)}</div>${listSec}${jumpEnds}`,
@@ -2164,7 +2165,7 @@
         rows.push([g.kinds[k], orgLabel(n.o) || '공통', n.l, n.id]);
       });
     });
-    App.copyRows(['열 종류', '회사', '이름', '식별자'], rows, { title: '관계 지도 현재 열람 노드' });
+    App.copyRows(t('grCopyCols').split(','), rows, { title: t('grCopyTitle') });
   }
 
   App.registerTab({

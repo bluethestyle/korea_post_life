@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<title>영업 분석 콘솔 시안 4</title>
+<title>상품-영업 분석 시안 4</title>
 <style id="fonts">/*__FONTS__*/</style>
 <style id="style">/*__STYLE__*/</style>
 </head>
@@ -128,15 +128,15 @@
   <section class="top-head" id="top-head">
     <div class="dots" aria-hidden="true"></div>
     <div class="th-left">
-      <nav class="lpath" id="lpath" aria-label="현재 층 경로"></nav>
+      <nav class="lpath" id="lpath" aria-label="현재 위치"></nav>
       <h1 class="th-title" id="th-title">영업 분석 요약</h1>
     </div>
     <div class="th-mid" id="th-mid"></div>
     <div class="th-total" id="th-total" hidden></div>
   </section>
 
-  <section class="cond" id="cond" aria-label="조건 줄" hidden></section>
-  <section class="scope" id="scope" aria-label="범위 띠" aria-live="polite" hidden></section>
+  <section class="cond" id="cond" aria-label="조회 조건" hidden></section>
+  <section class="scope" id="scope" aria-label="비교 범위 요약" aria-live="polite" hidden></section>
 
   <!-- 열린 화면 상단 고리 탭 줄: 맨 왼쪽 [전체 요약] + 다섯 고리 탭(고른 탭의 슬레이트 면이 미끄러져 이동) -->
   <div class="rtabs-wrap" id="rtabs-wrap" hidden>
@@ -164,7 +164,7 @@
     </svg>
     <aside class="z-left" id="z-left" aria-label="분류" hidden></aside>
     <main class="z-center" id="z-center" tabindex="-1"></main>
-    <aside class="z-right ev" id="z-right" aria-label="고른 것의 상세">
+    <aside class="z-right ev" id="z-right" aria-label="선택 항목 상세">
       <div class="ev-unselected" id="ev-unselected"></div>
       <div class="zr-in ev-in" id="zr-in" hidden>
         <i class="ev-handle" aria-hidden="true"></i>
@@ -214,7 +214,7 @@
   <i class="ar-c tl"></i><i class="ar-c tr"></i><i class="ar-c bl"></i><i class="ar-c br"></i>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<div class="help-pop" id="help-pop" role="region" aria-label="풀이 및 범례" hidden></div>
+<div class="help-pop" id="help-pop" role="region" aria-label="설명과 범례" hidden></div>
 <div class="hud-tip" id="hud-tip" role="tooltip" hidden></div>
 <div id="print-root"></div>
 

@@ -20,6 +20,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'proto_src/console4'))
+import terms_check  # noqa: E402
+
 OUT_DEFAULT = ROOT / 'site/proto/graph2.html'
 TPL = HERE / 'tpl.html'
 DATA_DEFAULT = HERE / 'graph.json'
@@ -33,6 +36,7 @@ def main() -> int:
     args = ap.parse_args()
 
     errors: list[str] = []
+    errors.extend(terms_check.check_graph_sources(TPL))
     tpl = TPL.read_text(encoding='utf-8')
     for mark in ('/*__FONTS__*/', '__DATA__'):
         if tpl.count(mark) != 1:
@@ -68,7 +72,7 @@ def main() -> int:
         return 1
     out: Path = args.out
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(page, encoding='utf-8')
+    out.write_text(page, encoding='utf-8', newline='\n')
     print(out, len(page.encode('utf-8')), 'bytes')
     return 0
 

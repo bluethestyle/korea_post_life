@@ -1,4 +1,4 @@
-이 화면의 글꼴은 SIL Open Font License 1.1(https://openfontlicense.org)에 따라 배포된 글꼴이다. 쓰는 글자만 남기도록 줄였고(서브셋), 그에 따라 글꼴 이름을 "PL Sub <원래 이름의 머리글자> <굵기>" 꼴로 바꿨다. Saira 는 가변 글꼴에서 폭과 굵기를 고정해 뽑았다. 각 글꼴 파일 안에는 원래의 저작권과 라이선스 표기를 그대로 남겼다.
+이 화면의 글꼴은 SIL Open Font License 1.1(https://openfontlicense.org)에 따라 배포된 글꼴이다. 쓰는 글자만 남기도록 줄였고(서브셋), 그에 따라 글꼴 이름을 "PL Sub <원래 이름의 머리글자> <굵기>" 형식으로 변경했다. Saira 는 가변 글꼴에서 폭과 굵기를 고정해 추출했다. 각 글꼴 파일 안에는 원래의 저작권과 라이선스 표기를 그대로 남겼다.
 
 SUIT (Regular 400, SemiBold 600): Copyright (c) 2022, SUNN (http://sun.fo/suit), with Reserved Font Name SUIT. SIL Open Font License 1.1. https://raw.githubusercontent.com/sun-typeface/SUIT/main/LICENSE
 Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The Saira Project Authors (https://github.com/Omnibus-Type/Saira). SIL Open Font License 1.1. https://raw.githubusercontent.com/google/fonts/main/ofl/saira/OFL.txt
