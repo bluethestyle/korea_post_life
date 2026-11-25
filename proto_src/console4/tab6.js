@@ -827,22 +827,39 @@
   }
   const fontsReady = () => !document.fonts || document.fonts.status === 'loaded';
 
-  function shortVarName(g, vi) {
-    const n = g.N[vi];
-    const nm = String((n.p && n.p['종형명']) || n.l || '');
-    return nm.length > 14 ? nm.slice(0, 13) + '…' : nm;
-  }
   function fullVarName(g, vi) {
     const n = g.N[vi];
     return String((n.p && n.p['종형명']) || n.l || '');
   }
   const orgOf = code => (code === 'EPOST' ? t('grOurs') : orgLabel(code));
 
+  // 앵커 이름표의 종형명: 14자를 넘으면 자료의 종형명을 줄이지 않고 두 줄로 나눈다(3차 개선 6번).
+  // 띄어쓰기 자리 가운데 두 줄 중 긴 줄이 가장 짧아지는 곳에서 나누되, 괄호 안에서 나누는 자리는 6자만큼 덜 고른다
+  const VAR_LINE_MAX = 14;
+  function varNameLines(nm) {
+    if (nm.length <= VAR_LINE_MAX) return [nm];
+    let best = null;
+    let depth = 0;
+    for (let i = 0; i < nm.length; i++) {
+      const ch = nm[i];
+      if (ch === '(') depth += 1;
+      else if (ch === ')') depth = Math.max(0, depth - 1);
+      else if (ch === ' ') {
+        const a = nm.slice(0, i), b = nm.slice(i + 1);
+        if (!a || !b) continue;
+        const score = Math.max(a.length, b.length) + (depth > 0 ? 6 : 0);
+        if (!best || score < best[0]) best = [score, a, b];
+      }
+    }
+    if (!best) return [nm.slice(0, VAR_LINE_MAX - 1) + '…'];
+    const cut = s => (s.length > VAR_LINE_MAX + 4 ? s.slice(0, VAR_LINE_MAX + 3) + '…' : s);
+    return [cut(best[1]), cut(best[2])];
+  }
   function anchorLines(g, sc, slot) {
     const vi = sc.types[slot];
-    if (slot === 0) return [t('grBaseAnchorTpl', { org: t('grOurs') }), shortVarName(g, vi)];
+    if (slot === 0) return [t('grBaseAnchorTpl', { org: t('grOurs') })].concat(varNameLines(fullVarName(g, vi)));
     if (sc.nPeer > 3) return [orgOf(sc.codes[slot])];
-    return [orgOf(sc.codes[slot]), shortVarName(g, vi)];
+    return [orgOf(sc.codes[slot])].concat(varNameLines(fullVarName(g, vi)));
   }
 
   // 그룹 라벨 두 행(11절)
@@ -1163,6 +1180,21 @@
     });
     yield* simulate(gnodes, fixed, boxes, [], { W, H, gap: NET_GROUP_GAP, qSame: 0, qDiff: -30, qdmax: 40, kg: 0, kt: 0.10 });
     const gpos = new Map(gnodes.map(gn => [gn.key, { x: gn.x, y: gn.y, R: gn.r }]));
+    // 화면 가장자리 제한으로 그룹 원이 타사 앵커 이름표 쪽으로 밀려 붙으면 이름표를 위아래나 왼쪽으로 옮긴다(3차 개선 6번)
+    {
+      const near = b => gnodes.some(gn => { const px = Math.max(b[0], Math.min(gn.x, b[2])), py = Math.max(b[1], Math.min(gn.y, b[3])); return Math.hypot(px - gn.x, py - gn.y) < gn.r + 8; });
+      const hitA = (b, a) => anc.some(o => o !== a && (Math.hypot(Math.max(b[0], Math.min(o.x, b[2])) - o.x, Math.max(b[1], Math.min(o.y, b[3])) - o.y) < o.r + 4 || (b[0] < o.box[2] && o.box[0] < b[2] && b[1] < o.box[3] && o.box[1] < b[3])));
+      anc.forEach((a, i) => {
+        if (a.slot === 0 || !near(a.box)) return;
+        const lh = a.box[3] - a.box[1], cands = [];
+        [1, -1].forEach(side => [0, -8, 8, -16, 16, -24, 24, -32, 32].forEach(dy => {
+          const x0 = side > 0 ? a.x + a.r + 4 : a.x - a.r - 4 - a.lw;
+          cands.push([x0, a.box[1] + dy, x0 + a.lw, a.box[1] + dy + lh]);
+        }));
+        const ok = cands.find(b => b[0] >= 2 && b[2] <= W - 2 && b[1] >= 2 && b[3] <= H - 2 && !near(b) && !hitA(b, a));
+        if (ok) { a.box = ok; boxes[i] = ok; }
+      });
+    }
     // 2단계: 그룹 안 포스 배치(3.6 안 A)
     const nodes = sc.stds.map(si => {
       const it = sc.info.get(si);
@@ -1376,16 +1408,18 @@
     return jd.cov.pv.filter(x => x.v).map(x => [x.v.kind, `${orgOf((txt.vinfo(x.peer) || {})['기관코드'])} ${App.cover.chipText(x.v)}`]);
   }
 
+  // 표시 기호 뒤에는 무채색 배경 원을 두어 어두운 담보 원이나 굵은 테두리 위에서도 보이게 한다(3차 개선 8번)
   function markGlyph(m, r) {
     const d = r * 0.7071;
+    const bg = (cx, cy, br) => `<circle class="gr-mk gr-mk-bg" cx="${cx}" cy="${cy}" r="${br}"/>`;
     if (m === 'sole' || m === 'peer-rel') {
       const cx = f1(d + 1), cy = f1(-d - 1), h = 4.24;
-      return `<path class="gr-mk gr-mk-${m}" d="M${cx} ${f1(cy - h)}L${f1(cx + h)} ${cy}L${cx} ${f1(cy + h)}L${f1(cx - h)} ${cy}Z"/>`;
+      return bg(cx, cy, 5.2) + `<path class="gr-mk gr-mk-${m}" d="M${cx} ${f1(cy - h)}L${f1(cx + h)} ${cy}L${cx} ${f1(cy + h)}L${f1(cx - h)} ${cy}Z"/>`;
     }
-    if (m === 'ours-wide') return `<circle class="gr-mk gr-mk-wide" cx="${f1(d + 1)}" cy="${f1(d + 1)}" r="3"/>`;
+    if (m === 'ours-wide') return bg(f1(d + 1), f1(d + 1), 4.4) + `<circle class="gr-mk gr-mk-wide" cx="${f1(d + 1)}" cy="${f1(d + 1)}" r="3"/>`;
     if (m === 'ours-part') {
       const cx = f1(d + 1), cy = f1(d + 1);
-      return `<circle class="gr-mk gr-mk-part-o" cx="${cx}" cy="${cy}" r="3"/><path class="gr-mk gr-mk-part-f" d="M${cx} ${f1(cy - 3)}A3 3 0 0 0 ${cx} ${f1(cy + 3)}Z"/>`;
+      return bg(cx, cy, 4.4) + `<circle class="gr-mk gr-mk-part-o" cx="${cx}" cy="${cy}" r="3"/><path class="gr-mk gr-mk-part-f" d="M${cx} ${f1(cy - 3)}A3 3 0 0 0 ${cx} ${f1(cy + 3)}Z"/>`;
     }
     return '';
   }
@@ -1424,7 +1458,7 @@
     lay.bundles.forEach(b => {
       parts.push(`<line class="gr-e gr-e-bundle" data-tip-title="${esc(t('grLgBundle'))}" x1="${f1(b.x1)}" y1="${f1(b.y1)}" x2="${f1(b.x2)}" y2="${f1(b.y2)}" stroke-width="${f1(b.w)}" data-gr-ekind="보유" data-gr-bundle="1" data-gr-s="${esc(lay.anc[b.slot].id)}" data-gr-t="${esc(b.key)}" data-gr-slot="${b.slot}"/>`);
     });
-    parts.push('</g><g class="gr-l-hot"></g><g class="gr-l-xe"></g><g class="gr-l-ghost" aria-hidden="true"></g>');
+    parts.push('</g><g class="gr-l-hot"></g><g class="gr-l-xe"></g><g class="gr-l-ghost" aria-hidden="true"></g><g class="gr-l-cl" aria-hidden="true"></g>');
     // 표준담보 노드
     parts.push('<g class="gr-l-nodes">');
     sc.stds.forEach(si => {
@@ -1477,7 +1511,7 @@
     lay.slabels.forEach((b, si) => {
       parts.push(`<text class="gr-tx gr-lb-s" data-gr-lb="std" data-gr-for="${esc(g.N[si].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + textAsc())}">${esc(g.N[si].l)}</text>`);
     });
-    parts.push('</g><g class="gr-l-dom" aria-hidden="true"></g>');
+    parts.push('</g><g class="gr-l-cb" aria-hidden="true"></g><g class="gr-l-dom" aria-hidden="true"></g>');
     return `<svg class="gr-net-svg" id="gr-net-svg" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(t('grNetAria'))}" data-gr-w="${W}" data-gr-h="${H}" data-gr-k="${f1(lay.k)}" data-gr-ms="${f1(lay.ms)}">${parts.join('')}</svg>`;
   }
 
@@ -1576,7 +1610,7 @@
   }
 
   // 그룹을 호버하거나 선택하면 그룹 안 보장 대분류 구역마다 "대분류 n" 을 그 구역 쪽 원 바깥에 표시한다(명암만으로 구분하기 어려워서, 비평 2번)
-  function domZoneHTML(g, lay, key) {
+  function domZoneHTML(g, lay, key, plan) {
     const grp = lay.sc.groupMap.get(key), gg = lay.gpos.get(key);
     if (!grp || !gg) return '';
     const by = new Map();
@@ -1591,21 +1625,29 @@
     }).sort((a, b) => a.ang - b.ang);
     const h = textLineH();
     // 앵커 라벨, 그룹 라벨, 보이는 담보 라벨과 겹치지 않게 둔다
-    const placed = lay.anc.map(a => a.box).concat(Array.from(lay.glabels.values()).map(gl => gl.box), Array.from(lay.slabels.values()));
+    // 대상 담보 이름표와 번호가 있으면 그 상자와 지시선도 피한다. 다른 그룹 원과 앵커, 번들 엣지 위에도 두지 않는다
+    // 이름은 무채색 칩(굵은 글자와 배경)으로 담보 이름과 구분한다(3차 개선 9번)
+    const placed = lay.anc.map(a => a.box).concat(Array.from(lay.glabels.values()).map(gl => gl.box), plan ? [] : Array.from(lay.slabels.values()), plan ? plan.items.map(it => it.box) : []);
+    const leads = plan ? plan.items.map(it => it.lead) : [];
+    const circles = Array.from(lay.gpos.values()).map(v => [v.x, v.y, v.R]).concat(lay.anc.map(a => [a.x, a.y, a.r + 4]));
+    const px = 5, py = 2;
     return zs.map(z => {
-      const tx = `${z.d} ${fmt(z.n)}`, w = textW(tx, 600);
+      const tx = `${z.d} ${fmt(z.n)}`, w = textW(tx, 700) + 2 * px, hh = h + 2 * py;
       let box = null;
-      for (let d = 4; d < 64 && !box; d += 4) {
-        for (const da of [0, 0.25, -0.25, 0.5, -0.5]) {
+      for (let d = 4; d < 96 && !box; d += 4) {
+        for (const da of [0, 0.25, -0.25, 0.5, -0.5, 0.8, -0.8]) {
           const ux = Math.cos(z.ang + da), uy = Math.sin(z.ang + da);
-          const bx = gg.x + ux * (gg.R + d) - w / 2 + ux * w / 2, by = gg.y + uy * (gg.R + d) - h / 2 + uy * h / 2;
-          const b = [bx, by, bx + w, by + h];
-          if (b[0] >= 0 && b[1] >= 0 && b[2] <= lay.W && b[3] <= lay.H && !placed.some(q => b[0] < q[2] && q[0] < b[2] && b[1] < q[3] && q[1] < b[3])) { box = b; break; }
+          const bx = gg.x + ux * (gg.R + d) - w / 2 + ux * w / 2, by = gg.y + uy * (gg.R + d) - hh / 2 + uy * hh / 2;
+          const b = [bx, by, bx + w, by + hh];
+          if (b[0] < 2 || b[1] < 2 || b[2] > lay.W - 2 || b[3] > lay.H - 2 || boxHit(b, placed, circles, lay.W, lay.H)) continue;
+          if (leads.some(l => segHitsBox(l[0], l[1], l[2], l[3], b, 1)) || lay.bundles.some(e => segHitsBox(e.x1, e.y1, e.x2, e.y2, b, e.w / 2 + 1))) continue;
+          box = b;
+          break;
         }
       }
       if (!box) return '';
       placed.push(box);
-      return `<text class="gr-tx gr-dz" x="${f1(box[0])}" y="${f1(box[1] + textAsc())}">${esc(tx)}</text>`;
+      return `<g class="gr-dz" data-gr-lb="dom" data-gr-lbox="${box.map(f1).join(',')}"><rect rx="3" x="${f1(box[0])}" y="${f1(box[1])}" width="${f1(box[2] - box[0])}" height="${f1(box[3] - box[1])}"/><text class="gr-tx" x="${f1(box[0] + px)}" y="${f1(box[1] + py + textAsc())}">${esc(tx)}</text></g>`;
     }).join('');
   }
 
@@ -1645,6 +1687,218 @@
       else if (f.startsWith('dom:') && it.dom === f.slice(4)) out.add(si);
     });
     return out;
+  }
+
+  // ---------- 대상 담보 이름표와 번호(3차 개선 3번) ----------
+  // 그룹을 선택했거나 필터를 켰을 때 대상 담보를 빠짐없이 보인다. 대상이 CALL_NAME_MAX 개 이하이고 이름표가 모두
+  // 다른 요소와 겹치지 않게 들어가면 그룹 원 바깥 좌우 열에 이름표와 지시선을, 아니면 노드마다 번호를 원 둘레 바깥에 두고
+  // 상세 패널에 같은 번호의 목록을 보인다. 번호 차례는 상세 패널의 목록 차례(그룹 차례, 보장 대분류 차례, 담보 차례)와 같다
+  const CALL_NAME_MAX = 8;
+  const CLS_KEY = { only: 'grClsOnly', shared: 'grClsShared', peer: 'grClsPeer' };
+  function domSorted(g, sis) {
+    const doms = domOrder(g);
+    return sis.slice().sort((a, b) => {
+      const da = doms.indexOf(domOf(g, a)), db = doms.indexOf(domOf(g, b));
+      return (da < 0 ? 99 : da) - (db < 0 ? 99 : db) || a - b;
+    });
+  }
+  function calloutTarget(g, lay) {
+    const sc = lay.sc;
+    if (state.selStd != null && sc.info.has(state.selStd)) return null;
+    if (state.selGroup && sc.groupMap.has(state.selGroup)) return { kind: 'group', key: state.selGroup, list: domSorted(g, sc.groupMap.get(state.selGroup).members) };
+    const flt = filterSet(g, lay);
+    if (!flt || !flt.size) return null;
+    const list = [];
+    sc.groups.forEach(grp => { list.push(...domSorted(g, grp.members.filter(si => flt.has(si)))); });
+    return { kind: 'flt', f: state.filter, list };
+  }
+  function calloutPlan(g, lay, tg) {
+    const ck = `${tg.kind}|${tg.key || tg.f}|${tg.list.join(',')}`;
+    if (net.call && net.call.lay === lay && net.call.k === ck) return net.call.p;
+    let p = tg.list.length <= CALL_NAME_MAX ? placeCallNames(g, lay, tg.list) : null;
+    if (!p) p = placeCallNums(g, lay, tg.list);
+    p.k = ck;
+    net.call = { lay, k: ck, p };
+    return p;
+  }
+  // 이름표와 번호가 피할 것: 앵커와 그룹 라벨, 모든 그룹 원과 앵커 원, 번들 엣지와 그룹 라벨 지시선
+  function callObstacles(lay) {
+    // 그룹 라벨은 버튼형 테두리(글자 상자 바깥 3px)까지 피하도록 4px 넓힌다
+    const grow = b => [b[0] - 4, b[1] - 4, b[2] + 4, b[3] + 4];
+    const boxes = lay.anc.map(a => a.box).concat(Array.from(lay.glabels.values()).map(gl => grow(gl.box)));
+    const circles = Array.from(lay.gpos.entries()).map(([key, v]) => [v.x, v.y, v.R, key]).concat(lay.anc.map(a => [a.x, a.y, a.r + 4, '']));
+    const segs = lay.bundles.map(b => [b.x1, b.y1, b.x2, b.y2, b.w / 2 + 1]);
+    lay.glabels.forEach(gl => { if (gl.lead) segs.push([gl.lead[0], gl.lead[1], gl.lead[2], gl.lead[3], 1]); });
+    return { boxes, circles, segs };
+  }
+  const CALL_EDGE = 2;
+  function callBoxOk(b, ob, placed, W, H) {
+    if (b[0] < CALL_EDGE || b[1] < CALL_EDGE || b[2] > W - CALL_EDGE || b[3] > H - CALL_EDGE) return false;
+    if (boxHit(b, ob.boxes.concat(placed), ob.circles, W, H)) return false;
+    return !ob.segs.some(s => segHitsBox(s[0], s[1], s[2], s[3], b, s[4]));
+  }
+  // 지시선은 다른 라벨을 지나지 않고, 자기 그룹이 아닌 그룹 원과 앵커를 지나지 않고, 앞서 둔 지시선과 엇갈리지 않는다
+  function callLeadOk(ln, ownKey, ob, placed, leads) {
+    const a = [ln[0], ln[1]], b = [ln[2], ln[3]];
+    if (ob.boxes.concat(placed).some(q => segHitsBox(ln[0], ln[1], ln[2], ln[3], q, 0))) return false;
+    if (ob.circles.some(([x, y, r, key]) => key !== ownKey && segCircleDist(a, b, [x, y]) < r)) return false;
+    return !leads.some(q => segX(a, b, [q[0], q[1]], [q[2], q[3]]));
+  }
+  function groupedTargets(lay, list) {
+    const by = new Map();
+    list.forEach((si, i) => {
+      const key = lay.sc.info.get(si).key;
+      if (!by.has(key)) by.set(key, []);
+      by.get(key).push({ si, num: i + 1 });
+    });
+    return by;
+  }
+  function placeCallNames(g, lay, list) {
+    const ob = callObstacles(lay);
+    const W = lay.W, H = lay.H, h = textLineH(), gapY = 4;
+    const items = [], placed = [], leads = [];
+    for (const [key, its0] of groupedTargets(lay, list)) {
+      const gg = lay.gpos.get(key);
+      const its = its0.map(it => {
+        const p = lay.npos.get(it.si);
+        return Object.assign({}, it, { p, w: textW(g.N[it.si].l, 400) + 2, cos: Math.cos(Math.atan2(p.y - gg.y, p.x - gg.x)) });
+      });
+      const tryCols = (sides, pad) => {
+        const out = [], pl = placed.slice(), ld = leads.slice();
+        for (const s of [1, -1]) {
+          const col = its.filter((_, i) => sides[i] === s).sort((a, b) => a.p.y - b.p.y || a.si - b.si);
+          if (!col.length) continue;
+          const [ys, gEff] = pavaSpread(col.map(it => it.p.y), h / 2 + CALL_EDGE, H - h / 2 - CALL_EDGE, h + gapY);
+          if (gEff < h + gapY - 0.01) return null;
+          for (let i = 0; i < col.length; i++) {
+            const it = col[i], y = ys[i];
+            const x0 = s > 0 ? gg.x + gg.R + pad : gg.x - gg.R - pad - it.w;
+            const box = [x0, y - h / 2, x0 + it.w, y + h / 2];
+            const lx = s > 0 ? box[0] - 3 : box[2] + 3;
+            const dx = lx - it.p.x, dy = y - it.p.y, d = Math.hypot(dx, dy) || 1;
+            const lead = [it.p.x + dx / d * (it.p.r + 1), it.p.y + dy / d * (it.p.r + 1), lx, y];
+            if (!callBoxOk(box, ob, pl, W, H) || !callLeadOk(lead, key, ob, pl, ld)) return null;
+            pl.push(box); ld.push(lead);
+            out.push({ si: it.si, num: it.num, box, lead });
+          }
+        }
+        return out;
+      };
+      // 노드가 원 중심의 오른쪽이면 오른쪽 열, 왼쪽이면 왼쪽 열. 막히면 한쪽 열에 모두, 원에서 더 떨어뜨려 다시 찾는다
+      const splits = [its.map(it => (it.cos >= 0 ? 1 : -1)), its.map(() => 1), its.map(() => -1)];
+      let ok = null;
+      for (const pad of [14, 30, 46]) {
+        for (const sides of splits) { ok = tryCols(sides, pad); if (ok) break; }
+        if (ok) break;
+      }
+      if (!ok) return null;
+      ok.forEach(x => { items.push(x); placed.push(x.box); leads.push(x.lead); });
+    }
+    items.sort((a, b) => a.num - b.num);
+    return { mode: 'name', items, misses: 0 };
+  }
+  const ang2t = a => ((a / (2 * Math.PI)) % 1 + 1) % 1;
+  function placeCallNums(g, lay, list) {
+    const ob = callObstacles(lay);
+    const W = lay.W, H = lay.H, h = textLineH() + 4;
+    const items = [], placed = [], leads = [];
+    let misses = 0;
+    for (const [key, its0] of groupedTargets(lay, list)) {
+      const gg = lay.gpos.get(key);
+      const its = its0.map(it => {
+        const p = lay.npos.get(it.si);
+        const ang = Math.hypot(p.x - gg.x, p.y - gg.y) < 1 ? -Math.PI / 2 : Math.atan2(p.y - gg.y, p.x - gg.x);
+        return Object.assign({}, it, { p, ang, w: Math.max(h, textW(String(it.num), 700) + 10) });
+      });
+      const rr = gg.R + 4 + h / 2;
+      const wMax = Math.max(...its.map(it => it.w));
+      const spread = circSpread(its.map(it => [it.si, ang2t(it.ang)]), 2 * Math.PI * rr, wMax + 3);
+      its.sort((a, b) => spread.get(a.si)[0] - spread.get(b.si)[0]);
+      its.forEach(it => {
+        const [tt, zz] = spread.get(it.si);
+        const th0 = 2 * Math.PI * tt;
+        const cands = [];
+        for (const ext of [0, 14, 28, 42, 60, 80]) {
+          for (const da of [0, 0.06, -0.06, 0.12, -0.12, 0.2, -0.2, 0.3, -0.3]) {
+            const th = th0 + da, rad = rr + Math.max(0, zz) * 2 + ext;
+            cands.push([gg.x + Math.cos(th) * rad, gg.y + Math.sin(th) * rad]);
+          }
+        }
+        const mk = ([cx0, cy0]) => {
+          // 마지막 대안(첫 후보)도 그래프 영역 밖으로 나가 잘리지 않게 영역 안으로 당긴다
+          const cx = Math.min(Math.max(cx0, CALL_EDGE + it.w / 2), W - CALL_EDGE - it.w / 2);
+          const cy = Math.min(Math.max(cy0, CALL_EDGE + h / 2), H - CALL_EDGE - h / 2);
+          const box = [cx - it.w / 2, cy - h / 2, cx + it.w / 2, cy + h / 2];
+          const e = clipToBox(cx, cy, it.w / 2 + 1, h / 2 + 1, it.p.x, it.p.y);
+          const dx = e[0] - it.p.x, dy = e[1] - it.p.y, d = Math.hypot(dx, dy) || 1;
+          return { box, lead: [it.p.x + dx / d * (it.p.r + 1), it.p.y + dy / d * (it.p.r + 1), e[0], e[1]] };
+        };
+        let hit = null;
+        for (const c of cands) { const m = mk(c); if (callBoxOk(m.box, ob, placed, W, H) && callLeadOk(m.lead, key, ob, placed, leads)) { hit = m; break; } }
+        // 지시선 조건을 모두 채우는 자리가 없으면 번호 상자가 겹치지 않는 첫 자리, 그것도 없으면 첫 후보에 두고 수를 센다
+        if (!hit) { for (const c of cands) { const m = mk(c); if (callBoxOk(m.box, ob, placed, W, H)) { hit = m; break; } } }
+        // 그래도 없으면 라벨과 앞서 둔 번호 상자에 가장 적게 겹치는 후보(같으면 앞 후보)에 두고 수를 센다
+        if (!hit) {
+          const ovl = b => ob.boxes.concat(placed).reduce((n, q) => n + (b[0] < q[2] && b[2] > q[0] && b[1] < q[3] && b[3] > q[1] ? 1 : 0), 0);
+          let bs = Infinity;
+          for (const c of cands) { const m = mk(c), v = ovl(m.box); if (v < bs) { bs = v; hit = m; if (!v) break; } }
+          misses += 1;
+        }
+        placed.push(hit.box); leads.push(hit.lead);
+        items.push({ si: it.si, num: it.num, box: hit.box, lead: hit.lead });
+      });
+    }
+    items.sort((a, b) => a.num - b.num);
+    return { mode: 'num', items, misses };
+  }
+  function calloutSVG(g, plan) {
+    const leads = plan.items.map(it => `<line class="gr-cl-lead" x1="${f1(it.lead[0])}" y1="${f1(it.lead[1])}" x2="${f1(it.lead[2])}" y2="${f1(it.lead[3])}"/>`).join('');
+    const labs = plan.items.map(it => {
+      const b = it.box, id = esc(g.N[it.si].id), lbox = b.map(f1).join(',');
+      if (plan.mode === 'name') return `<text class="gr-tx gr-cl-nm" data-gr-lb="call" data-gr-for="${id}" data-gr-lbox="${lbox}" x="${f1(b[0] + 1)}" y="${f1(b[1] + textAsc())}">${esc(g.N[it.si].l)}</text>`;
+      return `<g class="gr-cl-num" data-gr-lb="num" data-gr-for="${id}" data-gr-lbox="${lbox}"><rect rx="3" x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2] - b[0])}" height="${f1(b[3] - b[1])}"/><text class="gr-tx" x="${f1((b[0] + b[2]) / 2)}" y="${f1(b[1] + 2 + textAsc())}" text-anchor="middle">${it.num}</text></g>`;
+    }).join('');
+    return [leads, labs];
+  }
+  const numTagHTML = n => `<span class="gr-num">${n}</span>`;
+  // 필터를 켠 상태의 상세 패널: 켠 필터 이름과 건수, 그룹마다 대상 담보 목록(번호를 붙였으면 같은 번호)
+  function fltPanelHTML() {
+    const lay = net.lay;
+    if (state.preset !== 'cover' || !lay || !state.filter) return '';
+    const g = ensureGraph();
+    const tg = calloutTarget(g, lay);
+    if (!tg || tg.kind !== 'flt') return '';
+    const plan = calloutPlan(g, lay, tg);
+    const f = state.filter, sc = lay.sc;
+    const name = f.startsWith('f:') ? App.label((FILTERS.find(x => x.id === f.slice(2)) || {}).cause || '')
+      : f.startsWith('cls:') ? t(CLS_KEY[f.slice(4)] || 'grClsShared') : f.slice(4);
+    let n = 0;
+    const secs = sc.groups.map(grp => {
+      const sis = tg.list.filter(si => sc.info.get(si).key === grp.key);
+      if (!sis.length) return '';
+      const rows = sis.map(si => `<li>${plan.mode === 'num' ? numTagHTML(++n) : ''}<button type="button" class="cv-lk" data-gr-pick-std="${si}">${esc(g.N[si].l)}</button>${f.startsWith('dom:') ? '' : ' ' + ui.tag(domOf(g, si))}</li>`).join('');
+      return `<h4 class="gr-fl-gh">${esc(groupLines(sc, grp)[0])} ${esc(fmt(sis.length))}</h4><ul class="evl gr-glist">${rows}</ul>`;
+    }).join('');
+    const note = plan.mode === 'num' ? `<p class="gr-fl-note">${esc(t('grCallNumNote'))}</p>` : '';
+    return `<div class="ev-sec gr-fl"><p class="gr-fl-k">${esc(t('grFltListKicker'))}</p><h3>${esc(t('grFltListTpl', { name, n: fmt(tg.list.length) }))}</h3>${note}${secs}</div>`;
+  }
+  // 선택이 없을 때의 상세 패널. 필터를 켜지 않았으면 기본 안내문(앱의 기본 표시와 같은 문장)
+  function renderDefaultRight(unsel) {
+    if (!unsel) return;
+    const html = fltPanelHTML();
+    const zr = document.getElementById('z-right');
+    if (html) {
+      if (zr) zr.classList.add('has-default-panel');
+      unsel.classList.add('is-custom-panel');
+      unsel.innerHTML = html;
+      return;
+    }
+    if (zr) zr.classList.remove('has-default-panel');
+    unsel.classList.remove('is-custom-panel');
+    const tmp = document.createElement('div');
+    tmp.innerHTML = defaultEv().body || '';
+    const tx = ui.firstSentence(tmp.textContent);
+    unsel.innerHTML = tx ? `<p class="read-concl">${esc(tx)}</p>` : '';
   }
 
   // 선택, 필터, 호버 상태를 클래스와 강조 엣지로 반영한다(배치는 다시 계산하지 않는다)
@@ -1697,6 +1951,25 @@
     svg.classList.toggle('is-hl', !!(hov && fs));
     svg.classList.toggle('is-selm', !hov && !!(selFocus && fs));
     svg.classList.toggle('is-flt', !!flt && !(focus && fs));
+    // 그룹 선택이나 필터의 대상 담보 이름표 또는 번호(위치 트랜지션 중에는 지운다)
+    const tg = !ex && !net.moving ? calloutTarget(g, lay) : null;
+    const plan = tg ? calloutPlan(g, lay, tg) : null;
+    net.callShown = plan;
+    svg.classList.toggle('is-call', !!plan);
+    const cl = svg.querySelector('.gr-l-cl'), cb = svg.querySelector('.gr-l-cb');
+    if (cl && cb && cb.dataset.k !== (plan ? plan.k : '')) {
+      const [lh, bh] = plan ? calloutSVG(g, plan) : ['', ''];
+      cl.innerHTML = lh;
+      cb.innerHTML = bh;
+      cb.dataset.k = plan ? plan.k : '';
+    }
+    // 필터 상태의 상세 패널(선택이 없을 때)을 켠 필터의 대상 목록으로 맞춘다
+    const fpk = tg && tg.kind === 'flt' ? plan.k : '';
+    if (net.fltPanelK !== fpk) {
+      net.fltPanelK = fpk;
+      const unsel = document.getElementById('ev-unselected');
+      if (unsel && !unsel.hidden && App.state.tab === 'graph' && App.state.sel.graph == null) renderDefaultRight(unsel);
+    }
     const sel = App.state.sel.graph;
     svg.querySelectorAll('.gr-l-nodes > .gr-n').forEach(el => {
       const si = +el.dataset.grIdx;
@@ -1731,7 +2004,8 @@
     const dz = svg.querySelector('.gr-l-dom');
     if (dz) {
       const gk = focus && fs && focus.t === 'group' && !ex ? focus.key : '';
-      if (dz.dataset.k !== gk) { dz.innerHTML = gk ? domZoneHTML(g, lay, gk) : ''; dz.dataset.k = gk; }
+      const dk = gk ? gk + '|' + (plan ? plan.k : '') : '';
+      if (dz.dataset.k !== dk) { dz.innerHTML = gk ? domZoneHTML(g, lay, gk, plan) : ''; dz.dataset.k = dk; }
     }
     const hot = svg.querySelector('.gr-l-hot');
     if (hot) {
@@ -1777,6 +2051,8 @@
       if (d <= Math.max(nd.r + 4, 12) && d < bd) { bd = d; best = { t: 'x', i }; }
     });
     if (best) return best;
+    // 대상 담보 이름표와 번호는 그 담보를 가리킨다
+    if (net.callShown) for (const it of net.callShown.items) { const b = it.box; if (x >= b[0] - 2 && x <= b[2] + 2 && y >= b[1] - 2 && y <= b[3] + 2) return { t: 'std', si: it.si }; }
     for (const [key, gl] of lay.glabels) {
       const b = gl.box;
       if (x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]) return { t: 'group', key };
@@ -2514,12 +2790,17 @@
         : pv.map(x => ui.verdict(x.v.kind, `${orgOf((txt.vinfo(x.peer) || {})['기관코드'])}: ${relChipText(x.v)}`, x.v.why)).join('');
       return `<li><button type="button" class="cv-lk" data-gr-pick-std="${si}">${esc(g.N[si].l)}</button> ${mk}${chips}</li>`;
     }).join('');
+    // 그래프에서 대상 담보에 번호를 붙였으면 목록 행 앞에 같은 번호를 둔다(행 차례와 번호 차례가 같다, 3차 개선 3번)
+    const plan = net.lay && net.lay.sc === sc ? calloutPlan(g, net.lay, { kind: 'group', key, list }) : null;
+    let ri = 0;
+    const rowsN = plan && plan.mode === 'num' ? rows.replace(/<li\b[^>]*>/g, m => m + numTagHTML(++ri)) : rows;
+    const numNote = plan && plan.mode === 'num' ? `<p class="gr-fl-note">${esc(t('grCallNumNote'))}</p>` : '';
     return {
       kicker: t('grGroupKicker'),
       title: lines[0],
       badges: [ui.tag(lines[1])],
       body: `<div class="ev-sec"><h3>${esc(t('grDomCntHead'))}</h3><p>${esc(domCountText(g, grp.members))}</p></div>
-        <div class="ev-sec"><h3>${esc(t('grGroupListHeadTpl', { n: fmt(grp.members.length) }))}</h3><ul class="evl gr-glist">${rows}</ul></div>`,
+        <div class="ev-sec"><h3>${esc(t('grGroupListHeadTpl', { n: fmt(grp.members.length) }))}</h3>${numNote}<ul class="evl gr-glist">${rowsN}</ul></div>`,
     };
   }
 
@@ -3004,10 +3285,14 @@
 
   // ---------- 종형 구성 보기(6절)와 시장 동향 보기(7절) ----------
   // 두 보기는 담보별 연결과 같은 그래프 영역(#gr-net)에 SVG 하나로 그린다. 수는 summary, 엣지 속성, 집합의 크기에서만 읽는다
-  const VT_MARGIN = 14, VT_RHO = { r: 0.36, b: 0.63, s: 0.90 }, VT_R = { r: 5, b: 4.5, s: 6 };
-  const VT_GAP = 14, VT_STD_GAP = 16, VT_STD_PAD = 12, VT_BOX = [168, 46], VT_LBL_MAX = 16, VT_LBL_H = 16;
+  const VT_MARGIN = 14, VT_RHO = { r: 0.42, b: 0.67, s: 0.90 }, VT_R = { r: 5, b: 4.5, s: 6 };
+  // VT_BOX: 가운데 종형 상자(오른쪽 VT_GO 폭은 클릭 표시 칸), VT_LB_PAD: 이름표 뒤에서 선을 끊는 여백
+  const VT_GAP = 14, VT_STD_GAP = 16, VT_STD_PAD = 12, VT_BOX = [188, 46], VT_GO = 22, VT_LB_PAD = 2, VT_LBL_MAX = 16, VT_LBL_H = 16;
   const VT_SECTOR_MIN = 10, VT_SECTOR_PAD = 1;
   const MK_RO = 14, MK_RN = 7, MK_RC = 11, MK_MX = 96, MK_MY = 24, MK_CAT_RHO = 0.36, MK_CAT_GAP = 96, MK_U = 0.5;
+  // 보이는 동향이 MK_TITLE_N 건 이하면 날짜 옆에 제목 앞부분(MK_TITLE_LEN 글자, 자리가 없으면 더 짧게)을 붙인다
+  const MK_TITLE_N = 12, MK_TITLE_LEN = [16, 10];
+  const MK_NONE = { week: 'grNewsNoneWeek', allweek: 'grNewsNoneAllWeek', all: 'grNewsNoneAll' };
   const alt = { lay: null };
   const vtCache = new Map();
 
@@ -3163,10 +3448,10 @@
     const s = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
     return [cx + dx * Math.min(1, s), cy + dy * Math.min(1, s)];
   }
-  // 라벨 18곳: 바깥 방향, 오른쪽, 왼쪽, 위, 아래, 대각 넷, 같은 아홉 방향으로 8px 더(6절 11번)
+  // 라벨 27곳: 바깥 방향, 오른쪽, 왼쪽, 위, 아래, 대각 넷, 같은 아홉 방향으로 8px, 18px 더(6절 11번)
   function labelCands(x, y, r, w, h, nx, ny) {
     const out = [];
-    [0, 8].forEach(ex => {
+    [0, 8, 18].forEach(ex => {
       const d = r + 3 + ex;
       let ob;
       if (Math.abs(nx) >= 0.35) { const lx = nx > 0 ? x + d : x - d - w; ob = [lx, y - h / 2]; }
@@ -3177,18 +3462,33 @@
     });
     return out;
   }
-  // 그리디 라벨 배치: 다른 라벨, 노드, 상자와 겹치지 않는 첫 자리. 엣지가 지나지 않는 자리를 먼저 쓴다
+  // 이름표 자리 b 를 지나는 선의 수(그 노드에 이어진 선은 뺀다). eb 는 [엣지, 엣지 상자]
+  function lineHits(b, eb, own) {
+    let n = 0;
+    eb.forEach(([e, bb]) => { if ((own == null || (e.s !== own && e.t !== own)) && boxOv(b, bb) && e.pts.some((p, i) => i > 0 && segBox(e.pts[i - 1], p, b))) n++; });
+    return n;
+  }
+  // 후보 가운데 지나는 선이 가장 적은 자리(같으면 앞 후보, 즉 노드에 가깝고 바깥 방향인 자리)
+  function bestCand(cands, free, eb, own) {
+    let best = null, bv = Infinity;
+    cands.forEach((b, k) => { if (!free(b)) return; const v = lineHits(b, eb, own) * 10 + k * 0.05; if (v < bv) { bv = v; best = b; } });
+    return best;
+  }
+  // 그리디 라벨 배치: 다른 라벨, 노드, 상자와 겹치지 않는 자리 가운데 선이 가장 적게 지나는 자리
   function placeLabels(items, obstacles, W, H, edges) {
     const placed = [], out = new Map();
     const eb = edges.map(e => [e, ptsBox(e.pts)]);
     items.forEach(it => {
-      const ok = labelCands(it.x, it.y, it.r, it.w, VT_LBL_H, it.nx, it.ny).filter(b => b[0] >= 1 && b[1] >= 1 && b[2] <= W - 1 && b[3] <= H - 1
-        && !placed.some(q => boxOv(b, q)) && !obstacles.some(([k, q]) => k !== it.key && boxOv(b, q)));
-      let best = ok.find(b => !eb.some(([e, bb]) => e.s !== it.ni && e.t !== it.ni && boxOv(b, bb) && e.pts.some((p, i) => i > 0 && segBox(e.pts[i - 1], p, b))));
-      if (!best) best = ok[0];
+      const free = b => b[0] >= 1 && b[1] >= 1 && b[2] <= W - 1 && b[3] <= H - 1 && !placed.some(q => boxOv(b, q)) && !obstacles.some(([k, q]) => k !== it.key && boxOv(b, q));
+      const best = bestCand(labelCands(it.x, it.y, it.r, it.w, VT_LBL_H, it.nx, it.ny), free, eb, it.ni);
       if (best) { placed.push(best); out.set(it.key, best); }
     });
     return out;
+  }
+  // 이름표 뒤를 지나는 선을 이름표 앞에서 끊는 마스크(흰 바탕에 이름표 자리만 검게). 선 좌표는 그대로 둔다
+  function lbMask(id, W, H, boxes) {
+    const P = VT_LB_PAD;
+    return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>${boxes.map(b => `<rect x="${f1(b[0] - P)}" y="${f1(b[1] - 1)}" width="${f1(b[2] - b[0] + 2 * P)}" height="${f1(b[3] - b[1] + 2)}" fill="#000"/>`).join('')}</mask>`;
   }
   function vtRiders(g, vi) {
     const vf = state.vf;
@@ -3216,7 +3516,8 @@
     riders.forEach(r => (g.riderBens.get(r) || []).forEach(b => { if (!benRider.has(b)) { benRider.set(b, r); bens.push(b); } }));
     const stdsOf = b => (g.benStds.get(b) || []).map(x => x.std).filter(s => target.has(s));
     let stds = Array.from(new Set(bens.flatMap(stdsOf))).sort((a, b) => target.get(a) - target.get(b) || a - b);
-    const capR = Math.floor(ring.P * VT_RHO.r / VT_GAP), capB = Math.floor(ring.P * VT_RHO.b / VT_GAP);
+    // 표시 수용량은 링을 키우기 전 반지름(0.36, 0.63)으로 정해 보이는 특약과 급부 수를 그대로 둔다
+    const capR = Math.floor(ring.P * 0.36 / VT_GAP), capB = Math.floor(ring.P * 0.63 / VT_GAP);
     let kLim = null;
     const more = new Map();
     // 표시 한도: 두 타원 수용량을 넘으면 표준담보마다 급부 k 개까지(특약 차례, 주급부 먼저면 주급부 먼저), 나머지는 "+N"(6절 6번)
@@ -3361,7 +3662,7 @@
       if (!bb) { const bx = nd.x - nd.nx * (nd.r + 2 + w / 2), by = nd.y - nd.ny * (nd.r + 2 + h / 2); bb = [bx - w / 2, by - h / 2, bx + w / 2, by + h / 2]; }
       badges.push({ s, n, tx, box: bb });
     });
-    const obstacles = nodes.map(n => ['n' + n.ni, cbox(n.x, n.y, n.r + 1)]).concat([['box', box]], badges.map(b => ['b' + b.s, b.box]));
+    const obstacles = nodes.map(n => ['n' + n.ni, cbox(n.x, n.y, n.r + 2)]).concat([['box', box]], badges.map(b => ['b' + b.s, b.box]));
     const rv = vf.rev ? revOf(g, vi) : null;
     let revLine = null;
     if (rv) {
@@ -3374,7 +3675,8 @@
     const vs = g.summary && g.summary['종형'] && g.summary['종형'][g.N[vi].id];
     const secLabels = [];
     sectors.forEach(sc => {
-      const cnt = vs && vs['보장분야별'] ? vs['보장분야별']['CAT:' + sc.dom] : null;
+      // 요약의 보장분야별은 담보가 있는 대분류만 적으므로, 요약이 있는데 키가 없으면 그 종형의 담보는 0건이다
+      const cnt = vs && vs['보장분야별'] ? (vs['보장분야별']['CAT:' + sc.dom] || 0) : null;
       const tx = cnt != null ? `${sc.dom} ${fmt(cnt)}` : sc.dom;
       const w = textW(tx, 600), h = VT_LBL_H;
       let best = null;
@@ -3388,7 +3690,7 @@
         }
         if (best) break;
       }
-      if (best) { secLabels.push({ dom: sc.dom, tx, box: best }); obstacles.push(['sec:' + sc.dom, best]); }
+      if (best) { secLabels.push({ dom: sc.dom, tx, box: best, zero: cnt === 0 }); obstacles.push(['sec:' + sc.dom, best]); }
     });
     // "표준담보 매핑 대상 외" 구간 제목: 매핑된 급부가 없는 특약이 놓인 구간
     let outLabel = null;
@@ -3410,6 +3712,13 @@
       labelText.set(r, { body, suffix: rn ? `(${rn})` : '' });
       items.push({ key: 'n' + r, ni: r, x: nd.x, y: nd.y, r: nd.r, nx: nd.nx, ny: nd.ny, w: textW(rn ? `${body} (${rn})` : body) });
     });
+    // "표준담보 매핑 대상 외" 특약의 급부: 이어지는 표준담보가 없어 이름이 보이지 않으므로 급부 이름표를 붙인다
+    const lonelySet = new Set(lonely);
+    bens.filter(b => lonelySet.has(benRider.get(b))).forEach(b => {
+      const nd = nmap.get(b), body = clipName(riderBody(g.N[b].l));
+      labelText.set(b, { body, suffix: '' });
+      items.push({ key: 'n' + b, ni: b, x: nd.x, y: nd.y, r: nd.r, nx: nd.nx, ny: nd.ny, w: textW(body) });
+    });
     const allLines = edges.concat(secLines.map(p => ({ s: -1, t: -1, pts: p })));
     const lab = placeLabels(items, obstacles, W, H, allLines);
     const labels = new Map();
@@ -3429,16 +3738,17 @@
     const doms = domOrder(g);
     const rv = state.vf.rev ? revOf(g, vi) : null;
     const parts = [];
-    parts.push('<defs><marker id="gr-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="gr-arrow-h" d="M0,0 L8,4 L0,8 z"/></marker></defs>');
-    parts.push(`<g class="gr-l-sec">${lay.secLines.map(([p, q]) => `<line class="gr-vsec-l" x1="${f1(p[0])}" y1="${f1(p[1])}" x2="${f1(q[0])}" y2="${f1(q[1])}"/>`).join('')}</g>`);
-    parts.push('<g class="gr-l-edges">');
+    const lbBoxes = Array.from(lay.labels.values()).map(x => x.box).concat(lay.secLabels.map(x => x.box), [lay.outLabel, lay.revLine].filter(Boolean).map(x => x.box));
+    parts.push(`<defs><marker id="gr-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="gr-arrow-h" d="M0,0 L8,4 L0,8 z"/></marker>${lbMask('gr-vt-lbm', W, H, lbBoxes)}</defs>`);
+    parts.push(`<g class="gr-l-sec" mask="url(#gr-vt-lbm)">${lay.secLines.map(([p, q]) => `<line class="gr-vsec-l" x1="${f1(p[0])}" y1="${f1(p[1])}" x2="${f1(q[0])}" y2="${f1(q[1])}"/>`).join('')}</g>`);
+    parts.push('<g class="gr-l-edges" mask="url(#gr-vt-lbm)">');
     lay.edges.forEach(e => {
       const ek = e.e >= 0 ? g.E[e.e] : null;
       const sId = g.N[e.s] ? g.N[e.s].id : '', tId = g.N[e.t] ? g.N[e.t].id : '';
       let cls = 'gr-ve';
       if (e.k === '포함') cls += ' gr-ve-inc';
       else if (e.k === '매핑') { const st2 = ek && ek.p ? ek.p['검토상태'] : ''; cls += ' gr-ve-map' + (st2 === '승인' || st2 === '수정' ? ' is-human' : ''); }
-      else if (e.k === '담보 관계') cls += ' gr-e-rel ' + (e.rel === '통합' ? 'gr-e-rel-uni' : 'gr-e-rel-inc');
+      else if (e.k === '담보 관계') cls += ' gr-e-rel gr-ve-rel ' + (e.rel === '통합' ? 'gr-e-rel-uni' : 'gr-e-rel-inc');
       else if (e.k === '결합제약') cls += ' gr-ve-cons';
       const nm = g.ekindLabels[EK[e.k]] || e.k;
       const attrs = `class="gr-e ${cls}" data-gr-ekind="${esc(e.k)}" data-gr-s="${esc(sId)}" data-gr-t="${esc(tId)}"${e.e >= 0 ? ` data-gr-e="${e.e}"` : ''} data-tip-title="${esc(nm)}" data-tip-sub="${esc(`${g.N[e.s].l} -> ${g.N[e.t].l}`)}"`;
@@ -3485,9 +3795,9 @@
     const bw = bx1 - bx0, bh = by1 - by0;
     const umTx = um != null ? t('grUnmappedTpl', { n: fmt(um) }) : '';
     let nm = fullVarName(g, vi);
-    const maxW = bw - 14;
-    // 둘째 행 오른쪽 끝에 클릭 안내 화살표(›) 자리를 남긴다
-    const nmMax = maxW - 14;
+    // 오른쪽 VT_GO 폭은 클릭 표시(셰브런) 칸으로 비워 둔다
+    const maxW = bw - 14 - VT_GO;
+    const nmMax = maxW;
     if (textW(nm, 600) > nmMax) { while (nm.length > 1 && textW(nm + '…', 600) > nmMax) nm = nm.slice(0, -1); nm += '…'; }
     let org = orgLabel(vn.o);
     const orgMax = maxW - (umTx ? textW(umTx) + 8 : 0);
@@ -3496,13 +3806,14 @@
     parts.push(`<g class="gr-l-box"><g class="gr-vbox" transform="translate(${f1(lay.ring.cx)} ${f1(lay.ring.cy)})" tabindex="0" role="button" aria-label="${esc(fullVarName(g, vi))}" data-gr-fk="v:${esc(vn.id)}" data-gr-id="${esc(vn.id)}" data-gr-mid="${esc(vn.id)}" data-gr-idx="${vi}" data-gr-kind="종형"${um != null ? ` data-gr-unmapped="${um}"` : ''} data-aim="rect" data-tip-title="${esc(fullVarName(g, vi))}" data-tip-sub="${esc([orgLabel(vn.o), umTx].filter(Boolean).join(' / '))}">`
       + `<rect class="gr-vbox-r" x="${f1(-bw / 2)}" y="${f1(-bh / 2)}" width="${f1(bw)}" height="${f1(bh)}"/>`
       + `<text class="gr-tx" x="${f1(-bw / 2 + 7)}" y="${f1(-bh / 2 + 4 + asc)}">${esc(org)}</text>`
-      + (umTx ? `<text class="gr-tx gr-vbox-um" x="${f1(bw / 2 - 7)}" y="${f1(-bh / 2 + 4 + asc)}" text-anchor="end">${esc(umTx)}</text>` : '')
+      + (umTx ? `<text class="gr-tx gr-vbox-um" x="${f1(bw / 2 - 7 - VT_GO)}" y="${f1(-bh / 2 + 4 + asc)}" text-anchor="end">${esc(umTx)}</text>` : '')
       + `<text class="gr-tx gr-vbox-nm" x="${f1(-bw / 2 + 7)}" y="${f1(-bh / 2 + 4 + asc + NET_FS + 5)}">${esc(nm)}</text>`
-      // 클릭할 수 있음을 알리는 화살표(둘째 행 오른쪽 끝)
-      + `<text class="gr-tx gr-vbox-go" x="${f1(bw / 2 - 7)}" y="${f1(-bh / 2 + 4 + asc + NET_FS + 5)}" text-anchor="end">›</text></g></g>`);
+      // 클릭할 수 있음을 알리는 셰브런: 오른쪽 칸의 세로 가운데, 높이 14px(글자 › 는 16px 로 써도 작게 보였다)
+      + `<line class="gr-vbox-div" x1="${f1(bw / 2 - VT_GO)}" y1="${f1(-bh / 2 + 6)}" x2="${f1(bw / 2 - VT_GO)}" y2="${f1(bh / 2 - 6)}"/>`
+      + `<path class="gr-vbox-go" d="M${f1(bw / 2 - VT_GO / 2 - 3)},-7 L${f1(bw / 2 - VT_GO / 2 + 4)},0 L${f1(bw / 2 - VT_GO / 2 - 3)},7"/></g></g>`);
     // 라벨
     parts.push('<g class="gr-l-labels">');
-    lay.secLabels.forEach(sl => parts.push(`<text class="gr-tx gr-vsec" data-gr-lb="sector" data-gr-lbox="${sl.box.map(f1).join(',')}" x="${f1(sl.box[0])}" y="${f1(sl.box[1] + 1 + asc)}">${esc(sl.tx)}</text>`));
+    lay.secLabels.forEach(sl => parts.push(`<text class="gr-tx gr-vsec${sl.zero ? ' is-zero' : ''}" data-gr-lb="sector" data-gr-lbox="${sl.box.map(f1).join(',')}" x="${f1(sl.box[0])}" y="${f1(sl.box[1] + 1 + asc)}">${esc(sl.tx)}</text>`));
     if (lay.outLabel) { const b = lay.outLabel.box; parts.push(`<text class="gr-tx gr-vsec" data-gr-lb="out" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + 1 + asc)}">${esc(lay.outLabel.tx)}</text>`); }
     if (lay.revLine) { const b = lay.revLine.box; parts.push(`<text class="gr-tx gr-vrev" data-gr-lb="rev" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + 1 + asc)}">${esc(lay.revLine.tx)}</text>`); }
     lay.badges.forEach(bd => {
@@ -3511,7 +3822,7 @@
     });
     lay.labels.forEach((lb, ni) => {
       const b = lb.box;
-      parts.push(`<text class="gr-tx gr-vlb" data-gr-lb="${lay.nmap.get(ni).kind === 'r' ? 'rider' : 'std'}" data-gr-for="${esc(g.N[ni].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + 1 + asc)}"><tspan class="gr-vlb-b">${esc(lb.body)}</tspan>${lb.suffix ? `<tspan class="gr-vlb-rn">&#160;${esc(lb.suffix)}</tspan>` : ''}</text>`);
+      parts.push(`<text class="gr-tx gr-vlb" data-gr-lb="${({ r: 'rider', b: 'ben', s: 'std' })[lay.nmap.get(ni).kind]}" data-gr-for="${esc(g.N[ni].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + 1 + asc)}"><tspan class="gr-vlb-b">${esc(lb.body)}</tspan>${lb.suffix ? `<tspan class="gr-vlb-rn">&#160;${esc(lb.suffix)}</tspan>` : ''}</text>`);
     });
     parts.push('</g>');
     return `<svg class="gr-net-svg gr-alt-svg gr-vt-svg" id="gr-vt-svg" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(t('grPresetVariant'))}" data-gr-w="${W}" data-gr-h="${H}" data-gr-k-lim="${lay.kLim == null ? '' : lay.kLim}" data-gr-ms="${f1(lay.ms)}">${parts.join('')}</svg>`;
@@ -3641,9 +3952,11 @@
     const nodeBox = nodes.map(n => [n.kind === 'c' ? n.key : n.ni, cbox(n.x, n.y, n.r + 1)]);
     const placed = [];
     const free = (b, own) => b[0] >= 1 && b[1] >= 1 && b[2] <= W - 1 && b[3] <= H - 1 && !placed.some(q => boxOv(b, q)) && !nodeBox.some(([k, q]) => k !== own && boxOv(b, q));
+    // 선이 가장 적게 지나는 빈 자리(그 노드에 이어진 선은 세지 않는다)
+    const eb = edges.concat(cedges).map(e => [e, ptsBox(e.pts)]);
     const block = (nd, own, w, h) => {
       const cands = labelCands(nd.x, nd.y, nd.r, w, h, nd.nx, nd.ny).concat(labelCands(nd.x, nd.y, nd.r + 18, w, h, nd.nx, nd.ny));
-      return cands.find(b => free(b, own)) || null;
+      return bestCand(cands, b => free(b, own), eb, own);
     };
     d.orgs.forEach(oi => {
       const nd = pos.get('o' + oi), n = g.N[oi];
@@ -3652,7 +3965,8 @@
       if (n.p['기관구분'] && n.p['기관구분'] !== '보험회사') sub.push(App.label(n.p['기관구분']));
       if (n.p['업권'] === '생명보험' || n.p['업권'] === '손해보험') sub.push(App.label(n.p['업권']));
       if (nd.cmp && n.o !== 'EPOST') sub.push(t('grCmpPeer'));
-      sub.push(t('grNewsCntTpl', { n: fmt(nd.cnt) }));
+      // 동향이 없는 회사(비교 대상이라 늘 그린다)는 건수 대신 지금 필터에 동향이 없다는 안내
+      sub.push(nd.cnt ? t('grNewsCntTpl', { n: fmt(nd.cnt) }) : t(MK_NONE[state.nf] || MK_NONE.week));
       const tx2 = sub.join(', '), w2 = textW(tx2), w = Math.max(w1, w2);
       const b = block(nd, oi, w, 2 * LH);
       if (!b) return;
@@ -3670,13 +3984,21 @@
       placed.push(b);
       labels.push({ kind: 'cat', id: nd.key, tx, box: b, strong: true });
     });
-    const items = dots.map(nd => {
-      const tx = String(g.N[nd.ni].p['발표일자'] || '');
-      return { key: 'n' + nd.ni, ni: nd.ni, x: nd.x, y: nd.y, r: nd.r, nx: nd.nx, ny: nd.ny, w: textW(tx), tx };
+    // 동향 이름표: 날짜(점이 적으면 날짜와 제목 앞부분). 제목은 자료 값 그대로 말줄임만 하고, 선이 지나는 자리밖에 없으면 더 짧게 쓴다
+    const withTitle = dots.length <= MK_TITLE_N;
+    dots.forEach(nd => {
+      const p = g.N[nd.ni].p, date = String(p['발표일자'] || ''), title = String(p['핵심요약'] || g.N[nd.ni].l).trim();
+      const vars = (withTitle && title ? MK_TITLE_LEN.map(k => `${date} ${title.length > k ? title.slice(0, k).trim() + '…' : title}`) : []).concat([date]);
+      for (let i = 0; i < vars.length; i++) {
+        if (i && vars[i] === vars[i - 1]) continue;
+        const tx = vars[i], w = textW(tx);
+        const b = bestCand(labelCands(nd.x, nd.y, nd.r, w, LH, nd.nx, nd.ny), x => free(x, nd.ni), eb, nd.ni);
+        if (!b || (i < vars.length - 1 && lineHits(b, eb, nd.ni))) continue;
+        placed.push(b);
+        labels.push({ kind: 'news', ni: nd.ni, tx, box: b });
+        break;
+      }
     });
-    const obstacles = nodeBox.map(([k, b]) => ['n' + k, b]).concat(placed.map((b, i) => ['l' + i, b]));
-    const lab = placeLabels(items, obstacles, W, H, edges.concat(cedges));
-    items.forEach(it => { if (lab.has(it.key)) labels.push({ kind: 'news', ni: it.ni, tx: it.tx, box: lab.get(it.key) }); });
     return { kind: 'mk', W, H, Hs: H, scroll: false, nodes, edges, cedges, labels, orgs: d.orgs, news: dots.map(x => x.ni), cats: d.cats, ms: performance.now() - t0 };
   }
   function mkNewsTip(g, ni) {
@@ -3687,7 +4009,7 @@
   }
   function mkSVG(g, c, lay) {
     const W = lay.W, H = lay.Hs, asc = textAsc();
-    const parts = ['<g class="gr-l-edges">'];
+    const parts = [`<defs>${lbMask('gr-mk-lbm', W, H, lay.labels.map(lb => lb.box))}</defs>`, '<g class="gr-l-edges" mask="url(#gr-mk-lbm)">'];
     lay.cedges.forEach(e => parts.push(`<line class="gr-e gr-mc" data-gr-ekind="${esc(t('grMkCatEdge'))}" data-gr-s="${esc(g.N[e.s].id)}" data-gr-t="${esc(e.t)}" x1="${f1(e.pts[0][0])}" y1="${f1(e.pts[0][1])}" x2="${f1(e.pts[1][0])}" y2="${f1(e.pts[1][1])}"/>`));
     lay.edges.forEach(e => parts.push(`<line class="gr-e gr-me" data-gr-ekind="발표" data-gr-s="${esc(g.N[e.s].id)}" data-gr-t="${esc(g.N[e.t].id)}" data-gr-e="${e.e}" x1="${f1(e.pts[0][0])}" y1="${f1(e.pts[0][1])}" x2="${f1(e.pts[1][0])}" y2="${f1(e.pts[1][1])}" data-tip-title="${esc(g.ekindLabels[EK['발표']])}"/>`));
     parts.push('</g><g class="gr-l-nodes">');
@@ -3946,7 +4268,10 @@
     const on = k => !drawn || drawn[k];
     const sec = (cls2, head, items) => (items.some(Boolean) ? `<div class="gr-lg-sec${cls2}"><span class="gr-lg-h">${esc(head)}</span>${items.filter(Boolean).join('')}</div>` : '');
     if (state.preset === 'news') {
+      // 당사(우체국, 금색 테두리): 지금 그린 회사 노드에 우체국이 있을 때만
+      const ours = !drawn || !!(alt.lay && alt.lay.kind === 'mk' && alt.lay.nodes.some(n => n.kind === 'o' && g.N[n.ni].o === 'EPOST'));
       return sec('', t('grLgNodeHead'), [
+        ours && row('<g class="gr-mk-o is-ours is-cmp" transform="translate(11 9)"><circle class="gr-v-c" r="6.5"/></g>', t('grLgOursOrg')),
         on('cmp') && row('<g class="gr-mk-o is-cmp" transform="translate(11 9)"><circle class="gr-v-c" r="6.5"/></g>', t('grLgCmpOrg')),
         on('other') && row('<g class="gr-mk-o" transform="translate(11 9)"><circle class="gr-v-c" r="6.5"/></g>', t('grLgOtherOrg')),
         on('cat') && row('<g class="gr-mk-c" transform="translate(11 9)"><rect class="gr-v-c" x="-5" y="-5" width="10" height="10" transform="rotate(45)"/></g>', t('grMkCatNode')),
@@ -3971,8 +4296,8 @@
       ]) + sec(' is-2col', t('grLgEdgeHead'), [
         on('inc') && row('<line class="gr-e gr-ve gr-ve-inc" x1="2" y1="9" x2="20" y2="9"/>', g.ekindLabels[EK['포함']]),
         on('map') && row('<line class="gr-e gr-ve gr-ve-map" x1="2" y1="9" x2="20" y2="9"/>', g.ekindLabels[EK['매핑']]),
-        on('relInc') && row('<line class="gr-e gr-e-rel gr-e-rel-inc" x1="2" y1="9" x2="20" y2="9"/>', t('grLgRelInc')),
-        on('relUni') && row('<line class="gr-e gr-e-rel gr-e-rel-uni" x1="2" y1="9" x2="20" y2="9"/>', t('grLgRelUni')),
+        on('relInc') && row('<line class="gr-e gr-e-rel gr-ve-rel gr-e-rel-inc" x1="2" y1="9" x2="20" y2="9"/>', t('grLgRelInc')),
+        on('relUni') && row('<line class="gr-e gr-e-rel gr-ve-rel gr-e-rel-uni" x1="2" y1="9" x2="20" y2="9"/>', t('grLgRelUni')),
         on('cons') && row('<line class="gr-e gr-ve gr-ve-cons" x1="2" y1="9" x2="20" y2="9"/>', g.ekindLabels[EK['결합제약']]),
       ]);
   }
@@ -4345,6 +4670,7 @@
     renderZones,
     pick,
     defaultEv,
+    renderDefaultRight,
     focus,
     path,
     copySummary,
