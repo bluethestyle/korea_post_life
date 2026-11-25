@@ -2341,6 +2341,66 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-verd li{margin-bottom:6px}
 .gr-glist li{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px}
 @media (max-width:999px){.gr-legend{display:none}}
+
+/* 4단계(요청 38의 4절): 위치 트랜지션 변수, 선택 펼치기, 엣지 선택, 키보드 포커스, 왼쪽 영역 높이 정리 */
+:root{--dur-graph-move:480ms;--ease-graph-move:cubic-bezier(0.65, 0, 0.35, 1)}
+.gr-l-ghost{pointer-events:none}
+.gr-net-svg [data-gr-fk]{outline:none}
+/* 담보 선택: 선택한 담보와 담보 관계로 이어진 담보만 원래 크기, 나머지는 반지름 3px로 줄여 .45 */
+.gr-n-c{transform-box:fill-box;transform-origin:center;transition:transform 220ms var(--ease-move)}
+.gr-net-svg.is-exp .gr-n:not(.is-big) .gr-n-c{transform:scale(var(--gr-sh,1))}
+.gr-net-svg.is-exp .gr-n:not(.is-big) .gr-mk{opacity:0}
+.gr-net-svg.is-exp .gr-lb-s:not(.is-big){opacity:0}
+.gr-net-svg.is-exp .gr-n:not(.is-big),.gr-net-svg.is-exp .gr-g,.gr-net-svg.is-exp .gr-e-bundle{opacity:.45}
+.gr-net-svg.is-exp .gr-e-bundle{opacity:.2}
+.gr-x-c{stroke-width:1.25}
+.gr-x-r .gr-x-c{fill:var(--panel-t);stroke:var(--ink-0)}
+.gr-x-b .gr-x-c{fill:var(--fog-1);stroke:var(--ink-1)}
+.gr-x-more .gr-x-c,.gr-x-sum .gr-x-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-dasharray:2 1.5}
+.gr-x.is-rec .gr-x-c,.gr-x.is-wait .gr-x-c{stroke:var(--unknown-edge);stroke-dasharray:2 1.5}
+.gr-x.is-sel .gr-x-c{fill:var(--red);stroke:#fff;stroke-width:2;stroke-dasharray:none}
+.gr-x-lb.is-note{font-weight:600}
+.gr-e-inc{stroke:var(--ink-1);stroke-width:1}
+.gr-e-map{stroke:var(--ink-1);stroke-width:1}
+.gr-e-map.is-strong{stroke-width:2}
+.gr-e-rec{stroke:var(--unknown-edge);stroke-width:1;stroke-dasharray:3 2}
+.gr-e.is-esel,.gr-e.is-ehov{stroke:var(--red);opacity:1}
+/* 펼친 노드는 특약 다음 급부, 노드마다 14ms씩 늦게 전체 320ms 안. 엣지는 출발 노드에서 도착 노드 쪽으로 그어진다 */
+@keyframes gr-x-in{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes gr-e-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes gr-fade-in{from{opacity:0}to{opacity:1}}
+.gr-l-exp .gr-x .gr-x-c{transform-box:fill-box;transform-origin:center;animation:gr-x-in 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-l-exp .gr-x-lb{animation:gr-fade-in 120ms var(--ease-in) both;animation-delay:200ms}
+.gr-l-xe .gr-e-x:not(.gr-e-rec){stroke-dasharray:1;animation:gr-e-draw 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-l-xe .gr-e-rec{animation:gr-fade-in 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-x-out{opacity:0;transition:opacity 192ms var(--ease-out)}
+:root[data-motion="calm"] .gr-l-exp .gr-x .gr-x-c,:root[data-motion="calm"] .gr-l-xe .gr-e-x{animation-duration:88ms}
+:root[data-motion="calm"] .gr-l-exp .gr-x-lb{animation-delay:110ms}
+:root[data-motion="off"] .gr-l-exp .gr-x .gr-x-c,:root[data-motion="off"] .gr-l-exp .gr-x-lb,:root[data-motion="off"] .gr-l-xe .gr-e-x{animation:none}
+:root[data-motion="off"] .gr-n-c{transition:none}
+.gr-ch-h{margin:8px 0 2px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
+.gr-ch>li{margin-bottom:4px}
+.gr-bl{margin:2px 0 0 12px}
+.gr-bl li{font-size:13px}
+
+/* 왼쪽 영역: 1920x1080, 1600x900 에서 검색과 탐색 이동까지 스크롤 없이 보이게(3.11의 차례 유지) */
+.gr-left-wrap{gap:7px;container-type:inline-size}
+.gr-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.gr-preset{min-height:34px;padding:6px 4px;align-items:center;justify-content:center;text-align:center}
+.gr-preset .gp-s{display:none}
+.gr-flts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+.gr-flt{min-height:27px;padding:2px 8px;gap:4px}
+.gr-flt>span:first-child{min-width:0;word-break:keep-all}
+.gr-legend .gr-lg-sec{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 2px}
+.gr-legend .gr-lg-h{margin:0 0 2px}
+.gr-lg-it{min-height:18px;line-height:1.2;min-width:0}
+.gr-lg-it>span{min-width:0}
+.gr-sec-k{margin:0 0 4px}
+@container (max-width:240px){
+  .gr-flts,.gr-legend .gr-lg-sec,.gr-presets{grid-template-columns:minmax(0,1fr)}
+  .gr-preset{justify-content:flex-start;align-items:flex-start;text-align:left;padding:6px 10px}
+}
+.gr-preset .gp-t{word-break:keep-all}
 </style>
 </head>
 <body>
@@ -3493,6 +3553,38 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     grNetEvBody: '담보를 클릭하면 타사별 판정과 회사별 특약, 급부 수를 보고, 그룹 원이나 그룹 라벨을 클릭하면 그룹의 담보 목록을 봅니다.',
     grCopyNetCols: '그룹,담보,보장 대분류,표시,타사별 판정',
     grCopyNetTitle: `${TERM.graph} 담보별 연결`,
+    grExpColTpl: '{org} 특약 {r}, 급부 {b}',
+    grExpSumTpl: '{org} 특약 {r}개, 급부 {b}개',
+    grExpMoreTpl: '+{n}',
+    grExpListHead: '회사별 특약과 급부 목록',
+    grRelStdHead: '담보 관계로 연결된 담보',
+    grRelWide: '넓은 담보',
+    grRelPart: '부분 담보',
+    grWaitMapTag: '매핑 검수 대기',
+    grWaitExtTag: '추출 검수 대기',
+    grOpenVarBtn: '종형 구성에서 보기',
+    grLgIncMap: '포함, 매핑',
+    grLgRec: '추천 표준담보',
+    grEdgePropHead: '엣지 속성',
+    grEdgeEndsHead: '양 끝 노드',
+    grEdgeVarRow: '종형',
+    grEdgeGroupRow: '그룹',
+    grEdgeLineRow: '선 모양',
+    grEdgeStateRow: '검수 상태',
+    grEdgeRecRow: '추천 표준담보',
+    grEdgeRepBenRow: '대표 급부',
+    grEdgeFromId: '출발 노드 ID',
+    grEdgeToId: '도착 노드 ID',
+    grEdgeHeldListTpl: '이 종형이 보유한 그룹의 담보 ({n}개)',
+    grConfGemini: '확신(Gemini)',
+    grConfClaude: '확신(Claude)',
+    grLineRel: '점선 (표준담보 사이 포함 또는 통합 관계)',
+    grLineInc: '실선 (포함)',
+    grLineSell: '실선 (판매)',
+    grLineMap: '실선 (매핑)',
+    grLineMapStrongTpl: '굵은 실선 (매핑, 담당자 {st})',
+    grLineRec: '점선 (매핑 검수 대기 급부의 추천 표준담보)',
+    grLineBundle: '실선 (굵기는 이 종형이 그룹에서 보유한 담보 수에 비례)',
   };
 
   function cp(key, vars) {
@@ -13076,6 +13168,7 @@ App.registerTab((function () {
     focusNode: null,     // roving tabindex node index
     selStd: null,        // 담보별 연결에서 선택한 표준담보 노드 번호
     selGroup: null,      // 담보별 연결에서 선택한 그룹 키
+    expSlot: null,       // 요약 노드로 접은 타사 종형 가운데 펼친 슬롯(4.3의 6번)
     filter: null,        // 'f:<판정 필터>' | 'cls:<보유 구분>' | 'dom:<보장 대분류>'
     query: '',
   };
@@ -13436,6 +13529,7 @@ App.registerTab((function () {
       focusNode: state.focusNode,
       selStd: state.selStd,
       selGroup: state.selGroup,
+      expSlot: state.expSlot,
       filter: state.filter,
     });
   }
@@ -13456,6 +13550,7 @@ App.registerTab((function () {
     state.focusNode = o.focusNode ?? null;
     state.selStd = o.selStd ?? null;
     state.selGroup = o.selGroup ?? null;
+    state.expSlot = o.expSlot ?? null;
     state.filter = o.filter ?? null;
   }
 
@@ -13466,14 +13561,33 @@ App.registerTab((function () {
     if (undoStack.length > 40) undoStack.shift();
   }
 
-  function recordTrail(label) {
+  // sel: 담보나 그룹 선택 항목. 선택은 바로 앞의 선택 항목을 바꾸고, 선택을 풀면 빠진다(탐색 경로가 지금 상태를 보이게)
+  function recordTrail(label, sel) {
     const snap = cloneStateSnap();
-    if (trail.length && trail[trail.length - 1].label === label) {
-      trail[trail.length - 1].snap = snap;
+    const last = trail[trail.length - 1];
+    if (last && (last.label === label || (sel && last.sel))) {
+      last.label = label;
+      last.snap = snap;
+      last.sel = !!sel;
       return;
     }
-    trail.push({ label, snap });
+    trail.push({ label, snap, sel: !!sel });
     if (trail.length > 10) trail.shift();
+  }
+
+  // 담보별 연결로 돌아오면 탐색 경로를 보기 이름과 지금 선택으로 맞춘다
+  function syncCoverTrail() {
+    let i = trail.length - 1;
+    while (i > 0 && !(trail[i].label === t('grPresetCover') && !trail[i].sel)) i--;
+    trail = trail.slice(0, i + 1);
+    if (!trail.length) trail.push({ label: t('grPresetCover'), snap: cloneStateSnap(), sel: false });
+    const g = ensureGraph();
+    if (state.selStd != null) recordTrail(g.N[state.selStd].l, true);
+    else if (state.selGroup && net.lay && net.lay.sc.groupMap.has(state.selGroup)) recordTrail(groupLines(net.lay.sc, net.lay.sc.groupMap.get(state.selGroup))[0], true);
+  }
+
+  function dropSelTrail() {
+    while (trail.length > 1 && trail[trail.length - 1].sel) trail.pop();
   }
 
   // 종형 구성 틀에서 현재 펼쳐진 특약과 급부에 맞춰 표준담보와 보장분야 열을 이어 갱신한다(1-9)
@@ -13670,18 +13784,6 @@ App.registerTab((function () {
     }
     recordTrail(`${b.label || g.kindLabels[COL_KINDS[colIdx]]} +${BATCH_SIZE}`);
     rerenderGraph(true);
-  }
-
-  // 선택한 담보 하나에 대해 매핑 엣지를 거꾸로 따라가 그 종형의 특약과 급부를 얻는다(graph.json 노드 차례)
-  function stdPathIn(g, vi, si) {
-    const riders = new Set();
-    const bens = new Set();
-    (g.stdBens.get(si) || []).forEach(({ ben }) => {
-      (g.benRiders.get(ben) || []).forEach(ri => {
-        if ((g.riderVars.get(ri) || []).includes(vi)) { riders.add(ri); bens.add(ben); }
-      });
-    });
-    return { riders: Array.from(riders).sort((a, b) => a - b), bens: Array.from(bens).sort((a, b) => a - b) };
   }
 
   // 어느 노드에서나 이웃 손잡이를 눌러 옆 열 펼치기
@@ -13979,7 +14081,7 @@ App.registerTab((function () {
       <div>
         <span class="gr-sec-k">${esc(t('grLeftHead'))}</span>
         <div class="gr-presets" role="listbox" aria-label="${esc(t('grPresetsAria'))}">
-          ${presets.map(p => `<button type="button" class="gr-preset${state.preset === p.id ? ' is-on' : ''}" role="option" aria-selected="${state.preset === p.id}" data-gr-preset="${p.id}">
+          ${presets.map(p => `<button type="button" class="gr-preset${state.preset === p.id ? ' is-on' : ''}" role="option" aria-selected="${state.preset === p.id}" data-gr-preset="${p.id}" data-aim="rect" data-tip-title="${esc(p.nm)}" data-tip-sub="${esc(p.sub)}">
             <span class="gp-t">${esc(p.nm)}</span>
             <span class="gp-s">${esc(p.sub)}</span>
           </button>`).join('')}
@@ -14276,7 +14378,14 @@ App.registerTab((function () {
       if (!lastCenterEl || !lastCenterEl.contains(host) || App.state.tab !== 'graph' || state.preset !== 'cover') return;
       if (layoutKey(ensureGraph(), App.ctx(), net.W, net.H) !== key) return;
       net.hover = null;
+      // 조건이 바뀌었으면(같은 그래프 영역 크기) 지금 보이는 위치에서 새 위치로 옮긴다(4.9). 리사이즈는 트랜지션 없이
+      const prevSvg = host.querySelector('#gr-net-svg');
+      const prevLay = net.lay;
+      const prev = prevSvg && prevLay && prevLay !== lay && prevLay.W === lay.W && prevLay.H === lay.H && layoutKeyOf(prevLay) !== layoutKeyOf(lay) ? capturePos(prevSvg) : null;
+      endMove();
+      if (prev && moveDur()) net.moving = true;
       renderNetInto(host, lay);
+      if (net.moving && !startMove(host.querySelector('#gr-net-svg'), prev, lay)) { net.moving = false; applyNetState(); }
       requestAnimationFrame(() => App.updateSelLink(false));
       if (!lay.fontsOk && document.fonts) document.fonts.ready.then(() => { if (state.preset === 'cover') rerenderGraph(false); });
       warmLayouts(W, H);
@@ -14587,9 +14696,10 @@ App.registerTab((function () {
     });
     const qd2 = P.qdmax * P.qdmax;
     let alpha = 1;
-    const adecay = 1 - Math.pow(0.001, 1 / NET_ITERS);
+    const iters = P.iters || NET_ITERS;
+    const adecay = 1 - Math.pow(0.001, 1 / iters);
     const vk = 0.6;
-    for (let it = 0; it < NET_ITERS; it++) {
+    for (let it = 0; it < iters; it++) {
       alpha += (0 - alpha) * adecay;
       for (let i = 0; i < n; i++) {
         const nd = nodes[i];
@@ -14895,7 +15005,8 @@ App.registerTab((function () {
       ];
       for (const [x0, y0] of cands) {
         const b = [x0, y0, x0 + w, y0 + h];
-        if (!boxHit(b, placed, nCircles, W, H)) { placed.push(b); slabels.set(si, b); break; }
+        // 번들 엣지 위에 얹힌 이름은 엣지 라벨처럼 읽히므로 선분과 겹치는 자리는 쓰지 않는다
+        if (!boxHit(b, placed, nCircles, W, H) && !bundles.some(e => segHitsBox(e.x1, e.y1, e.x2, e.y2, b, e.w / 2 + 1))) { placed.push(b); slabels.set(si, b); break; }
       }
     });
     return { sc, jd, W, H, k, gap, anc, gpos, npos, bundles, glabels, slabels, ms: performance.now() - t0, fontsOk: fontsReady() };
@@ -15036,9 +15147,9 @@ App.registerTab((function () {
     // 번들 엣지
     parts.push('<g class="gr-l-edges">');
     lay.bundles.forEach(b => {
-      parts.push(`<line class="gr-e gr-e-bundle" x1="${f1(b.x1)}" y1="${f1(b.y1)}" x2="${f1(b.x2)}" y2="${f1(b.y2)}" stroke-width="${f1(b.w)}" data-gr-ekind="보유" data-gr-bundle="1" data-gr-s="${esc(lay.anc[b.slot].id)}" data-gr-t="${esc(b.key)}" data-gr-slot="${b.slot}"/>`);
+      parts.push(`<line class="gr-e gr-e-bundle" data-tip-title="${esc(t('grLgBundle'))}" x1="${f1(b.x1)}" y1="${f1(b.y1)}" x2="${f1(b.x2)}" y2="${f1(b.y2)}" stroke-width="${f1(b.w)}" data-gr-ekind="보유" data-gr-bundle="1" data-gr-s="${esc(lay.anc[b.slot].id)}" data-gr-t="${esc(b.key)}" data-gr-slot="${b.slot}"/>`);
     });
-    parts.push('</g><g class="gr-l-hot"></g>');
+    parts.push('</g><g class="gr-l-hot"></g><g class="gr-l-xe"></g><g class="gr-l-ghost" aria-hidden="true"></g>');
     // 표준담보 노드
     parts.push('<g class="gr-l-nodes">');
     sc.stds.forEach(si => {
@@ -15052,7 +15163,7 @@ App.registerTab((function () {
       const benNote = it.per.map(x => t('grBenCntTpl', { org: orgOf(x.code), n: fmt(+(x.e.p['급부수'] || 0)) })).join(', ');
       const sub = [it.dom, grpName].concat(markLines(g, c, lay, si), [benNote, more]).filter(Boolean).join(' / ');
       const wait = jd.marks.includes('wait');
-      parts.push(`<g class="gr-n gr-n-${it.cls}${wait ? ' is-wait' : ''}" transform="translate(${f1(p.x)} ${f1(p.y)})" data-gr-id="${esc(n.id)}" data-gr-idx="${si}" data-gr-kind="표준담보" data-gr-r="${f1(p.r)}" data-gr-group="${esc(it.key)}" data-gr-cls="${it.cls}" data-gr-mark="${jd.marks.join(' ')}" data-aim="circle" data-tip-title="${esc(n.l)}" data-tip-sub="${esc(sub)}"${chips.length ? ` data-tip-chips="${esc(JSON.stringify(chips.slice(0, 3)))}"` : ''}>`
+      parts.push(`<g class="gr-n gr-n-${it.cls}${wait ? ' is-wait' : ''}" style="--gr-sh:${(3 / p.r).toFixed(3)}" transform="translate(${f1(p.x)} ${f1(p.y)})" tabindex="-1" role="button" aria-label="${esc(n.l)}" data-gr-fk="n:${esc(n.id)}" data-gr-id="${esc(n.id)}" data-gr-idx="${si}" data-gr-kind="표준담보" data-gr-r="${f1(p.r)}" data-gr-group="${esc(it.key)}" data-gr-cls="${it.cls}" data-gr-mark="${jd.marks.join(' ')}" data-aim="circle" data-tip-title="${esc(n.l)}" data-tip-sub="${esc(sub)}"${chips.length ? ` data-tip-chips="${esc(JSON.stringify(chips.slice(0, 3)))}"` : ''}>`
         + `<circle class="gr-n-c" r="${f1(p.r)}" style="fill:var(--gr-dom-${domIdx(si)})"/>`
         + jd.marks.filter(m => m !== 'wait').map(m => markGlyph(m, p.r)).join('')
         + '</g>');
@@ -15065,9 +15176,9 @@ App.registerTab((function () {
       const held = g.heldBy.get(a.vi);
       const dc = vs && vs['보장분야별'] ? domOrder(g).map(d => (vs['보장분야별']['CAT:' + d] ? `${d} ${fmt(vs['보장분야별']['CAT:' + d])}` : '')).filter(Boolean).join(', ') : '';
       const sub = [orgOf(a.code), fullVarName(g, a.vi), t('grAnchorHeldTpl', { n: fmt(held ? held.size : 0) }), dc].filter(Boolean).join(' / ');
-      parts.push(`<g class="gr-a${a.slot === 0 ? ' is-base' : ''}" transform="translate(${f1(a.x)} ${f1(a.y)})" data-gr-id="${esc(a.id)}" data-gr-idx="${a.vi}" data-gr-kind="종형" data-gr-r="${f1(a.r)}" data-gr-akey="${esc(a.key)}" data-aim="circle" data-tip-title="${esc(fullVarName(g, a.vi))}" data-tip-sub="${esc(sub)}"><circle class="gr-a-c" r="${f1(a.r)}"/></g>`);
+      parts.push(`<g class="gr-a${a.slot === 0 ? ' is-base' : ''}" transform="translate(${f1(a.x)} ${f1(a.y)})" tabindex="-1" role="button" aria-label="${esc(fullVarName(g, a.vi))}" data-gr-fk="a:${esc(a.key)}" data-gr-slot="${a.slot}" data-gr-id="${esc(a.id)}" data-gr-idx="${a.vi}" data-gr-kind="종형" data-gr-r="${f1(a.r)}" data-gr-akey="${esc(a.key)}" data-aim="circle" data-tip-title="${esc(fullVarName(g, a.vi))}" data-tip-sub="${esc(sub)}"><circle class="gr-a-c" r="${f1(a.r)}"/></g>`);
     });
-    parts.push('</g>');
+    parts.push('</g><g class="gr-l-exp"></g>');
     // 라벨
     parts.push('<g class="gr-l-labels">');
     lay.anc.forEach(a => {
@@ -15079,11 +15190,11 @@ App.registerTab((function () {
       const gl = lay.glabels.get(grp.key);
       const b = gl.box;
       if (gl.badge) {
-        parts.push(`<g class="gr-lb gr-lb-badge" data-gr-lb="badge" data-gr-glabel="${esc(grp.key)}" data-gr-lbox="${b.map(f1).join(',')}" data-aim="rect" data-tip-title="${esc(gl.lines[0])}" data-tip-sub="${esc(gl.lines[1])}"><rect x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2] - b[0])}" height="${f1(b[3] - b[1])}"/><text class="gr-tx" x="${f1((b[0] + b[2]) / 2)}" y="${f1(b[1] + 1 + textAsc())}" text-anchor="middle">${fmt(grp.members.length)}</text></g>`);
+        parts.push(`<g class="gr-lb gr-lb-badge" tabindex="-1" role="button" aria-label="${esc(gl.lines.join(', '))}" data-gr-fk="g:${esc(grp.key)}" data-gr-lb="badge" data-gr-glabel="${esc(grp.key)}" data-gr-lbox="${b.map(f1).join(',')}" data-aim="rect" data-tip-title="${esc(gl.lines[0])}" data-tip-sub="${esc(gl.lines[1])}"><rect x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2] - b[0])}" height="${f1(b[3] - b[1])}"/><text class="gr-tx" x="${f1((b[0] + b[2]) / 2)}" y="${f1(b[1] + 1 + textAsc())}" text-anchor="middle">${fmt(grp.members.length)}</text></g>`);
         return;
       }
       const lead = gl.lead ? `<line class="gr-lead" x1="${f1(gl.lead[0])}" y1="${f1(gl.lead[1])}" x2="${f1(gl.lead[2])}" y2="${f1(gl.lead[3])}"/>` : '';
-      parts.push(`${lead}<g class="gr-lb gr-lb-g" data-gr-lb="group" data-gr-glabel="${esc(grp.key)}" data-gr-lbox="${b.map(f1).join(',')}" data-aim="rect" data-tip-title="${esc(gl.lines[0])}" data-tip-sub="${esc([gl.lines[1], domCountText(g, grp.members), t('grTipGroupHint')].filter(Boolean).join(' / '))}"><rect class="gr-lb-hit" x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2] - b[0])}" height="${f1(b[3] - b[1])}"/>${svgTextLines(b[0] + 2, b[1] + textAsc(), gl.lines, 'start', 'gr-tx')}</g>`);
+      parts.push(`${lead}<g class="gr-lb gr-lb-g" tabindex="-1" role="button" aria-label="${esc(gl.lines.join(', '))}" data-gr-fk="g:${esc(grp.key)}" data-gr-lb="group" data-gr-glabel="${esc(grp.key)}" data-gr-lbox="${b.map(f1).join(',')}" data-aim="rect" data-tip-title="${esc(gl.lines[0])}" data-tip-sub="${esc([gl.lines[1], domCountText(g, grp.members), t('grTipGroupHint')].filter(Boolean).join(' / '))}"><rect class="gr-lb-hit" x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2] - b[0])}" height="${f1(b[3] - b[1])}"/>${svgTextLines(b[0] + 2, b[1] + textAsc(), gl.lines, 'start', 'gr-tx')}</g>`);
     });
     lay.slabels.forEach((b, si) => {
       parts.push(`<text class="gr-tx gr-lb-s" data-gr-lb="std" data-gr-for="${esc(g.N[si].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + textAsc())}">${esc(g.N[si].l)}</text>`);
@@ -15151,19 +15262,21 @@ App.registerTab((function () {
     const heldLine = (slot, si) => {
       const a = lay.anc[slot], p = lay.npos.get(si);
       const [x1, y1, x2, y2] = lineBetween(a, p, a.r, p.r);
-      out.push(`<line class="gr-e gr-e-held" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="보유" data-gr-s="${esc(a.id)}" data-gr-t="${esc(g.N[si].id)}"/>`);
+      const he = g.heldBy.get(a.vi) && g.heldBy.get(a.vi).get(si);
+      out.push(`<line class="gr-e gr-e-held" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="보유" data-gr-s="${esc(a.id)}" data-gr-t="${esc(g.N[si].id)}"${he ? ` data-gr-key="e:${he.i}"` : ''} data-tip-title="${esc(t('grLgHeldOne'))}"/>`);
     };
     const relLine = e => {
       const p = lay.npos.get(e.s), q = lay.npos.get(e.t);
       if (!p || !q) return;
       const [x1, y1, x2, y2] = lineBetween(p, q, p.r, q.r);
       const kind = e.p['관계'] === '통합' ? 'uni' : 'inc';
-      out.push(`<line class="gr-e gr-e-rel gr-e-rel-${kind}" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="담보 관계" data-gr-s="${esc(g.N[e.s].id)}" data-gr-t="${esc(g.N[e.t].id)}"/>`);
+      out.push(`<line class="gr-e gr-e-rel gr-e-rel-${kind}" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="담보 관계" data-gr-s="${esc(g.N[e.s].id)}" data-gr-t="${esc(g.N[e.t].id)}" data-gr-key="e:${e.i}" data-tip-title="${esc(kind === 'uni' ? t('grLgRelUni') : t('grLgRelInc'))}"/>`);
     };
     if (focus.t === 'std') {
       const it = sc.info.get(focus.si);
       if (!it) return '';
-      it.slots.forEach(slot => heldLine(slot, focus.si));
+      // 펼친 담보는 종형에서 특약, 급부를 거쳐 담보로 가는 엣지가 보유를 보이므로 개별 보유 엣지를 겹쳐 그리지 않는다
+      if (!(net.ex && net.ex.si === focus.si)) it.slots.forEach(slot => heldLine(slot, focus.si));
       const seen = new Set();
       netRelEdges(g, sc, focus.si).forEach(({ e }) => { seen.add(e.i); relLine(e); });
       evidenceEdges(g, lay, focus.si).forEach(e => { if (!seen.has(e.i)) { seen.add(e.i); relLine(e); } });
@@ -15213,47 +15326,104 @@ App.registerTab((function () {
 
   // 선택, 필터, 호버 상태를 클래스와 강조 엣지로 반영한다(배치는 다시 계산하지 않는다)
   function applyNetState() {
+    // 펼친 노드를 지우면 포커스가 빠지며(focusout) 다시 들어오므로 겹쳐 실행하지 않는다
+    if (net.applying) return;
+    net.applying = true;
+    try { applyNetStateInner(); } finally { net.applying = false; }
+  }
+
+  function applyNetStateInner() {
     const svg = lastCenterEl && lastCenterEl.querySelector('#gr-net-svg');
     const lay = net.lay;
     if (!svg || !lay) return;
     const g = ensureGraph();
     const sc = lay.sc;
-    const selFocus = state.selStd != null && sc.info.has(state.selStd) ? { t: 'std', si: state.selStd }
+    const selStd = state.selStd != null && sc.info.has(state.selStd) ? state.selStd : null;
+    const selFocus = selStd != null ? { t: 'std', si: selStd }
       : state.selGroup && sc.groupMap.has(state.selGroup) ? { t: 'group', key: state.selGroup } : null;
-    const hov = net.hover;
+    const hov = net.hover && net.hover.t !== 'edge' && net.hover.t !== 'x' ? net.hover : null;
     const focus = hov || selFocus;
     const fs = focus ? focusSets(g, lay, focus) : null;
     const flt = filterSet(g, lay);
+    // 담보를 선택하면 회사별 특약과 급부를 펼친다(위치 트랜지션 중에는 접어 두고 도착한 뒤 펼친다)
+    const ex = selStd != null && !net.moving ? expandLayout(g, lay, selStd, state.expSlot) : null;
+    const big = ex ? focusSets(g, lay, { t: 'std', si: selStd }).nodes : null;
+    const expLayer = svg.querySelector('.gr-l-exp');
+    const prevEx = net.exShown;
+    if (ex !== prevEx) {
+      if (expLayer) {
+        if (prevEx && expLayer.firstChild && moveDur()) {
+          // 접을 때는 펼칠 때의 60% 시간으로 빠진다
+          const ghost = svg.querySelector('.gr-l-ghost');
+          const old = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          old.setAttribute('class', 'gr-x-out');
+          while (expLayer.firstChild) old.appendChild(expLayer.firstChild);
+          const xe = svg.querySelector('.gr-l-xe');
+          while (xe && xe.lastChild) old.insertBefore(xe.lastChild, old.firstChild);
+          ghost.appendChild(old);
+          setTimeout(() => old.remove(), Math.round(320 * 0.6 * (App.motionScale ? App.motionScale() : 1)) + 40);
+        }
+        expLayer.innerHTML = ex ? expNodesHTML(g, lay, ex) : '';
+        const xe = svg.querySelector('.gr-l-xe');
+        if (xe) xe.innerHTML = ex ? expEdgesHTML(g, lay, ex) : '';
+      }
+      net.exShown = ex;
+    }
+    net.ex = ex;
+    svg.classList.toggle('is-exp', !!ex);
     svg.classList.toggle('is-hl', !!(hov && fs));
     svg.classList.toggle('is-selm', !hov && !!(selFocus && fs));
     svg.classList.toggle('is-flt', !!flt && !(focus && fs));
-    svg.querySelectorAll('.gr-n').forEach(el => {
+    const sel = App.state.sel.graph;
+    svg.querySelectorAll('.gr-l-nodes > .gr-n').forEach(el => {
       const si = +el.dataset.grIdx;
       el.classList.toggle('is-keep', !!(fs && fs.nodes.has(si)));
+      el.classList.toggle('is-big', !!(big && big.has(si)));
       el.classList.toggle('is-on', !!(flt && flt.has(si)));
-      const sel = selFocus && selFocus.t === 'std' && selFocus.si === si;
-      el.classList.toggle('is-sel', !!sel);
-      if (sel) el.setAttribute('data-sel-anchor', '1'); else el.removeAttribute('data-sel-anchor');
+      const on = selStd === si;
+      el.classList.toggle('is-sel', on);
+      if (on) el.setAttribute('data-sel-anchor', '1'); else el.removeAttribute('data-sel-anchor');
     });
-    svg.querySelectorAll('.gr-lb-s').forEach(el => {
+    svg.querySelectorAll(':scope > .gr-l-labels .gr-lb-s').forEach(el => {
       const si = g.byId.get(el.dataset.grFor);
       el.classList.toggle('is-keep', !!(fs && fs.nodes.has(si)));
+      el.classList.toggle('is-big', !!(big && big.has(si)));
       el.classList.toggle('is-on', !!(flt && flt.has(si)));
     });
-    svg.querySelectorAll('.gr-a').forEach((el, slot) => el.classList.toggle('is-keep', !!(fs && fs.anchors.has(slot))));
-    svg.querySelectorAll('.gr-g').forEach(el => {
+    svg.querySelectorAll('.gr-l-anchors > .gr-a').forEach((el, slot) => el.classList.toggle('is-keep', !!(fs && fs.anchors.has(slot))));
+    svg.querySelectorAll('.gr-l-groups > .gr-g').forEach(el => {
       const key = el.dataset.grGroup;
       el.classList.toggle('is-keep', !!(fs && fs.groups.has(key)));
-      const sel = selFocus && selFocus.t === 'group' && selFocus.key === key;
-      el.classList.toggle('is-gsel', !!sel);
-      if (sel) el.setAttribute('data-sel-anchor', '1'); else el.removeAttribute('data-sel-anchor');
+      const on = !!(selFocus && selFocus.t === 'group' && selFocus.key === key);
+      el.classList.toggle('is-gsel', on);
+      if (on) el.setAttribute('data-sel-anchor', '1'); else el.removeAttribute('data-sel-anchor');
     });
-    svg.querySelectorAll('.gr-e-bundle').forEach(el => {
+    svg.querySelectorAll(':scope > .gr-l-labels :is(.gr-lb-g, .gr-lb-badge)').forEach(el => el.classList.toggle('is-keep', !!(fs && fs.groups.has(el.dataset.grGlabel))));
+    svg.querySelectorAll(':scope > .gr-l-edges .gr-e-bundle').forEach(el => {
       const keep = fs && ((focus.t === 'group' && el.dataset.grT === focus.key) || (focus.t === 'anchor' && +el.dataset.grSlot === focus.slot));
       el.classList.toggle('is-keep', !!keep);
     });
     const hot = svg.querySelector('.gr-l-hot');
-    if (hot) hot.innerHTML = hotEdgesHTML(g, lay, focus && focus.t !== 'group' ? focus : null);
+    if (hot) {
+      // 호버한 담보가 있으면 그 담보의 엣지를, 없으면 선택한 담보의 엣지를 그린다. 펼친 엣지는 선택한 담보에만
+      const hf = focus && focus.t !== 'group' ? focus : null;
+      hot.innerHTML = net.moving ? '' : hotEdgesHTML(g, lay, hf);
+    }
+    if (expLayer) {
+      expLayer.querySelectorAll('.gr-x').forEach(el => {
+        const ni = el.dataset.grIdx != null ? +el.dataset.grIdx : null;
+        const on = ni != null && sel === 'n:' + el.dataset.grId;
+        el.classList.toggle('is-sel', on);
+        if (on) el.setAttribute('data-sel-anchor', '1'); else el.removeAttribute('data-sel-anchor');
+      });
+    }
+    // 선택한 엣지와 호버한 엣지
+    svg.querySelectorAll('.is-esel, .is-ehov').forEach(el => el.classList.remove('is-esel', 'is-ehov'));
+    const es = state.selEdge && edgeElOf(svg, state.selEdge);
+    if (es) es.classList.add('is-esel');
+    const eh = net.hover && net.hover.t === 'edge' && edgeElOf(svg, net.hover.key);
+    if (eh) eh.classList.add('is-ehov');
+    syncRoving(svg);
   }
 
   function netHit(svg, clientX, clientY) {
@@ -15262,19 +15432,27 @@ App.registerTab((function () {
     const r = svg.getBoundingClientRect();
     const x = clientX - r.left, y = clientY - r.top;
     let best = null, bd = Infinity;
+    const big = net.ex ? focusSets(ensureGraph(), lay, { t: 'std', si: net.ex.si }).nodes : null;
     lay.npos.forEach((p, si) => {
+      const rr = big && !big.has(si) ? 3 : p.r;
       const d = Math.hypot(p.x - x, p.y - y);
-      if (d <= Math.max(p.r + 4, 12) && d < bd) { bd = d; best = { t: 'std', si }; }
+      if (d <= Math.max(rr + 4, 12) && d < bd) { bd = d; best = { t: 'std', si }; }
     });
     lay.anc.forEach(a => {
       const d = Math.hypot(a.x - x, a.y - y);
       if (d <= Math.max(a.r + 4, 12) && d < bd) { bd = d; best = { t: 'anchor', slot: a.slot }; }
+    });
+    if (net.ex) net.ex.nodes.forEach((nd, i) => {
+      const d = Math.hypot(nd.x - x, nd.y - y);
+      if (d <= Math.max(nd.r + 4, 12) && d < bd) { bd = d; best = { t: 'x', i }; }
     });
     if (best) return best;
     for (const [key, gl] of lay.glabels) {
       const b = gl.box;
       if (x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]) return { t: 'group', key };
     }
+    const eh = edgeHit(svg, x, y);
+    if (eh) return eh;
     for (const [key, gg] of lay.gpos) if (Math.hypot(gg.x - x, gg.y - y) <= gg.R) return { t: 'group', key };
     return null;
   }
@@ -15282,36 +15460,48 @@ App.registerTab((function () {
   function hitEl(svg, h) {
     if (!h) return null;
     const g = ensureGraph();
-    if (h.t === 'std') return svg.querySelector(`.gr-n[data-gr-id="${CSS.escape(g.N[h.si].id)}"]`);
-    if (h.t === 'anchor') return svg.querySelectorAll('.gr-a')[h.slot] || null;
+    if (h.t === 'std') return svg.querySelector(`.gr-l-nodes > .gr-n[data-gr-id="${CSS.escape(g.N[h.si].id)}"]`);
+    if (h.t === 'anchor') return svg.querySelectorAll('.gr-l-anchors > .gr-a')[h.slot] || null;
+    if (h.t === 'x') return svg.querySelector(`.gr-x[data-gr-x="${h.i}"]`);
+    if (h.t === 'edge') return edgeElOf(svg, h.key);
     return svg.querySelector(`[data-gr-glabel="${CSS.escape(h.key)}"]`) || svg.querySelector(`.gr-g[data-gr-group="${CSS.escape(h.key)}"]`);
   }
 
-  const sameHit = (a, b) => (!a && !b) || (a && b && a.t === b.t && a.si === b.si && a.slot === b.slot && a.key === b.key);
+  const sameHit = (a, b) => (!a && !b) || (a && b && a.t === b.t && a.si === b.si && a.slot === b.slot && a.key === b.key && a.i === b.i);
 
   function netHover(h) {
     const svg = lastCenterEl && lastCenterEl.querySelector('#gr-net-svg');
     if (!svg) return;
-    if (sameHit(h, net.hover)) {
-      if (h) { const el = hitEl(svg, h); if (el) { App.aim.set(el); App.aim.showTip(el); } }
-      return;
-    }
+    const show = () => {
+      const el = hitEl(svg, h);
+      if (!el) { App.aim.hide(); App.aim.hideTip(); return; }
+      // 엣지는 가운데 종류 이름만 보인다(조준 표시 없이)
+      if (h.t === 'edge') { App.aim.hide(); App.aim.showTip(el); return; }
+      App.aim.set(el); App.aim.showTip(el);
+    };
+    if (sameHit(h, net.hover)) { if (h) show(); return; }
     net.hover = h;
     applyNetState();
-    const el = hitEl(svg, h);
-    if (el) { App.aim.set(el); App.aim.showTip(el); } else { App.aim.hide(); App.aim.hideTip(); }
+    show();
+  }
+
+  function clearSel() {
+    state.selStd = null;
+    state.selGroup = null;
+    state.selNode = null;
+    state.selEdge = null;
+    state.expSlot = null;
   }
 
   function netSelectStd(si, opts = {}) {
     const g = ensureGraph();
     if (state.preset !== 'cover') initPresetState('cover', App.ctx(), true);
     pushUndo();
+    clearSel();
     state.selStd = si;
-    state.selGroup = null;
-    state.selNode = null;
-    state.selEdge = null;
-    recordTrail(g.N[si].l);
-    if (opts.rerender) rerenderGraph(false); else applyNetState();
+    net.focusKey = net.selFk = 'n:' + g.N[si].id;
+    recordTrail(g.N[si].l, true);
+    if (opts.rerender) rerenderGraph(false); else { applyNetState(); refreshTrail(); }
     App.select('n:' + g.N[si].id, { animate: true, focus: false });
   }
 
@@ -15319,40 +15509,72 @@ App.registerTab((function () {
     const lay = net.lay;
     if (!lay || !lay.sc.groupMap.has(key)) return;
     pushUndo();
+    clearSel();
     state.selGroup = key;
-    state.selStd = null;
-    state.selNode = null;
-    state.selEdge = null;
-    recordTrail(groupLines(lay.sc, lay.sc.groupMap.get(key))[0]);
+    net.focusKey = net.selFk = 'g:' + key;
+    recordTrail(groupLines(lay.sc, lay.sc.groupMap.get(key))[0], true);
     applyNetState();
+    refreshTrail();
     App.select('grp:' + key, { animate: true, focus: false });
   }
 
-  function netClick(e, svg) {
-    const h = netHit(svg, e.clientX, e.clientY);
+  // 앵커를 클릭하면 그 종형의 종형 구성 보기로 넘어간다(4.4. 새 종형 구성 보기는 5단계)
+  function netOpenVariant(vi) {
+    const g = ensureGraph();
+    const c = App.ctx();
+    pushUndo();
+    initPresetState('variant', c, true, vi);
+    state.selNode = vi;
+    state.focusNode = vi;
+    recordTrail(g.N[vi].l);
+    if (lastLeftEl) renderLeftZone(lastLeftEl);
+    rerenderGraph(true);
+    App.select('n:' + g.N[vi].id, { animate: true, focus: false });
+    restoreGraphNodeFocus(vi);
+  }
+
+  function netClickHit(h, svg) {
     const g = ensureGraph();
     if (!h) {
-      if (App.state.sel.graph != null || state.selStd != null || state.selGroup) App.unselect({ restoreFocus: false });
+      if (App.state.sel.graph != null || state.selStd != null || state.selGroup || state.selEdge) App.unselect({ restoreFocus: false });
       return;
     }
     if (h.t === 'std') netSelectStd(h.si);
     else if (h.t === 'group') netSelectGroup(h.key);
-    else if (h.t === 'anchor') {
-      const vi = net.lay.anc[h.slot].vi;
-      pushUndo();
-      state.selStd = null;
-      state.selGroup = null;
-      state.selNode = vi;
-      recordTrail(g.N[vi].l);
+    else if (h.t === 'anchor') netOpenVariant(net.lay.anc[h.slot].vi);
+    else if (h.t === 'edge') {
+      state.selEdge = h.key;
       applyNetState();
-      App.select('n:' + g.N[vi].id, { animate: true, focus: false });
+      App.select('edge:' + h.key, { animate: true, focus: false });
+    } else if (h.t === 'x' && net.ex) {
+      const nd = net.ex.nodes[h.i];
+      if (!nd) return;
+      if (nd.kind === 'summary') { pushUndo(); state.expSlot = nd.slot; applyNetState(); return; }
+      if (nd.kind === 'more') { netOpenVariant(net.lay.anc[nd.slot].vi); return; }
+      net.focusKey = net.selFk = 'x:' + h.i;
+      state.selEdge = null;
+      App.select('n:' + g.N[nd.ni].id, { animate: true, focus: false });
+      applyNetState();
     }
+  }
+
+  function netClick(e, svg) {
+    // 클릭하면 이전 호버나 키보드 포커스 강조 대신 선택 상태를 보인다(다음 포인터 이동에서 호버를 다시 잰다)
+    net.hover = null;
+    netClickHit(netHit(svg, e.clientX, e.clientY), svg);
+  }
+
+  function refreshTrail() {
+    const nav = lastCenterEl && lastCenterEl.querySelector('#gr-stage-root > .gr-trail');
+    if (nav) nav.outerHTML = trailNavHTML();
   }
 
   function renderNetInto(host, lay) {
     const g = ensureGraph();
     const c = App.ctx();
     net.lay = lay;
+    net.ex = null;
+    net.exShown = null;
     host.innerHTML = netSVG(g, c, lay);
     host.style.height = lay.H + 'px';
     applyNetState();
@@ -15366,6 +15588,540 @@ App.registerTab((function () {
       return `<div class="gr-vp-step"><div class="gr-vp-hd"><span>${esc(lines[0])}</span><span>${esc(lines[1])}</span></div>
         <div class="gr-vp-nodes">${grp.members.map(si => `<button type="button" class="gr-node k-std${state.selStd === si ? ' is-sel' : ''}" tabindex="-1" data-gr-node="${esc(g.N[si].id)}" data-gr-idx="${si}" data-aim="rect"><span class="gn-t">${esc(g.N[si].l)}</span></button>`).join('')}</div></div>`;
     }).join('');
+  }
+
+  // ---------- 담보 선택: 회사별 특약과 급부 펼치기(4.3) ----------
+  const EXP_RIDER_MAX = 12, EXP_BEN_MAX = 39, EXP_F_RIDER = 0.30, EXP_F_BEN = 0.68, EXP_F_SUM = 0.50;
+  const EXP_RR = 6, EXP_RB = 5, EXP_GAP = 4, EXP_LABEL_MAX = 6, EXP_ITERS = 160;
+  let recIdx = null;
+  const expCache = new Map();
+
+  // 매핑 검수 대기 급부: 추천표준담보ID 로 찾는다(매핑 엣지가 아니라 추천)
+  function recBensOf(g, sid) {
+    if (!recIdx) {
+      recIdx = new Map();
+      g.N.forEach(n => {
+        const r = n.k === NK['급부'] && n.p ? n.p['추천표준담보ID'] : null;
+        if (!r) return;
+        if (!recIdx.has(r)) recIdx.set(r, []);
+        recIdx.get(r).push(n.i);
+      });
+    }
+    return recIdx.get(sid) || [];
+  }
+
+  function edgeIdx(g, s, t2, ekName) {
+    const ek = EK[ekName];
+    const a = (g.adj[s] || []).find(x => x.isOut && x.j === t2 && x.ek === ek);
+    return a ? a.e : null;
+  }
+
+  // 종형 vi 에서 표준담보 si 에 이르는 특약과 급부(graph.json 노드 차례, 급부는 특약 차례대로)
+  function chainOf(g, vi, si) {
+    const byR = new Map();
+    const add = (ben, rec) => (g.benRiders.get(ben) || []).forEach(ri => {
+      if (!(g.riderVars.get(ri) || []).includes(vi)) return;
+      let a = byR.get(ri);
+      if (!a) { a = []; byR.set(ri, a); }
+      if (!a.some(x => x.b === ben)) a.push({ b: ben, rec });
+    });
+    (g.stdBens.get(si) || []).forEach(({ ben }) => add(ben, false));
+    recBensOf(g, g.N[si].id).forEach(ben => { if (!(g.benStds.get(ben) || []).some(x => x.std === si)) add(ben, true); });
+    return Array.from(byR.keys()).sort((a, b) => a - b).map(ri => ({ ri, bens: byR.get(ri).sort((x, y) => x.b - y.b) }));
+  }
+
+  // 선분이 사각 상자(여백 pad)를 지나는지(Liang-Barsky)
+  function segHitsBox(x1, y1, x2, y2, b, pad) {
+    const bx0 = b[0] - pad, by0 = b[1] - pad, bx1 = b[2] + pad, by1 = b[3] + pad;
+    let t0 = 0, t1 = 1;
+    const dx = x2 - x1, dy = y2 - y1;
+    const ps = [-dx, dx, -dy, dy], qs = [x1 - bx0, bx1 - x1, y1 - by0, by1 - y1];
+    for (let i = 0; i < 4; i++) {
+      if (Math.abs(ps[i]) < 1e-9) { if (qs[i] < 0) return false; continue; }
+      const r = qs[i] / ps[i];
+      if (ps[i] < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; }
+    }
+    return t0 <= t1;
+  }
+
+  function expandLayout(g, lay, si, openSlot) {
+    const ck = `${layoutKeyOf(lay)}|${si}|${openSlot == null ? '' : openSlot}`;
+    if (expCache.has(ck)) return expCache.get(ck);
+    const t0 = performance.now();
+    const sc = lay.sc, it = sc.info.get(si);
+    if (!it) return null;
+    const big = focusSets(g, lay, { t: 'std', si }).nodes;
+    const fixed = [];
+    const circles = [];
+    sc.stds.forEach(sj => {
+      const p = lay.npos.get(sj);
+      const r = big.has(sj) ? p.r : 3;
+      fixed.push({ x: p.x, y: p.y, r });
+      circles.push([p.x, p.y, r]);
+    });
+    lay.anc.forEach(a => { fixed.push({ x: a.x, y: a.y, r: a.r }); circles.push([a.x, a.y, a.r]); });
+    // 고정 장애물: 줄인 기존 노드, 앵커, 앵커 라벨(4.3의 3번). 그룹 라벨도 장애물로 두어 펼친 노드가 라벨을 덮지 않게 한다
+    const boxes = lay.anc.map(a => a.box).concat(Array.from(lay.glabels.values()).map(gl => gl.box));
+    const sp = lay.npos.get(si);
+    const cols = it.slots.map(slot => ({ slot, chain: chainOf(g, lay.anc[slot].vi, si), per: it.per.find(x => x.slot === slot) }));
+    const benTotal = cols.reduce((s, cl) => s + cl.chain.slice(0, EXP_RIDER_MAX).reduce((u, r) => u + r.bens.length, 0), 0);
+    const fold = sc.nPeer > 3 || benTotal > EXP_BEN_MAX;
+    const nodes = [], edges = [], notes = [];
+    cols.forEach(({ slot, chain, per }) => {
+      const a = lay.anc[slot];
+      const dx = sp.x - a.x, dy = sp.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+      const [nx, ny] = Math.abs(ux) >= 0.5 ? [0, 1] : [1, 0];
+      const p = per && per.e ? per.e.p : {};
+      const org = orgOf(a.code);
+      const rN = +(p['특약수'] || 0), bN = +(p['급부수'] || 0);
+      if (fold && slot !== 0 && openSlot !== slot) {
+        const x = a.x + ux * L * EXP_F_SUM, y = a.y + uy * L * EXP_F_SUM;
+        nodes.push({ kind: 'summary', id: 'SUM:' + a.id, slot, x, y, tx: x, ty: y, r: 8, g: null, text: t('grExpSumTpl', { org, r: fmt(rN), b: fmt(bN) }) });
+        edges.push({ ek: '보유', key: per && per.e ? 'e:' + per.e.i : '', s: { anc: slot }, t: nodes.length - 1 });
+        edges.push({ ek: '보유', key: per && per.e ? 'e:' + per.e.i : '', s: nodes.length - 1, t: { std: si } });
+        return;
+      }
+      const shown = chain.slice(0, EXP_RIDER_MAX);
+      const more = chain.length - shown.length;
+      const spR = 2 * EXP_RR + EXP_GAP + 1, spB = 2 * EXP_RB + EXP_GAP + 1;
+      const nR = shown.length + (more ? 1 : 0);
+      const ridx = new Map();
+      const first = nodes.length;
+      shown.forEach((rc, k) => {
+        const off = (k - (nR - 1) / 2) * spR;
+        const x = a.x + ux * L * EXP_F_RIDER + nx * off, y = a.y + uy * L * EXP_F_RIDER + ny * off;
+        nodes.push({ kind: '특약', ni: rc.ri, slot, x, y, tx: x, ty: y, r: EXP_RR, g: null });
+        ridx.set(rc.ri, nodes.length - 1);
+        edges.push({ ek: '포함', key: 'e:' + edgeIdx(g, a.vi, rc.ri, '포함'), s: { anc: slot }, t: nodes.length - 1 });
+      });
+      if (more) {
+        const off = (shown.length - (nR - 1) / 2) * spR;
+        const x = a.x + ux * L * EXP_F_RIDER + nx * off, y = a.y + uy * L * EXP_F_RIDER + ny * off;
+        nodes.push({ kind: 'more', id: 'MORE:' + a.id, slot, x, y, tx: x, ty: y, r: EXP_RR, g: null, text: t('grExpMoreTpl', { n: fmt(more) }) });
+      }
+      const bl = [];
+      shown.forEach(rc => rc.bens.forEach(b => bl.push({ ri: rc.ri, b: b.b, rec: b.rec })));
+      bl.forEach((bb, k) => {
+        const off = (k - (bl.length - 1) / 2) * spB;
+        const x = a.x + ux * L * EXP_F_BEN + nx * off, y = a.y + uy * L * EXP_F_BEN + ny * off;
+        const bp = g.N[bb.b].p || {};
+        nodes.push({ kind: '급부', ni: bb.b, slot, x, y, tx: x, ty: y, r: EXP_RB, g: null, rec: bb.rec, wait: !!bp['추출검수대기항목'] });
+        const bi = nodes.length - 1;
+        edges.push({ ek: '포함', key: 'e:' + edgeIdx(g, bb.ri, bb.b, '포함'), s: ridx.get(bb.ri), t: bi });
+        if (bb.rec) edges.push({ ek: 'rec', key: `rec:${bb.b}:${si}`, s: bi, t: { std: si } });
+        else {
+          const m = (g.benStds.get(bb.b) || []).find(x => x.std === si);
+          const st = m ? (g.E[m.e].p || {})['검토상태'] : '';
+          edges.push({ ek: '매핑', key: m ? 'e:' + m.e : '', s: bi, t: { std: si }, strong: st === '승인' || st === '수정' });
+        }
+      });
+      notes.push({ slot, first, last: nodes.length, many: rN > EXP_LABEL_MAX, text: t('grExpColTpl', { org, r: fmt(rN), b: fmt(bN) }), side: a.x <= sp.x ? -1 : 1 });
+    });
+    if (nodes.length) runSync(simulate(nodes, fixed, boxes, [], { W: lay.W, H: lay.H, gap: EXP_GAP, qSame: -4, qDiff: -4, qdmax: 30, kg: 0, kt: 0.15, iters: EXP_ITERS }));
+    // 라벨 장애물과 노드 간격이 맞서 겹침이 남으면 노드 간격을 우선해 한 번 더 정리한다(펼친 노드 겹침 0)
+    if (nodes.length) {
+      const X = Float64Array.from(nodes, nd => nd.x), Y = Float64Array.from(nodes, nd => nd.y), R = Float64Array.from(nodes, nd => nd.r);
+      const cx = (x, r) => Math.min(Math.max(x, NET_MARGIN + r), lay.W - NET_MARGIN - r), cy = (y, r) => Math.min(Math.max(y, NET_MARGIN + r), lay.H - NET_MARGIN - r);
+      const bad = () => { for (let i = 0; i < X.length; i++) { for (const f of fixed) if (Math.hypot(X[i] - f.x, Y[i] - f.y) < R[i] + f.r + EXP_GAP) return true; for (let j = i + 1; j < X.length; j++) if (Math.hypot(X[i] - X[j], Y[i] - Y[j]) < R[i] + R[j] + EXP_GAP) return true; } return false; };
+      for (let k = 0; k < 2 && bad(); k++) runSync(relax(X, Y, R, fixed, [], EXP_GAP + 0.05, nodes, cx, cy, false));
+      // 줄인 노드가 촘촘한 그룹 안에 갇혀 정리로 풀리지 않으면 가까운 빈 자리를 나선으로 찾아 옮긴다
+      if (bad()) {
+        const free = (i, x, y) => {
+          if (x - R[i] < NET_MARGIN || y - R[i] < NET_MARGIN || x + R[i] > lay.W - NET_MARGIN || y + R[i] > lay.H - NET_MARGIN) return false;
+          for (const f of fixed) if (Math.hypot(x - f.x, y - f.y) < R[i] + f.r + EXP_GAP + 0.05) return false;
+          for (let j = 0; j < X.length; j++) if (j !== i && Math.hypot(x - X[j], y - Y[j]) < R[i] + R[j] + EXP_GAP + 0.05) return false;
+          return true;
+        };
+        for (let i = 0; i < X.length; i++) {
+          if (free(i, X[i], Y[i])) continue;
+          let done = false;
+          for (let rad = 1; rad <= 120 && !done; rad += 1) {
+            for (let k = 0; k < 24 && !done; k++) {
+              const ang = k * Math.PI / 12;
+              const x = X[i] + Math.cos(ang) * rad, y = Y[i] + Math.sin(ang) * rad;
+              if (free(i, x, y)) { X[i] = x; Y[i] = y; done = true; }
+            }
+          }
+        }
+      }
+      nodes.forEach((nd, i) => { nd.x = X[i]; nd.y = Y[i]; });
+    }
+    // 라벨: 특약은 그 종형의 특약이 6개 이하일 때만, 많으면 열 옆에 "{회사} 특약 {n}, 급부 {m}"(5번). 앵커 쪽에 붙인다
+    const placed = lay.anc.map(a => a.box);
+    lay.glabels.forEach(gl => placed.push(gl.box));
+    lay.slabels.forEach((b, sj) => { if (big.has(sj)) placed.push(b); });
+    const allC = circles.concat(nodes.map(nd => [nd.x, nd.y, nd.r]));
+    const labels = [];
+    const tryPlace = (cands, text, weight, owner) => {
+      const w = textW(text, weight), h = textLineH();
+      for (const [x0, y0] of cands(w, h)) {
+        const b = [x0, y0, x0 + w, y0 + h];
+        if (!boxHit(b, placed, allC, lay.W, lay.H)) { placed.push(b); labels.push({ box: b, text, owner }); return true; }
+      }
+      return false;
+    };
+    nodes.forEach((nd, i) => {
+      if (nd.kind === 'more' || nd.kind === 'summary') {
+        tryPlace((w, h) => [[nd.x + nd.r + 2, nd.y - h / 2], [nd.x - nd.r - 2 - w, nd.y - h / 2], [nd.x - w / 2, nd.y + nd.r + 2], [nd.x - w / 2, nd.y - nd.r - 2 - h]], nd.text, 600, i);
+      }
+    });
+    notes.forEach(nt => {
+      if (!nt.many) {
+        for (let i = nt.first; i < nt.last; i++) {
+          const nd = nodes[i];
+          if (nd.kind !== '특약') continue;
+          const nm = g.N[nd.ni].l;
+          tryPlace((w, h) => (nt.side < 0 ? [[nd.x - nd.r - 2 - w, nd.y - h / 2]] : [[nd.x + nd.r + 2, nd.y - h / 2]]), nm, 400, i);
+        }
+        return;
+      }
+      const rs = nodes.slice(nt.first, nt.last).filter(nd => nd.kind === '특약' || nd.kind === 'more');
+      if (!rs.length) return;
+      const x0 = Math.min(...rs.map(nd => nd.x - nd.r)), x1 = Math.max(...rs.map(nd => nd.x + nd.r));
+      const y0 = Math.min(...rs.map(nd => nd.y - nd.r)), y1 = Math.max(...rs.map(nd => nd.y + nd.r));
+      const cx = (x0 + x1) / 2;
+      nt.placed = tryPlace((w, h) => [[cx - w / 2, y0 - 2 - h], [cx - w / 2, y1 + 2], nt.side < 0 ? [x0 - 2 - w, (y0 + y1) / 2 - h / 2] : [x1 + 2, (y0 + y1) / 2 - h / 2]], nt.text, 400, -1 - nt.slot);
+    });
+    const out = { si, nodes, edges, notes, labels, fold, ms: performance.now() - t0 };
+    if (lay.fontsOk) expCache.set(ck, out);
+    return out;
+  }
+
+  function layoutKeyOf(lay) { return `${lay.sc.sig}|${lay.W}|${lay.H}`; }
+
+  // 펼친 노드, 엣지, 라벨(SVG 조각). 엣지는 앞의 그룹(.gr-l-hot)에, 노드와 라벨은 노드 위 그룹(.gr-l-exp)에 둔다
+  function expEdgesHTML(g, lay, ex) {
+    const end = e => (typeof e === 'number' ? ex.nodes[e] : e.anc != null ? lay.anc[e.anc] : lay.npos.get(e.std));
+    const idOf = e => (typeof e === 'number' ? (ex.nodes[e].ni != null ? g.N[ex.nodes[e].ni].id : ex.nodes[e].id) : e.anc != null ? lay.anc[e.anc].id : g.N[e.std].id);
+    return ex.edges.map((ed, k) => {
+      const p = end(ed.s), q = end(ed.t);
+      if (!p || !q) return '';
+      const [x1, y1, x2, y2] = lineBetween(p, q, p.r, q.r);
+      const cls = ed.ek === 'rec' ? 'gr-e-rec' : ed.ek === '매핑' ? `gr-e-map${ed.strong ? ' is-strong' : ''}` : ed.ek === '보유' ? 'gr-e-held' : 'gr-e-inc';
+      const ekName = ed.ek === 'rec' ? '매핑' : ed.ek;
+      const delay = Math.min(320 - 160, k * 14 * 0.5);
+      return `<line class="gr-e gr-e-x ${cls}" pathLength="1" style="--d:${f1(delay)}" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="${esc(ekName)}"${ed.ek === 'rec' ? ' data-gr-rec="1"' : ''} data-gr-s="${esc(idOf(ed.s))}" data-gr-t="${esc(idOf(ed.t))}" data-gr-key="${esc(ed.key)}" data-tip-title="${esc(ed.ek === 'rec' ? t('grLgRec') : (g.ekindLabels[EK[ed.ek]] || ed.ek))}"/>`;
+    }).join('');
+  }
+
+  function expNodesHTML(g, lay, ex) {
+    const parts = [];
+    let order = 0;
+    const seq = ex.nodes.map((nd, i) => [nd, i]).sort((a, b) => (a[0].kind === '급부') - (b[0].kind === '급부') || a[1] - b[1]);
+    const delayOf = new Map(seq.map(([, i], k) => [i, Math.min(320 - 160, k * 14)]));
+    ex.nodes.forEach((nd, i) => {
+      const a = lay.anc[nd.slot];
+      const org = orgOf(a.code);
+      let id, kind, title, sub = '';
+      if (nd.ni != null) {
+        const n = g.N[nd.ni];
+        id = n.id; kind = nd.kind; title = n.l;
+        const tags = [org, g.kindLabels[n.k]];
+        if (nd.rec) tags.push(t('grWaitMapTag'));
+        if (nd.wait) tags.push(t('grWaitExtTag'));
+        sub = tags.join(' / ');
+      } else { id = nd.id; kind = nd.kind; title = nd.text; sub = org; }
+      const cls = nd.kind === '특약' ? 'gr-x-r' : nd.kind === '급부' ? 'gr-x-b' : nd.kind === 'more' ? 'gr-x-more' : 'gr-x-sum';
+      order++;
+      parts.push(`<g class="gr-x ${cls}${nd.rec ? ' is-rec' : ''}${nd.wait ? ' is-wait' : ''}" style="--d:${delayOf.get(i)}" transform="translate(${f1(nd.x)} ${f1(nd.y)})" tabindex="-1" role="button" aria-label="${esc(title)}" data-gr-fk="x:${i}" data-gr-x="${i}" data-gr-id="${esc(id)}" data-gr-kind="${esc(kind)}" data-gr-r="${f1(nd.r)}" data-gr-slot="${nd.slot}"${nd.ni != null ? ` data-gr-idx="${nd.ni}"` : ''} data-aim="circle" data-tip-title="${esc(title)}" data-tip-sub="${esc(sub)}"><circle class="gr-x-c" r="${f1(nd.r)}"/></g>`);
+    });
+    ex.labels.forEach(lb => {
+      const b = lb.box;
+      parts.push(`<text class="gr-tx gr-x-lb${lb.owner < 0 ? ' is-note' : ''}" data-gr-lb="exp" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + textAsc())}">${esc(lb.text)}</text>`);
+    });
+    return parts.join('');
+  }
+
+  // ---------- 엣지 판정과 선택(4.1, 4.5) ----------
+  function segDist(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy;
+    const u = l2 ? Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / l2)) : 0;
+    return Math.hypot(px - x1 - u * dx, py - y1 - u * dy);
+  }
+
+  function edgeHit(svg, x, y) {
+    let best = null, bd = Infinity;
+    svg.querySelectorAll('.gr-l-hot line[data-gr-key], .gr-l-xe line[data-gr-key], :scope > .gr-l-edges line').forEach(el => {
+      const d = segDist(x, y, +el.getAttribute('x1'), +el.getAttribute('y1'), +el.getAttribute('x2'), +el.getAttribute('y2'));
+      const lim = Math.max(4, (+el.getAttribute('stroke-width') || 1) / 2 + 3);
+      if (d <= lim && d < bd) { bd = d; best = el; }
+    });
+    if (!best) return null;
+    const key = best.dataset.grKey || (best.dataset.grBundle === '1' ? `bd:${best.dataset.grSlot}:${best.dataset.grT}` : '');
+    return key ? { t: 'edge', key } : null;
+  }
+
+  function edgeElOf(svg, key) {
+    if (!svg || !key) return null;
+    if (key.startsWith('bd:')) {
+      const [, slot, ...rest] = key.split(':');
+      return svg.querySelector(`:scope > .gr-l-edges .gr-e-bundle[data-gr-slot="${slot}"][data-gr-t="${CSS.escape(rest.join(':'))}"]`);
+    }
+    return svg.querySelector(`line[data-gr-key="${CSS.escape(key)}"]`);
+  }
+
+  function lineStyleNet(ekName, props) {
+    if (ekName === '보유') return t('grLineHeld');
+    if (ekName === '담보 관계') return t('grLineRel');
+    if (ekName === '포함') return t('grLineInc');
+    if (ekName === '판매') return t('grLineSell');
+    if (ekName === '매핑') {
+      const st = props && props['검토상태'];
+      return st === '승인' || st === '수정' ? t('grLineMapStrongTpl', { st: App.label(st) }) : t('grLineMap');
+    }
+    if (ekName === '발표') return t('grLineDashNews');
+    if (ekName === '분류') return t('grLineThinDom');
+    return '';
+  }
+
+  const ID_KEYS = new Set(['특약계보키', '종형계보키', '개정판ID', '모상품ID']);
+  function idsHTML(pairs) {
+    const rows = pairs.filter(x => x[1] != null && x[1] !== '');
+    if (!rows.length) return '';
+    return `<details class="ev-sec lo gr-ids"><summary>${esc(t('grIdHead'))}</summary><dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="num">${esc(String(v))}</dd>`).join('')}</dl></details>`;
+  }
+  const nameOfId = (g, id) => { const ni = g.byId.get(id); return ni != null ? g.N[ni].l : ''; };
+
+  // 엣지 상세 패널(4.5): 속성 이름과 값은 App.label(), ID 속성은 이름으로, 내부 키와 노드 ID 는 접힌 ID 영역에만(5.6)
+  function buildNetEdgeEv(g, key) {
+    const lay = net.lay;
+    const kv = rows => `<dl class="kv">${rows.filter(r => r[1] != null && r[1] !== '').map(([k, v]) => `<dt>${esc(App.label(k))}</dt><dd${/^[\d.]/.test(String(v)) ? ' class="num"' : ''}>${esc(App.label(String(v)))}</dd>`).join('')}</dl>`;
+    if (key.startsWith('bd:') && lay) {
+      const [, slotS, ...rest] = key.split(':');
+      const slot = +slotS, gk = rest.join(':');
+      const a = lay.anc[slot], grp = lay.sc.groupMap.get(gk);
+      if (!a || !grp) return null;
+      const list = grp.members.filter(si => lay.sc.info.get(si).slots.includes(slot));
+      const gname = groupLines(lay.sc, grp)[0];
+      return {
+        kicker: t('grEdgeKickerTpl', { kind: t('grLgBundle') }),
+        title: `${fullVarName(g, a.vi)} -> ${gname}`,
+        badges: [ui.tag(t('grLgBundle'))],
+        body: `<div class="ev-sec"><h3>${esc(t('grEdgePropHead'))}</h3>${kv([[t('grEdgeVarRow'), `${orgOf(a.code)}, ${fullVarName(g, a.vi)}`], [t('grEdgeGroupRow'), gname], [t('grEdgeLineRow'), t('grLineBundle')]])}</div>
+          <div class="ev-sec"><h3>${esc(t('grEdgeHeldListTpl', { n: fmt(list.length) }))}</h3><ul class="evl gr-glist">${list.map(si => `<li><button type="button" class="cv-lk" data-gr-pick-std="${si}">${esc(g.N[si].l)}</button></li>`).join('')}</ul></div>
+          ${idsHTML([[t('grEdgeVarRow'), a.id]])}`,
+      };
+    }
+    if (key.startsWith('rec:')) {
+      const [, b, s] = key.split(':').map(Number);
+      const nb = g.N[b], ns = g.N[s];
+      if (!nb || !ns) return null;
+      return {
+        kicker: t('grEdgeKickerTpl', { kind: t('grLgRec') }),
+        title: `${nb.l} -> ${ns.l}`,
+        badges: [ui.tag(t('grWaitMapTag'))],
+        body: `<div class="ev-sec"><h3>${esc(t('grEdgePropHead'))}</h3>${kv([[t('grEdgeStateRow'), t('grWaitMapTag')], [t('grEdgeRecRow'), ns.l], [t('grEdgeLineRow'), t('grLineRec')]])}</div>${idsHTML([[t('grEdgeFromId'), nb.id], [t('grEdgeToId'), ns.id]])}`,
+      };
+    }
+    if (!key.startsWith('e:')) return null;
+    const e = g.E[+key.slice(2)];
+    if (!e) return null;
+    const ekName = g.ekinds[e.k];
+    const p = e.p || {};
+    const nS = g.N[e.s], nT = g.N[e.t];
+    let rows = [];
+    if (ekName === '보유') {
+      const has = k => p[k] != null && p[k] !== '';
+      rows = [['급부수', has('급부수') ? fmt(+p['급부수']) : ''], ['특약수', has('특약수') ? fmt(+p['특약수']) : ''],
+        [t('grEdgeRepBenRow'), p['대표급부ID'] ? nameOfId(g, p['대표급부ID']) : ''],
+        ['매핑검수대기급부수', has('매핑검수대기급부수') ? fmt(+p['매핑검수대기급부수']) : ''],
+        ['추출검수대기급부수', has('추출검수대기급부수') ? fmt(+p['추출검수대기급부수']) : '']];
+    } else if (ekName === '담보 관계') {
+      const wide = REL_TARGET_IS_WIDE ? nT : nS, part = REL_TARGET_IS_WIDE ? nS : nT;
+      rows = [['관계', p['관계'] || ''], [t('grRelWide'), wide.l], [t('grRelPart'), part.l],
+        [t('grConfGemini'), p['확신_gemini'] != null ? String(p['확신_gemini']) : ''], [t('grConfClaude'), p['확신_claude'] != null ? String(p['확신_claude']) : '']];
+    } else if (ekName === '매핑') {
+      rows = [['검토상태', p['검토상태'] || ''], ['매핑확률', p['매핑확률'] != null ? String(p['매핑확률']) : ''], ['확정방식', p['확정방식'] || '']];
+    } else if (ekName === '포함') {
+      rows = nS.k === NK['특약'] ? [['급부역할', p['급부역할'] || '']] : [['담보구분', p['담보구분'] || ''], ['갱신', p['갱신'] || '']];
+    } else if (ekName === '결합제약') {
+      rows = [['제약유형', p['제약유형'] || ''], ['근거문구', p['근거문구'] || '']];
+    } else {
+      rows = Object.entries(p).filter(([k, v]) => !ID_KEYS.has(k) && !/ID$/.test(k) && v != null && v !== '').map(([k, v]) => [k, String(v)]);
+    }
+    rows.push([t('grEdgeLineRow'), lineStyleNet(ekName, p)]);
+    const idRows = [[t('grEdgeFromId'), nS.id], [t('grEdgeToId'), nT.id]].concat(Object.entries(p).filter(([k]) => ID_KEYS.has(k) || /ID$/.test(k)).map(([k, v]) => [App.label(k), v]));
+    return {
+      kicker: t('grEdgeKickerTpl', { kind: g.ekindLabels[e.k] }),
+      title: `${nS.l} -> ${nT.l}`,
+      badges: [ui.tag(g.ekindLabels[e.k])],
+      body: `<div class="ev-sec"><h3>${esc(t('grEdgePropHead'))}</h3>${kv(rows)}</div>
+        <div class="ev-sec lo"><h3>${esc(t('grEdgeEndsHead'))}</h3><div style="display:flex;flex-wrap:wrap;gap:6px">${[nS, nT].map(n => (n.k === NK['표준담보'] && lay && lay.sc.info.has(n.i) ? `<button type="button" class="btn sm ghost" data-gr-pick-std="${n.i}">${esc(n.l)}</button>` : `<span class="tag">${esc(n.l)}</span>`)).join('')}</div></div>
+        ${idsHTML(idRows)}`,
+    };
+  }
+
+  // ---------- 조건을 바꿀 때 위치 트랜지션(4.9) ----------
+  function moveDur() {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dur-graph-move')) || 480;
+    return Math.round(v * (App.motionScale ? App.motionScale() : 1));
+  }
+
+  // 지금 화면에 보이는 위치(애니메이션 도중이면 그 순간의 값)를 읽는다
+  function capturePos(svg) {
+    const sr = svg.getBoundingClientRect();
+    const c = el => { const r = el.getBoundingClientRect(); return { x: r.left - sr.left + r.width / 2, y: r.top - sr.top + r.height / 2, R: r.width / 2 }; };
+    const pos = { n: new Map(), g: new Map(), a: new Map() };
+    svg.querySelectorAll('.gr-l-nodes > .gr-n').forEach(el => pos.n.set(el.dataset.grId, Object.assign(c(el.querySelector('.gr-n-c')), { el })));
+    svg.querySelectorAll('.gr-l-groups > .gr-g').forEach(el => pos.g.set(el.dataset.grGroup, Object.assign(c(el), { el })));
+    svg.querySelectorAll('.gr-l-anchors > .gr-a').forEach(el => pos.a.set(el.dataset.grAkey, Object.assign(c(el.querySelector('.gr-a-c')), { el })));
+    pos.layers = Array.from(svg.querySelectorAll(':scope > .gr-l-edges, :scope > .gr-l-labels'));
+    pos.opacity = new Map(pos.layers.map(l => [l, getComputedStyle(l).opacity]));
+    return pos;
+  }
+
+  function endMove() {
+    if (net.moveT) { clearTimeout(net.moveT); net.moveT = 0; }
+    (net.moveTs || []).forEach(clearTimeout);
+    net.moveTs = [];
+    net.moving = false;
+  }
+
+  function startMove(svg, prev, lay) {
+    const dur = moveDur();
+    if (!dur) return false;
+    const ms = App.motionScale ? App.motionScale() : 1;
+    const ghost = svg.querySelector('.gr-l-ghost');
+    const moves = [];
+    let changed = false;
+    const prep = (el, from, to, enter) => {
+      el.style.transition = 'none';
+      el.style.transform = from;
+      if (enter) el.style.opacity = '0';
+      moves.push([el, to, enter]);
+    };
+    svg.querySelectorAll('.gr-n').forEach(el => {
+      const p = lay.npos.get(+el.dataset.grIdx), q = prev.n.get(el.dataset.grId);
+      const to = `translate(${f1(p.x)}px, ${f1(p.y)}px)`;
+      if (q) { if (Math.hypot(q.x - p.x, q.y - p.y) > 0.01) changed = true; prep(el, `translate(${f1(q.x)}px, ${f1(q.y)}px)`, to, false); }
+      else { changed = true; prep(el, `${to} scale(0.6)`, to, true); }
+    });
+    svg.querySelectorAll('.gr-g').forEach(el => {
+      const gg = lay.gpos.get(el.dataset.grGroup), q = prev.g.get(el.dataset.grGroup);
+      el.style.transformOrigin = `${f1(gg.x)}px ${f1(gg.y)}px`;
+      if (q) { if (Math.hypot(q.x - gg.x, q.y - gg.y) > 0.01 || Math.abs(q.R - gg.R) > 0.01) changed = true; prep(el, `translate(${f1(q.x - gg.x)}px, ${f1(q.y - gg.y)}px) scale(${(q.R / gg.R).toFixed(4)})`, 'translate(0px, 0px) scale(1)', false); }
+      else { changed = true; prep(el, 'scale(0.6)', 'scale(1)', true); }
+    });
+    svg.querySelectorAll('.gr-a').forEach((el, slot) => {
+      const a = lay.anc[slot], q = prev.a.get(el.dataset.grAkey);
+      const to = `translate(${f1(a.x)}px, ${f1(a.y)}px)`;
+      if (q) { if (Math.hypot(q.x - a.x, q.y - a.y) > 0.01) changed = true; prep(el, `translate(${f1(q.x)}px, ${f1(q.y)}px)`, to, false); }
+      else { changed = true; prep(el, `${to} scale(0.6)`, to, true); }
+    });
+    // 사라지는 노드, 그룹 원, 앵커는 처음 40% 동안 제자리에서 흐려지며 빠진다
+    const gone = [];
+    prev.n.forEach((q, id) => { if (!svg.querySelector(`.gr-n[data-gr-id="${CSS.escape(id)}"]`)) gone.push([q, `translate(${f1(q.x)}px, ${f1(q.y)}px)`]); });
+    prev.a.forEach((q, k) => { if (!svg.querySelector(`.gr-a[data-gr-akey="${CSS.escape(k)}"]`)) gone.push([q, `translate(${f1(q.x)}px, ${f1(q.y)}px)`]); });
+    prev.g.forEach((q, k) => {
+      if (svg.querySelector(`.gr-g[data-gr-group="${CSS.escape(k)}"]`)) return;
+      const cx = +q.el.getAttribute('cx'), cy = +q.el.getAttribute('cy'), r = +q.el.getAttribute('r') || 1;
+      q.el.style.transformOrigin = `${cx}px ${cy}px`;
+      gone.push([q, `translate(${f1(q.x - cx)}px, ${f1(q.y - cy)}px) scale(${(q.R / r).toFixed(4)})`]);
+    });
+    if (gone.length) changed = true;
+    if (!changed) { moves.forEach(([el]) => { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; el.style.transformOrigin = ''; }); return false; }
+    gone.forEach(([q, tf]) => {
+      const el = q.el;
+      el.classList.remove('is-keep', 'is-sel', 'is-big', 'is-on');
+      el.style.transition = 'none';
+      el.style.transform = tf;
+      el.style.opacity = '1';
+      ghost.appendChild(el);
+    });
+    // 번들 엣지와 라벨: 옛 것은 처음 25% 동안 빠지고, 새 것은 노드가 도착한 뒤 그어지고(320ms) 나타난다(120ms).
+    // 새 층은 옛 층을 잔상 층에 넣기 전에 잡는다(잔상 층이 문서 차례로 앞이다)
+    const newEdges = Array.from(svg.querySelectorAll(':scope > .gr-l-edges .gr-e-bundle'));
+    const newLabels = svg.querySelector(':scope > .gr-l-labels');
+    prev.layers.forEach(l => { l.style.transition = 'none'; l.style.opacity = prev.opacity.get(l); ghost.appendChild(l); });
+    newEdges.forEach(el => { el.setAttribute('pathLength', '1'); el.style.strokeDasharray = '1'; el.style.strokeDashoffset = '1'; });
+    // 잔상은 포커스 대상과 측정 대상이 아니다
+    ghost.querySelectorAll('[data-gr-fk]').forEach(x => { x.removeAttribute('data-gr-fk'); x.removeAttribute('tabindex'); });
+    if (newLabels) newLabels.style.opacity = '0';
+    net.moving = true;
+    svg.getBoundingClientRect();
+    void getComputedStyle(svg.querySelector('.gr-n') || svg).transform;
+    const ease = 'var(--ease-graph-move)';
+    moves.forEach(([el, to, enter]) => {
+      if (enter) {
+        el.style.transition = `opacity ${dur * 0.5}ms var(--ease-in) ${dur * 0.5}ms, transform ${dur * 0.5}ms var(--ease-in) ${dur * 0.5}ms`;
+        el.style.opacity = '1';
+      } else el.style.transition = `transform ${dur}ms ${ease}`;
+      el.style.transform = to;
+    });
+    gone.forEach(([q]) => { q.el.style.transition = `opacity ${Math.round(dur * 0.4)}ms var(--ease-out)`; q.el.style.opacity = '0'; });
+    prev.layers.forEach(l => { l.style.transition = `opacity ${Math.round(dur * 0.25)}ms var(--ease-out)`; l.style.opacity = '0'; });
+    net.moveT = setTimeout(() => {
+      net.moveT = 0;
+      if (!svg.isConnected) { net.moving = false; return; }
+      moves.forEach(([el]) => { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; el.style.transformOrigin = ''; });
+      ghost.textContent = '';
+      const drawMs = Math.round(320 * ms), lbMs = Math.round(120 * ms);
+      newEdges.forEach(el => { el.style.transition = `stroke-dashoffset ${drawMs}ms var(--ease-in)`; el.style.strokeDashoffset = '0'; });
+      if (newLabels) { newLabels.style.transition = `opacity ${lbMs}ms var(--ease-in)`; newLabels.style.opacity = '1'; }
+      net.moving = false;
+      applyNetState();
+      net.moveTs.push(setTimeout(() => {
+        newEdges.forEach(el => { el.style.transition = ''; el.style.strokeDasharray = ''; el.style.strokeDashoffset = ''; el.removeAttribute('pathLength'); });
+        if (newLabels) { newLabels.style.transition = ''; newLabels.style.opacity = ''; }
+      }, Math.max(drawMs, lbMs) + 40));
+    }, dur + 20);
+    return true;
+  }
+
+  // ---------- 키보드: roving tabindex(4.7) ----------
+  function fkOf(el) { return el && el.dataset ? el.dataset.grFk || '' : ''; }
+  function focusables(svg) { return Array.from(svg.querySelectorAll('[data-gr-fk]')); }
+  function hitOfEl(el) {
+    if (!el) return null;
+    const fk = fkOf(el);
+    if (el.classList.contains('gr-n')) return { t: 'std', si: +el.dataset.grIdx };
+    if (el.classList.contains('gr-a')) return { t: 'anchor', slot: +el.dataset.grSlot };
+    if (el.dataset.grGlabel) return { t: 'group', key: el.dataset.grGlabel };
+    if (fk.startsWith('x:')) return { t: 'x', i: +el.dataset.grX };
+    return null;
+  }
+  function setRoving(svg, el) {
+    if (!svg || !el) return;
+    svg.querySelectorAll('[data-gr-fk][tabindex="0"]').forEach(x => { if (x !== el) x.setAttribute('tabindex', '-1'); });
+    el.setAttribute('tabindex', '0');
+    net.focusKey = fkOf(el);
+  }
+  function syncRoving(svg) {
+    if (!svg) return;
+    const cur = net.focusKey && svg.querySelector(`[data-gr-fk="${CSS.escape(net.focusKey)}"]`);
+    setRoving(svg, cur || svg.querySelector('.gr-a.is-base') || svg.querySelector('[data-gr-fk]'));
+  }
+  function elCenter(svg, el) {
+    const sr = svg.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return [r.left - sr.left + r.width / 2, r.top - sr.top + r.height / 2];
+  }
+  function netArrow(svg, el, key) {
+    const list = focusables(svg).filter(x => x.getClientRects().length && getComputedStyle(x).opacity !== '0');
+    let target = null;
+    if (key === 'Home') target = svg.querySelector('.gr-a.is-base');
+    else if (key === 'End') { const gl = svg.querySelectorAll('[data-gr-glabel]'); target = gl[gl.length - 1] || null; }
+    else {
+      const [x0, y0] = elCenter(svg, el);
+      const dir = { ArrowRight: 0, ArrowDown: 90, ArrowLeft: 180, ArrowUp: 270 }[key];
+      let bd = Infinity;
+      list.forEach(x => {
+        if (x === el) return;
+        const [x1, y1] = elCenter(svg, x);
+        const d = Math.hypot(x1 - x0, y1 - y0);
+        if (d < 0.5) return;
+        let ang = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;
+        let diff = Math.abs(((ang - dir) % 360 + 540) % 360 - 180);
+        if (diff <= 45 && d < bd) { bd = d; target = x; }
+      });
+    }
+    if (!target) return;
+    setRoving(svg, target);
+    try { target.focus({ preventScroll: true }); } catch (e) { /* */ }
+  }
+  function netActivate(h) {
+    const svg = lastCenterEl && lastCenterEl.querySelector('#gr-net-svg');
+    if (!h || !svg) return;
+    netClickHit(h, svg);
   }
 
   // ---------- 상세 패널: 담보와 그룹 ----------
@@ -15393,9 +16149,32 @@ App.registerTab((function () {
       if (p['추출검수대기급부수']) items.push(t('grWaitExtTpl', { n: fmt(p['추출검수대기급부수']) }));
       return `<dt>${esc(orgOf(x.code))}</dt><dd>${esc(items.join(', '))}</dd>`;
     }).join('');
+    // 특약과 급부 목록(그래프 열 차례, 급부역할, 검수 상태)과 담보 관계로 연결된 담보(4.3의 8번)
+    const chainRows = it.per.map(x => {
+      const ch = chainOf(g, x.vi, si);
+      if (!ch.length) return '';
+      const items = ch.map(rc => {
+        const bens = rc.bens.map(b => {
+          const ie = edgeIdx(g, rc.ri, b.b, '포함');
+          const role = ie != null ? (g.E[ie].p || {})['급부역할'] : '';
+          const m = (g.benStds.get(b.b) || []).find(y => y.std === si);
+          const st = b.rec ? t('grWaitMapTag') : m ? App.label((g.E[m.e].p || {})['검토상태'] || '') : '';
+          const ext = (g.N[b.b].p || {})['추출검수대기항목'] ? t('grWaitExtTag') : '';
+          return `<li>${esc(g.N[b.b].l)}<span class="note"> ${esc([role ? App.label(role) : '', st, ext].filter(Boolean).join(', '))}</span></li>`;
+        }).join('');
+        return `<li><b>${esc(g.N[rc.ri].l)}</b><ul class="evl gr-bl">${bens}</ul></li>`;
+      }).join('');
+      return `<h4 class="gr-ch-h">${esc(orgOf(x.code))}</h4><ul class="evl gr-ch">${items}</ul>`;
+    }).join('');
+    const relRows = netRelEdges(g, sc, si).map(({ e, other }) => {
+      const otherIsWide = REL_TARGET_IS_WIDE ? e.t === other : e.s === other;
+      return `<li><button type="button" class="cv-lk" data-gr-pick-std="${other}">${esc(g.N[other].l)}</button> ${ui.tag(otherIsWide ? t('grRelWide') : t('grRelPart'))}</li>`;
+    }).join('');
     const body = `${marks.length ? `<div class="ev-sec"><h3>${esc(t('grMarkHead'))}</h3><ul class="evl">${marks.map(m => `<li>${esc(m)}</li>`).join('')}</ul></div>` : ''}
       ${verdRows ? `<div class="ev-sec"><h3>${esc(t('grVerdictHead'))}</h3><ul class="evl gr-verd">${verdRows}</ul></div>` : ''}
       <div class="ev-sec"><h3>${esc(t('grHeldHead'))}</h3><dl class="kv">${heldRows}</dl>${crossTabButtonsHTML(g, n)}</div>
+      ${relRows ? `<div class="ev-sec"><h3>${esc(t('grRelStdHead'))}</h3><ul class="evl gr-glist">${relRows}</ul></div>` : ''}
+      ${chainRows ? `<div class="ev-sec"><h3>${esc(t('grExpListHead'))}</h3>${chainRows}</div>` : ''}
       <details class="ev-sec lo gr-ids"><summary>${esc(t('grIdHead'))}</summary><p class="note num">${esc(n.id)}</p></details>`;
     return {
       kicker: t('grNodeKickerTpl', { kind: g.kindLabels[n.k] }),
@@ -15458,6 +16237,8 @@ App.registerTab((function () {
       [`<line class="gr-e gr-e-held" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgHeldOne')],
       [`<line class="gr-e gr-e-rel gr-e-rel-inc" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgRelInc')],
       [`<line class="gr-e gr-e-rel gr-e-rel-uni" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgRelUni')],
+      [`<line class="gr-e gr-e-inc" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgIncMap')],
+      [`<line class="gr-e gr-e-rec" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgRec')],
     ].map(([sw, nm]) => row(swatchSVG(sw), nm)).join('');
     return `<div class="gr-lg-sec"><span class="gr-lg-h">${esc(t('grLgCls'))}</span>${cls}</div>
       <div class="gr-lg-sec is-2col"><span class="gr-lg-h">${esc(t('grPropDomain'))}</span>${dom}</div>
@@ -15677,7 +16458,13 @@ App.registerTab((function () {
       state.selNode = ni;
       state.focusNode = ni;
       state.selEdge = null;
-      return buildNodeEv(g, ni);
+      const ev = buildNodeEv(g, ni);
+      // 펼친 특약과 급부에서 그 종형의 종형 구성으로 넘어간다(4.11)
+      if (ev && state.preset === 'cover' && (g.N[ni].k === NK['특약'] || g.N[ni].k === NK['급부'])) {
+        const vi = net.ex && net.ex.nodes.find(nd => nd.ni === ni) ? net.lay.anc[net.ex.nodes.find(nd => nd.ni === ni).slot].vi : varOfNode(g, ni);
+        if (vi != null) ev.body = `<div class="ev-sec">${ui.btn(t('grOpenVarBtn'), { sm: true, main: true, chev: true, attrs: `data-gr-open-var="${vi}"` })}</div>` + ev.body;
+      }
+      return ev;
     }
     if (key.startsWith('grp:')) {
       state.selGroup = key.slice(4);
@@ -15689,6 +16476,7 @@ App.registerTab((function () {
     if (key.startsWith('edge:')) {
       const ek = key.slice(5);
       state.selEdge = ek;
+      if (state.preset === 'cover') return buildNetEdgeEv(g, ek);
       return buildEdgeEv(g, ek);
     }
     return null;
@@ -15721,10 +16509,21 @@ App.registerTab((function () {
     const sig = scopeSig(c);
     const totalVis = state.cols.reduce((a, arr) => a + arr.length, 0);
     if ((!totalVis && state.preset !== 'cover') || !trail.length || sig !== lastScopeSig) {
+      const keepSel = state.preset === 'cover' && lastScopeSig ? state.selStd : null;
+      const hadSel = App.state.sel.graph != null;
       lastScopeSig = sig;
       const keepFilter = state.filter;
       initPresetState(state.preset || 'cover', c, false);
       state.filter = keepFilter;
+      // 선택한 담보가 새 조건에서도 화면에 있으면 선택을 유지하고(새 위치에서 다시 펼침), 없으면 푼다(4.9의 4번)
+      const g = ensureGraph();
+      if (keepSel != null && sceneOf(g, c).info.has(keepSel)) {
+        state.selStd = keepSel;
+        recordTrail(g.N[keepSel].l, true);
+        requestAnimationFrame(() => { if (state.selStd === keepSel) App.select('n:' + g.N[keepSel].id, { animate: false, push: false, focus: false }); });
+      } else if (hadSel && state.preset === 'cover') {
+        requestAnimationFrame(() => { if (App.state.sel.graph != null && state.selStd == null) App.unselect({ push: false, restoreFocus: false }); });
+      }
     }
     renderLeftZone(left);
     // 탭 진입 첫 프레임에는 열과 노드를 그리고, 엣지 좌표 읽기는 다음 프레임에 돌린다(1-10)
@@ -15786,9 +16585,14 @@ App.registerTab((function () {
       state.selStd = null;
       state.selGroup = null;
       state.selNode = ni;
-      recordTrail(n.l);
+      recordTrail(n.l, true);
       rerenderGraph(false);
       App.select('n:' + n.id, { animate: true, focus: false });
+      // 검색한 종형이 지금 앵커에 있으면 그 앵커로 포커스를 옮긴다(4.6)
+      const a = net.lay && net.lay.anc.find(x => x.vi === ni);
+      const svg = lastCenterEl && lastCenterEl.querySelector('#gr-net-svg');
+      const el = a && svg && svg.querySelector(`[data-gr-fk="${CSS.escape('a:' + a.key)}"]`);
+      if (el) { net.selFk = 'a:' + a.key; setRoving(svg, el); try { el.focus({ preventScroll: true }); } catch (e) { /* */ } }
       return;
     }
     if (n.k === NK['시장 동향'] || n.k === NK['회사']) {
@@ -15906,6 +16710,23 @@ App.registerTab((function () {
     netHover(netHit(svg, e.clientX, e.clientY));
   }, { passive: true });
 
+  // 포커스는 호버와 같은 포커스 표시로 보인다(4.7)
+  document.addEventListener('focusin', e => {
+    if (App.state.tab !== 'graph' || !net.lay) return;
+    const el = e.target.closest && e.target.closest('#gr-net-svg [data-gr-fk]');
+    if (!el) return;
+    setRoving(el.closest('#gr-net-svg'), el);
+    // 키보드 포커스일 때만 호버와 같은 강조를 보인다(마우스 클릭으로 생긴 포커스는 포인터 위치가 정한다)
+    let vis = true;
+    try { vis = el.matches(':focus-visible'); } catch (err) { /* */ }
+    if (vis) netHover(hitOfEl(el));
+  });
+  document.addEventListener('focusout', e => {
+    if (App.state.tab !== 'graph' || !net.lay) return;
+    const to = e.relatedTarget;
+    if (e.target.closest && e.target.closest('#gr-net-svg') && !(to && to.closest && to.closest('#gr-net-svg'))) netHover(null);
+  });
+
   // ---------- 위임 이벤트(클릭, 검색, 엣지 가리킴 칩, 키보드 화살표 및 되돌리기) ----------
   document.addEventListener('input', e => {
     if (App.state.tab !== 'graph') return;
@@ -15965,6 +16786,13 @@ App.registerTab((function () {
       return;
     }
 
+    const ov = e.target.closest && e.target.closest('[data-gr-open-var]');
+    if (ov) {
+      e.stopPropagation();
+      netOpenVariant(+ov.dataset.grOpenVar);
+      return;
+    }
+
     const pst = e.target.closest && e.target.closest('[data-gr-pick-std]');
     if (pst) {
       e.stopPropagation();
@@ -15989,7 +16817,8 @@ App.registerTab((function () {
         const prev = undoStack.pop();
         if (!prev) return;
         restoreStateSnap(prev);
-        if (trail.length > 1) trail.pop();
+        if (state.preset === 'cover') syncCoverTrail();
+        else if (trail.length > 1) trail.pop();
         rerenderGraph(true);
         reselectFromState();
       } else if (act.dataset.grAct === 'reset') {
@@ -16170,6 +16999,29 @@ App.registerTab((function () {
       return;
     }
 
+    // 담보별 연결: 화살표는 그 방향 ±45도 안의 가장 가까운 대상, Home 은 기준 앵커, End 는 마지막 그룹 라벨, Enter 와 Space 는 선택(4.7)
+    const fkEl = e.target.closest && e.target.closest('#gr-net-svg [data-gr-fk]');
+    if (fkEl && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const svg = fkEl.closest('#gr-net-svg');
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+        e.preventDefault();
+        netArrow(svg, fkEl, e.key);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        net.focusKey = fkOf(fkEl);
+        netActivate(hitOfEl(fkEl));
+        // 선택 뒤 포커스가 body 로 빠지지 않게 같은 대상(다시 그렸으면 새 요소)에 둔다
+        requestAnimationFrame(() => {
+          const sv = lastCenterEl && lastCenterEl.querySelector('#gr-net-svg');
+          const el = sv && net.focusKey && sv.querySelector(`[data-gr-fk="${CSS.escape(net.focusKey)}"]`);
+          if (el && (document.activeElement === document.body || !document.activeElement || !document.activeElement.isConnected)) { setRoving(sv, el); try { el.focus({ preventScroll: true }); } catch (err) { /* */ } }
+        });
+        return;
+      }
+    }
+
     const ndBtn = e.target.closest && e.target.closest('#gr-stage-root .gr-node');
     if (ndBtn && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
       if (handleGraphArrowKey(e, ndBtn)) return;
@@ -16186,11 +17038,18 @@ App.registerTab((function () {
   App.on('select', (tabId) => {
     if (tabId !== 'graph') return;
     if (App.state.sel.graph == null && state.preset === 'cover' && (state.selNode != null || state.selEdge != null || state.selStd != null || state.selGroup)) {
-      state.selStd = null;
-      state.selGroup = null;
-      state.selNode = null;
-      state.selEdge = null;
+      const svg = lastCenterEl && lastCenterEl.querySelector('#gr-net-svg');
+      const fk = net.selFk || net.focusKey;
+      net.selFk = null;
+      const ae = document.activeElement;
+      const hadFocus = !ae || ae === document.body || (svg && svg.contains(ae));
+      clearSel();
+      dropSelTrail();
       applyNetState();
+      refreshTrail();
+      // Esc 로 풀면 포커스는 선택했던 노드로 돌아간다(4.7)
+      const el = svg && fk && svg.querySelector(`[data-gr-fk="${CSS.escape(fk)}"]`);
+      if (el && hadFocus) { setRoving(svg, el); try { el.focus({ preventScroll: true }); } catch (e) { /* */ } }
       return;
     }
     if (App.state.sel.graph == null && (state.selNode != null || state.selEdge != null)) {

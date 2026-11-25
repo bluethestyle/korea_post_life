@@ -105,12 +105,12 @@ SCREEN_JS = r"""
   if (!svg) return null;
   const sr = svg.getBoundingClientRect();
   const tr = el => { const m = /translate\(([-\d.]+)[ ,]+([-\d.]+)\)/.exec(el.getAttribute('transform') || ''); return m ? [+m[1], +m[2]] : [NaN, NaN]; };
-  const nodes = Array.from(svg.querySelectorAll('.gr-n')).map(el => { const [x, y] = tr(el); return { id: el.dataset.grId, kind: el.dataset.grKind, r: +el.dataset.grR, group: el.dataset.grGroup, cls: el.dataset.grCls, mark: el.dataset.grMark || '', x, y }; });
-  const anchors = Array.from(svg.querySelectorAll('.gr-a')).map(el => { const [x, y] = tr(el); return { id: el.dataset.grId, kind: el.dataset.grKind, r: +el.dataset.grR, x, y }; });
-  const groups = Array.from(svg.querySelectorAll('.gr-g')).map(el => ({ key: el.dataset.grGroup, count: +el.dataset.grCount, x: +el.getAttribute('cx'), y: +el.getAttribute('cy'), R: +el.getAttribute('r') }));
+  const nodes = Array.from(svg.querySelectorAll('.gr-l-nodes > .gr-n')).map(el => { const [x, y] = tr(el); return { id: el.dataset.grId, kind: el.dataset.grKind, r: +el.dataset.grR, group: el.dataset.grGroup, cls: el.dataset.grCls, mark: el.dataset.grMark || '', x, y }; });
+  const anchors = Array.from(svg.querySelectorAll('.gr-l-anchors > .gr-a')).map(el => { const [x, y] = tr(el); return { id: el.dataset.grId, kind: el.dataset.grKind, r: +el.dataset.grR, x, y }; });
+  const groups = Array.from(svg.querySelectorAll('.gr-l-groups > .gr-g')).map(el => ({ key: el.dataset.grGroup, count: +el.dataset.grCount, x: +el.getAttribute('cx'), y: +el.getAttribute('cy'), R: +el.getAttribute('r') }));
   const edges = Array.from(svg.querySelectorAll('.gr-l-edges > *, .gr-l-hot > *')).map(el => ({ tag: el.tagName.toLowerCase(), d: el.getAttribute('d') || '', ekind: el.dataset.grEkind, bundle: el.dataset.grBundle === '1', s: el.dataset.grS, t: el.dataset.grT,
     x1: +el.getAttribute('x1'), y1: +el.getAttribute('y1'), x2: +el.getAttribute('x2'), y2: +el.getAttribute('y2') }));
-  const labels = Array.from(svg.querySelectorAll('[data-gr-lb]')).map(el => {
+  const labels = Array.from(svg.querySelectorAll('[data-gr-lb]')).filter(el => !el.closest('.gr-l-ghost')).map(el => {
     const texts = el.tagName.toLowerCase() === 'text' ? [el] : Array.from(el.querySelectorAll('text'));
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     texts.forEach(tx => { const r = tx.getBoundingClientRect(); x0 = Math.min(x0, r.left - sr.left); y0 = Math.min(y0, r.top - sr.top); x1 = Math.max(x1, r.right - sr.left); y1 = Math.max(y1, r.bottom - sr.top); });
@@ -159,6 +159,26 @@ def seg_cross(a, b):
 
 def rect_overlap(a, b, tol=0.5):
     return a[0] < b[2] - tol and b[0] < a[2] - tol and a[1] < b[3] - tol and b[1] < a[3] - tol
+
+
+def seg_rect(x1, y1, x2, y2, b):
+    t0, t1 = 0.0, 1.0
+    dx, dy = x2 - x1, y2 - y1
+    for p_, q_ in ((-dx, x1 - b[0]), (dx, b[2] - x1), (-dy, y1 - b[1]), (dy, b[3] - y1)):
+        if abs(p_) < 1e-9:
+            if q_ < 0:
+                return False
+            continue
+        r = q_ / p_
+        if p_ < 0:
+            if r > t1:
+                return False
+            t0 = max(t0, r)
+        else:
+            if r < t0:
+                return False
+            t1 = min(t1, r)
+    return t0 <= t1
 
 
 def rect_circle(b, x, y, r, tol=0.5):
@@ -210,6 +230,9 @@ def layout_metrics(sc: dict) -> dict:
     n_group_lb = sum(1 for lb in labels if lb['type'] in ('group', 'badge'))
     n_badge = sum(1 for lb in labels if lb['type'] == 'badge')
     n_std_lb = sum(1 for lb in labels if lb['type'] == 'std')
+    # 담보 이름 라벨이 번들 엣지 선분 위에 얹힌 수(3.9, 4단계에서 더함)
+    lab_on_bundle = sum(1 for lb in labels if lb['type'] == 'std' for e in bundles
+                        if seg_rect(e['x1'], e['y1'], e['x2'], e['y2'], lb['box']))
     return {
         'W': W, 'H': H, 'k': k, 'nodes': len(nodes), 'groups': len(groups), 'bundles': len(bundles),
         'node_overlap': overlap, 'node_min_gap': round(min_gap, 2), 'node_gap_req': gap_req, 'node_gap_violations': gap_bad,
@@ -217,7 +240,7 @@ def layout_metrics(sc: dict) -> dict:
         'bundle_crossings': cross, 'orthogonal_edges': ortho,
         'label_overlap': lab_overlap, 'label_node_overlap': lab_node, 'label_outside': lab_out, 'label_font_min': fs_min,
         'anchor_labels': n_anchor_lb, 'group_labels': n_group_lb, 'group_badges': n_badge,
-        'std_labels': n_std_lb, 'layout_ms': sc['ms'],
+        'std_labels': n_std_lb, 'std_label_on_bundle': lab_on_bundle, 'layout_ms': sc['ms'],
     }
 
 
@@ -283,11 +306,200 @@ def compare(sc: dict, exp: dict) -> dict:
     }
 
 
+# ---------- 4단계 측정: 선택 펼침(12절 11번), 조건을 바꿀 때 이동(13번), 트랜지션(16번), 근거 2단계 경로(5.3) ----------
+EXP_JS = r"""
+() => {
+  const svg = document.getElementById('gr-net-svg');
+  const tr = el => { const m = /translate\(([-\d.]+)[ ,]+([-\d.]+)\)/.exec(el.getAttribute('transform') || ''); return m ? [+m[1], +m[2]] : [NaN, NaN]; };
+  const xs = Array.from(svg.querySelectorAll('.gr-l-exp .gr-x')).map(el => { const [x, y] = tr(el); return { id: el.dataset.grId, kind: el.dataset.grKind, r: +el.dataset.grR, x, y }; });
+  const fixed = Array.from(svg.querySelectorAll('.gr-n')).map(el => { const [x, y] = tr(el); const c = el.querySelector('.gr-n-c').getBoundingClientRect(); return { id: el.dataset.grId, x, y, r: c.width / 2, big: el.classList.contains('is-big') }; })
+    .concat(Array.from(svg.querySelectorAll('.gr-a')).map(el => { const [x, y] = tr(el); return { id: el.dataset.grId, x, y, r: +el.dataset.grR, big: true }; }));
+  const edges = Array.from(svg.querySelectorAll('.gr-l-xe line')).map(el => ({ ekind: el.dataset.grEkind, s: el.dataset.grS, t: el.dataset.grT,
+    x1: +el.getAttribute('x1'), y1: +el.getAttribute('y1'), x2: +el.getAttribute('x2'), y2: +el.getAttribute('y2') }));
+  const attrsOk = xs.every(n => n.id && n.kind && n.r > 0) && edges.every(e => e.ekind && e.s && e.t);
+  return { xs, fixed, edges, attrsOk };
+}
+"""
+
+SAMPLE_JS = r"""
+(args) => new Promise(resolve => {
+  const [cond, ms] = args;
+  const pos = () => {
+    const svg = document.getElementById('gr-net-svg');
+    const out = {};
+    if (!svg) return out;
+    const sr = svg.getBoundingClientRect();
+    svg.querySelectorAll('.gr-n').forEach(el => {
+      if (el.closest('.gr-l-ghost')) return;
+      const r = el.querySelector('.gr-n-c').getBoundingClientRect();
+      out[el.dataset.grId] = [r.left - sr.left + r.width / 2, r.top - sr.top + r.height / 2];
+    });
+    return out;
+  };
+  const frames = [{ t: 0, p: pos() }];
+  const t0 = performance.now();
+  App.set(cond);
+  const tick = () => {
+    const t = performance.now() - t0;
+    frames.push({ t, p: pos() });
+    if (t < ms) requestAnimationFrame(tick); else resolve(frames);
+  };
+  requestAnimationFrame(tick);
+})
+"""
+
+
+def cross_count(edges):
+    c = 0
+    for a, b in itertools.combinations(edges, 2):
+        if {a['s'], a['t']} & {b['s'], b['t']}:
+            continue
+        if seg_cross((a['x1'], a['y1'], a['x2'], a['y2']), (b['x1'], b['y1'], b['x2'], b['y2'])):
+            c += 1
+    return c
+
+
+def trans_metrics(frames):
+    first, last = frames[0]['p'], frames[-1]['p']
+    per = []
+    for nid, p0 in first.items():
+        if nid not in last:
+            continue
+        p1 = last[nid]
+        D = math.hypot(p1[0] - p0[0], p1[1] - p0[1])
+        if D < 1:
+            continue
+        seq = [(f['t'], f['p'][nid]) for f in frames if nid in f['p']]
+        steps = [math.hypot(b[1][0] - a[1][0], b[1][1] - a[1][1]) for a, b in zip(seq, seq[1:])]
+        path = sum(steps)
+        p100 = next((pp for t, pp in seq if t >= 100), seq[-1][1])
+        prog100 = math.hypot(p100[0] - p0[0], p100[1] - p0[1]) / D
+        per.append({'id': nid, 'D': round(D, 1), 'max_step_ratio': round(max(steps) / D, 4), 'prog100': round(prog100, 4),
+                    'path_ratio': round(path / D, 4), 'one_frame': max(steps) >= 0.99 * D,
+                    'moving_frames': sum(1 for s_ in steps if s_ > 0.01)})
+    if not per:
+        return {'moving_nodes': 0}
+    return {'moving_nodes': len(per), 'max_step_ratio': max(x['max_step_ratio'] for x in per), 'max_prog100': max(x['prog100'] for x in per),
+            'max_path_ratio': max(x['path_ratio'] for x in per), 'one_frame_moves': sum(1 for x in per if x['one_frame']),
+            'frames': len(frames), 'min_moving_frames': min(x['moving_frames'] for x in per)}
+
+
+def base_ids(bases, names):
+    def find(pat):
+        return next((b for b in bases if re.search(pat, names.get(b, ''))), None)
+    b1, b2, b3, b4 = find('1종'), find('2종'), find('3종'), find('4종')
+    bt = next((b for b in bases if b not in (b1, b2, b3, b4)), None)
+    return b1, b2, b3, b4, bt
+
+
+async def stage4_sel(pg, bases, names):
+    # 11번: 선택 상태(기준 1종, 비교 범위 전체)
+    b1 = base_ids(bases, names)[0]
+    await set_cond(pg, b1, 'all')
+    sel = {}
+    for nm in ['암 수술비', '일반암 진단비']:
+        before = await pg.evaluate(SCREEN_JS)
+        ok = await pg.evaluate("""(nm) => { const el = Array.from(document.querySelectorAll('#gr-net-svg .gr-n')).find(e => e.dataset.tipTitle === nm); if (!el) return false; const r = el.querySelector('.gr-n-c').getBoundingClientRect(); el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 })); return true; }""", nm)
+        await pg.wait_for_timeout(700)
+        after = await pg.evaluate(SCREEN_JS)
+        ex = await pg.evaluate(EXP_JS)
+        amap = {n['id']: n for n in after['nodes']}
+        move = max(math.hypot(n['x'] - amap[n['id']]['x'], n['y'] - amap[n['id']]['y']) for n in before['nodes'])
+        ov = 0
+        min_gap = math.inf
+        xs = ex['xs']
+        for a, b in itertools.combinations(xs, 2):
+            d = math.hypot(a['x'] - b['x'], a['y'] - b['y']) - a['r'] - b['r']
+            min_gap = min(min_gap, d)
+            ov += d < -0.01
+        for a in xs:
+            for f in ex['fixed']:
+                d = math.hypot(a['x'] - f['x'], a['y'] - f['y']) - a['r'] - f['r']
+                min_gap = min(min_gap, d)
+                ov += d < -0.01
+        sel[nm] = {'clicked': ok, 'max_move': round(move, 3), 'area_change': [after['W'] - before['W'], after['H'] - before['H']],
+                   'exp_nodes': len(xs), 'exp_kinds': {k: sum(1 for x in xs if x['kind'] == k) for k in sorted({x['kind'] for x in xs})},
+                   'exp_edges': len(ex['edges']), 'exp_overlap': ov, 'exp_min_gap': round(min_gap, 2),
+                   'exp_crossings': cross_count(ex['edges']), 'attrs_ok': ex['attrsOk'],
+                   'exp_node_label_overlap': sum(1 for a in xs for lb in after['labels'] if lb['type'] in ('anchor', 'group', 'badge', 'exp') and rect_circle(lb['box'], a['x'], a['y'], a['r'])),
+                   'exp_label_overlap': sum(1 for a, b in itertools.combinations([lb for lb in after['labels'] if lb['type'] in ('anchor', 'group', 'badge', 'exp')], 2) if rect_overlap(a['box'], b['box'])),
+                   'exp_labels': [lb['text'] for lb in after['labels'] if lb['type'] == 'exp']}
+    await pg.keyboard.press('Escape')
+    await pg.wait_for_timeout(300)
+    return sel
+
+
+async def stage4(pg, bases, names):
+    out = {}
+    b1, b2, b3, b4, bt = base_ids(bases, names)
+    out['bases'] = {'1': b1, '2': b2, '3': b3, '4': b4, 'unified': bt}
+    out['selection'] = await stage4_sel(pg, bases, names)
+    # 13번: 조건을 바꿀 때 이동(그룹 키가 같은 담보)
+    co = {}
+    for b in [b1, b2, b3, b4, bt]:
+        await set_cond(pg, b, 'all')
+        await pg.wait_for_timeout(600)
+        sc = await pg.evaluate(SCREEN_JS)
+        co[b] = {n['id']: (n['x'], n['y'], n['group']) for n in sc['nodes']}
+
+    def diff(a, b, same_group):
+        ds = [math.hypot(co[a][k][0] - co[b][k][0], co[a][k][1] - co[b][k][1]) for k in co[a] if k in co[b] and (not same_group or co[a][k][2] == co[b][k][2])]
+        return (max(ds) if ds else 0, sum(ds) / len(ds) if ds else 0, len(ds))
+    m123 = max(diff(a, b, False)[0] for a, b in itertools.combinations([b1, b2, b3], 2))
+    pairs = {f'{names[a]}|{names[b]}': round(diff(a, b, True)[1], 2) for a, b in itertools.combinations([b1, b2, b3, b4, bt], 2)}
+    out['cond_move'] = {'max_123_all_nodes': round(m123, 3), 'mean_3_4_all_nodes': round(diff(b3, b4, False)[1], 3),
+                        'mean_4_unified_same_group': round(diff(b4, bt, True)[1], 2), 'same_group_pairs': pairs,
+                        'max_pair_same_group_mean': max(pairs.values())}
+    # 16번: 트랜지션 표본(requestAnimationFrame 마다 getBoundingClientRect)
+    tr_ = {}
+    for motion in ['on', 'calm', 'off']:
+        await pg.evaluate("(m) => App.set({ motion: m })", motion)
+        await set_cond(pg, b4, 'all')
+        await pg.wait_for_timeout(700)
+        fr = await pg.evaluate(SAMPLE_JS, [{'base': bt, 'peerScope': 'all'}, 900])
+        tr_[f'{motion}|4->unified'] = trans_metrics(fr)
+        await pg.wait_for_timeout(300)
+        await set_cond(pg, b1, 'all')
+        await pg.wait_for_timeout(700)
+        fr = await pg.evaluate(SAMPLE_JS, [{'base': b1, 'peerScope': 'life'}, 900])
+        tr_[f'{motion}|all->life'] = trans_metrics(fr)
+        await pg.wait_for_timeout(300)
+    await pg.evaluate("() => App.set({ motion: 'on' })")
+    out['transition'] = tr_
+    # 5.3 근거 2단계 경로: 관련 담보 표시가 붙은 담보를 호버해 담보 관계 엣지 가운데 그 담보에 닿지 않는 엣지가 있는 담보를 센다
+    ev = {}
+    for b in [b1, b2, b3, b4, bt]:
+        await set_cond(pg, b, 'all')
+        await pg.wait_for_timeout(400)
+        ev[names[b]] = await pg.evaluate("""async () => {
+          const svg = document.getElementById('gr-net-svg');
+          const els = Array.from(svg.querySelectorAll('.gr-n')).filter(el => /ours-wide|ours-part|peer-rel/.test(el.dataset.grMark));
+          let two = 0; const names = []; let twoPeer = 0; const peerNames = [];
+          for (const el of els) {
+            const r = el.querySelector('.gr-n-c').getBoundingClientRect();
+            el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerType: 'mouse' }));
+            await new Promise(res => requestAnimationFrame(res));
+            const id = el.dataset.grId;
+            const rel = Array.from(svg.querySelectorAll('.gr-l-hot .gr-e-rel'));
+            if (rel.some(l => l.dataset.grS !== id && l.dataset.grT !== id)) {
+              // 5.3 표의 '근거 2단계 경로'는 ours-wide, ours-part 64행의 수. peer-rel 은 따로 적는다
+              if (/ours-wide|ours-part/.test(el.dataset.grMark)) { two++; names.push(el.dataset.tipTitle); } else { twoPeer++; peerNames.push(el.dataset.tipTitle); }
+            }
+          }
+          document.body.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 2, clientY: 2, pointerType: 'mouse' }));
+          return { marked: els.length, two_step: two, names, two_step_peer_rel: twoPeer, peer_rel_names: peerNames };
+        }""")
+    out['evidence_two_step'] = ev
+    return out
+
+
 async def set_cond(pg, base, scope):
     await pg.evaluate("(a) => App.set({ base: a[0], peerScope: a[1] })", [base, scope])
     await pg.wait_for_timeout(250)
     await pg.wait_for_function("() => !!document.getElementById('gr-net-svg')", timeout=8000)
-    await pg.wait_for_timeout(150)
+    # 위치 트랜지션(4.9)이 끝나 사라지는 노드가 빠지고 새 라벨이 나타날 때까지 기다린다
+    await pg.wait_for_function("() => !document.querySelector('#gr-net-svg .gr-l-ghost > *')", timeout=8000)
+    await pg.wait_for_timeout(250)
 
 
 async def filter_counts(pg):
@@ -365,13 +577,18 @@ async def run(args):
                    'area_change': [after['W'] - before['W'], after['H'] - before['H']],
                    'panel_open': await pg.evaluate("() => document.getElementById('z-right').classList.contains('is-picked')")}
             org_hits = await pg.evaluate(ORG_TEXT_JS)
+            st4 = None
+            if not args.no_stage4:
+                await pg.keyboard.press('Escape')
+                await pg.wait_for_timeout(300)
+                st4 = await stage4(pg, bases, names) if (vw, vh) == sizes[0] else {'selection': await stage4_sel(pg, bases, names)}
             await pg.keyboard.press('Escape')
             await pg.wait_for_timeout(300)
             hscroll = await pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
             math_random = await pg.evaluate("() => (document.documentElement.outerHTML.match(/Math\\.random/g) || []).length")
             result['sizes'][f'{vw}x{vh}'] = {'states': per, 'determinism': det, 'selection': sel, 'org_code_text': org_hits,
                                              'console_errors': errs, 'external_requests': ext, 'hscroll': hscroll,
-                                             'math_random_in_html': math_random}
+                                             'math_random_in_html': math_random, 'stage4': st4}
             await pg.close()
         if args.cpu4:
             pg = await br.new_page(viewport={'width': sizes[0][0], 'height': sizes[0][1]})
@@ -408,6 +625,42 @@ async def run(args):
             if not D['groups_ok']: fails.append('groups')
             if D['filters_expect'] != D['filters_button'] or D['filters_expect'] != D['filters_highlight']: fails.append('filters')
             summ[f'{size}|{key}'] = fails
+    for size, r in result['sizes'].items():
+        st4 = r.get('stage4')
+        if not st4:
+            continue
+        f4 = []
+        s1, s2 = st4['selection'].get('암 수술비', {}), st4['selection'].get('일반암 진단비', {})
+        for nm, sv, lim in (('surgery', s1, 2), ('general', s2, 1)):
+            # 교차 상한(암 수술비 2, 일반암 진단비 1)은 1920x1080 기준. 다른 해상도는 값만 적는다
+            first = size == next(iter(result['sizes']))
+            if not sv.get('clicked') or sv['max_move'] > 0.5 or sv['area_change'] != [0, 0] or sv['exp_overlap'] or (first and sv['exp_crossings'] > lim) or not sv['attrs_ok'] or sv['exp_node_label_overlap'] or sv['exp_label_overlap']:
+                f4.append('selection_' + nm)
+        cm = st4.get('cond_move')
+        if cm and (cm['max_123_all_nodes'] > 0.5 or cm['mean_3_4_all_nodes'] > 4 or cm['mean_4_unified_same_group'] > 20):
+            f4.append('cond_move')
+        # 13번의 넷째 기준(다섯 종형의 모든 조합 8px 이하)은 같은 절의 4종과 통합건강보험 사이 계산값(10.8px)과 맞지 않아 따로 적는다
+        if cm and cm['max_pair_same_group_mean'] > 8:
+            f4.append('cond_move_all_pairs_8px')
+        for k, v in st4.get('transition', {}).items():
+            if not v.get('moving_nodes'):
+                f4.append('transition_none:' + k)
+                continue
+            if k.startswith('on|') and (v['max_step_ratio'] > 0.12 or v['max_prog100'] > 0.5 or v['max_path_ratio'] > 1.05 or v['one_frame_moves']):
+                f4.append('transition:' + k)
+            if k.startswith('calm|') and (v['max_step_ratio'] > 0.20 or v['max_path_ratio'] > 1.05 or v['one_frame_moves']):
+                f4.append('transition:' + k)
+            if k.startswith('off|') and v['one_frame_moves'] != v['moving_nodes']:
+                f4.append('transition:' + k)
+        for nm, v in st4.get('evidence_two_step', {}).items():
+            if v['two_step'] != (2 if re.search('[1-4]종', nm) else 3):
+                f4.append('evidence:' + nm)
+        summ[f'{size}|stage4'] = f4
+    for key, fails in list(summ.items()):
+        size, _, rest = key.partition('|')
+        it = result['sizes'].get(size, {}).get('states', {}).get(rest)
+        if it and it['layout'].get('std_label_on_bundle'):
+            fails.append('std_label_on_bundle')
     result['summary_fails'] = {k: v for k, v in summ.items() if v}
     result['summary_states'] = len(summ)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -422,6 +675,7 @@ def main():
     ap.add_argument('--html', default=str(ROOT / 'site/proto/console4.html'))
     ap.add_argument('--sizes', default='1920x1080,1600x900,1366x768,1280x800')
     ap.add_argument('--out', default=str(ROOT / 'shots_console4/graph_check.json'))
+    ap.add_argument('--no-stage4', action='store_true', help='4단계 측정(선택 펼침, 조건 이동, 트랜지션, 근거 경로)을 건너뛴다')
     ap.add_argument('--cpu4', action='store_true', help='CPU 4배 느림에서 조건마다 레이아웃 계산 시간을 잰다')
     asyncio.run(run(ap.parse_args()))
 

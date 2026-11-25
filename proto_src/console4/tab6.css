@@ -276,3 +276,63 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-verd li{margin-bottom:6px}
 .gr-glist li{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px}
 @media (max-width:999px){.gr-legend{display:none}}
+
+/* 4단계(요청 38의 4절): 위치 트랜지션 변수, 선택 펼치기, 엣지 선택, 키보드 포커스, 왼쪽 영역 높이 정리 */
+:root{--dur-graph-move:480ms;--ease-graph-move:cubic-bezier(0.65, 0, 0.35, 1)}
+.gr-l-ghost{pointer-events:none}
+.gr-net-svg [data-gr-fk]{outline:none}
+/* 담보 선택: 선택한 담보와 담보 관계로 이어진 담보만 원래 크기, 나머지는 반지름 3px로 줄여 .45 */
+.gr-n-c{transform-box:fill-box;transform-origin:center;transition:transform 220ms var(--ease-move)}
+.gr-net-svg.is-exp .gr-n:not(.is-big) .gr-n-c{transform:scale(var(--gr-sh,1))}
+.gr-net-svg.is-exp .gr-n:not(.is-big) .gr-mk{opacity:0}
+.gr-net-svg.is-exp .gr-lb-s:not(.is-big){opacity:0}
+.gr-net-svg.is-exp .gr-n:not(.is-big),.gr-net-svg.is-exp .gr-g,.gr-net-svg.is-exp .gr-e-bundle{opacity:.45}
+.gr-net-svg.is-exp .gr-e-bundle{opacity:.2}
+.gr-x-c{stroke-width:1.25}
+.gr-x-r .gr-x-c{fill:var(--panel-t);stroke:var(--ink-0)}
+.gr-x-b .gr-x-c{fill:var(--fog-1);stroke:var(--ink-1)}
+.gr-x-more .gr-x-c,.gr-x-sum .gr-x-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-dasharray:2 1.5}
+.gr-x.is-rec .gr-x-c,.gr-x.is-wait .gr-x-c{stroke:var(--unknown-edge);stroke-dasharray:2 1.5}
+.gr-x.is-sel .gr-x-c{fill:var(--red);stroke:#fff;stroke-width:2;stroke-dasharray:none}
+.gr-x-lb.is-note{font-weight:600}
+.gr-e-inc{stroke:var(--ink-1);stroke-width:1}
+.gr-e-map{stroke:var(--ink-1);stroke-width:1}
+.gr-e-map.is-strong{stroke-width:2}
+.gr-e-rec{stroke:var(--unknown-edge);stroke-width:1;stroke-dasharray:3 2}
+.gr-e.is-esel,.gr-e.is-ehov{stroke:var(--red);opacity:1}
+/* 펼친 노드는 특약 다음 급부, 노드마다 14ms씩 늦게 전체 320ms 안. 엣지는 출발 노드에서 도착 노드 쪽으로 그어진다 */
+@keyframes gr-x-in{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes gr-e-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes gr-fade-in{from{opacity:0}to{opacity:1}}
+.gr-l-exp .gr-x .gr-x-c{transform-box:fill-box;transform-origin:center;animation:gr-x-in 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-l-exp .gr-x-lb{animation:gr-fade-in 120ms var(--ease-in) both;animation-delay:200ms}
+.gr-l-xe .gr-e-x:not(.gr-e-rec){stroke-dasharray:1;animation:gr-e-draw 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-l-xe .gr-e-rec{animation:gr-fade-in 160ms var(--ease-in) both;animation-delay:calc(var(--d,0) * 1ms)}
+.gr-x-out{opacity:0;transition:opacity 192ms var(--ease-out)}
+:root[data-motion="calm"] .gr-l-exp .gr-x .gr-x-c,:root[data-motion="calm"] .gr-l-xe .gr-e-x{animation-duration:88ms}
+:root[data-motion="calm"] .gr-l-exp .gr-x-lb{animation-delay:110ms}
+:root[data-motion="off"] .gr-l-exp .gr-x .gr-x-c,:root[data-motion="off"] .gr-l-exp .gr-x-lb,:root[data-motion="off"] .gr-l-xe .gr-e-x{animation:none}
+:root[data-motion="off"] .gr-n-c{transition:none}
+.gr-ch-h{margin:8px 0 2px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
+.gr-ch>li{margin-bottom:4px}
+.gr-bl{margin:2px 0 0 12px}
+.gr-bl li{font-size:13px}
+
+/* 왼쪽 영역: 1920x1080, 1600x900 에서 검색과 탐색 이동까지 스크롤 없이 보이게(3.11의 차례 유지) */
+.gr-left-wrap{gap:7px;container-type:inline-size}
+.gr-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.gr-preset{min-height:34px;padding:6px 4px;align-items:center;justify-content:center;text-align:center}
+.gr-preset .gp-s{display:none}
+.gr-flts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+.gr-flt{min-height:27px;padding:2px 8px;gap:4px}
+.gr-flt>span:first-child{min-width:0;word-break:keep-all}
+.gr-legend .gr-lg-sec{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 2px}
+.gr-legend .gr-lg-h{margin:0 0 2px}
+.gr-lg-it{min-height:18px;line-height:1.2;min-width:0}
+.gr-lg-it>span{min-width:0}
+.gr-sec-k{margin:0 0 4px}
+@container (max-width:240px){
+  .gr-flts,.gr-legend .gr-lg-sec,.gr-presets{grid-template-columns:minmax(0,1fr)}
+  .gr-preset{justify-content:flex-start;align-items:flex-start;text-align:left;padding:6px 10px}
+}
+.gr-preset .gp-t{word-break:keep-all}
