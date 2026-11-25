@@ -1,6 +1,6 @@
 # 작업 지침 (Claude Code용)
 
-우체국보험 상품·청약 판단 지원 앱. AI 도구·에이전트 활용 공모전 제출용이다. 공시 문서(상품요약서·사업방법서)에서 급부와 가입조건을 뽑아 Google Sheets(정본)에 쓰고, 그 스냅샷으로 오프라인 단일 HTML 화면을 만든다.
+우체국보험 상품·청약 판단 지원 앱. AI 도구·에이전트 활용 공모전 제출용이다. 공시 문서(상품요약서·사업방법서)에서 급부와 가입조건을 뽑아 Google Sheets(정본)에 쓰고, 그 스냅샷으로 오프라인 단일 HTML 화면을 만든다. 제출물은 발표 덱(`site/deck/`)과 데모인 분석 화면(`site/proto/console4.html`)이다.
 
 처음 이어받을 때는 `docs/handoff.md`를 먼저 읽는다. 설계는 `docs/planning.md`, 지금까지 한 일과 결정 이유는 `docs/progress.md`에 있다.
 
@@ -110,8 +110,13 @@ Antigravity와 일할 때 (2026-11-23 결정)
 # 시스템 파이썬에 pip이 없는 PC에서는: uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.txt pdfplumber playwright
 python3 -m pytest -q                         # 전체 시험
 python3 scripts/fetch_disclosure.py --org samsungfire --out <폴더>   # 삼성화재 문서와 급부 표 조각 받기 (--list-only는 목록만)
-python3 scripts/build_site.py                # data/snapshot → site/index.html
-python3 scripts/dev/check_site_browser.py site/index.html <사진 폴더>   # 380px·1280px 화면 점검 (playwright)
+python3 scripts/export_app_data.py           # data/snapshot → proto_src/console4 의 화면 자료
+python3 proto_src/console4/build.py          # proto_src/console4 → site/proto/console4.html (분석 화면)
+python3 proto_src/console4/shoot.py <사진 폴더>   # 분석 화면 여러 해상도 점검 (playwright)
+python3 scripts/export_presentation_facts.py # 발표 사실 자료 presentation_animation/facts.json
+python3 proto_src/deck/build.py --out site/deck/index.html --used proto_src/deck/facts_used.json --strict   # 발표 덱
+python3 scripts/build_site.py                # data/snapshot → site/v1/index.html (초기 버전 판단 화면)
+python3 scripts/dev/check_site_browser.py site/v1/index.html <사진 폴더>   # 초기 버전 380px, 1280px 화면 점검 (playwright)
 python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON> [--gold data/goldset/hanwha_goldset.jsonl] [--numbers 101-114] [--area 가입조건]   # 정답셋 채점 (--result는 필수, 기본은 우체국 정답셋의 보장금액 영역)
 python3 scripts/compare_table_rules.py <표 조각.json> --against data/crosscheck/<파일>.jsonl   # 삼성화재 규칙 추출 대조
 
@@ -129,7 +134,7 @@ gh run list --limit 5 ; gh run view <id> --log ; gh run download <id> -n <artifa
 - Gemini 무료 한도: 추출 `gemini-3.5-flash-lite` 하루 500회, 상위 `gemini-3.8-flash` 하루 20회, 판정 `gemini-decision-1`. 하루 한도는 **한국 시간 17시**에 풀린다. 배치를 돌리기 전에 로컬 시험 호출로 상위 모델 한도를 쓰지 않는다.
 - 시트 쓰기는 RAW, 머리글이 스키마와 글자 그대로 같아야 한다. 열을 더할 때는 `scripts/add_column.py`.
 - 회사별 문서 꼴이 다르다. 우체국·한화는 모델 추출(`extract/benefits.py`, `pipeline.py`), 삼성화재는 PDF 표를 읽어(`extract/tables.py`) 문구 규칙으로 뽑는다(`extract/table_rules.py`). 회사별 주의점은 `docs/handoff.md`.
-- 화면은 오프라인 단독 HTML 하나(`site/index.html`)다. 외부 요청이 없어야 하고, 잘리거나 겹치는 글자가 없어야 한다. 고친 뒤에는 브라우저 점검을 돌린다.
+- 화면은 오프라인 단독 HTML이고 GitHub Pages(`https://bluethestyle.github.io/korea_post_life/`)에 배포한다. 시연하는 분석 화면은 `site/proto/console4.html`(원본 `proto_src/console4/`, 화면 구현은 Antigravity), 발표 덱은 `site/deck/index.html`(원본 `proto_src/deck/`, 영상은 `site/deck/media/`), 관계 그래프 화면은 `site/proto/graph2.html`(원본 `proto_src/graph/`)이다. 루트 `site/index.html`은 이 화면들로 가는 안내 화면(손으로 쓴 파일)이고, 처음 만든 판단 화면은 초기 버전으로 `site/v1/index.html`에 있다. 외부 요청이 없어야 하고, 잘리거나 겹치는 글자가 없어야 한다. 고친 뒤에는 브라우저 점검을 돌린다.
 
 ## 커밋
 

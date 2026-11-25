@@ -4,7 +4,7 @@
 
 전체 이야기는 다음 네 단계 흐름을 따릅니다.
 1. **구축 목표 서비스와 전달 구조** (1장)
-2. **구현한 운영 화면 구성** (2장)
+2. **구현한 초기 버전 화면 구성** (2장)
 3. **단계별 가용 자원과 발생 문제, 그리고 해결 구조** (3~8장)
 4. **기존 수작업 병목 대비 4단계 엔드투엔드 시스템 구조 및 미측정 과제** (9장)
 
@@ -20,13 +20,14 @@
 
 ---
 
-## 장별 참조 열쇠와 시각 연출 설계
+## 장별 참조 키와 시각 연출 설계
 
-### Part 1. 서비스 목표와 운영 화면 구성 (`part1_service.py`)
+### Part 1. 서비스 목표와 초기 버전 화면 구성 (`part1_service.py`)
 - **1장. 구축 목표 서비스: 공시 문서 비교 화면과 현장 응대 화법**
   - **현실 문제**: 정밀 비교 대상 타사(`comparison_target_counts`), 대용량 상품요약서(`hanwha_summary_pages`), 텍스트가 이미지로 수록된 상품요약서(`image_doc.pages`)를 실측 쪽수 비례 높이의 3차원 문서 협곡과 정면 빌보드 배지로 비행 조감한 뒤, 정면 2차원 화면으로 전환해 고지항목 범위와 지급기준(`example_targeted_anticancer`, `benefits_by_org_basis`)이 상이한 구조와 창구 지점 인포그래픽 구간의 전달 단절을 클로즈업합니다.
   - **목표 구조**: 기관 보도자료(`market_news_institution_count`)와 공시 문서가 정제 과정을 거쳐 구글 시트 마스터 데이터(`sheet_tab_count`)와 스냅샷(특정 시점의 데이터 복사본)에 적재되고, 기본 조건(`reference_condition`, `default_base_variant`)을 반영한 상품-영업 분석 오프라인 단독 HTML 화면(`operating_cost_won`, `site_browser_check_problems`, `standard_coverage_in_use`, `compared_coverage_pairs`, `forbidden_words`)과 다크 테마에 맞춘 창구용 A4 단일 응대 화법 장표(`card_category_order`, `lead_strengths`)로 연결됩니다.
-- **2장. 구현한 운영 화면 구성 (`site_screen_count`)**
+- **2장. 구현한 초기 버전 화면 구성 (`site_screen_count`)**
+  - 이 장의 화면 여섯은 공개 주소 `https://bluethestyle.github.io/korea_post_life/v1/`의 초기 버전 화면 기준입니다. 제출 데모인 분석 화면(`site/proto/console4.html`)의 탭 여섯(전체 요약, 고객군과 시장, 인수기준 비교, 담보 비교, 영업 인사이트, 관계 그래프)과는 다른 화면입니다.
   - 정면 2차원 구도에서 중앙 기본 조건 다이얼(`reference_condition`, `default_base_variant`)이 회전하며 벡터 아이콘 헤더를 갖춘 운영 화면(`site_screen_count`)으로 연결됩니다. 선택한 조건과 기준 종형에 연동되어 값이 함께 바뀌는 조건 연동 화면은 인수기준(가입 심사 기준) 비교, 표준담보(`standard_coverage_in_use`, `compared_coverage_pairs`)와 미보유 담보 비교 및 A4 단일 응대 화법 출력, 특약 부가 조건과 감액기간을 반영한 특약 조합별 실제 지급액, 개정 전후 비교(`example_targeted_anticancer`, `revision_changes`) 화면이며, 실선 화살표로 연결합니다. 선택한 조건과 무관한 화면은 종합 요약과 주간 시장 동향(`screen_market_news`, `market_news_institution_count`: 우열 변화는 기본 조건 산출)과 AI 작업 내역(`work_log_count_site`: 화면에 올린 기관 기준 로그 건수, 결과별 막대는 전체 기관 기준 `work_log_by_result`) 화면이며, 점선으로 구분해 시연합니다.
 
 ### Part 2. 수집 단계와 추출 단계 (`part2_collect_extract.py`)

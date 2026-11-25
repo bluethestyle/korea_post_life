@@ -6,7 +6,7 @@
 
 ## 장면 구성 (분할본 네 편과 전체 통합본)
 
-- **Part 1 (`Part1ServiceScene`, 1~2장)**: 공시 문서 대조의 어려움과 지점 창구 벡터 인포그래픽, 오프라인 단독 HTML 화면, 다크 슬레이트 A4 단일 응대 화법 장표, 기본 조건(`reference_condition`, `default_base_variant`)에 연동되는 화면과 조건 무관 화면으로 구분한 운영 화면(`site_screen_count`) 구성
+- **Part 1 (`Part1ServiceScene`, 1~2장)**: 공시 문서 대조의 어려움과 지점 창구 벡터 인포그래픽, 오프라인 단독 HTML 화면, 다크 슬레이트 A4 단일 응대 화법 장표, 기본 조건(`reference_condition`, `default_base_variant`)에 연동되는 화면과 조건 무관 화면으로 구분한 초기 버전 화면 여섯(`site_screen_count`, 공개 주소 `https://bluethestyle.github.io/korea_post_life/v1/`) 구성. 제출 데모인 분석 화면(`site/proto/console4.html`)의 탭 여섯과는 다른 화면이며, 분석 화면은 발표 덱 1장, 6장, 8장의 화면 캡처로 보여 줍니다
 - **Part 2 (`Part2CollectExtractScene`, 3~4장)**: 수집 단계의 좌우 관로 병목 진단과 대칭 오케스트레이션 허브 역할 분담(`disclosure_pilot_org`, `disclosure_batch_orgs`), 요일별 시장 동향 수집(`collect_daily_plan`), 추출 단계의 3열 문서 해부 워크벤치 및 원문 텍스트 추출과 코드 계산 분리(`example_targeted_anticancer`), 이미지형 요약서(`image_doc`) 이중 추출 교차 검증
 - **Part 3 (`Part3DecisionScene`, 5~6장)**: 비생성 판정 모델(`models.decide`, `decision_model_spec`, `decision_model_uses`)의 상하 이중 트랙 비교와 1회 호출 패킷 청사진, 대칭 선택지 확률 분리(`symmetric_choice_probability`), 확률 임계값 라우터(`verify_confirm_threshold`, `verify_reextract_threshold`), 분당 토큰 대기 기준(`decide_tokens_per_minute_guard`)과 시장 동향 실측 막대 차트(`market_news_by_category`)
 - **Part 4 (`Part4OntologyImpactScene`, 7~9장)**: 3열 스키마 진단 보드, 원천 사실, 표준 기준, 분석 및 인사이트 계층 구조와 표준담보 사전 확장(`dictionary_initial_size`, `dictionary_second_expansion`, `standard_coverage_in_use`), 포함과 통합 관계(`coverage_relations_by_kind`, `relation_covered_coverages`) 탐색, 고객군별 가입 가능 현황(`segment_map_cell_count`, `segment_map_grid`), 치료 단계(`treatment_stages`), 상품-영업 분석 화면의 영업 인사이트 콘솔(`sales_insight_categories`)과 다크 A4 응대 화법(`card_category_order`), 4단계 엔드투엔드 파이프라인과 미측정 과제(`not_yet_measured`)
@@ -76,14 +76,18 @@ EOF
 ffmpeg -y -f concat -safe 0 -i concat_list.txt -c copy -movflags +faststart 우체국보험_발표시연_애니메이션_1080p60.mp4
 ```
 
+### 3) 발표 덱에 넣는 영상
+
+발표 덱(`site/deck/index.html`)은 분할본 네 편을 중간 해상도(`-qm`, 1280x720, 30fps)로 렌더링해 `site/deck/media/part1.mp4`부터 `part4.mp4`까지의 이름으로 넣어 씁니다. 한 편 10MB, 네 편 합계 40MB 이하여야 하며(`tests/test_deck_build.py`가 확인), 한 편이 넘으면 해상도와 프레임 수는 그대로 두고 다시 인코딩합니다. 영상을 바꾼 뒤에는 저장소 루트에서 `python proto_src/deck/build.py --out site/deck/index.html`로 덱을 재빌드합니다. 영상 장의 정지 화면과 길이 표기는 `proto_src/deck/COMPONENTS.md`의 C13 절을 따릅니다.
+
 ## 소스 파일 구조
 
 - `facts.json`: 저장소 루트의 `scripts/export_presentation_facts.py`가 생성하는 사실 자료 (수동 편집 금지)
 - `common.py`: `fact()`, `num()`, 실무 용어 상수 `TERM`과 `label_ko()`, 색상 팔레트, 도형 도우미, 원점 고정 `ThreeDScene` 베이스 클래스
 - `infographics.py`: 24x24 표준 뷰박스 기반 SVG 벡터 아이콘(`svg_icon`), 대칭 오케스트레이터 회로 허브(`make_claude_orchestrator_hub`), 다크 슬레이트 A4 응대 화법 장표(`make_dark_a4_sheet`)
-- `part1_service.py`: 1장(구축 목표 서비스와 이원화 전달 구조), 2장(기본 조건 연동 화면과 조건 무관 화면 구성)
+- `part1_service.py`: 1장(구축 목표 서비스와 이원화 전달 구조), 2장(초기 버전 화면의 기본 조건 연동 화면과 조건 무관 화면 구성)
 - `part2_collect_extract.py`: 3장(관로형 수집 병목 진단, 대칭 오케스트레이션 분업과 시장 동향 선별), 4장(3열 문서 해부 워크벤치, 원문 추출과 코드 계산 분리, 이미지형 요약서 이중 추출 교차 검증)
 - `part3_decision.py`: 5장(상하 이중 트랙 판정 모델 원리와 1회 호출 패킷 청사진), 6장(확률 분포 중첩, 임계값 라우터, 분당 토큰 윈도우와 시장 동향 막대 차트)
 - `part4_ontology_impact.py`: 7장(스키마 진단 보드, 온톨로지 세 계층과 표준담보 사전 확장), 8장(포함과 통합 관계 탐색, 고객군별 가입 가능 현황, 영업 인사이트 콘솔과 다크 A4 응대 화법), 9장(4단계 엔드투엔드 파이프라인과 미측정 과제)
 - `postlife_demo.py`: 네 장면 통합 엔트리포인트
-- `storyboard.md`: 장별 도형 구성, 참조 열쇠, 카메라 연출 해설
+- `storyboard.md`: 장별 도형 구성, 참조 키, 카메라 연출 해설

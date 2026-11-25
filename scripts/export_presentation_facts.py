@@ -95,7 +95,7 @@ BATCH_ORGS = ["삼성생명", "교보생명", "신한라이프", "NH농협생명
 DOC_FACTS: list[tuple[str, Any, str, str, str, str, tuple[str, ...], str | None]] = [
     # 범위와 사람
     ("team_size", 1, "만든 사람 수", SUB_SCOPE_DATE, SUB, "1. 소개", ("개념검증 단계로 1인이 만들었습니다",), None),
-    ("site_screen_count", 6, "운영 화면의 화면 수", SUB_SCOPE_DATE, SUB, "화면 6개",
+    ("site_screen_count", 6, "운영 화면의 화면 수", SUB_SCOPE_DATE, SUB, "분석 화면의 탭 6개",
      ("기획이 정한 판단 10개 가운데 1단계 판단 6개를 다룹니다",), None),
     ("comparison_target_counts", {"생명보험": 10, "손해보험": 9}, "정밀 비교 대상으로 정한 회사 수(우체국 제외)", "2026-11-19",
      PLA, "2.1 정밀 비교 대상", ("정밀 비교 대상 회사는 생명보험 10곳과 손해보험 9곳입니다",),
