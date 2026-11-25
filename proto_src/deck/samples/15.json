@@ -4,7 +4,7 @@
  "kind": "body",
  "chapter": 4,
  "status": "new",
- "headline": "글로 답하는 AI의 약점을 메우려고, {{ref:jev_release.year}}년 가을 판정만 하는 AI가 잇따라 나왔습니다",
+ "headline": "글로 답하는 AI의 약점을 메우려고, {{ref:jev_release.year}}년 가을 확률 산정 AI가 잇따라 나왔습니다",
  "diagram": [
   {
    "use": "C8",
@@ -27,7 +27,7 @@
     },
     {
      "d": "{{ref:jev_release.date}}",
-     "label": "판정만 하는 AI {{ref:jev_release.model}} 공개",
+     "label": "확률만 산정하는 AI {{ref:jev_release.model}} 공개",
      "src": "TypeSafe AI"
     },
     {

@@ -32,7 +32,7 @@
 
 ## AI 도구를 쓴 방식
 
-앱 안에서는 추출 모델이 원문 글자만 옮기고, 숫자 계산과 원문 대조는 코드가, 채점은 글을 쓰지 않고 확률만 매기는 판정 전용 모델(`gemini-decision-1`)이 맡습니다. 개발에서는 Claude Code가 작업 순서, 구현, 테스트와 재현으로 하는 최종 검수를 맡고, 정답셋 만들기와 독립 구조화, 코드 검토 같은 교차 확인은 제미나이에, 구현과 점검 일부는 모델을 지정한 서브에이전트에 넘겼습니다. 화면의 구현과 개선은 사용자 PC의 Antigravity(Gemini 에이전트)가 브랜치와 PR로 넘기고, Claude가 재현으로 검수해 머지했습니다. 위임 결과는 원문 대조와 시험으로 확인한 것만 반영했습니다. 정답셋은 `data/goldset/`, 교차 확인 자료는 `data/crosscheck/`에 있고, 자세한 방식은 [docs/submission.md](submission.md)와 [CLAUDE.md](../CLAUDE.md)에 있습니다.
+앱 안에서는 추출 모델이 원문 글자만 옮기고, 숫자 계산과 원문 대조는 코드가, 옮긴 값의 검증은 글을 쓰지 않는 확률 산정 전용 모델(`gemini-decision-1`)이 맡습니다. 개발에서는 Claude Code가 작업 순서, 구현, 테스트와 재현으로 하는 최종 검수를 맡고, 정답셋 만들기와 독립 구조화, 코드 검토 같은 교차 확인은 제미나이에, 구현과 점검 일부는 모델을 지정한 서브에이전트에 넘겼습니다. 화면의 구현과 개선은 사용자 PC의 Antigravity(Gemini 에이전트)가 브랜치와 PR로 넘기고, Claude가 재현으로 검수해 머지했습니다. 위임 결과는 원문 대조와 시험으로 확인한 것만 반영했습니다. 정답셋은 `data/goldset/`, 교차 확인 자료는 `data/crosscheck/`에 있고, 자세한 방식은 [docs/submission.md](submission.md)와 [CLAUDE.md](../CLAUDE.md)에 있습니다.
 
 ## 지금까지 구현한 것
 
@@ -45,7 +45,7 @@
 | `validate.py` | 시트에 쓰기 전에 코드가 먼저 보는 자료형, 허용값, 논리 점검 |
 | `worklog.py` | 단계별 통과, 반려, 보류 기록(`sys_작업로그`) |
 | `snapshot.py` | 시트 마스터 데이터를 정렬된 JSON Lines 스냅샷으로 저장 |
-| `gemini.py` | 생성, 검색 그라운딩, 판정 전용 모델 호출 |
+| `gemini.py` | 생성, 검색 그라운딩, 확률 산정 전용 모델 호출 |
 | `collect.py` | 시장 소식 수집: 검색 → 정형화 → 날짜 확인 → 선별과 분류 → 중복 병합 → 기록 |
 | `config.py` | 시장 동향 수집 대상 19개 기관, 기관 이름표 22곳, 화면에 올릴 회사(`SITE_ORGS`, 지금은 우체국, 한화생명, 삼성화재), 요일별 수집 계획, 모델 배정 |
 | `disclosure/epost.py` | 우체국보험 공시실: 화면이 보내는 요청을 따라 목록과 서류 받기 |
@@ -53,7 +53,7 @@
 | `disclosure/samsungfire.py` | 삼성화재 상품공시: 목록 요청 한 번으로 전 상품과 서류 경로 받기 |
 | `disclosure/<회사>.py` | 그 밖의 회사 공시실 접속 모듈(우체국 포함 19개 회사). 공시실 접속 세션은 `disclosure/http.py`, 수집 스크립트가 회사별 모듈을 찾는 자리는 `disclosure/sources.py` |
 | `extract/benefits.py` | 특약 조각에서 급부 추출. 금액과 기간은 원문 글자로 받고 숫자는 코드가 계산 |
-| `extract/verify.py` | 판정 전용 모델로 추출값을 원문과 대조 |
+| `extract/verify.py` | 확률 산정 전용 모델로 추출값을 원문과 대조 |
 | `extract/conditions.py` | 사업방법서에서 가입나이, 보험기간, 납입기간, 가입금액 한도와 결합 제약 추출 |
 | `extract/job.py` | 문서 묶음 하나를 종형, 특약, 급부, 가입조건 순으로 시트에 반영 |
 | `extract/mapping.py` | 급부를 표준담보 사전에 잇기 (`hum_담보매핑`) |
@@ -86,8 +86,8 @@
 1. 검색: `gemini-2.5-flash-lite`에 검색 그라운딩을 붙여 그날 요일의 기관을 조회합니다. 질의에는 "최근" 같은 말 대신 날짜를 적습니다.
 2. 정형화: `gemini-3.5-flash-lite`가 검색 결과를 발행일, 기관, 요약, 출처 번호로 정리합니다.
 3. 코드 확인: 발행일이 수집 구간 밖이거나 출처가 없는 건을 코드가 버립니다.
-4. 선별과 분류: 판정 전용 모델 `gemini-decision-1`이 대상 소식인지(확률)와 일곱 분류 중 어디인지를 가립니다. 글을 쓰지 않고 확률만 돌려주는 모델입니다.
-5. 중복 병합: 같은 기관 안에서 주소나 요약이 거의 같으면 코드가, 표현이 다르면 판정 모델이 같은 사건인지 가립니다.
+4. 선별과 분류: 확률 산정 전용 모델 `gemini-decision-1`이 대상 소식인지(확률)와 일곱 분류 중 어디인지를 가립니다. 글을 쓰지 않고 확률만 돌려주는 모델입니다.
+5. 중복 병합: 같은 기관 안에서 주소나 요약이 거의 같으면 코드가, 표현이 다르면 확률 산정 모델이 같은 사건인지 가립니다.
 6. 기록: 소식은 `sys_시장동향`에, 단계별 통과, 반려, 보류는 `sys_작업로그`에 남깁니다. 화면에는 선별 확률이 통과 기준을 넘은 소식만 내고, 그 아래는 검토 대기로 보여 줍니다.
 
 2026-11-18 테스트 실행(질의 1건)에서 검색 모델이 돌려준 6건 가운데 5건이 수집 구간 밖이어서 코드가 버렸고, 1건이 선별 확률 0.96으로 기록 대상이 됐습니다.
@@ -98,7 +98,7 @@
 
 1. 상품요약서를 특약 단위로 자르고(한화생명은 가입유형별 표까지 나눕니다), 추출 모델이 급부 줄을 만듭니다. 금액, 감액 기간, 보장개시일은 원문 글자로 받고 숫자는 코드가 계산합니다.
 2. 코드 대조: 금액과 기간 글자가 원문에 그대로 있는지, 값끼리 앞뒤가 맞는지 봅니다.
-3. 판정: 판정 전용 모델이 줄마다 지급액, 감액, 보장개시일 조건, 지급 한도에 확률을 매깁니다.
+3. 검증: 확률 산정 전용 모델이 줄마다 지급액, 감액, 보장개시일 조건, 지급 한도가 맞는지 검증합니다.
 4. 0.75 이상은 확정, 0.40 이상 0.75 미만은 시트에 쓰되 사람 검토로 넘기고, 0.40 미만은 다른 모델로, 그래도 어긋나면 상위 모델로 다시 뽑습니다. 그래도 0.40 미만이면 시트에 쓰지 않습니다.
 5. 가입조건과 결합 제약은 사업방법서에서 같은 방식으로 뽑습니다. 단계마다 `sys_작업로그`에 남기고, 문서에 없는 값은 만들지 않고 사람 검토로 넘깁니다. 시트에 쓴 급부는 `map.yml`이 표준담보 사전에 잇습니다.
 
@@ -111,13 +111,13 @@ pip install -r requirements.txt pdfplumber playwright   # pdfplumber는 공시 �
 python -m playwright install chromium
 pytest -q
 
-# 시트 없이 흐름만 확인 (검색 1회, 정형화 1회, 판정 몇 회 호출)
+# 시트 없이 흐름만 확인 (검색 1회, 정형화 1회, 확률 산정 몇 회 호출)
 export GEMINI_API_KEY=...        # 파일에 적지 않습니다
 python scripts/collect_trends.py --dry-run --max-queries 1
 
 python scripts/extract_benefits.py --text <요약서 글자 파일> --variant V1 --out out.json   # 추출과 검증만 (시트에 쓰지 않습니다)
-python scripts/score_goldset.py --result 간편한건강보험=out.json                # 정답셋 채점
-python scripts/calibrate_verify.py --pair <요약서 글자 파일> out.json --out calib.json   # 판정 경계 다시 재기
+python scripts/score_goldset.py --result 간편한건강보험=out.json                # 정답 대조
+python scripts/calibrate_verify.py --pair <요약서 글자 파일> out.json --out calib.json   # 검증 경계값 다시 측정
 
 python scripts/fetch_disclosure.py --org samsungfire --out <폴더>   # 삼성화재 문서와 급부 표 조각 (키 불필요, --list-only는 목록만)
 python scripts/export_app_data.py                                    # 분석 화면 자료: data/snapshot → proto_src/console4

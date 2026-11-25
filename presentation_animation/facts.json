@@ -681,7 +681,7 @@
     },
     "verify_confirm_threshold": {
       "value": 0.75,
-      "label": "추출값 판정: 이 확률 이상이면 자동 확정",
+      "label": "추출값 검증: 이 확률 이상이면 자동 확정",
       "as_of": "2026-11-24",
       "source": {
         "kind": "snapshot",
@@ -691,7 +691,7 @@
     },
     "verify_reextract_threshold": {
       "value": 0.4,
-      "label": "추출값 판정: 이 확률 미만이면 다른 모델로 다시 뽑음(사이는 사람 검토)",
+      "label": "추출값 검증: 이 확률 미만이면 다른 모델로 다시 뽑음(사이는 사람 검토)",
       "as_of": "2026-11-24",
       "source": {
         "kind": "snapshot",
@@ -1057,7 +1057,7 @@
     },
     "decide_tokens_per_minute_guard": {
       "value": 45000,
-      "label": "판정 모델 호출 전에 최근 60초 입력 토큰(어림)을 이 값 아래로 맞춤(한도 5만에 여유 10%)",
+      "label": "확률 산정 모델 호출 전에 최근 60초 입력 토큰(어림)을 이 값 아래로 맞춤(한도 5만에 여유 10%)",
       "as_of": "2026-11-24",
       "source": {
         "kind": "config",
@@ -1074,7 +1074,7 @@
         "decide": "gemini-decision-1",
         "upper": "gemini-3.8-flash"
       },
-      "label": "작업별 모델 이름(검색, 추출, 보조 재추출, 판정, 상위)",
+      "label": "작업별 모델 이름(검색, 추출, 보조 재추출, 확률 산정, 상위)",
       "as_of": "2026-11-24",
       "source": {
         "kind": "config",
@@ -2438,14 +2438,14 @@
     },
     "daily_limit_decide": {
       "value": 10000,
-      "label": "판정 모델의 하루 한도(회)",
+      "label": "확률 산정 모델의 하루 한도(회)",
       "as_of": "2026-11-23",
       "source": {
         "kind": "document",
         "path": "docs/submission.md",
         "section": "작업별 모델 배정",
         "quotes": [
-          "| 판정 | gemini-decision-1 | 10,000회 |"
+          "| 확률 산정 | gemini-decision-1 | 10,000회 |"
         ]
       }
     },
@@ -2454,7 +2454,7 @@
         "calls": 200,
         "tokens": 50000
       },
-      "label": "판정 모델의 분당 한도(호출 수, 입력 토큰 수)",
+      "label": "확률 산정 모델의 분당 한도(호출 수, 입력 토큰 수)",
       "as_of": "2026-11-18",
       "source": {
         "kind": "document",
@@ -2679,7 +2679,7 @@
           "지급률과 금액은 두 추출 결과가 한 군데도 어긋나지 않았습니다"
         ]
       },
-      "note": "정답과 견준 오차율이 아니라 서로 다른 두 판독이 같았다는 뜻입니다. 어긋난 글자는 Claude가 원본을 확대해 보고 판정했습니다."
+      "note": "정답과 견준 오차율이 아니라 서로 다른 두 판독이 같았다는 뜻입니다. 어긋난 글자는 Claude가 원본을 확대해 보고 확인했습니다."
     },
     "image_doc_same_reader_repeat": {
       "value": {
@@ -2736,9 +2736,9 @@
       "source": {
         "kind": "document",
         "path": "docs/submission.md",
-        "section": "판정 전용 모델을 검증기로",
+        "section": "확률 산정 전용 모델을 검증기로",
         "quotes": [
-          "2026-11-11에 나온 판정 전용 모델입니다"
+          "2026-11-11에 나온 확률 산정 전용 모델입니다"
         ]
       }
     },
@@ -2749,12 +2749,12 @@
         "items_per_call": 1000,
         "output_tokens": 0
       },
-      "label": "판정 모델의 사양: 선택지 수 범위, 한 번에 받는 문항 수, 출력 토큰",
+      "label": "확률 산정 모델의 사양: 선택지 수 범위, 한 번에 받는 문항 수, 출력 토큰",
       "as_of": "2026-11-23",
       "source": {
         "kind": "document",
         "path": "docs/submission.md",
-        "section": "판정 전용 모델을 검증기로",
+        "section": "확률 산정 전용 모델을 검증기로",
         "quotes": [
           "정해진 선택지(2~255개)에 확률만 매기며, 출력 토큰이 0이고 한 번에 1,000문항까지 받습니다"
         ]
@@ -2762,29 +2762,29 @@
     },
     "decision_model_uses": {
       "value": [
-        "추출값 정합성 채점",
+        "추출값 정합성 검증",
         "표준담보 매핑",
         "시장 소식 선별",
         "중복 소식 병합"
       ],
-      "label": "이 앱이 판정 모델을 쓴 일",
+      "label": "이 앱이 확률 산정 모델을 쓴 일",
       "as_of": "2026-11-23",
       "source": {
         "kind": "document",
         "path": "docs/submission.md",
-        "section": "판정 전용 모델을 검증기로",
+        "section": "확률 산정 전용 모델을 검증기로",
         "quotes": [
-          "이 모델을 추출값 정합성 채점, 표준담보 매핑, 시장 소식 선별, 중복 소식 병합에 넣었습니다"
+          "이 모델을 추출값 정합성 검증, 표준담보 매핑, 시장 소식 선별, 중복 소식 병합에 넣었습니다"
         ]
       },
-      "note": "기존 상품의 초기 적재는 판정 모델 없이 두 판독의 교차 확인으로 합니다(docs/planning.md 6.1)."
+      "note": "기존 상품의 초기 적재는 확률 산정 모델 없이 두 판독의 교차 확인으로 합니다(docs/planning.md 6.1)."
     },
     "decide_token_window": {
       "value": {
         "window_seconds": 60,
         "margin_pct": 10
       },
-      "label": "판정 호출 전에 최근 몇 초 동안 보낸 토큰을 세는지와, 한도에 두는 여유(%)",
+      "label": "확률 산정 호출 전에 최근 몇 초 동안 보낸 토큰을 세는지와, 한도에 두는 여유(%)",
       "as_of": "2026-11-20",
       "source": {
         "kind": "document",
@@ -2806,7 +2806,7 @@
       "source": {
         "kind": "document",
         "path": "docs/submission.md",
-        "section": "판정 전용 모델을 검증기로",
+        "section": "확률 산정 전용 모델을 검증기로",
         "quotes": [
           "맞는 행도 0.5~0.8에 머물렀습니다"
         ]
@@ -2822,7 +2822,7 @@
       "source": {
         "kind": "document",
         "path": "docs/submission.md",
-        "section": "판정 전용 모델을 검증기로",
+        "section": "확률 산정 전용 모델을 검증기로",
         "quotes": [
           "맞는 값은 0.94 이상, 뒤집은 값은 0.06 이하로 갈렸습니다"
         ]
@@ -2885,7 +2885,7 @@
     },
     "decide_tokens_per_minute_peak_k": {
       "value": 79.98,
-      "label": "판정 모델 분당 입력 토큰 최고값(천 토큰). 한도는 5만",
+      "label": "확률 산정 모델 분당 입력 토큰 최고값(천 토큰). 한도는 5만",
       "as_of": "2026-11-19",
       "source": {
         "kind": "document",
@@ -2899,7 +2899,7 @@
     },
     "decide_quota_failures_logged": {
       "value": 0,
-      "label": "재추출 두 번의 판정 기록에 남은 분당 한도 초과 실패 수",
+      "label": "재추출 두 번의 확률 산정 기록에 남은 분당 한도 초과 실패 수",
       "as_of": "2026-11-20",
       "source": {
         "kind": "document",
@@ -3060,7 +3060,7 @@
         "auto_match": 28,
         "manual_match": 2
       },
-      "label": "우체국 정답셋(보장금액, 면책, 감액) 채점",
+      "label": "우체국 정답셋(보장금액, 면책, 감액) 정답 대조",
       "as_of": "2026-11-23",
       "source": {
         "kind": "document",
@@ -3076,7 +3076,7 @@
         "items": 14,
         "match": 14
       },
-      "label": "한화생명 정답셋(보장금액, 면책, 감액) 채점",
+      "label": "한화생명 정답셋(보장금액, 면책, 감액) 정답 대조",
       "as_of": "2026-11-23",
       "source": {
         "kind": "document",
@@ -3324,14 +3324,14 @@
           "정답셋(우체국 85항목, 한화생명 25항목, 삼성화재 50항목)"
         ]
       },
-      "note": "보장금액, 면책, 감액 영역의 채점은 goldset_epost_benefit(30항목), goldset_hanwha_benefit(14항목)입니다."
+      "note": "보장금액, 면책, 감액 영역의 정답 대조는 goldset_epost_benefit(30항목), goldset_hanwha_benefit(14항목)입니다."
     },
     "goldset_epost_conditions": {
       "value": {
         "items": 20,
         "match": 16
       },
-      "label": "우체국 정답셋 가입조건 채점(일치 항목 수)",
+      "label": "우체국 정답셋 가입조건 정답 대조(일치 항목 수)",
       "as_of": "2026-11-23",
       "source": {
         "kind": "document",
@@ -3348,7 +3348,7 @@
         "items": 10,
         "match": 5
       },
-      "label": "우체국 정답셋 결합 제약 채점(일치 항목 수)",
+      "label": "우체국 정답셋 결합 제약 정답 대조(일치 항목 수)",
       "as_of": "2026-11-23",
       "source": {
         "kind": "document",
@@ -3364,14 +3364,14 @@
       "value": {
         "SAMSUNGFIRE": 50
       },
-      "label": "아직 채점하지 않은 정답셋(회사와 항목 수)",
+      "label": "아직 정답과 대조하지 않은 정답셋(회사와 항목 수)",
       "as_of": "2026-11-23",
       "source": {
         "kind": "document",
         "path": "docs/submission.md",
         "section": "7. 성과 지표",
         "quotes": [
-          "삼성화재 정답셋 50항목 채점"
+          "삼성화재 정답셋 50항목 정답 대조"
         ]
       }
     },
@@ -3868,7 +3868,7 @@
           ]
         }
       },
-      "label": "암 수술비 예: 화면이 처음 여는 기준 종형의 담보 비교 행에서 회사마다 대표 급부의 이름, 지급액, 기준 가입금액, 면책, 감액, 근거 문서와 쪽, 비교쌍의 항목별 판정. 그리고 치료 단계에서 우체국에 없고 두 타사가 모두 가진 담보",
+      "label": "암 수술비 예: 화면이 처음 여는 기준 종형의 담보 비교 행에서 회사마다 대표 급부의 이름, 지급액, 기준 가입금액, 면책, 감액, 근거 문서와 쪽, 비교쌍의 항목별 비교 결과. 그리고 치료 단계에서 우체국에 없고 두 타사가 모두 가진 담보",
       "as_of": "2026-11-24",
       "source": {
         "kind": "screen_data",
@@ -3984,7 +3984,7 @@
           "cross_check": 2036
         }
       },
-      "label": "자동 확정 매핑을 경로로 나눈 수: 판정 모델 확률이 있는 줄(decision_model)과 두 판독 일치로 확정해 확률이 빈 줄(cross_check). all 은 모든 기관, site 는 화면에 올린 기관",
+      "label": "자동 확정 매핑을 경로로 나눈 수: 확률 산정 결과가 있는 줄(decision_model)과 두 판독 일치로 확정해 확률이 빈 줄(cross_check). all 은 모든 기관, site 는 화면에 올린 기관",
       "as_of": "2026-11-24",
       "source": {
         "kind": "snapshot",
@@ -4121,7 +4121,7 @@
           "보장개시일 조건 없음"
         ]
       },
-      "label": "symmetric_choice_probability 를 잰 판정 문항: 문항 이름, 묻는 말(줄임), 보기 둘",
+      "label": "symmetric_choice_probability 를 측정한 확률 산정 문항: 문항 이름, 묻는 말(줄임), 보기 둘",
       "as_of": "2026-11-24",
       "source": {
         "kind": "code",

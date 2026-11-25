@@ -132,7 +132,7 @@ python3 scripts/export_presentation_facts.py # 발표 사실 자료 presentation
 python3 proto_src/deck/build.py --out site/deck/index.html --used proto_src/deck/facts_used.json --strict   # 발표 덱
 python3 scripts/build_site.py                # data/snapshot → site/v1/index.html (초기 버전 판단 화면)
 python3 scripts/dev/check_site_browser.py site/v1/index.html <사진 폴더>   # 초기 버전 380px, 1280px 화면 점검 (playwright)
-python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON> [--gold data/goldset/hanwha_goldset.jsonl] [--numbers 101-114] [--area 가입조건]   # 정답셋 채점 (--result는 필수, 기본은 우체국 정답셋의 보장금액 영역)
+python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON> [--gold data/goldset/hanwha_goldset.jsonl] [--numbers 101-114] [--area 가입조건]   # 정답 대조 (--result는 필수, 기본은 우체국 정답셋의 보장금액 영역)
 python3 scripts/compare_table_rules.py <표 조각.json> --against data/crosscheck/<파일>.jsonl   # 삼성화재 규칙 추출 대조
 
 # 배치는 GitHub Actions에서 돈다 (시트 쓰기 포함)
@@ -145,8 +145,8 @@ gh run list --limit 5 ; gh run view <id> --log ; gh run download <id> -n <artifa
 
 ## 구조에서 꼭 알 것
 
-- 모델은 글자만 옮기고, 숫자는 코드가 읽는다. 원문 대조(코드) → 판정 모델 확률 → 확정(0.75 이상)/검토/재추출(0.40 미만). 재추출은 보조 모델, 그다음 상위 모델. 그래도 안 되면 제외(시트에 쓰지 않음).
-- Gemini 무료 한도: 추출 `gemini-3.5-flash-lite` 하루 500회, 상위 `gemini-3.8-flash` 하루 20회, 판정 `gemini-decision-1`. 하루 한도는 **한국 시간 17시**에 풀린다. 배치를 돌리기 전에 로컬 시험 호출로 상위 모델 한도를 쓰지 않는다.
+- 모델은 글자만 옮기고, 숫자는 코드가 읽는다. 원문 대조(코드) → 확률 산정 모델 → 확정(0.75 이상)/검토/재추출(0.40 미만). 재추출은 보조 모델, 그다음 상위 모델. 그래도 안 되면 제외(시트에 쓰지 않음).
+- Gemini 무료 한도: 추출 `gemini-3.5-flash-lite` 하루 500회, 상위 `gemini-3.8-flash` 하루 20회, 확률 산정 `gemini-decision-1`. 하루 한도는 **한국 시간 17시**에 풀린다. 배치를 돌리기 전에 로컬 시험 호출로 상위 모델 한도를 쓰지 않는다.
 - 시트 쓰기는 RAW, 머리글이 스키마와 글자 그대로 같아야 한다. 열을 더할 때는 `scripts/add_column.py`.
 - 회사별 문서 꼴이 다르다. 우체국·한화는 모델 추출(`extract/benefits.py`, `pipeline.py`), 삼성화재는 PDF 표를 읽어(`extract/tables.py`) 문구 규칙으로 뽑는다(`extract/table_rules.py`). 회사별 주의점은 `docs/handoff.md`.
 - 화면은 오프라인 단독 HTML이고 GitHub Pages(`https://bluethestyle.github.io/korea_post_life/`)에 배포한다. 시연하는 분석 화면은 `site/proto/console4.html`(원본 `proto_src/console4/`, 화면 구현은 Antigravity), 발표 덱은 `site/deck/index.html`(원본 `proto_src/deck/`, 영상은 `site/deck/media/`), 관계 그래프 화면은 `site/proto/graph2.html`(원본 `proto_src/graph/`)이다. 루트 `site/index.html`은 이 화면들로 가는 안내 화면(손으로 쓴 파일)이고, 처음 만든 판단 화면은 초기 버전으로 `site/v1/index.html`에 있다. 외부 요청이 없어야 하고, 잘리거나 겹치는 글자가 없어야 한다. 고친 뒤에는 브라우저 점검을 돌린다.

@@ -186,8 +186,8 @@ $PY tools/check_glyphs.py out/index.html      # 심은 글꼴(PLKo)에 없는 �
 ```json
 {"use": "C6", "panels": [
   {"figure": {"use": "C7", "size": "mini", "thresholds": ["{{fact:verify_reextract_threshold}}", "{{fact:verify_confirm_threshold}}"]},
-   "chip": "객관식 채점관", "line": "질문과 보기를 정해 주면 보기마다 확률만 돌려줍니다", "src": "출처: Google Decisions API 문서"},
-  {"figure": {"use": "C5", "labels": ["글로 답하는 AI", "판정 모델"], "rows": [{"before": "...", "after": "..."}]}, "line": "..."},
+   "chip": "보기마다 확률만", "line": "질문과 보기를 정해 주면 보기마다 확률만 돌려줍니다", "src": "출처: Google Decisions API 문서"},
+  {"figure": {"use": "C5", "labels": ["글로 답하는 AI", "확률 산정 모델"], "rows": [{"before": "...", "after": "..."}]}, "line": "..."},
   {"figure": {"use": "C2", "mode": "tiny", "on": [1, 3, 4]}, "line": "..."}]}
 ```
 
@@ -216,7 +216,7 @@ $PY tools/check_glyphs.py out/index.html      # 심은 글꼴(PLKo)에 없는 �
 ```json
 {"use": "C8", "axis": ["2026-11-18", "2026-11-19"], "bars": [{"d": "2026-11-18", "v": "{{fact:commits_by_date.2026-11-18}}"}],
  "flags": [{"d": "2026-11-20", "label": "청약에서 영업 인사이트까지 한 흐름으로", "tag": "실무자 지적", "who": "human", "hero": true}]}
-{"use": "C8", "dots": [{"d": "{{ref:jev_release.date}}", "label": "판정만 하는 AI {{ref:jev_release.model}} 공개", "src": "TypeSafe AI"}]}
+{"use": "C8", "dots": [{"d": "{{ref:jev_release.date}}", "label": "확률만 산정하는 AI {{ref:jev_release.model}} 공개", "src": "TypeSafe AI"}]}
 ```
 
 - 막대와 깃발: 날짜 축(MM-DD로 표시), 날짜별 막대와 값, 깃발 상자(층을 나눠 겹치지 않게 놓음, 같은 날 깃발은 세로선을 함께 쓰고, 위층 상자의 선은 아래층 상자의 윗변에서 멈춰 다른 상자 뒤로 지나가지 않음). `who`가 `human`이면 실무자 태그(빨강 바탕), 아니면 AI 태그. 상자 폭 `flag_w`(기본은 날짜 칸 폭의 1.4배, 200~300).
@@ -234,7 +234,7 @@ $PY tools/check_glyphs.py out/index.html      # 심은 글꼴(PLKo)에 없는 �
  "ring": {"node": "cc", "label": "결과는 다시 실행해 확인", "hero": true}}
 {"use": "C9", "layout": "ladder", "nodes": [{"label": "급부", "count": "{{fact:graph_nodes_by_kind.급부}}"}, {"label": "표준담보", "hero": true}]}
 {"use": "C9", "layout": "converge", "cards": [{"org": "EPOST", "text": "{{fact:example_cancer_surgery_names.EPOST}}"}],
- "target": {"label": "암 수술비", "sub": "표준담보"}, "chip": "자동 확정: 판정 모델 {{fact:mapping_auto_confirm_threshold|f2}} 이상 또는 AI 둘의 결과 일치"}
+ "target": {"label": "암 수술비", "sub": "표준담보"}, "chip": "자동 확정: 확률 산정 모델 {{fact:mapping_auto_confirm_threshold|f2}} 이상 또는 AI 둘의 결과 일치"}
 {"use": "C9", "layout": "legend", "captions": ["온톨로지 = 범례", "지식그래프 = 노선도"],
  "node_kinds": [{"label": "회사", "shape": "square"}], "edge_kinds": [{"label": "포함", "style": "dash"}],
  "graph": {"nodes": [{"id": "a", "label": "우체국", "shape": "square"}], "edges": [{"from": "a", "to": "c", "style": "dash"}]}}
@@ -275,7 +275,7 @@ $PY tools/check_glyphs.py out/index.html      # 심은 글꼴(PLKo)에 없는 �
 
 ### C14 용어 풀이 칩
 
-장의 `terms`로 아래 띠에 칩을 놓는다(가장 흔한 쓰임). 블록으로 둘 때는 `{"use": "C14", "terms": ["판정 모델", "확률"]}`. 풀이는 `_deck.json`의 `glossary`에서 읽는다. 본문 안 용어에는 `[[용어]]`로 점선 밑줄. 상한: 한 장에 셋, 풀이 30자. 쓰는 장: 구성안 1.2절 표의 첫 장.
+장의 `terms`로 아래 띠에 칩을 놓는다(가장 흔한 쓰임). 블록으로 둘 때는 `{"use": "C14", "terms": ["확률 산정 모델", "확률"]}`. 풀이는 `_deck.json`의 `glossary`에서 읽는다. 본문 안 용어에는 `[[용어]]`로 점선 밑줄. 상한: 한 장에 셋, 풀이 30자. 쓰는 장: 구성안 1.2절 표의 첫 장.
 
 ### C15 플레이스홀더와 배지
 

@@ -62,10 +62,10 @@ WEEKDAYS = ("월", "화", "수", "목", "금", "토", "일")
 # 시트의 ID 는 바꾸지 않으므로(CLAUDE.md) 계보키를 그대로 적는다.
 EXAMPLE_LINEAGE = "afe7dff94ada"
 
-# 판정 구간과 법정 한도(hum_기준값의 기준키 → 열쇠, 이름)
+# 검증 구간과 법정 한도(hum_기준값의 기준키 → 열쇠, 이름)
 THRESHOLDS = (
-    ("추출검증_통과", "verify_confirm_threshold", "추출값 판정: 이 확률 이상이면 자동 확정"),
-    ("추출검증_재추출", "verify_reextract_threshold", "추출값 판정: 이 확률 미만이면 다른 모델로 다시 뽑음(사이는 사람 검토)"),
+    ("추출검증_통과", "verify_confirm_threshold", "추출값 검증: 이 확률 이상이면 자동 확정"),
+    ("추출검증_재추출", "verify_reextract_threshold", "추출값 검증: 이 확률 미만이면 다른 모델로 다시 뽑음(사이는 사람 검토)"),
     ("담보매핑_자동확정", "mapping_auto_confirm_threshold", "담보 매핑: 이 확률 이상이면 자동 확정"),
     ("담보매핑_대상외", "mapping_out_of_scope_threshold", "담보 매핑: 해당 없음 확률이 이 값 이상이면 대상외"),
     ("기사선별_통과", "news_pass_threshold", "시장 소식 선별: 이 확률 이상이면 기록"),
@@ -133,9 +133,9 @@ DOC_FACTS: list[tuple[str, Any, str, str, str, str, tuple[str, ...], str | None]
      ("| 1차 재추출 | gemini-3.1-flash-lite | 500회 |",), None),
     ("daily_limit_upper", 20, "마지막 재추출(상위) 모델의 하루 한도(회)", SUB_SCOPE_DATE, SUB, "작업별 모델 배정",
      ("| 마지막 재추출 | gemini-3.8-flash | 20회 |",), None),
-    ("daily_limit_decide", 10000, "판정 모델의 하루 한도(회)", SUB_SCOPE_DATE, SUB, "작업별 모델 배정",
-     ("| 판정 | gemini-decision-1 | 10,000회 |",), None),
-    ("decide_per_minute_limit", {"calls": 200, "tokens": 50000}, "판정 모델의 분당 한도(호출 수, 입력 토큰 수)", "2026-11-18", PLA,
+    ("daily_limit_decide", 10000, "확률 산정 모델의 하루 한도(회)", SUB_SCOPE_DATE, SUB, "작업별 모델 배정",
+     ("| 확률 산정 | gemini-decision-1 | 10,000회 |",), None),
+    ("decide_per_minute_limit", {"calls": 200, "tokens": 50000}, "확률 산정 모델의 분당 한도(호출 수, 입력 토큰 수)", "2026-11-18", PLA,
      "6.1 작업별 배정", ("| 담보 매핑 분기, 기사 선별, 추출값 정합성 채점 | gemini-decision-1 | 10,000회 | 200회, 5만 토큰 |",),
      "AI Studio 한도 화면에서 읽은 무료 티어 값입니다(같은 절)."),
     ("actions_free_minutes_per_month", 2000, "GitHub Actions 무료 계정에 든 한 달 실행 시간(분)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
@@ -183,7 +183,7 @@ DOC_FACTS: list[tuple[str, Any, str, str, str, str, tuple[str, ...], str | None]
      "미래에셋생명 요약서 두 개(글자가 그림): 쪽수, 확정한 글자 수(공백 뺌), 두 판독의 지급률과 금액이 어긋난 곳", SUB_SCOPE_DATE, SUB,
      "글자가 그림으로 든 문서: 두 모델이 따로 읽고 교차 검증하기",
      ("두 요약서 308쪽(공백을 뺀 314,492자)을 확정했습니다", "지급률과 금액은 두 추출 결과가 한 군데도 어긋나지 않았습니다"),
-     "정답과 견준 오차율이 아니라 서로 다른 두 판독이 같았다는 뜻입니다. 어긋난 글자는 Claude가 원본을 확대해 보고 판정했습니다."),
+     "정답과 견준 오차율이 아니라 서로 다른 두 판독이 같았다는 뜻입니다. 어긋난 글자는 Claude가 원본을 확대해 보고 확인했습니다."),
     ("image_doc_same_reader_repeat", {"pages": 20, "wrong_same_way": 9}, "같은 판독기를 새로 띄워 다시 읽혔을 때 첫 판독과 같은 식으로 틀린 쪽 수",
      SUB_SCOPE_DATE, SUB, "글자가 그림으로 든 문서: 두 모델이 따로 읽고 교차 검증하기", ("20쪽 가운데 9쪽에서 첫 추출과 같은 식으로 틀렸습니다",), None),
     ("image_doc_opus_reread_chars", 25048, "sonnet 이 틀렸던 20쪽을 opus 가 다시 읽어 확정본과 한 글자도 다르지 않았던 글자 수",
@@ -192,24 +192,24 @@ DOC_FACTS: list[tuple[str, Any, str, str, str, str, tuple[str, ...], str | None]
     ("local_ocr_test", {"chars": 1123, "missed": 100, "wrong": 110}, "로컬 OCR(tesseract)을 글자가 풀리는 대조용 쪽에서 견준 결과(글자 수)",
      SUB_SCOPE_DATE, SUB, "글자가 그림으로 든 문서: 두 모델이 따로 읽고 교차 검증하기", ("1,123자 가운데 100자를 빠뜨리고 110자를 잘못 넣어",),
      "미래에셋 쪽이 아니라 글자를 풀 수 있는 대조용 쪽에서 잰 값입니다. 그래서 값에는 쓰지 않고 급부 표가 있는 쪽을 찾는 데만 씁니다."),
-    # 판정 모델
-    ("decision_model_release_date", "2026-11-11", "gemini-decision-1 이 나온 날", SUB_SCOPE_DATE, SUB, "판정 전용 모델을 검증기로",
-     ("2026-11-11에 나온 판정 전용 모델입니다",), None),
+    # 확률 산정 모델
+    ("decision_model_release_date", "2026-11-11", "gemini-decision-1 이 나온 날", SUB_SCOPE_DATE, SUB, "확률 산정 전용 모델을 검증기로",
+     ("2026-11-11에 나온 확률 산정 전용 모델입니다",), None),
     ("decision_model_spec", {"choices_min": 2, "choices_max": 255, "items_per_call": 1000, "output_tokens": 0},
-     "판정 모델의 사양: 선택지 수 범위, 한 번에 받는 문항 수, 출력 토큰", SUB_SCOPE_DATE, SUB, "판정 전용 모델을 검증기로",
+     "확률 산정 모델의 사양: 선택지 수 범위, 한 번에 받는 문항 수, 출력 토큰", SUB_SCOPE_DATE, SUB, "확률 산정 전용 모델을 검증기로",
      ("정해진 선택지(2~255개)에 확률만 매기며, 출력 토큰이 0이고 한 번에 1,000문항까지 받습니다",), None),
-    ("decision_model_uses", ["추출값 정합성 채점", "표준담보 매핑", "시장 소식 선별", "중복 소식 병합"], "이 앱이 판정 모델을 쓴 일",
-     SUB_SCOPE_DATE, SUB, "판정 전용 모델을 검증기로",
-     ("이 모델을 추출값 정합성 채점, 표준담보 매핑, 시장 소식 선별, 중복 소식 병합에 넣었습니다",),
-     "기존 상품의 초기 적재는 판정 모델 없이 두 판독의 교차 확인으로 합니다(docs/planning.md 6.1)."),
+    ("decision_model_uses", ["추출값 정합성 검증", "표준담보 매핑", "시장 소식 선별", "중복 소식 병합"], "이 앱이 확률 산정 모델을 쓴 일",
+     SUB_SCOPE_DATE, SUB, "확률 산정 전용 모델을 검증기로",
+     ("이 모델을 추출값 정합성 검증, 표준담보 매핑, 시장 소식 선별, 중복 소식 병합에 넣었습니다",),
+     "기존 상품의 초기 적재는 확률 산정 모델 없이 두 판독의 교차 확인으로 합니다(docs/planning.md 6.1)."),
     ("decide_token_window", {"window_seconds": 60, "margin_pct": 10},
-     "판정 호출 전에 최근 몇 초 동안 보낸 토큰을 세는지와, 한도에 두는 여유(%)", LIM_DATE, LIM, "3. 추출과 검증",
+     "확률 산정 호출 전에 최근 몇 초 동안 보낸 토큰을 세는지와, 한도에 두는 여유(%)", LIM_DATE, LIM, "3. 추출과 검증",
      ("최근 60초 동안 보낸 토큰을 본문 글자 수로 추정해 세고 한도(여유 10%) 아래에서 기다리게 고쳤고",),
      "기다리는 규칙이고, 고친 뒤 잰 사용량은 문서에 없습니다."),
     ("true_false_probability_range", {"low": 0.5, "high": 0.8}, "면책 조건을 참 거짓으로 물었을 때 맞는 줄이 머문 확률 범위",
-     SUB_SCOPE_DATE, SUB, "판정 전용 모델을 검증기로", ("맞는 행도 0.5~0.8에 머물렀습니다",), None),
+     SUB_SCOPE_DATE, SUB, "확률 산정 전용 모델을 검증기로", ("맞는 행도 0.5~0.8에 머물렀습니다",), None),
     ("symmetric_choice_probability", {"correct_min": 0.94, "flipped_max": 0.06},
-     "\"조건 있음 / 없음\" 가운데 고르게 바꾼 뒤 맞는 값과 뒤집은 값의 확률", SUB_SCOPE_DATE, SUB, "판정 전용 모델을 검증기로",
+     "\"조건 있음 / 없음\" 가운데 고르게 바꾼 뒤 맞는 값과 뒤집은 값의 확률", SUB_SCOPE_DATE, SUB, "확률 산정 전용 모델을 검증기로",
      ("맞는 값은 0.94 이상, 뒤집은 값은 0.06 이하로 갈렸습니다",), None),
     ("calibration_flipped_rows", {"rows": 437, "passed": 0}, "경계값 보정: 일부러 틀리게 바꾼 줄 수와 그 가운데 확정을 통과한 줄 수",
      SUB_SCOPE_DATE, SUB, "7. 성과 지표", ("일부러 틀리게 바꾼 437행 가운데 통과 0행",),
@@ -220,9 +220,9 @@ DOC_FACTS: list[tuple[str, Any, str, str, str, str, tuple[str, ...], str | None]
     ("bundled_constraint_check", {"wrong_riders": 2, "bundled_probability": 0.8, "separated_probabilities": [0.42, 0.47]},
      "결합 제약을 묶어 물었을 때 통과한 잘못 끼어든 특약 수와 확률, 따로 물었을 때의 확률", SUB_SCOPE_DATE, SUB,
      "6. 안전장치가 실제로 걸러 낸 사례", ("잘못 끼어든 특약 2개가 0.80으로 통과했습니다. 특약마다 따로 묻자 0.42와 0.47로 걸렸습니다.",), None),
-    ("decide_tokens_per_minute_peak_k", 79.98, "판정 모델 분당 입력 토큰 최고값(천 토큰). 한도는 5만", "2026-11-19", LIM, "3. 추출과 검증",
+    ("decide_tokens_per_minute_peak_k", 79.98, "확률 산정 모델 분당 입력 토큰 최고값(천 토큰). 한도는 5만", "2026-11-19", LIM, "3. 추출과 검증",
      ("분당 토큰 최고값이 79.98K(한도 5만)였습니다",), "2026-11-19 사용량 화면의 값입니다."),
-    ("decide_quota_failures_logged", 0, "재추출 두 번의 판정 기록에 남은 분당 한도 초과 실패 수", LIM_DATE, LIM, "3. 추출과 검증",
+    ("decide_quota_failures_logged", 0, "재추출 두 번의 확률 산정 기록에 남은 분당 한도 초과 실패 수", LIM_DATE, LIM, "3. 추출과 검증",
      ("한도 초과로 실패한 기록은 한 건도 없습니다", "다시 시도해 성공한 호출은 기록에 남지 않아"),
      "다시 시도해 성공한 호출은 기록에 남지 않아, 한도를 넘겼다가 다시 시도로 넘어간 것인지는 알 수 없습니다. "
      "\"한도 초과 0건\"이나 \"무중단\"으로 쓰지 않습니다."),
@@ -250,9 +250,9 @@ DOC_FACTS: list[tuple[str, Any, str, str, str, str, tuple[str, ...], str | None]
     # 정답셋과 점검
     ("epost_summary_rows_matched", {"matched": 101, "total": 101}, "우체국 요약서 2건의 급부를 원문 표와 한 줄씩 대조한 결과", SUB_SCOPE_DATE,
      SUB, "7. 성과 지표", ("101행 모두 일치 (2606 49행, 통합 2504 52행)",), None),
-    ("goldset_epost_benefit", {"items": 30, "auto_match": 28, "manual_match": 2}, "우체국 정답셋(보장금액, 면책, 감액) 채점", SUB_SCOPE_DATE,
+    ("goldset_epost_benefit", {"items": 30, "auto_match": 28, "manual_match": 2}, "우체국 정답셋(보장금액, 면책, 감액) 정답 대조", SUB_SCOPE_DATE,
      SUB, "7. 성과 지표", ("30항목 중 28항목 자동 일치, 2항목 직접 확인으로 일치",), None),
-    ("goldset_hanwha_benefit", {"items": 14, "match": 14}, "한화생명 정답셋(보장금액, 면책, 감액) 채점", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+    ("goldset_hanwha_benefit", {"items": 14, "match": 14}, "한화생명 정답셋(보장금액, 면책, 감액) 정답 대조", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
      ("| 한화생명 정답셋 보장금액, 면책, 감액 | 14항목 모두 일치",), None),
     ("site_browser_check_problems", 0, "운영 화면 380px, 1280px 브라우저 점검에서 나온 넘침, 잘림, 겹침, 콘솔 오류, 외부 요청 수", SUB_SCOPE_DATE,
      SUB, "7. 성과 지표", ("380px와 1280px 폭의 브라우저 점검에서 오버플로, 잘림, 겹침, 콘솔 오류, 외부 요청이 모두 0건입니다",), None),
@@ -316,13 +316,13 @@ DOC_FACTS += [
     ("goldset_item_totals", {"EPOST": 85, "HANWHALIFE": 25, "SAMSUNGFIRE": 50},
      "회사별 정답셋 전체 항목 수(보장금액, 가입조건, 결합 제약 따위를 합친 수)", SUB_SCOPE_DATE, SUB, "제미나이: 추출기와 따로 보는 교차 확인",
      ("정답셋(우체국 85항목, 한화생명 25항목, 삼성화재 50항목)",),
-     "보장금액, 면책, 감액 영역의 채점은 goldset_epost_benefit(30항목), goldset_hanwha_benefit(14항목)입니다."),
-    ("goldset_epost_conditions", {"items": 20, "match": 16}, "우체국 정답셋 가입조건 채점(일치 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+     "보장금액, 면책, 감액 영역의 정답 대조는 goldset_epost_benefit(30항목), goldset_hanwha_benefit(14항목)입니다."),
+    ("goldset_epost_conditions", {"items": 20, "match": 16}, "우체국 정답셋 가입조건 정답 대조(일치 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
      ("| 우체국 정답셋 가입조건 | 20항목 중 16항목 일치",), "1항목은 종형 속성에 들어 있고 나머지는 스키마 밖입니다(같은 표)."),
-    ("goldset_epost_constraints", {"items": 10, "match": 5}, "우체국 정답셋 결합 제약 채점(일치 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+    ("goldset_epost_constraints", {"items": 10, "match": 5}, "우체국 정답셋 결합 제약 정답 대조(일치 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
      ("| 우체국 정답셋 결합 제약 | 10항목 중 5항목 일치",), "나머지는 스키마 밖입니다(같은 표)."),
-    ("goldset_not_scored", {"SAMSUNGFIRE": 50}, "아직 채점하지 않은 정답셋(회사와 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
-     ("삼성화재 정답셋 50항목 채점",), None),
+    ("goldset_not_scored", {"SAMSUNGFIRE": 50}, "아직 정답과 대조하지 않은 정답셋(회사와 항목 수)", SUB_SCOPE_DATE, SUB, "7. 성과 지표",
+     ("삼성화재 정답셋 50항목 정답 대조",), None),
     ("samsungfire_benefit_reader", "코드 규칙", "삼성화재 급부표를 읽는 방법(모델을 쓰지 않음)", SUB_SCOPE_DATE, SUB, "작업별 모델 배정",
      ("| 삼성화재 급부표 | 코드 규칙 |",), "extract/tables.py 와 extract/table_rules.py 입니다."),
     ("next_load_orgs", {"names": ["교보생명", "현대해상"], "stage": "추출과 원문 표본 대조까지 끝났고 시트 적재 전"},
@@ -610,7 +610,7 @@ def snapshot_facts(root: Path, tables: dict[str, list[dict[str, Any]]], as_of: s
     out["benefit_disease_code_rows"] = fact(len(tables["sys_급부질병코드"]), "급부 질병코드 행 수(2단계 과제)", as_of,
                                             snap_source("sys_급부질병코드.jsonl", "행 수"))
 
-    # 기준값(판정 구간과 법정 한도)
+    # 기준값(검증 구간과 법정 한도)
     base = {r["기준키"]: r for r in tables["hum_기준값"]}
     for src_key, key, label in THRESHOLDS:
         if src_key not in base or base[src_key].get("수치값") is None:
@@ -693,11 +693,11 @@ def config_facts(as_of: str) -> dict[str, dict[str, Any]]:
     out["upper_model_calls_per_run"] = fact(config.EXTRACT_ESCALATIONS_PER_RUN, "한 번 실행에서 상위 모델로 다시 뽑는 횟수 상한", as_of,
                                             config_source("EXTRACT_ESCALATIONS_PER_RUN"))
     out["decide_tokens_per_minute_guard"] = fact(config.TOKENS_PER_MINUTE[config.MODEL_DECIDE],
-                                                 "판정 모델 호출 전에 최근 60초 입력 토큰(어림)을 이 값 아래로 맞춤(한도 5만에 여유 10%)",
+                                                 "확률 산정 모델 호출 전에 최근 60초 입력 토큰(어림)을 이 값 아래로 맞춤(한도 5만에 여유 10%)",
                                                  as_of, config_source("TOKENS_PER_MINUTE"), "기다리는 기준이고 잰 사용량이 아닙니다.")
     out["models"] = fact({"search": config.MODEL_SEARCH, "extract": config.MODEL_EXTRACT, "extract_alt": config.MODEL_EXTRACT_ALT,
                           "decide": config.MODEL_DECIDE, "upper": config.MODEL_SUMMARY},
-                         "작업별 모델 이름(검색, 추출, 보조 재추출, 판정, 상위)", as_of,
+                         "작업별 모델 이름(검색, 추출, 보조 재추출, 확률 산정, 상위)", as_of,
                          config_source("MODEL_SEARCH, MODEL_EXTRACT, MODEL_EXTRACT_ALT, MODEL_DECIDE, MODEL_SUMMARY"))
     out["forbidden_words"] = fact(list(FORBIDDEN), "화면의 분석 문장에 쓰지 않는 말(빌드가 막음)", as_of,
                                   {"kind": "code", "file": "src/postlife/site/sales.py", "name": "FORBIDDEN"})
@@ -977,7 +977,7 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
         {"standard_coverage": std_name, "standard_coverage_id": EXAMPLE_STD, "orgs": per_org, "pairs": pairs,
          "missing_treatment_both_peers": {"count": len(missing), "names": missing}},
         "암 수술비 예: 화면이 처음 여는 기준 종형의 담보 비교 행에서 회사마다 대표 급부의 이름, 지급액, 기준 가입금액, 면책, 감액, "
-        "근거 문서와 쪽, 비교쌍의 항목별 판정. 그리고 치료 단계에서 우체국에 없고 두 타사가 모두 가진 담보", as_of, cover_src,
+        "근거 문서와 쪽, 비교쌍의 항목별 비교 결과. 그리고 치료 단계에서 우체국에 없고 두 타사가 모두 가진 담보", as_of, cover_src,
         "pay_is_ratio 가 참이면 pay_manwon 은 가입금액 대비 비율(%)입니다. 기준 가입금액이 회사마다 달라 금액만으로 우열을 말하지 않습니다.")
     out["example_cancer_surgery_names"] = fact({org: v["benefit"] for org, v in per_org.items()},
                                                "암 수술비 예의 회사별 급부 이름(원문 급부명 그대로)", as_of, cover_src)
@@ -1020,7 +1020,7 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
         "라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다", as_of,
         screen_source(f"지도.전체.칸[{EXAMPLE_GATE_ROW}, {EXAMPLE_GATE_ROW_LATER}][나이 열].회사, 라벨, 관문만수집"))
 
-    # 담보 매핑 자동 확정의 두 경로(판정 모델 확률이 있는 줄, 교차 검증으로 확정해 확률이 빈 줄)
+    # 담보 매핑 자동 확정의 두 경로(확률 산정 결과가 있는 줄, 교차 검증으로 확정해 확률이 빈 줄)
     def routes(orgs: tuple[str, ...] | None) -> dict[str, int]:
         snap = Snapshot(tables)
         auto = [r for r in tables["hum_담보매핑"] if r["검토상태"] == "자동확정" and r["급부ID"] in snap.benefit
@@ -1030,11 +1030,11 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
 
     out["mapping_auto_confirm_by_route"] = fact(
         {"all": routes(None), "site": routes(tuple(config.SITE_ORGS))},
-        "자동 확정 매핑을 경로로 나눈 수: 판정 모델 확률이 있는 줄(decision_model)과 두 판독 일치로 확정해 확률이 빈 줄(cross_check). "
+        "자동 확정 매핑을 경로로 나눈 수: 확률 산정 결과가 있는 줄(decision_model)과 두 판독 일치로 확정해 확률이 빈 줄(cross_check). "
         "all 은 모든 기관, site 는 화면에 올린 기관", as_of,
         snap_source("hum_담보매핑.jsonl", "검토상태가 자동확정인 행을 매핑확률이 있는지로 나눔(급부가 있는 줄)"))
 
-    # 판정 기준선 보정: 검수 구간에 남은 비율(재추출 구간 비율과 자동 확정 0건에서 계산)
+    # 검증 기준선 보정: 검수 구간에 남은 비율(재추출 구간 비율과 자동 확정 0건에서 계산)
     doc_values = {k: v for k, v, *_ in DOC_FACTS}
     caught_pct = doc_values["calibration_reextract_band"]["wrong_caught_pct"]
     if doc_values["calibration_flipped_rows"]["passed"] != 0:
@@ -1089,14 +1089,14 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
                                     "예약 실행은 시장 동향 수집과 주간 마감(스냅샷 커밋)뿐이고, 공시 문서 수집, 추출, 매핑은 사람이 실행합니다. "
                                     "화면 배포는 site/ 에 푸시할 때 돌고, 화면 빌드는 사람이 합니다.")
 
-    # 판정 문항 예: 면책기간 문항의 보기(0.94, 0.06 을 잰 문항)
+    # 확률 산정 문항 예: 면책기간 문항의 보기(0.94, 0.06 을 잰 문항)
     from postlife.extract import verify as V
     verify_text = (root / "src" / "postlife" / "extract" / "verify.py").read_text(encoding="utf-8")
     if "'○○보장개시일 이후'라는 조건이 들어 있는가" not in verify_text:
         raise FactsError("verify.py 의 면책기간 문항 글이 바뀌었다")
     out["symmetric_choice_item"] = fact(
         {"item": "면책기간", "question": "급부의 지급사유에 '○○보장개시일 이후' 조건이 들어 있는가", "choices": [V.AFTER_START, V.FROM_DAY_ONE]},
-        "symmetric_choice_probability 를 잰 판정 문항: 문항 이름, 묻는 말(줄임), 보기 둘", as_of,
+        "symmetric_choice_probability 를 측정한 확률 산정 문항: 문항 이름, 묻는 말(줄임), 보기 둘", as_of,
         {"kind": "code", "file": "src/postlife/extract/verify.py", "name": "checks() 의 면책기간일수 문항, AFTER_START, FROM_DAY_ONE"},
         "묻는 말은 문항 지시문을 줄인 것입니다. 0.94 와 0.06 은 이 문항 한 가지의 값입니다.")
 

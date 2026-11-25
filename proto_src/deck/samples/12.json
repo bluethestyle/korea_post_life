@@ -4,7 +4,7 @@
  "kind": "body",
  "chapter": 3,
  "status": "revised",
- "headline": "AI는 글자를 옮기고 채점만 합니다. 숫자는 코드가 읽고, 기준은 사람이 정합니다",
+ "headline": "AI는 글자를 옮기고 확률만 산정합니다. 숫자는 코드가 읽고, 기준은 사람이 정합니다",
  "diagram": [
   {
    "use": "C2",
@@ -28,7 +28,7 @@
      },
      {
       "step": 3,
-      "label": "채점"
+      "label": "확률 산정"
      }
     ],
     "코드": [
@@ -95,6 +95,6 @@
  "terms": [
   "모델"
  ],
- "source": "모델과 하루 한도: 추출 {{fact:models.extract}} {{fact:daily_limit_extract}}회, 판정 {{fact:models.decide}} {{fact:daily_limit_decide}}회",
+ "source": "모델과 하루 한도: 추출 {{fact:models.extract}} {{fact:daily_limit_extract}}회, 확률 산정 {{fact:models.decide}} {{fact:daily_limit_decide}}회",
  "notes": "견본: C2 lanes(=C20 역할 레인). 변환 예는 추출 기록이 저장소에 없어 지시문 예시 글자를 실제 코드로 읽은 값(example_text_to_number)이다."
 }
