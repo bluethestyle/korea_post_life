@@ -2923,6 +2923,8 @@
     const fadeOutBoard = !!(bdRect && bdRect.height > 0 && outDur > 0 && typeof board.animate === 'function');
 
     applyBgParallax(st.tab);
+    // 첫 화면 상태 표시: 제목 영역 위 여백(tab1.css 의 body.is-home .top-head)이 첫 화면에서만 적용되게 한다
+    document.body.classList.toggle('is-home', isHome);
     renderRingTabs(curC, snap);
     if (!fadeOutHome) homePanel.hidden = !isHome;
     if (!fadeOutBoard) board.hidden = isHome;
