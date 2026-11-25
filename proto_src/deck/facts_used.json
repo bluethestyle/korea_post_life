@@ -175,13 +175,16 @@
    "epost_renewal"
   ],
   "24": [
+   "example_cancer_surgery",
    "common_coverage_pairs",
    "compared_coverage_pairs",
    "excluded_pending_pairs",
+   "example_split_rider",
    "relation_covered_pairs",
-   "mapping_status_by_org",
+   "org_names",
    "site_org_count",
    "standard_coverage_in_use",
+   "mapping_status_by_org",
    "sales_insight_by_category_display"
   ],
   "25": [
@@ -225,8 +228,11 @@
    "excluded_pending_pairs"
   ],
   "30": [
-   "standard_coverage_in_use",
    "practice_respondents",
+   "example_cancer_surgery",
+   "standard_coverage_in_use",
+   "practice_compare_time",
+   "practice_compare_frequency",
    "practice_compare_source",
    "epost_renewal",
    "variant_sale_status_site",
