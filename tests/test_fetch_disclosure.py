@@ -488,3 +488,27 @@ def test_epost_calls_are_unchanged(bench, monkeypatch, tmp_path, argv):
     assert sorted(p.name for p in (tmp_path / "out").iterdir()) == [
         "epost_products.json", "index.json", "yoyak_P900001.pdf", "yoyak_P900001.txt"]
     assert (tmp_path / "out/yoyak_P900001.txt").read_text(encoding="utf-8") == "\n===== 1쪽 =====\n첫 쪽"
+
+
+def test_epost_moresimple_health_is_fetched(bench, monkeypatch, tmp_path):
+    """우체국 수집은 대상 설정이 아니라 EPOST_NAMES로 판매 목록을 거른다. 우체국더간편건강보험 2504의 종형도 받는다."""
+    products = [epost.Product("P900011", "무배당 우체국더간편건강보험(갱신형) 2504 1종(간편가입)[가형]", "2025-04-03", None),
+                epost.Product("P900012", "무배당 우체국더간편건강보험(갱신형) 2504 2종(일반가입)[나형]", "2025-04-03", None),
+                epost.Product("P900013", "무배당 우체국다라보험 2601", "2026-01-02", None)]       # 비교 대상이 아닌 상품
+    asked = []
+
+    def list_documents(s, code, on):
+        asked.append(code)
+        return [epost.Document(code, "상품요약서", "yoyak_shared.pdf", "/dat_docs/04/yoyak_shared.pdf", "2025-04-08")]
+
+    monkeypatch.setattr(epost, "list_products", lambda s, selling=True: products if selling else [])
+    monkeypatch.setattr(epost, "list_documents", list_documents)
+    monkeypatch.setattr(epost, "download", lambda s, doc: b"%PDF-1.7\n" + doc.path.encode())
+    monkeypatch.setattr(fd, "pdf_pages", lambda data: ["첫 쪽"])
+    monkeypatch.setattr(fd, "session", lambda: object())
+    monkeypatch.setattr(sys, "argv", ["fetch_disclosure.py", "--out", "out", "--org", "epost"])
+    assert fd.main() == 0
+    assert asked == ["P900011", "P900012"]
+    index = json.loads((tmp_path / "out/index.json").read_text(encoding="utf-8"))
+    assert [e["상품코드"] for e in index] == ["P900011", "P900012"]
+    assert {e["저장이름"] for e in index} == {"yoyak_shared"}          # 여러 종이 한 파일을 함께 쓴다

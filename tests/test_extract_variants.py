@@ -24,7 +24,9 @@ INDEX = (
 
 def test_variant_rows_follow_schema_and_group_by_summary_file():
     variants, problems = VV.build(TARGETS, INDEX)
-    assert [p[:7] for p in problems] == ["P500109", "P500110"]        # 수집 결과에 없는 상품은 만들지 않는다
+    # 수집 결과에 없는 상품은 만들지 않는다(INDEX에 없는 간편건강보험 2504 두 종과 더간편건강보험 2504 네 종)
+    # 더간편건강보험은 보장형마다 상품 항목이 나뉘어 [암보장형] 두 종 다음에 [2대질병보장형] 두 종이 온다
+    assert [p[:7] for p in problems] == ["P500109", "P500110", "P610196", "P610198", "P610197", "P610199"]
     rows = [v.row for v in variants]
     assert check_rows("sys_상품종형", rows) == {}
     assert len({r["종형ID"] for r in rows}) == 6
@@ -96,7 +98,9 @@ def test_real_targets_fill_both_columns_for_every_simple_variant():
                 else:
                     assert names is None and scope is None, v["종형명"]
     assert seen == {
-        "epost": {("암, 협심증, 심근경색, 심장판막증, 간경화증, 뇌졸중증", "서면")},
+        "epost": {("암, 협심증, 심근경색, 심장판막증, 간경화증, 뇌졸중증", "서면"),
+                  # 더간편건강보험 2504(3.0.5)는 보장형마다 질문 2의 질병이 다르다(사업방법서 별첨2)
+                  ("암, 제자리암, 간경화", "서면"), ("뇌졸중증, 급성심근경색증, 협심증", "서면")},
         "hanwha": {("암, 협심증, 심근경색, 뇌졸중증, 간경화증, 심장판막증, 투석중인 만성신장질환", "서면과 진료기록부")},
         "samsungfire": {("암, 협심증, 심근경색, 뇌졸중증, 심장판막증", "서면과 진료기록부")},
     }

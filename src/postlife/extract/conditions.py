@@ -1003,6 +1003,12 @@ def judge(gemini: Any, ex: Extracted, model: str) -> dict[str, dict[str, float]]
 
 # ---------- 시트 행으로 바꾸기 ----------
 
+# 종형명 끝의 보장형 표시. 예: "1종(간편가입)[암보장형]"의 "[암보장형]"
+_COVER_MARK = re.compile(r"\s*\[[^\[\]]*\]\s*$")
+# 특약 이름 끝의 종 표시. 예: "… 2504 1종(간편가입)", "… 2504[1종(간편가입), 2종(일반가입)]"
+_KIND_MARK = re.compile(r"\s*(\[[^\[\]]*\d+종[^\[\]]*\]|\d+종\s*\([^()]*\))\s*$")
+
+
 @dataclass
 class Target:
     """한 종형에서 이름으로 특약을 찾기 위한 정보."""
@@ -1026,6 +1032,14 @@ class Target:
         key = ids.rider_lineage_key(name)
         if key in self.riders:
             return True, self.riders[key]
+        # 특약 이름 끝에 종 표시가 붙은 이름. 우체국더간편건강보험 2504의 요약서 자격요건은 "… 2504 1종(간편가입)"으로,
+        # 사업방법서 명칭은 "… 2504[1종(간편가입), 2종(일반가입)]"으로 적는다. 표시가 이 종형의 종을 가리킬 때만 떼고 다시 찾는다
+        mark = _KIND_MARK.search(name)
+        base = _COVER_MARK.sub("", self.variant_name).replace(" ", "")
+        if mark and base and base in mark.group(1).replace(" ", ""):
+            bare = ids.rider_lineage_key(name[:mark.start()])
+            if bare in self.riders:
+                return True, self.riders[bare]
         main = (is_main(name) or ids.rider_lineage_key(_bare(name)) in self.aliases
                 or (near and bool(self.near_names) and near_main(name, self.near_names)))
         return (True, None) if main else (False, None)
@@ -1055,20 +1069,31 @@ def main_name(section: Section) -> str | None:
     return _bare(_NAME_LINE.sub("", line)) or None
 
 
+def _named(flat: str, names: list[str | None], everyone: list[Target]) -> list[Target]:
+    """구분 글자(빈칸을 뗀 것)에 이름이 그대로 든 종형. 앞 글자가 숫자인 자리와 더 긴 이름이 차지한 자리는 뺀다. 이름이 None이면 보지 않는다."""
+    spans = [[m.span() for m in re.finditer(r"(?<!\d)" + re.escape(n.replace(" ", "")), flat)] if n is not None else []
+             for n in names]
+    taken = [(a, b) for found in spans for a, b in found]
+    return [t for t, found in zip(everyone, spans)
+            if any(not any(c <= a and b <= d and d - c > b - a for c, d in taken) for a, b in found)]
+
+
 def _applies(scope: str, target: Target, everyone: list[Target]) -> bool | None:
     """종 구분이 이 종형을 가리키는가. 구분이 있는데 어느 종형과도 맞지 않으면 None.
 
     종형명이 구분 글자에 그대로 적혀 있어야 한다. "1종"이 "11종"에 걸리지 않게 앞 글자가 숫자인 자리는 빼고,
     "간편가입형"이 "간편가입형(1년)"에 걸리지 않게 더 긴 종형명이 차지한 자리도 뺀다.
-    그렇게 맞는 종형이 하나도 없으면, 구분이 "8종"처럼 종 번호만 적은 글자일 때 번호가 같은 종형("8종(일반형)")을 가리키는 것으로 본다.
+    그렇게 맞는 종형이 하나도 없으면, 종형명 끝의 보장형 표시("1종(간편가입)[암보장형]"의 "[암보장형]")를 뗀 이름으로 한 번 더 본다.
+    사업방법서의 가입나이와 가입한도 표는 종("1종(간편가입)")으로만 갈리고 보장형으로는 갈리지 않기 때문이다.
+    그래도 없으면, 구분이 "8종"처럼 종 번호만 적은 글자일 때 번호가 같은 종형("8종(일반형)")을 가리키는 것으로 본다.
     """
     flat = scope.replace(" ", "")
     if not flat:
         return True
-    spans = [[m.span() for m in re.finditer(r"(?<!\d)" + re.escape(t.variant_name.replace(" ", "")), flat)] for t in everyone]
-    taken = [(a, b) for found in spans for a, b in found]
-    hits = [t for t, found in zip(everyone, spans)
-            if any(not any(c <= a and b <= d and d - c > b - a for c, d in taken) for a, b in found)]
+    hits = _named(flat, [t.variant_name for t in everyone], everyone)
+    if not hits:
+        bare = [_COVER_MARK.sub("", t.variant_name) for t in everyone]
+        hits = _named(flat, [b if b.strip() and b != t.variant_name else None for b, t in zip(bare, everyone)], everyone)
     if not hits:
         heads = [re.match(r"\d+종", t.variant_name.replace(" ", "")) for t in everyone]
         hits = [t for t, head in zip(everyone, heads) if head and re.search(r"(?<!\d)" + head.group(0) + r"(?!\()", flat)]

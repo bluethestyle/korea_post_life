@@ -145,7 +145,8 @@ def run(gemini: Any, store: SheetStore, targets: dict[str, Any], index: list[dic
             pages = pages_from_text(summary_text)
             result = pipeline.run_summary(gemini, pages, [v.id for v in group], now, thresholds,
                                           years, budget=budget, plain_renewal_years=first.plain_renewal_years,
-                                          variant_names={v.id: v.row["종형명"] for v in group})
+                                          variant_names={v.id: v.row["종형명"] for v in group},
+                                          variant_riders={v.id: v.riders for v in group})
             if not result.benefits:
                 report.logs += result.logs
                 report.notes.append(f"{name}: 급부를 뽑지 못해 기존 행을 그대로 둠")

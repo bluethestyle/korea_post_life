@@ -270,14 +270,28 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
     return BlockResult(ex, probs, status, retried, list(variants or [variant_id]))
 
 
+def carries(block: Block, heads: tuple[str, ...] | list[str]) -> bool:
+    """이 종형이 이 조각을 싣는가. heads(설정의 추출대상특약)가 비어 있으면 모든 조각을 싣는다.
+
+    머리줄에 heads의 글자 하나가 들어 있어야 한다. 빈칸은 떼고 견준다("주계약 (암보장형)"과 "주계약(암보장형)"은 같다).
+    """
+    if not heads:
+        return True
+    title = block.title.replace(" ", "")
+    return any(h.replace(" ", "") in title for h in heads if h.strip())
+
+
 def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now: datetime,
                 thresholds: dict[str, float] | None = None, product_renewal_years: int | None = None,
                 only: list[str] | None = None, budget: dict[str, int] | None = None,
-                plain_renewal_years: int | None = None, variant_names: dict[str, str] | None = None) -> Result:
+                plain_renewal_years: int | None = None, variant_names: dict[str, str] | None = None,
+                variant_riders: dict[str, tuple[str, ...]] | None = None) -> Result:
     """상품요약서 한 건을 처리한다. 여러 종이 한 요약서를 함께 쓰면 뽑은 값을 종마다 같은 내용으로 싣는다.
 
     variant_names: {종형ID: 종형명}. 조각 안의 표가 "[간편가입형]"처럼 가입유형별로 갈린 요약서에서는 이 이름으로
     부분마다 해당하는 종형을 가린다. 해당하는 종형이 없는 부분은 모델을 부르지 않고 건너뛴다.
+    variant_riders: {종형ID: 머리줄 글자 목록}(설정의 추출대상특약). 목록이 있는 종형에는 머리줄에 그 글자 하나가 든 조각만 싣는다
+    (빈칸은 무시하고 견준다). 목록이 없는 종형은 모든 조각을 싣는다. 실을 종형이 없는 조각은 모델을 부르지 않는다.
     부분마다 가린 종형은 BlockResult.variants(처리하지 못한 부분은 Result.unprocessed)에 남는다. 다시 뽑을 때 job이 그대로 쓴다.
     이름에 "(갱신형)"만 있는 특약의 주기는 요약서의 갱신형 특약 목록에서 읽고, 주기가 여럿이면 가장 짧은 것을 적는다.
     """
@@ -293,14 +307,15 @@ def run_summary(gemini: Any, pages: dict[int, str], variant_ids: list[str], now:
     names = variant_names or {}
     with_rider: set[str] = set()        # 특약 행을 이미 낸 특약ID. 한 특약이 여러 조각으로 나뉘어 와도 행은 하나다
     for block in blocks:
+        carriers = [v for v in variant_ids if carries(block, (variant_riders or {}).get(v, ()))]
         parts = scope_parts(block) if variant_names else [("", block.text)]
         listed = periods.get(rider_key(block.rider_name))
         years = min(listed) if listed else plain_renewal_years
         # 종형마다 이 조각에서 가장 잘 맞는 가입유형 표시만 쓴다. "[간편가입형]"과 "[간편가입형(1년)]"이 함께 있으면
         # "간편가입형(1년)" 종형은 뒤의 표만 읽는다. 둘 다 읽으면 같은 급부가 두 번 나온다
-        best_fit = {v: max(scope_fit(scope, names.get(v, "")) for scope, _ in parts) for v in variant_ids}
+        best_fit = {v: max(scope_fit(scope, names.get(v, "")) for scope, _ in parts) for v in carriers}
         for scope, text in parts:
-            matched = [v for v in variant_ids if best_fit[v] and scope_fit(scope, names.get(v, "")) == best_fit[v]]
+            matched = [v for v in carriers if best_fit[v] and scope_fit(scope, names.get(v, "")) == best_fit[v]]
             if not matched:
                 continue
             units += 1

@@ -2,6 +2,11 @@
 
 심사유형·고지 요건처럼 사람이 문서에서 확인해 적은 값은 설정에서, 상품명·판매 기간·파일 해시는 공시 수집 결과에서 가져온다.
 비교역할구분은 종형에 적혀 있으면 그 값을, 없으면 상품의 값을 쓴다. 관문전용 종형은 배치가 급부를 뽑지 않는다(job.run).
+
+종형의 "추출대상특약"(선택)은 요약서 보험금 지급사유 절의 조각 가운데 이 종형에 실을 조각의 머리줄 글자 목록이다.
+한 요약서가 보장형마다 다른 주계약과 특약을 담는데 표 안에 가입유형 구분 줄이 없는 문서(우체국더간편건강보험 2504.
+주계약 (암보장형)에는 암 특약 둘만, 주계약 (2대질병보장형)에는 2대질병 특약 여섯만 붙는다)에서 쓴다. 적지 않으면 모든 조각을 싣는다.
+시트 행에는 들어가지 않는다.
 """
 from __future__ import annotations
 
@@ -23,6 +28,7 @@ class Variant:
     summary: dict[str, Any] | None  # 공시 수집 목록의 상품요약서 항목 (저장이름·해시·쪽수)
     plain_renewal_years: int | None = None   # 이름에 "(갱신형)"만 있는 특약의 갱신 주기
     method: dict[str, Any] | None = None     # 공시 수집 목록의 사업방법서 항목
+    riders: tuple[str, ...] = ()             # 설정의 추출대상특약. 비어 있으면 요약서의 모든 조각을 싣는다
 
     @property
     def id(self) -> str:
@@ -73,7 +79,8 @@ def build(targets: dict[str, Any], index: list[dict[str, Any]]) -> tuple[list[Va
                 "공시목록URL": targets["공시목록URL"],
                 **{column: (found.get(kind) or {}).get("해시") for kind, column in DOC_HASH.items()},
             }
-            out.append(Variant(row, found.get("상품요약서"), product.get("갱신형특약주기년"), found.get("사업방법서")))
+            out.append(Variant(row, found.get("상품요약서"), product.get("갱신형특약주기년"), found.get("사업방법서"),
+                               tuple(v.get("추출대상특약") or ())))
     return out, problems
 
 

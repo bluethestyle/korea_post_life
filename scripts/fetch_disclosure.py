@@ -33,7 +33,7 @@ from postlife.extract.segment import pages_from_text  # noqa: E402
 from postlife.snapshot import KST  # noqa: E402
 
 # 우체국 비교 대상. 이름에 이 글자가 들어간 상품을 목록에서 찾는다.
-EPOST_NAMES = ["우체국통합건강보험 2504", "우체국간편한건강보험(20년갱신형) 2606"]
+EPOST_NAMES = ["우체국통합건강보험 2504", "우체국간편한건강보험(20년갱신형) 2606", "우체국더간편건강보험(갱신형) 2504"]
 # 개정 전후 비교 시연용 직전 개정판 후보를 판매중지 목록에서 찾을 때 쓰는 글자
 EPOST_PREVIOUS = ["우체국간편건강보험"]
 # 삼성화재에서 받는 서류. 약관과 상품설명서는 받지 않는다.
