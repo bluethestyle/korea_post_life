@@ -11,15 +11,15 @@
    "box": [
     0,
     0,
-    356,
+    400,
     216
    ],
    "vb": [
-    356,
+    400,
     216
    ],
    "alt": "1단계 카드",
-   "svg": "<rect x='1' y='1' width='354' height='214' class='sv-line'/><circle cx='46' cy='40' r='22' class='sv-ink'/><text x='46' y='49' text-anchor='middle' class='b'>1</text>",
+   "svg": "<rect x='1' y='1' width='398' height='214' class='sv-line'/><circle cx='46' cy='40' r='22' class='sv-ink'/><text x='46' y='49' text-anchor='middle' class='b'>1</text>",
    "build": 1
   },
   {
@@ -29,7 +29,7 @@
    "box": [
     80,
     18,
-    256,
+    300,
     44
    ],
    "build": 1
@@ -42,7 +42,7 @@
    "box": [
     24,
     80,
-    316,
+    360,
     40
    ],
    "build": 1
@@ -54,7 +54,7 @@
    "box": [
     24,
     142,
-    100,
+    150,
     52
    ],
    "build": 1
@@ -64,9 +64,9 @@
    "text": "{{fact:console4_tabs.names.1}}",
    "tone": "paper",
    "box": [
-    134,
+    182,
     142,
-    212,
+    204,
     52
    ],
    "build": 1
@@ -74,17 +74,17 @@
   {
    "use": "svg",
    "box": [
-    356,
+    400,
     0,
-    672,
+    644,
     216
    ],
    "vb": [
-    672,
+    644,
     216
    ],
    "alt": "2단계 카드와 앞 단계에서 오는 화살표",
-   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='622' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>2</text>",
+   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='594' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>2</text>",
    "build": 2
   },
   {
@@ -92,9 +92,9 @@
    "text": "좁혀 확인",
    "size": "m",
    "box": [
-    484,
+    528,
     18,
-    524,
+    496,
     44
    ],
    "build": 2
@@ -105,9 +105,9 @@
    "size": "s",
    "tone": "muted",
    "box": [
-    428,
+    468,
     80,
-    584,
+    560,
     40
    ],
    "build": 2
@@ -117,7 +117,7 @@
    "text": "{{fact:console4_tabs.names.2}}",
    "tone": "paper",
    "box": [
-    428,
+    468,
     142,
     206,
     52
@@ -129,7 +129,7 @@
    "text": "{{fact:console4_tabs.names.3}}",
    "tone": "paper",
    "box": [
-    644,
+    684,
     142,
     152,
     52
@@ -141,7 +141,7 @@
    "text": "{{fact:console4_tabs.names.5}}",
    "tone": "paper",
    "box": [
-    806,
+    846,
     142,
     180,
     52
@@ -151,17 +151,17 @@
   {
    "use": "svg",
    "box": [
-    1028,
+    1044,
     0,
-    364,
+    348,
     216
    ],
    "vb": [
-    364,
+    348,
     216
    ],
    "alt": "3단계 카드와 앞 단계에서 오는 화살표",
-   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='314' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>3</text>",
+   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='298' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>3</text>",
    "build": 3
   },
   {
@@ -169,9 +169,9 @@
    "text": "결론",
    "size": "m",
    "box": [
-    1156,
+    1172,
     18,
-    216,
+    200,
     44
    ],
    "build": 3
@@ -182,9 +182,9 @@
    "size": "s",
    "tone": "muted",
    "box": [
-    1100,
+    1116,
     80,
-    276,
+    260,
     40
    ],
    "build": 3
@@ -194,7 +194,7 @@
    "text": "{{fact:console4_tabs.names.4}}",
    "tone": "paper",
    "box": [
-    1100,
+    1116,
     142,
     220,
     52
@@ -267,18 +267,18 @@
    "zones": [
     {
      "n": "3",
-     "x": 0.214,
-     "y": 0.5,
-     "w": 0.296,
-     "h": 0.345,
+     "x": 0.183,
+     "y": 0.291,
+     "w": 0.5,
+     "h": 0.206,
      "label": "인사이트 한 건"
     },
     {
      "n": "4",
-     "x": 0.516,
-     "y": 0.275,
-     "w": 0.184,
-     "h": 0.575,
+     "x": 0.694,
+     "y": 0.193,
+     "w": 0.283,
+     "h": 0.791,
      "label": "응대 화법 A4"
     }
    ],
@@ -288,7 +288,7 @@
    "use": "svg",
    "box": [
     880,
-    338,
+    476,
     290,
     40
    ],
@@ -303,14 +303,14 @@
   {
    "use": "C12",
    "img": "talk_preview",
-   "alt": "응대 화법 A4 미리 보기의 맨 윗부분 확대. 대외 배포 금지 표식이 보인다",
+   "alt": "응대 화법 A4 미리 보기의 맨 윗부분 확대. 대외 배포 금지 표시가 보인다",
    "box": [
     1181,
     248,
     579,
     360
    ],
-   "caption": "4의 맨 위 확대: 대외 배포 금지 표식",
+   "caption": "4의 맨 위 확대: 대외 배포 금지 표시",
    "build": 6
   }
  ],
@@ -323,7 +323,7 @@
   "탭"
  ],
  "source": "예시 조건: {{fact:reference_condition.age}}세 남성, 이력 없음, 우체국 간편심사 기준(인수 결과 아님), 자료 기준 {{asof:segment_map_cell_count}}",
- "notes": "데모 화면에는 탭이 {{fact:console4_tabs.count}}개 있고, 담당자가 실제로 일하는 순서에 따라 네 단계로 묶었습니다. 5장 영상에서 본 화면이 이 탭들입니다. 첫째 넓게 보기는 요약 탭과 고객군과 시장 탭입니다. 고객군은 입원과 수술 이력 {{len:segment_map_rows}}행과 가입나이 {{len:segment_map_columns}}구간을 곱한 {{fact:segment_map_cell_count}}칸이고, 그 가운데 {{fact:segment_map_open_together_cells}}칸은 우체국 간편심사로 가입 가능하면서 타사 한 곳 이상도 가입 가능한 칸입니다. 타사 모두가 가입 가능하다는 뜻은 아닙니다. 가입 가능은 공시된 고지사항과 가입나이로 본 결과이고 실제 인수 결과가 아닙니다. 둘째 좁혀 확인은 인수기준 비교, 담보 비교, 관계 그래프 탭입니다. 공통 담보 {{fact:common_coverage_pairs}}건 가운데 검수 대기 {{fact:excluded_pending_pairs}}건을 뺀 {{fact:compared_coverage_pairs}}건의 우열을 확인하고, 근거 특약은 관계 그래프 탭에서 찾아 들어갑니다. 셋째 결론은 영업 인사이트 탭입니다. 비교 결과에서 규칙으로 뽑은 영업 인사이트가 {{fact:sales_insight_count}}건이고, 분류별로 인수기준 차이 {{fact:sales_insight_by_category_display.인수기준 차이}}건, 우위 담보 {{fact:sales_insight_by_category_display.우위 담보}}건, 관련 담보 {{fact:sales_insight_by_category_display.관련 담보}}건, 열위 담보 {{fact:sales_insight_by_category_display.열위 담보}}건, 미보유 담보 {{fact:sales_insight_by_category_display.미보유 담보}}건입니다. 아래 캡처의 3번 상자가 그 가운데 인수기준 차이 한 건입니다. 넷째 내보내기의 응대 화법 A4는 탭이 아니라 영업 인사이트 탭 안의 미리 보기 패널이고, 캡처의 4번 상자가 그 패널입니다. 인쇄하거나 글을 복사해 내부 교육과 비교 참고용으로 넘기고, 표 복사는 엑셀에 바로 붙는 형식입니다. 오른쪽 확대 사진처럼 A4 맨 위에는 대외 배포 금지 표식이 고정되고, 분석 문장에는 최고, 유리, 추천 같은 말 {{len:forbidden_words}}개를 빌드 단계에서 막습니다. 숫자는 모두 화면이 처음 여는 기본 조건({{fact:reference_condition.age}}세 남성, 이력 없음)과 기준 종형 우체국 {{fact:default_base_variant.name}}에서 센 값입니다. 캡처는 용어 교체 전 화면이라 탭과 패널에 옛 이름이 보입니다. 발표에서는 지금 화면 이름으로 말하고, 캡처는 다시 찍을 예정입니다.",
+ "notes": "데모 화면에는 탭이 {{fact:console4_tabs.count}}개 있고, 담당자가 실제로 일하는 순서에 따라 네 단계로 묶었습니다. 5장 영상의 화면 여섯은 초기 버전 화면이고, 지금 데모는 이 탭들입니다. 첫째 넓게 보기는 전체 요약 탭과 고객군과 시장 탭입니다. 고객군은 입원과 수술 이력 {{len:segment_map_rows}}행과 가입나이 {{len:segment_map_columns}}구간을 곱한 {{fact:segment_map_cell_count}}개 고객군이고, 그 가운데 {{fact:segment_map_open_together_cells}}개는 우체국 간편심사로 가입 가능하면서 타사 한 곳 이상도 가입 가능한 고객군입니다. 타사 모두가 가입 가능하다는 뜻은 아닙니다. 가입 가능은 공시된 고지사항과 가입나이로 본 결과이고 실제 인수 결과가 아닙니다. 둘째 좁혀 확인은 인수기준 비교, 담보 비교, 관계 그래프 탭입니다. 공통 담보 {{fact:common_coverage_pairs}}건 가운데 검수 대기 {{fact:excluded_pending_pairs}}건을 뺀 {{fact:compared_coverage_pairs}}건의 우열을 확인하고, 근거 특약은 관계 그래프 탭에서 찾아 들어갑니다. 셋째 결론은 영업 인사이트 탭입니다. 비교 결과에서 규칙으로 뽑은 영업 인사이트가 {{fact:sales_insight_count}}건이고, 분류별로 인수기준 차이 {{fact:sales_insight_by_category_display.인수기준 차이}}건, 우위 담보 {{fact:sales_insight_by_category_display.우위 담보}}건, 관련 담보 {{fact:sales_insight_by_category_display.관련 담보}}건, 열위 담보 {{fact:sales_insight_by_category_display.열위 담보}}건, 미보유 담보 {{fact:sales_insight_by_category_display.미보유 담보}}건입니다. 아래 캡처의 3번 상자가 그 가운데 인수기준 차이 한 건입니다. 넷째 내보내기의 응대 화법 A4는 탭이 아니라 영업 인사이트 탭 안의 미리 보기 패널이고, 캡처의 4번 상자가 그 패널입니다. 인쇄하거나 글을 복사해 내부 교육과 비교 참고용으로 넘기고, 표 복사는 엑셀에 바로 붙는 형식입니다. 오른쪽 확대 사진처럼 A4 맨 위에는 대외 배포 금지 표시가 고정되고, 분석 문장에는 최고, 유리, 추천 같은 말 {{len:forbidden_words}}개를 빌드 단계에서 막습니다. 숫자는 모두 화면이 처음 여는 기본 조건({{fact:reference_condition.age}}세 남성, 이력 없음)과 기준 종형 우체국 {{fact:default_base_variant.name}}에서 센 값입니다.",
  "frame": {
   "top": 240
  }

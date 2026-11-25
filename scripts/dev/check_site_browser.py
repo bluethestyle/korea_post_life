@@ -1,6 +1,6 @@
-"""site/index.html을 file://로 열어 폭 380px·1280px에서 탭마다 확인한다.
+"""초기 버전의 판단 화면(site/v1/index.html)을 file://로 열어 폭 380px·1280px에서 탭마다 확인한다.
 
-    python3 scripts/dev/check_site_browser.py site/index.html <스크린숏 폴더>
+    python3 scripts/dev/check_site_browser.py site/v1/index.html <스크린숏 폴더>
 
 - 콘솔 error, 페이지 오류, 외부로 나가는 요청이 없는지
 - 가로로 화면을 벗어나는 요소가 없는지(표의 가로 스크롤 영역 안쪽은 제외)

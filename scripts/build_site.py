@@ -1,7 +1,10 @@
-"""data/snapshot의 사본으로 판단 화면(site/index.html)을 만든다.
+"""data/snapshot의 사본으로 초기 버전의 판단 화면(site/v1/index.html, 공개 주소 /v1/)을 만든다.
+
+지금 시연하는 분석 화면은 proto_src/console4/ 에서 만든다. 루트 site/index.html 은 분석 화면, 발표 덱, 관계 그래프 화면,
+이 초기 버전으로 가는 안내 화면이고 손으로 쓴 파일이다.
 
     python scripts/build_site.py
-    python scripts/build_site.py --snapshot data/snapshot --out site/index.html
+    python scripts/build_site.py --snapshot data/snapshot --out site/v1/index.html
     python scripts/build_site.py --previous <지난주 사본 폴더>
     python scripts/build_site.py --orgs all --out out/site_all.html      # 사본의 모든 회사를 실은 시험용 화면
 
@@ -29,7 +32,7 @@ from postlife.site.build import build_site  # noqa: E402
 def main() -> int:
     parser = argparse.ArgumentParser(description="사본 자료로 판단 화면 HTML을 만든다")
     parser.add_argument("--snapshot", type=Path, default=ROOT / "data" / "snapshot")
-    parser.add_argument("--out", type=Path, default=ROOT / "site" / "index.html")
+    parser.add_argument("--out", type=Path, default=ROOT / "site" / "v1" / "index.html")
     parser.add_argument("--previous", type=Path, default=None, help="지난주 사본 폴더(data/snapshot과 같은 꼴)")
     site_orgs.add_argument(parser)
     args = parser.parse_args()

@@ -7,10 +7,10 @@
 - SUIT: Copyright (c) 2022, SUNN (http://sun.fo/suit), with Reserved Font Name SUIT. SIL Open Font License 1.1. https://raw.githubusercontent.com/sun-typeface/SUIT/main/LICENSE
 - Saira (Semi Condensed, 폭 87.5): Copyright 2020 The Saira Project Authors (https://github.com/Omnibus-Type/Saira). SIL Open Font License 1.1. https://raw.githubusercontent.com/google/fonts/main/ofl/saira/OFL.txt
 
-관계망 탐색 시안 2(`site/proto/graph2.html`)에 심는 `fonts_graph2.css`의 글꼴은 아래와 같다. 모두 SIL Open Font License 1.1이고 쓰는 글자만 남긴 서브셋인데, 위의 woff2와 달리 글꼴 파일 안의 이름을 바꾸지 않았다(원래 이름과 저작권 표기가 그대로 있다).
+관계 그래프 화면(`site/proto/graph2.html`)에 심는 `fonts_graph2.css`의 글꼴은 아래와 같다. 모두 SIL Open Font License 1.1이고 쓰는 글자만 남긴 서브셋인데, 위의 woff2와 달리 글꼴 파일 안의 이름을 바꾸지 않았다(원래 이름과 저작권 표기가 그대로 있다).
 
 - IBM Plex Sans KR (Regular 400, SemiBold 600, Bold 700): Copyright 2018 IBM Corp. SIL Open Font License 1.1. https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsanskr/OFL.txt
 - Chakra Petch (Medium 500, Bold 700): Copyright 2018 The Chakra Petch Project Authors (https://github.com/m4rc1e/Chakra-Petch.git). SIL Open Font License 1.1. https://raw.githubusercontent.com/google/fonts/main/ofl/chakrapetch/OFL.txt
 - Michroma (Regular 400, 영문과 숫자만): 위의 Michroma와 같다.
 
-`fonts_v4.css`는 SUIT 400, 600과 Saira Semi Condensed 400, 600을 base64로 담은 @font-face 묶음이고 시안 4에 심는다.
+`fonts_v4.css`는 SUIT 400, 600과 Saira Semi Condensed 400, 600을 base64로 담은 @font-face 묶음이고 분석 화면(`site/proto/console4.html`)에 심는다. 발표 덱(`site/deck/index.html`)에는 그 가운데 SUIT(PLKo, 400과 600)만 심는다(`proto_src/deck/build.py`).

@@ -70,10 +70,12 @@ def main(html: str, out: str, png_dir: str | None) -> None:
             page.wait_for_timeout(2500)
             pngs[f"tab_{tab}"] = page.screenshot()
             if tab == "insight":
-                # 응대 화법 미리 보기: 제목 글자가 든 패널(인쇄 버튼과 A4 카드가 든 가장 가까운 큰 상자)
+                # 응대 화법 미리 보기: 제목 글자가 든 패널(인쇄 버튼과 A4 카드가 든 가장 가까운 큰 상자).
+                # 용어 교체 뒤 보이는 제목은 "응대 화법"이고 "미리 보기"는 aria-label 에만 남아 그것부터 찾는다.
                 box = page.evaluate("""() => {
                   const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
-                  const h = Array.from(document.querySelectorAll('*')).find(e => e.children.length === 0 && vis(e)
+                  const h = Array.from(document.querySelectorAll('[aria-label$="미리 보기"]')).find(vis)
+                    || Array.from(document.querySelectorAll('*')).find(e => e.children.length === 0 && vis(e)
                     && /미리 보기$/.test((e.textContent || '').trim()));
                   if (!h) return null;
                   let el = h;

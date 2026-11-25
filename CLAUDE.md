@@ -1,6 +1,6 @@
 # 작업 지침 (Claude Code용)
 
-우체국보험 상품·청약 판단 지원 앱. AI 도구·에이전트 활용 공모전 제출용이다. 공시 문서(상품요약서·사업방법서)에서 급부와 가입조건을 뽑아 Google Sheets(정본)에 쓰고, 그 스냅샷으로 오프라인 단일 HTML 화면을 만든다.
+우체국보험 상품·청약 판단 지원 앱. AI 도구·에이전트 활용 공모전 제출용이다. 공시 문서(상품요약서·사업방법서)에서 급부와 가입조건을 뽑아 Google Sheets(정본)에 쓰고, 그 스냅샷으로 오프라인 단일 HTML 화면을 만든다. 제출물은 발표 덱(`site/deck/`)과 데모인 분석 화면(`site/proto/console4.html`)이다.
 
 처음 이어받을 때는 `docs/handoff.md`를 먼저 읽는다. 설계는 `docs/planning.md`, 지금까지 한 일과 결정 이유는 `docs/progress.md`에 있다.
 
@@ -48,6 +48,21 @@
 | 되돌림, 틀린 값 | 회귀(리그레션), 오류 |
 | 검토 대기 | 검수 대기 |
 | 줄, 칸, 쌍 | 행(건), 항목(셀), 비교 건 |
+| 재다, 잰 값, 재지 않았다 | 측정하다, 측정값, 측정하지 않았다 |
+| 말이 다르다(용어의 뜻) | 용어가 다르다 |
+| 견주다 | 비교하다, 대조하다 |
+| 싣다, 실리다(기록이나 표시의 뜻) | 기록하다, 포함하다, 표시하다 |
+| 얹다, 박다, 걷어내다, 먹히다 | 추가하다, 고정하다, 제거하다, 적용되다 |
+| 판(버전의 뜻), 판올림 | 버전, 버전 업 |
+| 창(기간의 뜻), 몫, 갈무리 | 기간, 담당, 캡처 또는 정리 |
+
+문장 표현 (2026-11-25 사용자 지시)
+
+AI가 쓴 티가 나는 표현을 실무 보고서와 업무 화면에서 쓰는 표현으로 바꾼다. 사용자가 "재다"를 "측정하다"로 바꾸라고 하며, 다른 프로젝트 지침의 교체표를 이 프로젝트의 덱, 화면, 문서에도 적용하라고 했다. 위 표의 아래쪽 일곱 행이 그 표에서 가져온 것이다.
+
+- 물리 동작을 나타내는 동사를 추상적인 관계에 옮겨 쓰지 않는다(닿는다, 열린다, 붙는다, 밟는다, 민다, 가른다 등). 기준을 세우다, 시간이 걸리다, 표본을 뽑다, 규칙에 걸리다, 건을 넘기다 같은 업계 관용은 쓴다.
+- 의인화하지 않고 동작을 사실대로 적는다("모델이 스스로 판단한다"가 아니라 "모델이 확률을 산출한다").
+- 사전에는 있으나 실무 문서에서 쓰지 않는 우리말과 세션 중에 만든 말은 실무 용어로 바꾼다.
 
 ## 절대 하지 말 것
 
@@ -110,9 +125,14 @@ Antigravity와 일할 때 (2026-11-23 결정)
 # 시스템 파이썬에 pip이 없는 PC에서는: uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.txt pdfplumber playwright
 python3 -m pytest -q                         # 전체 시험
 python3 scripts/fetch_disclosure.py --org samsungfire --out <폴더>   # 삼성화재 문서와 급부 표 조각 받기 (--list-only는 목록만)
-python3 scripts/build_site.py                # data/snapshot → site/index.html
-python3 scripts/dev/check_site_browser.py site/index.html <사진 폴더>   # 380px·1280px 화면 점검 (playwright)
-python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON> [--gold data/goldset/hanwha_goldset.jsonl] [--numbers 101-114] [--area 가입조건]   # 정답셋 채점 (--result는 필수, 기본은 우체국 정답셋의 보장금액 영역)
+python3 scripts/export_app_data.py           # data/snapshot → proto_src/console4 의 화면 자료
+python3 proto_src/console4/build.py          # proto_src/console4 → site/proto/console4.html (분석 화면)
+python3 proto_src/console4/shoot.py <사진 폴더>   # 분석 화면 여러 해상도 점검 (playwright)
+python3 scripts/export_presentation_facts.py # 발표 사실 자료 presentation_animation/facts.json
+python3 proto_src/deck/build.py --out site/deck/index.html --used proto_src/deck/facts_used.json --strict   # 발표 덱
+python3 scripts/build_site.py                # data/snapshot → site/v1/index.html (초기 버전 판단 화면)
+python3 scripts/dev/check_site_browser.py site/v1/index.html <사진 폴더>   # 초기 버전 380px, 1280px 화면 점검 (playwright)
+python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON> [--gold data/goldset/hanwha_goldset.jsonl] [--numbers 101-114] [--area 가입조건]   # 정답 대조 (--result는 필수, 기본은 우체국 정답셋의 보장금액 영역)
 python3 scripts/compare_table_rules.py <표 조각.json> --against data/crosscheck/<파일>.jsonl   # 삼성화재 규칙 추출 대조
 
 # 배치는 GitHub Actions에서 돈다 (시트 쓰기 포함)
@@ -125,12 +145,12 @@ gh run list --limit 5 ; gh run view <id> --log ; gh run download <id> -n <artifa
 
 ## 구조에서 꼭 알 것
 
-- 모델은 글자만 옮기고, 숫자는 코드가 읽는다. 원문 대조(코드) → 판정 모델 확률 → 확정(0.75 이상)/검토/재추출(0.40 미만). 재추출은 보조 모델, 그다음 상위 모델. 그래도 안 되면 제외(시트에 쓰지 않음).
-- Gemini 무료 한도: 추출 `gemini-3.5-flash-lite` 하루 500회, 상위 `gemini-3.8-flash` 하루 20회, 판정 `gemini-decision-1`. 하루 한도는 **한국 시간 17시**에 풀린다. 배치를 돌리기 전에 로컬 시험 호출로 상위 모델 한도를 쓰지 않는다.
+- 모델은 글자만 옮기고, 숫자는 코드가 읽는다. 원문 대조(코드) → 확률 산정 모델 → 확정(0.75 이상)/검토/재추출(0.40 미만). 재추출은 보조 모델, 그다음 상위 모델. 그래도 안 되면 제외(시트에 쓰지 않음).
+- Gemini 무료 한도: 추출 `gemini-3.5-flash-lite` 하루 500회, 상위 `gemini-3.8-flash` 하루 20회, 확률 산정 `gemini-decision-1`. 하루 한도는 **한국 시간 17시**에 풀린다. 배치를 돌리기 전에 로컬 시험 호출로 상위 모델 한도를 쓰지 않는다.
 - 시트 쓰기는 RAW, 머리글이 스키마와 글자 그대로 같아야 한다. 열을 더할 때는 `scripts/add_column.py`.
 - 회사별 문서 꼴이 다르다. 우체국·한화는 모델 추출(`extract/benefits.py`, `pipeline.py`), 삼성화재는 PDF 표를 읽어(`extract/tables.py`) 문구 규칙으로 뽑는다(`extract/table_rules.py`). 회사별 주의점은 `docs/handoff.md`.
-- 화면은 오프라인 단독 HTML 하나(`site/index.html`)다. 외부 요청이 없어야 하고, 잘리거나 겹치는 글자가 없어야 한다. 고친 뒤에는 브라우저 점검을 돌린다.
+- 화면은 오프라인 단독 HTML이고 GitHub Pages(`https://bluethestyle.github.io/korea_post_life/`)에 배포한다. 시연하는 분석 화면은 `site/proto/console4.html`(원본 `proto_src/console4/`, 화면 구현은 Antigravity), 발표 덱은 `site/deck/index.html`(원본 `proto_src/deck/`, 영상은 `site/deck/media/`), 관계 그래프 화면은 `site/proto/graph2.html`(원본 `proto_src/graph/`)이다. 루트 `site/index.html`은 이 화면들로 가는 안내 화면(손으로 쓴 파일)이고, 처음 만든 판단 화면은 초기 버전으로 `site/v1/index.html`에 있다. 외부 요청이 없어야 하고, 잘리거나 겹치는 글자가 없어야 한다. 고친 뒤에는 브라우저 점검을 돌린다.
 
 ## 커밋
 
-한국어로, 무엇을 왜 바꿨는지 적는다. 생성물(`data/snapshot/*`, `site/index.html`)이 충돌하면 손으로 합치지 말고 다시 만든다.
+한국어로, 무엇을 왜 바꿨는지 적는다. 생성물(`data/snapshot/*`, `site/v1/index.html`, `site/proto/console4.html`, `site/proto/graph2.html`, `site/deck/index.html`)이 충돌하면 손으로 합치지 말고 다시 만든다.
