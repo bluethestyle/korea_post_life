@@ -3497,8 +3497,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     grEdgeFromId: '출발 노드 ID',
     grEdgeToId: '도착 노드 ID',
     grEdgeHeldListTpl: '이 종형이 보유한 그룹의 담보 ({n}개)',
-    grConfGemini: '확신(Gemini)',
-    grConfClaude: '확신(Claude)',
+    grConfGemini: '확률(Gemini)',
+    grConfClaude: '확률(Claude)',
     grLineRel: '점선 (표준담보 사이 포함 또는 통합 관계)',
     grLineInc: '실선 (포함)',
     grLineSell: '실선 (판매)',
@@ -3520,8 +3520,8 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     grRevOnlyHeadTpl: '직전 종형에만 있는 특약 {n}개',
     grOutOfMap: '표준담보 매핑 대상 외',
     grUnmappedTpl: '미매핑 급부 {n}',
-    grMoreBenTpl: '이 표준담보에 매핑된 급부 가운데 화면에 넣지 못한 급부 {n}개',
-    grLgMore: '+N 화면에 넣지 못한 급부',
+    grMoreBenTpl: '이 표준담보에 매핑된 급부 가운데 화면에 표시하지 못한 급부 {n}개',
+    grLgMore: '+N 화면에 표시하지 못한 급부',
     grLgNodeHead: '노드',
     grNodePropHead: '노드 속성',
     grRecStdRow: '추천 표준담보',
@@ -13490,6 +13490,8 @@ App.registerTab((function () {
     if (undoStack.length && undoStack[undoStack.length - 1] === s) return;
     undoStack.push(s);
     if (undoStack.length > 40) undoStack.shift();
+    // 담보나 그룹 선택은 왼쪽 영역을 다시 그리지 않으므로 실행 취소 버튼 상태를 여기서 맞춘다
+    syncLeftActive();
   }
 
   // sel: 담보나 그룹 선택 항목. 선택은 바로 앞의 선택 항목을 바꾸고, 선택을 풀면 빠진다(탐색 경로가 지금 상태를 보이게)

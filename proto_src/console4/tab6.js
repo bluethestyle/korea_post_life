@@ -406,6 +406,8 @@
     if (undoStack.length && undoStack[undoStack.length - 1] === s) return;
     undoStack.push(s);
     if (undoStack.length > 40) undoStack.shift();
+    // 담보나 그룹 선택은 왼쪽 영역을 다시 그리지 않으므로 실행 취소 버튼 상태를 여기서 맞춘다
+    syncLeftActive();
   }
 
   // sel: 담보나 그룹 선택 항목. 선택은 바로 앞의 선택 항목을 바꾸고, 선택을 풀면 빠진다(탐색 경로가 지금 상태를 보이게)
