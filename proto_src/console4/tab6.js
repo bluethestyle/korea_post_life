@@ -1324,7 +1324,7 @@
     lay.slabels.forEach((b, si) => {
       parts.push(`<text class="gr-tx gr-lb-s" data-gr-lb="std" data-gr-for="${esc(g.N[si].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + textAsc())}">${esc(g.N[si].l)}</text>`);
     });
-    parts.push('</g>');
+    parts.push('</g><g class="gr-l-dom" aria-hidden="true"></g>');
     return `<svg class="gr-net-svg" id="gr-net-svg" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(t('grNetAria'))}" data-gr-w="${W}" data-gr-h="${H}" data-gr-k="${f1(lay.k)}" data-gr-ms="${f1(lay.ms)}">${parts.join('')}</svg>`;
   }
 
@@ -1420,6 +1420,40 @@
       }
     }
     return out.join('');
+  }
+
+  // 그룹을 호버하거나 선택하면 그룹 안 보장 대분류 구역마다 "대분류 n" 을 그 구역 쪽 원 바깥에 표시한다(명암만으로 구분하기 어려워서, 비평 2번)
+  function domZoneHTML(g, lay, key) {
+    const grp = lay.sc.groupMap.get(key), gg = lay.gpos.get(key);
+    if (!grp || !gg) return '';
+    const by = new Map();
+    grp.members.forEach(si => { const d = domOf(g, si); if (!by.has(d)) by.set(d, []); by.get(d).push(si); });
+    const doms = domOrder(g);
+    const zs = Array.from(by.entries()).map(([d, mem]) => {
+      let x = 0, y = 0;
+      mem.forEach(si => { const p = lay.npos.get(si); x += p.x; y += p.y; });
+      x = x / mem.length - gg.x; y = y / mem.length - gg.y;
+      const ang = Math.hypot(x, y) < 1 ? -Math.PI / 2 : Math.atan2(y, x);
+      return { d, n: mem.length, ang, o: doms.indexOf(d) };
+    }).sort((a, b) => a.ang - b.ang);
+    const h = textLineH();
+    // 앵커 라벨, 그룹 라벨, 보이는 담보 라벨과 겹치지 않게 둔다
+    const placed = lay.anc.map(a => a.box).concat(Array.from(lay.glabels.values()).map(gl => gl.box), Array.from(lay.slabels.values()));
+    return zs.map(z => {
+      const tx = `${z.d} ${fmt(z.n)}`, w = textW(tx, 600);
+      let box = null;
+      for (let d = 4; d < 64 && !box; d += 4) {
+        for (const da of [0, 0.25, -0.25, 0.5, -0.5]) {
+          const ux = Math.cos(z.ang + da), uy = Math.sin(z.ang + da);
+          const bx = gg.x + ux * (gg.R + d) - w / 2 + ux * w / 2, by = gg.y + uy * (gg.R + d) - h / 2 + uy * h / 2;
+          const b = [bx, by, bx + w, by + h];
+          if (b[0] >= 0 && b[1] >= 0 && b[2] <= lay.W && b[3] <= lay.H && !placed.some(q => b[0] < q[2] && q[0] < b[2] && b[1] < q[3] && q[1] < b[3])) { box = b; break; }
+        }
+      }
+      if (!box) return '';
+      placed.push(box);
+      return `<text class="gr-tx gr-dz" x="${f1(box[0])}" y="${f1(box[1] + textAsc())}">${esc(tx)}</text>`;
+    }).join('');
   }
 
   // 강조할 노드와 앵커, 그룹(호버, 선택, 필터)
@@ -1541,6 +1575,11 @@
       // 선택한 그룹과 회사 앵커를 잇는 번들 엣지는 빨강으로 강조한다(호버 중에는 호버 강조만)
       el.classList.toggle('is-ssel', !!(keep && !hov && focus.t === 'group'));
     });
+    const dz = svg.querySelector('.gr-l-dom');
+    if (dz) {
+      const gk = focus && fs && focus.t === 'group' && !ex ? focus.key : '';
+      if (dz.dataset.k !== gk) { dz.innerHTML = gk ? domZoneHTML(g, lay, gk) : ''; dz.dataset.k = gk; }
+    }
     const hot = svg.querySelector('.gr-l-hot');
     if (hot) {
       // 호버한 담보가 있으면 그 담보의 엣지를, 없으면 선택한 담보의 엣지를 그린다. 펼친 엣지는 선택한 담보에만
