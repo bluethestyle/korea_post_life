@@ -192,7 +192,7 @@ def test_real_snapshot_carries_only_site_orgs_by_default():
     ["proto_src/graph/build_data.py", "--orgs", "all"],
 ])
 def test_commands_refuse_to_write_other_orgs_to_committed_files(cmd):
-    targets = [ROOT / "site" / "index.html", *(ROOT / "proto_src" / "console4").glob("*.json"),
+    targets = [ROOT / "site" / "v1" / "index.html", ROOT / "site" / "index.html", *(ROOT / "proto_src" / "console4").glob("*.json"),
                ROOT / "proto_src" / "graph" / "graph.json"]
     before = {p: p.stat().st_mtime_ns for p in targets if p.exists()}
     run = subprocess.run([sys.executable, str(ROOT / cmd[0]), *cmd[1:]], cwd=ROOT, capture_output=True, text=True,

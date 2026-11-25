@@ -4078,7 +4078,7 @@
         "file": "src/postlife/site/terms.py",
         "name": "DISPLAY_GROUPS['탭'] 과 TAB_GRAPH (sales.json 탭 차례)"
       },
-      "note": "site_screen_count 는 옛 운영 화면(site/index.html)의 화면 수라 이 값과 다릅니다. 응대 화법 미리 보기는 탭이 아니라 영업 인사이트 탭 안의 패널입니다."
+      "note": "site_screen_count 는 옛 운영 화면(초기 버전, site/v1/index.html)의 화면 수라 이 값과 다릅니다. 응대 화법 미리 보기는 탭이 아니라 영업 인사이트 탭 안의 패널입니다."
     },
     "workflow_triggers": {
       "value": {
@@ -4161,7 +4161,7 @@
       }
     },
     "test_count": {
-      "value": 1512,
+      "value": 1515,
       "label": "전체 자동 시험 수",
       "as_of": "2026-11-25",
       "source": {

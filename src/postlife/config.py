@@ -69,7 +69,7 @@ COMMON = {
 }
 ALL_ORGS = {**INSTITUTIONS, **COMMON}
 
-# 화면에 올릴 회사(기관코드). 시트와 사본(data/snapshot)에는 회사가 하나씩 더 들어오지만, 화면 자료(site/index.html,
+# 화면에 올릴 회사(기관코드). 시트와 사본(data/snapshot)에는 회사가 하나씩 더 들어오지만, 화면 자료(site/v1/index.html,
 # proto_src/console4 의 자료, proto_src/graph/graph.json)는 이 목록의 회사만 싣는다(site/orgs.py 가 사본을 읽는 자리에서 거른다).
 # 화면이 새 회사를 받을 준비가 되면 여기에 더한다. 시험용으로 다른 회사를 실어 보려면 화면 자료를 만드는 명령에 --orgs 를 준다.
 SITE_ORGS = ("EPOST", "HANWHALIFE", "SAMSUNGFIRE")

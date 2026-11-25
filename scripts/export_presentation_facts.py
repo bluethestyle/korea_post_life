@@ -334,7 +334,7 @@ DOC_FACTS += [
 # git 과 GitHub 에서 센 값. 사본에서 셀 수 없고 커밋할 때마다 바뀌므로 손으로 적고, note 에 다시 세는 명령을 적는다.
 GIT_COUNTED_AT = "2026-11-24"
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
-    ("test_count", 1512, "전체 자동 시험 수", "2026-11-25",
+    ("test_count", 1515, "전체 자동 시험 수", "2026-11-25",
      "메인 세션이 2026-11-25(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
     ("commit_count", 287, "main 의 커밋 수", GIT_COUNTED_AT,
      "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),
@@ -1070,7 +1070,7 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
     tabs = [terms.name(t) for t in sales["탭"]] + [terms.TAB_GRAPH]
     out["console4_tabs"] = fact({"count": len(tabs), "names": tabs}, "데모 화면(시안 4)의 탭 수와 탭 이름(화면 이름, 탭 차례)", as_of,
                                 dict(code_terms, name="DISPLAY_GROUPS['탭'] 과 TAB_GRAPH (sales.json 탭 차례)"),
-                                "site_screen_count 는 옛 운영 화면(site/index.html)의 화면 수라 이 값과 다릅니다. "
+                                "site_screen_count 는 옛 운영 화면(초기 버전, site/v1/index.html)의 화면 수라 이 값과 다릅니다. "
                                 "응대 화법 미리 보기는 탭이 아니라 영업 인사이트 탭 안의 패널입니다.")
 
     # 워크플로를 시작하는 방법으로 나눔(예약 실행, 푸시, 사람만). 워크플로의 name 으로 적는다
