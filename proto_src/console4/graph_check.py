@@ -564,8 +564,13 @@ MK_EXPECT_JS = r"""
   const keys = raw.keys;
   const prop = (n, k) => { const p = n[4] || {}; return p[keys.indexOf(k)]; };
   const news = raw.nodes.filter(n => n[1] === NK['시장 동향']);
+  // 동향 분류는 소식의 분류유형 값, 발표 회사는 발표 엣지에서 원자료로 따로 계산한다(tab6.js 함수를 부르지 않는다)
+  const EK = Object.fromEntries(raw.ekinds.map((n, i) => [n, i]));
+  const cat = {}, pub = {};
+  news.forEach(n => { cat[n[0]] = prop(n, '분류유형') || ''; });
+  raw.edges.concat(raw.edges2 || []).forEach(e => { if (e[2] === EK['발표'] && raw.nodes[e[1]][1] === NK['시장 동향'] && raw.nodes[e[0]][1] === NK['회사']) pub[raw.nodes[e[1]][0]] = raw.nodes[e[0]][0]; });
   return { sales: (App.S['시장소식']['소식'] || []).map(x => x['동향ID']), passed: news.filter(n => prop(n, '선별상태') === 'passed').length, all: news.length,
-    below: news.filter(n => prop(n, '선별상태') === 'below').map(n => [n[0], prop(n, '판정확률')]) };
+    below: news.filter(n => prop(n, '선별상태') === 'below').map(n => [n[0], prop(n, '판정확률')]), cat, pub };
 }
 """
 
@@ -676,11 +681,20 @@ async def alt_checks(pg, b1):
         news = [n for n in sc['nodes'] if n['kind'] == '시장 동향']
         orgs = {n['id'] for n in sc['nodes'] if n['kind'] == '회사'}
         nmap = {n['id']: n for n in news}
-        cross_group = sum(1 for e in sc['edges'] if not (e['t'] in nmap and nmap[e['t']]['org'] == e['s']))
+        # 발표 엣지는 회사에서 그 회사 소식으로, 분류 엣지는 소식에서 그 소식의 분류(원자료 분류유형)로만 이어져야 한다
+        pub_e = [e for e in sc['edges'] if e['k'] == '발표']
+        cat_e = [e for e in sc['edges'] if e['k'] != '발표']
+        cross_group = sum(1 for e in pub_e if not (e['t'] in nmap and nmap[e['t']]['org'] == e['s'] == mexp['pub'].get(e['t'])))
+        cross_group += sum(1 for e in cat_e if not (e['s'] in nmap and e['t'] == 'MKC:' + mexp['cat'].get(e['s'], '')))
+        cross_group += sum(1 for i in nmap if sum(1 for e in pub_e if e['t'] == i) != 1 or sum(1 for e in cat_e if e['s'] == i) != 1)
+        cat_ids = {n['id'] for n in sc['nodes'] if n['kind'] == '동향 분류'}
+        cat_ok = cat_ids == {'MKC:' + mexp['cat'][i] for i in nmap}
+        raw_prob = [l['text'] for l in sc['labels'] for _, pr in mexp['below'] if pr is not None and str(pr) in l['text']]
         btn = await pg.evaluate(f"() => +document.querySelector('[data-gr-nf=\"{f}\"] .num').textContent.replace(/,/g, '')")
         mk[f] = {'layout': alt_layout(sc), 'news': len(news), 'button_count': btn, 'orgs': len(orgs),
                  'var_or_std_nodes': sum(1 for n in sc['nodes'] if n['kind'] in ('종형', '표준담보')), 'edges_between_groups': cross_group,
-                 'below_shown': [n['id'] for n in news if n['state'] == 'below'], 'svg_h': sc['H'], 'host_h': sc['hostH']}
+                 'below_shown': [n['id'] for n in news if n['state'] == 'below'], 'svg_h': sc['H'], 'host_h': sc['hostH'],
+                 'cat_nodes': len(cat_ids), 'cat_nodes_ok': cat_ok, 'raw_prob_in_labels': raw_prob}
         if f == 'week':
             mk[f]['same_as_sales'] = sorted(n['id'] for n in news) == sorted(mexp['sales'])
             mk[f]['org_code_text'] = await pg.evaluate(ORG_TEXT_JS)
@@ -713,7 +727,7 @@ def alt_fails(a):
             f.append('news:' + fk)
             continue
         L = m['layout']
-        if m['news'] != want or m['button_count'] != want or m['var_or_std_nodes'] or m['edges_between_groups']: f.append('news:' + fk + ':data')
+        if m['news'] != want or m['button_count'] != want or m['var_or_std_nodes'] or m['edges_between_groups'] or not m.get('cat_nodes_ok') or m.get('raw_prob_in_labels'): f.append('news:' + fk + ':data')
         if L['node_overlap'] or L['label_overlap'] or L['label_node_overlap'] or L['label_font_min'] < 13 or L['hscroll'] > 0: f.append('news:' + fk + ':layout')
     if n.get('week') and (not n['week'].get('same_as_sales') or n['week'].get('org_code_text')): f.append('news:week:sales_or_org_code')
     if n.get('all') and sorted(n['all']['below_shown']) != sorted(x[0] for x in e.get('below', [])): f.append('news:all:below')
@@ -735,10 +749,17 @@ async def filter_counts(pg):
     out = {}
     for fid in ['win', 'lose', 'diff', 'wait', 'rel']:
         btn = pg.locator(f'[data-gr-filter="f:{fid}"]')
-        await btn.click()
+        # 0건인 비교 결과는 비활성(aria-disabled)이고 클릭해도 켜지지 않아야 한다. 비활성 버튼은 강제로 클릭해 반응이 없는지 본다
+        off = await btn.get_attribute('aria-disabled') == 'true'
+        await btn.click(force=off)
         await pg.wait_for_timeout(60)
         out[fid] = await pg.evaluate("() => document.querySelectorAll('#gr-net-svg .gr-n.is-on').length")
-        await btn.click()
+        pressed = await btn.get_attribute('aria-pressed') == 'true'
+        num = int((await btn.locator('.num').inner_text()).replace(',', ''))
+        if off != (num == 0) or (off and pressed):
+            out.setdefault('zero_disabled_bad', []).append(fid)
+        if not off:
+            await btn.click()
         await pg.wait_for_timeout(30)
     return out
 

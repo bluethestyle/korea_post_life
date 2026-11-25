@@ -253,3 +253,33 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
   .gr-preset .gp-s{display:none}
   .gr-ctrl-row .btn{height:32px}
 }
+
+/* 2차 개선: 왼쪽 패널, 상세 배지, 시장 동향 */
+.gr-tools{display:flex;flex-direction:column;gap:6px}
+.gr-flt-sub{margin:0 0 5px;font:400 13px/1.35 var(--f-body);color:var(--ink-1);word-break:keep-all}
+.gr-flt.is-off{border-color:var(--line);color:var(--ink-2);background:transparent;cursor:default}
+.gr-flt.is-off:hover{background:transparent}
+.gr-flt.is-off .num{color:var(--ink-2)}
+.gr-lg-tg{display:flex;align-items:center;gap:6px;width:100%;min-height:26px;padding:0;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink-1);text-align:left;margin:0 0 4px}
+.gr-lg-tg .gr-sec-k{margin:0}
+.gr-lg-tg-s{margin-left:auto;font:400 13px/1.2 var(--f-body);color:var(--ink-2)}
+.gr-lg-tg:hover .gr-lg-tg-s,.gr-lg-tg:focus-visible .gr-lg-tg-s{color:var(--ink-0)}
+.gr-lg-chev{flex:none;transition:transform 160ms var(--ease-in)}
+.gr-legend.is-closed .gr-lg-chev{transform:rotate(-90deg)}
+.gr-lg-body[hidden]{display:none!important}
+.gr-lg-foot{margin:2px 0 0;font:400 13px/1.35 var(--f-body);color:var(--ink-2)}
+.gr-left-more{position:sticky;bottom:0;margin:0;padding:5px 4px;background:var(--slate);color:var(--on-slate);
+  font:600 13px/1.3 var(--f-ko);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gr-left-more[hidden]{display:none!important}
+.board[data-tab="graph"] > .z-left{scrollbar-width:auto;padding-bottom:0}
+.board[data-tab="graph"] .gr-left-wrap{padding-bottom:10px}
+.board[data-tab="graph"] .gr-left-wrap:has(> .gr-left-more:not([hidden])){padding-bottom:0}
+.gr-mk-note{margin:0;font:400 13px/1.35 var(--f-body);color:var(--ink-1);word-break:keep-all}
+.gr-mk-o .gr-v-c{fill:var(--slate-solid);stroke:var(--ink-0);stroke-width:1}
+.gr-mk-o.is-cmp .gr-v-c{fill:var(--panel-t);stroke-width:4}
+.gr-mk-o.is-ours .gr-v-c{stroke:var(--gold-line)}
+.gr-mk-c .gr-v-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:2}
+.gr-alt-svg .gr-mk-c{cursor:default}
+.gr-mc{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2;pointer-events:none;transition:opacity 220ms var(--ease-in)}
+.gr-alt-svg.is-selm .gr-mc:not(.is-keep){opacity:.3}
+@media (max-width:999px){.gr-left-more,.gr-mk-note{display:none!important}}
