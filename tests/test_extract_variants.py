@@ -57,7 +57,8 @@ def test_hanarook_eight_variants_get_separate_lineage_keys():
     assert len(simple) == 4 and {r["간편고지약칭"] for r in simple} == {"3.2.5"}
     assert {(r["고지입원수술년수"], r["고지수술포함여부"], r["고지중대질병수"], r["고지소견범위"]) for r in simple} == {(2, False, 6, "서면")}
     # 정밀비교는 종신 해약환급금 50%지급형의 1종과 2종 둘이다(급부 표가 종형마다 갈리지 않아 대표 둘만 둔다).
-    # 간편 3.2.5 등급에 우체국 정밀비교 종형이 둘이 되므로 등급별 대표 고르기(site/lineup.pick_lineup)가 이 경우를 처리해야 한다
+    # 간편 3.2.5 등급에 우체국 정밀비교 종형이 둘이 된다. 등급별 대표 고르기(site/lineup.pick_lineup)는 화면 기본 상품
+    # (site/screen.DEFAULT_PRODUCT, 간편한건강보험)의 종형을 고른다(tests/test_site_screen.py)
     assert [v.row["공시상품코드"] for v in mine if v.row["비교역할구분"] == "정밀비교"] == ["P400083", "P400085"]
 
 

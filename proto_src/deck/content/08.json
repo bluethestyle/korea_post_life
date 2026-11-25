@@ -49,18 +49,18 @@
    "rows": [
     {
      "org": "EPOST",
-     "state": "closed",
+     "state": "{{fact:example_gate_6months.cell.states.EPOST}}",
      "text": "{{fact:example_gate_6months.cell.orgs.EPOST}}"
     },
     {
      "org": "HANWHALIFE",
-     "state": "open",
+     "state": "{{fact:example_gate_6months.cell.states.HANWHALIFE}}",
      "hero": true,
      "text": "간편심사 대상"
     },
     {
      "org": "SAMSUNGFIRE",
-     "state": "closed",
+     "state": "{{fact:example_gate_6months.cell.states.SAMSUNGFIRE}}",
      "text": "{{fact:example_gate_6months.cell.orgs.SAMSUNGFIRE}}"
     }
    ],

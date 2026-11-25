@@ -20,6 +20,7 @@ import pytest
 
 from postlife.site import console4 as C4
 from postlife.site import lineup
+from postlife.site import sales as SA
 from postlife.site.model import load
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1024,20 +1025,27 @@ def test_notice_texts_and_cover_steps_follow_the_tables(made):
 
 
 def test_map_columns_and_flow_on_three_companies(made):
-    """세 회사 사본: 일부 나이만 열린 상대가 없고(지도 열이 우리 가입나이로 끊어도 상대 상태가 열 안에서 같다), 지도마다 칸이 24개다.
-    인수기준 단계별 통과는 실제로 가입나이, 입원·수술 고지기간, 수술 포함 여부에서 고지 해당으로 멈추고, 일반심사는 필요소견에서
-    일반심사 대상으로 멈춘다."""
-    S = made["S"]
+    """지도 열은 우리 기관의 가입나이 경계(sales.map_columns)로 끊은 구간을, 이웃 열의 결과가 같으면 합친 것이다. 칸은 행 수 x 열 수다.
+    열 수와 칸 수를 숫자로 고정하지 않고 자료에서 계산한 경계와 비교한다(2026-11-25. 우체국 상품 구성이 바뀌어 스냅샷을 갱신해도
+    같은 규약을 본다). 세 회사 사본에서는 일부 나이만 열린 상대가 없다(지도 열이 우리 가입나이로 끊어도 상대 상태가 열 안에서 같다).
+    인수기준 단계별 통과는 가입나이, 입원·수술 고지기간, 수술 포함 여부에서 고지 해당으로, 일반심사는 필요소견에서 일반심사 대상으로
+    멈춘다(우체국에 일반심사 종형이 없는 지도는 일반심사 대상 멈춤이 없다)."""
+    S, data = made["S"], made["data"]
+    cols = SA.map_columns(data)
+    starts, ends = {a for a, _ in cols}, {b for _, b in cols}
     stops = set()
     for name, m in S["지도"].items():
         cells = [c for line in m["칸"] for c in line]
-        assert len(m["열"]) == 2 and len(cells) == 24, name
+        assert len(m["칸"]) == len(m["행"]) and all(len(line) == len(m["열"]) for line in m["칸"]), name
+        assert len(cells) == len(m["행"]) * len(m["열"]), name
+        assert m["열"][0]["lo"] == cols[0][0] and m["열"][-1]["hi"] == cols[-1][1], name
+        assert all(c["lo"] in starts and c["hi"] in ends for c in m["열"]), name
+        assert all(a["hi"] + 1 == b["lo"] for a, b in zip(m["열"], m["열"][1:])), name
         assert not any(c["일부열린상대수"] or c["일부열린나이"] or c["일부나이로만열림"] for c in cells), name
         stops |= {(S["관문마디"]["차례"][k], v) for c in cells for k, v in c["관문흐름"]["종형"].values()}
-    assert stops == {("가입나이", "고지 해당"), ("입원·수술 고지기간", "고지 해당"), ("수술 포함 여부", "고지 해당"),
+    assert stops <= {("가입나이", "고지 해당"), ("입원·수술 고지기간", "고지 해당"), ("수술 포함 여부", "고지 해당"),
                      ("필요소견", "일반심사 대상")}
-    assert [m["열"] for m in S["지도"].values()] == [[{"lo": 15, "hi": 19}, {"lo": 20, "hi": 80}]] * 2 + [
-        [{"lo": 15, "hi": 65}, {"lo": 66, "hi": 80}]]
+    assert {("가입나이", "고지 해당"), ("입원·수술 고지기간", "고지 해당"), ("수술 포함 여부", "고지 해당")} <= stops
 
 
 MAP_RENEWAL = {"전체": None, "갱신": "갱신", "비갱신": "비갱신"}

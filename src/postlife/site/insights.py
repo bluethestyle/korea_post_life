@@ -61,6 +61,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 
 from . import compare as C
+from . import screen as SC
 from .model import Cond, Data, HOME_ORG
 from .relations import NONE as COVER_NONE, SAME as COVER_SAME, Cover, Relations, load_relations
 
@@ -402,6 +403,27 @@ class Holding:
         return [v["id"] for v in self.confirmed.get(sid, []) if v["id"] != rep["id"] and condition_signature(v) != sig]
 
 
+GENERAL_MAJOR = "공통보장"
+COMBINED_MAJOR, COMBINED_PARTS = "뇌심장보장", ("뇌혈관보장", "심장보장")
+FOCUS_KIND = re.compile(r"\[([^\[\]]+?)보장형\]")      # 종형명의 보장형 표기("[암보장형]")
+
+
+def coverage_scope(data: Data, vid: str, holding: "Holding | None" = None) -> list[str] | None:
+    """보장 범위 한정 종형의 비교 범위(보장대분류 목록, compare.GROUP_ORDER 차례). 종합형이면 None.
+
+    종형명에 "[…보장형]"(공시 종형명의 보장형 표기)이 있고, 종형이 가진 표준담보(Holding.possible: 확정과 추천이 있는 매핑 대기)의 보장대분류에 공통보장이 없으면 범위 한정 종형이다.
+    뇌혈관보장이나 심장보장이 있으면 둘을 함께 보장하는 뇌심장보장도 범위에 넣는다. 가진 표준담보가 없으면 None 이다."""
+    if not FOCUS_KIND.search(str(data.variants[vid].get("종형명") or "")):
+        return None
+    h = holding if holding is not None else Holding(data, vid)
+    majors = {data.std[s]["보장대분류"] for s in h.possible if s in data.std}
+    if not majors or GENERAL_MAJOR in majors:
+        return None
+    if majors & set(COMBINED_PARTS):
+        majors.add(COMBINED_MAJOR)
+    return [m for m in C.GROUP_ORDER if m in majors] + sorted(m for m in majors if m not in C.GROUP_ORDER)
+
+
 def _cover_key(c: Cover) -> tuple:
     return (c.kind, c.partial)
 
@@ -435,6 +457,7 @@ class _Base:
         self.dropped_pairs: list[dict] = []
         self.held_pairs: list[dict] = []
         self.spread = {p: Counter() for p in peers}
+        self.scope = coverage_scope(data, base, self.B)
 
     # ---- 이름 ----
     def org(self, vid: str) -> str:
@@ -489,6 +512,8 @@ class _Base:
         B = self.B
         for sid in sorted({s for h in self.P for s in h.possible} - B.has, key=self.sort_key):
             if sid not in self.data.std:
+                continue
+            if self.scope is not None and self.data.std[sid]["보장대분류"] not in self.scope:
                 continue
             holders = [h for h in self.P if sid in h.has]
             maybe = [h for h in self.P if sid in h.possible]
@@ -622,7 +647,7 @@ class _Base:
         dropped = Counter(x["유형"] for x in self.dropped)
         return {
             "종형ID": self.base, "회사": self.org(self.base), "공시상품명": v.get("공시상품명"), "종형명": v.get("종형명"),
-            "심사유형": v.get("심사유형"), "간편고지약칭": v.get("간편고지약칭"),
+            "심사유형": v.get("심사유형"), "간편고지약칭": v.get("간편고지약칭"), "보장범위": self.scope,
             "맞붙는종형": [{"종형ID": p, "회사": self.org(p), "공시상품명": self.data.variants[p].get("공시상품명"),
                         "종형명": self.data.variants[p].get("종형명"), "심사유형": self.data.variants[p].get("심사유형"),
                         "간편고지약칭": self.data.variants[p].get("간편고지약칭")} for p in self.peers],
@@ -637,11 +662,30 @@ class _Base:
 
 
 def base_variants(data: Data) -> tuple[list[str], list[str]]:
-    """(견줄 종형, 기준 종형). 견줄 종형은 compare.build와 같고, 기준 종형은 그 가운데 판매 중인 우리 기관 종형이다."""
-    vids = [v for v in data.variant_order if data.variants[v].get("비교역할구분") == C.COMPARE_ROLE]
+    """(견줄 종형, 기준 종형). 견줄 종형은 정밀비교 종형에서 화면 비교에서 빼는 상품(screen.EXCLUDED_PRODUCTS)의 종형을 뺀 것이고,
+    기준 종형은 그 가운데 판매 중인 우리 기관 종형이다. 초기 버전 화면(compare.build)은 이 함수를 쓰지 않는다."""
+    vids = [v for v in data.variant_order if data.variants[v].get("비교역할구분") == C.COMPARE_ROLE
+            and not SC.excluded(data, v)]
     bases = [v for v in vids if data.variants[v].get("기관코드") == HOME_ORG
              and data.variants[v].get("판매종료일") in (None, "")]
     return vids, bases
+
+
+def order_bases(data: Data, bases: list[str], hold: dict[str, Holding] | None = None) -> list[str]:
+    """기준 종형의 화면 차례. 맨 앞은 화면이 처음 여는 기준 종형(종합형 가운데 screen.default_base), 그다음 같은 상품(모상품ID)의
+    다른 종합형, 그다음 다른 종합형 상품, 끝에 보장 범위 한정 종형(coverage_scope)이다. 묶음 안은 bases 차례다.
+    종합형이 없으면 bases 차례 그대로다. 화면 JS 는 목록의 첫 항목을 기본값으로 쓴다."""
+    hold = {} if hold is None else hold
+    for b in bases:
+        if b not in hold:
+            hold[b] = Holding(data, b)
+    limited = [b for b in bases if coverage_scope(data, b, hold[b]) is not None]
+    wide = [b for b in bases if b not in limited]
+    if not wide:
+        return list(bases)
+    first = SC.default_base(data, wide)
+    same = [b for b in wide if b != first and SC.product_of(data, b) == SC.product_of(data, first)]
+    return [first] + same + [b for b in wide if b != first and b not in same] + limited
 
 
 def org_of_benefit(data: Data, bid: str) -> str | None:

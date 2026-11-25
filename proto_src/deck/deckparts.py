@@ -679,6 +679,23 @@ def c3(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 # ---------------------------------------------------------------------------
 # C4 회사 3열 비교
 # ---------------------------------------------------------------------------
+STATE_FACT = re.compile(r"\{\{fact:([^{}|]+)\}\}")
+
+
+def c4_state(ctx: Ctx, state: str, where: str) -> str:
+    """결과 행의 상태(open, closed). 자리 표시 하나({{fact:...}})면 사실 자료의 값을 쓴다(화면 자료가 바뀌어도 표시와 글이
+    어긋나지 않게). open, closed 밖의 값이면 경고를 남기고 closed 로 본다."""
+    m = STATE_FACT.fullmatch(str(state).strip())
+    if m:
+        path = m.group(1).strip()
+        ctx._note(ctx.used_facts, path.split(".")[0])
+        state = ctx.value("fact", path)
+    if state not in ("open", "closed"):
+        ctx.warn(where, f"상태 값이 open, closed 가 아님: {state}")
+        return "closed"
+    return state
+
+
 @part("C4")
 def c4(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     if spec.get("mode") == "result":
@@ -686,7 +703,7 @@ def c4(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         if spec.get("cond"):
             out.append(f'<p class="c4r-cond">{ctx.t(spec["cond"], 22, f"{where}.cond")}</p>')
         for i, r in enumerate(spec.get("rows", [])):
-            st = r.get("state", "closed")
+            st = c4_state(ctx, r.get("state", "closed"), f"{where}.rows[{i}].state")
             name = "가입 가능" if st == "open" else "가입 제한"
             hero = " hero" if r.get("hero") else ""
             out.append(f'<div class="c4r-r{hero}">{org_chip(ctx, r.get("org", ""))}{state_mark(st)}'

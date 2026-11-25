@@ -884,7 +884,11 @@ function renderStage(center, c) {
 
   const zoomHTML = buildZoomedHTML(c, m, B, curStep, initPage, pIdxs, totPeerOrgs, rawPeerOrgs, pSet, center);
 
+  // 비교 범위 안내(sales.json 기준종형[].범위안내. 보장 범위가 한정된 상품이나 같은 유형의 타사 종형이 인수기준만 수집된 기준 종형)
+  const bRow = (S['기준종형'] || []).find(b => b['종형ID'] === c.baseId) || {};
+  const scopeNoteHTML = bRow['범위안내'] ? `<p class="note cv-scope-note">${bRow['전용표시'] ? ui.tag(bRow['전용표시']) + ' ' : ''}${esc(bRow['범위안내'])}</p>` : '';
   center.innerHTML = `<div class="cvp-stage" id="cv-pillar-stage">
+    ${scopeNoteHTML}
     <div class="cv-ov-top">
       <div class="cv-ov-strip" id="cv-ov-strip">
         <div class="cv-ov-segs" id="cv-ov-segs">${ovSegsHTML}</div>

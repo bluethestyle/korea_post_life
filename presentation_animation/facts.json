@@ -1198,14 +1198,14 @@
     "base_variants": {
       "value": [
         {
-          "id": "EPOST_P500129_8dba92",
-          "name": "1종(간편가입315)",
+          "id": "EPOST_P500130_099c2b",
+          "name": "2종(간편가입325)",
           "underwriting": "간편심사",
           "renewal": "갱신"
         },
         {
-          "id": "EPOST_P500130_099c2b",
-          "name": "2종(간편가입325)",
+          "id": "EPOST_P500129_8dba92",
+          "name": "1종(간편가입315)",
           "underwriting": "간편심사",
           "renewal": "갱신"
         },
@@ -1220,12 +1220,6 @@
           "name": "4종(일반가입)",
           "underwriting": "일반심사",
           "renewal": "갱신"
-        },
-        {
-          "id": "EPOST_P400069_00c863",
-          "name": "단일",
-          "underwriting": "일반심사",
-          "renewal": "비갱신"
         }
       ],
       "label": "기준으로 고를 수 있는 우체국 종형(첫째가 화면이 처음 여는 종형)",
@@ -1238,8 +1232,8 @@
     },
     "default_base_variant": {
       "value": {
-        "id": "EPOST_P500129_8dba92",
-        "name": "1종(간편가입315)",
+        "id": "EPOST_P500130_099c2b",
+        "name": "2종(간편가입325)",
         "underwriting": "간편심사"
       },
       "label": "화면이 처음 여는 기준 종형",
@@ -1405,11 +1399,11 @@
     "peer_held_coverage": {
       "value": [
         {
-          "name": "한화생명 간편가입형(1년)",
+          "name": "한화생명 간편가입형(2년)",
           "held": 59
         },
         {
-          "name": "삼성화재 7종(해약환급금 미지급형) 315·5",
+          "name": "삼성화재 7종(해약환급금 미지급형) 325·5",
           "held": 60
         }
       ],
@@ -1459,64 +1453,6 @@
     },
     "briefing_by_base_variant": {
       "value": {
-        "1종(간편가입315)": {
-          "segment_map": {
-            "cells": 24,
-            "ours_only_open": 0,
-            "open_together": 11,
-            "ours_closed": 13,
-            "all_closed": 0,
-            "no_data": 0,
-            "gate_only": 4
-          },
-          "gate": {
-            "age_min": 20,
-            "age_max": 80,
-            "main_limit_manwon": 4000,
-            "question_diff_peer_count": 2,
-            "question_diff_peers": [
-              "한화생명",
-              "삼성화재"
-            ],
-            "structure_diff_peer_count": 2
-          },
-          "coverage": {
-            "common_pairs": 33,
-            "compared_pairs": 20,
-            "excluded_pending_pairs": 13,
-            "held": 25,
-            "held_by_stage": {
-              "진단": 7,
-              "수술": 6,
-              "치료": 4,
-              "입원": 8,
-              "통원": 0
-            },
-            "no_verdict_other_rider": 6,
-            "no_verdict_payment_form": 3,
-            "peer_held": [
-              {
-                "name": "한화생명 간편가입형(1년)",
-                "held": 59
-              },
-              {
-                "name": "삼성화재 7종(해약환급금 미지급형) 315·5",
-                "held": 60
-              }
-            ]
-          },
-          "insights": {
-            "total": 36,
-            "by_category": {
-              "관문 차이": 3,
-              "앞세울 강점": 2,
-              "관련 담보 안내": 7,
-              "조건 열위 방어": 0,
-              "개정 검토 후보": 24
-            },
-            "lead_strengths": "뇌혈관질환 입원일당, 심장질환 입원일당"
-          }
-        },
         "2종(간편가입325)": {
           "segment_map": {
             "cells": 24,
@@ -1559,6 +1495,64 @@
               },
               {
                 "name": "삼성화재 7종(해약환급금 미지급형) 325·5",
+                "held": 60
+              }
+            ]
+          },
+          "insights": {
+            "total": 36,
+            "by_category": {
+              "관문 차이": 3,
+              "앞세울 강점": 2,
+              "관련 담보 안내": 7,
+              "조건 열위 방어": 0,
+              "개정 검토 후보": 24
+            },
+            "lead_strengths": "뇌혈관질환 입원일당, 심장질환 입원일당"
+          }
+        },
+        "1종(간편가입315)": {
+          "segment_map": {
+            "cells": 24,
+            "ours_only_open": 0,
+            "open_together": 11,
+            "ours_closed": 13,
+            "all_closed": 0,
+            "no_data": 0,
+            "gate_only": 4
+          },
+          "gate": {
+            "age_min": 20,
+            "age_max": 80,
+            "main_limit_manwon": 4000,
+            "question_diff_peer_count": 2,
+            "question_diff_peers": [
+              "한화생명",
+              "삼성화재"
+            ],
+            "structure_diff_peer_count": 2
+          },
+          "coverage": {
+            "common_pairs": 33,
+            "compared_pairs": 20,
+            "excluded_pending_pairs": 13,
+            "held": 25,
+            "held_by_stage": {
+              "진단": 7,
+              "수술": 6,
+              "치료": 4,
+              "입원": 8,
+              "통원": 0
+            },
+            "no_verdict_other_rider": 6,
+            "no_verdict_payment_form": 3,
+            "peer_held": [
+              {
+                "name": "한화생명 간편가입형(1년)",
+                "held": 59
+              },
+              {
+                "name": "삼성화재 7종(해약환급금 미지급형) 315·5",
                 "held": 60
               }
             ]
@@ -1686,61 +1680,6 @@
               "개정 검토 후보": 24
             },
             "lead_strengths": "뇌혈관질환 입원일당, 심장질환 입원일당"
-          }
-        },
-        "단일": {
-          "segment_map": {
-            "cells": 24,
-            "ours_only_open": 0,
-            "open_together": 11,
-            "ours_closed": 13,
-            "all_closed": 0,
-            "no_data": 0,
-            "gate_only": 4
-          },
-          "gate": {
-            "age_min": 15,
-            "age_max": 65,
-            "main_limit_manwon": 4000,
-            "question_diff_peer_count": 0,
-            "question_diff_peers": [],
-            "structure_diff_peer_count": 1
-          },
-          "coverage": {
-            "common_pairs": 31,
-            "compared_pairs": 27,
-            "excluded_pending_pairs": 4,
-            "held": 20,
-            "held_by_stage": {
-              "진단": 8,
-              "수술": 7,
-              "치료": 1,
-              "입원": 4,
-              "통원": 0
-            },
-            "no_verdict_other_rider": 4,
-            "no_verdict_payment_form": 5,
-            "peer_held": [
-              {
-                "name": "한화생명 일반가입형",
-                "held": 59
-              },
-              {
-                "name": "삼성화재 8종(일반형)",
-                "held": 58
-              }
-            ]
-          },
-          "insights": {
-            "total": 37,
-            "by_category": {
-              "관문 차이": 0,
-              "앞세울 강점": 1,
-              "관련 담보 안내": 7,
-              "조건 열위 방어": 3,
-              "개정 검토 후보": 26
-            },
-            "lead_strengths": "주요 질병 수술비"
           }
         }
       },
@@ -3820,7 +3759,7 @@
         "standard_coverage_id": "STD_CA_SURG",
         "orgs": {
           "EPOST": {
-            "variant": "1종(간편가입315)",
+            "variant": "2종(간편가입325)",
             "benefit": "암수술보험금(암·관혈수술)",
             "pay_manwon": 300,
             "basis_manwon": 1000,
@@ -3837,7 +3776,7 @@
             "pay_form": "수술 1회당"
           },
           "HANWHALIFE": {
-            "variant": "간편가입형(1년)",
+            "variant": "간편가입형(2년)",
             "benefit": "비급여(급여 전액본인부담 포함) 암 수술 보험금(암)",
             "pay_manwon": 2000,
             "basis_manwon": 8000,
@@ -3854,7 +3793,7 @@
             "pay_form": "1회당"
           },
           "SAMSUNGFIRE": {
-            "variant": "7종(해약환급금 미지급형) 315·5",
+            "variant": "7종(해약환급금 미지급형) 325·5",
             "benefit": "[갱신형][간편](체증형,수술시30%)암 수술비(유사암 포함)(1년50%)",
             "pay_manwon": 100,
             "basis_manwon": 100,
@@ -4005,17 +3944,17 @@
             "rider": "특정순환계질환 통합치료보장특약(1억원한도)(고지통합)(KTA1.1) 무배당",
             "doc_kind": "요약서",
             "doc_page": 417,
-            "variant": "간편가입형(1년)"
+            "variant": "간편가입형(2년)"
           },
           "SAMSUNGFIRE": {
             "benefit": "[갱신형][간편]2대주요기관질병 수술비Ⅱ(1년감액)",
             "rider": "[갱신형][간편]2대주요기관질병 수술비Ⅱ(1년감액)",
             "doc_kind": "요약서",
             "doc_page": 114,
-            "variant": "7종(해약환급금 미지급형) 315·5"
+            "variant": "7종(해약환급금 미지급형) 325·5"
           }
         },
-        "ours_variant": "1종(간편가입315)"
+        "ours_variant": "2종(간편가입325)"
       },
       "label": "나눈 특약과 통합 특약의 예: 우체국은 좁은 담보 둘(narrow)을 특약 둘로, 타사는 넓은 담보(broad) 하나로 가진 경우. 칸마다 대표 급부의 원문 이름, 특약 이름, 근거 문서와 쪽, 담보마다 타사별 비교 결과(화면 이름). ours_cover 는 넓은 담보 행의 우체국 칸이 관계 담보로 덮는 종류(부분 담보)",
       "as_of": "2026-11-24",
@@ -4118,6 +4057,11 @@
             "HANWHALIFE": "가입 가능",
             "SAMSUNGFIRE": "일반심사 대상"
           },
+          "states": {
+            "EPOST": "closed",
+            "HANWHALIFE": "open",
+            "SAMSUNGFIRE": "closed"
+          },
           "gate_only": [
             {
               "org": "HANWHALIFE",
@@ -4137,10 +4081,15 @@
             "HANWHALIFE": "가입 가능",
             "SAMSUNGFIRE": "가입 가능"
           },
+          "states": {
+            "EPOST": "open",
+            "HANWHALIFE": "open",
+            "SAMSUNGFIRE": "open"
+          },
           "gate_only": []
         }
       },
-      "label": "6개월 전 입원 고객 예: 대표 조건 나이의 고객군 칸(입원 3개월~1년 전)과 1년 반 전 입원 칸(입원 1~2년 전)의 회사별 가입 가능 여부. 라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다",
+      "label": "6개월 전 입원 고객 예: 대표 조건 나이의 고객군 칸(입원 3개월~1년 전)과 1년 반 전 입원 칸(입원 1~2년 전)의 회사별 가입 가능 여부. 라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다. states 는 회사별 가입 가능(open, 열림과 일부 나이만 열림) 또는 가입 제한(closed, 그 밖) 표시 값",
       "as_of": "2026-11-24",
       "source": {
         "kind": "screen_data",
@@ -4338,7 +4287,7 @@
       }
     },
     "test_count": {
-      "value": 1541,
+      "value": 1551,
       "label": "전체 자동 시험 수",
       "as_of": "2026-11-25",
       "source": {

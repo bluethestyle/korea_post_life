@@ -334,7 +334,7 @@ DOC_FACTS += [
 # git 과 GitHub 에서 센 값. 사본에서 셀 수 없고 커밋할 때마다 바뀌므로 손으로 적고, note 에 다시 세는 명령을 적는다.
 GIT_COUNTED_AT = "2026-11-24"
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
-    ("test_count", 1541, "전체 자동 시험 수", "2026-11-25",
+    ("test_count", 1551, "전체 자동 시험 수", "2026-11-25",
      "메인 세션이 2026-11-25(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
     ("commit_count", 287, "main 의 커밋 수", GIT_COUNTED_AT,
      "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),
@@ -1123,17 +1123,20 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
     if col is None or EXAMPLE_GATE_ROW not in rows or EXAMPLE_GATE_ROW_LATER not in rows:
         raise FactsError("고객군 지도에서 6개월 전 입원 예의 칸을 찾지 못했다")
 
+    OPEN_STATES = ("열림", "일부 나이만 열림")      # sales.OPEN, sales.PARTIAL: 덱 8장 시연 카드의 가입 가능 표시(states)
     def cell_view(row_name: str) -> dict[str, Any]:
         x = m["칸"][rows[row_name]][col]
         only = [{"org": g["기관코드"], "variant": sales["종형"][g["종형ID"]]["종형명"],
                  "simple_type": sales["종형"][g["종형ID"]]["간편고지약칭"], "note": g.get("안내")} for g in x.get("관문만수집") or []]
         return {"row": row_name, "column": f"{m['열'][col]['lo']}~{m['열'][col]['hi']}세", "label": terms.name(x["라벨"]),
-                "sub": x.get("보조") or None, "orgs": {org: terms.name(st) for org, st in x["회사"].items()}, "gate_only": only}
+                "sub": x.get("보조") or None, "orgs": {org: terms.name(st) for org, st in x["회사"].items()},
+                "states": {org: "open" if st in OPEN_STATES else "closed" for org, st in x["회사"].items()}, "gate_only": only}
 
     out["example_gate_6months"] = fact(
         {"age": age, "sex": sales["기준조건"]["성별"], "cell": cell_view(EXAMPLE_GATE_ROW), "later": cell_view(EXAMPLE_GATE_ROW_LATER)},
         "6개월 전 입원 고객 예: 대표 조건 나이의 고객군 칸(입원 3개월~1년 전)과 1년 반 전 입원 칸(입원 1~2년 전)의 회사별 가입 가능 여부. "
-        "라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다", as_of,
+        "라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다. states 는 회사별 가입 가능(open, 열림과 일부 나이만 열림) "
+        "또는 가입 제한(closed, 그 밖) 표시 값", as_of,
         screen_source(f"지도.전체.칸[{EXAMPLE_GATE_ROW}, {EXAMPLE_GATE_ROW_LATER}][나이 열].회사, 라벨, 관문만수집"))
 
     # 담보 매핑 자동 확정의 두 경로(확률 산정 결과가 있는 줄, 교차 검증으로 확정해 확률이 빈 줄)
