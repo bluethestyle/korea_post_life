@@ -272,20 +272,20 @@ class Part2CollectExtractScene(PostLifeBaseScene):
         # 중앙 ② 총괄 지휘 Claude 오케스트레이터 허브
         claude_body, claude_orbit = make_claude_orchestrator_hub(
             [0.0, 0.30, 0],
-            radius=1.02,
+            radius=1.08,
             title_s="② 총괄 지휘: Claude",
             sub_s=f"시범 표준: {pilot_org}",
             z=8,
         )
-        in_arrow_top = arrow_2d([0.0, 1.88, 0], [0.0, 1.52, 0], color=C_VIOLET, sw=2.6, tip=0.11, z=7)
+        in_arrow_top = arrow_2d([0.0, 1.88, 0], [0.0, 1.59, 0], color=C_VIOLET, sw=2.6, tip=0.11, z=7)
 
         # 좌우 직교 버스 회로선 (랙 외곽에서 측면 포트로 정밀 연결)
         bus_left = VMobject(color=C_CYAN, stroke_width=2.8).set_z_index(6)
-        bus_left.set_points_as_corners([[-1.12, 0.30, 0], [-1.44, 0.30, 0], [-1.44, -0.56, 0], [-1.72, -0.56, 0]])
+        bus_left.set_points_as_corners([[-1.19, 0.30, 0], [-1.44, 0.30, 0], [-1.44, -0.56, 0], [-1.72, -0.56, 0]])
         bus_left_tip = Arrow([-1.52, -0.56, 0], [-1.76, -0.56, 0], buff=0, color=C_CYAN, stroke_width=2.8, tip_length=0.12).set_z_index(7)
 
         bus_right = VMobject(color=C_MINT, stroke_width=2.8).set_z_index(6)
-        bus_right.set_points_as_corners([[1.12, 0.30, 0], [1.44, 0.30, 0], [1.44, -0.56, 0], [1.72, -0.56, 0]])
+        bus_right.set_points_as_corners([[1.19, 0.30, 0], [1.44, 0.30, 0], [1.44, -0.56, 0], [1.72, -0.56, 0]])
         bus_right_tip = Arrow([1.52, -0.56, 0], [1.76, -0.56, 0], buff=0, color=C_MINT, stroke_width=2.8, tip_length=0.12).set_z_index(7)
 
         # 좌측 랙: ③ 수집 구현 (정밀 모듈 매트릭스)
@@ -499,7 +499,7 @@ class Part2CollectExtractScene(PostLifeBaseScene):
                     size=15.6,
                     sub_size=14.0,
                     sub_col=C_GOLD,
-                ).move_to([px + 0.08, py + 0.18, ring_bz + 1.18])
+                ).move_to([px - 0.12, py + 0.18, ring_bz + 1.74])  # 시범 배지와 겹치지 않게 왼쪽 위로
 
         set_3d_tier(arena_spokes, -10.0, sub=1, sort_3d=False)
 

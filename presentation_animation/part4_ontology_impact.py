@@ -1854,11 +1854,13 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
 
         # Step 3: 우측 파이프라인 Stage ③ -> ④ 스포트라이트 점화
         left_p9_grp = VGroup(mb9_1, down_bridges_9[0], st9_1, pipe_conns_9[0])
+        # 카메라 중심(가로)은 이 단계에 남는 카드 그룹(위 ②, ③과 아래 ②, ③, ④)의 경계 박스 가운데로 둔다.
+        step3_cards_9 = VGroup(mb9_2, mb9_3, st9_2, st9_3, st9_4)
         p9_b = glow_dot(st9_2[0].get_right(), color=C_MINT, r=0.065, z=12)
         self.add(p9_b)
         self.cam_move(
             zoom=1.16,
-            center=[3.04, 0.34, 0],
+            center=[step3_cards_9.get_center()[0], 0.34, 0],
             anims=[
                 FadeOut(left_p9_grp, shift=LEFT * 0.08),
                 FadeIn(mb9_3, shift=LEFT * 0.08),

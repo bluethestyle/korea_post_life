@@ -363,14 +363,15 @@ def make_claude_orchestrator_hub(
             Dot(p1, radius=0.036, color=p_col).set_z_index(z + 3),
         )
 
-    ic = svg_icon("cpu_decide", size=radius * 0.52, col=C_GOLD, accent=C_CYAN, tile=False, sw=2.3, z=z + 3).move_to(
-        pt + UP * (radius * 0.34 if sub_s else radius * 0.20)
+    # 두 줄 라벨일 때는 아이콘을 줄여 위로 두고 라벨을 링 지름이 넓은 가운데 쪽으로 올려, 글자 끝이 금색 링에 닿지 않게 한다.
+    ic = svg_icon("cpu_decide", size=radius * (0.46 if sub_s else 0.52), col=C_GOLD, accent=C_CYAN, tile=False, sw=2.3, z=z + 3).move_to(
+        pt + UP * (radius * 0.32 if sub_s else radius * 0.20)
     )
     lbl_items: list[Mobject] = [txt(title_s, size=13.8, color=C_GOLD, bold=True, z=z + 4)]
     if sub_s:
         lbl_items.append(txt(sub_s, size=12.6, color=C_WHITE, bold=True, z=z + 4))
     lbl_grp = fit(VGroup(*lbl_items).arrange(DOWN, buff=0.04), max_w=radius * 1.72).move_to(
-        pt + DOWN * (radius * 0.32 if sub_s else radius * 0.28)
+        pt + DOWN * (radius * 0.12 if sub_s else radius * 0.28)
     )
 
     body = VGroup(halo, core, inner_ring, ports, ic, lbl_grp)

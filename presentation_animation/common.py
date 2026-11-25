@@ -389,13 +389,17 @@ def make_doc_icon(
         rib = RoundedRectangle(
             corner_radius=0.03,
             width=w * 0.86,
-            height=h * 0.30,
+            height=h * 0.36,
             fill_color=col,
             fill_opacity=0.95,
             stroke_color=WHITE,
             stroke_width=1.0,
         ).move_to([0, -hh * 0.32, 0]).set_z_index(z + 2)
-        rt = fit(txt(badge_txt, size=8.6, color=C_DARK_INK if col in (C_GOLD, C_MINT, C_CYAN) else WHITE, bold=True, z=z + 3), max_w=w * 0.78).move_to(rib)
+        rt = fit(
+            txt(badge_txt, size=10.0, color=C_DARK_INK if col in (C_GOLD, C_MINT, C_CYAN) else WHITE, bold=True, z=z + 3),
+            max_w=w * 0.78,
+            max_h=rib.height * 0.80,
+        ).move_to(rib)
         parts.extend([rib, rt])
     g = VGroup(*parts)
     g.set_z_index(z)
