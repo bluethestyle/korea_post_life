@@ -180,7 +180,8 @@ COUNTS_JS = r"""() => {
 
   // 요청 27 기준: 본문 영역(#home-panel 또는 #board)의 사각 면 수, 마침표 문장 수, 글 조각 수, 안쪽 가로 스크롤 측정
   const stageEl = tab === 'brief' ? document.getElementById('home-panel') : document.getElementById('board');
-  let stageNodes = 0, sentences = 0, rectSurfaces = 0, innerScrollX = 0;
+  // 관계 그래프의 그래프 SVG 안 라벨(앵커, 그룹, 담보 이름, 종형 구성과 시장 동향의 라벨)은 글조각 상한에서 빼고 따로 센다(요청 38의 10절)
+  let stageNodes = 0, sentences = 0, rectSurfaces = 0, innerScrollX = 0, graphSvgLabels = 0;
   if (stageEl && !stageEl.hidden) {
     const sw = document.createTreeWalker(stageEl, NodeFilter.SHOW_TEXT);
     let sn;
@@ -201,6 +202,7 @@ COUNTS_JS = r"""() => {
       sr.selectNodeContents(sn);
       const sb = sr.getBoundingClientRect();
       if (sb.width < 1 || sb.height < 1) continue;
+      if (tab === 'graph' && pel.closest('#gr-net-svg,#gr-vt-svg,#gr-mk-svg')) { graphSvgLabels += 1; continue; }
       stageNodes += 1;
       const m = txt.match(/\.(?=\s|$)/g);
       if (m) sentences += m.length;
@@ -226,7 +228,7 @@ COUNTS_JS = r"""() => {
       }
     }
   }
-  return { vw, vh, tab, grp, topH, condOpen, scopeOpen, modalOpen, picked, stageNodes, sentences, rectSurfaces, innerScrollX, zones };
+  return { vw, vh, tab, grp, topH, condOpen, scopeOpen, modalOpen, picked, stageNodes, graphSvgLabels, sentences, rectSurfaces, innerScrollX, zones };
 }"""
 
 
@@ -359,6 +361,7 @@ async def shot(pg, name, report, dark=False, full=False):
         f" 구역(위 {z['top']['chars']}자/{z['top']['nodes']}조각, "
         f"가운데 {z['center']['chars']}자/{z['center']['nodes']}조각, "
         f"오른 {z['right']['chars']}자/{z['right']['nodes']}조각)"
+        + (f" | 그래프 SVG 라벨 {cnt['graphSvgLabels']}(상한 밖)" if cnt.get('tab') == 'graph' else '')
     ) if z else ''
     warn_str = f" [한도초과: {', '.join(over)}]" if over else ''
     print(f'{name}: 흰 {m.get("white_pct")}% 빨강 {m.get("red_pct")}% 최저 명암비 {m.get("min_contrast")} 본문 최저 {m.get("body_min")} 넘침 {ov["sw"] - ov["cw"]}px {ov["bad"][:2]}{z_str}{warn_str}')
@@ -630,6 +633,119 @@ async def measure_frames_once(b, cpu_rate=1) -> dict:
     return {'metrics': out, 'layout_anim': layout_anim, 'errors': errs, 'external': ext}
 
 
+GRAPH_ACTS = ['graph_tab', 'graph_hover20', 'graph_pick', 'graph_unpick', 'graph_group', 'graph_base', 'graph_scope', 'graph_to_variant', 'graph_to_news']
+
+
+async def measure_graph_frames_once(b, cpu_rate=1) -> dict:
+    """관계 그래프 조작 아홉(요청 38의 12절 17번)을 1920x1080, 애니메이션 켬에서 잰다"""
+    ctx, pg, errs, ext = await page_for(b, 1920, 1080, skin='light', motion='on', hash_='#t=cover')
+    await pg.wait_for_timeout(1100)
+    await pg.evaluate(RAF_HOOK_JS)
+    cdp = None
+    if cpu_rate > 1:
+        cdp = await ctx.new_cdp_session(pg)
+        await cdp.send('Emulation.setCPUThrottlingRate', {'rate': cpu_rate})
+    sa = (cpu_rate <= 1)
+    out = {}
+    base0 = await pg.evaluate("() => App.ctx().baseId")
+    bases = await pg.evaluate("() => Object.keys(App.S['기준별'])")
+    wait_net = "() => !!document.getElementById('gr-net-svg') && !document.querySelector('#gr-net-svg .gr-l-ghost > *')"
+
+    async def act_tab():
+        await pg.locator('#tab-graph').first.click()
+    out['graph_tab'] = await sample_action(pg, act_tab, 680, 'graph_tab', sa)
+    await pg.wait_for_function(wait_net, timeout=20000)
+    await pg.wait_for_timeout(300)
+
+    async def act_hover20():
+        pts = await pg.evaluate("""() => Array.from(document.querySelectorAll('#gr-net-svg .gr-l-nodes > .gr-n')).slice(0, 20).map(el => {
+          const r = el.querySelector('.gr-n-c').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })""")
+        if not pts:
+            return False
+        for x, y in pts:
+            await pg.mouse.move(x, y, steps=3)
+            await pg.wait_for_timeout(45)
+        await pg.mouse.move(5, 1075)
+    out['graph_hover20'] = await sample_action(pg, act_hover20, 200, 'graph_hover20', sa)
+
+    async def act_pick():
+        pt = await pg.evaluate("""() => { const el = Array.from(document.querySelectorAll('#gr-net-svg .gr-n')).find(e => e.dataset.tipTitle === '암 수술비')
+          || document.querySelector('#gr-net-svg .gr-n'); if (!el) return null; const r = el.querySelector('.gr-n-c').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }""")
+        if not pt:
+            return False
+        await pg.mouse.click(pt[0], pt[1])
+    out['graph_pick'] = await sample_action(pg, act_pick, 700, 'graph_pick', sa)
+
+    async def act_unpick():
+        await pg.keyboard.press('Escape')
+    out['graph_unpick'] = await sample_action(pg, act_unpick, 500, 'graph_unpick', sa)
+    await pg.mouse.move(5, 1075)
+
+    async def act_group():
+        loc = pg.locator('#gr-net-svg .gr-lb-g').first
+        if await loc.count() == 0:
+            return False
+        await loc.click()
+    out['graph_group'] = await sample_action(pg, act_group, 500, 'graph_group', sa)
+    await pg.keyboard.press('Escape')
+    await pg.wait_for_timeout(300)
+
+    nxt = next((x for x in bases if x != base0), base0)
+
+    async def act_base():
+        await pg.evaluate("(b) => App.set({ base: b })", nxt)
+    out['graph_base'] = await sample_action(pg, act_base, 800, 'graph_base', sa)
+    await pg.wait_for_function(wait_net, timeout=20000)
+
+    async def act_scope():
+        await pg.evaluate("() => App.set({ peerScope: 'life' })")
+    out['graph_scope'] = await sample_action(pg, act_scope, 800, 'graph_scope', sa)
+    await pg.wait_for_function(wait_net, timeout=20000)
+
+    async def act_variant():
+        await pg.locator('[data-gr-preset="variant"]').first.click()
+    out['graph_to_variant'] = await sample_action(pg, act_variant, 800, 'graph_to_variant', sa)
+    await pg.wait_for_function("() => !!document.getElementById('gr-vt-svg')", timeout=20000)
+    await pg.wait_for_timeout(300)
+
+    async def act_news():
+        await pg.locator('[data-gr-preset="news"]').first.click()
+    out['graph_to_news'] = await sample_action(pg, act_news, 800, 'graph_to_news', sa)
+    layout_anim = await pg.evaluate(LAYOUT_ANIM_JS)
+    await ctx.close()
+    return {'metrics': out, 'layout_anim': layout_anim, 'errors': errs, 'external': ext}
+
+
+def worst_of(runs: list) -> dict:
+    """같은 조작을 여러 번 잰 값 가운데 가장 나쁜 값(p50, p95, 최대, 33ms 초과 수)"""
+    out = {}
+    for k in GRAPH_ACTS:
+        ms = [r['metrics'].get(k) for r in runs if r['metrics'].get(k)]
+        if not ms:
+            out[k] = None
+            continue
+        out[k] = {'runs': len(ms), 'frames': min(m['frames'] for m in ms), 'p50_ms': max(m['p50_ms'] for m in ms),
+                  'p95_ms': max(m['p95_ms'] for m in ms), 'max_ms': max(m['max_ms'] for m in ms), 'over_33ms': max(m['over_33ms'] for m in ms)}
+    return out
+
+
+async def run_graph_frame_bench(b, n=3) -> dict:
+    g1 = [await measure_graph_frames_once(b, 1) for _ in range(n)]
+    g4 = [await measure_graph_frames_once(b, 4) for _ in range(n)]
+    w1, w4 = worst_of(g1), worst_of(g4)
+    la = sum(r['layout_anim']['count'] for r in g1)
+    print(f'관계 그래프 조작 아홉(1920x1080, 애니메이션 켬, {n}번씩 가장 나쁜 값). 레이아웃 속성 전환/애니메이션: {la}')
+    for k in GRAPH_ACTS:
+        m1, m4 = w1[k], w4[k]
+        s1 = f"p50={m1['p50_ms']}ms p95={m1['p95_ms']}ms >33ms={m1['over_33ms']} 최대={m1['max_ms']}ms" if m1 else '미측정'
+        s4 = f"p50={m4['p50_ms']}ms p95={m4['p95_ms']}ms >33ms={m4['over_33ms']} 최대={m4['max_ms']}ms" if m4 else '미측정'
+        print(f'  관계 그래프 [{k}]: 보통({s1}) | CPU4배느림({s4})')
+    return {'cpu_1x_worst': w1, 'cpu_4x_worst': w4, 'layout_animations': la,
+            'layout_anim_detail': [r['layout_anim'] for r in g1],
+            'errors': sum((r['errors'] for r in g1 + g4), []), 'external': sum((r['external'] for r in g1 + g4), []),
+            'runs_1x': [r['metrics'] for r in g1], 'runs_4x': [r['metrics'] for r in g4]}
+
+
 async def run_frame_bench(b) -> dict:
     r1 = await measure_frames_once(b, cpu_rate=1)
     r4 = await measure_frames_once(b, cpu_rate=4)
@@ -646,10 +762,12 @@ async def run_frame_bench(b) -> dict:
         s1 = f"p50={m1['p50_ms']}ms p95={m1['p95_ms']}ms >33ms={m1['over_33ms']}/{m1['frames']}" if m1 else '미구현'
         s4 = f"p50={m4['p50_ms']}ms p95={m4['p95_ms']}ms >33ms={m4['over_33ms']}/{m4['frames']}" if m4 else '미구현'
         print(f'  프레임 [{k}]: 보통({s1}) | CPU4배느림({s4})')
+    graph = await run_graph_frame_bench(b)
     return {
         'cpu_1x': r1['metrics'],
         'cpu_4x': r4['metrics'],
         'layout_animations': r1['layout_anim'],
+        'graph_actions': graph,
     }
 
 

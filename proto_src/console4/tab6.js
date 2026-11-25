@@ -960,8 +960,27 @@
         lx = Math.max(2, Math.min(W - 2 - lw, lx));
         box = [lx, y - r - 4 - lh, lx + lw, y - r - 4];
       } else box = [x + r + 4, y - lh / 2, x + r + 4 + lw, y + lh / 2];
-      return { slot, vi, id: g.N[vi].id, code: sc.codes[slot], key: slot === 0 ? 'base' : sc.codes[slot], x, y, r, lines, box };
+      return { slot, vi, id: g.N[vi].id, code: sc.codes[slot], key: slot === 0 ? 'base' : sc.codes[slot], x, y, r, lines, box, lw };
     });
+    // 타사가 많으면 오른쪽 끝에서 세로로 모인 앵커 옆으로 이웃 앵커의 라벨이 지나간다. 다른 앵커나 라벨에 걸리면 라벨을 앵커 왼쪽으로 옮긴다
+    if (nP > 3) {
+      const hitC = (b, a) => { const px = Math.max(b[0], Math.min(a.x, b[2])), py = Math.max(b[1], Math.min(a.y, b[3])); return Math.hypot(px - a.x, py - a.y) < a.r + 1; };
+      const hitB = (b, q) => b[0] < q[2] && q[0] < b[2] && b[1] < q[3] && q[1] < b[3];
+      const bad = (a, b) => anc.some(o => o !== a && (hitC(b, o) || (o.slot !== 0 && hitB(b, o.box))));
+      anc.forEach(a => {
+        if (a.slot === 0 || !bad(a, a.box)) return;
+        // 후보: 오른쪽에서 바깥쪽(위쪽 앵커는 위, 아래쪽 앵커는 아래)으로 조금씩 옮긴 자리, 그다음 왼쪽
+        const out = a.y < cy ? -1 : 1, lh = a.box[3] - a.box[1];
+        const dys = [0, 4, 8, 12, 16].map(d => d * out).concat([4, 8].map(d => -d * out));
+        const cands = [];
+        [1, -1].forEach(side => dys.forEach(dy => {
+          const x0 = side > 0 ? a.x + a.r + 4 : a.x - a.r - 4 - a.lw;
+          cands.push([x0, a.box[1] + dy, x0 + a.lw, a.box[1] + dy + lh]);
+        }));
+        const ok = cands.find(b => b[0] >= 2 && b[2] <= W - 2 && b[1] >= 2 && b[3] <= H - 2 && !bad(a, b));
+        if (ok) a.box = ok;
+      });
+    }
     const boxes = anc.map(a => a.box);
     const fixed = anc.map(a => ({ x: a.x, y: a.y, r: a.r }));
     // 노드 크기(3.7): 반지름 r, 충돌 반지름 cr
@@ -1070,8 +1089,13 @@
         if (hit) break;
       }
       if (!hit) {
+        // 배지는 그룹 원 둘레에 둔다. 12시부터 시계 방향으로 노드, 앵커, 다른 라벨에 걸리지 않는 첫 자리
         const bw = textW(fmt(grp.members.length), 600) + 12, bh = textLineH() + 2;
-        hit = { box: [gg.x - bw / 2, gg.y - gg.R - bh / 2, gg.x + bw / 2, gg.y - gg.R + bh / 2], lines, badge: true };
+        const at = deg => { const a = deg * Math.PI / 180, x = gg.x + gg.R * Math.sin(a), y = gg.y - gg.R * Math.cos(a); return [x - bw / 2, y - bh / 2, x + bw / 2, y + bh / 2]; };
+        const nodeC = Array.from(npos.values()).map(v => [v.x, v.y, v.r]).concat(aCircles);
+        let bb = null;
+        for (let d = 0; d < 360 && !bb; d += 22.5) { const b = at(d); if (!boxHit(b, placed, nodeC, W, H)) bb = b; }
+        hit = { box: bb || at(0), lines, badge: true };
       }
       placed.push(hit.box);
       glabels.set(grp.key, hit);
@@ -1215,6 +1239,16 @@
     return `<text class="${cls}" x="${f1(x)}" y="${f1(y)}" text-anchor="${anchor}">${lines.map((s, i) => `<tspan x="${f1(x)}" dy="${i === 0 ? 0 : NET_FS + 3}"${i === 0 ? ' class="gl-1"' : ''}>${esc(s)}</tspan>`).join('')}</text>`;
   }
 
+  // 보유 비율 링 차트(8.1의 5번): 바탕 원과 12시부터 시계 방향으로 채운 호
+  function ringSVG(R, f) {
+    const bg = `<circle class="gr-ring-bg" r="${f1(R)}"/>`;
+    if (!(f > 0)) return `<g class="gr-ring" aria-hidden="true">${bg}</g>`;
+    if (f >= 1) return `<g class="gr-ring" aria-hidden="true">${bg}<circle class="gr-ring-fg" r="${f1(R)}"/></g>`;
+    const a = 2 * Math.PI * f;
+    const d = `M0 ${f1(-R)}A${f1(R)} ${f1(R)} 0 ${f > 0.5 ? 1 : 0} 1 ${f1(R * Math.sin(a))} ${f1(-R * Math.cos(a))}`;
+    return `<g class="gr-ring" aria-hidden="true">${bg}<path class="gr-ring-fg" d="${d}"/></g>`;
+  }
+
   function netSVG(g, c, lay) {
     const sc = lay.sc;
     const W = lay.W, H = lay.H;
@@ -1247,10 +1281,13 @@
       const chips = verdictChips(lay, si);
       const more = chips.length > 3 ? t('grTipMoreTpl', { n: fmt(chips.length - 3) }) : '';
       const benNote = it.per.map(x => t('grBenCntTpl', { org: orgOf(x.code), n: fmt(+(x.e.p['급부수'] || 0)) })).join(', ');
-      const sub = [it.dom, grpName].concat(markLines(g, c, lay, si), [benNote, more]).filter(Boolean).join(' / ');
+      // 타사 4개사 이상: 어느 타사가 보유했는지 위치로 드러나지 않으므로 보유 비율 링 차트와 툴팁 문장(8.1의 5번)
+      const ringTx = sc.nPeer > 3 ? t('grRingTpl', { n: fmt(sc.nPeer), k: fmt(it.kp) }) : '';
+      const sub = [it.dom, grpName, ringTx].concat(markLines(g, c, lay, si), [benNote, more]).filter(Boolean).join(' / ');
       const wait = jd.marks.includes('wait');
       parts.push(`<g class="gr-n gr-n-${it.cls}${wait ? ' is-wait' : ''}" style="--gr-sh:${(3 / p.r).toFixed(3)}" transform="translate(${f1(p.x)} ${f1(p.y)})" tabindex="-1" role="button" aria-label="${esc(n.l)}" data-gr-fk="n:${esc(n.id)}" data-gr-id="${esc(n.id)}" data-gr-idx="${si}" data-gr-kind="표준담보" data-gr-r="${f1(p.r)}" data-gr-group="${esc(it.key)}" data-gr-cls="${it.cls}" data-gr-mark="${jd.marks.join(' ')}" data-aim="circle" data-tip-title="${esc(n.l)}" data-tip-sub="${esc(sub)}"${chips.length ? ` data-tip-chips="${esc(JSON.stringify(chips.slice(0, 3)))}"` : ''}>`
         + `<circle class="gr-n-c" r="${f1(p.r)}" style="fill:var(--gr-dom-${domIdx(si)})"/>`
+        + (sc.nPeer > 3 ? ringSVG(p.r + 2, it.kp / sc.nPeer) : '')
         + jd.marks.filter(m => m !== 'wait').map(m => markGlyph(m, p.r)).join('')
         + '</g>');
     });
@@ -1269,7 +1306,7 @@
     parts.push('<g class="gr-l-labels">');
     lay.anc.forEach(a => {
       const b = a.box;
-      const x = a.slot === 0 ? (b[0] + b[2]) / 2 : b[0] + 2;
+      const x = a.slot === 0 ? (b[0] + b[2]) / 2 : b[0] + 2;   // 왼쪽으로 옮긴 라벨도 상자 왼쪽에서 시작한다
       parts.push(`<g class="gr-lb gr-lb-a" data-gr-lb="anchor" data-gr-lbox="${[b[0], b[1], b[2], b[3]].map(f1).join(',')}">${svgTextLines(x, b[1] + textAsc(), a.lines, a.slot === 0 ? 'middle' : 'start', 'gr-tx')}</g>`);
     });
     sc.groups.forEach(grp => {
@@ -1368,6 +1405,17 @@
       evidenceEdges(g, lay, focus.si).forEach(e => { if (!seen.has(e.i)) { seen.add(e.i); relLine(e); } });
     } else if (focus.t === 'anchor') {
       sc.stds.forEach(si => { if (sc.info.get(si).slots.includes(focus.slot)) heldLine(focus.slot, si); });
+      // 타사 4개사 이상은 기본 화면에 기준 종형의 번들 엣지만 있으므로, 타사 앵커를 호버하면 그 타사의 번들 엣지를 그린다(8.1의 4번)
+      if (sc.nPeer > 3 && focus.slot !== 0) {
+        const a = lay.anc[focus.slot];
+        sc.groups.forEach(grp => {
+          const n = grp.members.filter(si => sc.info.get(si).slots.includes(focus.slot)).length;
+          if (!n) return;
+          const gg = lay.gpos.get(grp.key);
+          const [x1, y1, x2, y2] = lineBetween(a, gg, a.r, gg.R);
+          out.push(`<line class="gr-e gr-e-bundle is-keep" stroke-width="${f1(Math.min(6, 0.6 + 0.18 * n))}" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="보유" data-gr-s="${esc(a.id)}" data-gr-t="${esc(grp.key)}" data-tip-title="${esc(t('grLgBundle'))}"/>`);
+        });
+      }
     }
     return out.join('');
   }
@@ -1588,7 +1636,7 @@
     net.focusKey = net.selFk = 'n:' + g.N[si].id;
     recordTrail(g.N[si].l, true);
     if (opts.rerender) rerenderGraph(false); else { applyNetState(); refreshTrail(); }
-    App.select('n:' + g.N[si].id, { animate: true, focus: false });
+    if (!opts.noPanel) App.select('n:' + g.N[si].id, { animate: true, focus: false });
   }
 
   function netSelectGroup(key) {
@@ -1656,13 +1704,47 @@
     applyNetState();
   }
 
-  // 1,000px 미만: 그룹 카드 세로 목록(지금 단계의 임시 표시, 8.3절은 7단계)
+  // 1,000px 미만(8.3): 그룹 카드를 우체국만 보유, 우체국과 타사 보유, 타사만 보유 차례로 쌓는다.
+  // 카드마다 그룹 라벨 두 행, 보장 대분류 누적 막대, 표시가 붙은 담보 이름 칩. 칩을 탭하면 회사별 종형, 특약, 급부를 세로로 펼친다
+  const NL_CLS = ['only', 'shared', 'peer'];
+  function nlDomBarHTML(g, members) {
+    const doms = domOrder(g);
+    const cnt = doms.map(() => 0);
+    members.forEach(si => { const i = doms.indexOf(domOf(g, si)); cnt[i < 0 ? 4 : Math.min(i, 4)] += 1; });
+    const tx = domCountText(g, members);
+    return `<div class="gr-nl-bar" role="img" aria-label="${esc(tx)}">${cnt.map((n, i) => n ? `<span style="flex-grow:${n};background:var(--gr-dom-${i})"></span>` : '').join('')}</div><div class="gr-nl-dc">${esc(tx)}</div>`;
+  }
+  function nlChipHTML(g, si, marks, dom, on) {
+    const glyphs = marks.filter(m => m !== 'wait');
+    const wait = marks.includes('wait');
+    const sw = `<svg class="gr-nl-sw" width="24" height="22" viewBox="-11 -11 24 22" aria-hidden="true"><g class="gr-n${wait ? ' is-wait' : ''}"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-${dom})"/>${glyphs.map(m => markGlyph(m, 5)).join('')}</g></svg>`;
+    const mk = marks.map(m => t(MARK_KEY[m])).join(', ');
+    return `<button type="button" class="gr-nl-chip${on ? ' is-sel' : ''}" data-gr-node="${esc(g.N[si].id)}" data-gr-idx="${si}" aria-expanded="${on}"${mk ? ` data-tip-title="${esc(g.N[si].l)}" data-tip-sub="${esc(mk)}"` : ''}>${sw}<span>${esc(g.N[si].l)}</span>${mk ? `<span class="gr-nl-mk">${esc(mk)}</span>` : ''}</button>`;
+  }
+  // 한 종형에서 그 담보로 가는 특약과 급부(그래프 펼침과 같은 차례)
+  function nlChainHTML(g, vi, si) {
+    const chain = chainOf(g, vi, si);
+    if (!chain.length) return '';
+    return chain.map(rc => `<li class="gr-nl-r"><span class="gr-nl-rn">${esc(riderBody(g.N[rc.ri].l))}${renewText(rc.ri) ? ` (${esc(renewText(rc.ri))})` : ''}</span>
+      <ul class="gr-nl-bens">${rc.bens.map(x => `<li class="${x.rec ? 'is-rec' : ''}">${esc(g.N[x.b].l)}${x.rec ? ` <span class="gr-nl-mk">${esc(t('grLgRec'))}</span>` : ''}</li>`).join('')}</ul></li>`).join('');
+  }
+  function nlExpandHTML(g, sc, si) {
+    const it = sc.info.get(si);
+    return `<div class="gr-nl-exp"><button type="button" class="gr-nl-more" data-gr-detail="n:${esc(g.N[si].id)}">${esc(t('grNlDetail'))}</button>${it.per.map(x => `<div class="gr-nl-org"><div class="gr-nl-oh"><span>${esc(orgOf(x.code))}</span><span>${esc(fullVarName(g, x.vi))}</span></div>
+      <ul class="gr-nl-rs">${nlChainHTML(g, x.vi, si)}</ul></div>`).join('')}</div>`;
+  }
   function netNarrowHTML(g, c) {
     const sc = sceneOf(g, c);
-    return sc.groups.map(grp => {
+    const jd = judgeOf(g, c, sc);
+    const doms = domOrder(g);
+    const domIdx = si => { const i = doms.indexOf(sc.info.get(si).dom); return i < 0 ? 4 : Math.min(i, 4); };
+    const groups = sc.groups.slice().sort((a, b) => NL_CLS.indexOf(a.cls) - NL_CLS.indexOf(b.cls));
+    return groups.map(grp => {
       const lines = groupLines(sc, grp);
-      return `<div class="gr-nl-step"><div class="gr-nl-hd"><span>${esc(lines[0])}</span><span>${esc(lines[1])}</span></div>
-        <div class="gr-nl-items">${grp.members.map(si => `<button type="button" class="gr-nl-it${state.selStd === si ? ' is-sel' : ''}" data-gr-node="${esc(g.N[si].id)}" data-gr-idx="${si}">${esc(g.N[si].l)}</button>`).join('')}</div></div>`;
+      const chips = grp.members.map(si => nlChipHTML(g, si, jd.per.get(si).marks, domIdx(si), state.selStd === si)
+        + (state.selStd === si ? nlExpandHTML(g, sc, si) : '')).join('');
+      return `<section class="gr-nl-card gr-nl-${grp.cls}" data-gr-group="${esc(grp.key)}"><div class="gr-nl-hd"><span class="gl-1">${esc(lines[0])}</span><span>${esc(lines[1])}</span></div>
+        ${nlDomBarHTML(g, grp.members)}<div class="gr-nl-chips">${chips}</div></section>`;
     }).join('');
   }
 
@@ -2291,7 +2373,7 @@
   function swatchSVG(inner) {
     return `<svg class="gr-sw" width="22" height="18" viewBox="0 0 22 18" aria-hidden="true">${inner}</svg>`;
   }
-  function legendItemsHTML(g, clickable) {
+  function legendItemsHTML(g, clickable, ring) {
     const doms = domOrder(g).slice(0, 5);
     const btn = (f, sw, label) => (clickable
       ? `<button type="button" class="gr-lg-it${state.filter === f ? ' is-on' : ''}" data-gr-filter="${esc(f)}" aria-pressed="${state.filter === f}">${sw}<span>${esc(label)}</span></button>`
@@ -2307,7 +2389,8 @@
       ['ours-wide', `<g transform="translate(8 7)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${markGlyph('ours-wide', 5)}</g>`],
       ['ours-part', `<g transform="translate(8 7)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${markGlyph('ours-part', 5)}</g>`],
       ['wait', '<g class="gr-n is-wait" transform="translate(11 9)"><circle class="gr-n-c" r="6" style="fill:var(--gr-dom-4)"/></g>'],
-    ].map(([m, sw]) => row(swatchSVG(sw), t(MARK_KEY[m]))).join('');
+    ].map(([m, sw]) => row(swatchSVG(sw), t(MARK_KEY[m]))).join('')
+      + (ring ? row(swatchSVG(`<g transform="translate(11 9)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${ringSVG(7, 0.7)}</g>`), t('grLgRing')) : '');
     const edges = [
       [`<line class="gr-e gr-e-bundle" x1="2" y1="9" x2="20" y2="9" stroke-width="3"/>`, t('grLgBundle')],
       [`<line class="gr-e gr-e-held" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgHeldOne')],
@@ -2322,12 +2405,19 @@
       <div class="gr-lg-sec is-2col"><span class="gr-lg-h">${esc(t('grLgEdgeHead'))}</span>${edges}</div>`;
   }
 
+  // 그룹 기준(타사 3개사 이하는 보유 조합, 4개사 이상은 보유 타사 수 구간)이 바뀐 조건을 기억한다(8.1의 6번)
+  const basis = { last: null, noteSig: null };
   function netLeftHTML(g, c) {
     const sc = sceneOf(g, c);
     const jd = judgeOf(g, c, sc);
+    const now = sc.nPeer > 3 ? 'bin' : 'combo';
+    const sig = sceneTypes(g, c).join(',');
+    if (basis.last && basis.last !== now) basis.noteSig = sig;
+    basis.last = now;
+    const note = basis.noteSig === sig ? `<p class="gr-lg-note" role="status">${esc(t('grBasisNote'))}</p>` : '';
     const fl = FILTERS.map(f => `<button type="button" class="gr-flt${state.filter === 'f:' + f.id ? ' is-on' : ''}" data-gr-filter="f:${f.id}" aria-pressed="${state.filter === 'f:' + f.id}"><span>${esc(App.label(f.cause))}</span><span class="num">${fmt(jd.counts[f.id])}</span></button>`).join('');
     return `<div><span class="gr-sec-k">${esc(t('grFilterHead'))}</span><div class="gr-flts">${fl}</div></div>
-      <div class="gr-legend"><span class="gr-sec-k">${esc(t('grLegendHead'))}</span>${legendItemsHTML(g, true)}</div>`;
+      <div class="gr-legend"><span class="gr-sec-k">${esc(t('grLegendHead'))}</span>${note}${legendItemsHTML(g, true, sc.nPeer > 3)}</div>`;
   }
 
   function netCopyRows(g, c) {
@@ -3568,13 +3658,18 @@
       </div>`;
   }
 
-  // 1,000px 미만: 읽을 수 있는 목록(8.3절의 세로 목록은 7단계)
+  // 1,000px 미만(8.3): 종형 구성은 보장 대분류별 구역에 표준담보 목록, 탭하면 그 담보로 가는 특약과 급부
   function vtNarrowHTML(g) {
     const vi = state.varIdx;
     if (vi == null) return '';
-    const rs = vtRiders(g, vi);
-    return `<div class="gr-nl-step"><div class="gr-nl-hd"><span>${esc(orgLabel(g.N[vi].o))}</span><span>${esc(fullVarName(g, vi))}</span></div>
-      <div class="gr-nl-items">${rs.map(ri => `<button type="button" class="gr-nl-it${state.selNode === ri ? ' is-sel' : ''}" data-gr-node="${esc(g.N[ri].id)}" data-gr-idx="${ri}">${esc(riderBody(g.N[ri].l))}${renewText(ri) ? ` (${esc(renewText(ri))})` : ''}</button>`).join('')}</div></div>`;
+    const held = g.heldBy.get(vi);
+    const doms = domOrder(g);
+    const stds = held ? Array.from(held.keys()).sort((a, b) => a - b) : [];
+    const secs = doms.map((d, i) => [d, i, stds.filter(si => { const k = doms.indexOf(domOf(g, si)); return (k < 0 ? 4 : Math.min(k, 4)) === i; })]).filter(x => x[2].length);
+    const head = `<div class="gr-nl-hd"><span class="gl-1">${esc(fullVarName(g, vi))}</span><span>${esc(orgLabel(g.N[vi].o))}</span></div>`;
+    return `<section class="gr-nl-card">${head}${nlDomBarHTML(g, stds)}</section>` + secs.map(([d, i, list]) => `<section class="gr-nl-card"><div class="gr-nl-hd"><span class="gl-1">${esc(d)}</span><span>${esc(t('grGrpCntTpl', { n: fmt(list.length) }))}</span></div>
+      <div class="gr-nl-chips">${list.map(si => nlChipHTML(g, si, [], i, state.selNode === si)
+        + (state.selNode === si ? `<div class="gr-nl-exp"><button type="button" class="gr-nl-more" data-gr-detail="n:${esc(g.N[si].id)}">${esc(t('grNlDetail'))}</button><ul class="gr-nl-rs">${nlChainHTML(g, vi, si)}</ul></div>` : '')).join('')}</div></section>`).join('');
   }
   function mkNarrowHTML(g, c) {
     const lay = mkLayout(g, c, 360, 400);
@@ -3778,11 +3873,30 @@
       return;
     }
 
-    // 1,000px 미만 목록의 노드
+    // 1,000px 미만 목록: 상세와 근거 버튼은 상세 시트를 연다
+    const dt = e.target.closest && e.target.closest('[data-gr-detail]');
+    if (dt) {
+      e.stopPropagation();
+      App.select(dt.dataset.grDetail, { animate: true, focus: false });
+      return;
+    }
+    // 1,000px 미만 목록의 노드. 담보 칩은 상세 시트를 열지 않고 그 아래에 펼치며, 다시 탭하면 접는다(8.3)
     const nd = e.target.closest && e.target.closest('[data-gr-node]');
     if (nd) {
       e.stopPropagation();
       const ni = +nd.dataset.grIdx;
+      if (nd.classList.contains('gr-nl-chip')) {
+        if (state.preset === 'cover') {
+          if (state.selStd === ni) { state.selStd = null; rerenderGraph(false); } else netSelectStd(ni, { rerender: true, noPanel: true });
+        } else {
+          state.selNode = state.selNode === ni ? null : ni;
+          state.selEdge = null;
+          rerenderGraph(false);
+        }
+        const again = lastCenterEl && lastCenterEl.querySelector(`.gr-nl-chip[data-gr-idx="${ni}"]`);
+        if (again) again.focus({ preventScroll: true });
+        return;
+      }
       if (state.preset === 'cover') { netSelectStd(ni, { rerender: true }); return; }
       state.selNode = ni;
       state.selEdge = null;
@@ -3877,7 +3991,7 @@
     net.resizeT = setTimeout(() => { if (App.state.tab === 'graph') rerenderGraph(false); }, 150);
   });
 
-  ui.registerLegend('graph', 'grLegendTitle', () => `<div class="gr-legend is-pop">${state.preset === 'cover' ? legendItemsHTML(ensureGraph(), false) : altLegendHTML(ensureGraph())}</div>`);
+  ui.registerLegend('graph', 'grLegendTitle', () => `<div class="gr-legend is-pop">${state.preset === 'cover' ? legendItemsHTML(ensureGraph(), false, !!(net.lay && net.lay.sc && net.lay.sc.nPeer > 3)) : altLegendHTML(ensureGraph())}</div>`);
 
   function path() {
     const base = [App.TAB_NAME.graph];

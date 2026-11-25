@@ -91,6 +91,12 @@
 .gr-flt:hover{background:var(--hover)}
 .gr-flt.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent}
 .gr-flt .num{font:600 13px/1 var(--f-num)}
+/* 타사 4개사 이상: 보유 비율 링 차트와 그룹 기준 안내(8.1) */
+.gr-ring{pointer-events:none;transition:opacity 220ms var(--ease-move)}
+.gr-net-svg.is-exp .gr-n:not(.is-big) .gr-ring{opacity:0}
+.gr-ring-bg{fill:none;stroke:var(--line-2);stroke-width:2}
+.gr-ring-fg{fill:none;stroke:var(--ink-0);stroke-width:2}
+.gr-lg-note{margin:0 0 6px;padding:4px 6px;border-left:2px solid var(--red);font:600 13px/1.35 var(--f-ko);color:var(--ink-0)}
 .gr-lg-sec{display:grid;grid-template-columns:1fr;gap:0 6px;margin:0 0 6px}
 .gr-lg-sec.is-2col{grid-template-columns:1fr 1fr}
 .gr-lg-sec .gr-lg-h{grid-column:1/-1}
@@ -165,10 +171,32 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 }
 .gr-preset .gp-t{word-break:keep-all}
 
-/* 1,000px 미만 목록(8.3절의 세로 목록은 7단계에서 다시 만든다) */
+/* 1,000px 미만 세로 목록(8.3): 그룹 카드, 보장 대분류 누적 막대, 담보 이름 칩, 칩 아래 회사별 종형, 특약, 급부 */
 .gr-nl{display:flex;flex-direction:column;gap:10px;padding:6px 0 14px}
 .gr-nl-step{display:flex;flex-direction:column;gap:6px;padding:8px 0 10px 12px;border-left:2px solid var(--axis)}
-.gr-nl-hd{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 8px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1)}
+.gr-nl-card{display:flex;flex-direction:column;gap:6px;padding:8px 10px 10px 12px;border-left:2px solid var(--axis)}
+.gr-nl-card.gr-nl-only{border-left-color:var(--ink-0)}
+.gr-nl-card.gr-nl-peer{border-left-style:dashed}
+.gr-nl-hd{display:flex;flex-direction:column;gap:2px;font:600 13px/1.3 var(--f-ko);color:var(--ink-1);word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-hd .gl-1{font-weight:700;color:var(--ink-0)}
+.gr-nl-bar{display:flex;gap:1px;height:8px;border:1px solid var(--line-2)}
+.gr-nl-bar span{display:block;min-width:2px}
+.gr-nl-dc{font:500 13px/1.3 var(--f-ko);color:var(--ink-1);word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-chips{display:flex;flex-wrap:wrap;gap:4px}
+.gr-nl-chip{display:inline-flex;align-items:center;gap:2px;max-width:100%;min-height:32px;padding:3px 8px 3px 2px;border:1px solid var(--line-2);background:transparent;
+  color:var(--ink-0);font:600 13px/1.3 var(--f-ko);text-align:left;word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-chip:hover,.gr-nl-chip:focus-visible{background:var(--hover)}
+.gr-nl-chip.is-sel{outline:2px solid var(--red);outline-offset:-2px}
+.gr-nl-sw{flex:none}
+.gr-nl-mk{font-weight:500;color:var(--ink-1);margin-left:4px}
+.gr-nl-exp{flex-basis:100%;display:flex;flex-direction:column;gap:8px;padding:4px 0 6px 10px;border-left:2px solid var(--red)}
+.gr-nl-more{align-self:flex-start;min-height:32px;padding:4px 10px;border:1px solid var(--line-2);background:transparent;color:var(--ink-0);font:600 13px/1.3 var(--f-ko)}
+.gr-nl-more:hover,.gr-nl-more:focus-visible{background:var(--hover)}
+.gr-nl-oh{display:flex;flex-direction:column;font:600 13px/1.3 var(--f-ko);color:var(--ink-0);word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-rs,.gr-nl-bens{list-style:none;margin:0;padding:0}
+.gr-nl-r{padding:3px 0 3px 8px;border-left:1px solid var(--line-2);font:600 13px/1.35 var(--f-ko);color:var(--ink-0);word-break:keep-all;overflow-wrap:anywhere}
+.gr-nl-bens li{padding-left:12px;font:400 13px/1.35 var(--f-ko);color:var(--ink-1)}
+.gr-nl-bens li.is-rec{border-left:1px dashed var(--ink-1)}
 .gr-nl-items{display:flex;flex-direction:column;gap:4px}
 .gr-nl-it{display:block;width:100%;min-height:32px;padding:5px 8px;border:1px solid var(--line-2);background:transparent;color:var(--ink-0);
   font:600 13px/1.3 var(--f-ko);text-align:left;word-break:keep-all;overflow-wrap:anywhere}

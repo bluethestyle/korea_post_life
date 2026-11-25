@@ -68,7 +68,11 @@ EXPECT_JS = r"""
     const ours = slots[0] === 0;
     const kp = slots.length - (ours ? 1 : 0);
     const cls = ours && kp === 0 ? 'only' : ours ? 'shared' : 'peer';
-    const gkey = slots.map(s => codes[s]).join(',');
+    // 타사 4개사 이상은 보유 타사 수 구간(8.1): n 타사 수, k 보유 타사 수, h = n/2 올림
+    const nP = types.length - 1, h = Math.ceil(nP / 2);
+    const bin = nP <= 3 ? null : ours ? (kp === 0 ? 'only' : kp === nP ? 'all' : kp >= h ? 'many' : 'few')
+      : (kp === nP ? 'p-all' : kp >= h ? 'p-many' : kp >= 2 ? 'p-few' : 'p-one');
+    const gkey = bin ? 'bin:' + bin : slots.map(s => codes[s]).join(',');
     out.groups[gkey] = (out.groups[gkey] || 0) + 1;
     const sid = nodes[si][0];
     const row = rows.get(sid);
@@ -139,7 +143,9 @@ ORG_TEXT_JS = r"""
   const hits = [];
   orgs.forEach(([code, name]) => {
     const re = new RegExp('(^|[^A-Za-z0-9_])' + code + '(?![A-Za-z0-9_])');
-    texts.forEach(tx => { if (re.test(tx.split(name).join(''))) hits.push([code, tx.slice(0, 60)]); });
+    // 회사 이름 안에 든 글자(KB손해보험, KB라이프생명의 KB)는 뺀다: 모든 회사 이름을 지운 뒤 찾는다
+    const strip = tx => orgs.reduce((s, o) => s.split(o[1]).join(' '), tx);
+    texts.forEach(tx => { if (re.test(strip(tx))) hits.push([code, tx.slice(0, 60)]); });
   });
   return hits;
 }
@@ -220,10 +226,12 @@ def layout_metrics(sc: dict) -> dict:
     lab_overlap = sum(1 for a, b in itertools.combinations(labels, 2) if rect_overlap(a['box'], b['box']))
     circles = [(n['x'], n['y'], n['r'], n['id']) for n in nodes] + [(a['x'], a['y'], a['r'], a['id']) for a in anchors]
     lab_node = 0
+    lab_node_detail = []
     for lb in labels:
         for x, y, r, nid in circles:
             if rect_circle(lb['box'], x, y, r):
                 lab_node += 1
+                lab_node_detail.append([lb['type'], lb['text'][:30], nid])
     lab_out = sum(1 for lb in labels if lb['box'][0] < -0.5 or lb['box'][1] < -0.5 or lb['box'][2] > W + 0.5 or lb['box'][3] > H + 0.5)
     fs_min = min((lb['fs'] for lb in labels), default=0)
     n_anchor_lb = sum(1 for lb in labels if lb['type'] == 'anchor')
@@ -238,7 +246,7 @@ def layout_metrics(sc: dict) -> dict:
         'node_overlap': overlap, 'node_min_gap': round(min_gap, 2), 'node_gap_req': gap_req, 'node_gap_violations': gap_bad,
         'outside_group': outside, 'group_min_gap': round(gmin, 2), 'margin_violations': margin_bad,
         'bundle_crossings': cross, 'orthogonal_edges': ortho,
-        'label_overlap': lab_overlap, 'label_node_overlap': lab_node, 'label_outside': lab_out, 'label_font_min': fs_min,
+        'label_overlap': lab_overlap, 'label_node_overlap': lab_node, 'label_node_detail': lab_node_detail[:10], 'label_outside': lab_out, 'label_font_min': fs_min,
         'anchor_labels': n_anchor_lb, 'group_labels': n_group_lb, 'group_badges': n_badge,
         'std_labels': n_std_lb, 'std_label_on_bundle': lab_on_bundle, 'layout_ms': sc['ms'],
     }
@@ -813,6 +821,25 @@ async def run(args):
                            'state': await pg.evaluate("() => [document.querySelector('[data-gr-preset].is-on')?.dataset.grPreset, !!document.getElementById('gr-vt-svg'), !!document.getElementById('gr-net-svg'), document.querySelector('#gr-net')?.clientWidth, document.querySelector('#gr-net')?.clientHeight, (document.querySelector('#z-center')||{}).innerHTML?.slice(0, 200)]")}
                 alt['static'] = static_check()
                 result['alt'] = alt
+            # 세 보기 측정은 4단계, 5, 6단계 측정이 끝난 뒤에 한다(보기를 오가면 담보별 연결의 배치 캐시와 선택 상태가 바뀌므로)
+            if args.org_views and (vw, vh) == sizes[0]:
+                # 22번: 세 보기(담보별 연결, 종형 구성, 시장 동향)의 기관코드 글자. 다른 자료(3개사, 가상 20개사)에서도 잰다
+                views = {'cover': org_hits}
+                # 앞 측정의 Esc 로 다른 탭에 가 있을 수 있으므로 관계 그래프 탭으로 돌아온다(alt_checks 와 같은 방식)
+                await pg.evaluate("() => { if (App.state.tab !== 'graph') App.go('graph'); }")
+                await pg.wait_for_timeout(600)
+                await set_cond(pg, bases[0], 'all')
+                for pre, sel_ in (('variant', '#gr-vt-svg'), ('news', '#gr-mk-svg')):
+                    await pg.evaluate("(s) => document.querySelector(s).click()", f'[data-gr-preset="{pre}"]')
+                    await wait_alt(pg, sel_)
+                    views[pre] = await pg.evaluate(ORG_TEXT_JS)
+                    if pre == 'news':
+                        await pg.evaluate("(s) => document.querySelector(s).click()", '[data-gr-nf="all"]')
+                        await wait_alt(pg, sel_)
+                        views['news_all'] = await pg.evaluate(ORG_TEXT_JS)
+                await pg.evaluate("(s) => document.querySelector(s).click()", '[data-gr-preset="cover"]')
+                await wait_alt(pg, '#gr-net-svg')
+                org_hits = views
             hscroll = await pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
             math_random = await pg.evaluate("() => (document.documentElement.outerHTML.match(/Math\\.random/g) || []).length")
             result['sizes'][f'{vw}x{vh}'] = {'states': per, 'determinism': det, 'selection': sel, 'org_code_text': org_hits,
@@ -936,6 +963,7 @@ def main():
     ap.add_argument('--no-stage4', action='store_true', help='4단계 측정(선택 펼침, 조건 이동, 트랜지션, 근거 경로)을 건너뛴다')
     ap.add_argument('--no-alt', action='store_true', help='5, 6단계 측정(종형 구성, 시장 동향)을 건너뛴다')
     ap.add_argument('--alt-only', action='store_true', help='5, 6단계 측정만 1920x1080 에서 한다')
+    ap.add_argument('--org-views', action='store_true', help='첫 해상도에서 세 보기의 기관코드 글자를 잰다(12절 22번)')
     ap.add_argument('--cpu4', action='store_true', help='CPU 4배 느림에서 조건마다 레이아웃 계산 시간을 잰다')
     args = ap.parse_args()
     asyncio.run(alt_run(args) if args.alt_only else run(args))
