@@ -7,10 +7,13 @@
   const { ui, txt, t } = App;
   const { esc, fmt } = ui;
 
-  const COL_KINDS = [6, 0, 1, 2, 3, 4, 5]; // 소식, 회사, 종형, 특약, 급부, 표준담보, 보장분야
-  const COL_OF_KIND = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
+  // 노드와 엣지 종류는 번호가 아니라 graph.json 의 자료 이름으로 찾는다(ensureGraph 에서 채움)
+  let NK = {};
+  let EK = {};
+  const COL_KIND_NAMES = ['시장 동향', '회사', '종형', '특약', '급부', '표준담보', '보장 대분류'];
+  let COL_KINDS = [];
+  let COL_OF_KIND = {};
   const BATCH_SIZE = 12;
-  const RIDER_GRP_ORDER = { '주계약': 0, '비갱신특약': 1, '갱신특약': 2 };
 
   let G = null;
   let lastLeftEl = null;
@@ -47,8 +50,16 @@
       try { raw = JSON.parse(scriptEl.textContent); } catch (e) { console.error(e); }
     }
     App.addLabels(raw['표시명']);
-    const kinds = raw.kinds && raw.kinds.length ? raw.kinds : t('grKindsFallback').split(',');
-    const ekinds = raw.ekinds && raw.ekinds.length ? raw.ekinds : t('grEkindsFallback').split(',');
+    // 종류는 번호가 아니라 자료 이름(kinds, ekinds)으로 찾고, 화면 이름은 kindLabels, ekindLabels 에서 읽는다
+    const kinds = raw.kinds || [];
+    const ekinds = raw.ekinds || [];
+    const kindLabels = raw.kindLabels && raw.kindLabels.length === kinds.length ? raw.kindLabels : kinds;
+    const ekindLabels = raw.ekindLabels && raw.ekindLabels.length === ekinds.length ? raw.ekindLabels : ekinds;
+    NK = Object.fromEntries(kinds.map((nm, i) => [nm, i]));
+    EK = Object.fromEntries(ekinds.map((nm, i) => [nm, i]));
+    COL_KINDS = COL_KIND_NAMES.map(nm => NK[nm]);
+    COL_OF_KIND = {};
+    COL_KINDS.forEach((k, colIdx) => { if (k != null) COL_OF_KIND[k] = colIdx; });
     const keys = raw.keys || [];
     const dec = obj => {
       const out = {};
@@ -64,7 +75,8 @@
       o: a[3] || null,
       p: dec(a[4]),
     }));
-    const E = (raw.edges || []).map((a, i) => ({
+    // edges(판매~발표)와 edges2(보유, 결합제약, 개정 따위)를 함께 색인한다
+    const E = (raw.edges || []).concat(raw.edges2 || []).map((a, i) => ({
       i,
       s: a[0],
       t: a[1],
@@ -72,11 +84,14 @@
       p: dec(a[3]),
     }));
 
+    const kOrg = NK['회사'], kVar = NK['종형'], kRider = NK['특약'], kBen = NK['급부'], kStd = NK['표준담보'], kDom = NK['보장 대분류'];
+    const eInc = EK['포함'], eMap = EK['매핑'], eCls = EK['분류'], eRel = EK['담보 관계'], eHeld = EK['보유'];
+
     const byId = new Map();
     const orgNames = {};
     N.forEach(n => {
       byId.set(n.id, n.i);
-      if (n.k === 0 && n.o) orgNames[n.o] = n.l;
+      if (n.k === kOrg && n.o) orgNames[n.o] = n.l;
     });
 
     const adj = N.map(() => []);
@@ -89,6 +104,8 @@
     const stdDom = new Map();
     const domStds = new Map();
     const stdRels = new Map();
+    const heldBy = new Map();   // 종형 노드 번호 -> Map(표준담보 노드 번호 -> 보유 엣지)
+    const heldOf = new Map();   // 표준담보 노드 번호 -> [보유 종형 노드 번호]
 
     const pushArr = (map, k, v) => {
       let arr = map.get(k);
@@ -97,56 +114,31 @@
     };
 
     E.forEach(e => {
-      adj[e.s].push({ e: e.i, j: e.t, ek: e.k, isOut: true });
-      adj[e.t].push({ e: e.i, j: e.s, ek: e.k, isOut: false });
       const ns = N[e.s], nt = N[e.t];
       if (!ns || !nt) return;
-      if (e.k === 1 && ns.k === 1 && nt.k === 2) {
+      adj[e.s].push({ e: e.i, j: e.t, ek: e.k, isOut: true });
+      adj[e.t].push({ e: e.i, j: e.s, ek: e.k, isOut: false });
+      if (e.k === eInc && ns.k === kVar && nt.k === kRider) {
         pushArr(varRiders, e.s, e.t);
         pushArr(riderVars, e.t, e.s);
-      } else if (e.k === 1 && ns.k === 2 && nt.k === 3) {
+      } else if (e.k === eInc && ns.k === kRider && nt.k === kBen) {
         pushArr(riderBens, e.s, e.t);
         pushArr(benRiders, e.t, e.s);
-      } else if (e.k === 2 && ns.k === 3 && nt.k === 4) {
+      } else if (e.k === eMap && ns.k === kBen && nt.k === kStd) {
         pushArr(benStds, e.s, { std: e.t, e: e.i });
         pushArr(stdBens, e.t, { ben: e.s, e: e.i });
-      } else if (e.k === 3 && ns.k === 4 && nt.k === 5) {
+      } else if (e.k === eCls && ns.k === kStd && nt.k === kDom) {
         stdDom.set(e.s, { dom: e.t, e: e.i });
         pushArr(domStds, e.t, e.s);
-      } else if (e.k === 4 && ns.k === 4 && nt.k === 4) {
+      } else if (e.k === eRel && ns.k === kStd && nt.k === kStd) {
         pushArr(stdRels, e.s, { other: e.t, e: e.i, dir: 'out' });
         pushArr(stdRels, e.t, { other: e.s, e: e.i, dir: 'in' });
+      } else if (e.k === eHeld && ns.k === kVar && nt.k === kStd) {
+        let m = heldBy.get(e.s);
+        if (!m) { m = new Map(); heldBy.set(e.s, m); }
+        m.set(e.t, e);
+        pushArr(heldOf, e.t, e.s);
       }
-    });
-
-    // 종형 -> 특약 -> 급부 -> 표준담보 -> 보장분야 실제 연결 목록 사전 색인(값을 새로 판단하지 않고 경로 목록만 모은다)
-    const varStdPaths = new Map(); // varIdx -> Map(stdIdx -> { riders: number[], bens: number[] })
-    const varDomStds = new Map();  // varIdx -> Map(domIdx -> number[])
-    N.forEach(vn => {
-      if (vn.k !== 1) return;
-      const sMap = new Map();
-      const dMap = new Map();
-      const rList = varRiders.get(vn.i) || [];
-      rList.forEach(ri => {
-        const bList = riderBens.get(ri) || [];
-        bList.forEach(bi => {
-          const stLinks = benStds.get(bi) || [];
-          stLinks.forEach(({ std }) => {
-            let entry = sMap.get(std);
-            if (!entry) { entry = { riders: new Set(), bens: new Set() }; sMap.set(std, entry); }
-            entry.riders.add(ri);
-            entry.bens.add(bi);
-          });
-        });
-      });
-      const finalizedS = new Map();
-      for (const [std, sets] of sMap.entries()) {
-        finalizedS.set(std, { riders: Array.from(sets.riders), bens: Array.from(sets.bens) });
-        const dm = stdDom.get(std);
-        if (dm) pushArr(dMap, dm.dom, std);
-      }
-      varStdPaths.set(vn.i, finalizedS);
-      varDomStds.set(vn.i, dMap);
     });
 
     G = {
@@ -154,8 +146,11 @@
       summary: raw.summary || null,
       kinds,
       ekinds,
+      kindLabels,
+      ekindLabels,
       N,
       E,
+      nBaseEdges: (raw.edges || []).length,
       byId,
       orgNames,
       adj,
@@ -168,8 +163,8 @@
       stdDom,
       domStds,
       stdRels,
-      varStdPaths,
-      varDomStds,
+      heldBy,
+      heldOf,
     };
     return G;
   }
@@ -185,10 +180,197 @@
     else setTimeout(warm, 120);
   }, 320);
 
+  // 회사 이름: 그래프의 회사 노드 이름을 먼저 쓰고, 없거나 기관코드와 같으면 txt.orgShort(2절)
   function orgLabel(code) {
     if (!code) return '';
-    if (G && G.orgNames && G.orgNames[code]) return G.orgNames[code];
+    const nm = G && G.orgNames && G.orgNames[code];
+    if (nm && nm !== code) return nm;
     return txt.orgShort(code) || code;
+  }
+
+  // ---------- 담보별 연결의 자료 계층: 보유 조합 그룹(3.4), 표시(5.3), 판정 필터(5.4) ----------
+  // 관계 그래프 안의 보장 대분류 차례. 자료에 없는 대분류가 생기면 끝에 붙인다(3.11)
+  const DOM_ORDER = ['암보장', '뇌혈관보장', '뇌심장보장', '심장보장', '공통보장'];
+  // 담보 관계 엣지는 지금 자료에서 도착 노드가 넓은 담보다. 자료의 방향이 바뀌면 이 값 하나만 바꾼다
+  const REL_TARGET_IS_WIDE = true;
+  const CAUSE_REL = '관계 담보로 덮음';
+  const MARKS = ['sole', 'peer-rel', 'ours-wide', 'ours-part', 'wait'];
+  // 판정 필터 다섯: 이름은 까닭 키의 표시명(App.label)으로 읽는다(5.4)
+  const FILTERS = [
+    { id: 'win', cause: '나음' },
+    { id: 'lose', cause: '못함' },
+    { id: 'diff', cause: '단정 주의' },
+    { id: 'wait', cause: '검토 대기' },
+    { id: 'rel', cause: CAUSE_REL },
+  ];
+
+  function domOrder(g) {
+    if (g.domOrder) return g.domOrder;
+    const out = DOM_ORDER.slice();
+    g.N.forEach(n => { if (n.k === NK['보장 대분류'] && !out.includes(n.l)) out.push(n.l); });
+    g.domOrder = out;
+    return out;
+  }
+
+  function domOf(g, si) {
+    const dm = g.stdDom.get(si);
+    if (dm && g.N[dm.dom]) return g.N[dm.dom].l;
+    return String((g.N[si] && g.N[si].p['보장대분류']) || '');
+  }
+
+  // 화면에 놓을 종형: 기준 종형과 비교 범위로 거른 비교 대상 종형(c.peerIds, 기관코드 순)
+  function sceneTypes(g, c) {
+    const out = [];
+    const bi = g.byId.get(c.baseId);
+    if (bi != null) out.push(bi);
+    (c.peerIds || []).forEach(id => {
+      const ni = g.byId.get(id);
+      if (ni != null && !out.includes(ni)) out.push(ni);
+    });
+    return out;
+  }
+
+  // 타사 4개사 이상의 보유 타사 수 구간(8.1). n 타사 수, k 보유 타사 수, h = n/2 올림
+  function binOf(ours, k, n) {
+    const h = Math.ceil(n / 2);
+    if (ours) return k === 0 ? 'only' : k === n ? 'all' : k >= h ? 'many' : 'few';
+    return k === n ? 'p-all' : k >= h ? 'p-many' : k >= 2 ? 'p-few' : 'p-one';
+  }
+  const BIN_ORDER = ['only', 'few', 'many', 'all', 'p-all', 'p-many', 'p-few', 'p-one'];
+
+  // 보유 엣지로 정한 (기준 종형, 비교 범위)의 담보와 보유 조합 그룹
+  const sceneCache = new Map();
+  function sceneOf(g, c) {
+    const types = sceneTypes(g, c);
+    const sig = types.join(',');
+    if (sceneCache.has(sig)) return sceneCache.get(sig);
+    const codes = types.map(vi => g.N[vi].o || '');
+    const nPeer = Math.max(0, types.length - 1);
+    const slotsOf = new Map();
+    types.forEach((vi, slot) => {
+      const m = g.heldBy.get(vi);
+      if (!m) return;
+      for (const si of m.keys()) {
+        let a = slotsOf.get(si);
+        if (!a) { a = []; slotsOf.set(si, a); }
+        a.push(slot);
+      }
+    });
+    const stds = Array.from(slotsOf.keys()).sort((a, b) => a - b);
+    const info = new Map();
+    const groupMap = new Map();
+    stds.forEach(si => {
+      const slots = slotsOf.get(si).slice().sort((a, b) => a - b);
+      const ours = slots[0] === 0;
+      const kp = slots.length - (ours ? 1 : 0);
+      const cls = ours && kp === 0 ? 'only' : ours ? 'shared' : 'peer';
+      const bin = nPeer > 3 ? binOf(ours, kp, nPeer) : null;
+      const key = bin ? 'bin:' + bin : slots.map(s => codes[s]).join(',');
+      let bens = 0;
+      const per = slots.map(s => {
+        const e = g.heldBy.get(types[s]).get(si);
+        const p = e ? e.p : {};
+        bens += +(p['급부수'] || 0);
+        return { slot: s, vi: types[s], code: codes[s], e };
+      });
+      const it = { si, slots, ours, kp, cls, key, bin, bens, per, dom: domOf(g, si) };
+      info.set(si, it);
+      let grp = groupMap.get(key);
+      if (!grp) {
+        grp = { key, cls, bin, slots: bin ? null : slots, members: [] };
+        groupMap.set(key, grp);
+      }
+      grp.members.push(si);
+    });
+    const groups = Array.from(groupMap.values()).sort((a, b) => {
+      if (a.bin || b.bin) return BIN_ORDER.indexOf(a.bin) - BIN_ORDER.indexOf(b.bin);
+      return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+    });
+    const sc = { sig, types, codes, nPeer, stds, info, groups, groupMap };
+    sceneCache.set(sig, sc);
+    return sc;
+  }
+
+  // 담보 비교 탭과 같은 판정 자료(App.cover)에서 한 담보의 판정과 관련 담보 근거를 읽는다(5.2)
+  const coverRowCache = new Map();
+  function coverRow(baseId, sid) {
+    let m = coverRowCache.get(baseId);
+    if (!m) {
+      m = new Map();
+      const B = App.cover && App.cover.rawB(baseId);
+      ((B && B.rows) || []).forEach(r => m.set(r[0], r));
+      coverRowCache.set(baseId, m);
+    }
+    return m.get(sid) || null;
+  }
+
+  function coverOf(c, sid) {
+    const cv = App.cover;
+    if (!cv || !cv.hasRow(c.baseId, sid)) return null;
+    const pv = cv.peerVerdicts(c.baseId, sid, c) || [];
+    const row = coverRow(c.baseId, sid);
+    const ours = row && row[1] && row[1][0];
+    const oursRel = ours && typeof ours === 'object' && !(ours.i && ours.i.length) && ours.c ? ours.c : null;
+    const cols = cv.peerCols(c.baseId) || [];
+    const peerRel = peerId => {
+      const k = cols.indexOf(peerId);
+      const cell = k > 0 && row && row[1] ? row[1][k] : null;
+      return cell && cell.c ? cell.c : null;
+    };
+    return { pv, row, oursRel, peerRel };
+  }
+
+  // 표시(data-gr-mark): sole, peer-rel, ours-wide, ours-part, wait(5.3)
+  function marksOf(g, c, sc, si) {
+    const it = sc.info.get(si);
+    if (!it) return [];
+    const cov = coverOf(c, g.N[si].id);
+    if (!cov) return [];
+    const out = [];
+    if (it.cls === 'only') {
+      out.push(cov.pv.some(x => x.v && x.v.cause === CAUSE_REL) ? 'peer-rel' : 'sole');
+    } else if (it.cls === 'peer' && cov.oursRel) {
+      if (cov.oursRel[0] === '넓은 담보') out.push('ours-wide');
+      else if (cov.oursRel[0] === '부분 담보') out.push('ours-part');
+    }
+    if (it.per.some(x => x.e && ((+x.e.p['매핑검수대기급부수'] || 0) > 0 || (+x.e.p['추출검수대기급부수'] || 0) > 0))) out.push('wait');
+    return out;
+  }
+
+  // 판정 필터: 비교 범위의 타사 가운데 1개사라도 해당하면 그 담보를 강조한다(5.4)
+  function filterHit(fid, cov, marks) {
+    if (fid === 'wait' && marks.includes('wait')) return true;
+    if (!cov) return false;
+    if (fid === 'rel' && cov.oursRel) return true;
+    const table = (App.cover && App.cover.rawMeta().table) || {};
+    return cov.pv.some(({ v }) => {
+      if (!v) return false;
+      if (fid === 'win') return v.cause === '나음';
+      if (fid === 'lose') return v.cause === '못함';
+      if (fid === 'diff') return !!(table[v.cause] && table[v.cause]['칩'] === 'diff');
+      if (fid === 'wait') return v.cause === '검토 대기';
+      if (fid === 'rel') return v.cause === CAUSE_REL;
+      return false;
+    });
+  }
+
+  // 한 장면의 담보마다 판정, 표시, 필터 결과를 한 번에 계산한다
+  const judgeCache = new Map();
+  function judgeOf(g, c, sc) {
+    const sig = `${c.baseId}|${sc.sig}`;
+    if (judgeCache.has(sig)) return judgeCache.get(sig);
+    const per = new Map();
+    const counts = Object.fromEntries(FILTERS.map(f => [f.id, 0]));
+    sc.stds.forEach(si => {
+      const cov = coverOf(c, g.N[si].id);
+      const marks = marksOf(g, c, sc, si);
+      const hits = new Set(FILTERS.filter(f => filterHit(f.id, cov, marks)).map(f => f.id));
+      hits.forEach(id => { counts[id] += 1; });
+      per.set(si, { cov, marks, hits });
+    });
+    const out = { per, counts };
+    judgeCache.set(sig, out);
+    return out;
   }
 
   function scopeSig(c) {
@@ -204,65 +386,9 @@
       if (idx != null) { out.push(idx); seen.add(idx); }
     });
     g.N.forEach(n => {
-      if (n.k === 5 && !seen.has(n.i)) out.push(n.i);
+      if (n.k === NK['보장 대분류'] && !seen.has(n.i)) out.push(n.i);
     });
     return out;
-  }
-
-  function matchedVariants(g, c) {
-    const allowedPeers = new Set(c.activePeerOrgs || []);
-    const outVars = [];
-    const seen = new Set();
-
-    // summary.기준종형 과 summary.맞붙는종형 이 있으면 화면에서 다시 고르지 않고 그대로 쓴다
-    if (g.summary && g.summary['맞붙는종형']) {
-      const bIdx = g.byId.get(c.baseId);
-      if (bIdx != null) { outVars.push(bIdx); seen.add(bIdx); }
-      const peerIds = g.summary['맞붙는종형'][c.baseId] || c.peerIds || [];
-      peerIds.forEach(vid => {
-        const ni = g.byId.get(vid);
-        if (ni == null || seen.has(ni)) return;
-        const org = g.N[ni].o;
-        if (c.peerScope === 'all' || allowedPeers.has(org)) {
-          outVars.push(ni);
-          seen.add(ni);
-        }
-      });
-      if (outVars.length) return outVars;
-    }
-
-    const baseSimsa = (c.baseInfo && c.baseInfo['심사']) || '간편심사';
-    const directBase = g.byId.get(c.baseId);
-    if (directBase != null) {
-      outVars.push(directBase);
-      seen.add(directBase);
-    } else {
-      const epFallback = g.N.find(n => n.k === 1 && n.o === 'EPOST' && n.p['심사유형'] === baseSimsa)
-        || g.N.find(n => n.k === 1 && n.o === 'EPOST');
-      if (epFallback) { outVars.push(epFallback.i); seen.add(epFallback.i); }
-    }
-    const coveredOrgs = new Set(['EPOST']);
-    (c.peerIds || []).forEach(vid => {
-      const ni = g.byId.get(vid);
-      if (ni != null && !seen.has(ni)) {
-        const org = g.N[ni].o;
-        if (c.peerScope === 'all' || allowedPeers.has(org)) {
-          outVars.push(ni);
-          seen.add(ni);
-          if (org) coveredOrgs.add(org);
-        }
-      }
-    });
-    g.N.forEach(n => {
-      if (n.k !== 1 || !n.o || n.o === 'EPOST' || coveredOrgs.has(n.o)) return;
-      if (c.peerScope !== 'all' && !allowedPeers.has(n.o)) return;
-      if (n.p['심사유형'] === baseSimsa) {
-        outVars.push(n.i);
-        seen.add(n.i);
-        coveredOrgs.add(n.o);
-      }
-    });
-    return outVars;
   }
 
   function orgNodesForVariants(g, varIdxs) {
@@ -325,12 +451,6 @@
     }
     trail.push({ label, snap });
     if (trail.length > 10) trail.shift();
-  }
-
-  function riderGroupRank(grpName) {
-    const s = String(grpName || '');
-    if (Object.prototype.hasOwnProperty.call(RIDER_GRP_ORDER, s)) return RIDER_GRP_ORDER[s];
-    return 9;
   }
 
   // 종형 구성 틀에서 현재 펼쳐진 특약과 급부에 맞춰 표준담보와 보장분야 열을 이어 갱신한다(1-9)
@@ -415,14 +535,15 @@
 
     if (presetName === 'variant') {
       state.mode = 'hop';
-      const baseVar = g.byId.get(c.baseId) ?? (g.N.find(n => n.k === 1 && n.o === 'EPOST') || {}).i;
+      const baseVar = g.byId.get(c.baseId) ?? (g.N.find(n => n.k === NK['종형'] && n.o === 'EPOST') || {}).i;
       if (baseVar != null) {
         const orgIdx = g.byId.get('ORG:' + g.N[baseVar].o);
         if (orgIdx != null) state.cols[1] = [orgIdx];
         state.cols[2] = [baseVar];
+        // 주계약을 먼저, 그 뒤는 graph.json 노드 차례(종형 구성의 새 규칙은 6절에서 정한다)
         const riders = (g.varRiders.get(baseVar) || []).slice().sort((a, b) => {
-          const ga = String(g.N[a].p['담보구분'] || '기타'), gb = String(g.N[b].p['담보구분'] || '기타');
-          return (riderGroupRank(ga) - riderGroupRank(gb)) || ga.localeCompare(gb, 'ko') || (a - b);
+          const ma = g.N[a].p['담보구분'] === '주계약' ? 0 : 1, mb = g.N[b].p['담보구분'] === '주계약' ? 0 : 1;
+          return (ma - mb) || (a - b);
         });
         state.variantRidersAll = riders;
         setColWithBatch(3, riders, '특약');
@@ -434,16 +555,16 @@
 
     if (presetName === 'news') {
       state.mode = 'hop';
-      const newsIdxs = g.N.filter(n => n.k === 6)
+      const newsIdxs = g.N.filter(n => n.k === NK['시장 동향'])
         .sort((a, b) => String(b.p['발표일자'] || '').localeCompare(String(a.p['발표일자'] || '')) || a.i - b.i)
         .map(n => n.i);
       setColWithBatch(0, newsIdxs, t('grPresetNews'));
       const orgSet = new Set();
       state.cols[0].forEach(ni => {
-        g.adj[ni].forEach(x => { if (x.ek === 5 && g.N[x.j].k === 0) orgSet.add(x.j); });
+        g.adj[ni].forEach(x => { if (x.ek === EK['발표'] && g.N[x.j].k === NK['회사']) orgSet.add(x.j); });
       });
       // 처음에는 기준 종형과 맞붙는 종형만 두고, 판매 종료 종형과 관문 전용 종형은 회사 노드를 펼칠 때만 보인다(1-8)
-      const mVars = matchedVariants(g, c);
+      const mVars = sceneTypes(g, c);
       mVars.forEach(vi => {
         const oi = g.byId.get('ORG:' + g.N[vi].o);
         if (oi != null) orgSet.add(oi);
@@ -457,7 +578,7 @@
     // 기본 보는 틀: "담보별 연결"(회사, 맞붙는 종형, 보장 대분류 다섯 + 그룹 엣지)
     state.preset = 'cover';
     state.mode = 'cover-0';
-    const vars = matchedVariants(g, c);
+    const vars = sceneTypes(g, c);
     state.cols[1] = orgNodesForVariants(g, vars);
     state.cols[2] = vars;
     state.cols[6] = domainNodesInOrder(g, c);
@@ -526,8 +647,20 @@
         state.cols[6] = doms;
       }
     }
-    recordTrail(`${b.label || g.kinds[COL_KINDS[colIdx]]} +${BATCH_SIZE}`);
+    recordTrail(`${b.label || g.kindLabels[COL_KINDS[colIdx]]} +${BATCH_SIZE}`);
     rerenderGraph(true);
+  }
+
+  // 선택한 담보 하나에 대해 매핑 엣지를 거꾸로 따라가 그 종형의 특약과 급부를 얻는다(graph.json 노드 차례)
+  function stdPathIn(g, vi, si) {
+    const riders = new Set();
+    const bens = new Set();
+    (g.stdBens.get(si) || []).forEach(({ ben }) => {
+      (g.benRiders.get(ben) || []).forEach(ri => {
+        if ((g.riderVars.get(ri) || []).includes(vi)) { riders.add(ri); bens.add(ben); }
+      });
+    });
+    return { riders: Array.from(riders).sort((a, b) => a - b), bens: Array.from(bens).sort((a, b) => a - b) };
   }
 
   // 담보 대응 2걸음에서 회사별 특약과 급부 목록을 12개 단위로 구성한다(1-3: 모든 회사의 길이 빠짐없이 이어진다)
@@ -543,8 +676,7 @@
     delete state.batches[4];
 
     vars.forEach(vi => {
-      const sMap = g.varStdPaths.get(vi);
-      const pathObj = sMap && sMap.get(stdIdx);
+      const pathObj = stdPathIn(g, vi, stdIdx);
       if (!pathObj || !pathObj.riders.length) return;
 
       const orgNm = orgLabel(g.N[vi].o);
@@ -615,7 +747,7 @@
       const bKey = 'b:' + vmoreKey.slice(2);
       state.varLimits[bKey] = Math.max(state.varLimits[bKey] || BATCH_SIZE, state.varLimits[vmoreKey]);
     }
-    const vars = state.cols[2].length ? state.cols[2] : matchedVariants(g, App.ctx());
+    const vars = state.cols[2].length ? state.cols[2] : sceneTypes(g, App.ctx());
     buildCoverStdColumns(g, state.activeStd, vars);
     recordTrail(`${g.N[state.activeStd].l} +${BATCH_SIZE}`);
     rerenderGraph(true);
@@ -625,7 +757,7 @@
   function expandDomainStep(domIdx, c) {
     const g = ensureGraph();
     pushUndo();
-    const vars = state.cols[2].length ? state.cols[2] : matchedVariants(g, c);
+    const vars = state.cols[2].length ? state.cols[2] : sceneTypes(g, c);
     state.cols[1] = orgNodesForVariants(g, vars);
     state.cols[2] = vars;
     state.cols[3] = [];
@@ -652,7 +784,7 @@
   function expandStdStep(stdIdx, c) {
     const g = ensureGraph();
     pushUndo();
-    const vars = state.cols[2].length ? state.cols[2] : matchedVariants(g, c);
+    const vars = state.cols[2].length ? state.cols[2] : sceneTypes(g, c);
     state.cols[1] = orgNodesForVariants(g, vars);
     state.cols[2] = vars;
 
@@ -706,9 +838,9 @@
         grp = {
           key,
           ek: x.ek,
-          ekName: g.ekinds[x.ek],
+          ekName: g.ekindLabels[x.ek],
           nbKind: nbNode.k,
-          nbKindName: g.kinds[nbNode.k],
+          nbKindName: g.kindLabels[nbNode.k],
           dstCol,
           dir,
           nodes: [],
@@ -737,7 +869,7 @@
     if (state.mode === 'cover-0' || state.mode === 'cover-1' || state.mode === 'cover-2') state.mode = 'hop';
     state.varMores = {};
     let list = hit.nodes.slice();
-    if (hit.nbKind === 6) {
+    if (hit.nbKind === NK['시장 동향']) {
       list.sort((a, b) => String(g.N[b].p['발표일자'] || '').localeCompare(String(g.N[a].p['발표일자'] || '')));
     }
     appendToColWithBatch(hit.dstCol, list, hit.nbKindName);
@@ -749,39 +881,13 @@
     App.select('n:' + g.N[nodeIdx].id, { animate: false, focus: false });
   }
 
-  // 표준담보의 우체국 보유, 단독 보유, 비교 종형 미연결 판별(1-1, 1-11: 화면 열이 아니라 기준 종형과 맞붙는 종형을 비교 대상으로 삼는다)
-  function stdOwnershipClass(g, stdIdx, c) {
-    const stdNode = g.N[stdIdx];
-    if (!stdNode) return '';
-    const curC = c || App.ctx();
-    const cmpVars = matchedVariants(g, curC);
-    const activeSet = new Set(cmpVars);
-    const hasPeerScope = cmpVars.some(vi => g.N[vi] && g.N[vi].o && g.N[vi].o !== 'EPOST');
-
-    let holderIdxs = null;
-    if (g.summary && g.summary['표준담보별종형'] && Array.isArray(g.summary['표준담보별종형'][stdNode.id])) {
-      holderIdxs = g.summary['표준담보별종형'][stdNode.id];
-    }
-    let epostHas = false;
-    let peerHas = false;
-    if (holderIdxs) {
-      holderIdxs.forEach(vi => {
-        if (activeSet.size && !activeSet.has(vi)) return;
-        if (g.N[vi] && g.N[vi].o === 'EPOST') epostHas = true;
-        else if (g.N[vi] && g.N[vi].o) peerHas = true;
-      });
-    } else {
-      activeSet.forEach(vi => {
-        const sMap = g.varStdPaths.get(vi);
-        if (sMap && sMap.has(stdIdx)) {
-          if (g.N[vi].o === 'EPOST') epostHas = true;
-          else peerHas = true;
-        }
-      });
-    }
-    if (!epostHas && peerHas) return 'is-miss';
-    if (epostHas && !peerHas && hasPeerScope) return 'is-only';
-    if (!epostHas && !peerHas) return 'is-unlinked';
+  // 기존 열 화면의 보유 구분 클래스: 보유 엣지(보유 구분)와 판정 자료의 표시(5.3)로 정한다
+  function ownClass(g, si, c) {
+    const sc = sceneOf(g, c || App.ctx());
+    const it = sc.info.get(si);
+    if (!it) return 'is-unlinked';
+    if (it.cls === 'peer') return 'is-miss';
+    if (it.cls === 'only' && judgeOf(g, c || App.ctx(), sc).per.get(si).marks.includes('sole')) return 'is-only';
     return '';
   }
 
@@ -797,6 +903,8 @@
 
     // 1. graph.json 실제 엣지 가운데 양 끝 노드가 모두 화면에 있는 것
     g.E.forEach(e => {
+      // 기존 열 화면은 edges 의 엣지만 그린다(보유 엣지는 아래 3번에서 그린다)
+      if (e.i >= g.nBaseEdges) return;
       if (!allVis.has(e.s) || !allVis.has(e.t)) return;
       const colS = COL_OF_KIND[g.N[e.s].k];
       const colT = COL_OF_KIND[g.N[e.t].k];
@@ -807,7 +915,8 @@
         kind: 'real',
         eIdx: e.i,
         ek: e.k,
-        ekName: g.ekinds[e.k],
+        ekData: g.ekinds[e.k],
+        ekName: g.ekindLabels[e.k],
         leftNode,
         rightNode,
         sNode: e.s,
@@ -823,26 +932,25 @@
       state.cols[2].forEach(vi => {
         const vNode = g.N[vi];
         const vSum = g.summary && g.summary['종형'] && g.summary['종형'][vNode.id];
-        const dMap = g.varDomStds.get(vi);
+        const held = g.heldBy.get(vi);
         state.cols[6].forEach(di => {
           const dNode = g.N[di];
           const sumCnt = vSum && vSum['보장분야별'] ? (vSum['보장분야별'][dNode.id] || 0) : null;
-          const stdList = (dMap && dMap.get(di)) || [];
+          const stdList = held ? Array.from(held.keys()).filter(si => g.stdDom.get(si) && g.stdDom.get(si).dom === di).sort((a, b) => a - b) : [];
           const cnt = sumCnt != null ? sumCnt : stdList.length;
           if (!cnt) return;
-          const waitCnt = (vSum && vSum['미연결사유'] && vSum['미연결사유']['대기']) || 0;
           const props = {
             연결구분: t('grEdgeVarDomType'),
             종형: vNode.l,
             [t('grPropDomain')]: dNode.l,
             표준담보수: cnt,
           };
-          if (waitCnt > 0) props[t('grPropWaitNote')] = t('grEdgeWaitNoteTpl', { n: waitCnt });
           edges.push({
             key: `vb:${vi}:${di}`,
             kind: 'var-dom',
             eIdx: null,
-            ek: 1,
+            ek: null,
+            ekData: '',
             ekName: `${dNode.l} 표준담보 ${cnt}개`,
             leftNode: vi,
             rightNode: di,
@@ -860,31 +968,22 @@
     // 3. 1걸음 펼침(보장분야를 펼쳐 표준담보는 열렸고 특약과 급부는 접혀 있을 때): 종형 -> 표준담보 보유 연결선(1-12: 화면에서 특약과 급부 수를 세지 않는다)
     if (hasStds && !hasRidersOrBens && visByCol[2].size) {
       state.cols[5].forEach(si => {
-        const sNode = g.N[si];
-        const holderSet = (g.summary && g.summary['표준담보별종형'] && g.summary['표준담보별종형'][sNode.id])
-          ? new Set(g.summary['표준담보별종형'][sNode.id])
-          : null;
         state.cols[2].forEach(vi => {
-          const sMap = g.varStdPaths.get(vi);
-          const pObj = sMap && sMap.get(si);
-          const hasLink = holderSet ? holderSet.has(vi) : !!pObj;
-          if (!hasLink) return;
+          const he = g.heldBy.get(vi) && g.heldBy.get(vi).get(si);
+          if (!he) return;
           edges.push({
-            key: `vs:${vi}:${si}`,
+            key: 'e:' + he.i,
             kind: 'var-std',
-            eIdx: null,
-            ek: 2,
-            ekName: '보유 연결',
+            eIdx: he.i,
+            ek: he.k,
+            ekData: g.ekinds[he.k],
+            ekName: g.ekindLabels[he.k],
             leftNode: vi,
             rightNode: si,
             sNode: vi,
             tNode: si,
             intraCol: false,
-            props: {
-              연결구분: t('grEdgeVarStdType'),
-              안내: t('grEdgeVarStdGuide'),
-            },
-            pathObj: pObj,
+            props: Object.assign({ 안내: t('grEdgeVarStdGuide') }, he.p),
             count: null,
           });
         });
@@ -989,7 +1088,7 @@
     const isSel = state.selNode === ni && !state.selEdge;
     const isDim = hl.active && !hl.nodes.has(ni);
     const isEpost = n.o === 'EPOST';
-    const stdCls = n.k === 4 ? stdOwnershipClass(g, ni, c) : '';
+    const stdCls = n.k === NK['표준담보'] ? ownClass(g, ni, c) : '';
     const cls = [
       'gr-node',
       `k-${n.k}`,
@@ -1000,53 +1099,47 @@
 
     const p = n.p || {};
     let inner = '';
-    let tipSub = g.kinds[n.k] + (n.o ? `, ${orgLabel(n.o)}` : '');
+    let tipSub = g.kindLabels[n.k] + (n.o ? `, ${orgLabel(n.o)}` : '');
 
-    if (n.k === 0) {
-      const vCnt = g.adj[ni].filter(x => x.ek === 0).length;
+    if (n.k === NK['회사']) {
+      const vCnt = g.adj[ni].filter(x => x.ek === EK['판매']).length;
       inner = `<span class="gn-t">${esc(n.l)}</span><span class="gn-s num">종형 ${fmt(vCnt)}</span>`;
       tipSub = `기관코드 ${n.o || ''}, 종형 ${fmt(vCnt)}개`;
-    } else if (n.k === 1) {
+    } else if (n.k === NK['종형']) {
       const prodNm = p['공시상품명'] || n.l;
       const kindNm = p['종형명'] || p['심사유형'] || '';
       const vSum = g.summary && g.summary['종형'] && g.summary['종형'][n.id];
       const role = vSum && vSum['비교역할'];
       const endDt = vSum && vSum['판매종료일'];
-      const waitCnt = (vSum && vSum['미연결사유'] && vSum['미연결사유']['대기']) || 0;
       const roleNote = endDt
         ? `판매종료(${endDt})`
         : App.isGateOnlyRole(role)
           ? t('grRoleNotCoverTpl', { role: App.label(role) })
           : role === '직전개정시연'
             ? t('grRoleNotCoverTpl', { role: App.label(role) })
-            : `표준담보 ${fmt(vSum && Array.isArray(vSum['표준담보']) ? vSum['표준담보'].length : 0)}개${waitCnt > 0 ? t('grWaitCntSuffixTpl', { n: fmt(waitCnt) }) : ''}`;
+            : `표준담보 ${fmt(vSum && Array.isArray(vSum['표준담보']) ? vSum['표준담보'].length : 0)}개`;
       inner = `<span class="gn-p">${esc(orgLabel(n.o))} ${esc(prodNm)}</span><span class="gn-t">${esc(kindNm || n.l)}</span>`;
       tipSub = `${orgLabel(n.o)} / ${p['심사유형'] || ''} / ${roleNote}`;
-    } else if (n.k === 2) {
+    } else if (n.k === NK['특약']) {
       const sub = [orgLabel(n.o), p['담보구분'], p['갱신여부']].filter(Boolean).join(', ');
       inner = `<span class="gn-t">${esc(n.l)}</span>${sub ? `<span class="gn-s">${esc(sub)}</span>` : ''}`;
       tipSub = sub;
-    } else if (n.k === 3) {
+    } else if (n.k === NK['급부']) {
       const sum = benSummaryLine(n);
       inner = `<span class="gn-t">${esc(n.l)}</span><span class="gr-ben-sub num">${esc(sum || orgLabel(n.o))}</span>`;
       tipSub = `${orgLabel(n.o)} / ${sum}`;
-    } else if (n.k === 4) {
-      const benCnt = (g.stdBens.get(ni) || []).length;
+    } else if (n.k === NK['표준담보']) {
       const goldMark = stdCls === 'is-only' ? '<i class="gr-gold-mk" aria-hidden="true"></i>' : '';
-      inner = `${goldMark}<span class="gn-t">${esc(n.l)}</span><span class="gn-cnt num">${fmt(benCnt)}</span>`;
-      const ownNote = stdCls === 'is-miss'
-        ? '우체국 종형 연결 없음'
-        : stdCls === 'is-only'
-          ? '우체국 단독 연결'
-          : stdCls === 'is-unlinked'
-            ? '비교 종형에 연결 없음'
-            : `연결 급부 ${fmt(benCnt)}개`;
-      tipSub = `${p['보장대분류'] || ''} / ${p['급부유형'] || ''} / ${ownNote}`;
-    } else if (n.k === 5) {
+      inner = `${goldMark}<span class="gn-t">${esc(n.l)}</span>`;
+      // 급부 수는 화면에 놓인 종형의 보유 엣지 급부수를 회사별로 적는다(5.5)
+      const it = sceneOf(g, c || App.ctx()).info.get(ni);
+      const benNote = it ? it.per.map(x => t('grBenCntTpl', { org: orgLabel(x.code), n: fmt(+(x.e.p['급부수'] || 0)) })).join(', ') : '';
+      tipSub = [p['보장대분류'], p['급부유형'], benNote].filter(Boolean).join(' / ');
+    } else if (n.k === NK['보장 대분류']) {
       const stdCnt = (g.domStds.get(ni) || []).length;
       inner = `<span class="gn-t">${esc(n.l)}</span><span class="gn-cnt num">${fmt(stdCnt)}</span>`;
       tipSub = `표준담보 ${fmt(stdCnt)}개`;
-    } else if (n.k === 6) {
+    } else if (n.k === NK['시장 동향']) {
       const dt = p['발표일자'] || '';
       inner = `<span class="gn-ktag num">${esc(dt)}${n.o ? ' ' + esc(orgLabel(n.o)) : ''}</span><span class="gn-t">${esc(n.l)}</span>`;
       tipSub = `${dt} / ${p['분류유형'] || ''} / ${p['매체명'] || ''}`;
@@ -1085,7 +1178,7 @@
       if (!filtered.length) return;
       const isCurCol = state.selNode != null && g.N[state.selNode] && g.N[state.selNode].k === k;
       steps.push(`<div class="gr-vp-step${isCurCol ? ' is-cur' : ''}">
-        <div class="gr-vp-hd"><span>${esc(App.short(g.kinds[k]))}</span><span class="num">${fmt(filtered.length)}/${fmt(raw.length)}</span></div>
+        <div class="gr-vp-hd"><span>${esc(App.short(g.kindLabels[k]))}</span><span class="num">${fmt(filtered.length)}/${fmt(raw.length)}</span></div>
         <div class="gr-vp-nodes">${filtered.map(ni => renderNodeCardHTML(g, ni, { active: false, nodes: new Set() }, c)).join('')}</div>
       </div>`);
     });
@@ -1210,14 +1303,14 @@
 
       ed.chipX = chipX;
       ed.chipY = chipY;
-      const chipLabel = ed.ek === 4 && ed.props['관계'] ? `관계(${ed.props['관계']})` : ed.ekName;
+      const chipLabel = ed.ek === EK['담보 관계'] && ed.props['관계'] ? `관계(${ed.props['관계']})` : ed.ekName;
       const gCls = ['gr-edge-g', isDim ? 'is-dim' : '', isEsel ? 'is-esel' : ''].filter(Boolean).join(' ');
 
       let visMarkup = '';
-      if (ed.ek === 4) {
+      if (ed.ek === EK['담보 관계']) {
         visMarkup = `<path class="gr-edge-dbl-out" d="${d}" pathLength="1"/><path class="gr-edge-dbl-in" d="${d}"/>`;
       } else {
-        const isHuman = ed.ek === 2 && (ed.props['검토상태'] === '승인' || ed.props['검토상태'] === '수정');
+        const isHuman = ed.ek === EK['매핑'] && (ed.props['검토상태'] === '승인' || ed.props['검토상태'] === '수정');
         const customW = ed.kind === 'var-dom' && ed.count
           ? ` style="stroke-width:${Math.min(6, Math.max(1.5, +(1.2 + ed.count * 0.19).toFixed(2)))}px"`
           : '';
@@ -1390,7 +1483,7 @@
       const cnt = state.cols[colIdx].length;
       const open = cnt > 0 || !!state.batches[colIdx] || !!(state.varMores[colIdx] && state.varMores[colIdx].length);
       return `<div class="gr-col-hd gr-c-${k} ${open ? 'is-open' : 'is-folded'}">
-        <span class="gr-col-nm">${esc(App.short(g.kinds[k]))}</span>
+        <span class="gr-col-nm">${esc(App.short(g.kindLabels[k]))}</span>
         <span class="gr-col-cnt num">${columnCountText(g, colIdx)}</span>
       </div>`;
     }).join('');
@@ -1505,26 +1598,26 @@
 
   function crossTabButtonsHTML(g, n) {
     let stdId = '';
-    if (n.k === 4) stdId = n.id;
-    else if (n.k === 3) {
+    if (n.k === NK['표준담보']) stdId = n.id;
+    else if (n.k === NK['급부']) {
       const links = g.benStds.get(n.i) || [];
       if (links.length) stdId = g.N[links[0].std].id;
     }
 
     // 가입 관문에서 보기: 전체 표 창(tree)을 띄우지 않고 해당 종형을 고른 상태로 바로 연다(1-13)
     let gateVid = '';
-    if (n.k === 1) gateVid = n.id;
-    else if (n.k === 2) {
+    if (n.k === NK['종형']) gateVid = n.id;
+    else if (n.k === NK['특약']) {
       const vList = g.riderVars.get(n.i) || [];
       if (vList.length) gateVid = g.N[vList[0]].id;
-    } else if (n.k === 3) {
+    } else if (n.k === NK['급부']) {
       const rList = g.benRiders.get(n.i) || [];
       if (rList.length) {
         const vList = g.riderVars.get(rList[0]) || [];
         if (vList.length) gateVid = g.N[vList[0]].id;
       }
-    } else if (n.k === 0 && n.o) {
-      const mVars = matchedVariants(g, App.ctx());
+    } else if (n.k === NK['회사'] && n.o) {
+      const mVars = sceneTypes(g, App.ctx());
       const hitV = mVars.find(vi => g.N[vi] && g.N[vi].o === n.o);
       if (hitV != null) gateVid = g.N[hitV].id;
     }
@@ -1558,10 +1651,10 @@
       }).join('')}</ul>`
       : `<p class="note">${esc(t('grEdgeListEmpty'))}</p>`;
 
-    const badges = [ui.tag(g.kinds[n.k])];
+    const badges = [ui.tag(g.kindLabels[n.k])];
     if (n.o) badges.push(ui.tag(orgLabel(n.o)));
-    if (n.k === 4) {
-      const ownCls = stdOwnershipClass(g, ni, curC);
+    if (n.k === NK['표준담보']) {
+      const ownCls = ownClass(g, ni, curC);
       if (ownCls === 'is-miss') badges.push(ui.verdict('none'));
       else if (ownCls === 'is-only') badges.push(ui.verdict('only'));
       else if (ownCls === 'is-unlinked') badges.push(ui.tag('비교 종형에 없음'));
@@ -1569,7 +1662,7 @@
 
     const extraRows = [[t('grPropId'), n.id]];
     let summarySec = '';
-    if (n.k === 1 && g.summary && g.summary['종형'] && g.summary['종형'][n.id]) {
+    if (n.k === NK['종형'] && g.summary && g.summary['종형'] && g.summary['종형'][n.id]) {
       const vs = g.summary['종형'][n.id];
       if (vs['비교역할']) extraRows.push(['비교역할', App.label(vs['비교역할'])]);
       if (vs['판매종료일']) extraRows.push(['판매종료일', vs['판매종료일']]);
@@ -1589,7 +1682,7 @@
         if (outN > 0) notes.push(t('grVarOutNoteTpl', { label: App.label('대상외'), n: fmt(outN) }));
         if (notes.length) summarySec = `<div class="ev-sec"><p class="note">${esc(notes.join(' '))}</p></div>`;
       }
-    } else if (n.k === 4 && g.summary && g.summary['표준담보별종형'] && Array.isArray(g.summary['표준담보별종형'][n.id])) {
+    } else if (n.k === NK['표준담보'] && g.summary && g.summary['표준담보별종형'] && Array.isArray(g.summary['표준담보별종형'][n.id])) {
       extraRows.push(['보유 종형 수 (요약)', `${fmt(g.summary['표준담보별종형'][n.id].length)}개`]);
     }
 
@@ -1599,24 +1692,28 @@
       <div class="ev-sec lo"><h3>${esc(t('grVisEdgesHeadTpl', { n: fmt(attachedEdges.length) }))}</h3>${edgeListHTML}</div>`;
 
     return {
-      kicker: t('grNodeKickerTpl', { kind: g.kinds[n.k] }),
+      kicker: t('grNodeKickerTpl', { kind: g.kindLabels[n.k] }),
       title: n.l,
       badges,
       body,
     };
   }
 
+  // 선 모양 설명은 엣지 종류의 자료 이름으로 정한다. 모르는 종류는 적지 않는다(4.5)
   function lineStyleLabel(ed) {
-    if (ed.ek === 4) return '이중선 (표준담보 사이 포함 또는 통합 관계)';
-    if (ed.ek === 5) return t('grLineDashNews');
-    if (ed.ek === 3) return t('grLineThinDom');
-    if (ed.ek === 2) {
+    if (ed.kind === 'var-dom') return t('grLineGroupDomTpl', { n: ed.count });
+    const nm = ed.ekData;
+    if (nm === '담보 관계') return '이중선 (표준담보 사이 포함 또는 통합 관계)';
+    if (nm === '발표') return t('grLineDashNews');
+    if (nm === '분류') return t('grLineThinDom');
+    if (nm === '매핑') {
       const st = ed.props && ed.props['검토상태'];
       if (st === '승인' || st === '수정') return `굵은 실선 (담당자 ${st})`;
       return '실선 (자동확정 매핑)';
     }
-    if (ed.kind === 'var-dom') return t('grLineGroupDomTpl', { n: ed.count });
-    return '실선 (판매 또는 포함)';
+    if (nm === '판매' || nm === '포함') return '실선 (판매 또는 포함)';
+    if (nm === '보유') return t('grLineHeld');
+    return '';
   }
 
   function buildEdgeEv(g, edgeKey) {
@@ -1626,9 +1723,9 @@
         const rawE = g.E[+edgeKey.slice(2)];
         if (!rawE) return null;
         return {
-          kicker: t('grEdgeKickerTpl', { kind: g.ekinds[rawE.k] }),
+          kicker: t('grEdgeKickerTpl', { kind: g.ekindLabels[rawE.k] }),
           title: `${g.N[rawE.s].l} -> ${g.N[rawE.t].l}`,
-          badges: [ui.tag(g.ekinds[rawE.k])],
+          badges: [ui.tag(g.ekindLabels[rawE.k])],
           body: `<div class="ev-sec"><h3>엣지 속성</h3>${propTableHTML(rawE.p)}</div>`,
         };
       }
@@ -1638,10 +1735,10 @@
     const nT = g.N[ed.tNode];
     const extra = [
       ['관계 종류', ed.ekName],
-      ['출발 노드', `${nS.l} (${g.kinds[nS.k]})`],
-      ['도착 노드', `${nT.l} (${g.kinds[nT.k]})`],
+      ['출발 노드', `${nS.l} (${g.kindLabels[nS.k]})`],
+      ['도착 노드', `${nT.l} (${g.kindLabels[nT.k]})`],
       ['선 모양', lineStyleLabel(ed)],
-    ];
+    ].filter(r => r[1]);
     let listSec = '';
     if (ed.stdList && ed.stdList.length) {
       listSec = `<div class="ev-sec"><h3>${esc(t('grGroupStdsHeadTpl', { n: fmt(ed.stdList.length) }))}</h3>
@@ -1719,9 +1816,9 @@
     const g = ensureGraph();
     const n = g.N[ni];
     if (!n) return;
-    if (state.preset === 'cover' && n.k === 5) {
+    if (state.preset === 'cover' && n.k === NK['보장 대분류']) {
       expandDomainStep(ni, c);
-    } else if (state.preset === 'cover' && n.k === 4) {
+    } else if (state.preset === 'cover' && n.k === NK['표준담보']) {
       expandStdStep(ni, c);
     } else {
       state.selNode = ni;
@@ -1739,19 +1836,19 @@
     const n = g.N[ni];
     if (!n) return;
     const colIdx = COL_OF_KIND[n.k];
-    if (n.k === 4) {
+    if (n.k === NK['표준담보']) {
       state.preset = 'cover';
       expandStdStep(ni, c);
-    } else if (n.k === 5) {
+    } else if (n.k === NK['보장 대분류']) {
       state.preset = 'cover';
       expandDomainStep(ni, c);
-    } else if (n.k === 6) {
+    } else if (n.k === NK['시장 동향']) {
       initPresetState('news', c, true);
       if (!state.cols[0].includes(ni)) state.cols[0].unshift(ni);
       state.selNode = ni;
       state.focusNode = ni;
       recordTrail(n.l);
-    } else if (n.k === 1) {
+    } else if (n.k === NK['종형']) {
       initPresetState('cover', c, true);
       if (!state.cols[2].includes(ni)) state.cols[2].unshift(ni);
       const oi = n.o ? g.byId.get('ORG:' + n.o) : null;
@@ -1792,7 +1889,7 @@
       ni = g.byId.get('ORG:' + s.slice(4));
     } else if (s.startsWith('news:')) {
       const q = s.slice(5);
-      ni = g.byId.get(q) ?? (g.N.find(n => n.k === 6 && (n.o === q || n.l.includes(q))) || {}).i;
+      ni = g.byId.get(q) ?? (g.N.find(n => n.k === NK['시장 동향'] && (n.o === q || n.l.includes(q))) || {}).i;
     } else {
       ni = g.byId.get(s);
     }
@@ -1806,7 +1903,7 @@
     state.query = qVal;
     const q = qVal.trim().toLowerCase();
     if (!q) { sugg.hidden = true; sugg.innerHTML = ''; return; }
-    const pri = { 4: 0, 1: 1, 2: 2, 0: 3, 5: 4, 6: 5, 3: 6 };
+    const pri = { [NK['표준담보']]: 0, [NK['종형']]: 1, [NK['특약']]: 2, [NK['회사']]: 3, [NK['보장 대분류']]: 4, [NK['시장 동향']]: 5, [NK['급부']]: 6 };
     const hits = g.N.filter(n => n.l.toLowerCase().includes(q) || n.id.toLowerCase().includes(q))
       .sort((a, b) => (pri[a.k] ?? 9) - (pri[b.k] ?? 9) || a.l.length - b.l.length)
       .slice(0, 12);
@@ -1816,7 +1913,7 @@
       return;
     }
     sugg.innerHTML = hits.map(n => `<button type="button" class="gr-sugg-it" data-gr-sugg="${n.i}">
-      <span class="gr-sugg-k">${esc(g.kinds[n.k])}</span>
+      <span class="gr-sugg-k">${esc(g.kindLabels[n.k])}</span>
       <span class="gr-sugg-n">${esc(n.l)}</span>
       ${n.o ? `<span class="gr-sugg-o">${esc(orgLabel(n.o))}</span>` : ''}
     </button>`).join('');
@@ -2162,7 +2259,7 @@
     COL_KINDS.forEach((k, colIdx) => {
       state.cols[colIdx].forEach(ni => {
         const n = g.N[ni];
-        rows.push([g.kinds[k], orgLabel(n.o) || '공통', n.l, n.id]);
+        rows.push([g.kindLabels[k], orgLabel(n.o) || '공통', n.l, n.id]);
       });
     });
     App.copyRows(t('grCopyCols').split(','), rows, { title: t('grCopyTitle') });

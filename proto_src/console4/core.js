@@ -846,8 +846,6 @@
     insEvGuideVerdictTitle: '판정 표시',
 
     // 관계 그래프(tab6) 문구
-    grKindsFallback: '회사,종형,특약,급부,표준담보,보장 대분류,시장 동향',
-    grEkindsFallback: '판매,포함,매핑,분류,담보 관계,발표',
     grPresetCover: '담보별 연결',
     grPresetCoverSub: '회사, 종형, 보장 대분류에서 담보 경로 비교',
     grPresetVariant: '종형 구성',
@@ -861,12 +859,8 @@
     grTrailLabel: '탐색 경로',
     grEdgeVarDomType: '종형별 보장 대분류 보유 요약(그룹 엣지)',
     grPropDomain: '보장 대분류',
-    grPropWaitNote: '검수 대기 안내',
-    grEdgeWaitNoteTpl: '이 종형 전체에 매핑 검수 대기 급부 {n}건이 있어 담보가 더 연결될 수 있습니다',
-    grEdgeVarStdType: '종형과 표준담보의 보유 연결',
     grEdgeVarStdGuide: '표준담보를 클릭하면 회사별 특약과 급부 열이 펼쳐집니다',
     grRoleNotCoverTpl: '{role}(담보 비교 대상 아님)',
-    grWaitCntSuffixTpl: ', 검수 대기 {n}건',
     grGoGateBtn: `${TERM.gate}에서 보기`,
     grEdgeListEmpty: '인접 열의 노드를 펼치면 엣지를 클릭해 속성을 볼 수 있습니다.',
     grPropId: 'ID',
@@ -888,6 +882,8 @@
     grEdgePropKicker: `${TERM.graph} 엣지 속성`,
     grCopyCols: '열 종류,회사,이름,ID',
     grCopyTitle: `${TERM.graph} 현재 열람 노드`,
+    grBenCntTpl: '{org} 급부 {n}',
+    grLineHeld: '실선 (종형의 표준담보 보유)',
   };
 
   function cp(key, vars) {
