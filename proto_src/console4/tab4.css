@@ -3,7 +3,6 @@
 
 .cvp-stage{position:relative;display:flex;flex-direction:column;gap:8px;padding-top:2px}
 .cv-scope-note{margin:0;line-height:1.5}
-.cv-scope-note .tag{margin-right:4px}
 
 /* ---------- 1. 위쪽 전체 띠(.cv-ov-top: 단계 선택과 현재 위치 표시 전용) ---------- */
 .cv-ov-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:6px 16px;

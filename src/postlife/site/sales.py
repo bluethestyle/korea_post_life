@@ -929,13 +929,15 @@ class _Ctx:
 
 
 def product_short(data: Data, vid: str) -> str:
-    """상품 약칭: 공시상품명에서 끝의 종형명, "무배당", 회사명 머리("우체국"), 괄호 안 글을 뺀 것. "간편한건강보험 2606"."""
+    """상품 약칭: 공시상품명에서 끝의 종형명, "무배당", 회사명 머리("우체국"), 괄호 안 글, 종 번호만 남은 낱말("1종")을 뺀 것.
+    "간편한건강보험 2606". 공시상품명이 종형명으로 끝나지 않는 상품(예: "…하나로OK보험(해약환급금50%지급형) 2609 1종(일반가입)(종신)")도
+    괄호와 종 번호를 빼면 "하나로OK보험 2609"가 된다."""
     v = data.variants[vid]
     product, kind = str(v.get("공시상품명") or ""), str(v.get("종형명") or "")
     if kind and product.endswith(kind):
         product = product[:-len(kind)]
     product = re.sub(r"\([^()]*\)", "", product)
-    words = [w for w in product.split() if w != "무배당"]
+    words = [w for w in product.split() if w != "무배당" and not re.fullmatch(r"\d+종", w)]
     short = SHORT_ORG.get(_org(data, vid))
     words = [w[len(short):] if short and w.startswith(short) and len(w) > len(short) else w for w in words]
     return " ".join(words).strip() or str(v.get("공시상품명") or vid)

@@ -21,6 +21,7 @@ import pytest
 from postlife.site import console4 as C4
 from postlife.site import lineup
 from postlife.site import sales as SA
+from postlife.site import screen as SCR
 from postlife.site.model import load
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1027,7 +1028,7 @@ def test_notice_texts_and_cover_steps_follow_the_tables(made):
 def test_map_columns_and_flow_on_three_companies(made):
     """지도 열은 우리 기관의 가입나이 경계(sales.map_columns)로 끊은 구간을, 이웃 열의 결과가 같으면 합친 것이다. 칸은 행 수 x 열 수다.
     열 수와 칸 수를 숫자로 고정하지 않고 자료에서 계산한 경계와 비교한다(2026-11-25. 우체국 상품 구성이 바뀌어 스냅샷을 갱신해도
-    같은 규약을 본다). 세 회사 사본에서는 일부 나이만 열린 상대가 없다(지도 열이 우리 가입나이로 끊어도 상대 상태가 열 안에서 같다).
+    같은 규약을 본다). 일부 나이만 열린 상대가 있는 칸은 그 표시(일부열린나이, 일부나이로만열림)가 서로 맞아야 한다.
     인수기준 단계별 통과는 가입나이, 입원·수술 고지기간, 수술 포함 여부에서 고지 해당으로, 일반심사는 필요소견에서 일반심사 대상으로
     멈춘다(우체국에 일반심사 종형이 없는 지도는 일반심사 대상 멈춤이 없다)."""
     S, data = made["S"], made["data"]
@@ -1041,7 +1042,9 @@ def test_map_columns_and_flow_on_three_companies(made):
         assert m["열"][0]["lo"] == cols[0][0] and m["열"][-1]["hi"] == cols[-1][1], name
         assert all(c["lo"] in starts and c["hi"] in ends for c in m["열"]), name
         assert all(a["hi"] + 1 == b["lo"] for a, b in zip(m["열"], m["열"][1:])), name
-        assert not any(c["일부열린상대수"] or c["일부열린나이"] or c["일부나이로만열림"] for c in cells), name
+        # 일부 나이만 열린 상대(span_cell)는 자료에 따라 생길 수 있다. 있으면 그 표시가 서로 맞는지만 본다
+        assert all(c["일부나이로만열림"] == (c["열린상대수"] == 0 and c["일부열린상대수"] > 0) for c in cells), name
+        assert all(bool(c["일부열린나이"]) or not c["일부열린상대수"] for c in cells), name
         stops |= {(S["관문마디"]["차례"][k], v) for c in cells for k, v in c["관문흐름"]["종형"].values()}
     assert stops <= {("가입나이", "고지 해당"), ("입원·수술 고지기간", "고지 해당"), ("수술 포함 여부", "고지 해당"),
                      ("필요소견", "일반심사 대상")}
@@ -1163,7 +1166,7 @@ def made_all():
 def test_all_companies_follow_the_same_contract(made_all):
     """네 회사 이상의 자료(--orgs all)에서도 규약과 더한 값의 정합성(쌍판정, 판정요약, 보류요약의 기관별 포함)이 선다.
     d.json 의 lineup 은 화면에 올린 회사 전부의 자리이고, 등급마다 회사마다 고를 수 있는 종형(정밀비교, 판매 중, 그 간편고지약칭인
-    종형이 하나뿐)이면 그 종형, 아니면 null 이다."""
+    종형이 하나뿐)이면 그 종형, 아니면 null 이다. 우체국은 화면 기본 상품의 종형을 먼저 고른다(lineup.pick_lineup)."""
     f, data = made_all, made_all["data"]
     assert check(f["S"], SALES) == [] and check(f["CV"], CV) == [] and check(f["D"], D) == []
     assert added_value_errors(f) == []
@@ -1175,6 +1178,8 @@ def test_all_companies_follow_the_same_contract(made_all):
             found = [x for x in data.variant_order if data.variants[x].get("기관코드") == code
                      and data.variants[x].get("비교역할구분") == "정밀비교" and not data.variants[x].get("판매종료일")
                      and data.variants[x].get("간편고지약칭") == grade]
+            if code == HOME:      # 우체국은 화면 비교에서 뺀 상품을 빼고, 둘 이상이면 화면 기본 상품의 종형을 고른다(site/screen.py)
+                found = SCR.prefer_default_product(data, [x for x in found if not SCR.excluded(data, x)])
             assert v == (found[0] if len(found) == 1 else None), (grade, code, found)
     if "MERITZ" in order:     # 메리츠화재 통합간편건강보험 2610 의 315, 325, 355 간편심사형
         picked = [vs[order.index("MERITZ")] for vs in d["lineup"].values()]

@@ -181,3 +181,13 @@ def test_limited_only_cells_match_the_landscape_count(data):
         ga = {x["줄"]: x for x in b["브리핑"]}["가"]
         if "가_전용만" in ga["틀"]:
             assert ga["값"]["전용만칸수"] > 0
+
+
+def test_product_short_names():
+    d = make()
+    assert S.product_short(d, E2) == "간편한건강보험 2606" and S.product_short(d, ET) == "통합건강보험 2504"
+    for r in d.variants.values():                    # 공시상품명이 종형명으로 끝나지 않는 꼴(하나로OK보험 공시실 목록)
+        if r["종형ID"] == EO:
+            r["공시상품명"] = "무배당 우체국하나로OK보험(해약환급금50%지급형) 2609 2종(간편가입)(종신)"
+            r["종형명"] = "2종(간편가입)[해약환급금50%지급형, 종신]"
+    assert S.product_short(d, EO) == "하나로OK보험 2609"
