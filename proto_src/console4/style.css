@@ -195,7 +195,7 @@ button{cursor:pointer}
   .th-cond-btns{flex-wrap:nowrap;height:28px}
 }
 @media (max-width:1279px) and (min-width:1000px){
-  .top-head{grid-template-columns:minmax(150px,220px) minmax(0,1fr) auto;gap:4px 10px}
+  .top-head{grid-template-columns:minmax(150px,290px) minmax(0,1fr) auto;gap:4px 10px}
   .th-title{font-size:25px}
   .th-cond-btns{gap:5px}
   .th-act-btns{gap:4px}

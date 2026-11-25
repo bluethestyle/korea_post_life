@@ -10,7 +10,7 @@
 .gr-preset:hover{background:var(--hover)}
 .gr-preset.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent;box-shadow:inset 3px 0 0 var(--top-line)}
 .gr-preset .gp-t{font:600 13.5px/1.25 var(--f-ko);color:inherit}
-.gr-preset .gp-s{font:400 13px/1.3 var(--f-body);color:var(--ink-2)}
+.gr-preset .gp-s{font:400 13px/1.3 var(--f-body);color:var(--ink-2);word-break:keep-all}
 .gr-preset.is-on .gp-s{color:rgba(255,255,255,.82)}
 
 .gr-search-box{position:relative;display:flex;flex-direction:column;gap:4px}

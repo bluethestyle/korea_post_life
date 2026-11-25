@@ -216,7 +216,7 @@ button{cursor:pointer}
   .th-cond-btns{flex-wrap:nowrap;height:28px}
 }
 @media (max-width:1279px) and (min-width:1000px){
-  .top-head{grid-template-columns:minmax(150px,220px) minmax(0,1fr) auto;gap:4px 10px}
+  .top-head{grid-template-columns:minmax(150px,290px) minmax(0,1fr) auto;gap:4px 10px}
   .th-title{font-size:25px}
   .th-cond-btns{gap:5px}
   .th-act-btns{gap:4px}
@@ -2075,7 +2075,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 .gr-preset:hover{background:var(--hover)}
 .gr-preset.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent;box-shadow:inset 3px 0 0 var(--top-line)}
 .gr-preset .gp-t{font:600 13.5px/1.25 var(--f-ko);color:inherit}
-.gr-preset .gp-s{font:400 13px/1.3 var(--f-body);color:var(--ink-2)}
+.gr-preset .gp-s{font:400 13px/1.3 var(--f-body);color:var(--ink-2);word-break:keep-all}
 .gr-preset.is-on .gp-s{color:rgba(255,255,255,.82)}
 
 .gr-search-box{position:relative;display:flex;flex-direction:column;gap:4px}
@@ -2976,7 +2976,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     gtBandLimTitleTpl: '나이 구간 {lo}~{hi}세. 막대는 이 종형 구간 가운데 가장 큰 가입한도 {mx}만원과 비교한 길이',
     gtBandOutShort: '밖',
     gtBandAgeOutTpl: '{age}세는 가입나이({lo}~{hi}세) 범위 밖',
-    gtBandNoLim: '한도 자료 없음',
+    gtBandNoLim: '가입한도 자료 없음',
     gtBandGateDiffLabel: `${TERM.catGate}(고지 범위)`,
     gtBandKickerTpl: '기준 종형 {base}',
     gtBandTitle: '고지항목과 가입한도',
@@ -2985,7 +2985,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     gtLimWaitTag: '검수 대기',
     gtLimNowTag: '현재 나이',
     gtLimNowAgeTpl: '현재 나이 {age}세',
-    gtLimNoTable: '이 종형의 한도 표가 없습니다.',
+    gtLimNoTable: '이 종형의 가입한도 표가 없습니다.',
     gtLimBaseHitTpl: '기준 종형 {base}의 {age}세 주계약 가입한도는 {amt}입니다.',
     gtLimBaseOutTpl: '{age}세는 기준 종형 {base}의 가입나이({lo}~{hi}세) 범위 밖입니다.',
     gtLimTitle: '나이 구간별 주계약 가입한도',
@@ -3282,7 +3282,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     insGateSummaryTpl: '{epost}, 타사 가입 가능 {open}개사, 가입 제한 {closed}개사{unk}',
     insGateUnkSuffixTpl: ', 자료 없음 {n}개사',
     insOurRepNoteTpl: ' 이 고객군의 우체국 대표 종형은 {kind}입니다.',
-    insLimitNoDataTpl: '한도 자료 없음: {kind}의 나이 구간별 가입한도 표가 없습니다.',
+    insLimitNoDataTpl: '가입한도 자료 없음: {kind}의 나이 구간별 가입한도 표가 없습니다.',
     insLimitOutTpl: '{who} {kind}의 가입나이({lo}~{hi}세) 범위 밖입니다.',
     insLimitInTpl: `{kind} 주계약 가입한도 {max}만원({who}, 나이 구간별 가입한도 표의 {lo}~{hi}세 구간{pend}). 특약 구성 예시는 ${TERM.gate} 탭에서 봅니다.`,
     insLimitPend: ', 검수 대기',
