@@ -4035,7 +4035,7 @@
       }
     },
     "request_doc_count": {
-      "value": 39,
+      "value": 40,
       "label": "docs/gemini_requests 의 요청서 수(번호가 붙은 파일, 부록은 본문과 한 건으로 셈)",
       "as_of": "2026-11-24",
       "source": {
@@ -4046,7 +4046,7 @@
     },
     "request_docs_by_recipient": {
       "value": {
-        "antigravity": 21,
+        "antigravity": 22,
         "browser_agent": 3,
         "gemini_web_or_panel": 15
       },
