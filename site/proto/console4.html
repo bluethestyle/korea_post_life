@@ -2278,6 +2278,69 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
   .gr-vp-hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font:600 13px/1.2 var(--f-ko);color:var(--ink-1)}
   .gr-vp-nodes{display:flex;flex-direction:column;gap:6px}
 }
+
+/* 담보별 연결: 보유 조합 그룹 네트워크(요청 38의 3절). 보장 대분류 채움은 테마마다 기존 토큰을 가리킨다 */
+:root{--gr-dom-0:var(--ink-0);--gr-dom-1:var(--slate-solid);--gr-dom-2:var(--dash);--gr-dom-3:var(--m-all);--gr-dom-4:var(--fog-1);--gr-n-line:var(--ink-0)}
+:root[data-theme="dark"]{--gr-dom-0:var(--ink-0);--gr-dom-1:var(--ink-2);--gr-dom-2:var(--geo-hi);--gr-dom-3:var(--m-both);--gr-dom-4:var(--m-all);--gr-n-line:var(--ink-1)}
+.gr-net{position:relative;width:100%;overflow:hidden}
+.gr-net-svg{display:block;overflow:hidden;touch-action:manipulation}
+.gr-net-svg .gr-tx,.gr-sw .gr-tx{font:400 13px/1 var(--f-body);fill:var(--ink-0)}
+.gr-net-svg .gr-tx .gl-1{font-weight:600}
+.gr-g{stroke-width:1}
+.gr-g-only{fill:var(--gold-soft);stroke:var(--gold-line);stroke-width:1.5}
+.gr-g-shared{fill:var(--hover);stroke:var(--ink-2)}
+.gr-g-peer{fill:url(#gr-hatch);stroke:var(--dash);stroke-dasharray:3 3}
+.gr-sw .gr-g-peer{fill:none}
+.gr-hatch-l{stroke:var(--hatch);stroke-width:1}
+.gr-g.is-gsel{stroke:var(--red);stroke-width:2;stroke-dasharray:none}
+.gr-e{fill:none}
+.gr-e-bundle{stroke:var(--ink-1);opacity:.55}
+.gr-e-held{stroke:var(--ink-1);stroke-width:1}
+.gr-e-rel{stroke:var(--ink-0);stroke-width:1.25}
+.gr-e-rel-inc{stroke-dasharray:4 3}
+.gr-e-rel-uni{stroke-dasharray:1.5 3}
+.gr-n-c{stroke:var(--gr-n-line);stroke-width:1}
+.gr-n.is-wait .gr-n-c{stroke:var(--unknown-edge);stroke-dasharray:2 1.5}
+.gr-mk-sole{fill:var(--gold);stroke:var(--gold-line);stroke-width:1}
+.gr-mk-peer-rel{fill:var(--panel-t);stroke:var(--gold-line);stroke-width:1.2}
+.gr-mk-wide{fill:var(--ink-0)}
+.gr-mk-part-o{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:1}
+.gr-mk-part-f{fill:var(--ink-0)}
+.gr-a-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:1.5}
+.gr-a.is-base .gr-a-c{stroke-width:2}
+.gr-lb-hit{fill:transparent}
+.gr-lb-badge rect{fill:var(--panel-t);stroke:var(--ink-2);stroke-width:1}
+.gr-lead{stroke:var(--ink-2);stroke-width:1}
+.gr-n.is-sel .gr-n-c{fill:var(--red)!important;stroke:#fff;stroke-width:2}
+.gr-n.is-sel{filter:drop-shadow(0 0 0 var(--red))}
+.gr-net-svg .gr-n,.gr-net-svg .gr-g,.gr-net-svg .gr-a,.gr-net-svg .gr-lb-s{transition:opacity 120ms var(--ease-in)}
+.gr-net-svg .gr-e-bundle{transition:opacity 120ms var(--ease-in)}
+.gr-net-svg.is-hl :is(.gr-n,.gr-g,.gr-a,.gr-lb-s):not(.is-keep){opacity:.35}
+.gr-net-svg.is-hl .gr-e-bundle:not(.is-keep){opacity:.2}
+.gr-net-svg.is-selm :is(.gr-n,.gr-g,.gr-a,.gr-lb-s):not(.is-keep){opacity:.45;transition-duration:220ms}
+.gr-net-svg.is-selm .gr-e-bundle:not(.is-keep){opacity:.25;transition-duration:220ms}
+.gr-net-svg.is-flt :is(.gr-n,.gr-lb-s):not(.is-on){opacity:.35}
+.gr-net-svg.is-flt .gr-e-bundle{opacity:.2}
+
+.gr-flts{display:flex;flex-direction:column;gap:3px}
+.gr-flt{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:30px;padding:4px 10px;
+  border:1px solid var(--line-2);background:transparent;color:var(--ink-0);font:600 13px/1.2 var(--f-ko);text-align:left}
+.gr-flt:hover{background:var(--hover)}
+.gr-flt.is-on{background:var(--slate);color:var(--on-slate);border-color:transparent}
+.gr-flt .num{font:600 13px/1 var(--f-num)}
+.gr-lg-sec{display:grid;grid-template-columns:1fr;gap:0 6px;margin:0 0 6px}
+.gr-lg-sec.is-2col{grid-template-columns:1fr 1fr}
+.gr-lg-sec .gr-lg-h{grid-column:1/-1}
+.gr-lg-h{font:600 13px/1.2 var(--f-ko);color:var(--ink-1);margin:2px 0 3px}
+.gr-lg-it{display:flex;align-items:center;gap:6px;width:100%;min-height:21px;padding:0 4px;border:0;background:transparent;
+  color:var(--ink-0);font:400 13px/1.3 var(--f-body);text-align:left;word-break:keep-all}
+button.gr-lg-it:hover{background:var(--hover)}
+button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
+.gr-sw{flex:none;overflow:visible}
+.gr-legend.is-pop{min-width:260px}
+.gr-verd li{margin-bottom:6px}
+.gr-glist li{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px}
+@media (max-width:999px){.gr-legend{display:none}}
 </style>
 </head>
 <body>
@@ -2847,8 +2910,6 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     grEvTitle: TERM.graph,
     grEvBodyTpl: '노드를 클릭해 인접 열의 노드를 펼치거나, 엣지를 클릭해 검수 상태와 급부역할 같은 관계 속성을 확인합니다.',
     grLegendTitle: `${TERM.graph} 노드와 엣지 안내`,
-    grLgNode: '사각 노드: 회사(먹색 면), 종형(2px 윤곽), 특약(1px 윤곽), 급부(요약), 표준담보(이중 윤곽, 비교 종형에 연결이 없는 담보는 옅은 단선 윤곽), 보장 대분류(넓은 막대), 시장 동향(날짜). 우체국은 왼쪽 3px 변',
-    grLgEdge: '엣지: 판매와 포함(실선), 매핑(승인 및 수정은 굵은 실선), 분류(가는 선), 담보 관계(이중선), 발표(점선)',
 
     shortLabel: {
       '열림': '가능', '닫힘': '제한', '일부 나이만 열림': '일부 나이 가능', '함께 열림': '함께 가능',
@@ -3344,7 +3405,7 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
 
     // 관계 그래프(tab6) 문구
     grPresetCover: '담보별 연결',
-    grPresetCoverSub: '회사, 종형, 보장 대분류에서 담보 경로 비교',
+    grPresetCoverSub: '보유 회사 조합별로 담보를 그룹으로 나눠 비교',
     grPresetVariant: '종형 구성',
     grPresetVariantSub: '기준 종형의 특약과 급부를 담보구분별 탐색',
     grPresetNews: '시장 동향',
@@ -3381,6 +3442,57 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     grCopyTitle: `${TERM.graph} 현재 열람 노드`,
     grBenCntTpl: '{org} 급부 {n}',
     grLineHeld: '실선 (종형의 표준담보 보유)',
+    grSearchPh: '담보, 특약, 종형, 회사',
+    grOurs: '우체국',
+    grBaseAnchorTpl: '{org}(기준 종형)',
+    grGrpOnly: '우체국만 보유',
+    grGrpAll: '모두 보유',
+    grGrpOneTpl: '{org}만 보유',
+    grGrpManyTpl: '{orgs} 보유',
+    grGrpCntTpl: '담보 {n}개',
+    grGrpCntMissTpl: '담보 {n}개, {miss}',
+    grBinOursTpl: '우체국과 타사 {rng}개사 보유',
+    grBinPeerAllTpl: '타사 {n}개사 모두 보유',
+    grBinPeerTpl: '타사 {rng}개사 보유',
+    grBinPeerOne: '타사 1개사만 보유',
+    grClsOnly: '우체국만 보유',
+    grClsShared: '우체국과 타사 보유',
+    grClsPeer: `타사만 보유(${label('우체국에 없음')})`,
+    grFilterHead: '판정 필터',
+    grLegendHead: '범례',
+    grLgCls: '보유 구분',
+    grLgMark: '표시',
+    grLgEdgeHead: '엣지',
+    grMkSole: '우체국 단독 보유',
+    grMkPeerRel: '타사 관련 담보로 보장',
+    grMkOursWide: '우체국은 넓은 담보로 보장',
+    grMkOursPart: '우체국은 부분 담보로 보장',
+    grMkWait: '검수 대기',
+    grMkOursWideTpl: '우체국은 넓은 담보인 {covs} 보장',
+    grMkOursPartTpl: '우체국은 부분 담보인 {covs} 보장',
+    grLgBundle: '보유(번들 엣지)',
+    grLgHeldOne: '보유(개별 엣지)',
+    grLgRelInc: '담보 관계 포함',
+    grLgRelUni: '담보 관계 통합',
+    grTipMoreTpl: '외 {n}개사',
+    grTipGroupHint: '클릭하면 담보 목록',
+    grAnchorHeldTpl: '보유 담보 {n}개',
+    grMarkHead: '표시',
+    grVerdictHead: '타사별 판정과 사유',
+    grHeldHead: '회사별 특약과 급부',
+    grHeldLineTpl: '특약 {r}, 급부 {b}',
+    grRepBenTpl: '대표 급부 {nm}',
+    grWaitMapTpl: '매핑 검수 대기 급부 {n}',
+    grWaitExtTpl: '추출 검수 대기 급부 {n}',
+    grIdHead: 'ID',
+    grGroupKicker: `${TERM.graph} 그룹`,
+    grDomCntHead: '보장 대분류별 수',
+    grGroupListHeadTpl: '담보 목록 ({n}개)',
+    grNotInScene: '현재 기준 종형과 비교 대상 종형이 보유하지 않은 담보입니다',
+    grNetAria: `${TERM.graph} 담보별 연결`,
+    grNetEvBody: '담보를 클릭하면 타사별 판정과 회사별 특약, 급부 수를 보고, 그룹 원이나 그룹 라벨을 클릭하면 그룹의 담보 목록을 봅니다.',
+    grCopyNetCols: '그룹,담보,보장 대분류,표시,타사별 판정',
+    grCopyNetTitle: `${TERM.graph} 담보별 연결`,
   };
 
   function cp(key, vars) {
@@ -12951,7 +13063,7 @@ App.registerTab((function () {
 
   const state = {
     preset: 'cover',     // 'cover' | 'variant' | 'news'
-    mode: 'cover-0',     // 'cover-0' | 'cover-1' | 'cover-2' | 'hop'
+    mode: 'net',         // 'net'(담보별 연결) | 'hop'(열 화면)
     activeDom: null,     // node index of 보장분야
     activeStd: null,     // node index of 표준담보
     cols: [[], [], [], [], [], [], []],
@@ -12962,6 +13074,9 @@ App.registerTab((function () {
     selNode: null,       // node index
     selEdge: null,       // edge key ('e:12' | 'vb:v:d' | 'vs:v:s')
     focusNode: null,     // roving tabindex node index
+    selStd: null,        // 담보별 연결에서 선택한 표준담보 노드 번호
+    selGroup: null,      // 담보별 연결에서 선택한 그룹 키
+    filter: null,        // 'f:<판정 필터>' | 'cls:<보유 구분>' | 'dom:<보장 대분류>'
     query: '',
   };
 
@@ -13305,32 +13420,6 @@ App.registerTab((function () {
     return `${c.baseId}|${c.peerScope}|${(c.activePeerOrgs || []).join(',')}`;
   }
 
-  function domainNodesInOrder(g, c) {
-    const order = (c.base && c.base['치료여정'] && c.base['치료여정']['행']) || ['암보장', '뇌혈관보장', '심장보장', '뇌심장보장', '공통보장'];
-    const out = [];
-    const seen = new Set();
-    order.forEach(nm => {
-      const idx = g.byId.get('CAT:' + nm);
-      if (idx != null) { out.push(idx); seen.add(idx); }
-    });
-    g.N.forEach(n => {
-      if (n.k === NK['보장 대분류'] && !seen.has(n.i)) out.push(n.i);
-    });
-    return out;
-  }
-
-  function orgNodesForVariants(g, varIdxs) {
-    const out = [];
-    const seen = new Set();
-    varIdxs.forEach(vi => {
-      const code = g.N[vi] && g.N[vi].o;
-      if (!code) return;
-      const oi = g.byId.get('ORG:' + code);
-      if (oi != null && !seen.has(oi)) { out.push(oi); seen.add(oi); }
-    });
-    return out;
-  }
-
   function cloneStateSnap() {
     return JSON.stringify({
       preset: state.preset,
@@ -13345,6 +13434,9 @@ App.registerTab((function () {
       selNode: state.selNode,
       selEdge: state.selEdge,
       focusNode: state.focusNode,
+      selStd: state.selStd,
+      selGroup: state.selGroup,
+      filter: state.filter,
     });
   }
 
@@ -13362,6 +13454,9 @@ App.registerTab((function () {
     state.selNode = o.selNode;
     state.selEdge = o.selEdge;
     state.focusNode = o.focusNode ?? null;
+    state.selStd = o.selStd ?? null;
+    state.selGroup = o.selGroup ?? null;
+    state.filter = o.filter ?? null;
   }
 
   function pushUndo() {
@@ -13443,7 +13538,7 @@ App.registerTab((function () {
     state.cols[6] = doms;
   }
 
-  function initPresetState(presetName, c, keepHistory) {
+  function initPresetState(presetName, c, keepHistory, varIdx) {
     const g = ensureGraph();
     if (!keepHistory) {
       undoStack = [];
@@ -13455,6 +13550,8 @@ App.registerTab((function () {
     state.selNode = null;
     state.selEdge = null;
     state.focusNode = null;
+    state.selStd = null;
+    state.selGroup = null;
     state.batches = {};
     state.varLimits = {};
     state.varMores = {};
@@ -13463,7 +13560,7 @@ App.registerTab((function () {
 
     if (presetName === 'variant') {
       state.mode = 'hop';
-      const baseVar = g.byId.get(c.baseId) ?? (g.N.find(n => n.k === NK['종형'] && n.o === 'EPOST') || {}).i;
+      const baseVar = varIdx ?? g.byId.get(c.baseId) ?? (g.N.find(n => n.k === NK['종형'] && n.o === 'EPOST') || {}).i;
       if (baseVar != null) {
         const orgIdx = g.byId.get('ORG:' + g.N[baseVar].o);
         if (orgIdx != null) state.cols[1] = [orgIdx];
@@ -13503,13 +13600,9 @@ App.registerTab((function () {
       return;
     }
 
-    // 기본 보는 틀: "담보별 연결"(회사, 맞붙는 종형, 보장 대분류 다섯 + 그룹 엣지)
+    // 기본 보기 방식: 담보별 연결(보유 조합 그룹 네트워크, 3절)
     state.preset = 'cover';
-    state.mode = 'cover-0';
-    const vars = sceneTypes(g, c);
-    state.cols[1] = orgNodesForVariants(g, vars);
-    state.cols[2] = vars;
-    state.cols[6] = domainNodesInOrder(g, c);
+    state.mode = 'net';
     recordTrail(t('grPresetCover'));
   }
 
@@ -13591,164 +13684,6 @@ App.registerTab((function () {
     return { riders: Array.from(riders).sort((a, b) => a - b), bens: Array.from(bens).sort((a, b) => a - b) };
   }
 
-  // 담보 대응 2걸음에서 회사별 특약과 급부 목록을 12개 단위로 구성한다(1-3: 모든 회사의 길이 빠짐없이 이어진다)
-  function buildCoverStdColumns(g, stdIdx, vars) {
-    const riders = [];
-    const riderSeen = new Set();
-    const bens = [];
-    const benSeen = new Set();
-    const more3 = [];
-    const more4 = [];
-
-    delete state.batches[3];
-    delete state.batches[4];
-
-    vars.forEach(vi => {
-      const pathObj = stdPathIn(g, vi, stdIdx);
-      if (!pathObj || !pathObj.riders.length) return;
-
-      const orgNm = orgLabel(g.N[vi].o);
-      const limR = state.varLimits['r:' + vi] || BATCH_SIZE;
-      const shownVarRiders = pathObj.riders.slice(0, limR);
-      let lastR = null;
-      shownVarRiders.forEach(ri => {
-        if (!riderSeen.has(ri)) { riderSeen.add(ri); riders.push(ri); }
-        lastR = ri;
-      });
-      const remR = pathObj.riders.length - shownVarRiders.length;
-      if (remR > 0) {
-        more3.push({ afterIdx: lastR, key: `r:${vi}`, rem: remR, label: `+${fmt(remR)} 더 (${orgNm})` });
-      }
-
-      // 보이는 특약에서 고른 담보로 이어지는 급부는 빠짐없이 함께 보여 길이 끊기지 않게 한다(1-3)
-      const validBenSet = new Set(pathObj.bens);
-      const shownVarBens = [];
-      const shownVarBenSet = new Set();
-      shownVarRiders.forEach(ri => {
-        (g.riderBens.get(ri) || []).forEach(bi => {
-          if (validBenSet.has(bi) && !shownVarBenSet.has(bi)) {
-            shownVarBenSet.add(bi);
-            shownVarBens.push(bi);
-          }
-        });
-      });
-      let lastB = null;
-      shownVarBens.forEach(bi => {
-        if (!benSeen.has(bi)) { benSeen.add(bi); bens.push(bi); }
-        lastB = bi;
-      });
-      const remB = pathObj.bens.length - shownVarBens.length;
-      if (remB > 0) {
-        more4.push({ afterIdx: lastB, key: `r:${vi}`, rem: remB, label: `+${fmt(remB)} 더 (${orgNm})` });
-      }
-    });
-
-    // 비교 종형 바깥에서만 이어진 급부가 있는 담보면 그 급부와 특약을 열에 놓는다
-    if (!bens.length) {
-      const extR = [];
-      const extB = [];
-      (g.stdBens.get(stdIdx) || []).forEach(({ ben }) => {
-        if (!benSeen.has(ben)) { benSeen.add(ben); extB.push(ben); }
-        (g.benRiders.get(ben) || []).forEach(ri => {
-          if (!riderSeen.has(ri)) { riderSeen.add(ri); extR.push(ri); }
-        });
-      });
-      setColWithBatch(3, extR, '특약');
-      setColWithBatch(4, extB, '급부');
-      state.varMores = {};
-      return;
-    }
-
-    state.cols[3] = riders;
-    state.cols[4] = bens;
-    state.varMores = { 3: more3, 4: more4 };
-  }
-
-  function releaseVarMore(vmoreKey) {
-    const g = ensureGraph();
-    if (state.activeStd == null) return;
-    pushUndo();
-    const cur = state.varLimits[vmoreKey] || BATCH_SIZE;
-    state.varLimits[vmoreKey] = cur + BATCH_SIZE;
-    // 특약 한도를 늘릴 때 급부 한도도 함께 맞춰 새로 열린 특약의 급부가 바로 이어지게 한다
-    if (vmoreKey.startsWith('r:')) {
-      const bKey = 'b:' + vmoreKey.slice(2);
-      state.varLimits[bKey] = Math.max(state.varLimits[bKey] || BATCH_SIZE, state.varLimits[vmoreKey]);
-    }
-    const vars = state.cols[2].length ? state.cols[2] : sceneTypes(g, App.ctx());
-    buildCoverStdColumns(g, state.activeStd, vars);
-    recordTrail(`${g.N[state.activeStd].l} +${BATCH_SIZE}`);
-    rerenderGraph(true);
-  }
-
-  // 담보 대응 1걸음: 보장분야 클릭 -> 표준담보 열 펼치기
-  function expandDomainStep(domIdx, c) {
-    const g = ensureGraph();
-    pushUndo();
-    const vars = state.cols[2].length ? state.cols[2] : sceneTypes(g, c);
-    state.cols[1] = orgNodesForVariants(g, vars);
-    state.cols[2] = vars;
-    state.cols[3] = [];
-    state.cols[4] = [];
-    state.varLimits = {};
-    state.varMores = {};
-    delete state.batches[3];
-    delete state.batches[4];
-    delete state.batches[5];
-    const stds = (g.domStds.get(domIdx) || []).slice();
-    state.cols[5] = stds;
-    if (!state.cols[6].length) state.cols[6] = domainNodesInOrder(g, c);
-    else if (!state.cols[6].includes(domIdx)) state.cols[6].unshift(domIdx);
-    state.mode = 'cover-1';
-    state.activeDom = domIdx;
-    state.activeStd = null;
-    state.selNode = domIdx;
-    state.focusNode = domIdx;
-    state.selEdge = null;
-    recordTrail(g.N[domIdx].l);
-  }
-
-  // 담보 대응 2걸음: 표준담보 클릭 -> 회사마다 종형 -> 특약 -> 급부 -> 표준담보 실제 길 펼치기
-  function expandStdStep(stdIdx, c) {
-    const g = ensureGraph();
-    pushUndo();
-    const vars = state.cols[2].length ? state.cols[2] : sceneTypes(g, c);
-    state.cols[1] = orgNodesForVariants(g, vars);
-    state.cols[2] = vars;
-
-    const dm = g.stdDom.get(stdIdx);
-    const domIdx = dm ? dm.dom : state.activeDom;
-    if (domIdx != null) {
-      state.activeDom = domIdx;
-      if (!state.cols[6].length) state.cols[6] = domainNodesInOrder(g, c);
-      let stdList = state.cols[5].length ? state.cols[5].slice() : (g.domStds.get(domIdx) || []).slice();
-      if (!stdList.includes(stdIdx)) stdList.unshift(stdIdx);
-      // 아래쪽에 있던 담보를 고른 경우 한 화면에서 모든 회사의 길이 겹침 없이 읽히도록 고른 담보와 관계 담보를 맨 위로 올린다
-      const idxInCol = stdList.indexOf(stdIdx);
-      if (idxInCol > 6) {
-        const relSet = new Set([stdIdx]);
-        (g.stdRels.get(stdIdx) || []).forEach(r => relSet.add(r.other));
-        const topPart = stdList.filter(x => relSet.has(x));
-        const restPart = stdList.filter(x => !relSet.has(x));
-        stdList = topPart.concat(restPart);
-      }
-      state.cols[5] = stdList;
-      delete state.batches[5];
-    } else if (!state.cols[5].includes(stdIdx)) {
-      state.cols[5] = [stdIdx].concat(state.cols[5]);
-    }
-
-    state.varLimits = {};
-    state.varMores = {};
-    buildCoverStdColumns(g, stdIdx, vars);
-    state.mode = 'cover-2';
-    state.activeStd = stdIdx;
-    state.selNode = stdIdx;
-    state.focusNode = stdIdx;
-    state.selEdge = null;
-    recordTrail(g.N[stdIdx].l);
-  }
-
   // 어느 노드에서나 이웃 손잡이를 눌러 옆 열 펼치기
   function neighborGroupsOf(g, nodeIdx) {
     const n = g.N[nodeIdx];
@@ -13794,7 +13729,6 @@ App.registerTab((function () {
     const hit = groups.find(x => x.key === grpKey);
     if (!hit || !hit.nodes.length) return;
     pushUndo();
-    if (state.mode === 'cover-0' || state.mode === 'cover-1' || state.mode === 'cover-2') state.mode = 'hop';
     state.varMores = {};
     let list = hit.nodes.slice();
     if (hit.nbKind === NK['시장 동향']) {
@@ -13809,25 +13743,12 @@ App.registerTab((function () {
     App.select('n:' + g.N[nodeIdx].id, { animate: false, focus: false });
   }
 
-  // 기존 열 화면의 보유 구분 클래스: 보유 엣지(보유 구분)와 판정 자료의 표시(5.3)로 정한다
-  function ownClass(g, si, c) {
-    const sc = sceneOf(g, c || App.ctx());
-    const it = sc.info.get(si);
-    if (!it) return 'is-unlinked';
-    if (it.cls === 'peer') return 'is-miss';
-    if (it.cls === 'only' && judgeOf(g, c || App.ctx(), sc).per.get(si).marks.includes('sole')) return 'is-only';
-    return '';
-  }
-
   // 지금 화면의 노드들 사이에 그릴 엣지 목록 계산
   function buildEdgeList(g) {
-    const visByCol = state.cols.map(arr => new Set(arr));
     const allVis = new Set();
     state.cols.forEach(arr => arr.forEach(ni => allVis.add(ni)));
 
     const edges = [];
-    const hasRidersOrBens = state.cols[3].length > 0 || state.cols[4].length > 0;
-    const hasStds = state.cols[5].length > 0;
 
     // 1. graph.json 실제 엣지 가운데 양 끝 노드가 모두 화면에 있는 것
     g.E.forEach(e => {
@@ -13854,69 +13775,6 @@ App.registerTab((function () {
         count: null,
       });
     });
-
-    // 2. 처음 상태(표준담보, 특약, 급부가 접혀 있을 때): 종형 -> 보장분야 묶은 엣지(summary.종형[].보장분야별 값 그대로 사용)
-    if (!hasStds && !hasRidersOrBens && visByCol[2].size && visByCol[6].size) {
-      state.cols[2].forEach(vi => {
-        const vNode = g.N[vi];
-        const vSum = g.summary && g.summary['종형'] && g.summary['종형'][vNode.id];
-        const held = g.heldBy.get(vi);
-        state.cols[6].forEach(di => {
-          const dNode = g.N[di];
-          const sumCnt = vSum && vSum['보장분야별'] ? (vSum['보장분야별'][dNode.id] || 0) : null;
-          const stdList = held ? Array.from(held.keys()).filter(si => g.stdDom.get(si) && g.stdDom.get(si).dom === di).sort((a, b) => a - b) : [];
-          const cnt = sumCnt != null ? sumCnt : stdList.length;
-          if (!cnt) return;
-          const props = {
-            연결구분: t('grEdgeVarDomType'),
-            종형: vNode.l,
-            [t('grPropDomain')]: dNode.l,
-            표준담보수: cnt,
-          };
-          edges.push({
-            key: `vb:${vi}:${di}`,
-            kind: 'var-dom',
-            eIdx: null,
-            ek: null,
-            ekData: '',
-            ekName: `${dNode.l} 표준담보 ${cnt}개`,
-            leftNode: vi,
-            rightNode: di,
-            sNode: vi,
-            tNode: di,
-            intraCol: false,
-            props,
-            stdList,
-            count: cnt,
-          });
-        });
-      });
-    }
-
-    // 3. 1걸음 펼침(보장분야를 펼쳐 표준담보는 열렸고 특약과 급부는 접혀 있을 때): 종형 -> 표준담보 보유 연결선(1-12: 화면에서 특약과 급부 수를 세지 않는다)
-    if (hasStds && !hasRidersOrBens && visByCol[2].size) {
-      state.cols[5].forEach(si => {
-        state.cols[2].forEach(vi => {
-          const he = g.heldBy.get(vi) && g.heldBy.get(vi).get(si);
-          if (!he) return;
-          edges.push({
-            key: 'e:' + he.i,
-            kind: 'var-std',
-            eIdx: he.i,
-            ek: he.k,
-            ekData: g.ekinds[he.k],
-            ekName: g.ekindLabels[he.k],
-            leftNode: vi,
-            rightNode: si,
-            sNode: vi,
-            tNode: si,
-            intraCol: false,
-            props: Object.assign({ 안내: t('grEdgeVarStdGuide') }, he.p),
-            count: null,
-          });
-        });
-      });
-    }
 
     return edges;
   }
@@ -14016,12 +13874,10 @@ App.registerTab((function () {
     const isSel = state.selNode === ni && !state.selEdge;
     const isDim = hl.active && !hl.nodes.has(ni);
     const isEpost = n.o === 'EPOST';
-    const stdCls = n.k === NK['표준담보'] ? ownClass(g, ni, c) : '';
     const cls = [
       'gr-node',
       `k-${n.k}`,
       isEpost ? 'is-epost' : '',
-      stdCls,
       isSel ? 'is-sel' : '',
     ].filter(Boolean).join(' ');
 
@@ -14057,8 +13913,7 @@ App.registerTab((function () {
       inner = `<span class="gn-t">${esc(n.l)}</span><span class="gr-ben-sub num">${esc(sum || orgLabel(n.o))}</span>`;
       tipSub = `${orgLabel(n.o)} / ${sum}`;
     } else if (n.k === NK['표준담보']) {
-      const goldMark = stdCls === 'is-only' ? '<i class="gr-gold-mk" aria-hidden="true"></i>' : '';
-      inner = `${goldMark}<span class="gn-t">${esc(n.l)}</span>`;
+      inner = `<span class="gn-t">${esc(n.l)}</span>`;
       // 급부 수는 화면에 놓인 종형의 보유 엣지 급부수를 회사별로 적는다(5.5)
       const it = sceneOf(g, c || App.ctx()).info.get(ni);
       const benNote = it ? it.per.map(x => t('grBenCntTpl', { org: orgLabel(x.code), n: fmt(+(x.e.p['급부수'] || 0)) })).join(', ') : '';
@@ -14130,9 +13985,10 @@ App.registerTab((function () {
           </button>`).join('')}
         </div>
       </div>
+      ${state.preset === 'cover' ? netLeftHTML(ensureGraph(), App.ctx()) : ''}
       <div class="gr-search-box">
         <label class="gr-sec-k" for="gr-search">${esc(t('grSearchLabel'))}</label>
-        <input id="gr-search" class="gr-search-in" type="search" autocomplete="off" placeholder="담보, 특약, 종형, 회사" value="${esc(state.query)}">
+        <input id="gr-search" class="gr-search-in" type="search" autocomplete="off" placeholder="${esc(t('grSearchPh'))}" value="${esc(state.query)}">
         <div id="gr-sugg" class="gr-sugg" hidden></div>
       </div>
       <div>
@@ -14383,6 +14239,69 @@ App.registerTab((function () {
     return parts.join('');
   }
 
+  function trailNavHTML() {
+    const trailHTML = trail.map((tr, idx) => {
+      const isLast = idx === trail.length - 1;
+      return `${idx > 0 ? '<span class="gr-tr-sep" aria-hidden="true">&gt;</span>' : ''}<button type="button" class="gr-tr-btn${isLast ? ' is-cur' : ''}" data-gr-trail="${idx}">${esc(tr.label)}</button>`;
+    }).join('');
+    return `<nav class="gr-trail" aria-label="${esc(t('grTrailLabel'))}"><span class="gr-trail-k">${esc(t('grTrailLabel'))}</span>${trailHTML}</nav>`;
+  }
+
+  // 담보별 연결 화면: 캐시한 배치가 있으면 바로, 없으면 계산한 뒤 그린다(3.12)
+  function rerenderNet(g, c) {
+    renderedEdges = new Map();
+    const isNarrow = innerWidth < 1000;
+    const old = lastCenterEl.querySelector('#gr-net');
+    if (isNarrow) {
+      lastCenterEl.innerHTML = `<div class="gr-wrap" id="gr-stage-root">${trailNavHTML()}<div class="gr-vpath">${netNarrowHTML(g, c)}</div></div>`;
+      net.lay = null;
+      syncLeftActive();
+      return;
+    }
+    const nav = lastCenterEl.querySelector('#gr-stage-root > .gr-trail');
+    if (old && nav) nav.outerHTML = trailNavHTML();
+    else lastCenterEl.innerHTML = `<div class="gr-wrap" id="gr-stage-root">${trailNavHTML()}<div class="gr-net" id="gr-net"></div></div>`;
+    const host = lastCenterEl.querySelector('#gr-net');
+    // 탭 전환 중이라 가운데 영역의 크기가 아직 잡히지 않았으면 다음 프레임에 다시 잰다
+    const [W, H] = netArea(host);
+    if (W < 200 || H < 200) {
+      if ((net.retry = (net.retry || 0) + 1) < 30) requestAnimationFrame(() => { if (App.state.tab === 'graph' && state.preset === 'cover') rerenderGraph(false); });
+      return;
+    }
+    net.retry = 0;
+    net.W = W; net.H = H;
+    syncLeftActive();
+    const key = layoutKey(g, c, W, H);
+    const draw = lay => {
+      if (!lastCenterEl || !lastCenterEl.contains(host) || App.state.tab !== 'graph' || state.preset !== 'cover') return;
+      if (layoutKey(ensureGraph(), App.ctx(), net.W, net.H) !== key) return;
+      net.hover = null;
+      renderNetInto(host, lay);
+      requestAnimationFrame(() => App.updateSelLink(false));
+      if (!lay.fontsOk && document.fonts) document.fonts.ready.then(() => { if (state.preset === 'cover') rerenderGraph(false); });
+      warmLayouts(W, H);
+    };
+    if (layoutCache.has(key) || !old || !host.firstChild) draw(layoutSync(g, c, W, H));
+    else layoutChunked(g, c, W, H, draw);
+  }
+
+  function syncLeftActive() {
+    const undoBtn = lastLeftEl && lastLeftEl.querySelector('#gr-btn-undo');
+    if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+    if (lastLeftEl) {
+      lastLeftEl.querySelectorAll('[data-gr-preset]').forEach(btn => {
+        const on = btn.dataset.grPreset === state.preset;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-selected', String(on));
+      });
+      lastLeftEl.querySelectorAll('[data-gr-filter]').forEach(btn => {
+        const on = btn.dataset.grFilter === state.filter;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-pressed', String(on));
+      });
+    }
+  }
+
   function rerenderGraph(animate, opts = {}) {
     const g = ensureGraph();
     if (!lastCenterEl) return;
@@ -14390,6 +14309,7 @@ App.registerTab((function () {
     hoveredEdgeEl = null;
 
     const curC = App.ctx();
+    if (state.preset === 'cover') { rerenderNet(g, curC); return; }
     ensureFocusNode();
 
     // 1단계(읽기 전용): 바꾸기 전 노드의 화면 좌표를 먼저 기록한다
@@ -14512,6 +14432,1062 @@ App.registerTab((function () {
     }
   }
 
+
+  // ---------- 담보별 연결: 보유 조합 그룹 네트워크(3절) ----------
+  // 앵커(종형) 고정, 1단계 그룹 원 배치, 2단계 그룹 안 포스 배치. 난수 없이 FNV-1a 해시 지터만 쓴다(3.12)
+  const NET_MARGIN = 20;
+  const NET_GROUP_GAP = 14;
+  const NET_FS = 13;
+  const NET_ITERS = 300;
+  const net = {
+    lay: null,          // 지금 그린 배치
+    W: 0, H: 0,
+    hover: null,        // { t: 'std'|'anchor'|'group', id }
+    pending: 0,         // 조각 계산 중인 요청 번호
+    warmT: 0,
+    resizeT: 0,
+  };
+  const layoutCache = new Map();
+
+  function fnv1a(str) {
+    let h = 0x811C9DC5;
+    const bytes = new TextEncoder().encode(str);
+    for (let i = 0; i < bytes.length; i++) {
+      h ^= bytes[i];
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h >>> 0;
+  }
+  const hashUnit = (key, salt) => fnv1a(salt + ':' + key) / 4294967296;
+
+  let measureCtx = null;
+  let measureFamily = '';
+  function textW(s, weight) {
+    if (!measureCtx) {
+      measureCtx = document.createElement('canvas').getContext('2d');
+      measureFamily = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    }
+    measureCtx.font = `${weight || 400} ${NET_FS}px ${measureFamily}`;
+    return measureCtx.measureText(String(s)).width;
+  }
+  // 실제 글꼴의 줄 높이(getBBox 와 같은 fontBoundingBox)
+  let lineMetrics = null;
+  function textAsc() { if (!lineMetrics) lineMetricsCalc(); return lineMetrics[0]; }
+  function textLineH() { if (!lineMetrics) lineMetricsCalc(); return lineMetrics[0] + lineMetrics[1]; }
+  function lineMetricsCalc() {
+    textW('가');
+    const m = measureCtx.measureText('가Ag');
+    const asc = m.fontBoundingBoxAscent || NET_FS * 0.9, desc = m.fontBoundingBoxDescent || NET_FS * 0.3;
+    lineMetrics = [asc, desc];
+  }
+  const fontsReady = () => !document.fonts || document.fonts.status === 'loaded';
+
+  function shortVarName(g, vi) {
+    const n = g.N[vi];
+    const nm = String((n.p && n.p['종형명']) || n.l || '');
+    return nm.length > 14 ? nm.slice(0, 13) + '…' : nm;
+  }
+  function fullVarName(g, vi) {
+    const n = g.N[vi];
+    return String((n.p && n.p['종형명']) || n.l || '');
+  }
+  const orgOf = code => (code === 'EPOST' ? t('grOurs') : orgLabel(code));
+
+  function anchorLines(g, sc, slot) {
+    const vi = sc.types[slot];
+    if (slot === 0) return [t('grBaseAnchorTpl', { org: t('grOurs') }), shortVarName(g, vi)];
+    if (sc.nPeer > 3) return [orgOf(sc.codes[slot])];
+    return [orgOf(sc.codes[slot]), shortVarName(g, vi)];
+  }
+
+  // 그룹 라벨 두 행(11절)
+  function rangeText(a, b) { return a === b ? fmt(a) : `${fmt(a)}~${fmt(b)}`; }
+  function groupLines(sc, grp) {
+    const n = grp.members.length;
+    const line2 = grp.cls === 'peer' ? t('grGrpCntMissTpl', { n: fmt(n), miss: App.label('우체국에 없음') }) : t('grGrpCntTpl', { n: fmt(n) });
+    let line1 = '';
+    if (grp.bin) {
+      const np = sc.nPeer, h = Math.ceil(np / 2);
+      line1 = grp.bin === 'only' ? t('grGrpOnly')
+        : grp.bin === 'all' ? t('grGrpAll')
+          : grp.bin === 'few' ? t('grBinOursTpl', { rng: rangeText(1, h - 1) })
+            : grp.bin === 'many' ? t('grBinOursTpl', { rng: rangeText(h, np - 1) })
+              : grp.bin === 'p-all' ? t('grBinPeerAllTpl', { n: fmt(np) })
+                : grp.bin === 'p-many' ? t('grBinPeerTpl', { rng: rangeText(h, np - 1) })
+                  : grp.bin === 'p-few' ? t('grBinPeerTpl', { rng: rangeText(2, h - 1) })
+                    : t('grBinPeerOne');
+    } else {
+      const slots = grp.slots;
+      if (grp.cls === 'only') line1 = t('grGrpOnly');
+      else if (slots.length === sc.types.length) line1 = t('grGrpAll');
+      else if (slots.length === 1) line1 = t('grGrpOneTpl', { org: orgOf(sc.codes[slots[0]]) });
+      else line1 = t('grGrpManyTpl', { orgs: slots.map(s => orgOf(sc.codes[s])).join(', ') });
+    }
+    return [line1, line2];
+  }
+
+  function netCtxFor(baseId, scope) {
+    const base = App.S['기준별'][baseId];
+    const raw = (base && base['맞붙는종형']) || [];
+    let orgs;
+    if (scope === 'life' || scope === 'nonlife') orgs = App.PEER_ORGS.filter(o => App.orgSector(o) === scope);
+    else orgs = App.PEER_ORGS.slice();
+    const set = new Set(orgs);
+    const peerIds = scope === 'all' ? raw.slice() : raw.filter(id => set.has((txt.vinfo(id) || {})['기관코드']));
+    return { baseId, peerIds, peerScope: scope, activePeerOrgs: orgs };
+  }
+
+  // 3.5절 1번: 담보마다의 목표점
+  function nodeTarget(sc, it, anc, k) {
+    const hs = it.slots;
+    if (hs.length === 1) {
+      const a = anc[hs[0]];
+      let ox, oy;
+      if (hs[0] === 0) { const th = 110 * Math.PI / 180; ox = Math.cos(th); oy = Math.sin(th); } else {
+        const dx = a.x - anc[0].x, dy = a.y - anc[0].y, d = Math.hypot(dx, dy) || 1;
+        ox = dx / d; oy = dy / d;
+      }
+      return [a.x + ox * 62 * k, a.y + oy * 62 * k];
+    }
+    const e = hs[0] === 0;
+    const ps = hs.filter(s => s !== 0);
+    const wb = e && ps.length ? 0.5 : (e ? 1 : 0);
+    const wp = ps.length ? (1 - wb) / ps.length : 0;
+    let tx = e ? wb * anc[0].x : 0, ty = e ? wb * anc[0].y : 0;
+    ps.forEach(s => { tx += wp * anc[s].x; ty += wp * anc[s].y; });
+    return [tx, ty];
+  }
+
+  function pushOutRect(x, y, r, box, gap) {
+    const x0 = box[0] - r - gap, y0 = box[1] - r - gap, x1 = box[2] + r + gap, y1 = box[3] + r + gap;
+    if (x0 < x && x < x1 && y0 < y && y < y1) {
+      const c = [[x - x0, -1, 0], [x1 - x, 1, 0], [y - y0, 0, -1], [y1 - y, 0, 1]];
+      let m = c[0];
+      for (let i = 1; i < 4; i++) if (c[i][0] < m[0]) m = c[i];
+      return [x + m[1] * m[0], y + m[2] * m[0]];
+    }
+    return [x, y];
+  }
+
+  // d3-force 와 같은 형식의 시뮬레이션(forceX, forceY, forceManyBody(distanceMax), forceCollide). 몇 회마다 yield 해 조각 실행이 가능하다
+  function* simulate(nodes, fixed, boxes, links, P) {
+    const n = nodes.length;
+    const X = new Float64Array(n), Y = new Float64Array(n), R = new Float64Array(n);
+    const vx = new Float64Array(n), vy = new Float64Array(n);
+    nodes.forEach((nd, i) => { X[i] = nd.x; Y[i] = nd.y; R[i] = nd.r; });
+    const W = P.W, H = P.H, gap = P.gap;
+    const clampX = (x, r) => Math.min(Math.max(x, NET_MARGIN + r), W - NET_MARGIN - r);
+    const clampY = (y, r) => Math.min(Math.max(y, NET_MARGIN + r), H - NET_MARGIN - r);
+    const groups = new Map();
+    nodes.forEach((nd, i) => {
+      if (nd.g == null) return;
+      let a = groups.get(nd.g);
+      if (!a) { a = []; groups.set(nd.g, a); }
+      a.push(i);
+    });
+    const qd2 = P.qdmax * P.qdmax;
+    let alpha = 1;
+    const adecay = 1 - Math.pow(0.001, 1 / NET_ITERS);
+    const vk = 0.6;
+    for (let it = 0; it < NET_ITERS; it++) {
+      alpha += (0 - alpha) * adecay;
+      for (let i = 0; i < n; i++) {
+        const nd = nodes[i];
+        const kk = P.kt * alpha;
+        vx[i] += (nd.tx - X[i]) * kk;
+        vy[i] += (nd.ty - Y[i]) * kk;
+      }
+      if (P.kg > 0) {
+        for (const mem of groups.values()) {
+          if (mem.length < 2) continue;
+          let cx = 0, cy = 0;
+          mem.forEach(i => { cx += X[i]; cy += Y[i]; });
+          cx /= mem.length; cy /= mem.length;
+          mem.forEach(i => { vx[i] += (cx - X[i]) * P.kg * alpha; vy[i] += (cy - Y[i]) * P.kg * alpha; });
+        }
+      }
+      for (const [a, b, L, s] of links) {
+        const dx = X[b] + vx[b] - X[a] - vx[a], dy = Y[b] + vy[b] - Y[a] - vy[a];
+        const d = Math.hypot(dx, dy) || 1e-6;
+        const f = (d - L) / d * alpha * s;
+        vx[b] -= dx * f * 0.5; vy[b] -= dy * f * 0.5;
+        vx[a] += dx * f * 0.5; vy[a] += dy * f * 0.5;
+      }
+      for (let i = 0; i < n; i++) {
+        const xi = X[i], yi = Y[i], ri = R[i], gi = nodes[i].g;
+        for (let j = i + 1; j < n; j++) {
+          let dx = X[j] - xi, dy = Y[j] - yi;
+          let l2 = dx * dx + dy * dy;
+          if (l2 < qd2) {
+            if (l2 < 1) {
+              const key = String(i * 7919 + j);
+              dx = (hashUnit(key, 'jx') - 0.5) * 1e-3;
+              dy = (hashUnit(key, 'jy') - 0.5) * 1e-3;
+              l2 = Math.max(dx * dx + dy * dy, 1e-6);
+            }
+            const q = (gi != null && gi === nodes[j].g ? P.qSame : P.qDiff) * alpha / Math.max(l2, 1);
+            vx[i] += dx * q; vy[i] += dy * q;
+            vx[j] -= dx * q; vy[j] -= dy * q;
+          }
+          const dx2 = X[j] + vx[j] - xi - vx[i], dy2 = Y[j] + vy[j] - yi - vy[i];
+          const rr = ri + R[j] + gap;
+          const m2 = dx2 * dx2 + dy2 * dy2;
+          if (m2 < rr * rr) {
+            const l = Math.sqrt(m2) || 1e-3;
+            const f = (rr - l) / l * 0.8;
+            const wj = R[j] * R[j] / (ri * ri + R[j] * R[j]);
+            vx[i] -= dx2 * f * wj; vy[i] -= dy2 * f * wj;
+            vx[j] += dx2 * f * (1 - wj); vy[j] += dy2 * f * (1 - wj);
+          }
+        }
+        for (const fx of fixed) {
+          const dx2 = X[i] + vx[i] - fx.x, dy2 = Y[i] + vy[i] - fx.y;
+          const rr = ri + fx.r + gap;
+          const m2 = dx2 * dx2 + dy2 * dy2;
+          if (m2 < rr * rr) {
+            const l = Math.sqrt(m2) || 1e-3;
+            const f = (rr - l) / l * 0.8;
+            vx[i] += dx2 * f; vy[i] += dy2 * f;
+          }
+        }
+      }
+      for (let i = 0; i < n; i++) {
+        vx[i] *= vk; vy[i] *= vk;
+        X[i] += vx[i]; Y[i] += vy[i];
+        for (const bx of boxes) { const p = pushOutRect(X[i], Y[i], R[i], bx, gap); X[i] = p[0]; Y[i] = p[1]; }
+        if (nodes[i].gR != null) { const p = contain(X[i], Y[i], R[i], nodes[i]); X[i] = p[0]; Y[i] = p[1]; }
+        X[i] = clampX(X[i], R[i]); Y[i] = clampY(Y[i], R[i]);
+      }
+      if ((it & 7) === 7) yield;
+    }
+    // 좌표를 0.01px로 반올림해 그리므로 정리 단계는 간격에 0.05px 여유를 둔다
+    yield* relax(X, Y, R, fixed, boxes, gap + 0.05, nodes, clampX, clampY, false);
+    // 뒤 절반의 정리로 그룹 원 밖에 남은 노드가 있으면 원 안으로 넣는 제한을 끝까지 걸고 한 번 더 정리한다
+    const outside = nodes.some((nd, i) => nd.gR != null && Math.hypot(X[i] - nd.gx, Y[i] - nd.gy) + R[i] > nd.gR - 0.04);
+    if (outside) yield* relax(X, Y, R, fixed, boxes, gap + 0.05, nodes, clampX, clampY, true);
+    nodes.forEach((nd, i) => { nd.x = X[i]; nd.y = Y[i]; });
+  }
+
+  function contain(x, y, r, nd) {
+    const dx = x - nd.gx, dy = y - nd.gy;
+    const lim = Math.max(nd.gR - r - 0.05, 0);   // 0.01px 반올림 여유
+    const d = Math.hypot(dx, dy);
+    if (d > lim && d > 0) return [nd.gx + dx / d * lim, nd.gy + dy / d * lim];
+    return [x, y];
+  }
+
+  // 위치만 옮겨 겹침과 간격 부족을 없앤다(최대 300회). 앞 절반은 그룹 원 밖으로 나간 노드도 되돌린다(3.5절 4번, 3.6절)
+  function* relax(X, Y, R, fixed, boxes, gap, nodes, clampX, clampY, containAll) {
+    const n = X.length;
+    const maxIter = 300;
+    for (let it = 0; it < maxIter; it++) {
+      let moved = false;
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          let dx = X[j] - X[i], dy = Y[j] - Y[i];
+          const rr = R[i] + R[j] + gap;
+          const l2 = dx * dx + dy * dy;
+          if (l2 < rr * rr - 1e-6) {
+            let l = Math.sqrt(l2);
+            if (l < 1e-6) { dx = 1; dy = 0; l = 1; }
+            const m = (rr - l) / 2 / l * 1.01;
+            X[i] -= dx * m; Y[i] -= dy * m;
+            X[j] += dx * m; Y[j] += dy * m;
+            moved = true;
+          }
+        }
+        for (const fx of fixed) {
+          const dx = X[i] - fx.x, dy = Y[i] - fx.y;
+          const rr = R[i] + fx.r + gap;
+          const l2 = dx * dx + dy * dy;
+          if (l2 < rr * rr - 1e-6) {
+            const l = Math.sqrt(l2) || 1e-6;
+            const m = (rr - l) / l * 1.01;
+            X[i] += dx * m; Y[i] += dy * m;
+            moved = true;
+          }
+        }
+      }
+      for (let i = 0; i < n; i++) {
+        for (const bx of boxes) {
+          const p = pushOutRect(X[i], Y[i], R[i], bx, gap);
+          if (p[0] !== X[i] || p[1] !== Y[i]) { X[i] = p[0]; Y[i] = p[1]; moved = true; }
+        }
+        if (nodes[i].gR != null && (containAll || it < maxIter / 2)) {
+          const p = contain(X[i], Y[i], R[i], nodes[i]);
+          if (Math.abs(p[0] - X[i]) + Math.abs(p[1] - Y[i]) > 1e-6) { X[i] = p[0]; Y[i] = p[1]; moved = true; }
+        }
+        const cx = clampX(X[i], R[i]), cy = clampY(Y[i], R[i]);
+        if (cx !== X[i] || cy !== Y[i]) { X[i] = cx; Y[i] = cy; moved = true; }
+      }
+      if (!moved) return;
+      if ((it & 7) === 7) yield;
+    }
+  }
+
+  function boxHit(b, placed, circles, W, H) {
+    if (b[0] < 0 || b[1] < 0 || b[2] > W || b[3] > H) return true;
+    for (const q of placed) if (b[0] < q[2] && q[0] < b[2] && b[1] < q[3] && q[1] < b[3]) return true;
+    for (const [x, y, r] of circles) {
+      const cx = Math.min(Math.max(x, b[0]), b[2]), cy = Math.min(Math.max(y, b[1]), b[3]);
+      if ((cx - x) * (cx - x) + (cy - y) * (cy - y) < r * r) return true;
+    }
+    return false;
+  }
+
+  // 배치 전체(앵커, 그룹 원, 노드, 라벨, 번들 엣지)를 계산하는 생성기
+  function* layoutGen(g, c, W, H) {
+    const t0 = performance.now();
+    const sc = sceneOf(g, c);
+    const jd = judgeOf(g, c, sc);
+    const k = Math.min(1, Math.sqrt((W * H) / (945 * 620)));
+    const gap = k < 1 ? 3 : 4;
+    const doms = domOrder(g);
+    // 앵커(3.3)
+    const nP = sc.nPeer;
+    const bx = 0.15 * W, cy = H / 2, rx = 0.80 * W, ry = 0.40 * H;
+    const tm = nP <= 1 ? 0 : nP <= 3 ? 50 : Math.min(74, 50 + 3 * (nP - 3));
+    const anc = sc.types.map((vi, slot) => {
+      const lines = anchorLines(g, sc, slot);
+      const lw = Math.max(...lines.map((s, i) => textW(s, i === 0 ? 600 : 400))) + 4;
+      const lh = textLineH() + (lines.length - 1) * (NET_FS + 3);
+      let x, y, r;
+      if (slot === 0) { x = bx; y = cy; r = 15 * k; } else {
+        const th = (nP === 1 ? 0 : -tm + 2 * tm * (slot - 1) / (nP - 1)) * Math.PI / 180;
+        r = 12 * k;
+        x = Math.min(bx + rx * Math.cos(th), W - NET_MARGIN - lw - r - 8);
+        y = cy + ry * Math.sin(th);
+      }
+      let box;
+      if (slot === 0) {
+        let lx = x - lw / 2;
+        lx = Math.max(2, Math.min(W - 2 - lw, lx));
+        box = [lx, y - r - 4 - lh, lx + lw, y - r - 4];
+      } else box = [x + r + 4, y - lh / 2, x + r + 4 + lw, y + lh / 2];
+      return { slot, vi, id: g.N[vi].id, code: sc.codes[slot], key: slot === 0 ? 'base' : sc.codes[slot], x, y, r, lines, box };
+    });
+    const boxes = anc.map(a => a.box);
+    const fixed = anc.map(a => ({ x: a.x, y: a.y, r: a.r }));
+    // 노드 크기(3.7): 반지름 r, 충돌 반지름 cr
+    const rad = new Map(), crad = new Map(), tgt = new Map();
+    sc.stds.forEach(si => {
+      const it = sc.info.get(si);
+      const r = (5 + 5 * Math.sqrt(Math.min(it.bens, 16) / 16)) * k;
+      const marks = jd.per.get(si).marks;
+      const glyph = marks.some(m => m !== 'wait') || nP > 3;
+      rad.set(si, r);
+      crad.set(si, glyph ? r + 3 : r);
+      tgt.set(si, nodeTarget(sc, it, anc, k));
+    });
+    // 1단계: 그룹 원(3.5)
+    const gnodes = sc.groups.map(grp => {
+      const mem = grp.members;
+      let tx = 0, ty = 0, s2 = 0, mx = 0;
+      mem.forEach(si => {
+        tx += tgt.get(si)[0]; ty += tgt.get(si)[1];
+        const cr = crad.get(si);
+        s2 += (cr + gap / 2 + 1) * (cr + gap / 2 + 1);
+        mx = Math.max(mx, cr);
+      });
+      tx /= mem.length; ty /= mem.length;
+      const R = Math.max(Math.sqrt(s2 / 0.60), mx + 1);
+      let x0 = tx + (hashUnit(grp.key, 'gx') - 0.5) * 10, y0 = ty + (hashUnit(grp.key, 'gy') - 0.5) * 10;
+      x0 = Math.min(Math.max(x0, NET_MARGIN + R), W - NET_MARGIN - R);
+      y0 = Math.min(Math.max(y0, NET_MARGIN + R), H - NET_MARGIN - R);
+      return { key: grp.key, x: x0, y: y0, r: R, tx, ty, g: null };
+    });
+    yield* simulate(gnodes, fixed, boxes, [], { W, H, gap: NET_GROUP_GAP, qSame: 0, qDiff: -30, qdmax: 40, kg: 0, kt: 0.10 });
+    const gpos = new Map(gnodes.map(gn => [gn.key, { x: gn.x, y: gn.y, R: gn.r }]));
+    // 2단계: 그룹 안 포스 배치(3.6 안 A)
+    const nodes = sc.stds.map(si => {
+      const it = sc.info.get(si);
+      const gg = gpos.get(it.key);
+      const ng = sc.groupMap.get(it.key).members.length;
+      let tx = gg.x, ty = gg.y;
+      const di = doms.indexOf(it.dom);
+      if (ng >= 4 && di >= 0 && di < 5) {
+        const ang = (-90 + 72 * di) * Math.PI / 180;
+        tx += Math.cos(ang) * gg.R * 0.42;
+        ty += Math.sin(ang) * gg.R * 0.42;
+      }
+      const cr = crad.get(si);
+      const jit = Math.min(24, gg.R);
+      const sid = g.N[si].id;
+      let x0 = tx + (hashUnit(sid, 'x') - 0.5) * jit, y0 = ty + (hashUnit(sid, 'y') - 0.5) * jit;
+      x0 = Math.min(Math.max(x0, NET_MARGIN + cr), W - NET_MARGIN - cr);
+      y0 = Math.min(Math.max(y0, NET_MARGIN + cr), H - NET_MARGIN - cr);
+      return { si, r: cr, g: it.key, gx: gg.x, gy: gg.y, gR: gg.R, tx, ty, x: x0, y: y0 };
+    });
+    const pos = new Map(nodes.map((nd, i) => [nd.si, i]));
+    const links = [];
+    sc.stds.forEach(si => {
+      (g.stdRels.get(si) || []).forEach(rl => {
+        if (rl.dir !== 'out' || !pos.has(rl.other)) return;
+        if (sc.info.get(si).key !== sc.info.get(rl.other).key) return;
+        links.push([pos.get(si), pos.get(rl.other), 40, 0.02]);
+      });
+    });
+    yield* simulate(nodes, fixed, boxes, links, { W, H, gap, qSame: -10, qDiff: -40, qdmax: 90, kg: 0.03, kt: 0.10 });
+    const npos = new Map(nodes.map(nd => [nd.si, { x: nd.x, y: nd.y, r: rad.get(nd.si), cr: crad.get(nd.si) }]));
+    // 번들 엣지(3.8)
+    const bundles = [];
+    sc.groups.forEach(grp => {
+      const gg = gpos.get(grp.key);
+      const slots = grp.slots || Array.from(new Set(grp.members.flatMap(si => sc.info.get(si).slots))).sort((a, b) => a - b);
+      slots.forEach(slot => {
+        if (nP > 3 && slot !== 0) return;
+        const a = anc[slot];
+        const n = grp.slots ? grp.members.length : grp.members.filter(si => sc.info.get(si).slots.includes(slot)).length;
+        if (!n) return;
+        const dx = gg.x - a.x, dy = gg.y - a.y, d = Math.hypot(dx, dy) || 1;
+        const ux = dx / d, uy = dy / d;
+        bundles.push({ slot, key: grp.key, n, w: Math.min(6, 0.6 + 0.18 * n),
+          x1: a.x + ux * a.r, y1: a.y + uy * a.r, x2: gg.x - ux * gg.R, y2: gg.y - uy * gg.R });
+      });
+    });
+    yield;
+    // 그룹 라벨(3.9): 담보 수가 많은 그룹부터 여덟 방향, 그다음 22px 더 떨어진 여덟 곳, 막히면 배지
+    const placed = boxes.slice();
+    const gCircles = Array.from(gpos.values()).map(v => [v.x, v.y, v.R]);
+    const aCircles = anc.map(a => [a.x, a.y, a.r]);
+    const glabels = new Map();
+    const dirs = [[0, -1], [0, 1], [1, 0], [-1, 0], [1, -1], [-1, -1], [1, 1], [-1, 1]];
+    sc.groups.slice().sort((a, b) => b.members.length - a.members.length || (a.key < b.key ? -1 : 1)).forEach(grp => {
+      const gg = gpos.get(grp.key);
+      const lines = groupLines(sc, grp);
+      const w = Math.max(textW(lines[0], 600), textW(lines[1], 400)) + 4;
+      const h = textLineH() + (NET_FS + 3);
+      let hit = null;
+      for (const off of [4, 26]) {
+        for (const [ux0, uy0] of dirs) {
+          const dl = Math.hypot(ux0, uy0);
+          const ux = ux0 / dl, uy = uy0 / dl;
+          const px = gg.x + ux * (gg.R + off), py = gg.y + uy * (gg.R + off);
+          const x0 = ux0 > 0 ? px : ux0 < 0 ? px - w : px - w / 2;
+          const y0 = uy0 > 0 ? py : uy0 < 0 ? py - h : py - h / 2;
+          const b = [x0, y0, x0 + w, y0 + h];
+          if (!boxHit(b, placed, gCircles.concat(aCircles), W, H)) {
+            hit = { box: b, lines, lead: off > 4 ? [gg.x + ux * gg.R, gg.y + uy * gg.R, px, py] : null };
+            break;
+          }
+        }
+        if (hit) break;
+      }
+      if (!hit) {
+        const bw = textW(fmt(grp.members.length), 600) + 12, bh = textLineH() + 2;
+        hit = { box: [gg.x - bw / 2, gg.y - gg.R - bh / 2, gg.x + bw / 2, gg.y - gg.R + bh / 2], lines, badge: true };
+      }
+      placed.push(hit.box);
+      glabels.set(grp.key, hit);
+    });
+    yield;
+    // 담보 이름 라벨(3.9): 우체국만, 우체국과 타사, 타사만 차례로, 큰 노드부터 오른쪽, 왼쪽, 위, 아래
+    const rank = { only: 0, shared: 1, peer: 2 };
+    const nCircles = sc.stds.map(si => { const p = npos.get(si); return [p.x, p.y, p.r]; }).concat(aCircles);
+    const slabels = new Map();
+    sc.stds.slice().sort((a, b) => (rank[sc.info.get(a).cls] - rank[sc.info.get(b).cls]) || (rad.get(b) - rad.get(a)) || (a - b)).forEach(si => {
+      const p = npos.get(si);
+      const nm = g.N[si].l;
+      const w = textW(nm, 400), h = textLineH();
+      const cands = [
+        [p.x + p.r + 2, p.y - h / 2], [p.x - p.r - 2 - w, p.y - h / 2],
+        [p.x - w / 2, p.y - p.r - 2 - h], [p.x - w / 2, p.y + p.r + 2],
+      ];
+      for (const [x0, y0] of cands) {
+        const b = [x0, y0, x0 + w, y0 + h];
+        if (!boxHit(b, placed, nCircles, W, H)) { placed.push(b); slabels.set(si, b); break; }
+      }
+    });
+    return { sc, jd, W, H, k, gap, anc, gpos, npos, bundles, glabels, slabels, ms: performance.now() - t0, fontsOk: fontsReady() };
+  }
+
+  function runSync(gen) {
+    let r = gen.next();
+    while (!r.done) r = gen.next();
+    return r.value;
+  }
+
+  function layoutKey(g, c, W, H) {
+    return `cover|${c.baseId}|${sceneTypes(g, c).join(',')}|${c.peerScope}|${W}|${H}`;
+  }
+
+  function layoutSync(g, c, W, H) {
+    const key = layoutKey(g, c, W, H);
+    if (layoutCache.has(key)) return layoutCache.get(key);
+    const lay = runSync(layoutGen(g, c, W, H));
+    if (lay.fontsOk) layoutCache.set(key, lay);
+    return lay;
+  }
+
+  // 예열 전에 조건이 바뀌면 그 조건의 계산을 프레임당 8ms 이하로 나눠 실행한다(3.12)
+  function layoutChunked(g, c, W, H, done) {
+    const key = layoutKey(g, c, W, H);
+    if (layoutCache.has(key)) { done(layoutCache.get(key)); return; }
+    const ticket = ++net.pending;
+    const gen = layoutGen(g, c, W, H);
+    const step = () => {
+      if (ticket !== net.pending) return;
+      const t0 = performance.now();
+      let r;
+      do { r = gen.next(); } while (!r.done && performance.now() - t0 < 8);
+      if (r.done) {
+        if (r.value.fontsOk) layoutCache.set(key, r.value);
+        done(r.value);
+      } else requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // 탭에 들어오면 기준 종형 다섯 x 비교 범위 셋을 지금 그래프 영역 크기로 미리 계산한다(지금 조건부터)
+  function warmLayouts(W, H) {
+    if (net.warmT || typeof requestIdleCallback !== 'function') return;
+    const g = ensureGraph();
+    const cur = App.ctx();
+    const list = [];
+    const bases = Object.keys(App.S['기준별'] || {});
+    ['all', 'life', 'nonlife'].forEach(sc => bases.forEach(b => list.push(netCtxFor(b, sc))));
+    list.sort((a, b) => (b.baseId === cur.baseId && b.peerScope === cur.peerScope) - (a.baseId === cur.baseId && a.peerScope === cur.peerScope));
+    let gen = null, cc = null;
+    const work = dl => {
+      net.warmT = 0;
+      if (net.W !== W || net.H !== H) return;
+      while (dl.timeRemaining() > 2) {
+        if (!gen) {
+          while (list.length && layoutCache.has(layoutKey(g, list[0], W, H))) list.shift();
+          if (!list.length) return;
+          cc = list.shift();
+          gen = layoutGen(g, cc, W, H);
+        }
+        const r = gen.next();
+        if (r.done) {
+          if (r.value.fontsOk) layoutCache.set(layoutKey(g, cc, W, H), r.value);
+          gen = null;
+        }
+      }
+      net.warmT = requestIdleCallback(work, { timeout: 2000 });
+    };
+    net.warmT = requestIdleCallback(work, { timeout: 2000 });
+  }
+
+  // ---------- 담보별 연결 그리기 ----------
+  const f1 = v => Math.round(v * 100) / 100;
+  const MARK_KEY = { sole: 'grMkSole', 'peer-rel': 'grMkPeerRel', 'ours-wide': 'grMkOursWide', 'ours-part': 'grMkOursPart', wait: 'grMkWait' };
+  const stdNames = ids => ids.map(id => { const ni = ensureGraph().byId.get(id); return ni != null ? ensureGraph().N[ni].l : id; }).join(', ');
+
+  function markLines(g, c, lay, si) {
+    const sc = lay.sc, jd = lay.jd.per.get(si), it = sc.info.get(si);
+    const out = [];
+    jd.marks.forEach(m => {
+      if (m === 'ours-wide' || m === 'ours-part') {
+        const covs = txt.josa(stdNames(jd.cov.oursRel[1] || []), '으로');
+        out.push(t(m === 'ours-wide' ? 'grMkOursWideTpl' : 'grMkOursPartTpl', { covs }));
+      } else if (m === 'wait') {
+        it.per.forEach(x => {
+          const a = +(x.e.p['매핑검수대기급부수'] || 0), b = +(x.e.p['추출검수대기급부수'] || 0);
+          const parts = [];
+          if (a) parts.push(t('grWaitMapTpl', { n: fmt(a) }));
+          if (b) parts.push(t('grWaitExtTpl', { n: fmt(b) }));
+          if (parts.length) out.push(`${orgOf(x.code)} ${parts.join(', ')}`);
+        });
+      } else out.push(t(MARK_KEY[m]));
+    });
+    return out;
+  }
+
+  function verdictChips(lay, si) {
+    const jd = lay.jd.per.get(si);
+    if (!jd.cov) return [];
+    return jd.cov.pv.filter(x => x.v).map(x => [x.v.kind, `${orgOf((txt.vinfo(x.peer) || {})['기관코드'])} ${App.cover.chipText(x.v)}`]);
+  }
+
+  function markGlyph(m, r) {
+    const d = r * 0.7071;
+    if (m === 'sole' || m === 'peer-rel') {
+      const cx = f1(d + 1), cy = f1(-d - 1), h = 4.24;
+      return `<path class="gr-mk gr-mk-${m}" d="M${cx} ${f1(cy - h)}L${f1(cx + h)} ${cy}L${cx} ${f1(cy + h)}L${f1(cx - h)} ${cy}Z"/>`;
+    }
+    if (m === 'ours-wide') return `<circle class="gr-mk gr-mk-wide" cx="${f1(d + 1)}" cy="${f1(d + 1)}" r="3"/>`;
+    if (m === 'ours-part') {
+      const cx = f1(d + 1), cy = f1(d + 1);
+      return `<circle class="gr-mk gr-mk-part-o" cx="${cx}" cy="${cy}" r="3"/><path class="gr-mk gr-mk-part-f" d="M${cx} ${f1(cy - 3)}A3 3 0 0 0 ${cx} ${f1(cy + 3)}Z"/>`;
+    }
+    return '';
+  }
+
+  function svgTextLines(x, y, lines, anchor, cls) {
+    return `<text class="${cls}" x="${f1(x)}" y="${f1(y)}" text-anchor="${anchor}">${lines.map((s, i) => `<tspan x="${f1(x)}" dy="${i === 0 ? 0 : NET_FS + 3}"${i === 0 ? ' class="gl-1"' : ''}>${esc(s)}</tspan>`).join('')}</text>`;
+  }
+
+  function netSVG(g, c, lay) {
+    const sc = lay.sc;
+    const W = lay.W, H = lay.H;
+    const domIdx = si => { const i = domOrder(g).indexOf(sc.info.get(si).dom); return i < 0 ? 4 : Math.min(i, 4); };
+    const parts = [];
+    parts.push(`<defs><pattern id="gr-hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(135)"><line class="gr-hatch-l" x1="0" y1="0" x2="0" y2="5"/></pattern></defs>`);
+    // 그룹 원
+    parts.push('<g class="gr-l-groups">');
+    sc.groups.forEach(grp => {
+      const gg = lay.gpos.get(grp.key);
+      const lines = groupLines(sc, grp);
+      const domCnt = domCountText(g, grp.members);
+      parts.push(`<circle class="gr-g gr-g-${grp.cls}" cx="${f1(gg.x)}" cy="${f1(gg.y)}" r="${f1(gg.R)}" data-gr-group="${esc(grp.key)}" data-gr-count="${grp.members.length}" data-aim="circle" data-tip-title="${esc(lines[0])}" data-tip-sub="${esc([lines[1], domCnt, t('grTipGroupHint')].filter(Boolean).join(' / '))}"/>`);
+    });
+    parts.push('</g>');
+    // 번들 엣지
+    parts.push('<g class="gr-l-edges">');
+    lay.bundles.forEach(b => {
+      parts.push(`<line class="gr-e gr-e-bundle" x1="${f1(b.x1)}" y1="${f1(b.y1)}" x2="${f1(b.x2)}" y2="${f1(b.y2)}" stroke-width="${f1(b.w)}" data-gr-ekind="보유" data-gr-bundle="1" data-gr-s="${esc(lay.anc[b.slot].id)}" data-gr-t="${esc(b.key)}" data-gr-slot="${b.slot}"/>`);
+    });
+    parts.push('</g><g class="gr-l-hot"></g>');
+    // 표준담보 노드
+    parts.push('<g class="gr-l-nodes">');
+    sc.stds.forEach(si => {
+      const p = lay.npos.get(si);
+      const it = sc.info.get(si);
+      const jd = lay.jd.per.get(si);
+      const n = g.N[si];
+      const grpName = groupLines(sc, sc.groupMap.get(it.key))[0];
+      const chips = verdictChips(lay, si);
+      const more = chips.length > 3 ? t('grTipMoreTpl', { n: fmt(chips.length - 3) }) : '';
+      const benNote = it.per.map(x => t('grBenCntTpl', { org: orgOf(x.code), n: fmt(+(x.e.p['급부수'] || 0)) })).join(', ');
+      const sub = [it.dom, grpName].concat(markLines(g, c, lay, si), [benNote, more]).filter(Boolean).join(' / ');
+      const wait = jd.marks.includes('wait');
+      parts.push(`<g class="gr-n gr-n-${it.cls}${wait ? ' is-wait' : ''}" transform="translate(${f1(p.x)} ${f1(p.y)})" data-gr-id="${esc(n.id)}" data-gr-idx="${si}" data-gr-kind="표준담보" data-gr-r="${f1(p.r)}" data-gr-group="${esc(it.key)}" data-gr-cls="${it.cls}" data-gr-mark="${jd.marks.join(' ')}" data-aim="circle" data-tip-title="${esc(n.l)}" data-tip-sub="${esc(sub)}"${chips.length ? ` data-tip-chips="${esc(JSON.stringify(chips.slice(0, 3)))}"` : ''}>`
+        + `<circle class="gr-n-c" r="${f1(p.r)}" style="fill:var(--gr-dom-${domIdx(si)})"/>`
+        + jd.marks.filter(m => m !== 'wait').map(m => markGlyph(m, p.r)).join('')
+        + '</g>');
+    });
+    parts.push('</g>');
+    // 앵커
+    parts.push('<g class="gr-l-anchors">');
+    lay.anc.forEach(a => {
+      const vs = g.summary && g.summary['종형'] && g.summary['종형'][a.id];
+      const held = g.heldBy.get(a.vi);
+      const dc = vs && vs['보장분야별'] ? domOrder(g).map(d => (vs['보장분야별']['CAT:' + d] ? `${d} ${fmt(vs['보장분야별']['CAT:' + d])}` : '')).filter(Boolean).join(', ') : '';
+      const sub = [orgOf(a.code), fullVarName(g, a.vi), t('grAnchorHeldTpl', { n: fmt(held ? held.size : 0) }), dc].filter(Boolean).join(' / ');
+      parts.push(`<g class="gr-a${a.slot === 0 ? ' is-base' : ''}" transform="translate(${f1(a.x)} ${f1(a.y)})" data-gr-id="${esc(a.id)}" data-gr-idx="${a.vi}" data-gr-kind="종형" data-gr-r="${f1(a.r)}" data-gr-akey="${esc(a.key)}" data-aim="circle" data-tip-title="${esc(fullVarName(g, a.vi))}" data-tip-sub="${esc(sub)}"><circle class="gr-a-c" r="${f1(a.r)}"/></g>`);
+    });
+    parts.push('</g>');
+    // 라벨
+    parts.push('<g class="gr-l-labels">');
+    lay.anc.forEach(a => {
+      const b = a.box;
+      const x = a.slot === 0 ? (b[0] + b[2]) / 2 : b[0] + 2;
+      parts.push(`<g class="gr-lb gr-lb-a" data-gr-lb="anchor" data-gr-lbox="${[b[0], b[1], b[2], b[3]].map(f1).join(',')}">${svgTextLines(x, b[1] + textAsc(), a.lines, a.slot === 0 ? 'middle' : 'start', 'gr-tx')}</g>`);
+    });
+    sc.groups.forEach(grp => {
+      const gl = lay.glabels.get(grp.key);
+      const b = gl.box;
+      if (gl.badge) {
+        parts.push(`<g class="gr-lb gr-lb-badge" data-gr-lb="badge" data-gr-glabel="${esc(grp.key)}" data-gr-lbox="${b.map(f1).join(',')}" data-aim="rect" data-tip-title="${esc(gl.lines[0])}" data-tip-sub="${esc(gl.lines[1])}"><rect x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2] - b[0])}" height="${f1(b[3] - b[1])}"/><text class="gr-tx" x="${f1((b[0] + b[2]) / 2)}" y="${f1(b[1] + 1 + textAsc())}" text-anchor="middle">${fmt(grp.members.length)}</text></g>`);
+        return;
+      }
+      const lead = gl.lead ? `<line class="gr-lead" x1="${f1(gl.lead[0])}" y1="${f1(gl.lead[1])}" x2="${f1(gl.lead[2])}" y2="${f1(gl.lead[3])}"/>` : '';
+      parts.push(`${lead}<g class="gr-lb gr-lb-g" data-gr-lb="group" data-gr-glabel="${esc(grp.key)}" data-gr-lbox="${b.map(f1).join(',')}" data-aim="rect" data-tip-title="${esc(gl.lines[0])}" data-tip-sub="${esc([gl.lines[1], domCountText(g, grp.members), t('grTipGroupHint')].filter(Boolean).join(' / '))}"><rect class="gr-lb-hit" x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2] - b[0])}" height="${f1(b[3] - b[1])}"/>${svgTextLines(b[0] + 2, b[1] + textAsc(), gl.lines, 'start', 'gr-tx')}</g>`);
+    });
+    lay.slabels.forEach((b, si) => {
+      parts.push(`<text class="gr-tx gr-lb-s" data-gr-lb="std" data-gr-for="${esc(g.N[si].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + textAsc())}">${esc(g.N[si].l)}</text>`);
+    });
+    parts.push('</g>');
+    return `<svg class="gr-net-svg" id="gr-net-svg" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(t('grNetAria'))}" data-gr-w="${W}" data-gr-h="${H}" data-gr-k="${f1(lay.k)}" data-gr-ms="${f1(lay.ms)}">${parts.join('')}</svg>`;
+  }
+
+  function domCountText(g, members) {
+    const cnt = new Map();
+    members.forEach(si => { const d = domOf(g, si); cnt.set(d, (cnt.get(d) || 0) + 1); });
+    return domOrder(g).filter(d => cnt.get(d)).map(d => `${d} ${fmt(cnt.get(d))}`).join(', ');
+  }
+
+  // 그래프 영역 크기: 가운데 영역(#z-center)에서 탐색 경로 행을 뺀 폭과 높이(3.1)
+  function netArea(host) {
+    const zc = document.getElementById('z-center');
+    if (!zc || !host) return [0, 0];
+    const cs = getComputedStyle(zc);
+    const W = Math.floor(host.clientWidth);
+    const H = Math.floor(zc.getBoundingClientRect().bottom - parseFloat(cs.paddingBottom) - host.getBoundingClientRect().top);
+    return [W, H];
+  }
+
+  function netRelEdges(g, sc, si) {
+    const out = [];
+    (g.stdRels.get(si) || []).forEach(rl => { if (sc.info.has(rl.other)) out.push({ e: g.E[rl.e], other: rl.other }); });
+    return out;
+  }
+
+  // 근거 경로(5.3): 덮는 담보까지 바로 이어지는 담보 관계 엣지, 없으면 화면에 있는 중간 담보 하나를 거치는 경로
+  function evidenceEdges(g, lay, si) {
+    const sc = lay.sc, jd = lay.jd.per.get(si);
+    if (!jd || !jd.cov) return [];
+    let targets = [];
+    if (jd.marks.includes('ours-wide') || jd.marks.includes('ours-part')) targets = jd.cov.oursRel[1] || [];
+    else if (jd.marks.includes('peer-rel')) {
+      jd.cov.pv.forEach(x => { if (x.v && x.v.cause === CAUSE_REL) { const pr = jd.cov.peerRel(x.peer); if (pr) targets = targets.concat(pr[1] || []); } });
+    }
+    const out = new Set();
+    targets.forEach(id => {
+      const ti = g.byId.get(id);
+      if (ti == null || !sc.info.has(ti)) return;
+      const direct = (g.stdRels.get(si) || []).find(rl => rl.other === ti);
+      if (direct) { out.add(direct.e); return; }
+      for (const rl of (g.stdRels.get(si) || [])) {
+        if (!sc.info.has(rl.other)) continue;
+        const second = (g.stdRels.get(rl.other) || []).find(r2 => r2.other === ti);
+        if (second) { out.add(rl.e); out.add(second.e); break; }
+      }
+    });
+    return Array.from(out).map(ei => g.E[ei]);
+  }
+
+  function lineBetween(p, q, rp, rq) {
+    const dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy) || 1;
+    const ux = dx / d, uy = dy / d;
+    return [p.x + ux * rp, p.y + uy * rp, q.x - ux * rq, q.y - uy * rq];
+  }
+
+  function hotEdgesHTML(g, lay, focus) {
+    if (!focus) return '';
+    const sc = lay.sc;
+    const out = [];
+    const heldLine = (slot, si) => {
+      const a = lay.anc[slot], p = lay.npos.get(si);
+      const [x1, y1, x2, y2] = lineBetween(a, p, a.r, p.r);
+      out.push(`<line class="gr-e gr-e-held" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="보유" data-gr-s="${esc(a.id)}" data-gr-t="${esc(g.N[si].id)}"/>`);
+    };
+    const relLine = e => {
+      const p = lay.npos.get(e.s), q = lay.npos.get(e.t);
+      if (!p || !q) return;
+      const [x1, y1, x2, y2] = lineBetween(p, q, p.r, q.r);
+      const kind = e.p['관계'] === '통합' ? 'uni' : 'inc';
+      out.push(`<line class="gr-e gr-e-rel gr-e-rel-${kind}" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="담보 관계" data-gr-s="${esc(g.N[e.s].id)}" data-gr-t="${esc(g.N[e.t].id)}"/>`);
+    };
+    if (focus.t === 'std') {
+      const it = sc.info.get(focus.si);
+      if (!it) return '';
+      it.slots.forEach(slot => heldLine(slot, focus.si));
+      const seen = new Set();
+      netRelEdges(g, sc, focus.si).forEach(({ e }) => { seen.add(e.i); relLine(e); });
+      evidenceEdges(g, lay, focus.si).forEach(e => { if (!seen.has(e.i)) { seen.add(e.i); relLine(e); } });
+    } else if (focus.t === 'anchor') {
+      sc.stds.forEach(si => { if (sc.info.get(si).slots.includes(focus.slot)) heldLine(focus.slot, si); });
+    }
+    return out.join('');
+  }
+
+  // 강조할 노드와 앵커, 그룹(호버, 선택, 필터)
+  function focusSets(g, lay, focus) {
+    const sc = lay.sc;
+    const nodes = new Set(), anchors = new Set(), groups = new Set();
+    if (focus.t === 'std') {
+      const it = sc.info.get(focus.si);
+      if (!it) return null;
+      nodes.add(focus.si);
+      it.slots.forEach(s => anchors.add(s));
+      groups.add(it.key);
+      netRelEdges(g, sc, focus.si).forEach(({ other }) => nodes.add(other));
+      evidenceEdges(g, lay, focus.si).forEach(e => { nodes.add(e.s); nodes.add(e.t); });
+    } else if (focus.t === 'anchor') {
+      anchors.add(focus.slot);
+      sc.stds.forEach(si => { if (sc.info.get(si).slots.includes(focus.slot)) { nodes.add(si); groups.add(sc.info.get(si).key); } });
+    } else if (focus.t === 'group') {
+      groups.add(focus.key);
+      (sc.groupMap.get(focus.key) || { members: [] }).members.forEach(si => nodes.add(si));
+      const grp = sc.groupMap.get(focus.key);
+      if (grp) (grp.slots || []).forEach(s => anchors.add(s));
+    }
+    return { nodes, anchors, groups };
+  }
+
+  function filterSet(g, lay) {
+    const f = state.filter;
+    if (!f) return null;
+    const sc = lay.sc;
+    const out = new Set();
+    sc.stds.forEach(si => {
+      const it = sc.info.get(si);
+      if (f.startsWith('f:') && lay.jd.per.get(si).hits.has(f.slice(2))) out.add(si);
+      else if (f.startsWith('cls:') && it.cls === f.slice(4)) out.add(si);
+      else if (f.startsWith('dom:') && it.dom === f.slice(4)) out.add(si);
+    });
+    return out;
+  }
+
+  // 선택, 필터, 호버 상태를 클래스와 강조 엣지로 반영한다(배치는 다시 계산하지 않는다)
+  function applyNetState() {
+    const svg = lastCenterEl && lastCenterEl.querySelector('#gr-net-svg');
+    const lay = net.lay;
+    if (!svg || !lay) return;
+    const g = ensureGraph();
+    const sc = lay.sc;
+    const selFocus = state.selStd != null && sc.info.has(state.selStd) ? { t: 'std', si: state.selStd }
+      : state.selGroup && sc.groupMap.has(state.selGroup) ? { t: 'group', key: state.selGroup } : null;
+    const hov = net.hover;
+    const focus = hov || selFocus;
+    const fs = focus ? focusSets(g, lay, focus) : null;
+    const flt = filterSet(g, lay);
+    svg.classList.toggle('is-hl', !!(hov && fs));
+    svg.classList.toggle('is-selm', !hov && !!(selFocus && fs));
+    svg.classList.toggle('is-flt', !!flt && !(focus && fs));
+    svg.querySelectorAll('.gr-n').forEach(el => {
+      const si = +el.dataset.grIdx;
+      el.classList.toggle('is-keep', !!(fs && fs.nodes.has(si)));
+      el.classList.toggle('is-on', !!(flt && flt.has(si)));
+      const sel = selFocus && selFocus.t === 'std' && selFocus.si === si;
+      el.classList.toggle('is-sel', !!sel);
+      if (sel) el.setAttribute('data-sel-anchor', '1'); else el.removeAttribute('data-sel-anchor');
+    });
+    svg.querySelectorAll('.gr-lb-s').forEach(el => {
+      const si = g.byId.get(el.dataset.grFor);
+      el.classList.toggle('is-keep', !!(fs && fs.nodes.has(si)));
+      el.classList.toggle('is-on', !!(flt && flt.has(si)));
+    });
+    svg.querySelectorAll('.gr-a').forEach((el, slot) => el.classList.toggle('is-keep', !!(fs && fs.anchors.has(slot))));
+    svg.querySelectorAll('.gr-g').forEach(el => {
+      const key = el.dataset.grGroup;
+      el.classList.toggle('is-keep', !!(fs && fs.groups.has(key)));
+      const sel = selFocus && selFocus.t === 'group' && selFocus.key === key;
+      el.classList.toggle('is-gsel', !!sel);
+      if (sel) el.setAttribute('data-sel-anchor', '1'); else el.removeAttribute('data-sel-anchor');
+    });
+    svg.querySelectorAll('.gr-e-bundle').forEach(el => {
+      const keep = fs && ((focus.t === 'group' && el.dataset.grT === focus.key) || (focus.t === 'anchor' && +el.dataset.grSlot === focus.slot));
+      el.classList.toggle('is-keep', !!keep);
+    });
+    const hot = svg.querySelector('.gr-l-hot');
+    if (hot) hot.innerHTML = hotEdgesHTML(g, lay, focus && focus.t !== 'group' ? focus : null);
+  }
+
+  function netHit(svg, clientX, clientY) {
+    const lay = net.lay;
+    if (!lay) return null;
+    const r = svg.getBoundingClientRect();
+    const x = clientX - r.left, y = clientY - r.top;
+    let best = null, bd = Infinity;
+    lay.npos.forEach((p, si) => {
+      const d = Math.hypot(p.x - x, p.y - y);
+      if (d <= Math.max(p.r + 4, 12) && d < bd) { bd = d; best = { t: 'std', si }; }
+    });
+    lay.anc.forEach(a => {
+      const d = Math.hypot(a.x - x, a.y - y);
+      if (d <= Math.max(a.r + 4, 12) && d < bd) { bd = d; best = { t: 'anchor', slot: a.slot }; }
+    });
+    if (best) return best;
+    for (const [key, gl] of lay.glabels) {
+      const b = gl.box;
+      if (x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]) return { t: 'group', key };
+    }
+    for (const [key, gg] of lay.gpos) if (Math.hypot(gg.x - x, gg.y - y) <= gg.R) return { t: 'group', key };
+    return null;
+  }
+
+  function hitEl(svg, h) {
+    if (!h) return null;
+    const g = ensureGraph();
+    if (h.t === 'std') return svg.querySelector(`.gr-n[data-gr-id="${CSS.escape(g.N[h.si].id)}"]`);
+    if (h.t === 'anchor') return svg.querySelectorAll('.gr-a')[h.slot] || null;
+    return svg.querySelector(`[data-gr-glabel="${CSS.escape(h.key)}"]`) || svg.querySelector(`.gr-g[data-gr-group="${CSS.escape(h.key)}"]`);
+  }
+
+  const sameHit = (a, b) => (!a && !b) || (a && b && a.t === b.t && a.si === b.si && a.slot === b.slot && a.key === b.key);
+
+  function netHover(h) {
+    const svg = lastCenterEl && lastCenterEl.querySelector('#gr-net-svg');
+    if (!svg) return;
+    if (sameHit(h, net.hover)) {
+      if (h) { const el = hitEl(svg, h); if (el) { App.aim.set(el); App.aim.showTip(el); } }
+      return;
+    }
+    net.hover = h;
+    applyNetState();
+    const el = hitEl(svg, h);
+    if (el) { App.aim.set(el); App.aim.showTip(el); } else { App.aim.hide(); App.aim.hideTip(); }
+  }
+
+  function netSelectStd(si, opts = {}) {
+    const g = ensureGraph();
+    if (state.preset !== 'cover') initPresetState('cover', App.ctx(), true);
+    pushUndo();
+    state.selStd = si;
+    state.selGroup = null;
+    state.selNode = null;
+    state.selEdge = null;
+    recordTrail(g.N[si].l);
+    if (opts.rerender) rerenderGraph(false); else applyNetState();
+    App.select('n:' + g.N[si].id, { animate: true, focus: false });
+  }
+
+  function netSelectGroup(key) {
+    const lay = net.lay;
+    if (!lay || !lay.sc.groupMap.has(key)) return;
+    pushUndo();
+    state.selGroup = key;
+    state.selStd = null;
+    state.selNode = null;
+    state.selEdge = null;
+    recordTrail(groupLines(lay.sc, lay.sc.groupMap.get(key))[0]);
+    applyNetState();
+    App.select('grp:' + key, { animate: true, focus: false });
+  }
+
+  function netClick(e, svg) {
+    const h = netHit(svg, e.clientX, e.clientY);
+    const g = ensureGraph();
+    if (!h) {
+      if (App.state.sel.graph != null || state.selStd != null || state.selGroup) App.unselect({ restoreFocus: false });
+      return;
+    }
+    if (h.t === 'std') netSelectStd(h.si);
+    else if (h.t === 'group') netSelectGroup(h.key);
+    else if (h.t === 'anchor') {
+      const vi = net.lay.anc[h.slot].vi;
+      pushUndo();
+      state.selStd = null;
+      state.selGroup = null;
+      state.selNode = vi;
+      recordTrail(g.N[vi].l);
+      applyNetState();
+      App.select('n:' + g.N[vi].id, { animate: true, focus: false });
+    }
+  }
+
+  function renderNetInto(host, lay) {
+    const g = ensureGraph();
+    const c = App.ctx();
+    net.lay = lay;
+    host.innerHTML = netSVG(g, c, lay);
+    host.style.height = lay.H + 'px';
+    applyNetState();
+  }
+
+  // 1,000px 미만: 그룹 카드 세로 목록(지금 단계의 임시 표시, 8.3절은 7단계)
+  function netNarrowHTML(g, c) {
+    const sc = sceneOf(g, c);
+    return sc.groups.map(grp => {
+      const lines = groupLines(sc, grp);
+      return `<div class="gr-vp-step"><div class="gr-vp-hd"><span>${esc(lines[0])}</span><span>${esc(lines[1])}</span></div>
+        <div class="gr-vp-nodes">${grp.members.map(si => `<button type="button" class="gr-node k-std${state.selStd === si ? ' is-sel' : ''}" tabindex="-1" data-gr-node="${esc(g.N[si].id)}" data-gr-idx="${si}" data-aim="rect"><span class="gn-t">${esc(g.N[si].l)}</span></button>`).join('')}</div></div>`;
+    }).join('');
+  }
+
+  // ---------- 상세 패널: 담보와 그룹 ----------
+  function buildStdEv(g, si) {
+    const c = App.ctx();
+    const lay = net.lay && net.lay.sc.info.has(si) ? net.lay : null;
+    const sc = lay ? lay.sc : sceneOf(g, c);
+    const it = sc.info.get(si);
+    if (!it) return null;
+    const jdAll = lay ? lay.jd : judgeOf(g, c, sc);
+    const fakeLay = { sc, jd: jdAll };
+    const n = g.N[si];
+    const jd = jdAll.per.get(si);
+    const grpName = groupLines(sc, sc.groupMap.get(it.key))[0];
+    const marks = markLines(g, c, fakeLay, si);
+    const verdRows = jd.cov ? jd.cov.pv.map(x => {
+      const code = (txt.vinfo(x.peer) || {})['기관코드'];
+      return `<li><b>${esc(orgOf(code))}</b> ${App.cover.chip(x.v)}${x.v && x.v.why ? `<p class="note">${esc(x.v.why)}</p>` : ''}</li>`;
+    }).join('') : '';
+    const heldRows = it.per.map(x => {
+      const p = x.e.p;
+      const items = [t('grHeldLineTpl', { r: fmt(+(p['특약수'] || 0)), b: fmt(+(p['급부수'] || 0)) })];
+      if (p['대표급부ID'] && g.byId.has(p['대표급부ID'])) items.push(t('grRepBenTpl', { nm: g.N[g.byId.get(p['대표급부ID'])].l }));
+      if (p['매핑검수대기급부수']) items.push(t('grWaitMapTpl', { n: fmt(p['매핑검수대기급부수']) }));
+      if (p['추출검수대기급부수']) items.push(t('grWaitExtTpl', { n: fmt(p['추출검수대기급부수']) }));
+      return `<dt>${esc(orgOf(x.code))}</dt><dd>${esc(items.join(', '))}</dd>`;
+    }).join('');
+    const body = `${marks.length ? `<div class="ev-sec"><h3>${esc(t('grMarkHead'))}</h3><ul class="evl">${marks.map(m => `<li>${esc(m)}</li>`).join('')}</ul></div>` : ''}
+      ${verdRows ? `<div class="ev-sec"><h3>${esc(t('grVerdictHead'))}</h3><ul class="evl gr-verd">${verdRows}</ul></div>` : ''}
+      <div class="ev-sec"><h3>${esc(t('grHeldHead'))}</h3><dl class="kv">${heldRows}</dl>${crossTabButtonsHTML(g, n)}</div>
+      <details class="ev-sec lo gr-ids"><summary>${esc(t('grIdHead'))}</summary><p class="note num">${esc(n.id)}</p></details>`;
+    return {
+      kicker: t('grNodeKickerTpl', { kind: g.kindLabels[n.k] }),
+      title: n.l,
+      badges: [ui.tag(it.dom), ui.tag(grpName)],
+      body,
+    };
+  }
+
+  function buildGroupEv(g, key) {
+    const c = App.ctx();
+    const sc = net.lay ? net.lay.sc : sceneOf(g, c);
+    const grp = sc.groupMap.get(key);
+    if (!grp) return null;
+    const jdAll = net.lay ? net.lay.jd : judgeOf(g, c, sc);
+    const lines = groupLines(sc, grp);
+    const doms = domOrder(g);
+    const list = grp.members.slice().sort((a, b) => {
+      const da = doms.indexOf(domOf(g, a)), db = doms.indexOf(domOf(g, b));
+      return (da < 0 ? 99 : da) - (db < 0 ? 99 : db) || a - b;
+    });
+    const rows = list.map(si => {
+      const jd = jdAll.per.get(si);
+      const mk = jd.marks.map(m => ui.tag(t(MARK_KEY[m]))).join('');
+      const chips = jd.cov ? jd.cov.pv.filter(x => x.v).map(x => App.cover.chip(x.v)).join('') : '';
+      return `<li><button type="button" class="cv-lk" data-gr-pick-std="${si}">${esc(g.N[si].l)}</button> ${mk}${chips}</li>`;
+    }).join('');
+    return {
+      kicker: t('grGroupKicker'),
+      title: lines[0],
+      badges: [ui.tag(lines[1])],
+      body: `<div class="ev-sec"><h3>${esc(t('grDomCntHead'))}</h3><p>${esc(domCountText(g, grp.members))}</p></div>
+        <div class="ev-sec"><h3>${esc(t('grGroupListHeadTpl', { n: fmt(grp.members.length) }))}</h3><ul class="evl gr-glist">${rows}</ul></div>`,
+    };
+  }
+
+  // ---------- 왼쪽 영역: 판정 필터와 범례 ----------
+  function swatchSVG(inner) {
+    return `<svg class="gr-sw" width="22" height="18" viewBox="0 0 22 18" aria-hidden="true">${inner}</svg>`;
+  }
+  function legendItemsHTML(g, clickable) {
+    const doms = domOrder(g).slice(0, 5);
+    const btn = (f, sw, label) => (clickable
+      ? `<button type="button" class="gr-lg-it${state.filter === f ? ' is-on' : ''}" data-gr-filter="${esc(f)}" aria-pressed="${state.filter === f}">${sw}<span>${esc(label)}</span></button>`
+      : `<span class="gr-lg-it">${sw}<span>${esc(label)}</span></span>`);
+    const row = (sw, label) => `<span class="gr-lg-it">${sw}<span>${esc(label)}</span></span>`;
+    const cls = [
+      ['only', t('grClsOnly')], ['shared', t('grClsShared')], ['peer', t('grClsPeer')],
+    ].map(([k, nm]) => btn('cls:' + k, swatchSVG(`<circle class="gr-g gr-g-${k}" cx="11" cy="9" r="7"/>`), nm)).join('');
+    const dom = doms.map((d, i) => btn('dom:' + d, swatchSVG(`<circle class="gr-n-c" cx="11" cy="9" r="6" style="fill:var(--gr-dom-${i})"/>`), d)).join('');
+    const mk = [
+      ['sole', `<g transform="translate(8 11)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${markGlyph('sole', 5)}</g>`],
+      ['peer-rel', `<g transform="translate(8 11)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${markGlyph('peer-rel', 5)}</g>`],
+      ['ours-wide', `<g transform="translate(8 7)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${markGlyph('ours-wide', 5)}</g>`],
+      ['ours-part', `<g transform="translate(8 7)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${markGlyph('ours-part', 5)}</g>`],
+      ['wait', '<g class="gr-n is-wait" transform="translate(11 9)"><circle class="gr-n-c" r="6" style="fill:var(--gr-dom-4)"/></g>'],
+    ].map(([m, sw]) => row(swatchSVG(sw), t(MARK_KEY[m]))).join('');
+    const edges = [
+      [`<line class="gr-e gr-e-bundle" x1="2" y1="9" x2="20" y2="9" stroke-width="3"/>`, t('grLgBundle')],
+      [`<line class="gr-e gr-e-held" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgHeldOne')],
+      [`<line class="gr-e gr-e-rel gr-e-rel-inc" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgRelInc')],
+      [`<line class="gr-e gr-e-rel gr-e-rel-uni" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgRelUni')],
+    ].map(([sw, nm]) => row(swatchSVG(sw), nm)).join('');
+    return `<div class="gr-lg-sec"><span class="gr-lg-h">${esc(t('grLgCls'))}</span>${cls}</div>
+      <div class="gr-lg-sec is-2col"><span class="gr-lg-h">${esc(t('grPropDomain'))}</span>${dom}</div>
+      <div class="gr-lg-sec"><span class="gr-lg-h">${esc(t('grLgMark'))}</span>${mk}</div>
+      <div class="gr-lg-sec is-2col"><span class="gr-lg-h">${esc(t('grLgEdgeHead'))}</span>${edges}</div>`;
+  }
+
+  function netLeftHTML(g, c) {
+    const sc = sceneOf(g, c);
+    const jd = judgeOf(g, c, sc);
+    const fl = FILTERS.map(f => `<button type="button" class="gr-flt${state.filter === 'f:' + f.id ? ' is-on' : ''}" data-gr-filter="f:${f.id}" aria-pressed="${state.filter === 'f:' + f.id}"><span>${esc(App.label(f.cause))}</span><span class="num">${fmt(jd.counts[f.id])}</span></button>`).join('');
+    return `<div><span class="gr-sec-k">${esc(t('grFilterHead'))}</span><div class="gr-flts">${fl}</div></div>
+      <div class="gr-legend"><span class="gr-sec-k">${esc(t('grLegendHead'))}</span>${legendItemsHTML(g, true)}</div>`;
+  }
+
+  function netCopyRows(g, c) {
+    const sc = sceneOf(g, c);
+    const jd = judgeOf(g, c, sc);
+    const rows = [];
+    sc.groups.forEach(grp => {
+      const nm = groupLines(sc, grp)[0];
+      grp.members.forEach(si => {
+        const p = jd.per.get(si);
+        const verd = p.cov ? p.cov.pv.filter(x => x.v).map(x => `${orgOf((txt.vinfo(x.peer) || {})['기관코드'])} ${App.cover.chipText(x.v)}`).join(', ') : '';
+        rows.push([nm, g.N[si].l, domOf(g, si), p.marks.map(m => t(MARK_KEY[m])).join(', '), verd]);
+      });
+    });
+    return rows;
+  }
+
   // ---------- 오른쪽 읽기 영역(#z-right): 노드 상세, 엣지 속성, 다른 화면 이동 ----------
   function propTableHTML(props, extraRows = []) {
     const rows = extraRows.slice();
@@ -14581,12 +15557,6 @@ App.registerTab((function () {
 
     const badges = [ui.tag(g.kindLabels[n.k])];
     if (n.o) badges.push(ui.tag(orgLabel(n.o)));
-    if (n.k === NK['표준담보']) {
-      const ownCls = ownClass(g, ni, curC);
-      if (ownCls === 'is-miss') badges.push(ui.verdict('none'));
-      else if (ownCls === 'is-only') badges.push(ui.verdict('only'));
-      else if (ownCls === 'is-unlinked') badges.push(ui.tag('비교 종형에 없음'));
-    }
 
     const extraRows = [[t('grPropId'), n.id]];
     let summarySec = '';
@@ -14614,10 +15584,12 @@ App.registerTab((function () {
       extraRows.push(['보유 종형 수 (요약)', `${fmt(g.summary['표준담보별종형'][n.id].length)}개`]);
     }
 
+    // 담보별 연결의 앵커(종형)는 열 펼치기와 화면 엣지 목록을 두지 않는다
+    const netMode = state.preset === 'cover';
     const body = `<div class="ev-sec"><h3>노드 속성</h3>${propTableHTML(n.p, extraRows)}${crossTabButtonsHTML(g, n)}</div>
       ${summarySec}
-      <div class="ev-sec"><h3>${esc(t('grNeighborsHead'))}</h3>${hopBtns ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${hopBtns}</div>` : `<p class="note">${esc(t('grNeighborsEmpty'))}</p>`}</div>
-      <div class="ev-sec lo"><h3>${esc(t('grVisEdgesHeadTpl', { n: fmt(attachedEdges.length) }))}</h3>${edgeListHTML}</div>`;
+      ${netMode ? '' : `<div class="ev-sec"><h3>${esc(t('grNeighborsHead'))}</h3>${hopBtns ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${hopBtns}</div>` : `<p class="note">${esc(t('grNeighborsEmpty'))}</p>`}</div>
+      <div class="ev-sec lo"><h3>${esc(t('grVisEdgesHeadTpl', { n: fmt(attachedEdges.length) }))}</h3>${edgeListHTML}</div>`}`;
 
     return {
       kicker: t('grNodeKickerTpl', { kind: g.kindLabels[n.k] }),
@@ -14695,10 +15667,24 @@ App.registerTab((function () {
       const id = key.slice(2);
       const ni = g.byId.get(id);
       if (ni == null) return null;
+      if (state.preset === 'cover' && g.N[ni].k === NK['표준담보'] && sceneOf(g, App.ctx()).info.has(ni)) {
+        state.selStd = ni;
+        state.selGroup = null;
+        state.selNode = null;
+        state.selEdge = null;
+        return buildStdEv(g, ni);
+      }
       state.selNode = ni;
       state.focusNode = ni;
       state.selEdge = null;
       return buildNodeEv(g, ni);
+    }
+    if (key.startsWith('grp:')) {
+      state.selGroup = key.slice(4);
+      state.selStd = null;
+      state.selNode = null;
+      state.selEdge = null;
+      return buildGroupEv(g, key.slice(4));
     }
     if (key.startsWith('edge:')) {
       const ek = key.slice(5);
@@ -14710,12 +15696,15 @@ App.registerTab((function () {
 
   function defaultEv() {
     const g = ensureGraph();
-    const visTotal = state.cols.reduce((a, c) => a + c.length, 0);
+    const isNet = state.preset === 'cover';
+    const sc = isNet ? sceneOf(g, App.ctx()) : null;
+    const visTotal = isNet ? sc.stds.length + sc.types.length : state.cols.reduce((a, c) => a + c.length, 0);
+    const edgeTotal = isNet ? (net.lay ? net.lay.bundles.length : 0) : renderedEdges.size;
     return {
       kicker: t('evKickerDefault'),
       title: t('grEvTitle'),
-      badges: [ui.tag(`노드 ${fmt(visTotal)}`), ui.tag(`엣지 ${fmt(renderedEdges.size)}`)],
-      body: `<div class="ev-sec"><p>${esc(t('grEvBodyTpl'))}</p>
+      badges: [ui.tag(`노드 ${fmt(visTotal)}`), ui.tag(`엣지 ${fmt(edgeTotal)}`)],
+      body: `<div class="ev-sec"><p>${esc(isNet ? t('grNetEvBody') : t('grEvBodyTpl'))}</p>
         <dl class="kv" style="margin-top:8px">
           <dt>전체 노드</dt><dd class="num">${fmt(g.N.length)}개</dd>
           <dt>전체 엣지</dt><dd class="num">${fmt(g.E.length)}개</dd>
@@ -14731,9 +15720,11 @@ App.registerTab((function () {
     lastCenterEl = center;
     const sig = scopeSig(c);
     const totalVis = state.cols.reduce((a, arr) => a + arr.length, 0);
-    if (!totalVis || sig !== lastScopeSig) {
+    if ((!totalVis && state.preset !== 'cover') || !trail.length || sig !== lastScopeSig) {
       lastScopeSig = sig;
+      const keepFilter = state.filter;
       initPresetState(state.preset || 'cover', c, false);
+      state.filter = keepFilter;
     }
     renderLeftZone(left);
     // 탭 진입 첫 프레임에는 열과 노드를 그리고, 엣지 좌표 읽기는 다음 프레임에 돌린다(1-10)
@@ -14744,10 +15735,9 @@ App.registerTab((function () {
     const g = ensureGraph();
     const n = g.N[ni];
     if (!n) return;
-    if (state.preset === 'cover' && n.k === NK['보장 대분류']) {
-      expandDomainStep(ni, c);
-    } else if (state.preset === 'cover' && n.k === NK['표준담보']) {
-      expandStdStep(ni, c);
+    if (state.preset === 'cover' && n.k === NK['표준담보']) {
+      netSelectStd(ni, { rerender: true });
+      return;
     } else {
       state.selNode = ni;
       state.focusNode = ni;
@@ -14759,39 +15749,60 @@ App.registerTab((function () {
     if (keepFocus) restoreGraphNodeFocus(ni);
   }
 
+  // 종형 구성 보기에 쓸 종형: 종형은 그 자신, 특약과 급부는 그 노드가 속한 첫 종형
+  function varOfNode(g, ni) {
+    const n = g.N[ni];
+    if (n.k === NK['종형']) return ni;
+    let ri = n.k === NK['특약'] ? ni : null;
+    if (n.k === NK['급부']) ri = (g.benRiders.get(ni) || [])[0];
+    const vl = ri != null ? (g.riderVars.get(ri) || []) : [];
+    return vl.length ? vl[0] : null;
+  }
+
   function jumpToAnyNode(ni, c) {
     const g = ensureGraph();
     const n = g.N[ni];
     if (!n) return;
     const colIdx = COL_OF_KIND[n.k];
     if (n.k === NK['표준담보']) {
-      state.preset = 'cover';
-      expandStdStep(ni, c);
-    } else if (n.k === NK['보장 대분류']) {
-      state.preset = 'cover';
-      expandDomainStep(ni, c);
-    } else if (n.k === NK['시장 동향']) {
-      initPresetState('news', c, true);
-      if (!state.cols[0].includes(ni)) state.cols[0].unshift(ni);
-      state.selNode = ni;
-      state.focusNode = ni;
-      recordTrail(n.l);
-    } else if (n.k === NK['종형']) {
-      initPresetState('cover', c, true);
-      if (!state.cols[2].includes(ni)) state.cols[2].unshift(ni);
-      const oi = n.o ? g.byId.get('ORG:' + n.o) : null;
-      if (oi != null && !state.cols[1].includes(oi)) state.cols[1].unshift(oi);
-      state.selNode = ni;
-      state.focusNode = ni;
-      recordTrail(n.l);
-    } else {
-      pushUndo();
-      if (!state.cols[colIdx].includes(ni)) state.cols[colIdx].unshift(ni);
-      state.selNode = ni;
-      state.focusNode = ni;
-      state.selEdge = null;
-      recordTrail(n.l);
+      if (!sceneOf(g, c).info.has(ni)) { App.toast(t('grNotInScene')); return; }
+      if (state.preset !== 'cover') {
+        initPresetState('cover', c, true);
+        if (lastLeftEl) renderLeftZone(lastLeftEl);
+      }
+      netSelectStd(ni, { rerender: true });
+      return;
     }
+    if (n.k === NK['보장 대분류']) {
+      pushUndo();
+      if (state.preset !== 'cover') initPresetState('cover', c, true);
+      state.filter = 'dom:' + n.l;
+      if (lastLeftEl) renderLeftZone(lastLeftEl);
+      rerenderGraph(false);
+      return;
+    }
+    if (n.k === NK['종형'] && state.preset === 'cover' && sceneOf(g, c).types.includes(ni)) {
+      pushUndo();
+      state.selStd = null;
+      state.selGroup = null;
+      state.selNode = ni;
+      recordTrail(n.l);
+      rerenderGraph(false);
+      App.select('n:' + n.id, { animate: true, focus: false });
+      return;
+    }
+    if (n.k === NK['시장 동향'] || n.k === NK['회사']) {
+      initPresetState('news', c, true);
+      if (!state.cols[colIdx].includes(ni)) state.cols[colIdx].unshift(ni);
+    } else {
+      const vi = varOfNode(g, ni);
+      initPresetState('variant', c, true, vi);
+      if (!state.cols[colIdx].includes(ni)) state.cols[colIdx].unshift(ni);
+    }
+    state.selNode = ni;
+    state.focusNode = ni;
+    state.selEdge = null;
+    recordTrail(n.l);
     if (lastLeftEl) renderLeftZone(lastLeftEl);
     rerenderGraph(true);
     App.select('n:' + n.id, { animate: true, focus: false });
@@ -14877,6 +15888,24 @@ App.registerTab((function () {
     }
   }
 
+  function reselectFromState() {
+    const g = ensureGraph();
+    const o = { animate: false, push: false, focus: false };
+    if (state.selEdge) App.select('edge:' + state.selEdge, o);
+    else if (state.selStd != null) App.select('n:' + g.N[state.selStd].id, o);
+    else if (state.selGroup) App.select('grp:' + state.selGroup, o);
+    else if (state.selNode != null) App.select('n:' + g.N[state.selNode].id, o);
+    else App.unselect({ push: false, restoreFocus: false });
+  }
+
+  // 담보별 연결의 호버: 포인터에서 가장 가까운 노드 중심까지 max(r + 4, 12)px 이하면 그 노드(3.7)
+  document.addEventListener('pointermove', e => {
+    if (App.state.tab !== 'graph' || e.pointerType === 'touch' || !net.lay) return;
+    const svg = e.target.closest && e.target.closest('#gr-net-svg');
+    if (!svg) { if (net.hover) netHover(null); return; }
+    netHover(netHit(svg, e.clientX, e.clientY));
+  }, { passive: true });
+
   // ---------- 위임 이벤트(클릭, 검색, 엣지 가리킴 칩, 키보드 화살표 및 되돌리기) ----------
   document.addEventListener('input', e => {
     if (App.state.tab !== 'graph') return;
@@ -14919,6 +15948,30 @@ App.registerTab((function () {
     if (App.state.tab !== 'graph') return;
     const c = App.ctx();
 
+    const netSvg = e.target.closest && e.target.closest('#gr-net-svg');
+    if (netSvg) {
+      e.stopPropagation();
+      netClick(e, netSvg);
+      return;
+    }
+
+    const flt = e.target.closest && e.target.closest('[data-gr-filter]');
+    if (flt) {
+      e.stopPropagation();
+      pushUndo();
+      state.filter = state.filter === flt.dataset.grFilter ? null : flt.dataset.grFilter;
+      syncLeftActive();
+      applyNetState();
+      return;
+    }
+
+    const pst = e.target.closest && e.target.closest('[data-gr-pick-std]');
+    if (pst) {
+      e.stopPropagation();
+      netSelectStd(+pst.dataset.grPickStd);
+      return;
+    }
+
     const pr = e.target.closest && e.target.closest('[data-gr-preset]');
     if (pr) {
       e.stopPropagation();
@@ -14938,9 +15991,7 @@ App.registerTab((function () {
         restoreStateSnap(prev);
         if (trail.length > 1) trail.pop();
         rerenderGraph(true);
-        if (state.selEdge) App.select('edge:' + state.selEdge, { animate: false, push: false, focus: false });
-        else if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false, focus: false });
-        else App.unselect({ push: false, restoreFocus: false });
+        reselectFromState();
       } else if (act.dataset.grAct === 'reset') {
         initPresetState(state.preset, c, false);
         App.unselect({ push: false, restoreFocus: false });
@@ -14960,8 +16011,7 @@ App.registerTab((function () {
       restoreStateSnap(item.snap);
       trail = trail.slice(0, idx + 1);
       rerenderGraph(true);
-      if (state.selNode != null) App.select('n:' + ensureGraph().N[state.selNode].id, { animate: false, push: false, focus: false });
-      else App.unselect({ push: false, restoreFocus: false });
+      reselectFromState();
       return;
     }
 
@@ -14984,28 +16034,10 @@ App.registerTab((function () {
       return;
     }
 
-    const vmr = e.target.closest && e.target.closest('[data-gr-vmore]');
-    if (vmr) {
-      e.stopPropagation();
-      releaseVarMore(vmr.dataset.grVmore);
-      return;
-    }
-
     const mr = e.target.closest && e.target.closest('[data-gr-more]');
     if (mr) {
       e.stopPropagation();
       releaseBatchMore(+mr.dataset.grMore);
-      return;
-    }
-
-    const openDom = e.target.closest && e.target.closest('[data-gr-open-dom]');
-    if (openDom) {
-      e.stopPropagation();
-      const dIdx = +openDom.dataset.grOpenDom;
-      expandDomainStep(dIdx, c);
-      rerenderGraph(true);
-      App.select('n:' + ensureGraph().N[state.selNode].id, { animate: true, focus: false });
-      restoreGraphNodeFocus(dIdx);
       return;
     }
 
@@ -15153,6 +16185,14 @@ App.registerTab((function () {
 
   App.on('select', (tabId) => {
     if (tabId !== 'graph') return;
+    if (App.state.sel.graph == null && state.preset === 'cover' && (state.selNode != null || state.selEdge != null || state.selStd != null || state.selGroup)) {
+      state.selStd = null;
+      state.selGroup = null;
+      state.selNode = null;
+      state.selEdge = null;
+      applyNetState();
+      return;
+    }
     if (App.state.sel.graph == null && (state.selNode != null || state.selEdge != null)) {
       let prevIdx = state.selNode;
       if (prevIdx == null && state.selEdge && renderedEdges.has(state.selEdge)) {
@@ -15167,13 +16207,14 @@ App.registerTab((function () {
     }
   });
   App.on('resize', () => {
-    if (App.state.tab === 'graph' && lastCenterEl) rerenderGraph(false);
+    if (App.state.tab !== 'graph' || !lastCenterEl) return;
+    if (state.preset !== 'cover') { rerenderGraph(false); return; }
+    // 브라우저 리사이즈는 150ms 뒤 한 번 다시 계산하고 트랜지션 없이 바꾼다(3.1)
+    clearTimeout(net.resizeT);
+    net.resizeT = setTimeout(() => { if (App.state.tab === 'graph') rerenderGraph(false); }, 150);
   });
 
-  ui.registerLegend('graph', 'grLegendTitle', () => `<dl class="legend">
-      <dt>${ui.IC.open}</dt><dd>${esc(t('grLgNode'))}</dd>
-      <dt>${ui.IC.arrow}</dt><dd>${esc(t('grLgEdge'))}</dd>
-    </dl>`);
+  ui.registerLegend('graph', 'grLegendTitle', () => `<div class="gr-legend is-pop">${legendItemsHTML(ensureGraph(), false)}</div>`);
 
   function path() {
     const base = [App.TAB_NAME.graph];
@@ -15183,6 +16224,10 @@ App.registerTab((function () {
 
   function copySummary() {
     const g = ensureGraph();
+    if (state.preset === 'cover') {
+      App.copyRows(t('grCopyNetCols').split(','), netCopyRows(g, App.ctx()), { title: t('grCopyNetTitle') });
+      return;
+    }
     const rows = [];
     COL_KINDS.forEach((k, colIdx) => {
       state.cols[colIdx].forEach(ni => {

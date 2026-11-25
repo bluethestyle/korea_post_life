@@ -207,7 +207,7 @@ COUNTS_JS = r"""() => {
     }
     const checkEls = [stageEl, ...stageEl.querySelectorAll('*')];
     for (const cel of checkEls) {
-      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb,.cvp-bar,.cv-tick,.gr-node,.cv-flt-btn.is-on,.gr-tr-btn.is-cur,.gr-preset.is-on,.gr-search-in')) continue;
+      if (cel.closest('svg,.flag,.gtf-ours,.vd,.tag,.scb,.cvp-bar,.cv-tick,.gr-node,.cv-flt-btn.is-on,.gr-tr-btn.is-cur,.gr-preset.is-on,.gr-flt.is-on,.gr-lg-it.is-on,.gr-search-in')) continue;
       let ca = cel, chid = false;
       while (ca && ca !== document.body) {
         const cs2 = getComputedStyle(ca);
@@ -615,14 +615,12 @@ async def measure_frames_once(b, cpu_rate=1) -> dict:
     await pg.wait_for_timeout(120)
 
     async def act_graph_expand():
-        dom_btn = pg.locator('#z-center [data-gr-node^="CAT:"]').first
-        if await dom_btn.count() == 0:
+        # 담보별 연결(요청 38): 그래프의 첫 표준담보 노드를 클릭해 선택한다
+        node = pg.locator('#gr-net-svg .gr-n').first
+        if await node.count() == 0:
             return False
-        await dom_btn.click()
-        await pg.wait_for_timeout(260)
-        std_btn = pg.locator('#z-center [data-gr-node^="STD_"]').first
-        if await std_btn.count() > 0:
-            await std_btn.click()
+        box = await node.bounding_box()
+        await pg.mouse.click(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
     out['graph_expand'] = await sample_action(pg, act_graph_expand, 520, 'graph_expand', sa)
 
     layout_anim = await pg.evaluate(LAYOUT_ANIM_JS)
