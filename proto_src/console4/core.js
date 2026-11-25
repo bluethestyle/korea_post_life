@@ -851,7 +851,16 @@
     grPresetNews: '시장 동향',
     grPresetNewsSub: '시장 동향을 발표한 회사별로 보기',
     // 2차 개선: 왼쪽 패널, 상세 배지, 시장 동향
-    grFilterSub: '양쪽이 모두 보유한 담보의 급부 조건 비교 결과(보유 여부는 그래프의 그룹으로 표시)',
+    grFilterSub: '우체국과 타사가 함께 보유한 담보의 급부 조건을 비교한 결과(비교 타사 가운데 한 곳이라도 해당하면 표시)',
+    grFilterSubS: '양쪽이 함께 보유한 담보만 대상',
+    grFilterStHead: '보유 차이와 검수 상태',
+    grFilterStSubS: '한쪽만 보유한 담보도 포함',
+    grFilterStSub: '관련 담보로 보장은 한쪽만 보유한 담보를 다른 쪽이 넓은 담보나 부분 담보로 보장하는 경우, 검수 대기는 우체국이나 타사에 검수를 기다리는 급부가 있는 담보',
+    grRelDiffChip: `관련 담보와 ${TERM.noCompare}`,
+    grLgTgTip: '오른쪽 위 범례 버튼과 같은 동작',
+    grLgAnchor: '회사 종형',
+    grLgSum: '회사별 특약, 급부 요약',
+    grLgSelEdge: '선택한 항목의 연결',
     grFilterZeroTip: '현재 조건에서 해당하는 담보가 없습니다',
     grNavAria: '탐색 이동',
     grLegendShow: '범례 펼치기',
@@ -5376,6 +5385,7 @@
   }
 
   window.App = {
+    legendIcon: IC.legend,
     S, D: DD, COPY, t: cp, SCREEN_IDS, TAB_IDS, TAB_NAME, TAB_BY_NAME, ORG_ORDER, PEER_ORGS, REF,
     label, rowLabel, addLabels, short: v => (COPY.shortLabel && (COPY.shortLabel[v] || COPY.shortLabel[label(v)])) || label(v), TERM, isGateOnlyRole,
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },

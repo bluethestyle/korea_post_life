@@ -186,13 +186,14 @@
   const REL_TARGET_IS_WIDE = true;
   const CAUSE_REL = '관계 담보로 덮음';
   const MARKS = ['sole', 'peer-rel', 'ours-wide', 'ours-part', 'wait'];
-  // 판정 필터 다섯: 이름은 까닭 키의 표시명(App.label)으로 읽는다(5.4)
+  // 판정 필터 다섯: 이름은 까닭 키의 표시명(App.label)으로 읽는다(5.4). 왼쪽 패널에서는 두 묶음으로 나눈다(3차 개선):
+  // cmp 는 양쪽이 함께 보유한 담보의 급부 조건 비교 결과, st 는 보유 차이(관련 담보로 보장)와 검수 상태(검수 대기)
   const FILTERS = [
-    { id: 'win', cause: '나음' },
-    { id: 'lose', cause: '못함' },
-    { id: 'diff', cause: '단정 주의' },
-    { id: 'wait', cause: '검토 대기' },
-    { id: 'rel', cause: CAUSE_REL },
+    { id: 'win', cause: '나음', grp: 'cmp' },
+    { id: 'lose', cause: '못함', grp: 'cmp' },
+    { id: 'diff', cause: '단정 주의', grp: 'cmp' },
+    { id: 'rel', cause: CAUSE_REL, grp: 'st' },
+    { id: 'wait', cause: '검토 대기', grp: 'st' },
   ];
 
   function domOrder(g) {
@@ -338,7 +339,8 @@
       if (!v) return false;
       if (fid === 'win') return v.cause === '나음';
       if (fid === 'lose') return v.cause === '못함';
-      if (fid === 'diff') return !!(table[v.cause] && table[v.cause]['칩'] === 'diff');
+      // 관계 담보로 덮음(한쪽만 보유, 다른 쪽은 관련 담보로 보장)도 칩은 diff 이지만 양쪽 보유 담보의 비교가 아니므로 rel 로만 센다
+      if (fid === 'diff') return v.cause !== CAUSE_REL && !!(table[v.cause] && table[v.cause]['칩'] === 'diff');
       if (fid === 'wait') return v.cause === '검토 대기';
       if (fid === 'rel') return v.cause === CAUSE_REL;
       return false;
@@ -523,7 +525,7 @@
   let legOpen = true;
   function legendBlockHTML(body) {
     return `<div class="gr-legend${legOpen ? '' : ' is-closed'}" id="gr-legend">
-      <button type="button" class="gr-lg-tg" data-gr-legtg="1" aria-expanded="${legOpen}" aria-controls="gr-legend-body"><span class="gr-sec-k">${esc(t('grLegendHead'))}</span><span class="gr-lg-tg-s">${esc(t(legOpen ? 'grLegendHide' : 'grLegendShow'))}</span><svg class="gr-lg-chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5L5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+      <button type="button" class="gr-lg-tg" data-gr-legtg="1" aria-expanded="${legOpen}" aria-controls="gr-legend-body" title="${esc(t('grLgTgTip'))}"><span class="gr-lg-ic" aria-hidden="true">${App.legendIcon || ''}</span><span class="gr-sec-k">${esc(t('grLegendHead'))}</span><span class="gr-lg-tg-s">${esc(t(legOpen ? 'grLegendHide' : 'grLegendShow'))}</span><svg class="gr-lg-chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5L5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
       <div class="gr-lg-body" id="gr-legend-body"${legOpen ? '' : ' hidden'}>${body}</div>
     </div>`;
   }
@@ -551,7 +553,11 @@
         netRelEdges(g, sc, si).map(x => x.e).concat(evidenceEdges(g, lay, si)).forEach(e => edges.add(e.p['관계'] === '통합' ? 'rel-uni' : 'rel-inc'));
         if (ex) ex.edges.forEach(ed => edges.add(ed.ek === 'rec' ? 'rec' : ed.ek === '보유' ? 'held' : 'incmap'));
       } else if (state.selNode != null && g.N[state.selNode] && g.N[state.selNode].k === NK['종형']) edges.add('held');
-      return { cls: new Set(sc.groups.map(grp => grp.cls)), dom: new Set(sc.stds.map(dIdx)), marks, ring: sc.nPeer > 3, edges };
+      // 노드: 회사 종형(이중 원)은 늘, 회사별 요약 노드는 담보를 선택해 펼쳤을 때. 빨간 선택 강조선은 담보나 그룹을 선택했을 때
+      const nodes = new Set(['anchor']);
+      if (lay && si != null && net.ex && net.ex.si === si && net.ex.nodes.length) nodes.add('sum');
+      if (lay && ((si != null && sc.info.has(si)) || (state.selGroup && sc.groupMap.has(state.selGroup)))) edges.add('sel');
+      return { cls: new Set(sc.groups.map(grp => grp.cls)), dom: new Set(sc.stds.map(dIdx)), marks, ring: sc.nPeer > 3, edges, nodes };
     }
     if (state.preset === 'news') {
       const lay = alt.lay && alt.lay.kind === 'mk' ? alt.lay : null;
@@ -610,12 +616,15 @@
   }
   function syncLegBtn() {
     document.querySelectorAll('[data-legend="graph"]').forEach(b => {
+      // 왼쪽 범례의 접기 버튼과 같은 동작이므로 같은 문구(범례 접기, 범례 펼치기)를 툴팁으로 보인다
       if (App.state.tab === 'graph' && innerWidth >= 1000) {
         b.setAttribute('aria-expanded', String(legOpen));
         b.setAttribute('aria-controls', 'gr-legend-body');
+        b.title = t(legOpen ? 'grLegendHide' : 'grLegendShow');
       } else if (b.getAttribute('aria-controls') === 'gr-legend-body') {
         b.setAttribute('aria-expanded', 'false');
         b.setAttribute('aria-controls', 'help-pop');
+        b.title = b.getAttribute('aria-label') || '';
       }
     });
   }
@@ -2433,7 +2442,7 @@
     const marks = markLines(g, c, fakeLay, si);
     const verdRows = jd.cov ? jd.cov.pv.map(x => {
       const code = (txt.vinfo(x.peer) || {})['기관코드'];
-      return `<li><b>${esc(orgOf(code))}</b> ${App.cover.chip(x.v)}${x.v && x.v.why ? `<p class="note">${esc(x.v.why)}</p>` : ''}</li>`;
+      return `<li><b>${esc(orgOf(code))}</b> ${relChip(x.v)}${x.v && x.v.why ? `<p class="note">${esc(x.v.why)}</p>` : ''}</li>`;
     }).join('') : '';
     const heldRows = it.per.map(x => {
       const p = x.e.p;
@@ -2466,7 +2475,7 @@
     }).join('');
     const body = `${marks.length ? `<div class="ev-sec"><h3>${esc(t('grMarkHead'))}</h3><ul class="evl">${marks.map(m => `<li>${esc(m)}</li>`).join('')}</ul></div>` : ''}
       ${verdRows ? `<div class="ev-sec"><h3>${esc(t('grVerdictHead'))}</h3><ul class="evl gr-verd">${verdRows}</ul></div>` : ''}
-      <div class="ev-sec"><h3>${esc(t('grHeldHead'))}</h3><dl class="kv">${heldRows}</dl>${crossTabButtonsHTML(g, n)}</div>
+      <div class="ev-sec"><h3>${esc(t('grHeldHead'))}</h3><dl class="kv gr-held">${heldRows}</dl>${crossTabButtonsHTML(g, n)}</div>
       ${relRows ? `<div class="ev-sec"><h3>${esc(t('grRelStdHead'))}</h3><ul class="evl gr-glist">${relRows}</ul></div>` : ''}
       ${chainRows ? `<div class="ev-sec"><h3>${esc(t('grExpListHead'))}</h3>${chainRows}</div>` : ''}
       <details class="ev-sec lo gr-ids"><summary>${esc(t('grIdHead'))}</summary><p class="note num">${esc(n.id)}</p></details>`;
@@ -2477,6 +2486,11 @@
       body,
     };
   }
+
+  // 관계 담보로 덮음(우체국만 보유한 담보를 타사가 관련 담보로 보장)의 비교 결과는 담보 비교 탭에서 "단순 비교 불가" 칩이지만,
+  // 같은 담보끼리가 아니라 관련 담보와 비교한 결과이므로 관계 그래프에서는 그 뜻이 드러나는 문구로 보인다(3차 개선)
+  function relChipText(v) { return v && v.cause === CAUSE_REL ? t('grRelDiffChip') : App.cover.chipText(v); }
+  function relChip(v) { return v && v.cause === CAUSE_REL ? ui.verdict(v.kind, t('grRelDiffChip'), v.why) : App.cover.chip(v); }
 
   function buildGroupEv(g, key) {
     const c = App.ctx();
@@ -2495,9 +2509,9 @@
       const mk = jd.marks.map(m => ui.tag(t(MARK_KEY[m]))).join('');
       // 비교 결과는 타사마다 하나씩 나온다. 모든 타사가 같으면 하나로 합치고, 다르면 회사 이름을 붙인다
       const pv = jd.cov ? jd.cov.pv.filter(x => x.v) : [];
-      const same = pv.length && pv.length === jd.cov.pv.length && pv.every(x => x.v.kind === pv[0].v.kind && App.cover.chipText(x.v) === App.cover.chipText(pv[0].v));
-      const chips = same ? (jd.marks.some(m => t(MARK_KEY[m]) === App.cover.chipText(pv[0].v)) ? '' : App.cover.chip(pv[0].v))
-        : pv.map(x => ui.verdict(x.v.kind, `${orgOf((txt.vinfo(x.peer) || {})['기관코드'])}: ${App.cover.chipText(x.v)}`, x.v.why)).join('');
+      const same = pv.length && pv.length === jd.cov.pv.length && pv.every(x => x.v.kind === pv[0].v.kind && relChipText(x.v) === relChipText(pv[0].v));
+      const chips = same ? (jd.marks.some(m => t(MARK_KEY[m]) === relChipText(pv[0].v)) ? '' : relChip(pv[0].v))
+        : pv.map(x => ui.verdict(x.v.kind, `${orgOf((txt.vinfo(x.peer) || {})['기관코드'])}: ${relChipText(x.v)}`, x.v.why)).join('');
       return `<li><button type="button" class="cv-lk" data-gr-pick-std="${si}">${esc(g.N[si].l)}</button> ${mk}${chips}</li>`;
     }).join('');
     return {
@@ -2516,7 +2530,7 @@
   // drawn 을 주면 지금 그려진 것만(legendDrawn), 없으면 전체(1,000px 미만의 범례 창)
   function legendItemsHTML(g, clickable, ring, drawn) {
     const doms = domOrder(g).slice(0, 5);
-    const on = (set, k) => !drawn || drawn[set].has(k);
+    const on = (set, k) => !drawn || (drawn[set] && drawn[set].has(k));
     const btn = (f, sw, label) => (clickable
       ? `<button type="button" class="gr-lg-it${state.filter === f ? ' is-on' : ''}" data-gr-filter="${esc(f)}" aria-pressed="${state.filter === f}">${sw}<span>${esc(label)}</span></button>`
       : `<span class="gr-lg-it">${sw}<span>${esc(label)}</span></span>`);
@@ -2540,9 +2554,14 @@
       ['rel-uni', `<line class="gr-e gr-e-rel gr-e-rel-uni" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgRelUni')],
       ['incmap', `<line class="gr-e gr-e-inc" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgIncMap')],
       ['rec', `<line class="gr-e gr-e-rec" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgRec')],
+      ['sel', `<line class="gr-e gr-lg-sel" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgSelEdge')],
     ].filter(([k]) => on('edges', k)).map(([, sw, nm]) => row(swatchSVG(sw), nm)).join('');
+    const nodes = [
+      ['anchor', `<g class="gr-a" transform="translate(11 9)"><circle class="gr-a-o" r="7.5"/><circle class="gr-a-c" r="4.5"/></g>`, t('grLgAnchor')],
+      ['sum', `<g class="gr-x gr-x-sum" transform="translate(11 9)"><circle class="gr-x-c" r="6"/></g>`, t('grLgSum')],
+    ].filter(([k]) => on('nodes', k)).map(([, sw, nm]) => row(swatchSVG(sw), nm)).join('');
     const sec = (cls2, head, items) => (items ? `<div class="gr-lg-sec${cls2}"><span class="gr-lg-h">${esc(head)}</span>${items}</div>` : '');
-    return sec('', t('grLgCls'), cls) + sec(' is-2col', t('grPropDomain'), dom) + sec('', t('grLgMark'), mk) + sec(' is-2col', t('grLgEdgeHead'), edges);
+    return sec('', t('grLgCls'), cls) + sec(' is-2col', t('grLgNodeHead'), nodes) + sec(' is-2col', t('grPropDomain'), dom) + sec('', t('grLgMark'), mk) + sec(' is-2col', t('grLgEdgeHead'), edges);
   }
 
   // 그룹 기준(타사 3개사 이하는 보유 조합, 4개사 이상은 보유 타사 수 구간)이 바뀐 조건을 기억한다(8.1의 6번)
@@ -2555,11 +2574,13 @@
     if (basis.last && basis.last !== now) basis.noteSig = sig;
     basis.last = now;
     // 0건인 비교 결과는 비활성으로 보이고 클릭해도 반응하지 않는다(켜져 있는 필터는 끌 수 있게 둔다)
-    const fl = FILTERS.map(f => {
+    const fl = grp => FILTERS.filter(f => f.grp === grp).map(f => {
       const n = jd.counts[f.id] || 0, on = state.filter === 'f:' + f.id, off = !n && !on;
       return `<button type="button" class="gr-flt${on ? ' is-on' : ''}${off ? ' is-off' : ''}" data-gr-filter="f:${f.id}" aria-pressed="${on}"${off ? ` aria-disabled="true" title="${esc(t('grFilterZeroTip'))}"` : ''}><span>${esc(App.label(f.cause))}</span><span class="num">${fmt(n)}</span></button>`;
     }).join('');
-    return `<div><span class="gr-sec-k">${esc(t('grFilterHead'))}</span><p class="gr-flt-sub">${esc(t('grFilterSub'))}</p><div class="gr-flts">${fl}</div></div>
+    // 설명은 넓은 패널에서 전체 문장, 좁은 패널(1280x800)에서 짧은 문장(tab6.css 의 컨테이너 쿼리)
+    const blk = (head, sub, grp) => `<div class="gr-flt-blk"><span class="gr-sec-k">${esc(t(head))}</span><p class="gr-flt-sub" title="${esc(t(sub))}"><span class="gr-fs-l">${esc(t(sub))}</span><span class="gr-fs-s">${esc(t(sub + 'S'))}</span></p><div class="gr-flts">${fl(grp)}</div></div>`;
+    return `<div class="gr-flt-wrap">${blk('grFilterHead', 'grFilterSub', 'cmp')}${blk('grFilterStHead', 'grFilterStSub', 'st')}</div>
       ${legendBlockHTML(legendBodyHTML(g, c))}`;
   }
 
@@ -4147,6 +4168,10 @@
         rerenderGraph(true);
         reselectFromState();
       } else if (act.dataset.grAct === 'reset') {
+        // 초기화는 선택과 탐색 경로와 함께 켜 둔 필터도 푼다(시장 동향 보기가 필터를 이번 주차로 되돌리는 것과 같게)
+        state.filter = null;
+        state.expSlot = null;
+        if (state.preset === 'variant') state.vf = { renew: null, main: false, dom: null, rev: false };
         initPresetState(state.preset, c, false);
         App.unselect({ push: false, restoreFocus: false });
         if (lastLeftEl) renderLeftZone(lastLeftEl);

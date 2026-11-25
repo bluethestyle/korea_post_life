@@ -89,7 +89,8 @@ EXPECT_JS = r"""
       if (wait) marks.push('wait');
       if (causes.includes('나음')) hits.push('win');
       if (causes.includes('못함')) hits.push('lose');
-      if (causes.some(c => table[c] && table[c]['칩'] === 'diff')) hits.push('diff');
+      // 단순 비교 불가는 양쪽 보유 담보의 비교 결과만(관계 담보로 덮음은 관련 담보로 보장에서만 센다, 3차 개선)
+      if (causes.some(c => c !== '관계 담보로 덮음' && table[c] && table[c]['칩'] === 'diff')) hits.push('diff');
       if (causes.includes('검토 대기') || wait) hits.push('wait');
       if (causes.includes('관계 담보로 덮음') || oursRel) hits.push('rel');
     }
