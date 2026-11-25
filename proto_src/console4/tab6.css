@@ -284,3 +284,27 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-net-svg.is-flt .gr-n.is-on.is-wait .gr-n-c{stroke-dasharray:3 1.5}
 /* 검수 대기는 기본 화면에서도 또렷하게(진한 점선 테두리) */
 :is(.gr-net-svg,.gr-sw) .gr-n.is-wait .gr-n-c{stroke:var(--ink-0);stroke-width:1.5;stroke-dasharray:2 1.5}
+
+/* 4차 개선: 라벨 외곽선, 담보 이름 줄이기, 앵커, 타사만 보유 그룹, 클릭 가능 표시 */
+/* 모든 라벨 글자 뒤에 배경색 외곽선을 두어 선이 지나가도 읽히게 */
+.gr-net-svg .gr-tx{paint-order:stroke;stroke:var(--panel-t);stroke-width:3px;stroke-linejoin:round}
+/* 기본 화면에서는 담보 이름을 감추고 그룹 이름을 앞세운다. 호버, 선택 강조 때는 강조한 담보, 필터 때는 대상 담보의 이름만 */
+.gr-net-svg .gr-lb-s{opacity:0}
+.gr-net-svg:is(.is-hl,.is-selm) .gr-lb-s.is-keep,.gr-net-svg.is-flt .gr-lb-s.is-on,.gr-net-svg.is-exp .gr-lb-s.is-big{opacity:1}
+.gr-net-svg:is(.is-hl,.is-selm) .gr-lb-s:not(.is-keep){opacity:0}
+.gr-net-svg.is-flt .gr-lb-s:not(.is-on){opacity:0}
+/* 회사 종형 앵커: 이중 원과 굵은 테두리, 회사 이름 굵게 */
+.gr-a-o{fill:none;stroke:var(--ink-0);stroke-width:1}
+.gr-a .gr-a-c{stroke-width:2.5}
+.gr-a.is-base .gr-a-c{stroke-width:3}
+.gr-lb-a .gl-1{font-weight:700}
+/* 타사만 보유(우체국 미보유) 그룹: 굵은 파선 테두리와 진한 빗금 */
+.gr-net-svg .gr-g-peer{stroke:var(--ink-1);stroke-width:2;stroke-dasharray:7 4}
+.gr-net-svg .gr-g-peer.is-gsel{stroke:var(--red)}
+.gr-hatch-l{stroke-width:1.4}
+/* 클릭할 수 있는 그룹 이름표는 버튼형 테두리 */
+.gr-lb-g .gr-lb-hit{fill:var(--panel-t);fill-opacity:.55;stroke:var(--line-2);stroke-width:1}
+.gr-lb-g{cursor:pointer}
+.gr-lb-g:hover .gr-lb-hit,.gr-lb-g:focus-visible .gr-lb-hit{stroke:var(--ink-0)}
+.gr-alt-svg .gr-tx.gr-vbox-go{font-size:16px;font-weight:700;fill:var(--ink-0)}
+.gr-vbox:hover .gr-vbox-go{fill:var(--red)}
