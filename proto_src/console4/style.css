@@ -481,7 +481,8 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 /* 누름(80ms 1px 내려앉음), 자료 없음 점선, 문지르기 가로 터치 허용, 고른 뒤 나머지 단위 물러남(불투명도 .45) */
 [data-scrub-row]{touch-action:pan-y}
 [data-nodata="1"]{cursor:default}
-[data-pick]:not([data-nodata="1"]):active,[data-aim]:not([data-nodata="1"]):active,.is-press-el{transform:translateY(1px)!important;transition-duration:80ms!important}
+/* 관계 그래프 SVG 의 노드는 위치를 transform 속성으로 두므로, 누를 때의 1px 이동(CSS transform)이 위치를 덮어써 노드가 왼쪽 위로 튀고 클릭이 빈 곳에 떨어진다. 그래서 그 안에서는 빼낸다 */
+[data-pick]:not([data-nodata="1"]):active,[data-aim]:not([data-nodata="1"]):not(.gr-net-svg *):active,.is-press-el{transform:translateY(1px)!important;transition-duration:80ms!important}
 .board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn):not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim){
   opacity:.45;transition:opacity 220ms var(--ease-in),transform 120ms var(--ease-in)}
 .board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn):is(.is-sel,:hover,:focus-visible,.is-aim){

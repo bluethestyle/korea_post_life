@@ -502,7 +502,8 @@ body.axis-bridging [data-main-axis]{border-bottom-color:transparent!important}
 /* 누름(80ms 1px 내려앉음), 자료 없음 점선, 문지르기 가로 터치 허용, 고른 뒤 나머지 단위 물러남(불투명도 .45) */
 [data-scrub-row]{touch-action:pan-y}
 [data-nodata="1"]{cursor:default}
-[data-pick]:not([data-nodata="1"]):active,[data-aim]:not([data-nodata="1"]):active,.is-press-el{transform:translateY(1px)!important;transition-duration:80ms!important}
+/* 관계 그래프 SVG 의 노드는 위치를 transform 속성으로 두므로, 누를 때의 1px 이동(CSS transform)이 위치를 덮어써 노드가 왼쪽 위로 튀고 클릭이 빈 곳에 떨어진다. 그래서 그 안에서는 빼낸다 */
+[data-pick]:not([data-nodata="1"]):active,[data-aim]:not([data-nodata="1"]):not(.gr-net-svg *):active,.is-press-el{transform:translateY(1px)!important;transition-duration:80ms!important}
 .board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn):not(.is-sel):not(:hover):not(:focus-visible):not(.is-aim){
   opacity:.45;transition:opacity 220ms var(--ease-in),transform 120ms var(--ease-in)}
 .board.has-sel .z-center :is(.mk-ring,.gtf-cell,.cvp-btn):is(.is-sel,:hover,:focus-visible,.is-aim){
@@ -2405,6 +2406,8 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 /* 보유 구분을 그룹 라벨 테두리에도: 타사만 보유(우체국 미보유)는 그룹 원과 같은 굵은 파선, 우체국만 보유는 금색 테두리 */
 .gr-lb-g-peer .gr-lb-hit{stroke:var(--ink-1);stroke-width:1.5;stroke-dasharray:5 3}
 .gr-lb-g-only .gr-lb-hit{stroke:var(--gold-line);stroke-width:1.5}
+/* 위로 올린 검색 라벨이 배경 장식의 어두운 면 위에 놓여도 명암비 4.5 이상이 되게 */
+.gr-search-box .gr-sec-k{color:var(--ink-0)}
 </style>
 </head>
 <body>
@@ -3475,17 +3478,17 @@ Saira Semi Condensed (폭 87.5, Regular 400, SemiBold 600): Copyright 2020 The S
     grPresetNews: '시장 동향',
     grPresetNewsSub: '시장 동향을 발표한 회사별로 보기',
     // 2차 개선: 왼쪽 패널, 상세 배지, 시장 동향
-    grFilterSub: '양쪽이 모두 보유한 담보끼리 급부 조건을 비교한 결과입니다. 보유 여부는 그래프의 그룹으로 봅니다.',
+    grFilterSub: '양쪽이 모두 보유한 담보의 급부 조건 비교 결과(보유 여부는 그래프의 그룹으로 표시)',
     grFilterZeroTip: '현재 조건에서 해당하는 담보가 없습니다',
     grNavAria: '탐색 이동',
     grLegendShow: '범례 펼치기',
     grLegendHide: '범례 접기',
     grLeftMore: '범례가 아래에 더 있습니다 ▾',
-    grLegendDrawnNote: '현재 화면에 그려진 기호와 선만 보입니다.',
+    grLegendDrawnNote: '현재 화면에 그려진 기호와 선만 표시',
     grMkCatNode: '동향 분류',
     grMkCatEdge: '분류',
     grMkCatTipTpl: '{cat}, {n}건',
-    grMkCmpNote: '굵은 테두리는 현재 비교 대상 타사입니다. 시장 동향은 비교 대상이 아닌 회사의 동향도 보입니다.',
+    grMkCmpNote: '굵은 테두리: 현재 비교 대상 타사(비교 대상이 아닌 회사의 동향도 함께 표시)',
     grLgCmpOrg: '비교 대상 회사',
     grLgOtherOrg: '그 밖의 회사',
     grCmpPeer: '비교 대상 타사',
