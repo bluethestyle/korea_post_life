@@ -329,7 +329,7 @@ def compare_conditions(base: dict[str, Any], other: dict[str, Any]) -> dict[str,
     return {"판정": overall, "보류밖판정": rest, "지급형태": pay["판정"], "항목": items}
 
 
-AMOUNT_REASON = {"x": "금액 자료 없음", "p": "검수 대기 값이 있어 판정을 미룸", "q": "매핑 검수 대기 급부만 있음",
+AMOUNT_REASON = {"x": "금액 자료 없음", "p": "검수 대기 값이 있어 비교 결과를 보류함", "q": "매핑 검수 대기 급부만 있음",
                  "u": "타사 종형이 이 나이에 가입할 수 없음", "v": "기준 종형이 이 나이에 가입할 수 없음",
                  "n": "타사 종형에 없음", "o": "기준 종형에 없음", "": "양사 미보유"}
 

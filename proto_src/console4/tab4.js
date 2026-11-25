@@ -137,11 +137,11 @@ function verdictOf(B, row, cols, k) {
   if (cause === '단정 주의') {
     const cau = row.cau.find(x => (x['상대종형ID'] || []).includes(peer));
     const d = q && q.it ? q.it.filter(t => t[3] === '나음' || t[3] === '못함').map(t => `${t[0]} ${t[1]} 대 ${t[2]}`).join(', ') : '';
-    why = cau ? `${cau['문장']}${d ? ` 대표 급부끼리 다른 항목(${d})이 있지만 우열에 넣지 않았습니다.` : ''}` : reasonText(reasons);
+    why = cau ? `${cau['문장']}${d ? ` 대표 급부끼리 다른 항목(${d})이 있지만 우열을 판단하지 않았습니다.` : ''}` : reasonText(reasons);
   } else if (cause === '검토 대기') {
     why = reasons.length ? t('cvWhyWaitTpl', { reasons: reasonText(reasons) }) : t('cvWhyWait');
   } else if (cause === '판정 보류') {
-    why = `판정을 미뤘습니다: ${reasons.length ? reasonText(reasons) : '사유 자료 없음'}`;
+    why = `비교 결과를 보류했습니다: ${reasons.length ? reasonText(reasons) : '사유 자료 없음'}`;
   } else if (cause === '지급 형태 다름') {
     why = t('cvWhyDiffForm');
   } else if (cause === '엇갈림') {
@@ -1188,11 +1188,11 @@ function condTable(m, row, c) {
       });
       const detTblHTML = mobDet
         ? `<table class="cv-ct cv-ct-mob">
-          <tr><th scope="col">${esc(t('cvColPeer'))}</th><th scope="col">조건과 판정</th></tr>
+          <tr><th scope="col">${esc(t('cvColPeer'))}</th><th scope="col">조건과 비교 결과</th></tr>
           ${pRows.join('')}
         </table>`
         : `<table class="cv-ct">
-          <tr><th scope="col">${esc(t('cvColPeer'))}</th><th scope="col">지급</th><th scope="col">면책</th><th scope="col">감액</th><th scope="col">지급 형태</th><th scope="col">판정</th></tr>
+          <tr><th scope="col">${esc(t('cvColPeer'))}</th><th scope="col">지급</th><th scope="col">면책</th><th scope="col">감액</th><th scope="col">지급 형태</th><th scope="col">비교 결과</th></tr>
           ${pRows.join('')}
         </table>`;
       return `<details class="zr-det cv-vg-det"${bIdx === 0 ? ' open' : ''}>
@@ -1214,8 +1214,8 @@ function condTable(m, row, c) {
   const nonMonRedLbl = nonMonCopy('감액') || '원문 확인';
   const nonMonBaseLbl = nonMonCopy('기준') || '금액 하나로 적을 수 없는 급부';
   const payRuleTxt = hasAnyNonMon && nonMonCopy('지급액판정')
-    ? `${nonMonCopy('지급액판정')} 및 기준 가입금액이 회사마다 달라 지급액은 판정에 넣지 않았습니다.`
-    : '지급액은 기준 가입금액이 회사마다 달라 판정에 넣지 않았습니다.';
+    ? `${nonMonCopy('지급액판정')} 및 기준 가입금액이 회사마다 달라 지급액은 비교 결과에 반영하지 않았습니다.`
+    : '지급액은 기준 가입금액이 회사마다 달라 비교 결과에 반영하지 않았습니다.';
   const summaries = items.map(([lab, f]) => {
     const vals = {};
     allColIdxs.forEach(k => {
@@ -1320,7 +1320,7 @@ function rowEvidence(c, sid, mode) {
     : '';
   const graphJump = `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>`;
   const body = `${mobNavHTML}<div class="ev-sec"><h3>회사별 조건(면책, 감액, 지급)</h3>${condTable(m, row, c)}${graphJump}</div>
-    <div class="ev-sec"><h3>판정과 인사이트</h3>${judge || `<p class="note">${esc(App.t('peerEmptyHint'))}</p>`}${pts ? `<ul class="cv-pts" style="margin-top:8px">${pts}</ul>` : ''}</div>
+    <div class="ev-sec"><h3>비교 결과와 인사이트</h3>${judge || `<p class="note">${esc(App.t('peerEmptyHint'))}</p>`}${pts ? `<ul class="cv-pts" style="margin-top:8px">${pts}</ul>` : ''}</div>
     <details class="zr-det"><summary><span>관계도와 근거 문서 쪽 번호 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b">
       <div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}
       <h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">근거 문서와 쪽</h3>
@@ -1424,7 +1424,7 @@ function journeyHTML(c) {
   const etcList = cols.map(x => `${orgN(x['종형ID'])} ${x['기타'] || 0}개`);
   const etc = etcList.length <= 4 ? etcList.join(', ') : txt.peerNamesEtc(etcList, 4);
   return `<section class="panel cv-jr" id="cover-journey" aria-labelledby="cover-journey-h">
-    <div class="panel-h"><div><span class="k">${ui.scope('base')} 보장 대분류와 치료 단계마다 표준담보를 셉니다</span><h2 id="cover-journey-h"><span>${esc(t('cvJourneyTitle'))}</span>${ui.help('journey-grid', t('cvJourneyTitle'))}</h2></div>
+    <div class="panel-h"><div><span class="k">${ui.scope('base')} 보장 대분류와 치료 단계마다 표준담보를 집계합니다</span><h2 id="cover-journey-h"><span>${esc(t('cvJourneyTitle'))}</span>${ui.help('journey-grid', t('cvJourneyTitle'))}</h2></div>
       <div class="r"><span class="cvj-lg">${dispLabels.map((d, i) => `<span><i class="${journeyTone(i).lg}"></i>${esc(d.nm)}</span>`).join('')}<span><i class="lgz"></i>${esc(t('cvJourneyZero'))}</span></span>
       <span class="live">${ui.btn(t('cvCopyTableBtn'), { sm: true, ghost: true, icon: 'copy', attrs: 'data-act="cv-copy-journey"' })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="cover-journey" data-title="${esc(t('cvJourneyTitle'))}"` })}</span></div></div>
     <div class="cvj-w"><div class="cvj" role="group" aria-label="${esc(t('cvJourneyTitle'))}">${h}</div></div>
@@ -1491,7 +1491,7 @@ function journeyPick(c, key) {
         const v = row ? pIdxs.map(i => { const vv = verdFor(row, m, i, pIdxs); return vv ? `<span class="cv-bd"><span>${esc(txt.josa(orgN(m.cols[i + 1]), '과'))}</span>${chip(vv)}</span>` : ''; }).join('') : '';
         return `<tr><th scope="row">${row ? `<button type="button" class="cv-lk" data-act="cv-goto" data-sid="${esc(sid)}">${esc(stdN(sid))}${ui.IC.chevR}</button>` : esc(stdN(sid))}<div class="cv-bds">${v}</div></th>${marks}</tr>`;
       }).join('');
-      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 판정(우체국 기준)</th>${cols.map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">${esc(t('cvJourneyGotoNote'))}</p>`;
+      tblHTML = `<div class="cv-ct-w"><table class="cv-jt"><tr><th scope="col">담보와 비교 결과(우체국 기준)</th>${cols.map(x => `<th scope="col" title="${esc(x['이름'])}">${esc(orgN(x['종형ID']))}</th>`).join('')}</tr>${rows}</table></div><p class="note">${esc(t('cvJourneyGotoNote'))}</p>`;
     }
   }
   const cntItems = cols.map((x, i) => `${orgN(x['종형ID'])} ${lists[i].length}개`);
@@ -1620,7 +1620,7 @@ function tableBand(c, m, byName, peerN) {
   const total = m.rows.length * peerN;
   const denom = Math.max(1, total);
   const st = (nm, cls) => ({ n: byName[nm] || 0, d: total, l: App.label(nm), bar: [byName[nm] || 0, denom, cls] });
-  return ui.band({ kicker: t('cvTblBandKickerTpl', { kind: kindN(c.baseId), rows: m.rows.length, peers: peerN }), title: '담보 비교표의 판정', sc: 'base',
+  return ui.band({ kicker: t('cvTblBandKickerTpl', { kind: kindN(c.baseId), rows: m.rows.length, peers: peerN }), title: '담보 비교표의 비교 결과', sc: 'base',
     stats: [st('우체국 나음', 'gold'), st('우체국에만 있음', 'gold'), st('우체국 못함', ''), st('우체국에 없음', 'other')],
     note: t('cvTblBandNoteTpl', { total, bothNone: App.label(BOTH_NONE_TEXT) }) });
 }
@@ -1731,8 +1731,8 @@ function tableHTML(c) {
   const sumChipsHTML = chipNames.map(nm => `${ui.verdict(chipKindByName(nm), nm)} <b class="num" data-sum-name="${esc(nm)}">${byName[nm] || 0}</b>`).join(' ');
   const head2 = '<span class="cv-v hd"><span class="pv">지급</span><span class="wv">면책</span><span class="rv">감액</span></span>';
   const twHintTxt = (innerWidth <= 640 || !manyOrgs)
-    ? '담보 열은 고정되고, 회사 및 판정 열을 좌우로 밀어 확인합니다.'
-    : '담보와 판정 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
+    ? '담보 열은 고정되고, 회사 및 비교 결과 열을 좌우로 밀어 확인합니다.'
+    : '담보와 비교 결과 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
   const scrollBarHTML = `<div class="cv-tw-bar no-print" id="cv-tw-bar" hidden>
     <span class="cv-tw-hint" id="cv-tw-hint">${esc(twHintTxt)}</span>
     <span class="cv-tw-btns">
@@ -1742,7 +1742,7 @@ function tableHTML(c) {
   </div>`;
   const theadHTML = manyOrgs
     ? `<thead><tr><th scope="col" rowspan="2" class="cv-n">담보</th>${colIdxs.map(k => { const v = m.cols[k]; return `<th scope="col" class="cv-c k${k}" title="${esc(fullN(v))}">${esc(orgN(v))} <span class="sub">${esc(txt.shortName(kindN(v)).short)}</span>${k ? '' : ' ' + ui.tag('기준')}</th>`; }).join('')}
-        <th scope="col" class="cv-vd cv-vd-sticky" rowspan="2">판정<br><span class="sub">우체국 기준</span></th></tr>
+        <th scope="col" class="cv-vd cv-vd-sticky" rowspan="2">비교 결과<br><span class="sub">우체국 기준</span></th></tr>
         <tr class="cv-h2">${colIdxs.map(k => `<th scope="col" class="cv-c k${k}">${head2}</th>`).join('')}</tr></thead>`
     : `<thead><tr><th scope="col" rowspan="2" class="cv-n">담보</th>${colIdxs.map(k => { const v = m.cols[k]; return `<th scope="col" class="cv-c k${k}" title="${esc(fullN(v))}">${esc(orgN(v))} <span class="sub">${esc(txt.shortName(kindN(v)).short)}</span>${k ? '' : ' ' + ui.tag('기준')}</th>`; }).join('')}
         ${pIdxs.map(i => { const v = m.cols[i + 1]; return `<th scope="col" class="cv-vd" rowspan="2">${esc(t('cvPeerCmpTpl', { peer: txt.josa(orgN(v), '과') }))}<br><span class="sub">우체국 기준</span></th>`; }).join('')}<th rowspan="2" class="cv-ch"><span class="sr">${esc(t('cvColSelectSr'))}</span></th></tr>
@@ -1783,8 +1783,8 @@ function syncCoverTwScroll(root) {
       const tbl = tw.querySelector('#cover-tbl');
       const manyOrgs = !!(tbl && tbl.classList.contains('is-many-orgs'));
       hint.textContent = (innerWidth <= 640 || !manyOrgs)
-        ? '담보 열은 고정되고, 회사 및 판정 열을 좌우로 밀어 확인합니다.'
-        : '담보와 판정 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
+        ? '담보 열은 고정되고, 회사 및 비교 결과 열을 좌우로 밀어 확인합니다.'
+        : '담보와 비교 결과 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
     }
     const btnL = bar.querySelector('#cv-scroll-l');
     const btnR = bar.querySelector('#cv-scroll-r');
@@ -1828,7 +1828,7 @@ function copyCaution() {
   const c = App.ctx();
   const rows = scopedCaution(c).map(x => [x['종류'], x['담보'], (x['상대종형ID'] || []).map(fullN).join(', '), App.label('우열을 매기지 않음'), x['문장'],
     (x['근거'] || []).map(g => `${orgN(g['종형ID'])} ${txt.pageText(g['문서'], g['쪽'])}${g['구분'] ? `(${g['구분']})` : ''}`).join('; ')]);
-  App.copyRows(['종류', '담보', t('cvCopyCauColPeer'), '판정', '문장', '근거'], rows, { title: t('cvCautionListTitle') });
+  App.copyRows(['종류', '담보', t('cvCopyCauColPeer'), '비교 결과', '문장', '근거'], rows, { title: t('cvCautionListTitle') });
 }
 function copyTable() {
   const c = App.ctx();

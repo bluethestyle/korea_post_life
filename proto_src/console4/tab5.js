@@ -786,7 +786,7 @@ App.registerTab((function () {
     const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
     const sLab = subLabel(p['세부'], p['세부이름']);
     let body = sec('', `<p>${esc(p['문장'])}${scBadge}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}${cau ? `<p>${ui.verdict('diff')}</p><p class="note">${esc(cautionNote(cau))} ${esc(cau['문장'])}${scBadge}</p>` : ''}${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
-      ${tableV ? `<p class="note" style="margin-top:8px">담보 비교표의 판정: </p><div class="cv-bds">${tableV}</div>` : ''}${grJump}`);
+      ${tableV ? `<p class="note" style="margin-top:8px">담보 비교표의 비교 결과: </p><div class="cv-bds">${tableV}</div>` : ''}${grJump}`);
     if (relOk) body += sec('관계도', `<div class="ins-rel"></div>${App.cover.relLegend()}`);
     body += sec('근거 문서와 쪽', `<ul class="cv-evl">${(p['근거'] || []).map(g => `<li><b>${esc(fullN(g['종형ID']))}</b> ${evChip(g)}${g['급부명'] ? `<br><span class="note">${esc(g['급부명'])}</span>` : ''}</li>`).join('')}</ul>${(p['근거'] || []).some(g => g['쪽'] == null) ? `<p class="note">${esc(txt.PAGE_WHY)}.</p>` : ''}`, true);
     body += sec('범위 머리말', `<p class="note">${esc(head(p))}${scBadge}</p><p class="note">${esc(t('insEvScopeNoteTpl', { total: c.base['범위']['회사수'], n: p['회사수'] }))}</p>`, true);
