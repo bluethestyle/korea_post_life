@@ -1481,8 +1481,8 @@
     const focus = hov || selFocus;
     const fs = focus ? focusSets(g, lay, focus) : null;
     const flt = filterSet(g, lay);
-    // 담보를 선택하면 회사별 특약과 급부를 펼친다(위치 트랜지션 중에는 접어 두고 도착한 뒤 펼친다)
-    const ex = selStd != null && !net.moving ? expandLayout(g, lay, selStd, state.expSlot) : null;
+    // 담보를 선택하면 보유 회사마다 요약 노드를 펼친다(위치 트랜지션 중에는 접어 두고 도착한 뒤 펼친다)
+    const ex = selStd != null && !net.moving ? expandLayout(g, lay, selStd) : null;
     const big = ex ? focusSets(g, lay, { t: 'std', si: selStd }).nodes : null;
     const expLayer = svg.querySelector('.gr-l-exp');
     const prevEx = net.exShown;
@@ -1538,6 +1538,8 @@
     svg.querySelectorAll(':scope > .gr-l-edges .gr-e-bundle').forEach(el => {
       const keep = fs && ((focus.t === 'group' && el.dataset.grT === focus.key) || (focus.t === 'anchor' && +el.dataset.grSlot === focus.slot));
       el.classList.toggle('is-keep', !!keep);
+      // 선택한 그룹과 회사 앵커를 잇는 번들 엣지는 빨강으로 강조한다(호버 중에는 호버 강조만)
+      el.classList.toggle('is-ssel', !!(keep && !hov && focus.t === 'group'));
     });
     const hot = svg.querySelector('.gr-l-hot');
     if (hot) {
@@ -1675,12 +1677,9 @@
     } else if (h.t === 'x' && net.ex) {
       const nd = net.ex.nodes[h.i];
       if (!nd) return;
-      if (nd.kind === 'summary') { pushUndo(); state.expSlot = nd.slot; applyNetState(); return; }
-      if (nd.kind === 'more') { netOpenVariant(net.lay.anc[nd.slot].vi); return; }
-      net.focusKey = net.selFk = 'x:' + h.i;
-      state.selEdge = null;
-      App.select('n:' + g.N[nd.ni].id, { animate: true, focus: false });
-      applyNetState();
+      // 요약 노드는 그 회사 종형의 종형 구성 보기를 열고, 선택한 담보가 그 보기에 있으면 선택해 둔다(앵커 클릭과 같은 이동)
+      const a = net.lay.anc[nd.slot];
+      openAlt('variant', a.vi, varHasStd(g, a.vi, net.ex.si) ? net.ex.si : null);
     }
   }
 
@@ -1693,6 +1692,8 @@
   function refreshTrail() {
     const nav = lastCenterEl && lastCenterEl.querySelector('#gr-stage-root > .gr-trail');
     if (nav) nav.outerHTML = trailNavHTML();
+    // 제목 위 경로(#lpath)도 탐색 경로와 같은 상태로 맞춘다(선택을 풀면 담보 이름이 남지 않게)
+    if (App.state.tab === 'graph' && App.syncPath) App.syncPath();
   }
 
   function renderNetInto(host, lay) {
@@ -1751,8 +1752,8 @@
   }
 
   // ---------- 담보 선택: 회사별 특약과 급부 펼치기(4.3) ----------
-  const EXP_RIDER_MAX = 12, EXP_BEN_MAX = 39, EXP_F_RIDER = 0.30, EXP_F_BEN = 0.68, EXP_F_SUM = 0.50;
-  const EXP_RR = 6, EXP_RB = 5, EXP_GAP = 4, EXP_LABEL_MAX = 6, EXP_ITERS = 160;
+  // 요약 노드: 앵커에서 담보까지의 거리 가운데(EXP_F_SUM), 반지름 EXP_RS
+  const EXP_F_SUM = 0.50, EXP_RS = 9, EXP_GAP = 4, EXP_ITERS = 160;
   let recIdx = null;
   const expCache = new Map();
 
@@ -1790,6 +1791,11 @@
     return Array.from(byR.keys()).sort((a, b) => a - b).map(ri => ({ ri, bens: byR.get(ri).sort((x, y) => x.b - y.b) }));
   }
 
+  // 종형 구성 보기에 그 담보가 나오는지(매핑된 급부가 그 종형의 특약에 있는지)
+  function varHasStd(g, vi, si) {
+    return chainOf(g, vi, si).some(rc => rc.bens.some(b => !b.rec));
+  }
+
   // 선분이 사각 상자(여백 pad)를 지나는지(Liang-Barsky)
   function segHitsBox(x1, y1, x2, y2, b, pad) {
     const bx0 = b[0] - pad, by0 = b[1] - pad, bx1 = b[2] + pad, by1 = b[3] + pad;
@@ -1804,8 +1810,10 @@
     return t0 <= t1;
   }
 
-  function expandLayout(g, lay, si, openSlot) {
-    const ck = `${layoutKeyOf(lay)}|${si}|${openSlot == null ? '' : openSlot}`;
+  // 담보 선택: 그 담보를 보유한 회사(종형)마다 "특약 N, 급부 M" 요약 노드 하나를 담보와 앵커 사이에 두고 굵은 선 둘로 잇는다.
+  // 낱낱의 특약과 급부는 그래프에 그리지 않고 오른쪽 상세 패널의 회사별 목록에 둔다(2차 개선, 비평 3번)
+  function expandLayout(g, lay, si) {
+    const ck = `${layoutKeyOf(lay)}|${si}`;
     if (expCache.has(ck)) return expCache.get(ck);
     const t0 = performance.now();
     const sc = lay.sc, it = sc.info.get(si);
@@ -1820,71 +1828,35 @@
       circles.push([p.x, p.y, r]);
     });
     lay.anc.forEach(a => { fixed.push({ x: a.x, y: a.y, r: a.r }); circles.push([a.x, a.y, a.r]); });
-    // 고정 장애물: 줄인 기존 노드, 앵커, 앵커 라벨(4.3의 3번). 그룹 라벨도 장애물로 두어 펼친 노드가 라벨을 덮지 않게 한다
+    // 고정 장애물: 줄인 기존 노드, 앵커, 앵커 라벨, 그룹 라벨(요약 노드가 라벨을 덮지 않게)
     const boxes = lay.anc.map(a => a.box).concat(Array.from(lay.glabels.values()).map(gl => gl.box));
     const sp = lay.npos.get(si);
-    const cols = it.slots.map(slot => ({ slot, chain: chainOf(g, lay.anc[slot].vi, si), per: it.per.find(x => x.slot === slot) }));
-    const benTotal = cols.reduce((s, cl) => s + cl.chain.slice(0, EXP_RIDER_MAX).reduce((u, r) => u + r.bens.length, 0), 0);
-    const fold = sc.nPeer > 3 || benTotal > EXP_BEN_MAX;
-    const nodes = [], edges = [], notes = [];
-    cols.forEach(({ slot, chain, per }) => {
+    const nodes = [], edges = [];
+    it.per.forEach(per => {
+      const slot = per.slot;
       const a = lay.anc[slot];
-      const dx = sp.x - a.x, dy = sp.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
-      const [nx, ny] = Math.abs(ux) >= 0.5 ? [0, 1] : [1, 0];
-      const p = per && per.e ? per.e.p : {};
-      const org = orgOf(a.code);
+      const p = per.e ? per.e.p : {};
       const rN = +(p['특약수'] || 0), bN = +(p['급부수'] || 0);
-      if (fold && slot !== 0 && openSlot !== slot) {
-        const x = a.x + ux * L * EXP_F_SUM, y = a.y + uy * L * EXP_F_SUM;
-        nodes.push({ kind: 'summary', id: 'SUM:' + a.id, slot, x, y, tx: x, ty: y, r: 8, g: null, text: t('grExpSumTpl', { org, r: fmt(rN), b: fmt(bN) }) });
-        edges.push({ ek: '보유', key: per && per.e ? 'e:' + per.e.i : '', s: { anc: slot }, t: nodes.length - 1 });
-        edges.push({ ek: '보유', key: per && per.e ? 'e:' + per.e.i : '', s: nodes.length - 1, t: { std: si } });
-        return;
-      }
-      const shown = chain.slice(0, EXP_RIDER_MAX);
-      const more = chain.length - shown.length;
-      const spR = 2 * EXP_RR + EXP_GAP + 1, spB = 2 * EXP_RB + EXP_GAP + 1;
-      const nR = shown.length + (more ? 1 : 0);
-      const ridx = new Map();
-      const first = nodes.length;
-      shown.forEach((rc, k) => {
-        const off = (k - (nR - 1) / 2) * spR;
-        const x = a.x + ux * L * EXP_F_RIDER + nx * off, y = a.y + uy * L * EXP_F_RIDER + ny * off;
-        nodes.push({ kind: '특약', ni: rc.ri, slot, x, y, tx: x, ty: y, r: EXP_RR, g: null });
-        ridx.set(rc.ri, nodes.length - 1);
-        edges.push({ ek: '포함', key: 'e:' + edgeIdx(g, a.vi, rc.ri, '포함'), s: { anc: slot }, t: nodes.length - 1 });
-      });
-      if (more) {
-        const off = (shown.length - (nR - 1) / 2) * spR;
-        const x = a.x + ux * L * EXP_F_RIDER + nx * off, y = a.y + uy * L * EXP_F_RIDER + ny * off;
-        nodes.push({ kind: 'more', id: 'MORE:' + a.id, slot, x, y, tx: x, ty: y, r: EXP_RR, g: null, text: t('grExpMoreTpl', { n: fmt(more) }) });
-      }
-      const bl = [];
-      shown.forEach(rc => rc.bens.forEach(b => bl.push({ ri: rc.ri, b: b.b, rec: b.rec })));
-      bl.forEach((bb, k) => {
-        const off = (k - (bl.length - 1) / 2) * spB;
-        const x = a.x + ux * L * EXP_F_BEN + nx * off, y = a.y + uy * L * EXP_F_BEN + ny * off;
-        const bp = g.N[bb.b].p || {};
-        nodes.push({ kind: '급부', ni: bb.b, slot, x, y, tx: x, ty: y, r: EXP_RB, g: null, rec: bb.rec, wait: !!bp['추출검수대기항목'] });
-        const bi = nodes.length - 1;
-        edges.push({ ek: '포함', key: 'e:' + edgeIdx(g, bb.ri, bb.b, '포함'), s: ridx.get(bb.ri), t: bi });
-        if (bb.rec) edges.push({ ek: 'rec', key: `rec:${bb.b}:${si}`, s: bi, t: { std: si } });
-        else {
-          const m = (g.benStds.get(bb.b) || []).find(x => x.std === si);
-          const st = m ? (g.E[m.e].p || {})['검토상태'] : '';
-          edges.push({ ek: '매핑', key: m ? 'e:' + m.e : '', s: bi, t: { std: si }, strong: st === '승인' || st === '수정' });
-        }
-      });
-      notes.push({ slot, first, last: nodes.length, many: rN > EXP_LABEL_MAX, text: t('grExpColTpl', { org, r: fmt(rN), b: fmt(bN) }), side: a.x <= sp.x ? -1 : 1 });
+      const lines = [t('grHeldLineTpl', { r: fmt(rN), b: fmt(bN) })];
+      const wait = [];
+      if (p['매핑검수대기급부수']) wait.push(t('grWaitMapTpl', { n: fmt(p['매핑검수대기급부수']) }));
+      if (p['추출검수대기급부수']) wait.push(t('grWaitExtTpl', { n: fmt(p['추출검수대기급부수']) }));
+      if (wait.length) lines.push(wait.join(', '));
+      const x = a.x + (sp.x - a.x) * EXP_F_SUM, y = a.y + (sp.y - a.y) * EXP_F_SUM;
+      nodes.push({ kind: 'summary', id: 'SUM:' + a.id, slot, x, y, tx: x, ty: y, r: EXP_RS, g: null, rN, bN, wait: wait.length > 0,
+        lines, title: t('grExpColTpl', { org: orgOf(a.code), r: fmt(rN), b: fmt(bN) }) });
+      const key = per.e ? 'e:' + per.e.i : '';
+      edges.push({ ek: '보유', key, s: { anc: slot }, t: nodes.length - 1 });
+      edges.push({ ek: '보유', key, s: nodes.length - 1, t: { std: si } });
     });
     if (nodes.length) runSync(simulate(nodes, fixed, boxes, [], { W: lay.W, H: lay.H, gap: EXP_GAP, qSame: -4, qDiff: -4, qdmax: 30, kg: 0, kt: 0.15, iters: EXP_ITERS }));
-    // 라벨 장애물과 노드 간격이 맞서 겹침이 남으면 노드 간격을 우선해 한 번 더 정리한다(펼친 노드 겹침 0)
+    // 라벨 장애물과 노드 간격이 맞서 겹침이 남으면 노드 간격을 우선해 한 번 더 정리한다(요약 노드 겹침 0)
     if (nodes.length) {
       const X = Float64Array.from(nodes, nd => nd.x), Y = Float64Array.from(nodes, nd => nd.y), R = Float64Array.from(nodes, nd => nd.r);
       const cx = (x, r) => Math.min(Math.max(x, NET_MARGIN + r), lay.W - NET_MARGIN - r), cy = (y, r) => Math.min(Math.max(y, NET_MARGIN + r), lay.H - NET_MARGIN - r);
       const bad = () => { for (let i = 0; i < X.length; i++) { for (const f of fixed) if (Math.hypot(X[i] - f.x, Y[i] - f.y) < R[i] + f.r + EXP_GAP) return true; for (let j = i + 1; j < X.length; j++) if (Math.hypot(X[i] - X[j], Y[i] - Y[j]) < R[i] + R[j] + EXP_GAP) return true; } return false; };
       for (let k = 0; k < 2 && bad(); k++) runSync(relax(X, Y, R, fixed, [], EXP_GAP + 0.05, nodes, cx, cy, false));
-      // 줄인 노드가 촘촘한 그룹 안에 갇혀 정리로 풀리지 않으면 가까운 빈 자리를 나선으로 찾아 옮긴다
+      // 정리로 풀리지 않으면 가까운 빈 자리를 나선으로 찾아 옮긴다
       if (bad()) {
         const free = (i, x, y) => {
           if (x - R[i] < NET_MARGIN || y - R[i] < NET_MARGIN || x + R[i] > lay.W - NET_MARGIN || y + R[i] > lay.H - NET_MARGIN) return false;
@@ -1906,88 +1878,67 @@
       }
       nodes.forEach((nd, i) => { nd.x = X[i]; nd.y = Y[i]; });
     }
-    // 라벨: 특약은 그 종형의 특약이 6개 이하일 때만, 많으면 열 옆에 "{회사} 특약 {n}, 급부 {m}"(5번). 앵커 쪽에 붙인다
+    // 요약 라벨: 모든 회사에 같은 형식으로 붙인다. 선과 겹치지 않게 선에 수직인 쪽부터 찾고, 자리가 없으면 거리를 늘린다
     const placed = lay.anc.map(a => a.box);
     lay.glabels.forEach(gl => placed.push(gl.box));
     lay.slabels.forEach((b, sj) => { if (big.has(sj)) placed.push(b); });
-    const allC = circles.concat(nodes.map(nd => [nd.x, nd.y, nd.r]));
+    // 줄여 흐리게 둔 담보(반지름 3)는 라벨 장애물에서 뺀다(라벨이 요약 노드 가까이 오게). 원래 크기 담보, 앵커, 요약 노드는 피한다
+    const allC = sc.stds.filter(sj => big.has(sj)).map(sj => { const p = lay.npos.get(sj); return [p.x, p.y, p.r]; })
+      .concat(lay.anc.map(a => [a.x, a.y, a.r]), nodes.map(nd => [nd.x, nd.y, nd.r]));
+    const endOf = e => (typeof e === 'number' ? nodes[e] : e.anc != null ? lay.anc[e.anc] : lay.npos.get(e.std));
+    const segs = edges.map(ed => { const p = endOf(ed.s), q = endOf(ed.t); return [p.x, p.y, q.x, q.y]; });
+    const lh = textLineH();
     const labels = [];
-    const tryPlace = (cands, text, weight, owner) => {
-      const w = textW(text, weight), h = textLineH();
-      for (const [x0, y0] of cands(w, h)) {
-        const b = [x0, y0, x0 + w, y0 + h];
-        if (!boxHit(b, placed, allC, lay.W, lay.H)) { placed.push(b); labels.push({ box: b, text, owner }); return true; }
-      }
-      return false;
-    };
     nodes.forEach((nd, i) => {
-      if (nd.kind === 'more' || nd.kind === 'summary') {
-        tryPlace((w, h) => [[nd.x + nd.r + 2, nd.y - h / 2], [nd.x - nd.r - 2 - w, nd.y - h / 2], [nd.x - w / 2, nd.y + nd.r + 2], [nd.x - w / 2, nd.y - nd.r - 2 - h]], nd.text, 600, i);
-      }
+      const w = Math.max(...nd.lines.map((s, k) => textW(s, k ? 400 : 600))), h = lh * nd.lines.length;
+      const a = lay.anc[nd.slot];
+      const perp = Math.atan2(sp.y - a.y, sp.x - a.x) + Math.PI / 2;
+      const angs = [0, Math.PI, Math.PI / 4, -Math.PI / 4, Math.PI * 3 / 4, -Math.PI * 3 / 4, Math.PI / 2, -Math.PI / 2].map(d => perp + d);
+      const cands = [];
+      [3, 10, 20, 34, 52, 76].forEach(d => angs.forEach(ang => {
+        const ux = Math.cos(ang), uy = Math.sin(ang);
+        // 노드에서 그 방향으로 떨어진 점에 상자의 가까운 변이 오게 둔다
+        const bx = nd.x + ux * (nd.r + d) - w / 2 + ux * w / 2, by = nd.y + uy * (nd.r + d) - h / 2 + uy * h / 2;
+        cands.push([bx, by, bx + w, by + h]);
+      }));
+      const ok = b => !boxHit(b, placed, allC, lay.W, lay.H) && !segs.some(s => segHitsBox(s[0], s[1], s[2], s[3], b, 1));
+      const box = cands.find(ok) || cands.find(b => !boxHit(b, placed, allC, lay.W, lay.H)) || cands[0];
+      placed.push(box);
+      labels.push({ box, lines: nd.lines, owner: i });
     });
-    notes.forEach(nt => {
-      if (!nt.many) {
-        for (let i = nt.first; i < nt.last; i++) {
-          const nd = nodes[i];
-          if (nd.kind !== '특약') continue;
-          const nm = g.N[nd.ni].l;
-          tryPlace((w, h) => (nt.side < 0 ? [[nd.x - nd.r - 2 - w, nd.y - h / 2]] : [[nd.x + nd.r + 2, nd.y - h / 2]]), nm, 400, i);
-        }
-        return;
-      }
-      const rs = nodes.slice(nt.first, nt.last).filter(nd => nd.kind === '특약' || nd.kind === 'more');
-      if (!rs.length) return;
-      const x0 = Math.min(...rs.map(nd => nd.x - nd.r)), x1 = Math.max(...rs.map(nd => nd.x + nd.r));
-      const y0 = Math.min(...rs.map(nd => nd.y - nd.r)), y1 = Math.max(...rs.map(nd => nd.y + nd.r));
-      const cx = (x0 + x1) / 2;
-      nt.placed = tryPlace((w, h) => [[cx - w / 2, y0 - 2 - h], [cx - w / 2, y1 + 2], nt.side < 0 ? [x0 - 2 - w, (y0 + y1) / 2 - h / 2] : [x1 + 2, (y0 + y1) / 2 - h / 2]], nt.text, 400, -1 - nt.slot);
-    });
-    const out = { si, nodes, edges, notes, labels, fold, ms: performance.now() - t0 };
+    const out = { si, nodes, edges, labels, ms: performance.now() - t0 };
     if (lay.fontsOk) expCache.set(ck, out);
     return out;
   }
 
   function layoutKeyOf(lay) { return `${lay.sc.sig}|${lay.W}|${lay.H}`; }
 
-  // 펼친 노드, 엣지, 라벨(SVG 조각). 엣지는 앞의 그룹(.gr-l-hot)에, 노드와 라벨은 노드 위 그룹(.gr-l-exp)에 둔다
+  // 요약 노드, 굵은 선, 라벨(SVG 조각). 선은 노드 아래 그룹(.gr-l-xe)에, 노드와 라벨은 노드 위 그룹(.gr-l-exp)에 둔다
   function expEdgesHTML(g, lay, ex) {
     const end = e => (typeof e === 'number' ? ex.nodes[e] : e.anc != null ? lay.anc[e.anc] : lay.npos.get(e.std));
-    const idOf = e => (typeof e === 'number' ? (ex.nodes[e].ni != null ? g.N[ex.nodes[e].ni].id : ex.nodes[e].id) : e.anc != null ? lay.anc[e.anc].id : g.N[e.std].id);
+    const idOf = e => (typeof e === 'number' ? ex.nodes[e].id : e.anc != null ? lay.anc[e.anc].id : g.N[e.std].id);
     return ex.edges.map((ed, k) => {
       const p = end(ed.s), q = end(ed.t);
       if (!p || !q) return '';
       const [x1, y1, x2, y2] = lineBetween(p, q, p.r, q.r);
-      const cls = ed.ek === 'rec' ? 'gr-e-rec' : ed.ek === '매핑' ? `gr-e-map${ed.strong ? ' is-strong' : ''}` : ed.ek === '보유' ? 'gr-e-held' : 'gr-e-inc';
-      const ekName = ed.ek === 'rec' ? '매핑' : ed.ek;
-      const delay = Math.min(320 - 160, k * 14 * 0.5);
-      return `<line class="gr-e gr-e-x ${cls}" pathLength="1" style="--d:${f1(delay)}" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="${esc(ekName)}"${ed.ek === 'rec' ? ' data-gr-rec="1"' : ''} data-gr-s="${esc(idOf(ed.s))}" data-gr-t="${esc(idOf(ed.t))}" data-gr-key="${esc(ed.key)}" data-tip-title="${esc(ed.ek === 'rec' ? t('grLgRec') : (g.ekindLabels[EK[ed.ek]] || ed.ek))}"/>`;
+      const delay = Math.min(160, k * 40);
+      return `<line class="gr-e gr-e-x gr-e-sum" pathLength="1" style="--d:${f1(delay)}" x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" data-gr-ekind="${esc(ed.ek)}" data-gr-s="${esc(idOf(ed.s))}" data-gr-t="${esc(idOf(ed.t))}" data-gr-key="${esc(ed.key)}" data-tip-title="${esc(g.ekindLabels[EK[ed.ek]] || ed.ek)}"/>`;
     }).join('');
   }
 
   function expNodesHTML(g, lay, ex) {
     const parts = [];
-    let order = 0;
-    const seq = ex.nodes.map((nd, i) => [nd, i]).sort((a, b) => (a[0].kind === '급부') - (b[0].kind === '급부') || a[1] - b[1]);
-    const delayOf = new Map(seq.map(([, i], k) => [i, Math.min(320 - 160, k * 14)]));
+    const lh = textLineH();
     ex.nodes.forEach((nd, i) => {
       const a = lay.anc[nd.slot];
-      const org = orgOf(a.code);
-      let id, kind, title, sub = '';
-      if (nd.ni != null) {
-        const n = g.N[nd.ni];
-        id = n.id; kind = nd.kind; title = n.l;
-        const tags = [org, g.kindLabels[n.k]];
-        if (nd.rec) tags.push(t('grWaitMapTag'));
-        if (nd.wait) tags.push(t('grWaitExtTag'));
-        sub = tags.join(' / ');
-      } else { id = nd.id; kind = nd.kind; title = nd.text; sub = org; }
-      const cls = nd.kind === '특약' ? 'gr-x-r' : nd.kind === '급부' ? 'gr-x-b' : nd.kind === 'more' ? 'gr-x-more' : 'gr-x-sum';
-      order++;
-      parts.push(`<g class="gr-x ${cls}${nd.rec ? ' is-rec' : ''}${nd.wait ? ' is-wait' : ''}" style="--d:${delayOf.get(i)}" transform="translate(${f1(nd.x)} ${f1(nd.y)})" tabindex="-1" role="button" aria-label="${esc(title)}" data-gr-fk="x:${i}" data-gr-x="${i}" data-gr-id="${esc(id)}" data-gr-kind="${esc(kind)}" data-gr-r="${f1(nd.r)}" data-gr-slot="${nd.slot}"${nd.ni != null ? ` data-gr-idx="${nd.ni}"` : ''} data-aim="circle" data-tip-title="${esc(title)}" data-tip-sub="${esc(sub)}"><circle class="gr-x-c" r="${f1(nd.r)}"/></g>`);
+      const sub = [nd.lines.slice(1).join(', '), t('grExpSumTip')].filter(Boolean).join(' / ');
+      parts.push(`<g class="gr-x gr-x-sum${nd.wait ? ' is-wait' : ''}" style="--d:${i * 40}" transform="translate(${f1(nd.x)} ${f1(nd.y)})" tabindex="-1" role="button" aria-label="${esc(nd.title)}" data-gr-fk="x:${i}" data-gr-x="${i}" data-gr-id="${esc(nd.id)}" data-gr-kind="summary" data-gr-r="${f1(nd.r)}" data-gr-slot="${nd.slot}" data-gr-org="${esc(a.code || '')}" data-gr-vid="${esc(a.id)}" data-gr-sum-r="${nd.rN}" data-gr-sum-b="${nd.bN}" data-aim="circle" data-tip-title="${esc(nd.title)}" data-tip-sub="${esc(sub)}"><circle class="gr-x-c" r="${f1(nd.r)}"/></g>`);
     });
     ex.labels.forEach(lb => {
       const b = lb.box;
-      parts.push(`<text class="gr-tx gr-x-lb${lb.owner < 0 ? ' is-note' : ''}" data-gr-lb="exp" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + textAsc())}">${esc(lb.text)}</text>`);
+      const nd = ex.nodes[lb.owner];
+      const spans = lb.lines.map((s, k) => `<tspan class="${k ? 'gr-x-lb2' : 'gl-1'}" x="${f1(b[0])}" y="${f1(b[1] + textAsc() + k * lh)}">${esc(s)}</tspan>`).join('');
+      parts.push(`<text class="gr-tx gr-x-lb" data-gr-lb="exp" data-gr-for="${esc(nd.id)}" data-gr-lbox="${b.map(f1).join(',')}">${spans}</text>`);
     });
     return parts.join('');
   }
@@ -4020,5 +3971,6 @@
     focus,
     path,
     copySummary,
+    noSelLink: true,
   });
 })();

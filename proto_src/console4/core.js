@@ -985,6 +985,7 @@
     grUnmappedTpl: '미매핑 급부 {n}',
     grMoreBenTpl: '이 표준담보에 매핑된 급부 가운데 화면에 표시하지 못한 급부 {n}개',
     grLgMore: '+N 화면에 표시하지 못한 급부',
+    grExpSumTip: '클릭하면 이 종형의 종형 구성 보기로 이동',
     grLgNodeHead: '노드',
     grNodePropHead: '노드 속성',
     grRecStdRow: '추천 표준담보',
@@ -3254,6 +3255,8 @@
       clearSelLink();
       return;
     }
+    // 연결선을 그리지 않는 탭(관계 그래프: 선이 다른 그룹을 가로질러 실제 엣지처럼 보인다)
+    if (tabs[st.tab] && tabs[st.tab].noSelLink) { clearSelLink(); return; }
     const root = viewOf(st.tab) || $('#z-center');
     const selEl = root && ($('[data-sel-anchor]', root) || $('.is-sel', root));
     if (!selEl) { clearSelLink(); return; }
@@ -5359,6 +5362,7 @@
     get state() { return { ...st, peerPick: st.peerPick.slice(), grp: { ...st.grp }, sel: { ...st.sel }, sub: { ...st.sub } }; },
     set, setGroup, on, ctx: () => ctx(), registerTab, go, select, unselect, stepUp, returnToHome, reveal, scrollInZone, panelTiming,
     openModal, closeModal, updateSelLink, syncZcScrollCue, flipElement, countUp,
+    syncPath: () => syncHeaderAndPath(ctx()),
     aim: { set: setAimTarget, hide: hideAimReticle, showTip: showHudTip, hideTip: hideHudTip },
     ev: { show: showEv, open: openEv, close: () => unselect(), def: () => showUnselectedEv(), legend: legendHTML },
     ui: UI, txt: TXT, mode, motionOn, motionRich, motionScale,

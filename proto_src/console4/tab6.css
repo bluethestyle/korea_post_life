@@ -253,3 +253,20 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
   .gr-preset .gp-s{display:none}
   .gr-ctrl-row .btn{height:32px}
 }
+
+/* 2차 개선: 담보 선택 펼침과 선택 표시 */
+/* 담보 선택: 보유 회사마다 요약 노드 하나, 앵커와 요약 노드와 담보를 잇는 굵은 선은 선택 강조(빨강) */
+.gr-l-xe .gr-e-sum{stroke:var(--red);stroke-width:3;stroke-linecap:round;opacity:1}
+.gr-x-sum .gr-x-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:2;stroke-dasharray:none}
+.gr-x-sum.is-wait .gr-x-c{stroke:var(--unknown-edge);stroke-dasharray:3 2}
+.gr-x-sum{cursor:pointer}
+.gr-net-svg .gr-x-lb{paint-order:stroke;stroke:var(--panel-t);stroke-width:3px;stroke-linejoin:round}
+.gr-x-lb .gr-x-lb2{font-weight:400;fill:var(--ink-1)}
+/* 선택하지 않은 그룹, 담보, 앵커, 번들 엣지는 더 흐리게(선택한 담보, 그 그룹, 이어진 앵커와 요약 노드가 먼저 보이게) */
+.gr-net-svg.is-exp .gr-g:not(.is-keep){opacity:.18}
+.gr-net-svg.is-exp .gr-n:not(.is-big){opacity:.25}
+.gr-net-svg.is-exp .gr-a:not(.is-keep){opacity:.35}
+.gr-net-svg.is-exp .gr-e-bundle:not(.is-ssel){opacity:.08}
+.gr-net-svg.is-exp .gr-l-labels :is(.gr-lb-g,.gr-lb-badge):not(.is-keep){opacity:.3}
+/* 그룹 선택: 그 그룹과 회사 앵커를 잇는 번들 엣지를 빨강으로 */
+.gr-net-svg .gr-e-bundle.is-ssel{stroke:var(--red);opacity:1}
