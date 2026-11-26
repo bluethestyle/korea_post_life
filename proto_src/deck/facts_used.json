@@ -15,15 +15,33 @@
    "practice_respondents"
   ],
   "03": [
-   "practice_tool_need",
    "practice_respondents",
-   "comparison_target_counts",
+   "practice_tool_need",
    "comparison_targets_loaded",
+   "comparison_target_counts",
    "combination_constraints_by_org",
    "rider_condition_rows_by_org",
    "practice_compare_source",
    "practice_compare_time",
    "practice_compare_frequency"
+  ],
+  "04": [
+   "models",
+   "samsungfire_benefit_reader",
+   "sheet_tab_count",
+   "sheet_tabs_by_owner",
+   "schedule_collect_kst",
+   "schedule_weekly_close_kst"
+  ],
+  "05": [
+   "team_size",
+   "practice_respondents",
+   "practice_compare_frequency",
+   "site_file_size_mb",
+   "sales_insight_category_names",
+   "sheet_tabs_by_owner",
+   "pages_status",
+   "console4_tabs"
   ],
   "06": [
    "workflow_triggers",
@@ -79,11 +97,23 @@
   ],
   "13": [
    "example_cancer_surgery",
+   "default_base_variant",
    "no_verdict_pairs"
   ],
   "14": [
    "example_gate_6months",
-   "pages_status"
+   "pages_status",
+   "example_pending_case"
+  ],
+  "15": [
+   "example_pending_case",
+   "excluded_pending_pairs",
+   "default_base_variant"
+  ],
+  "16": [
+   "example_cancer_surgery",
+   "example_pending_case",
+   "default_base_variant"
   ],
   "17": [
    "example_text_to_number",

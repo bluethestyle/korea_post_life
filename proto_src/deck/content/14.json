@@ -7,14 +7,31 @@
  "headline": "조건 하나를 바꾸면 가입할 수 있는 회사가 바로 바뀝니다",
  "diagram": [
   {
+   "use": "svg",
+   "box": [
+    0,
+    0,
+    1760,
+    56
+   ],
+   "vb": [
+    1760,
+    56
+   ],
+   "build": 1,
+   "limit": 40,
+   "alt": "절차 4 이어서. 절차 4 이어서: 새 상품의 인수기준도 고객 조건별로 비교합니다",
+   "svg": "<circle cx='20' cy='26' r='18' class='sv-paper'/><text x='20' y='34' text-anchor='middle' class='aux'>1</text><circle cx='82' cy='26' r='18' class='sv-paper'/><text x='82' y='34' text-anchor='middle' class='aux'>2</text><circle cx='144' cy='26' r='18' class='sv-paper'/><text x='144' y='34' text-anchor='middle' class='aux'>3</text><circle cx='208' cy='26' r='18' class='sv-deep'/><circle cx='208' cy='26' r='18' class='sv-ink'/><text x='208' y='34' text-anchor='middle' class='b'>4</text><circle cx='270' cy='26' r='17' class='sv-line'/><text x='270' y='34' text-anchor='middle' class='aux'>5</text><path d='M176 4V48' class='sv-muted'/><text x='330' y='36'>절차 4 이어서: 새 상품의 인수기준도 고객 조건별로 비교합니다</text>"
+  },
+  {
    "use": "C12",
    "img": "tab_market",
    "alt": "고객군과 시장 탭의 고객군별 가입 가능 현황",
    "box": [
     0,
-    0,
+    76,
     1060,
-    414
+    350
    ],
    "zones": [
     {
@@ -41,9 +58,9 @@
    "mode": "result",
    "box": [
     1100,
-    0,
+    76,
     660,
-    340
+    336
    ],
    "cond": "{{fact:example_gate_6months.age}}세 남성, {{fact:example_gate_6months.cell.row}}",
    "rows": [
@@ -70,23 +87,23 @@
    "use": "svg",
    "box": [
     1100,
-    362,
+    424,
     660,
-    246
+    184
    ],
    "vb": [
     660,
-    246
+    184
    ],
    "alt": "입원 시기를 바꾸면 우체국, 한화생명, 삼성화재 모두 간편심사로 가입 가능",
-   "svg": "<path d='M24 6V50' class='sv-red' marker-end='url(#ah-r)'/><text x='56' y='38' class='b'>{{fact:example_gate_6months.later.row}}으로 바꾸면</text><rect x='2' y='70' width='656' height='170' class='sv-paper'/><rect x='2' y='70' width='656' height='170' class='sv-line'/><circle cx='46' cy='120' r='15' class='sv-fill-ink'/><text x='72' y='129'>우체국</text><circle cx='256' cy='120' r='15' class='sv-fill-ink'/><text x='282' y='129'>한화생명</text><circle cx='466' cy='120' r='15' class='sv-fill-ink'/><text x='492' y='129'>삼성화재</text><text x='30' y='203' class='b'>세 회사 모두 간편심사로 가입 가능</text>",
+   "svg": "<path d='M24 2V32' class='sv-red' marker-end='url(#ah-r)'/><text x='56' y='28' class='b'>{{fact:example_gate_6months.later.row}}으로 바꾸면</text><rect x='2' y='44' width='656' height='138' class='sv-paper'/><rect x='2' y='44' width='656' height='138' class='sv-line'/><circle cx='46' cy='86' r='15' class='sv-fill-ink'/><text x='72' y='95'>우체국</text><circle cx='256' cy='86' r='15' class='sv-fill-ink'/><text x='282' y='95'>한화생명</text><circle cx='466' cy='86' r='15' class='sv-fill-ink'/><text x='492' y='95'>삼성화재</text><text x='30' y='154' class='b'>세 회사 모두 간편심사로 가입 가능</text>",
    "build": 3
   },
   {
    "use": "button",
    "box": [
     0,
-    470,
+    476,
     300,
     70
    ],
@@ -99,7 +116,7 @@
    "tone": "muted",
    "box": [
     330,
-    480,
+    486,
     700,
     50
    ],
@@ -113,7 +130,7 @@
   "일반심사"
  ],
  "source": "공개 주소 {{fact:pages_status.url}}, 자료 기준 {{asof:example_gate_6months}}",
- "notes": "왼쪽은 고객군과 시장 탭의 고객군별 가입 가능 현황입니다. 행은 이력과 나이, 열은 입원 시기이고, 원 하나가 고객군 하나입니다. 1번 조건 변경에서 나이와 성별을 선택하고, 2번처럼 입원 시기를 바꿔 선택하면 오른쪽 결과가 바로 바뀝니다. 위 화면이 조건 변경 전, 아래 화면이 변경 후입니다. {{fact:example_gate_6months.age}}세 남성, {{fact:example_gate_6months.cell.row}}이면 우체국 간편심사는 가입 제한이라 일반심사 대상이고, 타사 가운데 한화생명만 우체국에 없는 간편심사 유형 {{fact:example_gate_6months.cell.gate_only.0.simple_type}}으로 가입 가능하며 삼성화재는 우체국과 같이 일반심사 대상입니다. 화면에는 간편심사 대상으로만 적었고, 유형의 숫자는 병력을 묻는 기간을 뜻합니다. 입원 시기를 {{fact:example_gate_6months.later.row}}으로 옮기면 세 회사 모두 가입 가능으로 바뀝니다. 이 결과는 공시된 고지사항과 가입나이로 본 비교이고 실제 인수 결과가 아닙니다. 자료 기준일이 바뀌면 결과도 바뀔 수 있습니다.\n\n이제 데모 열기 버튼으로 실제 화면을 새 창에서 열어 네 단계로 시연하겠습니다. 첫째, 고객군과 시장 탭에서 방금 본 조건 변경을 그대로 해 보입니다. 둘째, 담보 비교 탭에서 앞 장의 암 수술비 행을 열어 면책기간, 감액기간, 기준 가입금액과 함께 적은 지급액을 봅니다. 셋째, 영업 인사이트 탭에서 인사이트를 하나 골라 근거 문서와 쪽수를 확인하고 응대 화법 A4를 엽니다. 넷째, 관계 그래프 탭에서 암보장을 펼치고 일반암 진단비를 선택하면 우체국은 암진단특약(갱신형)의 암진단보험금으로 연결되고, 한화생명의 해당 종형은 인수기준만 수집한 종형이라 담보는 비교하지 않는다는 표시가 함께 나옵니다. 화면 위에는 공모전 시연용 화면이며 영업 자료가 아니라는 고지가 늘 보입니다.",
+ "notes": "암 수술비 비교와 함께, 새 상품이 어느 고객군에 가입 가능한지도 화면에서 봅니다. 왼쪽은 고객군과 시장 탭의 고객군별 가입 가능 현황입니다. 행은 이력과 나이, 열은 입원 시기이고, 원 하나가 고객군 하나입니다. 1번 조건 변경에서 나이와 성별을 선택하고, 2번처럼 입원 시기를 바꿔 선택하면 오른쪽 결과가 바로 바뀝니다. 위 화면이 조건 변경 전, 아래 화면이 변경 후입니다. {{fact:example_gate_6months.age}}세 남성, {{fact:example_gate_6months.cell.row}}이면 우체국 간편심사는 가입 제한이라 일반심사 대상이고, 타사 가운데 한화생명만 우체국에 없는 간편심사 유형 {{fact:example_gate_6months.cell.gate_only.0.simple_type}}으로 가입 가능하며 삼성화재는 우체국과 같이 일반심사 대상입니다. 화면에는 간편심사 대상으로만 적었고, 유형의 숫자는 병력을 묻는 기간을 뜻합니다. 입원 시기를 {{fact:example_gate_6months.later.row}}으로 옮기면 세 회사 모두 가입 가능으로 바뀝니다. 이 결과는 공시된 고지사항과 가입나이로 본 비교이고 실제 인수 결과가 아닙니다. 자료 기준일이 바뀌면 결과도 바뀔 수 있습니다.\n\n이제 데모 열기 버튼으로 실제 화면을 새 창에서 열어 3부의 순서대로 네 단계로 시연하겠습니다. 첫째, 담보 비교 탭에서 앞 장의 암 수술비 막대를 클릭해 세 회사의 면책기간, 감액기간, 기준 가입금액과 함께 적은 지급액을 보고, 비교표 복사 버튼을 클릭합니다. 절차 4입니다. 둘째, 고객군과 시장 탭에서 방금 본 조건 변경을 그대로 해 보입니다. 셋째, {{fact:example_pending_case.standard_coverage}} 상세의 검수 대기 칩과 근거 문서와 쪽수를 확인합니다. 다음 장의 절차 5입니다. 넷째, 영업 인사이트 탭에서 인사이트를 하나 골라 근거 문서와 쪽수를 확인하고 응대 화법 A4를 엽니다. 화면 위에는 공모전 시연용 화면이며 영업 자료가 아니라는 고지가 늘 보입니다.",
  "frame": {
   "top": 240
  }
