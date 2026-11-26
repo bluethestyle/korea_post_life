@@ -419,6 +419,22 @@ def test_화면4_모두_보기를_누르면_새로_보이는_줄이_단추_아�
         assert not above, f"{width}px {key}: 새로 보이는 줄 {len(above)}개가 단추({top:.0f}px)보다 위에 놓임, 첫 줄 {above[0]}"
 
 
+def other_org_with_folding(page) -> str:
+    """회사 단추를 누르면 고르는 첫 종형(회사의 종형 차례의 첫 정밀비교 종형)이 결과를 접을 만큼 표준담보가 많은, 한화 밖의 회사.
+    그 첫 종형이 무엇인지는 자료에 달렸다. 새로 적재한 상품이 회사의 종형 차례 맨 앞에 오고 담보 매핑이 아직 없으면 결과 줄이 없어
+    "모두 보기" 단추도 없다(2026-11-26 하나로OK보험 2609 적재 뒤의 우체국). 회사를 바꿀 때 접는지는 단추가 있는 회사에서 본다."""
+    page.click("#tab-s4")
+    orgs = page.locator('[data-key^="s4-variant-org-"]').evaluate_all("els => els.map(e => e.dataset.key.slice('s4-variant-org-'.length))")
+    for org in orgs:
+        if org == HANWHA:
+            continue
+        page.click(f'[data-key="s4-variant-org-{org}"]')
+        page.click('[data-key="s4-max"]')
+        if page.locator("#s4-pay tbody tr").count() == PREVIEW["PREVIEW_ROWS"] < std_total(page):
+            return org
+    raise AssertionError(f"한화 밖에 첫 종형의 결과를 접는 회사가 없다: {orgs}")
+
+
 def test_화면4는_종형을_바꾸거나_특약을_새로_담으면_결과를_접은_채로_보여_준다(site, real):
     page = site(real.tables, real.meta)
     kinds = '[data-key^="s4-variant-"]:not([data-key*="-org-"]):not([data-key*="-rev-"])'
@@ -434,13 +450,14 @@ def test_화면4는_종형을_바꾸거나_특약을_새로_담으면_결과를_
         assert buttons and set(buttons.values()) == {"false"}, f"{where}: 펼친 채로 시작함 {buttons}"
         assert page.locator("#s4-pay tbody tr").count() == PREVIEW["PREVIEW_ROWS"] < std_total(page)
 
+    other = other_org_with_folding(page)
     fill_wide(page)
     expand()
     page.locator(kinds, has_text="간편가입형(1년)").first.click()          # 같은 상품의 다른 종형
     page.click('[data-key="s4-max"]')
     folded("다른 종형으로 바꾼 뒤")
     expand()
-    page.click('[data-key="s4-variant-org-EPOST"]')                      # 다른 회사의 종형
+    page.click(f'[data-key="s4-variant-org-{other}"]')                   # 다른 회사의 종형
     page.click('[data-key="s4-max"]')
     folded("다른 회사로 바꾼 뒤")
     expand()
