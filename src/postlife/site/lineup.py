@@ -93,7 +93,7 @@ def company_codes(d: Data) -> list[str]:
 def pick_lineup(d: Data, codes: list[str]) -> dict[str, list[str | None]]:
     """등급(GRADES)마다 회사(codes 차례)마다 종형 하나. 정밀비교이고 판매 중(판매종료일이 빈 값)이며 간편고지약칭이 그 등급인
     종형이 하나뿐일 때만 고르고, 없거나 둘 이상이면 None 이다. 우체국 종형을 고르지 못하면 멈춘다.
-    우체국은 화면 비교에서 빼는 상품(screen.EXCLUDED_PRODUCTS)의 종형을 후보에서 빼고, 후보가 둘 이상이면 화면 기본 상품
+    우체국은 화면 비교에서 빼는 종형(screen.excluded)을 후보에서 빼고, 후보가 둘 이상이면 화면 기본 상품
     (screen.DEFAULT_PRODUCT)의 종형만 남긴다(예: 하나로OK보험 2종과 간편한건강보험 2606 2종이 모두 3.2.5)."""
     out: dict[str, list[str | None]] = {}
     for grade in GRADES:

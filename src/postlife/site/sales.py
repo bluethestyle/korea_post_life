@@ -658,7 +658,8 @@ def gate_targets(data: Data, renewal: str | None = None) -> list[str]:
 
 
 def _selling(data: Data, roles: tuple[str, ...], renewal: str | None) -> list[str]:
-    """판매 중인 종형 가운데 비교역할구분이 roles 인 것. 화면 비교에서 빼는 상품(screen.EXCLUDED_PRODUCTS)의 종형은 뺀다."""
+    """판매 중인 종형 가운데 비교역할구분이 roles 인 것. 화면 비교에서 빼는 종형(screen.excluded: 빼는 상품의 종형과, 대표 종형만
+    쓰는 상품의 관문전용 종형)은 뺀다."""
     return [v for v in data.variant_order
             if data.variants[v].get("비교역할구분") in roles and _blank(data.variants[v].get("판매종료일"))
             and (renewal is None or data.variants[v].get("갱신유형") == renewal) and not SC.excluded(data, v)]

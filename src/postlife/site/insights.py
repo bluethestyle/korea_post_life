@@ -662,7 +662,7 @@ class _Base:
 
 
 def base_variants(data: Data) -> tuple[list[str], list[str]]:
-    """(견줄 종형, 기준 종형). 견줄 종형은 정밀비교 종형에서 화면 비교에서 빼는 상품(screen.EXCLUDED_PRODUCTS)의 종형을 뺀 것이고,
+    """(견줄 종형, 기준 종형). 견줄 종형은 정밀비교 종형에서 화면 비교에서 빼는 종형(screen.excluded)을 뺀 것이고,
     기준 종형은 그 가운데 판매 중인 우리 기관 종형이다. 초기 버전 화면(compare.build)은 이 함수를 쓰지 않는다."""
     vids = [v for v in data.variant_order if data.variants[v].get("비교역할구분") == C.COMPARE_ROLE
             and not SC.excluded(data, v)]

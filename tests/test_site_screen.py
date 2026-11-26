@@ -24,16 +24,28 @@ EXTRA = [
     (EB, "EPOST", "1종(간편가입)[2대질병보장형]", "간편심사", "3.0.5", ASK305, "갱신", "표준형", "2025-04-03", [(30, 80)]),
     (H0, "HANWHALIFE", "간편가입형(0년)", "간편심사", "3.0.5", ASK305, "비갱신", "표준형", "2026-10-01", [(15, 80)]),
 ]
+EOG, EOT, EXG = "EPOST_EOG_aaaaaa", "EPOST_EOT_aaaaaa", "EPOST_EXG_aaaaaa"
+# 대표 종형만 쓰는 상품(하나로OK 흉내)의 관문전용 종형 둘과, 그 설정에 없는 우리 상품의 관문전용 종형 하나.
+# EOG 는 주계약 가입나이 추출 오류(최저 가입나이 15세)를 흉내 내 대표 종형(EO, 15~70세)과 같은 나이로 둔다.
+GATE_EXTRA = [
+    (EOG, "EPOST", "2종(간편가입)[표준형, 종신]", "간편심사", "3.2.5", (3, 2, 5, False, 6), "비갱신", "표준형", "2026-09-16",
+     [(15, 70)]),
+    (EOT, "EPOST", "1종(일반가입)[표준형, 90,100세]", "일반심사", "일반", (None,) * 5, "비갱신", "표준형", "2026-09-16",
+     [(15, 70)]),
+    (EXG, "EPOST", "단일(간편가입)", "간편심사", "3.5.5", (3, 5, 5, False, 6), "비갱신", "표준형", "2026-09-16", [(15, 75)]),
+]
 PRODUCT = {E1: "EPOST_SIMPLE", E5: "EPOST_SIMPLE", EG: "EPOST_SIMPLE", E2: "EPOST_SIMPLE", ET: "EPOST_TOTAL",
-           EO: "EPOST_HANAROOK_WHOLE", EC: "EPOST_MORESIMPLE_CANCER", EB: "EPOST_MORESIMPLE_2CI"}
+           EO: "EPOST_HANAROOK_WHOLE", EC: "EPOST_MORESIMPLE_CANCER", EB: "EPOST_MORESIMPLE_2CI",
+           EOG: "EPOST_HANAROOK_WHOLE", EOT: "EPOST_HANAROOK_TERM", EXG: "EPOST_GATE_TEST"}
 TITLE = {"EPOST_SIMPLE": "무배당 우체국간편한건강보험(20년갱신형) 2606", "EPOST_TOTAL": "무배당 우체국통합건강보험 2504",
-         "EPOST_HANAROOK_WHOLE": "무배당 우체국하나로OK보험 2609",
+         "EPOST_HANAROOK_WHOLE": "무배당 우체국하나로OK보험 2609", "EPOST_HANAROOK_TERM": "무배당 우체국하나로OK보험 2609",
+         "EPOST_GATE_TEST": "무배당 우체국시험보험 2609",
          "EPOST_MORESIMPLE_CANCER": "무배당 우체국더간편건강보험(갱신형) 2504",
          "EPOST_MORESIMPLE_2CI": "무배당 우체국더간편건강보험(갱신형) 2504"}
 
 
-def make(extra=EXTRA, setting=None, wide_limited=False) -> Data:
-    """Book 에 화면 구성 변경을 흉내 낸 종형을 더한 자료. H0 은 관문전용(인수기준만 수집)이다."""
+def make(extra=EXTRA, setting=None, wide_limited=False, gate=()) -> Data:
+    """Book 에 화면 구성 변경을 흉내 낸 종형을 더한 자료. H0 과 gate 의 종형은 관문전용(인수기준만 수집)이다."""
     b = Book(extra=extra)
     fill(b)
     b.t["hum_표준담보사전"].append(std("STD_CV_X", "뇌심장보장", "뇌심장 시험", "진단"))
@@ -42,7 +54,7 @@ def make(extra=EXTRA, setting=None, wide_limited=False) -> Data:
         if vid in PRODUCT:
             r["모상품ID"] = PRODUCT[vid]
             r["공시상품명"] = f"{TITLE[PRODUCT[vid]]} {r['종형명']}"
-        if vid == H0:
+        if vid == H0 or vid in gate:
             r["비교역할구분"] = "관문전용"
     vids = {r["종형ID"] for r in b.t["sys_상품종형"]}
     if EC in vids:
@@ -87,6 +99,37 @@ def test_excluded_product_is_left_out_of_the_screen_only(data):
     assert all(ET not in m["칸"][0][0]["관문흐름"]["종형"] for m in out["지도"].values())
     assert ET not in [r["종형ID"] for r in I.analyze(data, REL)["기준"]]
     assert ET not in C4.build_combo(data)["종형"]
+
+
+# ---------- 화면에는 대표 종형만 쓰는 상품 ----------
+def test_representative_only_products_drop_their_gate_only_variants():
+    d = make(extra=EXTRA + GATE_EXTRA, gate=(EOG, EOT, EXG))
+    assert {EOG, EOT, EXG} <= set(d.variants)                                     # 적재 자료에는 남는다
+    assert SC.excluded(d, EOG) and SC.excluded(d, EOT)                           # 대표 종형만 쓰는 상품의 관문전용 종형
+    assert not SC.excluded(d, EO)                                                 # 같은 상품의 정밀비교 종형은 남는다
+    assert not SC.excluded(d, EXG) and not SC.excluded(d, H0)                     # 설정에 없는 상품의 관문전용 종형
+    vids, bases = I.base_variants(d)
+    assert EO in vids and EO in bases and not {EOG, EOT} & set(vids)
+    gate = S.gate_targets(d)
+    assert EO in gate and EXG in gate and H0 in gate and not {EOG, EOT} & set(gate)
+    assert not {EOG, EOT} & set(S.gate_targets(d, "비갱신")) and EXG in S.gate_targets(d, "비갱신")
+    out = S.export(d, I.analyze(d, REL), REL)
+    assert not {EOG, EOT} & set(out["종형"]) and not {EOG, EOT} & {b["종형ID"] for b in out["기준종형"]}
+    seen: set[str] = set()
+    for m in out["지도"].values():
+        for line in m["칸"]:
+            for c in line:
+                seen |= set(c["관문흐름"]["종형"]) | {v for vs in c["열린종형"].values() for v in vs} | {c.get("대표")}
+    assert not {EOG, EOT} & seen and {EO, EXG, H0} <= seen
+    g = C4.build_gate(d)
+    assert not {EOG, EOT} & set(g["종형"]) and {EO, EXG, H0} <= set(g["종형"])
+    assert not {EOG, EOT} & set(C4.build_combo(d)["종형"])
+    assert lineup.pick_lineup(d, lineup.company_codes(d))["3.2.5"][0] == E2
+
+
+def test_representative_only_setting_lists_the_hanarook_products():
+    assert SC.REPRESENTATIVE_ONLY_PRODUCTS == ("EPOST_HANAROOK_WHOLE", "EPOST_HANAROOK_TERM")
+    assert SC.REPRESENTATIVE_ROLE == I.C.COMPARE_ROLE
 
 
 # ---------- 기준 종형 차례 ----------
