@@ -140,6 +140,7 @@ python3 proto_src/deck/build.py --out site/deck/index.html --used proto_src/deck
 python3 proto_src/deck/tools/standalone.py --check   # 영상까지 넣은 단일 파일 덱과 분석 화면 복사 → local/submission/standalone/ (커밋하지 않음)
 python3 proto_src/form/shoot.py              # 작품설명서에 넣는 화면 캡처 다시 찍기
 python3 proto_src/form/build.py --strict --identity local/submission/identity.json --out local/submission/작품설명서.pdf --html local/submission/작품설명서.html --preview local/submission/preview   # 작품설명서 PDF (결과는 local/ 에만)
+python3 proto_src/form/export_docx.py --identity local/submission/identity.json --out local/submission/작품설명서.docx   # 편집용 Word 파일(python-docx 필요: uv pip install --python .venv/bin/python python-docx. 결과는 local/ 에만)
 python3 scripts/build_site.py                # data/snapshot → site/v1/index.html (초기 버전 판단 화면)
 python3 scripts/dev/check_site_browser.py site/v1/index.html <사진 폴더>   # 초기 버전 380px, 1280px 화면 점검 (playwright)
 python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON> [--gold data/goldset/hanwha_goldset.jsonl] [--numbers 101-114] [--area 가입조건]   # 정답 대조 (--result는 필수, 기본은 우체국 정답셋의 보장금액 영역)
