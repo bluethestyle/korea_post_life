@@ -4,41 +4,183 @@
  "kind": "body",
  "chapter": 2,
  "status": "revised",
- "headline": "공시 문서가 일곱 단계를 거쳐 비교 화면과 응대 화법이 됩니다",
+ "headline": "실무자가 화면을 열기 전에 자동 실행, AI, 검수 담당자가 자료를 준비해 둡니다",
  "diagram": [
   {
-   "use": "C2",
-   "mode": "full",
-   "roles_preview": false,
-   "bracket": {
-    "from": 6,
-    "to": 7,
-    "label": "결과물: 내부 교육과 비교 참고용으로 전달",
-    "hero": true
-   },
+   "use": "svg",
    "box": [
     0,
     0,
     1760,
-    424
+    34
    ],
-   "build": 1
+   "vb": [
+    1760,
+    34
+   ],
+   "build": 1,
+   "alt": "처리 단계 위의 회색 라벨. 3부의 절차 1은 수집, 절차 2는 추출부터 구글 시트까지, 절차 3은 관계 그래프, 절차 4와 5는 비교 화면과 응대 화법에 걸친다",
+   "svg": "<path d='M158 34V27H372V34' class='sv-muted'/><text x='265.0' y='22' text-anchor='middle' class='aux'>절차 1</text><path d='M388 34V27H1062V34' class='sv-muted'/><text x='725.0' y='22' text-anchor='middle' class='aux'>절차 2</text><path d='M1078 34V27H1292V34' class='sv-muted'/><text x='1185.0' y='22' text-anchor='middle' class='aux'>절차 3</text><path d='M1308 34V27H1752V34' class='sv-muted'/><text x='1530.0' y='22' text-anchor='middle' class='aux'>절차 4, 5</text>"
+  },
+  {
+   "use": "C2",
+   "mode": "lanes",
+   "box": [
+    0,
+    36,
+    1760,
+    416
+   ],
+   "build": 1,
+   "lanes": {
+    "자동 실행": [
+     {
+      "step": 1,
+      "label": "매일 시장 동향"
+     },
+     {
+      "step": 4,
+      "label": "일요일 주간 마감"
+     },
+     {
+      "step": 6,
+      "label": "푸시하면 배포"
+     }
+    ],
+    "검수 담당자": [
+     {
+      "step": 1,
+      "label": "문서 수집 실행"
+     },
+     {
+      "step": 2,
+      "label": "추출 실행"
+     },
+     {
+      "step": 3,
+      "label": "검수 대기 확인"
+     },
+     {
+      "step": 4,
+      "label": "기준값 정하기"
+     },
+     {
+      "step": 5,
+      "label": "매핑 검수"
+     },
+     {
+      "step": 6,
+      "label": "화면 빌드"
+     }
+    ],
+    "AI": [
+     {
+      "step": 1,
+      "label": "신상품 소식 찾기"
+     },
+     {
+      "step": 2,
+      "label": "글자 옮기기"
+     },
+     {
+      "step": 3,
+      "label": "확률 산정"
+     },
+     {
+      "step": 5,
+      "label": "담보 연결"
+     }
+    ],
+    "코드": [
+     {
+      "step": 1,
+      "label": "문서 받기"
+     },
+     {
+      "step": 2,
+      "label": "숫자로 읽기"
+     },
+     {
+      "step": 3,
+      "label": "원문 대조"
+     },
+     {
+      "step": 4,
+      "label": "시트에 쓰기"
+     },
+     {
+      "step": 5,
+      "label": "관계 잇기"
+     },
+     {
+      "step": 6,
+      "label": "화면 파일 만들기"
+     },
+     {
+      "step": 7,
+      "label": "A4 만들기"
+     }
+    ],
+    "실무자": [
+     {
+      "step": 6,
+      "label": "비교, 복사"
+     },
+     {
+      "step": 7,
+      "label": "인쇄, 전달"
+     }
+    ]
+   }
   },
   {
    "use": "svg",
    "box": [
     0,
-    452,
+    380,
     1760,
-    144
+    72
    ],
    "vb": [
     1760,
-    144
+    72
    ],
-   "alt": "실제 예로 우체국 암 수술비 한 건이 1단계부터 6단계까지 어떻게 바뀌는지 단계 아래에 짚은 그림",
-   "svg": "<text x='0' y='28' class='b'>실제 예: 우체국 암 수술비 한 건</text><path d='M108 74H1394' class='sv-muted' stroke-dasharray='8 8'/><circle cx='108' cy='74' r='9' class='sv-fill-ink'/><circle cx='366' cy='74' r='9' class='sv-fill-ink'/><circle cx='623' cy='74' r='9' class='sv-fill-ink'/><circle cx='880' cy='74' r='9' class='sv-fill-ink'/><circle cx='1137' cy='74' r='9' class='sv-fill-ink'/><circle cx='1394' cy='74' r='9' class='sv-fill-ink'/><text x='108' y='128' text-anchor='middle'>요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽</text><text x='366' y='128' text-anchor='middle'>‘{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원’</text><text x='623' y='128' text-anchor='middle'>원문과 일치</text><text x='880' y='128' text-anchor='middle'>시트의 한 행</text><text x='1137' y='128' text-anchor='middle'>이름을 ‘{{fact:example_cancer_surgery.standard_coverage}}’로</text><text x='1394' y='128' text-anchor='middle'>타사와 한 행에</text>",
-   "build": 2
+   "hero": true,
+   "build": 3,
+   "alt": "실무자 행을 빨간 테두리로 강조. 실무자는 비교 화면과 응대 화법 단계에서만 일한다",
+   "svg": "<rect x='2' y='2' width='1756' height='68' class='sv-red'/>"
+  },
+  {
+   "use": "svg",
+   "box": [
+    0,
+    456,
+    1760,
+    28
+   ],
+   "vb": [
+    1760,
+    28
+   ],
+   "build": 2,
+   "alt": "자료가 머무는 곳. 구글 시트의 마스터 데이터, 매주 GitHub 저장소에 남기는 주간 마감 자료, 화면이 열리는 GitHub Pages 공개 주소",
+   "svg": "<text x='1052' y='21' text-anchor='end' class='aux'>구글 시트(마스터 데이터)</text><path d='M1062 14H1098' class='sv-muted' stroke-dasharray='6 5' marker-end='url(#ah)'/><text x='1108' y='21' class='aux'>주간 마감 자료를 GitHub 저장소에</text><text x='1760' y='21' text-anchor='end' class='aux'>GitHub Pages 공개 주소</text>"
+  },
+  {
+   "use": "svg",
+   "box": [
+    0,
+    486,
+    1760,
+    42
+   ],
+   "vb": [
+    1760,
+    42
+   ],
+   "build": 3,
+   "alt": "아래 괄호 둘. 수집부터 관계 그래프까지는 미리 해 두는 일(절차 1~3), 비교 화면과 응대 화법은 실무자가 화면에서 하는 일(절차 4~5)",
+   "svg": "<path d='M158 0V10H1292V0' class='sv-ink'/><text x='725.0' y='34' text-anchor='middle' class='b'>미리 해 두는 일(절차 1~3)</text><path d='M1308 0V10H1752V0' class='sv-ink'/><text x='1530.0' y='34' text-anchor='middle' class='b'>실무자가 화면에서(절차 4~5)</text>"
   }
  ],
  "points": [
@@ -46,12 +188,13 @@
  ],
  "terms": [
   "시장 동향",
-  "마스터 데이터",
-  "주간 마감 자료"
+  "GitHub Actions",
+  "관계 그래프"
  ],
- "source": "출처: 제출 설명 문서 4절, 기획서 5.1절과 7절, 워크플로 설정, 예시는 담보 비교 자료({{asof:example_cancer_surgery}} 기준)",
- "notes": "이 일곱 단계 그림이 오늘 발표의 지도입니다. 뒤에서 AI가 맡은 일, 확률 산정 모델, 관계 그래프를 설명할 때마다 이 그림에서 지금 어느 단계인지 다시 짚겠습니다. 아래 그림은 실제 예 하나입니다. 우체국 상품요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽에 있는 암 수술비 한 행에서 AI가 지급액 {{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원을 원문 글자로 옮기고, 코드가 원문과 같은지 확인한 뒤 구글 시트에 한 행으로 쌓습니다. 이 행은 표준담보 '{{fact:example_cancer_surgery.standard_coverage}}'에 연결되고, 비교 화면의 담보 비교 탭에서 타사 상품의 같은 담보와 한 행에 놓입니다. 이 비교는 {{slide:cancer-surgery}}장에서 자세히 봅니다. 수집부터 검증까지는 AI와 코드가 나눠 맡고, 확인을 통과한 값만 구글 시트의 마스터 데이터(모든 값을 모아 둔 원본 표)에 쌓입니다. 마스터 데이터는 탭 {{fact:sheet_tab_count}}개로 나뉘어 있고, 매주 주간 마감 자료(매주 일요일에 그 시점의 자료를 통째로 보관한 것)를 저장소에 남기기 때문에 그대로 개정 이력이 됩니다. 구글 시트와 관계 그래프 사이의 점선은 이 주간 마감 자료입니다. 예약으로 자동 실행되는 것은 매일 아침의 시장 동향(타사 신상품과 개정 보도) 수집과 일요일 밤의 주간 마감뿐이고, 공시 문서 수집, 추출, 매핑은 필요할 때 사람이 실행합니다. 비교 화면도 사람이 빌드해 배포합니다. 자세한 주간 일정은 {{slide:cost-deploy}}장에서 봅니다. 비교 화면과 응대 화법은 실제 지점 창구나 설계사에게 배포한 것이 아니라, 내부 교육과 비교 참고용으로 전달하도록 만든 결과물입니다. 관계 그래프는 회사, 상품, 담보를 점과 선으로 이은 그림이고 화면의 탭 이름이기도 합니다. 단계마다 AI, 코드, 사람 가운데 누가 일하는지는 {{slide:ai-code-human}}장에서 다룹니다. 출처 문서는 docs/submission.md 4절, docs/planning.md 5.1절과 7절, 예약 실행과 사람 실행의 구분은 .github/workflows 의 실행 방식입니다.",
+ "footnote": "검수 담당자는 역할 이름입니다. 지금은 출품자 한 명이 맡습니다",
+ "source": "출처: 제출 설명 문서 4절, 기획서 5.1절과 7절, 워크플로 설정(예약 실행, 푸시, 수동 실행), 자료 기준 {{asof:workflow_triggers}}",
+ "notes": "이 그림이 오늘 발표의 지도입니다. 위의 칩 일곱은 처리 단계(수집, 추출, 검증, 구글 시트, 관계 그래프, 비교 화면, 응대 화법)이고, 아래 다섯 행은 단계마다 누가 일하는지를 나눈 것입니다. 맨 위 회색 라벨은 3부에서 따라갈 절차 1~5가 어느 처리 단계에 해당하는지 표시합니다. 절차 1은 수집, 절차 2는 추출부터 구글 시트까지, 절차 3은 관계 그래프, 절차 4와 5는 비교 화면입니다. 뒤에서 AI가 맡은 일, 확률 산정 모델, 관계 그래프를 설명할 때마다 이 그림에서 지금 어느 단계인지 다시 짚겠습니다. 맨 위 행의 자동 실행은 예약으로 도는 일입니다. 매일 {{fact:schedule_collect_kst.time}}에 시장 동향(타사 신상품과 개정 보도)을 수집하고, 일요일 {{fact:schedule_weekly_close_kst.time}}에 주간 마감을 합니다. 그리고 {{fact:pages_deploy_trigger.branches.0}} 브랜치에 화면 파일을 푸시하면 배포가 실행됩니다. 이 자동 실행은 GitHub Actions(정해 둔 시각에 작업을 자동 실행하는 서비스)가 맡습니다. 공시 문서 수집, 추출, 매핑, 화면 빌드는 검수 담당자가 필요할 때 실행합니다. 검수 담당자는 역할 이름이고, 지금은 출품자 한 명이 맡습니다. 실행하면 AI는 신상품 소식을 찾고, 급부 글자를 옮기고, 확률을 산정하고, 담보를 표준담보에 연결합니다. 코드는 문서를 받고, 숫자를 읽고, 원문과 대조하고, 시트에 씁니다. 확인을 통과한 값만 구글 시트의 마스터 데이터(모든 값을 모아 둔 원본 표)에 쌓입니다. 마스터 데이터는 탭 {{fact:sheet_tab_count}}개로 나뉘어 있고, 매주 주간 마감 자료(매주 일요일에 그 시점의 자료를 통째로 보관한 것)를 GitHub 저장소에 남기기 때문에 그대로 개정 이력이 됩니다. 화면은 GitHub Pages의 공개 주소에서 열립니다. 맨 아래 빨간 테두리의 행이 실무자입니다. 실무자가 화면을 여는 시점에는 앞의 준비가 모두 끝나 있고, 실무자는 비교 화면에서 비교하고 복사하며, 응대 화법 A4를 인쇄해 전달합니다. 아래 괄호처럼 3부의 절차 1~3은 미리 해 두는 일이고, 절차 4와 5는 실무자가 화면에서 하는 일입니다. 비교 화면과 응대 화법은 실제 지점 창구나 설계사에게 배포한 것이 아니라, 내부 교육과 비교 참고용으로 전달하도록 만든 결과물입니다. 관계 그래프는 회사, 상품, 담보를 점과 선으로 이은 그림이고 화면의 탭 이름이기도 합니다. 3부에서는 암 수술비 한 건으로 이 흐름을 따라갑니다. 주간 일정은 {{slide:cost-deploy}}장, 단계마다 AI, 코드, 사람이 나눠 맡는 원칙은 {{slide:ai-code-human}}장에서 다룹니다. 출처 문서는 docs/submission.md 4절, docs/planning.md 5.1절과 7절이고, 예약 실행과 사람 실행의 구분은 .github/workflows 의 실행 방식입니다.",
  "frame": {
-  "top": 240
+  "top": 280
  }
 }

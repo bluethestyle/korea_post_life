@@ -26,7 +26,10 @@
    "practice_compare_frequency"
   ],
   "06": [
-   "example_cancer_surgery",
+   "workflow_triggers",
+   "schedule_collect_kst",
+   "schedule_weekly_close_kst",
+   "pages_deploy_trigger",
    "sheet_tab_count"
   ],
   "07": [
@@ -56,8 +59,7 @@
    "practice_compare_time",
    "practice_compare_frequency",
    "practice_respondents",
-   "practice_compare_source",
-   "example_cancer_surgery"
+   "practice_compare_source"
   ],
   "10": [
    "schedule_collect_kst",
