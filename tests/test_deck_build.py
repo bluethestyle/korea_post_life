@@ -67,7 +67,7 @@ def test_video_slides_play_the_media_next_to_the_deck_and_keep_the_still(tmp_pat
     # 영상이 있어도 정지 화면은 남는다(인쇄, 전체 장 보기, 영상을 읽지 못할 때)
     assert html.count('<div class="vph has-st"><div class="vst im-part') == 4
     # 영상 폴더에 파일이 없으면 <video> 없이 정지 화면만 남는다
-    res = deck_build.build_deck(SRC / "content", FACTS, REFS, FONTS, media_root=tmp_path, only={5, 13, 16, 25})
+    res = deck_build.build_deck(SRC / "content", FACTS, REFS, FONTS, media_root=tmp_path, only={7, 18, 21, 29})
     assert res.videos == [] and "<video" not in res.html
     assert res.html.count('<div class="vph has-st"><div class="vst im-part') == 4
 
@@ -83,16 +83,16 @@ def test_deck_is_a_standalone_offline_file():
     assert OUT.stat().st_size < 50_000_000
 
 
-def test_deck_has_32_slide_files_in_order():
+def test_deck_has_37_slide_files_in_order():
     files = sorted(p.name for p in (SRC / "content").glob("[0-9][0-9].json"))
-    assert files == [f"{n:02d}.json" for n in range(1, 33)]
+    assert files == [f"{n:02d}.json" for n in range(1, 38)]
     slides = deck_build.load_slides(SRC / "content")
-    assert [s["no"] for s in slides] == list(range(1, 33))
+    assert [s["no"] for s in slides] == list(range(1, 38))
     assert slides[0]["kind"] == "cover" and slides[-1]["kind"] == "closing"
-    assert [s["no"] for s in slides if s["kind"] == "video"] == [5, 13, 16, 25]
+    assert [s["no"] for s in slides if s["kind"] == "video"] == [7, 18, 21, 29]
     assert {s["chapter"] for s in slides[1:-1]} == {1, 2, 3, 4, 5, 6}
     html = OUT.read_text(encoding="utf-8")
-    assert len(re.findall(r'<section class="slide ', html)) == 32
+    assert len(re.findall(r'<section class="slide ', html)) == 37
 
 
 def test_every_placeholder_names_a_fact_or_a_ref():
@@ -110,7 +110,7 @@ def test_every_placeholder_names_a_fact_or_a_ref():
 def test_deck_builds_without_limit_warnings():
     res = build(SRC / "content")
     assert res.warnings == []
-    assert len(res.slides) == 32
+    assert len(res.slides) == 37
 
 
 def test_samples_use_every_component_and_build_without_warnings():
@@ -175,6 +175,22 @@ def test_missing_fact_or_ref_stops_the_build(tmp_path):
             build(folder)
 
 
+def test_slide_placeholder_gives_the_slide_number_and_unknown_id_stops(tmp_path):
+    slides = [body(1, id="first", diagram=[{"use": "text", "text": "자세히는 {{slide:second}}장"}]), body(2, id="second")]
+    res = build(write_slides(tmp_path / "ok", slides))
+    assert "자세히는 2장" in res.html and "{{slide:" not in res.html
+    folder = write_slides(tmp_path / "bad", [body(1, id="first", headline="{{slide:no_such_slide}}장")])
+    with pytest.raises(SystemExit):
+        build(folder)
+
+
+def test_role_chips_know_the_new_roles(tmp_path):
+    chips = [{"role": r, "label": "일"} for r in ("자동 실행", "검수 담당자", "실무자")]
+    res = build(write_slides(tmp_path / "r", [body(1, diagram=[{"use": "C20", "chips": chips, "box": [0, 0, 900, 120]}])]))
+    assert res.html.count("rc rc-hum") == 2 and res.html.count("rc rc-code") == 1
+    assert "#i-user-check" in res.html or "user-check" in res.html
+
+
 def test_name_placeholder_reads_deck_names_and_missing_name_stops(tmp_path):
     folder = write_slides(tmp_path / "ok", [body(1, diagram=[{"use": "text", "text": "{{name:claude_code}}, {{name:antigravity}}"}])])
     res = build(folder)
@@ -208,7 +224,7 @@ def test_optional_scope_and_note_labels_render_and_are_limited(tmp_path):
 def test_only_builds_the_named_slides_with_full_page_numbers():
     res = build(SRC / "content", only={2, 3})
     assert [s["no"] for s in res.slides] == [2, 3]
-    assert "02 / 32" in res.html and "03 / 32" in res.html and 'data-no="4"' not in res.html
+    assert "02 / 37" in res.html and "03 / 37" in res.html and 'data-no="4"' not in res.html
 
 
 def test_refs_are_checked_sources_only():

@@ -1,22 +1,115 @@
 {
  "no": 25,
- "id": "video-4",
- "kind": "video",
- "chapter": 5,
- "status": "video",
- "headline": "이름이 달라도 같은 보장끼리 모아 비교합니다",
- "video": {
-  "part": 4,
-  "src": "media/part4.mp4",
-  "dur": "{{fact:video_length_label.part4}}",
-  "q": "볼 곳: 타사의 통합 특약 하나와 우체국의 특약 둘이 같은 담보로 묶이는 장면",
-  "stills": [
-   "part4_1"
-  ]
- },
- "diagram": [],
+ "id": "app-ontology",
+ "kind": "body",
+ "chapter": 4,
+ "status": "new",
+ "headline": "이 앱의 온톨로지는 표준 이름, 분류, 관계 세 가지입니다",
+ "diagram": [
+  {
+   "use": "C10",
+   "tile": true,
+   "tile_label": "표준 이름",
+   "size": "small",
+   "value": "{{fact:standard_coverage_in_use}}",
+   "unit": "개",
+   "caption": "표준담보 사전",
+   "scope": "예: {{fact:example_cancer_surgery.standard_coverage}}",
+   "hero": false,
+   "box": [
+    0,
+    0,
+    560,
+    270
+   ],
+   "build": 1
+  },
+  {
+   "use": "C10",
+   "tile": true,
+   "tile_label": "분류",
+   "size": "small",
+   "value": "{{fact:coverage_major_class_count}}",
+   "unit": "개",
+   "caption": "보장 대분류",
+   "scope": "예: {{fact:coverage_major_class_names.0}}, {{fact:coverage_major_class_names.2}}",
+   "hero": false,
+   "box": [
+    600,
+    0,
+    560,
+    270
+   ],
+   "build": 2
+  },
+  {
+   "use": "C10",
+   "tile": true,
+   "tile_label": "관계",
+   "size": "small",
+   "value": "{{fact:coverage_relation_count}}",
+   "unit": "건",
+   "caption": "담보 관계",
+   "scope": "담보와 담보 사이를 적은 목록",
+   "hero": true,
+   "box": [
+    1200,
+    0,
+    560,
+    270
+   ],
+   "build": 3
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "limit": 50,
+   "text": "회사마다 다른 담보 이름 대신 쓰는 공통 이름. 이 앱이 정했고 업계 표준은 아닙니다",
+   "box": [
+    0,
+    304,
+    560,
+    150
+   ],
+   "build": 1
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "limit": 50,
+   "text": "표준담보를 큰 구분으로 묶습니다: {{fact:coverage_major_class_names}}",
+   "box": [
+    600,
+    304,
+    560,
+    150
+   ],
+   "build": 2
+  },
+  {
+   "use": "svg",
+   "box": [
+    1200,
+    304,
+    560,
+    240
+   ],
+   "vb": [
+    560,
+    240
+   ],
+   "limit": 24,
+   "alt": "관계의 두 종류. 포함은 넓은 담보가 좁은 담보를 포함하는 관계, 통합은 여러 담보를 합친 담보 하나",
+   "svg": "<text x='0' y='30' class='b'>포함 {{fact:coverage_relations_by_kind.포함}}건</text><text x='0' y='72'>넓은 담보가 좁은 담보를 포함</text><path d='M0 106H560' class='sv-line'/><text x='0' y='150' class='b'>통합 {{fact:coverage_relations_by_kind.통합}}건</text><text x='0' y='192'>여러 담보를 합친 담보 하나</text><text x='0' y='232' class='aux'>예는 다음 장에서 봅니다</text>",
+   "build": 3
+  }
+ ],
  "points": [],
- "terms": [],
- "source": "영상: 발표용 애니메이션 4부, 출처: 관계 그래프 화면 자료, 표준담보 관계 자료, 자료 기준 {{asof:coverage_relation_count}}",
- "notes": "이 영상은 앞에서 말한 표준담보와 담보 관계가 실제 화면에서 어떻게 움직이는지 보여 줍니다. 먼저 공시 문서에서 옮긴 사실, 표준담보와 관계로 이뤄진 기준, 그리고 비교와 영업 인사이트를 만드는 분석의 세 층 구조를 봅니다. 이어서 타사는 통합 특약 하나로, 우체국은 나눈 특약 둘로 갖춘 경우를 포함과 통합 관계로 따라가 같은 담보로 맞추는 모습을 봅니다. 이렇게 맞춘 비교 결과에서 인수기준 차이, 우위 담보, 열위 담보, 미보유 담보, 관련 담보의 영업 인사이트가 나오고 응대 화법으로 이어집니다. 영상 끝의 기존 수작업 방식과의 대조는 뒤의 28장과 29장에서 시나리오 하나로 다시 정리하고, 줄어드는 시간은 아직 측정하지 않았습니다."
+ "terms": [
+  "표준담보",
+  "보장 대분류",
+  "담보 관계"
+ ],
+ "source": "출처: 표준담보 사전 주간 마감 자료, 관계 그래프 화면 자료, 표준담보 관계 자료, 자료 기준 {{asof:coverage_relation_count}}",
+ "notes": "앞 장의 범례, 곧 약속에 해당하는 것이 이 앱에서는 세 가지입니다. 첫째는 표준 이름입니다. 회사마다 다른 담보 이름 대신 쓰는 공통 이름을 표준담보라고 부르고, 사전에 {{fact:standard_coverage_in_use}}개를 두었습니다. 예를 들어 '{{fact:example_cancer_surgery.standard_coverage}}'가 표준 이름 하나입니다. 업계 표준이 아니라 이 앱이 정한 이름입니다. 둘째는 분류입니다. 표준담보를 {{fact:coverage_major_class_names}}의 보장 대분류 {{fact:coverage_major_class_count}}개로 묶었습니다. 화면에서 담보를 보장 분야별로 모아 볼 때 이 분류를 씁니다. 셋째는 관계입니다. 담보와 담보가 어떻게 이어지는지를 {{fact:coverage_relation_count}}건 적어 두었고, 종류는 둘입니다. 포함 {{fact:coverage_relations_by_kind.포함}}건은 넓은 담보가 좁은 담보를 포함하는 관계입니다. 예를 들어 '{{fact:coverage_relation_examples.포함.1.broad}}'는 '{{fact:coverage_relation_examples.포함.1.narrow.0}}'를 포함합니다. 통합 {{fact:coverage_relations_by_kind.통합}}건은 여러 담보를 합친 담보 하나입니다. 예를 들어 '{{fact:coverage_relation_examples.통합.1.broad}}'는 '{{fact:coverage_relation_examples.통합.1.narrow.0}}'와 '{{fact:coverage_relation_examples.통합.1.narrow.1}}'를 합친 담보입니다. 한 회사는 특약 하나로 팔고 다른 회사는 특약 여럿으로 나눠 파는 보장을 이 관계로 맞춥니다. 다음 장에서 실제 담보 하나로 따라가 보겠습니다."
 }

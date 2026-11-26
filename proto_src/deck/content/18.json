@@ -1,82 +1,22 @@
 {
  "no": 18,
- "id": "where-to-use",
- "kind": "body",
+ "id": "video-2",
+ "kind": "video",
  "chapter": 4,
- "status": "new",
- "headline": "확률 산정 모델은 새 상품과 시장 동향에만 쓰고, 초기 적재에는 쓰지 않았습니다",
- "diagram": [
-  {
-   "use": "text",
-   "box": [
-    0,
-    0,
-    500,
-    48
-   ],
-   "text": "대량 자료를 확률 산정 모델로 다시 물으면",
-   "size": "m",
-   "build": 1
-  },
-  {
-   "use": "C17",
-   "box": [
-    0,
-    72,
-    500,
-    576
-   ],
-   "top": "다시 물을 자료<br>한화생명 매핑 {{fact:mapping_requery.rows}}행",
-   "neck": "확률 산정 모델 무료 한도<br>분당 처리량 제한",
-   "bottom": "모두 묻는 데<br>약 {{fact:mapping_requery.estimated_minutes}}분(추정값)",
-   "hero": "none",
-   "build": 1
-  },
-  {
-   "use": "C3",
-   "box": [
-    580,
-    72,
-    1180,
-    576
-   ],
-   "nodes": [
-    {
-     "label": "들어오는 자료"
-    }
-   ],
-   "branch": {
-    "at": 1,
-    "label": "양이 많은가",
-    "hero": true,
-    "up_label": "적음",
-    "down_label": "많음",
-    "up": [
-     {
-      "label": "새 자료",
-      "sub": "새 상품, 개정 상품, 시장 동향"
-     },
-     {
-      "label": "확률 산정 모델로 검증",
-      "sub": "확률에 따라<br>세 구간으로"
-     }
-    ],
-    "down": [
-     {
-      "label": "처음 채우는 대량 자료",
-      "sub": "회사별 기존 상품"
-     },
-     {
-      "label": "이중 추출로 확인",
-      "sub": "앞에서 본 AI 둘의 대조"
-     }
-    ]
-   },
-   "build": 2
-  }
- ],
+ "status": "video",
+ "headline": "공시 문서는 공시실에서 자동으로 받고, 시장 동향은 검색 AI 무료 한도 안에서 모았습니다",
+ "video": {
+  "part": 2,
+  "src": "media/part2.mp4",
+  "dur": "{{fact:video_length_label.part2}}",
+  "q": "시장 동향(타사 신상품, 개정 보도) {{fact:first_collect_news.structured}}건 중 {{fact:first_collect_news.out_of_window}}건은 기간 밖이라 코드가 걸렀습니다",
+  "stills": [
+   "part2_1"
+  ]
+ },
+ "diagram": [],
  "points": [],
  "terms": [],
- "source": "출처: 확률 산정 모델의 무료 한도 화면, 진행 기록(다시 묻는 시간은 추정값)",
- "notes": "왼쪽 모래시계가 확률 산정 모델을 대량 자료에 쓰지 않은 이유입니다. 확률 산정 모델은 호출 한 번에 특약 원문 전체와 문항을 함께 보내기 때문에 읽어야 할 글이 깁니다. 무료로 쓸 때 분당 읽을 수 있는 양이 {{fact:decide_per_minute_limit.tokens}} 토큰으로 정해져 있어(모래시계의 좁은 목), 한화생명 담보 매핑 가운데 검수 대기로 남은 {{fact:mapping_requery.rows}}행을 확률 산정 모델에 다시 묻는 데만 약 {{fact:mapping_requery.estimated_minutes}}분이 걸린다고 추정했습니다. 이 {{fact:mapping_requery.estimated_minutes}}분 가운데 {{fact:mapping_requery.waiting_minutes}}분은 한도 때문에 기다리는 시간이고, 나머지가 실제로 묻고 답을 받는 시간입니다. 한때 분당 사용량이 {{fact:decide_tokens_per_minute_peak_k|f2}}천 토큰까지 올라 한도를 넘겼고, 그 뒤로는 호출하기 전에 분당 보낸 양을 {{fact:decide_tokens_per_minute_guard}} 토큰 아래로 맞추는 대기 장치를 넣었습니다. 그래서 오른쪽 분기처럼 양으로 나눴습니다. 새 상품, 개정 상품, 시장 동향처럼 조금씩 들어오는 자료는 확률 산정 모델이 검증하고, 확률에 따라 자동 확정과 사람 검수로 나눕니다(세 구간의 기준값은 14장). 시장 동향은 매주 자동으로 모으고, 새 상품과 개정 상품은 사람이 추출을 실행할 때 들어옵니다. 양이 많은 기존 상품의 첫 적재는 확률 산정 모델 없이, 11장에서 본 이중 추출로 확인했습니다. 서로 다른 AI 둘이 따로 옮기고 코드가 두 결과를 맞대어 다른 곳만 원문으로 다시 확인했습니다. 같은 AI로 다시 읽히면 같은 곳에서 같은 식으로 틀리는 일이 많았기 때문입니다. 초기 적재를 확률 산정 모델 없이 하자는 것은 실무자의 제안이었고, 권고안으로 승인했습니다. 그 결과 주간 마감 자료의 자동 확정 매핑 {{fact:mapping_auto_confirm_by_route.all.total}}행 가운데 확률 산정 결과로 확정한 것은 {{fact:mapping_auto_confirm_by_route.all.decision_model}}행이고, 나머지 {{fact:mapping_auto_confirm_by_route.all.cross_check}}행은 교차 검증으로 확정했습니다. 이 장의 메시지는 새 기술을 무조건 쓰지 않고 맞는 곳에만 썼다는 것입니다."
+ "source": "영상: 발표용 애니메이션 2부, 출처: 제출 설명 자료 5, 6절, 진행 기록. 자료 기준 {{asof:image_doc}}",
+ "notes": "두 번째 영상은 앞의 두 장에서 말한 원칙이 실제 작업에서 어떻게 움직였는지 보여 줍니다. 모으는 것은 두 가지입니다. 공시 문서(상품요약서와 사업방법서)는 회사마다 공시실 구조가 달라 회사별 접속 모듈(공시실에서 문서를 자동으로 내려받는 프로그램)로 받고, 시장 동향(타사 신상품과 개정 보도)은 검색 AI로 모읍니다. 앞부분은 쓸 수 있는 자원과 겪은 문제입니다. 하루 {{fact:daily_limit_search}}회라는 무료 한도는 시장 동향을 찾는 검색 AI({{fact:models.search}})의 한도이고, 공시 문서 수집과는 관계가 없습니다. 한화손해보험 공시실은 자동 접속을 막았고, 차단을 우회하지 않기로 해 이 회사 문서는 사람이 공시실에서 내려받습니다. 첫 수집에서는 정형화한 시장 동향 {{fact:first_collect_news.structured}}건 가운데 {{fact:first_collect_news.out_of_window}}건이 수집 기간 밖이라 코드의 날짜 확인이 걸렀습니다. 가운데는 수집 분업입니다. {{fact:disclosure_pilot_org}} 한 곳으로 접속 모듈을 시범으로 만들어 검수한 뒤, 나머지 {{fact:disclosure_batch_org_count}}개 회사의 접속 모듈을 서브에이전트에 나눠 맡기고 따로 점검했습니다. 끝부분은 {{slide:agent-rules}}장에서 본 서로 다른 두 AI의 이중 추출을 글자가 그림인 문서에 적용한 장면입니다."
 }

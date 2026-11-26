@@ -1,329 +1,56 @@
 {
  "no": 6,
- "id": "screens",
+ "id": "pipeline",
  "kind": "body",
  "chapter": 2,
  "status": "revised",
- "headline": "데모 화면의 탭 여섯을 담당자의 일 순서대로 네 단계로 묶었습니다",
+ "headline": "공시 문서가 일곱 단계를 거쳐 비교 화면과 응대 화법이 됩니다",
  "diagram": [
   {
-   "use": "svg",
+   "use": "C2",
+   "mode": "full",
+   "roles_preview": false,
+   "bracket": {
+    "from": 6,
+    "to": 7,
+    "label": "결과물: 내부 교육과 비교 참고용으로 전달",
+    "hero": true
+   },
    "box": [
     0,
     0,
-    400,
-    216
-   ],
-   "vb": [
-    400,
-    216
-   ],
-   "alt": "1단계 카드",
-   "svg": "<rect x='1' y='1' width='398' height='214' class='sv-line'/><circle cx='46' cy='40' r='22' class='sv-ink'/><text x='46' y='49' text-anchor='middle' class='b'>1</text>",
-   "build": 1
-  },
-  {
-   "use": "text",
-   "text": "넓게 보기",
-   "size": "m",
-   "box": [
-    80,
-    18,
-    300,
-    44
-   ],
-   "build": 1
-  },
-  {
-   "use": "text",
-   "text": "누가 가입할 수 있나",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    24,
-    80,
-    360,
-    40
-   ],
-   "build": 1
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.0}}",
-   "tone": "paper",
-   "box": [
-    24,
-    142,
-    150,
-    52
-   ],
-   "build": 1
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.1}}",
-   "tone": "paper",
-   "box": [
-    182,
-    142,
-    204,
-    52
+    1760,
+    424
    ],
    "build": 1
   },
   {
    "use": "svg",
    "box": [
-    400,
     0,
-    644,
-    216
+    452,
+    1760,
+    144
    ],
    "vb": [
-    644,
-    216
+    1760,
+    144
    ],
-   "alt": "2단계 카드와 앞 단계에서 오는 화살표",
-   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='594' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>2</text>",
+   "alt": "실제 예로 우체국 암 수술비 한 건이 1단계부터 6단계까지 어떻게 바뀌는지 단계 아래에 짚은 그림",
+   "svg": "<text x='0' y='28' class='b'>실제 예: 우체국 암 수술비 한 건</text><path d='M108 74H1394' class='sv-muted' stroke-dasharray='8 8'/><circle cx='108' cy='74' r='9' class='sv-fill-ink'/><circle cx='366' cy='74' r='9' class='sv-fill-ink'/><circle cx='623' cy='74' r='9' class='sv-fill-ink'/><circle cx='880' cy='74' r='9' class='sv-fill-ink'/><circle cx='1137' cy='74' r='9' class='sv-fill-ink'/><circle cx='1394' cy='74' r='9' class='sv-fill-ink'/><text x='108' y='128' text-anchor='middle'>요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽</text><text x='366' y='128' text-anchor='middle'>‘{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원’</text><text x='623' y='128' text-anchor='middle'>원문과 일치</text><text x='880' y='128' text-anchor='middle'>시트의 한 행</text><text x='1137' y='128' text-anchor='middle'>이름을 ‘{{fact:example_cancer_surgery.standard_coverage}}’로</text><text x='1394' y='128' text-anchor='middle'>타사와 한 행에</text>",
    "build": 2
-  },
-  {
-   "use": "text",
-   "text": "좁혀 확인",
-   "size": "m",
-   "box": [
-    528,
-    18,
-    496,
-    44
-   ],
-   "build": 2
-  },
-  {
-   "use": "text",
-   "text": "조건과 보장이 어떻게 다른가",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    468,
-    80,
-    560,
-    40
-   ],
-   "build": 2
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.2}}",
-   "tone": "paper",
-   "box": [
-    468,
-    142,
-    206,
-    52
-   ],
-   "build": 2
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.3}}",
-   "tone": "paper",
-   "box": [
-    684,
-    142,
-    152,
-    52
-   ],
-   "build": 2
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.5}}",
-   "tone": "paper",
-   "box": [
-    846,
-    142,
-    180,
-    52
-   ],
-   "build": 2
-  },
-  {
-   "use": "svg",
-   "box": [
-    1044,
-    0,
-    348,
-    216
-   ],
-   "vb": [
-    348,
-    216
-   ],
-   "alt": "3단계 카드와 앞 단계에서 오는 화살표",
-   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='298' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>3</text>",
-   "build": 3
-  },
-  {
-   "use": "text",
-   "text": "결론",
-   "size": "m",
-   "box": [
-    1172,
-    18,
-    200,
-    44
-   ],
-   "build": 3
-  },
-  {
-   "use": "text",
-   "text": "앞세울 점과 고칠 점",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    1116,
-    80,
-    260,
-    40
-   ],
-   "build": 3
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.4}}",
-   "tone": "paper",
-   "box": [
-    1116,
-    142,
-    220,
-    52
-   ],
-   "build": 3
-  },
-  {
-   "use": "svg",
-   "box": [
-    1392,
-    0,
-    368,
-    216
-   ],
-   "vb": [
-    368,
-    216
-   ],
-   "alt": "4단계 카드와 앞 단계에서 오는 화살표",
-   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='318' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>4</text>",
-   "build": 4
-  },
-  {
-   "use": "text",
-   "text": "내보내기",
-   "size": "m",
-   "box": [
-    1520,
-    18,
-    220,
-    44
-   ],
-   "build": 4
-  },
-  {
-   "use": "text",
-   "text": "인쇄, 복사해 전달",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    1464,
-    80,
-    280,
-    40
-   ],
-   "build": 4
-  },
-  {
-   "use": "chip",
-   "text": "응대 화법 A4 패널",
-   "tone": "paper",
-   "box": [
-    1464,
-    142,
-    272,
-    52
-   ],
-   "build": 4
-  },
-  {
-   "use": "C12",
-   "img": "tab_insight",
-   "alt": "영업 인사이트 탭 캡처. 3은 영업 인사이트 한 건, 4는 같은 탭 안의 응대 화법 A4 패널",
-   "box": [
-    0,
-    248,
-    960,
-    360
-   ],
-   "zones": [
-    {
-     "n": "3",
-     "x": 0.183,
-     "y": 0.291,
-     "w": 0.5,
-     "h": 0.206,
-     "label": "인사이트 한 건"
-    },
-    {
-     "n": "4",
-     "x": 0.694,
-     "y": 0.193,
-     "w": 0.283,
-     "h": 0.791,
-     "label": "응대 화법 A4"
-    }
-   ],
-   "build": 5
-  },
-  {
-   "use": "svg",
-   "box": [
-    880,
-    476,
-    290,
-    40
-   ],
-   "vb": [
-    290,
-    40
-   ],
-   "alt": "4번 상자에서 오른쪽 확대 사진으로 가는 화살표",
-   "svg": "<path d='M4 20H276' class='sv-red' marker-end='url(#ah-r)'/>",
-   "build": 6
-  },
-  {
-   "use": "C12",
-   "img": "talk_preview",
-   "alt": "응대 화법 A4 미리 보기의 맨 윗부분 확대. 대외 배포 금지 표시가 보인다",
-   "box": [
-    1181,
-    248,
-    579,
-    360
-   ],
-   "caption": "4의 맨 위 확대: 대외 배포 금지 표시",
-   "build": 6
   }
  ],
  "points": [
-  "고객군 {{fact:segment_map_cell_count}}개 중 {{fact:segment_map_open_together_cells}}개는 우체국도 타사도 [[가입 가능]]"
+  "시장 동향과 주간 마감만 자동, 나머지는 사람이 실행"
  ],
  "terms": [
-  "가입 가능",
-  "간편심사",
-  "탭"
+  "시장 동향",
+  "마스터 데이터",
+  "주간 마감 자료"
  ],
- "source": "예시 조건: {{fact:reference_condition.age}}세 남성, 이력 없음, 우체국 간편심사 기준(인수 결과 아님), 자료 기준 {{asof:segment_map_cell_count}}",
- "notes": "데모 화면에는 탭이 {{fact:console4_tabs.count}}개 있고, 담당자가 실제로 일하는 순서에 따라 네 단계로 묶었습니다. 5장 영상의 화면 여섯은 초기 버전 화면이고, 지금 데모는 이 탭들입니다. 첫째 넓게 보기는 전체 요약 탭과 고객군과 시장 탭입니다. 고객군은 입원과 수술 이력 {{len:segment_map_rows}}행과 가입나이 {{len:segment_map_columns}}구간을 곱한 {{fact:segment_map_cell_count}}개 고객군이고, 그 가운데 {{fact:segment_map_open_together_cells}}개는 우체국 간편심사로 가입 가능하면서 타사 한 곳 이상도 가입 가능한 고객군입니다. 타사 모두가 가입 가능하다는 뜻은 아닙니다. 가입 가능은 공시된 고지사항과 가입나이로 본 결과이고 실제 인수 결과가 아닙니다. 둘째 좁혀 확인은 인수기준 비교, 담보 비교, 관계 그래프 탭입니다. 공통 담보 {{fact:common_coverage_pairs}}건 가운데 검수 대기 {{fact:excluded_pending_pairs}}건을 뺀 {{fact:compared_coverage_pairs}}건의 우열을 확인하고, 근거 특약은 관계 그래프 탭에서 찾아 들어갑니다. 셋째 결론은 영업 인사이트 탭입니다. 비교 결과에서 규칙으로 뽑은 영업 인사이트가 {{fact:sales_insight_count}}건이고, 분류별로 인수기준 차이 {{fact:sales_insight_by_category_display.인수기준 차이}}건, 우위 담보 {{fact:sales_insight_by_category_display.우위 담보}}건, 관련 담보 {{fact:sales_insight_by_category_display.관련 담보}}건, 열위 담보 {{fact:sales_insight_by_category_display.열위 담보}}건, 미보유 담보 {{fact:sales_insight_by_category_display.미보유 담보}}건입니다. 아래 캡처의 3번 상자가 그 가운데 인수기준 차이 한 건입니다. 넷째 내보내기의 응대 화법 A4는 탭이 아니라 영업 인사이트 탭 안의 미리 보기 패널이고, 캡처의 4번 상자가 그 패널입니다. 인쇄하거나 글을 복사해 내부 교육과 비교 참고용으로 넘기고, 표 복사는 엑셀에 바로 붙는 형식입니다. 오른쪽 확대 사진처럼 A4 맨 위에는 대외 배포 금지 표시가 고정되고, 분석 문장에는 최고, 유리, 추천 같은 말 {{len:forbidden_words}}개를 빌드 단계에서 막습니다. 숫자는 모두 화면이 처음 여는 기본 조건({{fact:reference_condition.age}}세 남성, 이력 없음)과 기준 종형 우체국 {{fact:default_base_variant.name}}에서 센 값입니다.",
+ "source": "출처: 제출 설명 문서 4절, 기획서 5.1절과 7절, 워크플로 설정, 예시는 담보 비교 자료({{asof:example_cancer_surgery}} 기준)",
+ "notes": "이 일곱 단계 그림이 오늘 발표의 지도입니다. 뒤에서 AI가 맡은 일, 확률 산정 모델, 관계 그래프를 설명할 때마다 이 그림에서 지금 어느 단계인지 다시 짚겠습니다. 아래 그림은 실제 예 하나입니다. 우체국 상품요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽에 있는 암 수술비 한 행에서 AI가 지급액 {{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원을 원문 글자로 옮기고, 코드가 원문과 같은지 확인한 뒤 구글 시트에 한 행으로 쌓습니다. 이 행은 표준담보 '{{fact:example_cancer_surgery.standard_coverage}}'에 연결되고, 비교 화면의 담보 비교 탭에서 타사 상품의 같은 담보와 한 행에 놓입니다. 이 비교는 {{slide:cancer-surgery}}장에서 자세히 봅니다. 수집부터 검증까지는 AI와 코드가 나눠 맡고, 확인을 통과한 값만 구글 시트의 마스터 데이터(모든 값을 모아 둔 원본 표)에 쌓입니다. 마스터 데이터는 탭 {{fact:sheet_tab_count}}개로 나뉘어 있고, 매주 주간 마감 자료(매주 일요일에 그 시점의 자료를 통째로 보관한 것)를 저장소에 남기기 때문에 그대로 개정 이력이 됩니다. 구글 시트와 관계 그래프 사이의 점선은 이 주간 마감 자료입니다. 예약으로 자동 실행되는 것은 매일 아침의 시장 동향(타사 신상품과 개정 보도) 수집과 일요일 밤의 주간 마감뿐이고, 공시 문서 수집, 추출, 매핑은 필요할 때 사람이 실행합니다. 비교 화면도 사람이 빌드해 배포합니다. 자세한 주간 일정은 {{slide:cost-deploy}}장에서 봅니다. 비교 화면과 응대 화법은 실제 지점 창구나 설계사에게 배포한 것이 아니라, 내부 교육과 비교 참고용으로 전달하도록 만든 결과물입니다. 관계 그래프는 회사, 상품, 담보를 점과 선으로 이은 그림이고 화면의 탭 이름이기도 합니다. 단계마다 AI, 코드, 사람 가운데 누가 일하는지는 {{slide:ai-code-human}}장에서 다룹니다. 출처 문서는 docs/submission.md 4절, docs/planning.md 5.1절과 7절, 예약 실행과 사람 실행의 구분은 .github/workflows 의 실행 방식입니다.",
  "frame": {
   "top": 240
  }

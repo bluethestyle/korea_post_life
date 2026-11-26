@@ -4287,13 +4287,13 @@
       }
     },
     "test_count": {
-      "value": 1563,
+      "value": 1565,
       "label": "전체 자동 시험 수",
-      "as_of": "2026-11-25",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "manual"
       },
-      "note": "메인 세션이 2026-11-25(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."
+      "note": "2026-11-26(한국 시간) 덱 재구성 브랜치(claude/deck-v5)에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."
     },
     "commit_count": {
       "value": 287,

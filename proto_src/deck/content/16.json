@@ -1,22 +1,42 @@
 {
  "no": 16,
- "id": "video-3",
- "kind": "video",
- "chapter": 4,
- "status": "video",
- "headline": "면책 문항을 참 거짓에서 두 보기 고르기로 바꾸자 맞는 값과 오류 값이 갈렸습니다",
- "video": {
-  "part": 3,
-  "src": "media/part3.mp4",
-  "dur": "{{fact:video_length_label.part3}}",
-  "q": "면책 문항 한 가지의 확률: 맞는 값 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 오류 값 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하",
-  "stills": [
-   "part3_1"
-  ]
- },
- "diagram": [],
+ "id": "scenario-summary",
+ "kind": "body",
+ "chapter": 3,
+ "status": "new",
+ "headline": "암 수술비 한 건으로 보면, 실무자가 화면에서 하는 일은 선택, 복사, 원문 대조입니다",
+ "diagram": [
+  {
+   "use": "text",
+   "size": "m",
+   "tone": "muted",
+   "text": "구성 중: 3부 요약",
+   "box": [
+    0,
+    0,
+    1760,
+    44
+   ]
+  },
+  {
+   "use": "svg",
+   "box": [
+    0,
+    60,
+    1760,
+    140
+   ],
+   "vb": [
+    1600.0,
+    127.27
+   ],
+   "build": 1,
+   "limit": 50,
+   "alt": "이 한 건에서 담당자가 한 일(담보 선택, 비교표 복사, 검수 대기 원문 대조)과 AI와 코드가 미리 한 일(급부 옮기기, 원문 대조, 표준담보 연결, 비교표 만들기)",
+   "svg": "<rect x='0' y='0' width='1600' height='127' class='sv-paper'/><use href='{{icon:사람 검수}}' x='24' y='14' width='40' height='40'/><text x='82' y='45' class='b'>담당자가 한 일: 담보 선택, 비교표 복사, 검수 대기 원문 대조</text><use href='{{icon:추출}}' x='24' y='74' width='40' height='40'/><text x='82' y='105'>AI와 코드가 미리 한 일: 급부 옮기기, 원문 대조, 표준담보 연결, 비교표 만들기</text>"
+  }
+ ],
  "points": [],
  "terms": [],
- "source": "영상: 발표용 애니메이션 3부, 출처: 제출 설명 자료의 확률 산정 모델 절, 진행 기록, 자료 기준 {{asof:symmetric_choice_probability}}",
- "notes": "앞의 두 장에서 확률 산정 모델이 무엇인지 설명드렸고, 이 영상은 그 모델을 실제 자료에 붙였을 때 무슨 일이 있었는지 보여 줍니다. 처음에는 면책 조건이 있는지를 참 거짓(예, 아니오)으로 물었는데, 맞게 옮긴 값도 확률이 {{fact:true_false_probability_range.low|f2}}에서 {{fact:true_false_probability_range.high|f2}} 사이에 머물러 오류 값과 잘 갈리지 않았습니다. 질문을 '{{fact:symmetric_choice_item.choices.0}}'과 '{{fact:symmetric_choice_item.choices.1}}' 가운데 하나를 고르는 방식으로 바꾸자, 맞는 값은 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 일부러 뒤집어 넣은 오류 값은 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하로 뚜렷하게 나뉘었습니다. 다만 이 두 값은 면책 문항 한 가지에서 측정한 것입니다. 모든 문항을 합쳐 행 단위로 보면 맞는 행의 최저 확률은 {{fact:calibration_score_overlap.correct_min|f2}}, 틀리게 바꾼 행의 최고 확률은 {{fact:calibration_score_overlap.wrong_max|f2}}로 서로 겹칩니다. 그래서 확률 하나로 모두 거르지 않고, 자동 확정과 다시 추출 사이의 구간은 사람이 검수합니다. 그 기준값은 두 장 앞에서 설명한 대로이고, 기준값으로 실제로 얼마나 걸렀는지는 다음 장에서 봅니다. 질문을 어떻게 짜느냐가 결과를 바꿨기 때문에, 문항은 실제 결과를 보고 고쳤습니다. 영상 끝에 나오는 분당 처리 한도 이야기는 두 장 뒤에서 이어집니다."
+ "notes": ""
 }

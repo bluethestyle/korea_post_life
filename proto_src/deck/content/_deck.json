@@ -1,6 +1,6 @@
 {
  "format": 2,
- "about": "덱 공통 설정. 장마다의 내용은 같은 폴더의 NN.json(01~32)에 있다. 부품의 입력 형식과 글자 수 상한은 ../COMPONENTS.md 를 본다.",
+ "about": "덱 공통 설정. 장마다의 내용은 같은 폴더의 NN.json(01~37)에 있다. 부품의 입력 형식과 글자 수 상한은 ../COMPONENTS.md 를 본다.",
  "app_name": "우체국보험 상품-영업 분석",
  "html_title": "우체국보험 상품-영업 분석 발표 자료",
  "cover_title": "우체국보험<br>상품-영업 분석",
@@ -10,33 +10,33 @@
  "chapters": [
   {
    "n": 1,
-   "short": "왜",
-   "q": "왜 필요한가"
+   "short": "개요",
+   "q": "누가 왜 쓰고 무엇으로 만들었나"
   },
   {
    "n": 2,
-   "short": "무엇",
-   "q": "무엇을 만들었나"
+   "short": "전체 흐름",
+   "q": "전체는 어떻게 흐르나"
   },
   {
    "n": 3,
-   "short": "어떻게",
-   "q": "어떻게 만들었나"
+   "short": "시나리오",
+   "q": "담당자의 일이 어떻게 바뀌나"
   },
   {
    "n": 4,
-   "short": "확률 산정",
-   "q": "확률 산정 모델은 무엇인가"
+   "short": "신뢰",
+   "q": "결과를 왜 믿을 수 있나"
   },
   {
    "n": 5,
-   "short": "보장 맞추기(온톨로지)",
-   "q": "다른 담보 이름을 어떻게 맞췄나"
+   "short": "AI 협업",
+   "q": "AI와 어떻게 만들었나"
   },
   {
    "n": 6,
-   "short": "운영",
-   "q": "믿고 운영할 수 있나"
+   "short": "운영과 다음",
+   "q": "운영 비용과 다음 계획은"
   }
  ],
  "steps": [
@@ -140,7 +140,10 @@
   "opus": "Opus",
   "sonnet": "Sonnet",
   "haiku": "Haiku",
-  "github": "GitHub"
+  "github": "GitHub",
+  "google_sheets": "구글 시트",
+  "github_actions": "GitHub Actions",
+  "github_pages": "GitHub Pages"
  },
  "icons": {
   "_about": "덱 아이콘 사전(개념 → 아이콘 이름). 장 파일의 \"icon\" 에 개념 이름을 쓰면 이 표의 아이콘으로 그린다. 같은 개념은 덱 전체에서 같은 아이콘을 쓴다. 이름은 디자인 시스템의 Lucide 아이콘(icons/*.svg, 사전 reference/icons-logos.md 5절의 뜻을 따름)이나 덱 자체 아이콘(deckparts.ICONS). 사전에 없는 개념에는 아이콘을 억지로 붙이지 않고 글자로 적는다. 아이콘 옆에는 늘 글자를 두고, 한 장에 6개 이하로 둔다.",
@@ -165,7 +168,10 @@
   "기간": "calendar-days",
   "걸리는 시간": "clock",
   "목표": "target",
-  "시장 동향": "megaphone"
+  "시장 동향": "megaphone",
+  "본부": "landmark",
+  "검토": "file-search",
+  "담당자 지정": "user-check"
  },
  "glossary": {
   "공시 문서": "보험사가 홈페이지 공시실에 공개하는 상품 설명 문서",

@@ -6,7 +6,7 @@
     python3 build.py --out ../../site/deck/index.html  # 배포본
     python3 build.py --content-dir <폴더> --facts <facts.json> --out <index.html> --only 7,12-14 [--strict]
 
-- 장마다 파일 하나(content/01.json ~ 32.json). 덱 공통 설정(챕터, 일곱 단계, 회사 칩, 용어 풀이 표)은 content/_deck.json.
+- 장마다 파일 하나(content/01.json ~ 37.json). 덱 공통 설정(챕터, 일곱 단계, 회사 칩, 용어 풀이 표)은 content/_deck.json.
   --content-dir 의 폴더에 _deck.json 이 없으면 이 파일 옆 content/_deck.json 을 쓴다(--deck 으로 따로 줄 수 있다).
 - 글의 자리 표시를 채운다.
     {{fact:열쇠}}, {{fact:열쇠.하위키}}, {{fact:열쇠.0}}  facts.json 의 값(정수는 천 단위 쉼표, 목록은 쉼표로 이음)
@@ -16,6 +16,8 @@
                                                        꼬리말에 출처 도메인이 붙는다
     {{todo:내용}}                                       확인 필요 표시(점선 상자 안의 글)
     {{name:열쇠}}                                       _deck.json 의 names(여러 장이 함께 쓰는 도구와 모델 이름)
+    {{slide:장 id}}                                     그 id 를 가진 장의 번호(장 순서를 바꿔도 노트의 "N장"을 고치지 않게).
+                                                       없는 id 면 빌드가 멈춘다
     [[용어]]                                            용어 밑줄(풀이는 장의 terms 로 꼬리 위 띠에)
   facts.json, refs.json 에 없는 열쇠가 하나라도 있으면 빌드가 멈춘다.
 - 부품(C1~C20)은 deckparts.py 가 빌드 때 HTML 과 SVG 로 그린다. 글자 수 상한을 넘으면 경고를 적는다(--strict 면 멈춘다).
@@ -94,6 +96,42 @@ def load_slides(content_dir: Path) -> list[dict]:
             raise SystemExit(f"{p.name}: headline 이 없다")
         slides.append(s)
     return slides
+
+
+SLIDE_REF = re.compile(r"\{\{slide:([^{}|]+?)\}\}")
+
+
+def resolve_slide_refs(slides: list[dict]) -> list[dict]:
+    """글의 {{slide:장 id}} 를 그 장의 번호로 바꾼 사본. id 가 겹치거나 없는 id 를 부르면 멈춘다."""
+    ids: dict[str, int] = {}
+    for s in slides:
+        sid = s.get("id")
+        if sid is None:
+            continue
+        if sid in ids:
+            raise SystemExit(f"장 id 가 겹친다: {sid} ({ids[sid]}장, {s['no']}장)")
+        ids[sid] = s["no"]
+    missing: list[str] = []
+
+    def walk(o: Any, where: str) -> Any:
+        if isinstance(o, dict):
+            return {k: walk(v, f"{where}.{k}") for k, v in o.items()}
+        if isinstance(o, list):
+            return [walk(v, f"{where}[{i}]") for i, v in enumerate(o)]
+        if isinstance(o, str) and "{{slide:" in o:
+            def repl(m: re.Match) -> str:
+                sid = m.group(1).strip()
+                if sid not in ids:
+                    missing.append(f"[{where}] {m.group(0)}: 그런 id 의 장이 없다")
+                    return m.group(0)
+                return str(ids[sid])
+            return SLIDE_REF.sub(repl, o)
+        return o
+
+    out = [walk(s, f"{s['no']:02d}") for s in slides]
+    if missing:
+        raise SystemExit("빌드를 멈춥니다:\n  " + "\n  ".join(missing))
+    return out
 
 
 def load_refs(path: Path) -> dict:
@@ -373,7 +411,8 @@ def build_deck(content_dir: Path, facts_path: Path, refs_path: Path, fonts_css: 
                assets_dir: Path | list[Path] = HERE / "assets", media_root: Path = HERE / "out", deck_path: Path | None = None,
                only: set[int] | None = None) -> Result:
     deck = json.loads((deck_path or default_deck_path(content_dir)).read_text(encoding="utf-8"))
-    slides = load_slides(content_dir)
+    raw_slides = load_slides(content_dir)
+    slides = resolve_slide_refs(raw_slides)
     total = len(slides)
     facts = json.loads(facts_path.read_text(encoding="utf-8"))["facts"]
     refs = load_refs(refs_path)
@@ -410,7 +449,8 @@ def build_deck(content_dir: Path, facts_path: Path, refs_path: Path, fonts_css: 
     if hits:
         raise SystemExit("외부 요청이 될 주소:\n  " + "\n  ".join(hits))
     used = {"facts": ctx.used_facts, "refs": ctx.used_refs}
-    return Result(doc, used, ctx.warnings, shown, frame.videos, digits_outside(shown))
+    shown_raw = [s for s in raw_slides if only is None or s["no"] in only]
+    return Result(doc, used, ctx.warnings, shown, frame.videos, digits_outside(shown_raw))
 
 
 def main() -> None:
