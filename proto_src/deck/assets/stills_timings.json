@@ -1,4 +1,4 @@
-{"source":"main presentation_animation/(2026-11-26 용어 교체와 주간 마감 자료 갱신 뒤 네 편을 다시 렌더링. 영상 길이와 장 시작 시각, 정지 화면 시각은 이전과 같음), facts.json 의 test_count 1582, manim 0.22.1, -qm 1280x720 30fps. 4편은 한 편 10MB 한도 때문에 같은 해상도와 프레임 수로 libx264 crf 25 veryslow 로 다시 인코딩. scene_starts 는 장 머리(HUD)가 바뀌기 시작한 시각, stills 는 덱 정지 화면(partN_1)을 뽑은 시각",
+{"source":"main presentation_animation/(2026-11-26 용어 교체와 주간 마감 자료 갱신 뒤 네 편을 다시 렌더링. 영상 길이와 장 시작 시각, 정지 화면 시각은 이전과 같음), facts.json 의 test_count 1586, manim 0.22.1, -qm 1280x720 30fps. 4편은 한 편 10MB 한도 때문에 같은 해상도와 프레임 수로 libx264 crf 25 veryslow 로 다시 인코딩. scene_starts 는 장 머리(HUD)가 바뀌기 시작한 시각, stills 는 덱 정지 화면(partN_1)을 뽑은 시각",
 "videos":{
 "part1":{"seconds":75.0,"scene_starts":{"1":0.0,"2":47.4}},
 "part2":{"seconds":81.767,"scene_starts":{"3":0.0,"4":44.433}},

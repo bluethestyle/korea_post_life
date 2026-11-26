@@ -23,9 +23,19 @@ ATTACHMENTS = [f["file"] for f in CONTENT["output"]["files"]]
 OPTIONS = CONTENT["form"]["kind"]["options"]
 
 
+WJ = "\u2060"
+
+
+def build(*a, **kw) -> tuple[str, dict]:
+    """빌드한 HTML 에서 어절 안의 WORD JOINER(줄바꿈 방지용, 보이지 않는 글자)를 뺀 글을 돌려준다."""
+    doc, info = form_build.build_html(*a, **kw)
+    assert WJ in doc
+    return doc.replace(WJ, ""), info
+
+
 @pytest.fixture(scope="module")
 def sample() -> tuple[str, dict]:
-    return form_build.build_html(strict=True)
+    return build(strict=True)
 
 
 def test_sample_builds_in_strict_mode_without_identity(sample):
@@ -103,7 +113,7 @@ def test_progress_percentages_sum_to_one_hundred(sample):
 def test_identity_fills_the_head_rows_and_checks_one_option(tmp_path):
     p = tmp_path / "identity.json"
     p.write_text(json.dumps({"소속부서": "시험실 시험팀", "성명": "시험성명", "출품구분": OPTIONS[2]}, ensure_ascii=False), encoding="utf-8")
-    doc, info = form_build.build_html(identity_path=p)
+    doc, info = build(identity_path=p)
     assert info["identity"] is True
     assert "시험실 시험팀" in doc and "시험성명" in doc
     assert doc.count('class="o on"') == 1
@@ -153,10 +163,66 @@ def test_zoom_cuts_exist_and_are_used(sample):
 
 def test_page_count_and_page_names(sample):
     doc, info = sample
-    assert info["pages"] == 11
-    assert doc.count('<section class="page"') == 11
+    assert info["pages"] == len(CONTENT["layout"]) == 13
+    assert doc.count('<section class="page"') == 13
     assert "확장과 한계" in doc
     assert "넓혀 쓰기와 한계" not in doc
+
+
+def test_layout_places_every_block_once_in_order_and_continued_sections_say_so(sample):
+    """layout 은 모든 블록을 한 번씩, 절 순서대로 놓는다. 이어지는 쪽의 절 제목에는 (계속)이 붙고, 쪽 참조는 새 쪽 번호와 맞다."""
+    doc, info = sample
+    ids = re.findall(r'data-blk="([^"]+)"', doc)
+    flat = [b for e in CONTENT["layout"] for b in (e["blocks"] if isinstance(e, dict) else e)]
+    assert ids == flat and len(set(flat)) == len(flat)
+    for no, e in enumerate(CONTENT["layout"], 1):
+        blocks = e["blocks"] if isinstance(e, dict) else e
+        sec = re.match(r"p(\d+)\.", blocks[0])
+        if no > 1 and sec and not blocks[0].endswith(".head"):
+            assert f"{sec.group(1)}. " in doc and "(계속)</p>" in doc
+    first, at = {}, {}
+    for no, e in enumerate(CONTENT["layout"], 1):
+        for b in (e["blocks"] if isinstance(e, dict) else e):
+            at[b] = no
+            if b.endswith(".head"):
+                first[b.split(".")[0]] = no
+    # 1쪽 안내의 쪽 번호는 각 절의 머리가 놓인 쪽이다. 절이 두 쪽에 걸치면 가리키는 블록이 놓인 쪽을 적는다
+    assert f"{first['p2']}, {first['p5']}쪽" in doc
+    assert f"확장 {first['p7']}쪽, 사용 방법 {at['p3.order']}쪽" in doc
+    assert f"{first['p8']}쪽" in doc
+    # 사용 실적 표가 가리키는 '한계와 다음 계획'은 그 블록이 놓인 쪽이어야 한다(절의 첫 쪽이 아닐 수 있다)
+    assert f"다음 계획에 포함({at['p7.limits']}쪽)" in doc
+    for n in range(1, info["pages"] + 1):
+        assert f"{n} / {info['pages']}" in doc
+
+
+def test_font_floor_for_a4_print():
+    """A4 인쇄 기준: 본문은 10pt 이상, 보조 글은 9pt 이상(양식 틀 tpl.html 의 글자 크기 선언)."""
+    css = (FORM / "tpl.html").read_text(encoding="utf-8")
+    sizes = [float(x) for x in re.findall(r"font-size:\s*([0-9.]+)pt", css)]
+    assert sizes and min(sizes) >= 9
+    assert re.search(r"body \{[^}]*font-size:\s*10pt", css)
+    build = (FORM / "build.py").read_text(encoding="utf-8")
+    assert min(float(x) for x in re.findall(r"font-size:\s*([0-9.]+)pt", build)) >= 9
+    assert "9 * 96 / 72" in build        # --strict 의 작은 글자 기준
+
+
+def test_capture_print_widths_keep_zoom_text_legible():
+    """전체 캡처는 칸 폭(150mm) 이하, 확대 컷은 화면 글자 13px 이 인쇄에서 7pt 이상이 되는 폭 이상(2배 배율 컷의 css 폭 W 이면 W x 0.19mm)."""
+    for name, w in form_build.Form.FULL_W.items():
+        assert w <= 150, name
+    for name, w in form_build.Form.CUT_W.items():
+        css_w = form_build.jpeg_size(FORM / "assets" / f"{name}.jpg")[0] / 2
+        assert w <= 150 and w >= css_w * 7 / 13 * 25.4 / 72 - 0.05, (name, w, css_w)
+
+
+def test_long_words_break_only_at_marked_places():
+    """어절 안에는 줄바꿈 자리가 없고(WORD JOINER), 칸보다 긴 어절만 <wbr> 자리에서 끊긴다."""
+    out = form_build.glue("<p>[갱신형][간편](체증형,수술시30%)암 수술비(유사암 포함)(1년50%) 복사</p>")
+    assert "<wbr>" in out and "\u2060" in out
+    assert re.sub(r"<[^>]+>|\u2060", "", out) == "[갱신형][간편](체증형,수술시30%)암 수술비(유사암 포함)(1년50%) 복사"
+    short = form_build.glue("<p>비교표 복사</p>")
+    assert "<wbr>" not in short and short.replace("\u2060", "") == "<p>비교표 복사</p>"
 
 
 def test_replaced_terms_do_not_come_back():

@@ -19,9 +19,10 @@
   cancer_surgery  담보 비교 탭에서 수술 단계의 암 수술비를 선택한 상태, 전체 캡처
   talk_preview    영업 인사이트 탭의 응대 화법 A4 카드(1920x1080 화면에서 2배 배율, 카드 전체)
   cut_kpi         전체 요약의 핵심 수 네 개(수와 라벨)를 이어 붙인 띠(2배 배율)
-  cut_gate        인수기준 비교 탭의 회사별 가입 가능 종형 수와 고지항목 비교 표 일부(2배 배율)
-  cut_cover       담보 비교 탭에서 암 수술비를 선택했을 때의 회사별 조건 표, 표 요소만(2배 배율)
-  cut_insight     영업 인사이트 탭의 문장 카드 하나(2배 배율)
+  cut_gate        인수기준 비교 탭 표로 보기의 고지항목 비교 표, 표 요소만(2배 배율). 표의 css 폭 672px 가 인쇄에서 7pt 이상이 되는 폭이 130mm 다
+  cut_cover       담보 비교 탭에서 암 수술비를 선택했을 때의 회사별 조건 표, 표 요소만(2배 배율). 1280px 화면에서는 표가 853px 로 넓어 150mm 로도
+                  7pt 가 안 되므로, 이 컷만 화면 폭 1000px(표 664px)에서 찍는다
+  cut_insight     영업 인사이트 탭의 문장 카드 하나, 문장과 근거 쪽수 줄까지(2배 배율)
   cut_talk        응대 화법 A4 카드의 위쪽 부분(2배 배율)
   cut_head_a      분석 화면 상단의 조건 줄과 버튼(2배 배율)
   cut_head_b      분석 화면 상단의 탭 여섯(2배 배율)
@@ -171,7 +172,8 @@ def stitch(images: list[Image.Image], horizontal: bool, gap: int, bg: tuple[int,
 
 
 def grab(page: Page, box: dict) -> Image.Image:
-    return Image.open(io.BytesIO(page.screenshot(clip=clamp(box)))).convert("RGB")
+    vp = page.viewport_size or {"width": VW, "height": VH}
+    return Image.open(io.BytesIO(page.screenshot(clip=clamp(box, vp["width"], vp["height"])))).convert("RGB")
 
 
 def corner_color(im: Image.Image) -> tuple[int, int, int]:
@@ -192,39 +194,26 @@ def cut_kpi(page: Page) -> Image.Image:
 
 
 def cut_gate(page: Page) -> Image.Image:
-    """인수기준 비교 탭의 표로 보기: 회사별 가입 가능 종형 수 셋과 고지항목 비교 표."""
+    """인수기준 비교 탭의 표로 보기: 고지항목 비교 표(머리 줄과 회사 행)."""
     page.click("#gt-btn-tbl")
     page.wait_for_timeout(2000)
-    n = page.locator(".gt-ao").count()
-    if n < 3:
-        sys.exit("인수기준 비교 표로 보기에서 회사별 가입 가능 종형 수(.gt-ao)를 찾지 못했습니다")
-    tiles = []
-    for i in range(3):
-        b = box_of(page, ".gt-ao", i, what="회사별 가입 가능 종형 수")
-        # 요소는 칸 폭만큼 넓어서, 안의 글자가 차지한 오른쪽 끝까지만 자른다
-        w = page.evaluate("""(i) => { const el = document.querySelectorAll('.gt-ao')[i]; const r0 = el.getBoundingClientRect();           let m = 0;
-          const it = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let t; while ((t = it.nextNode())) { if (!t.textContent.trim()) continue;
-            const g = document.createRange(); g.selectNodeContents(t); for (const r of g.getClientRects()) m = Math.max(m, r.right); }
-          return m - r0.left; }""", i)
-        tiles.append(grab(page, pad({"x": b["x"], "y": b["y"], "width": min(b["width"], w), "height": b["height"]}, 5)))
-    bg = corner_color(tiles[0])
-    row = stitch(tiles, True, 28, bg, rule=True)
     scroll = box_of(page, "#gt-q .gt-scroll", what="고지항목 비교 표")
-    head = box_of(page, "#gt-q .panel-h", scroll=False, what="고지항목 비교 머리")
-    u = union([head, scroll])
     # 패널의 흰 테두리 안쪽만 자른다
-    table = grab(page, {"x": u["x"] + 2, "y": u["y"] + 2, "width": u["width"] - 4, "height": u["height"] - 4})
-    return stitch([row, table], False, 14, bg)
+    return grab(page, {"x": scroll["x"] + 2, "y": scroll["y"] + 2, "width": scroll["width"] - 4, "height": scroll["height"] - 4})
 
 
 def cut_cover(page: Page) -> Image.Image:
     """암 수술비를 선택했을 때의 회사별 조건 표(상세 패널)."""
     box_of(page, ".ev-sec", what="회사별 조건 영역")
-    return grab(page, pad(box_of(page, "table.cv-ct", scroll=False, what="회사별 조건 표"), 5))
+    t = box_of(page, "table.cv-ct", scroll=False, what="회사별 조건 표")
+    return grab(page, {"x": t["x"] - 4, "y": t["y"] - 2, "width": t["width"] + 6, "height": t["height"] + 3})
 
 
 def cut_insight(page: Page) -> Image.Image:
-    return grab(page, pad(box_of(page, ".ins-it", 0, what="영업 인사이트 문장 카드"), 2))
+    """문장 카드 하나. 아래의 수집 기준 주석 단락(.ins-hd)은 빼고 문장과 근거 쪽수 줄(.ins-m)까지만 자른다."""
+    card = box_of(page, ".ins-it", 0, what="영업 인사이트 문장 카드")
+    last = box_of(page, ".ins-it .ins-m", 0, scroll=False, what="근거 쪽수 줄")
+    return grab(page, {"x": card["x"] - 2, "y": card["y"] - 2, "width": card["width"] + 4, "height": last["y"] + last["height"] - card["y"] + 2})
 
 
 def cut_talk(page: Page) -> Image.Image:
@@ -241,7 +230,7 @@ def cut_head(page: Page) -> tuple[Image.Image, Image.Image]:
     return grab(page, pad(a, 8)), grab(page, b)
 
 
-def shoot(html: Path, out_dir: Path) -> dict[str, int]:
+def shoot(html: Path, out_dir: Path, only: set[str] | None = None) -> dict[str, int]:
     out_dir.mkdir(parents=True, exist_ok=True)
     url = html.resolve().as_uri()
     full: dict[str, Image.Image | bytes] = {}
@@ -271,6 +260,12 @@ def shoot(html: Path, out_dir: Path) -> dict[str, int]:
                 sharp["cut_talk"] = cut_talk(page)
         open_cancer_surgery(page, url)
         full["cancer_surgery"] = png(page)
+        page.close()
+
+        # 담보 비교 확대 컷: 화면 폭 1000px 에서 표가 664px 로 좁아져, 130mm 로 인쇄해도 글자가 7pt 이상이다
+        page = browser.new_page(viewport={"width": 1000, "height": 1000}, device_scale_factor=2)
+        watch(page, external, errors)
+        open_cancer_surgery(page, url)
         sharp["cut_cover"] = cut_cover(page)
         page.close()
 
@@ -302,9 +297,11 @@ def shoot(html: Path, out_dir: Path) -> dict[str, int]:
         sys.exit(f"외부 요청 {external[:3]}, 콘솔 오류 {errors[:3]}")
     sizes = {}
     for name, img in full.items():
-        sizes[name] = save_jpeg(img, out_dir / f"{name}.jpg", FULL_W)
+        if only is None or name in only:
+            sizes[name] = save_jpeg(img, out_dir / f"{name}.jpg", FULL_W)
     for name, img in sharp.items():
-        sizes[name] = save_jpeg(img, out_dir / f"{name}.jpg")
+        if only is None or name in only:
+            sizes[name] = save_jpeg(img, out_dir / f"{name}.jpg")
     return sizes
 
 
@@ -312,8 +309,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--html", default=str(ROOT / "site" / "proto" / "console4.html"))
     ap.add_argument("--out", default=str(HERE / "assets"))
+    ap.add_argument("--only", default=None, help="이 이름의 캡처만 저장(쉼표로 나눔). 예: cut_gate,cut_cover")
     a = ap.parse_args()
-    sizes = shoot(Path(a.html), Path(a.out))
+    sizes = shoot(Path(a.html), Path(a.out), set(a.only.split(",")) if a.only else None)
     for name, size in sizes.items():
         print(f"{name}.jpg {size:,} 바이트")
     print(f"캡처 {len(sizes)}장: {a.out}")

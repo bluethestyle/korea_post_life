@@ -14,7 +14,7 @@
            "guide_head": "※ 평가기준(참신성·실용성·확장성·완성도)이 드러나도록 작성",
            "guide": [
             {"text": "- 어떤 업무에 쓰는지, 기존 방식과 무엇이 다른지", "go": "{{pg:p2}}, {{pg:p5}}쪽"},
-            {"text": "- 다른 부서·업무로 넓혀 쓸 수 있는지, 사용 방법은 어떤지", "go": "확장 {{pg:p7}}쪽, 사용 방법 {{pg:p3}}쪽"},
+            {"text": "- 다른 부서·업무로 넓혀 쓸 수 있는지, 사용 방법은 어떤지", "go": "확장 {{pg:p7}}쪽, 사용 방법 {{pg:p3.order}}쪽"},
             {"text": "- 사용 실적(사용자 수·사용 횟수 등)이 있으면 함께 작성", "go": "{{pg:p8}}쪽"}
            ]},
   "output": {"label": "생성물", "cont": "생성물 (계속)", "guide": "이미지·동영상 파일 첨부 또는 링크"}
@@ -54,7 +54,7 @@
   {
    "id": "p1", "topic": "개요",
    "blocks": {
-    "lead": "회사별로 다르게 기재된 보험 조건을 AI가 공시 문서에서 추출하고, 근거 쪽수와 함께 한 화면에서 비교",
+    "lead": "회사별로 다르게 기재된 보험 조건을 AI가 공시 문서에서 추출하고,<br>근거 쪽수와 함께 한 화면에서 비교",
     "intro": [
      {"label": "대상 자료", "text": "상품요약서, 사업방법서의 가입조건(가입연령, 가입한도, 고지사항)과 보장 내용(지급액, 면책기간, 감액기간)"},
      {"label": "이용 대상", "text": "우체국보험 상품 기획과 영업 지원 담당자, 내부 비교와 교육 참고용"},
@@ -117,7 +117,7 @@
      "crit": ["실용성"],
      "head": "필요 기능 세 가지",
      "cols": [
-      {"ask": "가입 가능 여부 확인", "icon": "users", "tab": "인수기준 비교", "cue": {"img": "cut_gate", "note": "화면 예: 회사별 가입 가능 종형 수와 고지항목"}, "text": "고객군 {{fact:segment_map_cell_count}}개 구간별로 당사와 타사의 가입 가능 여부를 나란히 비교"},
+      {"ask": "가입 가능 여부 확인", "icon": "users", "tab": "인수기준 비교", "cue": {"img": "cut_gate", "note": "화면 예: 회사별 고지항목 비교 표"}, "text": "고객군 {{fact:segment_map_cell_count}}개 구간별로 당사와 타사의 가입 가능 여부를 나란히 비교"},
       {"ask": "동일 보장의 조건 비교", "icon": "scale", "tab": "담보 비교", "cue": {"img": "cut_cover", "note": "화면 예: 암 수술비의 회사별 조건 표"}, "text": "같은 담보를 한 행에 놓고 근거 쪽수와 함께 확인한 뒤 비교표 복사", "tag": "미적재: 타사 특약 가입조건과 결합 제약"},
       {"ask": "영업 응대 문구 작성", "icon": "headset", "tab": "영업 인사이트", "cue": {"img": "cut_insight", "note": "화면 예: 근거 쪽수가 붙은 문장 카드"}, "text": "영업 인사이트 {{fact:sales_insight_count}}건 중 선택한 항목으로 A4 한 장 응대 화법 작성"}
      ],
@@ -254,7 +254,7 @@
      "fig": {"pay": "{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}", "pay_unit": "만 원", "pay_sub": "면책 {{fact:example_cancer_surgery.orgs.EPOST.waiting_days}}일", "pay_note": "우체국, 원문 확인값", "target": "{{fact:example_cancer_surgery.standard_coverage}}", "copy": "비교표 복사 버튼", "pending": "검수 대기 칩"}
     },
     "shot": {"crit": ["실용성"], "head": "화면 확인 예시", "img": "cut_cover",
-             "marks": [{"n": 1, "x": 0.118, "y": 0.12, "label": "회사별 조건 열"}, {"n": 2, "x": 0.345, "y": 0.45, "label": "기준 가입금액 행"}, {"n": 3, "x": 0.836, "y": 0.12, "label": "요약 열"}],
+             "marks": [{"n": 1, "x": 0.088, "y": 0.1, "label": "회사별 조건 열"}, {"n": 2, "x": -0.02, "y": 0.4, "label": "기준 가입금액 행"}, {"n": 3, "x": 0.85, "y": 0.1, "label": "요약 열"}],
              "result_head": "비교 결과(화면의 회사별 조건 표에서)", "result_note": "기준 가입금액이 회사마다 달라 금액만으로 우열을 정하지 않음",
              "caption": "담보 비교 탭 암 수술비 확대 컷, 자료 기준 {{asof:example_cancer_surgery}}"},
     "effect": {
@@ -419,14 +419,14 @@
   {
    "id": "p8", "topic": "사용 실적",
    "blocks": {
-    "headline": "사내 정식 도입 전으로 사용 실적 없음, 본인이 실무에서 직접 사용하며 확인한 개선점 반영",
+    "headline": "사내 정식 도입 전으로 사용 실적 없음,<br>본인이 실무에서 직접 사용하며 확인한 개선점 반영",
     "record": {
      "crit": ["완성도", "실용성"],
      "head": "사용 실적",
      "none": "사내 정식 도입 전으로 사용자 수와 사용 횟수의 실적 없음. 화면에 접속 기록 기능이 없어 열람 수도 파악 불가",
      "evidence_head": "대체 근거",
      "evidence": [
-      {"calc": "opinions", "unit": "건", "label": "개선점 반영(일부 반영 포함)"},
+      {"calc": "opinions", "unit": "건", "label": "개선점 반영<br>(일부 반영 포함)"},
       {"calc": "goldset", "unit": "항목", "label": "급부 정답표 대조 일치(전체 결과는 {{pg:p6}}쪽)"},
       {"value": "{{fact:test_count}}", "unit": "개", "label": "자동 테스트"}
      ],
@@ -440,7 +440,7 @@
       {"ask": "한화생명 시그니처H통합보험의 비교 대상으로는 우체국하나로OK보험 2609가 적합", "done": "2609 개정에서 간편가입형이 신설된 상품임을 공시실 목록에서 확인해 추출 대상에 등록. {{state:hanarook}}", "state": "hanarook"},
       {"ask": "우체국통합건강보험 2504는 비교 대상으로 부적합", "done": "화면의 비교 대상에서 제외, 시트 자료는 검증 근거로 보존", "pill": "반영"},
       {"ask": "'스냅샷'이라는 용어가 실무 현장에서 낯섦", "done": "발표 자료와 안내 문서, 이 설명서에서 '주간 마감 자료'로 변경", "pill": "반영"},
-      {"ask": "약관과 KCD가 개정되므로 반영 여부가 우려됨", "done": "한계를 구분해 기재, 개정 자동 감지와 질병코드 범위 비교를 다음 계획에 포함({{pg:p7}}쪽)", "pill": "계획"},
+      {"ask": "약관과 KCD가 개정되므로 반영 여부가 우려됨", "done": "한계를 구분해 기재, 개정 자동 감지와 질병코드 범위 비교를 다음 계획에 포함({{pg:p7.limits}}쪽)", "pill": "계획"},
       {"ask": "영업 기획 관점에서 회사별 상품을 비교하는 도구는 확인하지 못했고, 활용 가치가 있다고 판단", "done": "본인 판단으로만 소개({{pg:p2}}쪽)", "pill": "판단"}
      ],
      "next": "다음 실적: 다른 실무자 대상 사용검증 준비 완료(과제 여섯, 의견 양식), 제출 후 비교표 작성 시간 측정 예정"
@@ -464,15 +464,29 @@
   ],
   "videos_note": "영상 파일은 첨부 파일 postlife_deck.html 에 포함되어 있으며, 위 그림은 영상의 한 장면",
   "shots_head": "화면 캡처: 전체 캡처와 확대 컷",
-  "shots_pages": [[0, 1], [2, 3], [4, 5]],
-  "shots": [
+   "shots": [
    {"img": "summary", "cut": "cut_kpi", "label": "전체 요약", "text": "위는 화면 전체, 아래는 탭별 핵심 수치를 확대한 컷"},
-   {"img": "tab_gate", "cut": "cut_gate", "label": "인수기준 비교", "text": "확대 컷은 표로 보기 상태에서 회사별 가입 가능 종형 수와 고지항목을 비교한 부분"},
-   {"img": "cancer_surgery", "cut": "cut_cover", "label": "담보 비교(암 수술비)", "text": "확대 컷은 암 수술비 선택 시 지급액, 면책기간, 감액기간 비교 표"},
+   {"img": "tab_gate", "cut": "cut_gate", "label": "인수기준 비교", "text": "확대 컷은 표로 보기 상태의 고지항목 비교 표"},
+   {"img": "cancer_surgery", "cut": "cut_cover", "label": "담보 비교(암 수술비)", "text": "확대 컷은 암 수술비의 지급액, 면책기간, 감액기간 비교 표"},
    {"img": "tab_insight", "cut": "cut_insight", "label": "영업 인사이트", "text": "확대 컷은 인수기준 차이를 문장과 근거 쪽수로 제시한 카드 하나"},
    {"img": "talk_preview", "cut": "cut_talk", "label": "응대 화법 A4", "text": "선택 항목을 A4 한 장으로 인쇄 또는 복사, 확대 컷은 위쪽 부분(대외 배포 금지)"},
    {"img": "tab_graph", "label": "관계 그래프", "text": "회사, 상품, 특약, 담보의 연결을 그림으로 추적"}
   ],
-  "shots_note": "화면 기본 조건으로 캡처, 자료 기준 {{asof:snapshot_at}}. 전체 캡처의 글자는 작으므로, 읽어야 하는 부분은 확대 컷으로 제시"
- }
+  "shots_note": "화면 기본 조건으로 캡처, 자료 기준 {{asof:snapshot_at}}. 전체 캡처의 글자는 작으므로, 읽어야 하는 부분은 확대 컷으로 제시(관계 그래프는 구성 확인용이며 글자는 첨부 파일 화면에서 확인)"
+ },
+ "layout": [
+  ["p1.head", "p1.lead", "p1.intro", "p1.flow", "p1.cards"],
+  {"gap": 5.0, "blocks": ["p1.tiles", "p1.caution", "p2.head", "p2.situation", "p2.facts", "p2.why", "p2.quote", "p2.notes"]},
+  ["p2.needs", "p3.head", "p3.legend", "p3.steps"],
+  {"gap": 3.4, "blocks": ["p3.users", "p3.shot", "p3.order", "p4.head", "p4.bottom", "p4.note"]},
+  ["p4.flow"],
+  {"gap": 3.2, "blocks": ["p5.head", "p5.situation", "p5.table", "p5.shot"]},
+  ["p5.effect", "p6.head", "p6.g1", "p6.g2"],
+  ["p6.team", "p7.head", "p7.orgs"],
+  ["p7.uses", "p7.limits", "p8.head", "p8.record"],
+  ["p8.table", "out.files", "out.videos"],
+  ["out.shot0", "out.shot1"],
+  ["out.shot2", "out.shot3"],
+  ["out.shot4", "out.shot5"]
+ ]
 }

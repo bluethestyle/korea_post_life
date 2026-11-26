@@ -49,7 +49,8 @@ with sync_playwright() as p:
     pg.goto(path.as_uri()); pg.wait_for_timeout(500)
     pg.emulate_media(media="print")
     res = pg.evaluate(JS); b.close()
+clean = lambda t: t.replace("\u2060", "")  # noqa: E731
 print("단어 중간 줄바꿈", len(res["split"]))
-for x in res["split"]: print(f"  {x['no']}쪽 | {x['word']} | {x['ctx']}")
+for x in res["split"]: print(f"  {x['no']}쪽 | {clean(x['word'])} | {clean(x['ctx'])}")
 print("마지막 줄에 짧은 한 단어", len(res["orphan"]))
-for x in res["orphan"]: print(f"  {x['no']}쪽 | {x['word']} | …{x['ctx']}")
+for x in res["orphan"]: print(f"  {x['no']}쪽 | {clean(x['word'])} | …{clean(x['ctx'])}")
