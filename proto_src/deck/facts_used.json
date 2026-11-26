@@ -31,8 +31,8 @@
   ],
   "07": [
    "video_length_label",
-   "sheet_tab_count",
    "hanwha_summary_pages",
+   "sheet_tab_count",
    "reference_condition",
    "default_base_variant"
   ],
@@ -171,7 +171,8 @@
   ],
   "29": [
    "video_length_label",
-   "coverage_relation_count"
+   "coverage_relation_count",
+   "example_cancer_surgery"
   ],
   "30": [
    "epost_summary_rows_matched",
@@ -253,11 +254,11 @@
    "disease_group_draft"
   ],
   "37": [
-   "epost_summary_rows_matched",
    "operating_cost_won",
    "pages_status",
    "comparison_targets_loaded",
-   "snapshot_at"
+   "snapshot_at",
+   "epost_summary_rows_matched"
   ]
  },
  "refs": {
