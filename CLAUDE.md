@@ -1,6 +1,6 @@
 # 작업 지침 (Claude Code용)
 
-우체국보험 상품·청약 판단 지원 앱. AI 도구·에이전트 활용 공모전 제출용이다. 공시 문서(상품요약서·사업방법서)에서 급부와 가입조건을 뽑아 Google Sheets(정본)에 쓰고, 그 스냅샷으로 오프라인 단일 HTML 화면을 만든다. 제출물은 발표 덱(`site/deck/`)과 데모인 분석 화면(`site/proto/console4.html`)이다.
+우체국보험 상품·청약 판단 지원 앱. AI 도구·에이전트 활용 공모전 제출용이다. 공시 문서(상품요약서·사업방법서)에서 급부와 가입조건을 뽑아 Google Sheets(정본)에 쓰고, 그 스냅샷으로 오프라인 단일 HTML 화면을 만든다. 제출물은 발표 덱(`site/deck/`)과 데모인 분석 화면(`site/proto/console4.html`)이다. 1차 심사는 작품설명서 양식(A4 표) PDF 하나로만 하고(2026-11-26 변경), 후보로 뽑히면 덱과 데모로 시연 발표를 한다. 작품설명서는 `proto_src/form/`의 빌더로 만들고, 성명과 소속부서는 `local/submission/identity.json`(git 제외)에서 빌드할 때만 넣는다.
 
 처음 이어받을 때는 `docs/handoff.md`를 먼저 읽는다. 설계는 `docs/planning.md`, 지금까지 한 일과 결정 이유는 `docs/progress.md`에 있다.
 
@@ -135,6 +135,9 @@ python3 proto_src/console4/build.py          # proto_src/console4 → site/proto
 python3 proto_src/console4/shoot.py <사진 폴더>   # 분석 화면 여러 해상도 점검 (playwright)
 python3 scripts/export_presentation_facts.py # 발표 사실 자료 presentation_animation/facts.json
 python3 proto_src/deck/build.py --out site/deck/index.html --used proto_src/deck/facts_used.json --strict   # 발표 덱
+python3 proto_src/deck/tools/standalone.py --check   # 영상까지 넣은 단일 파일 덱 → local/submission/standalone/ (커밋하지 않음)
+python3 proto_src/form/shoot.py              # 작품설명서에 넣는 화면 캡처 다시 찍기
+python3 proto_src/form/build.py --strict --identity local/submission/identity.json --out local/submission/작품설명서.pdf --html local/submission/작품설명서.html --preview local/submission/preview   # 작품설명서 PDF (결과는 local/ 에만)
 python3 scripts/build_site.py                # data/snapshot → site/v1/index.html (초기 버전 판단 화면)
 python3 scripts/dev/check_site_browser.py site/v1/index.html <사진 폴더>   # 초기 버전 380px, 1280px 화면 점검 (playwright)
 python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON> [--gold data/goldset/hanwha_goldset.jsonl] [--numbers 101-114] [--area 가입조건]   # 정답 대조 (--result는 필수, 기본은 우체국 정답셋의 보장금액 영역)
