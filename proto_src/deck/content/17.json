@@ -1,89 +1,83 @@
 {
  "no": 17,
- "id": "calibration",
+ "id": "ai-code-human",
  "kind": "body",
  "chapter": 4,
  "status": "revised",
- "headline": "우체국 상품요약서에서 일부러 틀리게 바꾼 값 {{fact:calibration_flipped_rows.rows}}건 중<br>자동 확정된 값은 {{fact:calibration_flipped_rows.passed}}건입니다",
- "frame": {
-  "top": 320
- },
+ "headline": "앱 안에서는 AI가 글자만 옮기고, 숫자는 코드가 읽고, 기준은 사람이 정합니다",
  "diagram": [
+  {
+   "use": "C3",
+   "box": [
+    0,
+    0,
+    1760,
+    330
+   ],
+   "build": 1,
+   "nodes": [
+    {
+     "num": "1",
+     "label": "AI가 글자를 옮김",
+     "icon": "추출",
+     "sub": "\"{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}}, {{fact:example_text_to_number.text.amount}}\"",
+     "note": "{{fact:models.extract}}"
+    },
+    {
+     "num": "2",
+     "label": "코드가 숫자로 읽음",
+     "icon": "계산",
+     "hero": true,
+     "sub": "{{fact:example_text_to_number.read.reduce_months}}개월 {{fact:example_text_to_number.read.reduced_manwon}}만 원, {{fact:example_text_to_number.read.pay_manwon}}만 원",
+     "note": "정해진 규칙, 늘 같은 결과"
+    },
+    {
+     "num": "3",
+     "label": "코드가 원문과 대조",
+     "icon": "검증",
+     "sub": "원문에 같은 글자가 있는지",
+     "note": "다르면 다시 추출"
+    },
+    {
+     "num": "4",
+     "label": "확률 산정 모델로 검증",
+     "icon": "확률 산정 모델",
+     "sub": "옮긴 값이 맞을 확률",
+     "note": "{{fact:models.decide}}"
+    },
+    {
+     "num": "5",
+     "label": "기준값으로 나눔",
+     "icon": "사람 검수",
+     "sub": "애매한 값은 사람이 검수",
+     "note": "담당자가 시트에서 정함"
+    }
+   ],
+   "align": "top"
+  },
   {
    "use": "svg",
    "box": [
     0,
-    0,
+    362,
     1760,
-    120
+    150
    ],
    "vb": [
     1760,
-    120
-   ],
-   "build": 1,
-   "alt": "테스트 방법: 상품요약서에서 맞게 옮긴 값을 일부러 틀리게 바꾸고, 확률 산정 결과로 아래 세 구간 가운데 어디로 가는지 봅니다",
-   "svg": "<rect x='0' y='4' width='520' height='112' rx='8' class='sv-paper'/><use href='{{icon:공시 문서}}' x='28' y='32' width='56' height='56'/><text x='108' y='52' class='b'>맞게 옮긴 값</text><text x='108' y='92' class='aux'>상품요약서 {{len:epost_summary_rows_by_doc}}건에서 {{fact:calibration_reextract_band.correct_rows}}건</text><path d='M532 60H608' class='sv-muted' marker-end='url(#ah)'/><rect x='620' y='4' width='520' height='112' rx='8' class='sv-paper'/><text x='648' y='52' class='b'>일부러 틀리게 바꿈</text><text x='648' y='92' class='aux'>{{len:calibration_flip_methods}}가지 방식(예: {{fact:calibration_flip_methods.0}})</text><path d='M1152 60H1228' class='sv-muted' marker-end='url(#ah)'/><rect x='1240' y='4' width='520' height='112' rx='8' class='sv-paper'/><text x='1268' y='52' class='b'>확률 산정 모델로 검증</text><text x='1268' y='92' class='aux'>아래 세 구간 가운데 어디로 가나</text>"
-  },
-  {
-   "use": "C10",
-   "box": [
-    0,
-    168,
-    560,
-    336
+    150
    ],
    "build": 2,
-   "tile": true,
-   "icon": "추출",
-   "tile_label": "다른 AI로 다시 추출",
-   "value": "{{fact:calibration_reextract_band.wrong_caught_pct|f1}}",
-   "unit": "%",
-   "caption": "확률 {{fact:verify_reextract_threshold|f2}} 미만",
-   "scope": "오류 값 {{fact:calibration_flipped_rows.rows}}건 중 비율"
-  },
-  {
-   "use": "C10",
-   "box": [
-    600,
-    168,
-    560,
-    336
-   ],
-   "build": 2,
-   "tile": true,
-   "icon": "사람 검수",
-   "tile_label": "사람이 검수",
-   "value": "{{fact:calibration_review_band_pct|f1}}",
-   "unit": "%",
-   "caption": "확률 {{fact:verify_reextract_threshold|f2}} 이상 {{fact:verify_confirm_threshold|f2}} 미만",
-   "scope": "전체에서 다시 추출 비율을 뺀 계산값"
-  },
-  {
-   "use": "C10",
-   "box": [
-    1200,
-    168,
-    560,
-    336
-   ],
-   "build": 3,
-   "tile": true,
-   "hero": true,
-   "icon": "자동 확정",
-   "tile_label": "자동 확정",
-   "value": "{{fact:calibration_flipped_rows.passed}}",
-   "unit": "건",
-   "caption": "확률 {{fact:verify_confirm_threshold|f2}} 이상",
-   "scope": "사람을 거치지 않고 통과한 오류 값"
+   "alt": "실제로 걸린 예: AI 둘이 지급액을 잘못 옮겼고, 코드 대조에서 걸려 상위 모델이 다시 읽어 바로잡은 흐름",
+   "svg": "<rect x='1' y='1' width='1758' height='148' class='sv-paper'/><text x='32' y='64' class='b'>실제로 걸린 예</text><text x='32' y='106' class='aux'>표적항암약물허가치료특약</text><rect x='340' y='24' width='400' height='102' class='sv-line'/><text x='364' y='64'>AI 둘이 옮긴 지급액</text><text x='364' y='106'>{{fact:targeted_anticancer_misread.misread_pay_manwon}}만 원</text><path d='M362 97H492' class='sv-ink'/><path d='M752 75H842' class='sv-muted' marker-end='url(#ah)'/><rect x='856' y='24' width='400' height='102' class='sv-line'/><use href='{{icon:검증}}' x='880' y='51' width='48' height='48'/><text x='944' y='64'>코드 대조에서</text><text x='944' y='106'>걸려 다시 추출</text><path d='M1268 75H1358' class='sv-muted' marker-end='url(#ah)'/><rect x='1372' y='24' width='372' height='102' class='sv-line'/><text x='1396' y='64'>상위 모델이 다시 읽음</text><text x='1396' y='106' class='b'>{{fact:targeted_anticancer_misread.correct_pay_manwon}}만 원</text>"
   }
  ],
- "points": [
-  "맞게 옮긴 값 {{fact:calibration_correct_to_review.of}}건 중 {{fact:calibration_correct_to_review.rows}}건은 사람 검수로 갑니다"
- ],
+ "points": [],
  "terms": [
+  "운영 파이프라인",
   "기준값"
  ],
- "source": "표본: 우체국 상품요약서 {{len:epost_summary_rows_by_doc}}건의 맞는 값을 일부러 바꿨습니다. 출처: 제출 설명 자료 7절",
- "notes": "이 장은 안전장치가 실제로 오류를 막는지 테스트한 결과입니다. 정답을 아는 우체국 상품요약서 {{len:epost_summary_rows_by_doc}}건에서 맞게 옮긴 값 {{fact:calibration_reextract_band.correct_rows}}건을 골라, {{len:calibration_flip_methods}}가지 방식({{fact:calibration_flip_methods}})으로 일부러 틀리게 바꿔 오류 값 {{fact:calibration_flipped_rows.rows}}건을 만들었습니다. 실제 운영에서 생긴 오류가 아니라 테스트를 위해 만든 오류입니다. 확률 산정 결과로 나눠 보니 {{fact:calibration_reextract_band.wrong_caught_pct|f1}}%는 다른 AI로 다시 추출하는 구간으로 갔고, 나머지는 사람이 검수하는 구간에 남았으며, 사람을 거치지 않고 자동 확정된 오류 값은 한 건도 없었습니다. 사람 검수 구간의 {{fact:calibration_review_band_pct|f1}}%는 문서에 적힌 값이 아니라 전체에서 다시 추출 구간의 비율을 빼서 구한 계산값입니다(자동 확정이 {{fact:calibration_flipped_rows.passed}}건이므로). 대가도 있습니다. 맞게 옮긴 값 {{fact:calibration_correct_to_review.of}}건 가운데 {{fact:calibration_correct_to_review.rows}}건은 확정 경계 {{fact:calibration_correct_to_review.threshold|f2}}에 못 미쳐 사람 검수로 가고, 다시 추출로 잘못 보내진 맞는 값은 {{fact:calibration_reextract_band.correct_rows_caught}}건입니다. 세 구간과 기준값({{fact:verify_reextract_threshold|f2}}, {{fact:verify_confirm_threshold|f2}})의 뜻은 14장에서 설명했습니다. 기준값은 업체 수치가 아니라 정답을 아는 우리 표본으로 맞췄습니다. 다만 우체국 상품요약서 {{len:epost_summary_rows_by_doc}}건만으로 맞춘 좁은 표본이라(알려진 한계 문서), 다른 회사 결과를 더해 다시 측정해야 합니다. 급부 한 행은 지급액, 감액, 면책 같은 문항으로 나눠 묻고 가장 낮은 확률로 판단합니다. 여러 특약을 한 번에 물었을 때는 잘못 끼어든 특약 {{fact:bundled_constraint_check.wrong_riders}}개가 {{fact:bundled_constraint_check.bundled_probability|f2}}로 통과했지만, 하나씩 물으니 {{fact:bundled_constraint_check.separated_probabilities.0|f2}}와 {{fact:bundled_constraint_check.separated_probabilities.1|f2}}로 떨어졌습니다. 실제 운영에서는 한화생명 재추출 {{fact:hanwha_rerun_verify_result.rows}}행이 확정 {{fact:hanwha_rerun_verify_result.confirmed}}행, 검수 {{fact:hanwha_rerun_verify_result.review}}행, 제외 {{fact:hanwha_rerun_verify_result.excluded}}행으로 나뉘었습니다. 담보 매핑의 자동 확정 기준({{fact:mapping_auto_confirm_threshold|f2}})은 오류 표본이 없어 통과율을 아직 측정하지 못했고, 23장이 화면에 측정 전으로 표시합니다."
+ "source": "출처: 제출 설명 문서 4~6절, 변환 예는 AI에게 준 작업 지시문의 예시 글을 코드로 읽은 값",
+ "notes": "3부에서 AI와 코드가 미리 해 둔다고 한 일을 왜 믿을 수 있는지 봅니다. 앱을 만들 때 쓴 AI는 {{slide:team}}장부터입니다. 앱 안에서 일은 AI, 코드, 사람이 나눠 맡습니다. AI는 공시 문서의 글자를 옮기고, 옮긴 값이 맞을 확률만 산정합니다. 금액을 만 원으로 바꾸고 기간을 개월로 세는 일, 원문과 대조하는 일은 코드가 합니다. 코드는 정해진 규칙대로 계산하므로 같은 글자를 늘 같은 숫자로 읽습니다. 위 예처럼 '{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}}'이라는 글자를 코드가 감액 {{fact:example_text_to_number.read.reduce_months}}개월, {{fact:example_text_to_number.read.reduced_manwon}}만 원으로 읽습니다. 아래 띠는 실제로 걸린 예입니다. 표적항암약물허가치료특약에서 가벼운 AI 둘이 모두 지급액을 {{fact:targeted_anticancer_misread.misread_pay_manwon}}만 원으로 잘못 옮겼는데, 코드 대조가 잡아 상위 모델 {{fact:models.upper}}로 넘겼고 {{fact:targeted_anticancer_misread.correct_pay_manwon}}만 원(감액 기간 지급액 {{fact:targeted_anticancer_misread.correct_reduced_manwon}}만 원)으로 바로잡혔습니다. 확률 산정 모델의 검증과 세 구간 분기는 {{slide:decision-model}}장에서 자세히 봅니다. 자동 확정의 기준값과 표준담보 사전은 사람이 마스터 데이터의 담당자 탭에서 정하므로 코드를 고치지 않고 바꿀 수 있습니다. 삼성화재 문서는 AI 대신 코드가 PDF 표를 읽어 규칙으로 옮기고, AI가 한 일은 작업 로그 {{fact:work_log_count_site}}건(화면에 올린 회사 기준)으로 초기 버전 화면에 공개됩니다. 다시 추출은 {{fact:models.extract_alt}}, 그래도 안 되면 상위 모델 {{fact:models.upper}}가 맡고, 삼성화재 급부표는 {{fact:samsungfire_benefit_reader}}로 읽습니다. 역할별 모델(하루 무료 한도): 찾기 {{fact:models.search}} {{fact:daily_limit_search}}회, 옮기기 {{fact:models.extract}} {{fact:daily_limit_extract}}회, 확률 산정 {{fact:models.decide}} {{fact:daily_limit_decide}}회, 다시 읽기 {{fact:models.extract_alt}} {{fact:daily_limit_extract_alt}}회와 상위 모델 {{fact:models.upper}} {{fact:daily_limit_upper}}회. 단계별로는 AI가 시장 동향 찾기, 글자 옮기기, 확률 산정을, 코드가 금액과 기간 계산, 원문 대조, 관계 연결, 금지어 검사를, 사람이 검수 대기 확인과 표준담보 사전, 기준값을 맡습니다. 기존 상품의 초기 적재는 확률 산정 모델 없이 했습니다. 코드 규칙이나 Claude 서브에이전트 두 모델의 추출과 제미나이 구독 패널의 표본을 코드로 행마다 대조해, 같으면서 원문 대조를 통과한 행만 확정했습니다(교차 확인).",
+ "footnote": "이 부의 차례: 절차 1 수집 {{slide:video-2}}장, 절차 2 값 검증 {{slide:decision-model}}~{{slide:where-to-use}}장, 절차 3 이름 맞추기 {{slide:kg-ontology}}~{{slide:video-4}}장, 절차 5 정답 대조 {{slide:goldset}}장"
 }

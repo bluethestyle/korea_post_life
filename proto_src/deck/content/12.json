@@ -1,82 +1,165 @@
 {
  "no": 12,
- "id": "ai-code-human",
+ "id": "why-ontology",
  "kind": "body",
  "chapter": 3,
  "status": "revised",
- "headline": "앱 안에서는 AI가 글자만 옮기고, 숫자는 코드가 읽고, 기준은 사람이 정합니다",
+ "headline": "절차 3: 이름이 다른 같은 담보를 표준담보 하나로 미리 맞춰 둡니다",
  "diagram": [
   {
-   "use": "C3",
+   "use": "svg",
    "box": [
     0,
     0,
-    1760,
-    330
+    330,
+    160
+   ],
+   "vb": [
+    330,
+    160
    ],
    "build": 1,
-   "nodes": [
-    {
-     "num": "1",
-     "label": "AI가 글자를 옮김",
-     "icon": "추출",
-     "sub": "\"{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}}, {{fact:example_text_to_number.text.amount}}\"",
-     "note": "{{fact:models.extract}}"
-    },
-    {
-     "num": "2",
-     "label": "코드가 숫자로 읽음",
-     "icon": "계산",
-     "hero": true,
-     "sub": "{{fact:example_text_to_number.read.reduce_months}}개월 {{fact:example_text_to_number.read.reduced_manwon}}만 원, {{fact:example_text_to_number.read.pay_manwon}}만 원",
-     "note": "정해진 규칙, 늘 같은 결과"
-    },
-    {
-     "num": "3",
-     "label": "코드가 원문과 대조",
-     "icon": "검증",
-     "sub": "원문에 같은 글자가 있는지",
-     "note": "다르면 다시 추출"
-    },
-    {
-     "num": "4",
-     "label": "확률 산정 모델로 검증",
-     "icon": "확률 산정 모델",
-     "sub": "옮긴 값이 맞을 확률",
-     "note": "{{fact:models.decide}}"
-    },
-    {
-     "num": "5",
-     "label": "기준값으로 나눔",
-     "icon": "사람 검수",
-     "sub": "애매한 값은 사람이 검수",
-     "note": "담당자가 시트에서 정함"
-    }
+   "alt": "절차 다섯 가운데 절차 3 이름 맞추기. 절차 1~3은 미리 해 두는 일, 절차 4~5는 화면에서 하는 일",
+   "svg": "<circle cx='20' cy='20' r='18' class='sv-paper'/><text x='20' y='28' text-anchor='middle' class='aux'>1</text><circle cx='82' cy='20' r='18' class='sv-paper'/><text x='82' y='28' text-anchor='middle' class='aux'>2</text><circle cx='144' cy='20' r='18' class='sv-deep'/><circle cx='144' cy='20' r='18' class='sv-ink'/><text x='144' y='28' text-anchor='middle' class='b'>3</text><circle cx='208' cy='20' r='17' class='sv-line'/><text x='208' y='28' text-anchor='middle' class='aux'>4</text><circle cx='270' cy='20' r='17' class='sv-line'/><text x='270' y='28' text-anchor='middle' class='aux'>5</text><path d='M176 0V76' class='sv-muted'/><text x='168' y='66' text-anchor='end' class='aux'>미리 해 두는 일</text><text x='184' y='66' class='aux'>화면에서</text><text x='0' y='112' class='b'>절차 3 이름 맞추기</text>"
+  },
+  {
+   "use": "C5",
+   "box": [
+    350,
+    0,
+    1090,
+    160
    ],
-   "align": "top"
+   "fill": false,
+   "labels": [
+    "지금까지",
+    "이 도구로"
+   ],
+   "build": 1,
+   "rows": [
+    {
+     "before": "회사마다 다른 담보 이름을 사람이 읽고 맞춤",
+     "after": "AI가 표준담보에 연결하고 담보 관계로 맞춤",
+     "note": "설명 {{slide:kg-ontology}}~{{slide:video-4}}장"
+    }
+   ]
+  },
+  {
+   "use": "C20",
+   "box": [
+    1460,
+    0,
+    300,
+    160
+   ],
+   "dir": "v",
+   "build": 1,
+   "chips": [
+    {
+     "role": "AI",
+     "label": "담보 연결"
+    },
+    {
+     "role": "검수 담당자",
+     "label": "매핑 검수"
+    }
+   ]
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "box": [
+    0,
+    184,
+    1100,
+    40
+   ],
+   "build": 2,
+   "limit": 56,
+   "text": "문서에 적힌 이름 그대로 옮기면(●는 그 회사 문서에 있는 이름)"
   },
   {
    "use": "svg",
    "box": [
     0,
-    362,
-    1760,
-    150
+    232,
+    1100,
+    300
    ],
    "vb": [
-    1760,
-    150
+    1100,
+    300
    ],
    "build": 2,
-   "alt": "실제로 걸린 예: AI 둘이 지급액을 잘못 옮겼고, 코드 대조에서 걸려 상위 모델이 다시 읽어 바로잡은 흐름",
-   "svg": "<rect x='1' y='1' width='1758' height='148' class='sv-paper'/><text x='32' y='64' class='b'>실제로 걸린 예</text><text x='32' y='106' class='aux'>표적항암약물허가치료특약</text><rect x='340' y='24' width='400' height='102' class='sv-line'/><text x='364' y='64'>AI 둘이 옮긴 지급액</text><text x='364' y='106'>{{fact:targeted_anticancer_misread.misread_pay_manwon}}만 원</text><path d='M362 97H492' class='sv-ink'/><path d='M752 75H842' class='sv-muted' marker-end='url(#ah)'/><rect x='856' y='24' width='400' height='102' class='sv-line'/><use href='{{icon:검증}}' x='880' y='51' width='48' height='48'/><text x='944' y='64'>코드 대조에서</text><text x='944' y='106'>걸려 다시 추출</text><path d='M1268 75H1358' class='sv-muted' marker-end='url(#ah)'/><rect x='1372' y='24' width='372' height='102' class='sv-line'/><text x='1396' y='64'>상위 모델이 다시 읽음</text><text x='1396' y='106' class='b'>{{fact:targeted_anticancer_misread.correct_pay_manwon}}만 원</text>"
+   "limit": 60,
+   "alt": "문서에 적힌 암 수술비 이름 셋을 그대로 비교표에 옮기면 같은 보장이 세 행으로 나뉘고 행마다 한 회사만 채워지는 그림",
+   "svg": "<rect x='0' y='0' width='1100' height='60' class='sv-paper'/><text x='20' y='40' class='b'>문서에 적힌 급부 이름</text><text x='810' y='40' text-anchor='middle' class='b'>우체국</text><text x='925' y='40' text-anchor='middle' class='b'>한화생명</text><text x='1040' y='40' text-anchor='middle' class='b'>삼성화재</text><path d='M0 60H1100M0 140H1100M0 220H1100M0 300H1100' class='sv-line'/><path d='M752 0V300M868 0V300M984 0V300' class='sv-line'/><text x='20' y='110'>{{fact:example_cancer_surgery_names.EPOST}}</text><circle cx='810' cy='100' r='14' class='sv-fill-ink'/><text x='925' y='108' text-anchor='middle' class='aux'>없음</text><text x='1040' y='108' text-anchor='middle' class='aux'>없음</text><text x='20' y='190'>{{fact:example_cancer_surgery_names.HANWHALIFE}}</text><text x='810' y='188' text-anchor='middle' class='aux'>없음</text><circle cx='925' cy='180' r='14' class='sv-fill-ink'/><text x='1040' y='188' text-anchor='middle' class='aux'>없음</text><text x='20' y='270'>{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}</text><text x='810' y='268' text-anchor='middle' class='aux'>없음</text><text x='925' y='268' text-anchor='middle' class='aux'>없음</text><circle cx='1040' cy='260' r='14' class='sv-fill-ink'/>"
+  },
+  {
+   "use": "text",
+   "size": "m",
+   "tone": "red",
+   "hero": true,
+   "box": [
+    0,
+    550,
+    1100,
+    54
+   ],
+   "build": 3,
+   "text": "같은 암 수술비가 세 행으로 나뉘어 나란히 비교할 수 없습니다"
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "box": [
+    1140,
+    184,
+    620,
+    40
+   ],
+   "build": 4,
+   "text": "표준담보 하나로 맞추면"
+  },
+  {
+   "use": "svg",
+   "box": [
+    1140,
+    232,
+    620,
+    300
+   ],
+   "vb": [
+    620,
+    300
+   ],
+   "build": 4,
+   "alt": "우체국, 한화생명, 삼성화재 세 회사의 급부가 표준담보 암 수술비 하나로 모이고, 비교표에서 한 행에 세 회사가 모두 채워지는 그림",
+   "svg": "<text x='0' y='38'>우체국</text><text x='0' y='98'>한화생명</text><text x='0' y='158'>삼성화재</text><path d='M88 29C160 29 170 89 230 89M122 89H230M122 149C170 149 160 89 230 89' class='sv-muted' marker-end='url(#ah)'/><rect x='240' y='24' width='380' height='130' class='sv-paper'/><rect x='240' y='24' width='380' height='130' class='sv-ink'/><text x='430' y='84' text-anchor='middle' class='b'>{{fact:example_cancer_surgery.standard_coverage}}</text><text x='430' y='124' text-anchor='middle' class='aux'>표준담보</text><rect x='0' y='190' width='620' height='50' class='sv-paper'/><text x='16' y='224' class='b'>표준담보</text><text x='250' y='224' text-anchor='middle' class='b'>우체국</text><text x='375' y='224' text-anchor='middle' class='b'>한화생명</text><text x='510' y='224' text-anchor='middle' class='b'>삼성화재</text><path d='M0 240H620M0 300H620' class='sv-line'/><text x='16' y='280'>{{fact:example_cancer_surgery.standard_coverage}}</text><circle cx='250' cy='270' r='14' class='sv-fill-ink'/><circle cx='375' cy='270' r='14' class='sv-fill-ink'/><circle cx='510' cy='270' r='14' class='sv-fill-ink'/>"
+  },
+  {
+   "use": "text",
+   "size": "m",
+   "tone": "ink",
+   "box": [
+    1140,
+    550,
+    620,
+    54
+   ],
+   "build": 4,
+   "text": "한 행에서 세 회사를 나란히 비교합니다"
   }
  ],
- "points": [],
- "terms": [
-  "운영 파이프라인",
-  "기준값"
+ "points": [
+  "같은 것을 같은 이름으로 부르는 약속이 필요합니다"
  ],
- "source": "출처: 제출 설명 문서 4~6절, 변환 예는 AI에게 준 작업 지시문의 예시 글을 코드로 읽은 값",
- "notes": "앞의 세 장은 앱을 만들 때 쓴 AI였고, 이 장부터는 앱 안에서 매번 실행되는 AI입니다. 앱 안에서 일은 AI, 코드, 사람이 나눠 맡습니다. AI는 공시 문서의 글자를 옮기고, 옮긴 값이 맞을 확률만 산정합니다. 금액을 만 원으로 바꾸고 기간을 개월로 세는 일, 원문과 대조하는 일은 코드가 합니다. 코드는 정해진 규칙대로 계산하므로 같은 글자를 늘 같은 숫자로 읽습니다. 위 예처럼 '{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}}'이라는 글자를 코드가 감액 {{fact:example_text_to_number.read.reduce_months}}개월, {{fact:example_text_to_number.read.reduced_manwon}}만 원으로 읽습니다. 아래 띠는 실제로 걸린 예입니다. 표적항암약물허가치료특약에서 가벼운 AI 둘이 모두 지급액을 {{fact:targeted_anticancer_misread.misread_pay_manwon}}만 원으로 잘못 옮겼는데, 코드 대조가 잡아 상위 모델 {{fact:models.upper}}로 넘겼고 {{fact:targeted_anticancer_misread.correct_pay_manwon}}만 원(감액 기간 지급액 {{fact:targeted_anticancer_misread.correct_reduced_manwon}}만 원)으로 바로잡혔습니다. 확률 산정 모델의 검증과 세 구간 분기는 14장에서 자세히 봅니다. 자동 확정의 기준값과 표준담보 사전은 사람이 마스터 데이터의 담당자 탭에서 정하므로 코드를 고치지 않고 바꿀 수 있습니다. 삼성화재 문서는 AI 대신 코드가 PDF 표를 읽어 규칙으로 옮기고, AI가 한 일은 작업 로그 {{fact:work_log_count_site}}건(화면에 올린 회사 기준)으로 초기 버전 화면에 공개됩니다. 다시 추출은 {{fact:models.extract_alt}}, 그래도 안 되면 상위 모델 {{fact:models.upper}}가 맡고, 삼성화재 급부표는 {{fact:samsungfire_benefit_reader}}로 읽습니다. 역할별 모델(하루 무료 한도): 찾기 {{fact:models.search}} {{fact:daily_limit_search}}회, 옮기기 {{fact:models.extract}} {{fact:daily_limit_extract}}회, 확률 산정 {{fact:models.decide}} {{fact:daily_limit_decide}}회, 다시 읽기 {{fact:models.extract_alt}} {{fact:daily_limit_extract_alt}}회와 상위 모델 {{fact:models.upper}} {{fact:daily_limit_upper}}회. 단계별로는 AI가 시장 동향 찾기, 글자 옮기기, 확률 산정을, 코드가 금액과 기간 계산, 원문 대조, 관계 연결, 금지어 검사를, 사람이 검수 대기 확인과 표준담보 사전, 기준값을 맡습니다. 기존 상품의 초기 적재는 확률 산정 모델 없이 했습니다. 코드 규칙이나 Claude 서브에이전트 두 모델의 추출과 제미나이 구독 패널의 표본을 코드로 행마다 대조해, 같으면서 원문 대조를 통과한 행만 확정했습니다(교차 확인)."
+ "terms": [
+  "표준담보",
+  "매핑"
+ ],
+ "source": "출처: 각 사 상품요약서의 급부 이름(담보 비교 자료), 자료 기준 {{asof:example_cancer_surgery_names}}",
+ "notes": "{{slide:step2-extract}}장에서 세 회사 문서의 암 수술비를 찾아 시트에 옮겼습니다. 그런데 문서에 적힌 이름은 이렇게 다릅니다. 우체국은 '{{fact:example_cancer_surgery_names.EPOST}}', 한화생명은 '{{fact:example_cancer_surgery_names.HANWHALIFE}}', 삼성화재는 '{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}'입니다. 보험을 아는 사람은 세 이름을 읽고 모두 암 수술비라는 것을 바로 알아봅니다. 하지만 컴퓨터는 글자가 하나라도 다르면 서로 다른 항목으로 셉니다. 그래서 이름을 그대로 비교표에 옮기면 같은 보장이 세 행으로 나뉘고, 행마다 한 회사만 채워집니다. 화면은 세 회사가 서로 다른 담보를 하나씩 가진 것처럼 보여 주고, 어느 회사든 다른 두 회사에는 암 수술비가 없다는 잘못된 결과가 나옵니다. {{ref:kg_google_2012.year}}년 구글이 지식그래프를 내놓으며 내세운 {{ref:kg_google_2012.text}}도, 글자가 같은지가 아니라 같은 것을 가리키는지를 따지자는 발상입니다. 이 문제를 사람이 손으로 풀기도 어렵습니다. 화면에 올린 세 회사의 급부(보험금을 주는 사유 한 건)만 {{fact:benefit_count_site}}개이고, 회사를 늘릴 때마다 이름 대조를 처음부터 다시 해야 합니다. 그래서 같은 것을 같은 이름으로 부르자는 약속을 먼저 정했습니다. 이 도구는 세 회사의 급부를 표준담보 '{{fact:example_cancer_surgery.standard_coverage}}' 하나에 미리 연결해 둡니다. 이 연결을 매핑이라고 부르고, AI가 표준담보에 연결한 뒤 확신이 낮은 연결은 검수 담당자가 확인합니다. 그러면 오른쪽처럼 암 수술비가 한 행에 모이고 세 회사를 나란히 비교할 수 있습니다. 다음 장에서 이 한 행을 화면에서 비교합니다. 이 약속이 온톨로지이고 {{slide:kg-ontology}}장부터 설명합니다."
 }

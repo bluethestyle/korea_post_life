@@ -478,8 +478,9 @@ def c1(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
 # ---------------------------------------------------------------------------
 # C2 일곱 단계 구조도와 C20 역할 레인
 # ---------------------------------------------------------------------------
-ROLE_ICON = {"AI": "ai", "코드": "code", "사람": "person"}
-ROLE_CLS = {"AI": "ai", "코드": "code", "사람": "hum"}
+# 자동 실행(예약 실행과 푸시 때의 배포)은 코드 모양, 검수 담당자와 실무자는 사람 모양. 모르는 이름은 코드 모양으로 그린다
+ROLE_ICON = {"AI": "ai", "코드": "code", "사람": "person", "자동 실행": "calendar-check", "검수 담당자": "user-check", "실무자": "person"}
+ROLE_CLS = {"AI": "ai", "코드": "code", "사람": "hum", "자동 실행": "code", "검수 담당자": "hum", "실무자": "hum"}
 
 
 def role_chip(ctx: Ctx, role: str, label: str, where: str, width: float | None = None) -> str:

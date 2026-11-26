@@ -1,129 +1,133 @@
 {
  "no": 27,
- "id": "cost-deploy",
+ "id": "name-matching",
  "kind": "body",
- "chapter": 6,
- "status": "new",
- "headline": "매주 자동 실행의 AI 호출 비용은 {{fact:operating_cost_won}}원이고, 화면은 웹 주소와 파일 하나로 전합니다",
+ "chapter": 4,
+ "status": "revised",
+ "headline": "급부 이름을 표준담보에 연결하고, 확신이 낮은 연결은 사람이 검수합니다",
  "diagram": [
   {
-   "use": "C16",
-   "part": "receipt",
+   "use": "C9",
+   "layout": "converge",
    "box": [
     0,
     0,
-    560,
-    420
+    1120,
+    410
    ],
-   "title": "매주 자동 실행의 API 호출 비용",
-   "items": [
+   "cards": [
     {
-     "label": "AI 호출(Gemini 무료 한도)",
-     "won": "{{fact:operating_cost_won}}원"
+     "org": "EPOST",
+     "text": "{{fact:example_cancer_surgery_names.EPOST}}"
     },
     {
-     "label": "마스터 데이터(구글 시트)",
-     "won": "{{fact:operating_cost_won}}원"
+     "org": "HANWHALIFE",
+     "text": "{{fact:example_cancer_surgery_names.HANWHALIFE}}"
     },
     {
-     "label": "자동 실행(GitHub Actions)",
-     "won": "{{fact:operating_cost_won}}원",
-     "note": "{{ref:github_actions_public_free.short}}"
-    },
-    {
-     "label": "웹 주소(GitHub Pages)",
-     "won": "{{fact:operating_cost_won}}원"
+     "org": "SAMSUNGFIRE",
+     "text": "{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}"
     }
    ],
-   "total": "{{fact:operating_cost_won}}원",
+   "target": {
+    "label": "암 수술비",
+    "sub": "표준담보"
+   },
+   "chip": "자동 확정: 확률 {{fact:mapping_auto_confirm_threshold|f2}} 이상,<br>또는 AI 둘의 답이 같을 때",
    "build": 1
   },
   {
-   "use": "svg",
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "text": "이 확률 기준이 틀린 연결을 얼마나 거르는지는",
    "box": [
     0,
-    424,
-    560,
-    152
+    440,
+    490,
+    48
    ],
-   "vb": [
-    560,
-    152
-   ],
-   "alt": "개발과 초기 적재에 쓴 구독 도구의 월 요금. 매주 운영비와 따로 듭니다",
-   "svg": "<use href='{{icon:비용}}' x='0' y='4' width='32' height='32'/><text x='44' y='30' class='b'>개발 구독료(운영비와 별도)</text><text x='0' y='68'>Claude 월 {{fact:subscription_claude_usd_per_month}}달러</text><text x='300' y='68' class='muted'>{{name:claude_code}}</text><text x='0' y='104'>Gemini 월 {{fact:subscription_gemini_krw_per_month}}원</text><text x='300' y='104' class='muted'>{{name:gemini_panel}}</text><text x='0' y='140' class='muted'>화면 구현에는 {{name:antigravity}}도 씀</text>",
    "build": 2
   },
   {
+   "use": "C15",
+   "kind": "unmeasured",
+   "box": [
+    500,
+    440,
+    160,
+    48
+   ],
+   "build": 2
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "text": "연결한 결과",
+   "box": [
+    1200,
+    0,
+    560,
+    44
+   ],
+   "build": 3
+  },
+  {
+   "use": "C10",
+   "value": "{{fact:graph_nodes_by_kind.급부}}",
+   "unit": "개",
+   "caption": "급부(지급 사유)",
+   "scope": "관계 그래프에 올린 {{fact:graph_company_nodes_with_variants.count}}개 회사",
+   "size": "small",
+   "hero": false,
+   "box": [
+    1200,
+    56,
+    560,
+    160
+   ],
+   "build": 3
+  },
+  {
    "use": "svg",
    "box": [
-    640,
-    0,
-    1120,
-    40
+    1200,
+    224,
+    560,
+    64
    ],
    "vb": [
-    1120,
-    40
+    560,
+    64
    ],
-   "alt": "오른쪽 달력은 예약으로 자동 실행되는 일정입니다",
-   "svg": "<use href='{{icon:일정}}' x='0' y='4' width='32' height='32'/><text x='44' y='30' class='b'>자동 실행 일정(한국 시간)</text>",
+   "alt": "급부가 표준담보로 모인다는 아래 방향 화살표",
+   "svg": "<path d='M40 4V56' class='sv-muted' marker-end='url(#ah)'/><text x='72' y='40' class='aux'>표준담보에 연결해 모음</text>",
    "build": 3
   },
   {
-   "use": "C16",
-   "part": "week",
+   "use": "C10",
+   "value": "{{fact:graph_nodes_by_kind.표준담보}}",
+   "unit": "개",
+   "caption": "표준담보",
+   "scope": "보장 대분류 {{fact:coverage_major_class_count}}개로 다시 묶음",
+   "size": "small",
+   "hero": false,
    "box": [
-    640,
-    48,
-    1120,
-    376
+    1200,
+    296,
+    560,
+    160
    ],
-   "week": {
-    "daily": {
-     "time": "{{fact:schedule_collect_kst.time}}",
-     "label": "시장 동향 수집"
-    },
-    "sun": {
-     "time": "{{fact:schedule_weekly_close_kst.time}}",
-     "label": "주간 마감 자료 보관"
-    },
-    "after": "주간 마감 자료를 저장소에 기록",
-    "manual": {
-     "label": "사람이 실행",
-     "text": "공시 문서 수집, 추출, 매핑, 화면 빌드"
-    }
-   },
    "build": 3
-  },
-  {
-   "use": "C3",
-   "box": [
-    640,
-    440,
-    1120,
-    136
-   ],
-   "nodes": [
-    {
-     "label": "웹 주소",
-     "sub": "인터넷으로 바로 열기"
-    },
-    {
-     "label": "파일 하나(약 {{fact:site_file_size_mb}}MB)",
-     "sub": "복사해 보내면 인터넷 없이 열림"
-    }
-   ],
-   "joiner": "또는",
-   "build": 4
   }
  ],
- "points": [],
- "terms": [
-  "GitHub Actions",
-  "GitHub Pages",
-  "API"
+ "points": [
+  "확신이 낮은 연결은 검수 대기로 두고 비교에서 뺍니다"
  ],
- "source": "출처: 자동 실행 설정(시장 동향 수집, 주간 마감), 제출 설명 자료 7절, 구독료는 담당자 확인",
- "notes": "왼쪽 영수증은 매주 자동 실행되는 일에 드는 API 호출 비용입니다. 매주 운영에 쓰는 도구는 모두 무료 범위 안에 있도록 짰습니다. AI 모델은 Gemini 무료 등급을 하루 한도 안에서 쓰고, 자료는 구글 시트에, 자동 실행은 GitHub Actions에, 화면은 GitHub Pages에 둡니다. GitHub Actions는 공개 저장소에서 표준 러너를 쓰면 무료입니다(GitHub 공식 문서). 다만 대형 러너는 공개 저장소에서도 요금이 붙고, 공개 저장소의 예약 실행은 저장소 활동이 {{ref:github_actions_public_free.schedule_off_after_days}}일 없으면 자동으로 꺼지므로 그 전에 커밋이 있어야 합니다. 오른쪽 일정: 매일 아침 {{fact:schedule_collect_kst.time}}에 시장 동향(타사 신상품과 개정 보도)을 모으고, 일요일 밤 {{fact:schedule_weekly_close_kst.time}}에 주간 마감으로 구글 시트의 자료를 통째로 보관한 주간 마감 자료를 저장소에 커밋합니다. 여기까지가 예약으로 자동 실행되는 일입니다. 공시 문서 수집, 추출과 검증, 담보 매핑, 화면 빌드와 배포는 필요할 때 사람이 실행합니다. 왼쪽 아래 구독료는 개발과 초기 적재에 쓴 구독 도구의 요금제 금액이고 매주 운영비가 아닙니다: Claude 월 {{fact:subscription_claude_usd_per_month}}달러, Gemini 월 {{fact:subscription_gemini_krw_per_month}}원(Ultra). Antigravity는 Gemini 구독으로 쓰는 것으로 보이나 확인 중이라 금액을 따로 적지 않았습니다. 무료 한도가 회사를 넓히는 데 가장 큰 제약이었습니다. 한화생명 상품 하나의 첫 추출에만 호출 {{fact:hanwha_first_extract.calls}}회와 {{fact:hanwha_first_extract.minutes}}분이 들었기 때문에, 기존 상품의 첫 적재는 무료 API 한도를 쓰지 않고 구독형 AI 도구로 했습니다. 화면은 두 가지로 전합니다. 웹 주소(GitHub Pages)로 열거나, 사내망에서 주소가 막히면 약 {{fact:site_file_size_mb}}MB 파일 하나를 그대로 전하면 되고 인터넷 없이도 열립니다. API 키 같은 비밀값은 Actions의 비밀값에만 둡니다. 무료 등급의 입력은 Google 제품 개선에 쓰일 수 있어 이미 공개된 공시 문서만 보냅니다. 나중에 유료로 넓힐 때 확률 산정 모델의 가격은 입력 100만 토큰당 {{ref:gemini_decision_price.usd_per_million_input_tokens}}달러입니다. 운영 비용은 API(프로그램이 AI를 부르는 창구) 호출 비용 기준입니다. 자동 실행 설정 파일은 .github/workflows 의 collect.yml, weekly-close.yml입니다."
+ "terms": [
+  "검수 대기"
+ ],
+ "source": "출처: 담보 매핑 자료, 관계 그래프 화면 자료, 상품 종형 주간 마감 자료, 자료 기준 {{asof:graph_nodes_by_kind}}",
+ "notes": "이 장은 앞에서 본 연결, 곧 매핑을 수천 건 규모로 어떻게 했는지입니다. 왼쪽은 {{slide:cancer-surgery}}장의 암 수술비입니다. 우체국, 한화생명, 삼성화재의 공시 문서에 적힌 급부 이름이 이렇게 달라도, 셋 모두 표준담보 '{{fact:example_cancer_surgery.standard_coverage}}' 하나에 연결합니다. 카드의 글은 문서의 급부 이름을 그대로 옮긴 것입니다. 연결할 표준담보는 AI가 고르고, 그 결과를 언제 그대로 믿을지는 사람이 정한 기준을 따릅니다. 확률 산정 모델이 매긴 확률이 기준값 {{fact:mapping_auto_confirm_threshold|f2}} 이상이거나, 서로 다른 AI 둘이 따로 고른 결과가 같으면 자동으로 확정합니다. 나머지는 검수 대기로 두고 담당자가 확인할 때까지 비교에서 뺍니다. 지금 자동 확정된 매핑 {{fact:mapping_auto_confirm_by_route.all.total}}행 가운데 확률 산정 결과로 확정한 것이 {{fact:mapping_auto_confirm_by_route.all.decision_model}}행, AI 둘의 답이 같아 확정한 것이 {{fact:mapping_auto_confirm_by_route.all.cross_check}}행입니다. 화면에 올린 세 회사의 검수 대기는 {{fact:mapping_status_site.대기}}행입니다. 다만 매핑 쪽의 확률 기준값은 앞의 기준값 보정 장처럼 일부러 오류 값을 넣어 보는 테스트를 아직 하지 않아, 틀린 연결을 얼마나 거르는지는 측정 전입니다. 표준담보 사전은 처음에 우체국 상품 기준으로 {{fact:dictionary_initial_size}}개로 시작했고, 우체국이 가졌거나 공시 요약서에서 {{fact:dictionary_addition_rule.min_holder_orgs}}곳 이상이 가진 담보를 더해 지금 {{fact:standard_coverage_rows}}행(사용 {{fact:standard_coverage_in_use}}개)이 됐습니다. 담보 관계는 대부분 Claude와 제미나이가 따로 만들어 두 쪽이 같은 행만 넣었고, 사전이 바뀐 뒤에 더한 한 건은 제미나이와 대조하지 않고 Claude가 넣었습니다. 오른쪽은 이렇게 연결한 결과입니다. 관계 그래프에 올린 회사 {{fact:graph_company_nodes_with_variants.count}}곳({{fact:graph_company_nodes_with_variants.names}})의 급부 {{fact:graph_nodes_by_kind.급부}}개가 표준담보 {{fact:graph_nodes_by_kind.표준담보}}개로 모이고, 표준담보는 다시 보장 대분류 {{fact:coverage_major_class_count}}개로 묶입니다. 급부 수천 개가 표준담보 수십 개로 줄어드는 것이 이 관계 그래프의 쓸모입니다. 급부를 담은 종형은 {{fact:graph_nodes_by_kind.종형}}개, 특약은 {{fact:graph_nodes_by_kind.특약}}개입니다. 종형 {{fact:variant_sale_status_site.total}}개 가운데 판매 중인 것은 {{fact:variant_sale_status_site.on_sale}}개입니다. 나머지 {{fact:variant_sale_status_site.ended}}개는 지금 판매하는 {{fact:epost_renewal.after}}으로 리뉴얼되기 전 상품인 {{fact:variant_sale_status_site.ended_products}}(판매 종료, {{fact:variant_sale_status_site.ended_dates}})의 종형으로, 개정 전후를 비교하는 데에만 씁니다. 관계 그래프에는 시장 동향에 나온 회사까지 점으로 있지만 회사 수에는 상품을 올린 회사만 셉니다. 특약 수가 화면 자료의 특약 수보다 적은 것은 인수기준만 수집한 종형의 특약을 그래프에 포함하지 않았기 때문입니다."
 }

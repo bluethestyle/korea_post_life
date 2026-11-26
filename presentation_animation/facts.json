@@ -915,6 +915,26 @@
         "name": "TABS"
       }
     },
+    "sheet_tabs_by_owner": {
+      "value": {
+        "sys": 9,
+        "hum": 4,
+        "hum_names": [
+          "표준담보사전",
+          "표준질병군",
+          "담보매핑",
+          "기준값"
+        ]
+      },
+      "label": "구글 시트 정본의 탭을 쓰는 쪽으로 나눈 수: 코드가 쓰는 탭(sys_)과 담당자가 값을 정하는 탭(hum_), 담당자 탭의 이름(탭 차례)",
+      "as_of": "2026-11-26",
+      "source": {
+        "kind": "schema",
+        "file": "src/postlife/schema.py",
+        "name": "TABS",
+        "method": "탭 이름의 앞머리 sys_, hum_ 로 나눔"
+      }
+    },
     "market_news_institution_count": {
       "value": 19,
       "label": "시장 소식을 모으는 기관 수",
@@ -4417,6 +4437,28 @@
         "path": "b[기준종형[0].종형ID].rows[STD_CA_SURG] 의 칸마다 대표 급부(r)와 비교쌍(it)"
       }
     },
+    "example_pending_case": {
+      "value": {
+        "standard_coverage": "암 수술비",
+        "standard_coverage_id": "STD_CA_SURG",
+        "org": "SAMSUNGFIRE",
+        "org_name": "삼성화재",
+        "variant": "7종(해약환급금 미지급형) 325·5",
+        "benefit": "[갱신형][간편](체증형,수술시30%)암 수술비(유사암 포함)(1년50%)",
+        "doc_kind": "요약서",
+        "doc_page": 113,
+        "is_cancer_surgery": true,
+        "scope_note": ""
+      },
+      "label": "화면이 처음 여는 기준 종형의 담보 비교에서 검수 대기라 비교에서 뺀 첫 비교 건(암 수술비 행에 있으면 그 건, 없으면 행 차례로 첫 건): 표준담보, 타사, 타사 대표 급부의 원문 이름, 근거 문서와 쪽. scope_note 는 암 수술비가 아니면 '다른 담보의 예'",
+      "as_of": "2026-11-26",
+      "source": {
+        "kind": "screen_data",
+        "file": "proto_src/console4/cover.json",
+        "path": "b[기준종형[0].종형ID].rows 의 비교쌍 가운데 x(검수 대기로 뺌)가 참인 첫 건과 그 칸의 대표 급부(r)"
+      },
+      "note": "자료를 갱신하면 예가 바뀔 수 있어 덱은 이 항목을 읽습니다(3부 절차 5)."
+    },
     "example_split_rider": {
       "value": {
         "broad": {
@@ -4755,6 +4797,27 @@
       },
       "note": "예약 실행은 시장 동향 수집과 주간 마감(스냅샷 커밋)뿐이고, 공시 문서 수집, 추출, 매핑은 사람이 실행합니다. 화면 배포는 site/ 에 푸시할 때 돌고, 화면 빌드는 사람이 합니다."
     },
+    "pages_deploy_trigger": {
+      "value": {
+        "branches": [
+          "main"
+        ],
+        "paths": [
+          "site/**",
+          ".github/workflows/pages.yml"
+        ],
+        "manual": true,
+        "rebuilds_screen": false
+      },
+      "label": "화면 배포(GitHub Pages)가 도는 조건: 푸시 브랜치, 바뀐 파일의 경로, 수동 실행 가능 여부, 배포 때 화면을 다시 빌드하는지",
+      "as_of": "2026-11-26",
+      "source": {
+        "kind": "repo",
+        "file": ".github/workflows/pages.yml",
+        "method": "on.push.branches, on.push.paths, workflow_dispatch, run 의 빌드 명령"
+      },
+      "note": "main 에 site/ 아래 파일을 푸시하면 배포됩니다. 화면 빌드는 사람이 하고 커밋한 파일을 그대로 올립니다."
+    },
     "symmetric_choice_item": {
       "value": {
         "item": "면책기간",
@@ -4804,13 +4867,13 @@
       }
     },
     "test_count": {
-      "value": 1565,
+      "value": 1568,
       "label": "전체 자동 시험 수",
-      "as_of": "2026-11-25",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "manual"
       },
-      "note": "메인 세션이 2026-11-25(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."
+      "note": "메인 세션이 2026-11-26(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."
     },
     "commit_count": {
       "value": 287,

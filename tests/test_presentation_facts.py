@@ -186,3 +186,27 @@ def test_relation_covered_reads_only_cells_without_held_or_pending_benefits():
     cover["b"]["B"]["cols"] = ["P", "B"]
     with pytest.raises(epf.FactsError, match="첫 열"):
         epf.cover_facts(sales, cover, "2026-11-23")
+
+
+def test_deck_v5_facts_follow_schema_workflow_and_screen_data():
+    """덱 1부와 3부가 쓰는 항목: 시트 탭의 담당 구분, 배포 조건, 검수 대기 첫 비교 건이 근거 파일과 맞는다."""
+    import sys
+    sys.path.insert(0, str(ROOT / "src"))
+    from postlife import schema
+
+    facts = _committed()["facts"]
+    tabs = facts["sheet_tabs_by_owner"]["value"]
+    assert tabs["sys"] + tabs["hum"] == len(schema.TABS) == facts["sheet_tab_count"]["value"]
+    assert ["hum_" + n for n in tabs["hum_names"]] == [t for t in schema.TABS if t.startswith("hum_")]
+    deploy = facts["pages_deploy_trigger"]["value"]
+    pages = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+    assert deploy["branches"] == ["main"] and "site/**" in deploy["paths"] and deploy["manual"] is True
+    assert deploy["rebuilds_screen"] is False and "build.py" not in pages
+    case = facts["example_pending_case"]["value"]
+    cancer = facts["example_cancer_surgery"]["value"]
+    if case["is_cancer_surgery"]:
+        assert cancer["pairs"][case["org"]]["excluded"] is True and case["scope_note"] == ""
+        assert case["doc_page"] == cancer["orgs"][case["org"]]["doc_page"]
+    else:
+        assert case["scope_note"] == "다른 담보의 예"
+        assert not any(p["excluded"] for p in cancer["pairs"].values())

@@ -1,94 +1,149 @@
 {
  "no": 15,
- "id": "decision-background",
+ "id": "step5-source",
  "kind": "body",
- "chapter": 4,
+ "chapter": 3,
  "status": "new",
- "headline": "AI가 말하는 확신을 믿기 어려워 확률 산정 모델이 나왔고,<br>이 앱은 {{len:decision_model_uses}}곳에 씁니다",
- "frame": {
-  "top": 280
- },
+ "headline": "절차 5: 실무자는 검수 대기 값만 근거 쪽수를 보고 원문과 대조합니다",
  "diagram": [
   {
-   "use": "C8",
+   "use": "svg",
    "box": [
     0,
     0,
-    1760,
-    270
+    330,
+    160
+   ],
+   "vb": [
+    330,
+    160
    ],
    "build": 1,
-   "dots": [
+   "alt": "절차 다섯 가운데 절차 5 원문 확인. 절차 1~3은 미리 해 두는 일, 절차 4~5는 화면에서 하는 일",
+   "svg": "<circle cx='20' cy='20' r='18' class='sv-paper'/><text x='20' y='28' text-anchor='middle' class='aux'>1</text><circle cx='82' cy='20' r='18' class='sv-paper'/><text x='82' y='28' text-anchor='middle' class='aux'>2</text><circle cx='144' cy='20' r='18' class='sv-paper'/><text x='144' y='28' text-anchor='middle' class='aux'>3</text><circle cx='208' cy='20' r='18' class='sv-paper'/><text x='208' y='28' text-anchor='middle' class='aux'>4</text><circle cx='270' cy='20' r='18' class='sv-deep'/><circle cx='270' cy='20' r='18' class='sv-ink'/><text x='270' y='28' text-anchor='middle' class='b'>5</text><path d='M176 0V76' class='sv-muted'/><text x='168' y='66' text-anchor='end' class='aux'>미리 해 두는 일</text><text x='184' y='66' class='aux'>화면에서</text><text x='0' y='112' class='b'>절차 5 원문 확인</text>"
+  },
+  {
+   "use": "C5",
+   "box": [
+    350,
+    0,
+    1090,
+    160
+   ],
+   "fill": false,
+   "labels": [
+    "지금까지",
+    "이 도구로"
+   ],
+   "build": 1,
+   "rows": [
     {
-     "d": "{{ref:openai_calibration_2023.year}}년 {{ref:openai_calibration_2023.month}}월",
-     "label": "{{ref:openai_calibration_2023.short}}",
-     "src": "OpenAI"
+     "before": "옮긴 값을 원문과 다시 대조",
+     "after": "화면의 값마다 근거 문서와 쪽수 표시",
+     "note": "개발 때의 정답 대조는 {{slide:goldset}}장"
+    }
+   ]
+  },
+  {
+   "use": "C20",
+   "box": [
+    1460,
+    0,
+    300,
+    160
+   ],
+   "dir": "v",
+   "build": 1,
+   "chips": [
+    {
+     "role": "코드",
+     "label": "쪽수 표시"
     },
     {
-     "d": "{{ref:openai_structured_2024.year}}년 {{ref:openai_structured_2024.month}}월",
-     "label": "{{ref:openai_structured_2024.short}}",
-     "src": "OpenAI"
-    },
-    {
-     "d": "{{ref:jev_release.year}}년 {{ref:jev_release.month}}월",
-     "label": "확률만 산정하는 AI {{ref:jev_release.model}} 공개",
-     "src": "TypeSafe AI",
-     "tag": "이 앱은 안 씀"
-    },
-    {
-     "d": "{{ref:gemini_decision_release.year}}년 {{ref:gemini_decision_release.month}}월",
-     "label": "{{ref:gemini_decision_release.model}} 공개",
-     "src": "Google",
-     "hero": true,
-     "tag": "이 앱이 씀"
+     "role": "실무자",
+     "label": "검수 대기 대조"
     }
    ]
   },
   {
    "use": "C3",
-   "arrows": false,
-   "build": 2,
+   "dir": "h",
    "box": [
     0,
-    300,
-    1760,
-    268
+    180,
+    1240,
+    476
    ],
+   "build": 2,
+   "align": "top",
    "nodes": [
     {
-     "icon": "검증",
-     "label": "옮긴 값 검증",
-     "sub": "추출한 값이 원문과 맞는지",
-     "note": "일곱 단계 중 3 검증"
+     "num": "1",
+     "label": "검수 대기 칩",
+     "hero": true,
+     "figure": {
+      "use": "C12",
+      "img": "cut_pending_chip",
+      "alt": "상세 머리에서 타사와의 비교에 표시된 검수 대기 칩을 2배로 확대한 캡처"
+     },
+     "fig_h": 196,
+     "sub": "{{fact:example_pending_case.standard_coverage}}의 {{fact:example_pending_case.org_name}} 비교가 빠짐",
+     "note": "{{fact:example_pending_case.scope_note}}"
     },
     {
-     "icon": "관계 그래프",
-     "label": "담보 이름 [[매핑]]",
-     "sub": "회사마다 다른 이름을 [[표준담보]]에",
-     "note": "일곱 단계 중 5 관계 그래프"
+     "num": "2",
+     "label": "근거 문서와 쪽",
+     "icon": "공시 문서",
+     "sub": "상세와 근거에 문서와 쪽수"
     },
     {
-     "icon": "시장 동향",
-     "label": "시장 동향 선별",
-     "sub": "모은 보도가 비교 대상인지",
-     "note": "일곱 단계 중 1 수집"
-    },
-    {
-     "icon": "copy",
-     "label": "같은 동향 병합",
-     "sub": "같은 내용의 보도를 하나로",
-     "note": "일곱 단계 중 1 수집"
+     "num": "3",
+     "label": "원문의 그 쪽을 확인",
+     "icon": "검토",
+     "sub": "{{fact:example_pending_case.org_name}} {{fact:example_pending_case.doc_kind}} {{fact:example_pending_case.doc_page}}쪽을 열어 대조"
     }
    ]
+  },
+  {
+   "use": "C10",
+   "box": [
+    1280,
+    180,
+    480,
+    276
+   ],
+   "build": 3,
+   "tile": true,
+   "icon": "사람 검수",
+   "tile_label": "검수 대기",
+   "value": "{{fact:excluded_pending_pairs}}",
+   "unit": "건",
+   "size": "small",
+   "caption": "비교에서 뺀 비교 건",
+   "scope": "화면이 처음 여는 기준 종형"
+  },
+  {
+   "use": "svg",
+   "box": [
+    1280,
+    472,
+    480,
+    184
+   ],
+   "vb": [
+    446,
+    171
+   ],
+   "build": 3,
+   "limit": 20,
+   "alt": "검수 대기가 아닌 값도 근거 쪽수가 있어, 필요할 때 원문을 바로 찾을 수 있습니다",
+   "svg": "<rect x='0' y='0' width='446' height='171' class='sv-paper'/><text x='20' y='52'>검수 대기가 아닌 값도 근거</text><text x='20' y='94'>쪽수가 있어, 필요할 때 원문을</text><text x='20' y='136'>바로 찾을 수 있습니다</text>"
   }
  ],
- "points": [
-  "AI는 확률만 내고, 계산과 최종 결정은 코드가 합니다"
- ],
+ "points": [],
  "terms": [
-  "표준담보",
-  "매핑"
+  "검수 대기"
  ],
- "source": "출처: 제출 설명 자료의 확률 산정 전용 모델 절, 연표는 각 회사의 공개 글",
- "notes": "위 연표는 확률 산정 모델이 나온 배경입니다. {{ref:openai_calibration_2023.year}}년 OpenAI 연구 글은 {{ref:openai_calibration_2023.text}}를 냈습니다. 사전학습만 한 모델은 확신이 정답률과 대체로 맞았는데, 대화용으로 다듬은 뒤 어긋났다는 내용입니다. {{ref:openai_structured_2024.year}}년에는 답의 형식을 강제하는 기능이 나왔지만 값 자체가 틀리는 문제는 남았습니다. 이 빈자리를 메우려고 올가을 두 회사가 확률만 산정하는 AI를 약 두 달 간격으로 내놓았습니다. {{ref:jev_release.org}}의 {{ref:jev_release.model}}는 이 방식을 먼저 공개한 사례로만 소개하며 이 앱은 쓰지 않았고, 두 모델의 우열은 비교하지 않았습니다. 이 앱이 쓴 것은 {{ref:gemini_decision_release.model}} 하나입니다. 두 회사 문서는 문항 종류 세 가지(noul, choice, score)에 같은 이름을 쓰고, {{ref:jev_release.model}} 문서에는 이미지 영역 종류(box)가 하나 더 있습니다. 어느 쪽이 따랐다는 진술은 없습니다. 연표: {{ref:openai_calibration_2023.date}} {{ref:openai_calibration_2023.text}}(OpenAI), {{ref:openai_structured_2024.date}} {{ref:openai_structured_2024.text}}(OpenAI), {{ref:jev_release.date}} {{ref:jev_release.org}}가 확률만 산정하는 AI {{ref:jev_release.model}} 공개(이름 표기는 공식 글 주소의 introducing-system-one-models-and-jev 와 같음), {{ref:gemini_decision_release.date}} Google이 {{ref:gemini_decision_release.model}} 공개(이 앱이 쓴 모델). 아래 카드는 이 앱이 확률 산정 모델을 쓴 네 곳이고, 카드 아래 회색 글은 일곱 단계 가운데 어느 단계인지입니다. 옮긴 값이 원문과 맞을 확률을 산정하고(3 검증), 회사마다 다른 담보 이름을 표준담보에 맞추고(5 관계 그래프), 모은 시장 동향(타사 신상품과 개정 보도)이 비교 대상인지 고르고, 같은 내용의 보도를 하나로 합칩니다(둘 다 1 수집). 확률 산정만 맡기고 숫자 계산과 최종 결정은 코드가 합니다({{ref:judgment_not_decision}}). {{ref:jev_release.org}} 문서가 드는 쓰임은 {{ref:decision_model_use_cases.0}}, {{ref:decision_model_use_cases.1}}, {{ref:decision_model_use_cases.2}}입니다. 같은 문서는 보험 예로 {{ref:insurance_claims_triage_example.text}} 넘기는 예를 들고, Google 공개 글에는 {{ref:insurance_claim_example}}가 있습니다. 업체가 내세운 정확도나 속도 같은 성능 수치는 옮기지 않았습니다. 옮긴 값 검증의 기준값은 이 앱의 자료로 다시 맞췄고(17장), 담보 이름 매핑의 기준값은 아직 측정 전입니다(23장)."
+ "notes": "절차 5는 원문 확인입니다. 지금까지는 비교표에 옮긴 값을 원문과 다시 하나하나 대조했습니다. 이 도구에서는 화면의 값마다 근거 문서와 쪽수가 붙어 있고, 자동으로 확정되지 않은 값은 검수 대기로 표시되어 비교 결과에서 빠져 있습니다. 실무자는 그 값만 원문과 대조합니다.\n\n앞 장에서 이어서 {{fact:example_pending_case.standard_coverage}}의 {{fact:example_pending_case.org_name}} 쪽을 보겠습니다. 1번처럼 상세 머리에 검수 대기 칩이 표시됩니다. 비교 대상의 급부 가운데 검수 대기가 있어 {{fact:example_pending_case.org_name}}와의 비교는 비교 결과에서 뺐다는 뜻입니다. 2번, 상세와 근거 패널에 근거 문서와 쪽이 적혀 있습니다. 이 건의 대표 급부는 {{fact:example_pending_case.benefit}}이고, 근거는 {{fact:example_pending_case.org_name}} {{fact:example_pending_case.doc_kind}} {{fact:example_pending_case.doc_page}}쪽입니다. 3번, 실무자는 원문의 그 쪽을 열어 화면의 값이 맞는지 대조합니다. 수백 쪽을 처음부터 찾지 않고 그 쪽만 엽니다. 화면이 처음 여는 조건에서 이렇게 검수 대기라 비교에서 뺀 비교 건은 {{fact:excluded_pending_pairs}}건입니다. 검수 대기가 아닌 값도 근거 쪽수가 있어, 필요할 때 원문을 바로 찾을 수 있습니다.\n\n개발할 때는 AI가 옮긴 값을 정답표와 한 행씩 대조했습니다({{slide:goldset}}장).",
+ "source": "화면: 데모의 담보 비교 탭 상세와 근거(기준 종형 우체국 {{fact:default_base_variant.name}}), 자료 기준 {{asof:example_pending_case}}"
 }

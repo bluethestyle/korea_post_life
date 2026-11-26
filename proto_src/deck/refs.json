@@ -6,64 +6,64 @@
       "label": "TypeSafe AI가 확률 산정 전용 모델 Jev를 공개한 날",
       "value": {"date": "2026-09-15", "year": "2026", "month": "9", "org": "TypeSafe AI", "model": "Jev"},
       "urls": ["https://typesafe.ai/blog/introducing-system-one-models-and-jev"],
-      "kind": "official", "checked": "2026-11-24", "slides": [15]
+      "kind": "official", "checked": "2026-11-24", "slides": [20]
     },
     "gemini_decision_release": {
       "label": "Google이 Gemini Decision 1과 Decisions API를 공개한 날(보기마다 점수를 한 번에 매김)",
       "value": {"date": "2026-11-11", "year": "2026", "month": "11", "org": "Google", "model": "Gemini Decision 1"},
       "urls": ["https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [14, 15],
+      "kind": "official", "checked": "2026-11-24", "slides": [19, 20],
       "note": "facts.json 의 decision_model_release_date(리포 문서 기준)와 같은 날이다."
     },
     "gemini_decision_spec": {
       "label": "Gemini Decision 1 사양: 보기 수, 한 번에 받는 질문 수, 출력 토큰, 문항 종류",
       "value": {"choices_min": 2, "choices_max": 255, "items_max": 1000, "output_tokens": 0, "item_types": ["예/아니오", "보기 고르기", "단계 점수"]},
       "urls": ["https://aistudio.google.com/docs/decisions-api", "https://aistudio.google.com/docs/models/gemini-decision-1"],
-      "kind": "official", "checked": "2026-11-24", "slides": [14],
+      "kind": "official", "checked": "2026-11-24", "slides": [19],
       "note": "facts.json 의 decision_model_spec(리포 문서 기준)과 같은 값이다. 이 앱은 앞의 두 문항 종류를 쓴다."
     },
     "gemini_decision_free_limits": {
       "label": "Gemini Decision 1 무료 한도: 하루 호출 수, 분당 호출 수, 분당 입력 토큰",
       "value": {"per_day": 10000, "per_minute_calls": 200, "per_minute_input_tokens": 50000},
       "urls": ["https://aistudio.google.com/docs/rate-limits"],
-      "kind": "official", "checked": "2026-11-24", "slides": [18, 27]
+      "kind": "official", "checked": "2026-11-24", "slides": [23, 34]
     },
     "gemini_free_tier_data_use": {
       "label": "무료 등급 입력의 쓰임",
       "value": "무료 등급 입력은 Google 제품 개선에 쓰일 수 있습니다(유료 등급은 쓰이지 않음)",
       "urls": ["https://aistudio.google.com/docs/models/gemini-decision-1"],
-      "kind": "official", "checked": "2026-11-24", "slides": [27]
+      "kind": "official", "checked": "2026-11-24", "slides": [34]
     },
     "gemini_decision_price": {
       "label": "Gemini Decision 1 유료 가격(입력 100만 토큰당 달러)",
       "value": {"usd_per_million_input_tokens": 0.1},
       "urls": ["https://aistudio.google.com/docs/pricing"],
-      "kind": "official", "checked": "2026-11-24", "slides": [27]
+      "kind": "official", "checked": "2026-11-24", "slides": [34]
     },
     "calibration_is_aggregate": {
       "label": "확률 보정의 뜻",
       "value": "확률의 보정은 여러 건을 모았을 때의 성질이고 한 건의 정답을 보증하지 않습니다",
       "urls": ["https://docs.typesafe.ai/concepts/system-one.md"],
-      "kind": "official", "checked": "2026-11-24", "slides": [14, 17]
+      "kind": "official", "checked": "2026-11-24", "slides": [19, 22]
     },
     "threshold_from_own_data": {
       "label": "기준값을 정하는 방법에 대한 권고",
       "value": "기준값은 자기 자료의 정답 예시로 정하라고 권합니다",
       "urls": ["https://aistudio.google.com/docs/decisions-api"],
-      "kind": "official", "checked": "2026-11-24", "slides": [17]
+      "kind": "official", "checked": "2026-11-24", "slides": [22]
     },
     "judgment_not_decision": {
       "label": "판정과 결정의 구분",
       "value": "모델은 작은 판정만 하고, 판정을 모아 결정하는 일은 코드가 합니다",
       "urls": ["https://typesafe.ai/blog/dont-call-it-a-decision-model"],
-      "kind": "official", "checked": "2026-11-24", "slides": [14]
+      "kind": "official", "checked": "2026-11-24", "slides": [19]
     },
     "openai_calibration_2023": {
       "label": "OpenAI GPT-4 연구 글: 사전학습 모델은 확신이 정답률과 대체로 맞지만, 대화용 후속 학습(post-training) 뒤에는 보정이 떨어짐",
       "value": {"date": "2023-03-14", "year": "2023", "month": "3", "org": "OpenAI", "text": "대화용으로 다듬은 뒤 AI의 확신 수치가 실제 정답률과 어긋난다는 보고",
                 "short": "대화용으로 다듬은 뒤 확신 수치가 어긋남"},
       "urls": ["https://openai.com/index/gpt-4-research/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [15],
+      "kind": "official", "checked": "2026-11-24", "slides": [20],
       "note": "원문 요지: 기반 사전학습 모델은 확신이 정답일 확률과 대체로 일치하고, 지금의 후속 학습을 거치면 보정이 떨어진다(calibration is reduced). 대화용 AI 일반이 처음부터 확신을 못 나타낸다는 뜻으로 쓰지 않는다. short 는 연표 점 라벨(34자)용이다."
     },
     "openai_structured_2024": {
@@ -71,77 +71,77 @@
       "value": {"date": "2024-08-06", "year": "2024", "month": "8", "org": "OpenAI", "text": "답의 형식은 강제할 수 있게 됐지만 값의 오류는 남음",
                 "short": "답의 형식은 강제, 값의 오류는 남음"},
       "urls": ["https://openai.com/index/introducing-structured-outputs-in-the-api/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [15]
+      "kind": "official", "checked": "2026-11-24", "slides": [20]
     },
     "decision_model_use_cases": {
       "label": "확률 산정 모델의 쓰임(만든 회사 문서)",
       "value": ["문의를 알맞은 담당에게 보내기", "애매한 건만 사람에게 넘기기", "다른 AI의 답 채점"],
       "urls": ["https://docs.typesafe.ai/concepts/use-case-map.md", "https://docs.typesafe.ai/patterns/confidence-routing.md"],
-      "kind": "official", "checked": "2026-11-24", "slides": [15]
+      "kind": "official", "checked": "2026-11-24", "slides": [20]
     },
     "insurance_claim_example": {
       "label": "보험 예(공식): 보험금 청구 서류와 사진을 함께 판정할 수 있다는 입력 조합의 예",
       "value": "스캔한 보험금 청구 서류와 파손 사진을 함께 판정할 수 있다는 예",
       "urls": ["https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [15],
+      "kind": "official", "checked": "2026-11-24", "slides": [20],
       "note": "원문은 a scanned PDF claim with damage photos 를 여러 입력을 함께 넣는 조합의 예로 든 것이고, 실제 판정 사례가 아니다. 그 범위로만 쓴다."
     },
     "insurance_claims_triage_example": {
       "label": "보험 예(공식): 보험금 청구 분류에서 애매하거나 위험한 건은 사람 담당자에게",
       "value": {"text": "보험금 청구 분류에서 애매하거나 위험한 건은 사람 담당자에게", "short": "보험금 청구에서 애매한 건은 사람에게"},
       "urls": ["https://docs.typesafe.ai/concepts/use-case-map.md"],
-      "kind": "official", "checked": "2026-11-24", "slides": [15],
+      "kind": "official", "checked": "2026-11-24", "slides": [20],
       "note": "만든 회사 문서 Use case map 의 Claims triage: Escalate uncertain or high-risk cases to a human adjuster. 인수심사(underwriting)를 한 문장으로 말한 공식 문서는 찾지 못했으므로 insurance_underwriting_example 대신 이 값을 쓴다."
     },
     "insurance_underwriting_example": {
       "label": "보험 예(보도): 인수심사에서 애매한 건은 담당자에게",
       "value": "인수심사에서 애매한 건은 담당자에게",
       "urls": ["https://siliconangle.com/2026/09/16/typesafe-ai-exits-stealth-with-40m-to-build-ai-for-use-by-software/"],
-      "kind": "press", "checked": "2026-11-24", "slides": [15],
+      "kind": "press", "checked": "2026-11-24", "slides": [20],
       "note": "보도 내용: 재산의 화재 가능성을 추정하고 애매한 건은 인수 담당자에게 보낸다."
     },
     "same_item_type_names": {
       "label": "두 회사 문서가 세 가지 문항 종류(noul, choice, score)에 같은 이름을 씀. Jev 문서에는 이미지 영역 종류(box)가 하나 더 있음(따랐다는 진술은 없음)",
       "value": {"names": ["noul", "choice", "score"], "jev_extra": ["box"]},
       "urls": ["https://aistudio.google.com/docs/decisions-api", "https://docs.typesafe.ai/concepts/system-one.md"],
-      "kind": "official", "checked": "2026-11-24", "slides": [15],
+      "kind": "official", "checked": "2026-11-24", "slides": [20],
       "note": "노트에만 쓴다. Google 문서는 세 종류(Every question uses one of three question types), TypeSafe 문서는 Choice, Score, Noul, Box 네 종류다. 같은 이름은 세 종류뿐이고 그 이상의 관계는 말하지 않는다."
     },
     "kg_definition": {
       "label": "지식그래프의 정의(Hogan 외 2021)",
       "value": {"text": "관심 대상은 노드, 대상 사이의 관계는 엣지인 데이터 그래프", "cite": "Hogan 외 2021", "practice": "현업 지식그래프의 온톨로지는 대개 가벼운 분류 체계 수준"},
       "urls": ["https://arxiv.org/abs/2003.02320"],
-      "kind": "academic", "checked": "2026-11-24", "slides": [20]
+      "kind": "academic", "checked": "2026-11-24", "slides": [24]
     },
     "ontology_definition": {
       "label": "온톨로지의 정의(Studer 외 1998)",
       "value": {"text": "공유된 개념화의 형식적이고 명시적인 명세", "cite": "Studer 외 1998"},
       "urls": ["https://publikationen.bibliothek.kit.edu/189497/3003"],
-      "kind": "academic", "checked": "2026-11-24", "slides": [20]
+      "kind": "academic", "checked": "2026-11-24", "slides": [24]
     },
     "kg_google_2012": {
       "label": "Google Knowledge Graph 공개",
       "value": {"date": "2012-05-16", "year": "2012", "org": "Google", "phrase": "things, not strings", "text": "글자가 아니라 사물을 이해하는 검색"},
       "urls": ["https://blog.google/products/search/introducing-knowledge-graph-things-not/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [19, 20]
+      "kind": "official", "checked": "2026-11-24", "slides": [12, 24]
     },
     "gql_2024": {
       "label": "속성 그래프 질의 언어 국제 표준 GQL",
       "value": {"date": "2024-04", "year": "2024", "standard": "ISO/IEC 39075:2024", "text": "점과 선 데이터를 찾는 국제 표준 질의 언어(GQL)"},
       "urls": ["https://webstore.iec.ch/publication/94107"],
-      "kind": "official", "checked": "2026-11-24", "slides": [20]
+      "kind": "official", "checked": "2026-11-24", "slides": [24]
     },
     "graphrag_2024": {
       "label": "GraphRAG: AI로 문서에서 지식그래프를 먼저 만들고 그것으로 답함",
       "value": {"year": "2024", "text": "AI가 문서로 지도를 먼저 만들고 답하는 방식(GraphRAG)"},
       "urls": ["https://arxiv.org/abs/2404.16130", "https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/"],
-      "kind": "academic", "checked": "2026-11-24", "slides": [20]
+      "kind": "academic", "checked": "2026-11-24", "slides": [24]
     },
     "graphrag_not_always_better": {
       "label": "그래프 방식이 많은 실제 과제에서 일반 검색 방식보다 낫지는 않다는 보고(프리프린트)",
       "value": "모든 질문에 지도가 더 낫지는 않다는 보고도 있습니다",
       "urls": ["https://arxiv.org/abs/2506.05690"],
-      "kind": "academic", "checked": "2026-11-24", "slides": [20],
+      "kind": "academic", "checked": "2026-11-24", "slides": [24],
       "note": "학회 게재 여부는 확인하지 못했다. 프리프린트로만 소개한다."
     },
     "owl_rdf": {
@@ -149,28 +149,28 @@
       "value": {"owl2_year": "2009", "owl2_date": "2009-10-27", "owl2_second_edition_year": "2012", "rdf11_year": "2014",
                 "text": "웹 표준 언어(OWL, RDF)", "short": "웹 표준 기구 W3C가 온톨로지 표준 OWL 2 발행"},
       "urls": ["https://www.w3.org/TR/2009/REC-owl2-overview-20091027/", "https://www.w3.org/TR/owl2-overview/", "https://www.w3.org/TR/rdf11-concepts/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [20],
+      "kind": "official", "checked": "2026-11-24", "slides": [24],
       "note": "owl2_year 는 OWL 2 초판 권고안(W3C Recommendation 27 October 2009, 2009년 원본 주소를 직접 열어 확인)이다. 2012-12-11 은 문서 2판, RDF 1.1 Concepts 는 2014-02-25 권고안이다. 연표에는 초판 연도를 쓰고 2판과 RDF 1.1 은 노트에만 둔다."
     },
     "graph_database": {
       "label": "그래프 데이터베이스의 저장 방식(벤더 공식 문서)",
       "value": "표 대신 노드, 관계, 속성으로 저장하는 그래프 데이터베이스",
       "urls": ["https://neo4j.com/docs/getting-started/graph-database/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [20],
+      "kind": "official", "checked": "2026-11-24", "slides": [24],
       "note": "옛 주소(get-started-with-neo4j/graph-database/)는 이 주소로 넘어간다. 근거 문장: A Neo4j graph database stores data as nodes, relationships, and properties instead of in tables or documents."
     },
     "fibo_domains": {
       "label": "금융 온톨로지 FIBO: OWL로 만들었고 보험 전용 영역은 없음(보험 관련 클래스는 일부 있음)",
       "value": "금융 온톨로지 FIBO는 OWL로 만들었고 보험 전용 영역은 없습니다(보험증권, 보험회사 같은 보험 관련 클래스는 일부 있음)",
       "urls": ["https://github.com/edmcouncil/fibo", "https://spec.edmcouncil.org/fibo/"],
-      "kind": "official", "checked": "2026-11-24", "slides": [20],
+      "kind": "official", "checked": "2026-11-24", "slides": [24],
       "note": "README: FIBO is developed as an ontology in the Web Ontology Language (OWL). 영역은 BE, BP, CAE, DER, FBC, FND, IND, LOAN, MD, SEC 이고 보험 전용 영역은 없다. 보험 관련 클래스(InsurancePolicy, Insurer, InsuranceCompany 따위)는 FBC, LOAN, SEC 모듈에 있다(저장소 복제본 검색, 2026-11-24). 노트에만 쓴다."
     },
     "fibo_acord": {
       "label": "금융 온톨로지 FIBO와 보험 표준 단체 ACORD(ACORD 쪽 근거는 보도자료 배포본)",
       "value": "금융 온톨로지 FIBO는 OWL로 만들었고 보험 전용 영역은 없습니다(보험 관련 클래스는 일부 있음). 보험 표준 단체 ACORD는 용어집과 데이터 모델을 냅니다",
       "urls": ["https://spec.edmcouncil.org/fibo/", "https://github.com/edmcouncil/fibo", "https://prnewswire.com/news-releases/acord-releases-update-to-the-reference-architecture-301891074.html"],
-      "kind": "press", "checked": "2026-11-24", "slides": [20],
+      "kind": "press", "checked": "2026-11-24", "slides": [24],
       "note": "노트에만 쓴다. ACORD 근거는 ACORD 가 PR Newswire 로 배포한 보도자료(2023-08-02, Reference Architecture 2.11 의 Business Glossary, Data Model, Information Model 갱신)라 press 로 둔다. FIBO 만 말할 때는 fibo_domains(official)를 쓴다."
     },
     "association_disclosure": {
@@ -185,7 +185,7 @@
       "value": {"text": "공개 저장소에서 표준 GitHub 호스팅 러너 사용은 무료입니다", "schedule_off_after_days": 60,
                 "short": "공개 저장소는 기본 실행 환경이 무료"},
       "urls": ["https://docs.github.com/en/billing/concepts/product-billing/github-actions", "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows"],
-      "kind": "official", "checked": "2026-11-24", "slides": [27],
+      "kind": "official", "checked": "2026-11-24", "slides": [34],
       "note": "단서 둘: 대형 러너(larger runners)는 공개 저장소에서도 요금이 붙고, 공개 저장소의 schedule 실행은 저장소 활동이 60일 없으면 자동으로 꺼진다. 이 앱은 매일과 매주 예약 실행이 있어 60일 규칙이 실제로 관련된다."
     },
     "insurance_damoa": {

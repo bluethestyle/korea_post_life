@@ -1,68 +1,123 @@
 {
  "no": 11,
- "id": "agent-rules",
+ "id": "step2-extract",
  "kind": "body",
  "chapter": 3,
  "status": "new",
- "headline": "AI에게 일을 맡기는 기준은 실제로 겪은 문제에서 나왔습니다",
+ "headline": "절차 2: 수백 쪽에서 찾아 옮기던 값을 AI와 코드가 옮기고 원문과 대조해 둡니다",
  "diagram": [
-  {
-   "use": "C5",
-   "labels": [
-    "겪은 일",
-    "세운 기준"
-   ],
-   "box": [
-    0,
-    0,
-    1760,
-    446
-   ],
-   "build": 1,
-   "rows": [
-    {
-     "before": "모델 등급을 안 정한 AI가 가장 비싼 모델로 실행",
-     "after": "AI 작업자마다 모델 등급을 정해 맡김",
-     "note": "구현 {{name:opus}}, 점검 {{name:sonnet}}, 단순 점검 {{name:haiku}}"
-    },
-    {
-     "before": "같은 AI로 다시 읽자 {{fact:image_doc_same_reader_repeat.pages}}쪽 중 {{fact:image_doc_same_reader_repeat.wrong_same_way}}쪽 같은 오류",
-     "after": "서로 다른 AI 둘이 따로 옮겨 [[이중 추출]]",
-     "tag": "두 AI가 옮긴 금액끼리 불일치 {{fact:image_doc.amount_mismatches}}곳",
-     "note": "글자가 그림인 요약서 {{fact:image_doc.pages}}쪽, 정답 대비 오차율 아님",
-     "hero": true
-    },
-    {
-     "before": "'다 했다'는 보고만으로는 알 수 없음",
-     "after": "지휘하는 AI가 직접 다시 실행해 [[재현]]",
-     "tag": "제미나이의 코드 지적 {{fact:code_review_items}}건, 지적마다 재현"
-    }
-   ],
-   "fill": false
-  },
   {
    "use": "svg",
    "box": [
     0,
-    466,
-    1760,
-    190
+    0,
+    330,
+    160
    ],
    "vb": [
-    1760,
-    190
+    330,
+    160
+   ],
+   "build": 1,
+   "alt": "절차 다섯 가운데 절차 2 찾아 옮기기. 절차 1~3은 미리 해 두는 일, 절차 4~5는 화면에서 하는 일",
+   "svg": "<circle cx='20' cy='20' r='18' class='sv-paper'/><text x='20' y='28' text-anchor='middle' class='aux'>1</text><circle cx='82' cy='20' r='18' class='sv-deep'/><circle cx='82' cy='20' r='18' class='sv-ink'/><text x='82' y='28' text-anchor='middle' class='b'>2</text><circle cx='144' cy='20' r='17' class='sv-line'/><text x='144' y='28' text-anchor='middle' class='aux'>3</text><circle cx='208' cy='20' r='17' class='sv-line'/><text x='208' y='28' text-anchor='middle' class='aux'>4</text><circle cx='270' cy='20' r='17' class='sv-line'/><text x='270' y='28' text-anchor='middle' class='aux'>5</text><path d='M176 0V76' class='sv-muted'/><text x='168' y='66' text-anchor='end' class='aux'>미리 해 두는 일</text><text x='184' y='66' class='aux'>화면에서</text><text x='0' y='112' class='b'>절차 2 찾아 옮기기</text>"
+  },
+  {
+   "use": "C5",
+   "box": [
+    350,
+    0,
+    1090,
+    160
+   ],
+   "fill": false,
+   "labels": [
+    "지금까지",
+    "이 도구로"
+   ],
+   "build": 1,
+   "rows": [
+    {
+     "before": "수백 쪽 문서에서 담보를 찾아 읽음",
+     "after": "AI가 급부 글자를 옮기고 코드가 원문과 대조",
+     "note": "삼성화재 급부표는 코드가 읽음. 설명 {{slide:decision-model}}~{{slide:where-to-use}}장"
+    }
+   ]
+  },
+  {
+   "use": "C20",
+   "box": [
+    1460,
+    0,
+    300,
+    160
+   ],
+   "dir": "v",
+   "build": 1,
+   "chips": [
+    {
+     "role": "AI",
+     "label": "글자 옮기기"
+    },
+    {
+     "role": "코드",
+     "label": "원문 대조"
+    }
+   ]
+  },
+  {
+   "use": "C18",
+   "icon": "stack",
+   "pages": "{{fact:hanwha_summary_pages}}",
+   "scale_pages": 600,
+   "label": "한화생명 요약서 {{fact:hanwha_summary_pages}}쪽",
+   "box": [
+    0,
+    184,
+    220,
+    352
+   ],
+   "build": 2
+  },
+  {
+   "use": "svg",
+   "box": [
+    240,
+    184,
+    400,
+    352
+   ],
+   "vb": [
+    400,
+    352
    ],
    "build": 2,
-   "alt": "왼쪽은 같은 AI가 두 번 읽어 같은 칸에서 두 번 틀리는 그림, 오른쪽은 서로 다른 AI 둘이 다른 칸에서 틀려 엇갈린 곳만 원본과 대조하는 그림(원리 예시)",
-   "svg": "<rect x='0' y='0' width='705' height='190' class='sv-paper'/><use href='{{icon:추출}}' x='24' y='16' width='36' height='36'/><text x='72' y='44' class='b'>같은 AI로 다시 읽기</text><text x='24' y='104' class='aux'>{{name:sonnet}} 처음</text><text x='24' y='154' class='aux'>{{name:sonnet}} 다시</text><rect x='190' y='78' width='34' height='34' class='sv-line'/><rect x='234' y='78' width='34' height='34' class='sv-redbg'/><rect x='234' y='78' width='34' height='34' class='sv-red'/><path d='M243 87L259 103M259 87L243 103' class='sv-red'/><rect x='278' y='78' width='34' height='34' class='sv-line'/><rect x='322' y='78' width='34' height='34' class='sv-line'/><rect x='366' y='78' width='34' height='34' class='sv-redbg'/><rect x='366' y='78' width='34' height='34' class='sv-red'/><path d='M375 87L391 103M391 87L375 103' class='sv-red'/><rect x='410' y='78' width='34' height='34' class='sv-line'/><rect x='190' y='128' width='34' height='34' class='sv-line'/><rect x='234' y='128' width='34' height='34' class='sv-redbg'/><rect x='234' y='128' width='34' height='34' class='sv-red'/><path d='M243 137L259 153M259 137L243 153' class='sv-red'/><rect x='278' y='128' width='34' height='34' class='sv-line'/><rect x='322' y='128' width='34' height='34' class='sv-line'/><rect x='366' y='128' width='34' height='34' class='sv-redbg'/><rect x='366' y='128' width='34' height='34' class='sv-red'/><path d='M375 137L391 153M391 137L375 153' class='sv-red'/><rect x='410' y='128' width='34' height='34' class='sv-line'/><text x='476' y='112'>같은 곳에서</text><text x='476' y='150'>또 틀림</text><path d='M722 95H792' class='sv-muted' marker-end='url(#ah)'/><rect x='810' y='0' width='950' height='190' class='sv-paper'/><use href='{{icon:추출}}' x='834' y='16' width='36' height='36'/><text x='882' y='44' class='b'>서로 다른 AI 둘이 따로 읽기(이중 추출)</text><text x='1736' y='44' class='aux' text-anchor='end'>원리 예시</text><text x='834' y='104' class='aux'>{{name:gemini_panel}}</text><text x='834' y='154' class='aux'>{{name:sonnet}}</text><rect x='1030' y='78' width='34' height='34' class='sv-redbg'/><rect x='1030' y='78' width='34' height='34' class='sv-red'/><path d='M1039 87L1055 103M1055 87L1039 103' class='sv-red'/><rect x='1074' y='78' width='34' height='34' class='sv-line'/><rect x='1118' y='78' width='34' height='34' class='sv-line'/><rect x='1162' y='78' width='34' height='34' class='sv-line'/><rect x='1206' y='78' width='34' height='34' class='sv-line'/><rect x='1250' y='78' width='34' height='34' class='sv-line'/><rect x='1030' y='128' width='34' height='34' class='sv-line'/><rect x='1074' y='128' width='34' height='34' class='sv-line'/><rect x='1118' y='128' width='34' height='34' class='sv-line'/><rect x='1162' y='128' width='34' height='34' class='sv-redbg'/><rect x='1162' y='128' width='34' height='34' class='sv-red'/><path d='M1171 137L1187 153M1187 137L1171 153' class='sv-red'/><rect x='1206' y='128' width='34' height='34' class='sv-line'/><rect x='1250' y='128' width='34' height='34' class='sv-line'/><path d='M1300 120H1370' class='sv-muted' marker-end='url(#ah)'/><use href='{{icon:검증}}' x='1386' y='100' width='40' height='40'/><text x='1440' y='112' class='b'>엇갈린 곳만</text><text x='1440' y='150' class='b'>원본과 대조</text>"
+   "alt": "암 수술비가 있는 쪽: 우체국 요약서, 한화생명 요약서, 삼성화재 요약서의 쪽수",
+   "svg": "<text x='0' y='34' class='b'>암 수술비가 있는 쪽</text><path d='M0 56H400' class='sv-line'/><text x='0' y='110'>우체국 요약서</text><text x='400' y='110' text-anchor='end' class='b'>{{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽</text><text x='0' y='180'>한화생명 요약서</text><text x='400' y='180' text-anchor='end' class='b'>{{fact:example_cancer_surgery.orgs.HANWHALIFE.doc_page}}쪽</text><text x='0' y='250'>삼성화재 요약서</text><text x='400' y='250' text-anchor='end' class='b'>{{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.doc_page}}쪽</text><path d='M0 130H400M0 200H400M0 270H400' class='sv-line'/><text x='0' y='322' class='aux'>사람은 이 쪽을 직접 찾아 읽었습니다</text>"
+  },
+  {
+   "use": "svg",
+   "box": [
+    700,
+    184,
+    1060,
+    352
+   ],
+   "vb": [
+    1060,
+    352
+   ],
+   "build": 3,
+   "hero": true,
+   "alt": "우체국 요약서의 암 수술비 쪽에서 AI가 지급액 글자를 옮기고, 코드가 원문과 일치하는지 대조해 구글 시트에 한 행으로 쌓는 흐름. 글자가 다르면 다시 추출하고, 확신이 낮으면 검수 대기로 남아 검수 담당자가 확인함",
+   "svg": "<rect x='0' y='70' width='232' height='120' class='sv-paper'/><rect x='0' y='70' width='232' height='120' class='sv-ink'/><text x='116' y='120' text-anchor='middle' class='b'>우체국 요약서</text><text x='116' y='162' text-anchor='middle'>{{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽</text><rect x='276' y='70' width='232' height='120' class='sv-paper'/><rect x='276' y='70' width='232' height='120' class='sv-ink'/><text x='392' y='120' text-anchor='middle' class='b'>원문 글자</text><text x='392' y='162' text-anchor='middle'>‘{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원’</text><rect x='552' y='70' width='232' height='120' class='sv-paper'/><rect x='552' y='70' width='232' height='120' class='sv-red'/><text x='668' y='120' text-anchor='middle' class='b'>원문과 일치</text><text x='668' y='162' text-anchor='middle'>코드가 대조</text><rect x='828' y='70' width='232' height='120' class='sv-paper'/><rect x='828' y='70' width='232' height='120' class='sv-ink'/><text x='944' y='120' text-anchor='middle' class='b'>구글 시트</text><text x='944' y='162' text-anchor='middle'>한 행으로 쌓음</text><path d='M238 130H268' class='sv-ink' marker-end='url(#ah)'/><path d='M514 130H544' class='sv-ink' marker-end='url(#ah)'/><path d='M790 130H820' class='sv-ink' marker-end='url(#ah)'/><path d='M668 66V30H392V60' class='sv-muted' stroke-dasharray='8 8' marker-end='url(#ah)'/><text x='684' y='38' class='aux'>글자가 다르면 다시 추출</text><text x='116' y='226' text-anchor='middle' class='aux'>수백 쪽 중 한 쪽</text><text x='392' y='226' text-anchor='middle' class='aux'>AI가 글자 그대로</text><path d='M668 194V254' class='sv-muted' marker-end='url(#ah)'/><text x='654' y='232' text-anchor='end' class='aux'>확신이 낮으면</text><rect x='552' y='262' width='232' height='64' class='sv-paper'/><text x='668' y='303' text-anchor='middle'>검수 대기</text><path d='M790 294H820' class='sv-muted' marker-end='url(#ah)'/><rect x='828' y='262' width='232' height='64' rx='32' class='sv-ink'/><text x='944' y='303' text-anchor='middle'>검수 담당자</text>"
   }
  ],
  "points": [],
  "terms": [
-  "모델",
-  "이중 추출",
-  "재현"
+  "급부"
  ],
- "source": "출처: 제출 설명 문서 5절과 6절, 진행 기록, 자료 기준 {{asof:image_doc}}",
- "notes": "AI에게 일을 맡기는 기준은 미리 정한 것이 아니라 겪은 문제에서 하나씩 나왔습니다. 첫째, 모델 등급을 정하지 않은 AI 작업자 하나가 가장 비싼 모델로 실행된 뒤로 작업자마다 모델 등급을 정해 맡깁니다. 구현과 수정은 {{name:opus}}, 점검은 {{name:sonnet}}, 결과를 기계로 확인할 수 있는 단순 점검은 {{name:haiku}}입니다. 그때 한도를 얼마나 썼는지는 기록에 없습니다. 둘째, 이 장이 이중 추출을 설명하는 장입니다. 글자가 그림으로 된 요약서를 같은 AI({{name:sonnet}})로 다시 읽히자 {{fact:image_doc_same_reader_repeat.pages}}쪽 가운데 {{fact:image_doc_same_reader_repeat.wrong_same_way}}쪽에서 첫 추출과 같은 식으로 틀렸습니다. 같은 AI는 같은 곳에서 또 틀리니 두 결과를 대조해도 오류가 보이지 않습니다. 그래서 서로 다른 AI 둘({{name:gemini_panel}}과 {{name:sonnet}})이 따로 옮기고, 코드가 두 결과를 대조해 엇갈린 행만 원본을 확대해 메인 AI가 직접 확인했습니다. 아래 그림의 칸은 원리를 보이는 예시이고 실제 쪽 수가 아닙니다. 두 요약서 {{fact:image_doc.pages}}쪽에서 두 AI가 옮긴 지급률과 금액은 한 곳도 어긋나지 않았습니다. 이것은 정답과 대조한 오차율이 아니라 서로 다른 두 AI의 추출이 같았다는 뜻입니다. 두 AI가 똑같이 틀린 곳은 이 비교만으로는 걸러지지 않으므로, 앱 안의 운영 파이프라인에서는 코드가 원문과 한 번 더 대조합니다(다음 장). 또 {{name:sonnet}}이 틀렸던 그 {{fact:image_doc_same_reader_repeat.pages}}쪽을 {{name:opus}}가 다시 읽은 {{fact:image_doc_opus_reread_chars}}자는 확정본과 한 글자도 다르지 않았습니다. 컴퓨터의 문자 인식(OCR)은 대조용 쪽에서 {{fact:local_ocr_test.chars}}자 가운데 {{fact:local_ocr_test.missed}}자를 빠뜨려 값에 쓰지 않습니다. 셋째, '다 했다'는 보고는 받아들이지 않고 메인 AI가 직접 다시 실행해 확인합니다. 제미나이가 짚은 추출, 검증 코드의 지적 {{fact:code_review_items}}건은 서브에이전트가 지적마다 재현하고 고친 뒤 테스트했고, 메인 AI가 다시 검수했습니다. 표 추출기 지적 {{fact:review_not_applied_items}}건은 임의로 만든 입력으로는 재현됐지만 실제 문서에서 고친 코드가 안정되지 않아 반영하지 않았습니다. 수집도 같은 원칙으로 했습니다. 한 회사로 시범을 만든 뒤 같은 지시로 {{fact:disclosure_batch_org_count}}개사를 한꺼번에 맡겼고, 그 가운데 {{fact:disclosure_batch_auto_org_count}}개사는 로그인 없이 공시실 문서를 자동으로 받습니다. 남은 한 곳(한화손해보험)은 자동 접속이 막혀 사람이 문서를 받습니다. 메인 AI는 받은 문서 {{fact:disclosure_batch_pdf_count}}개를 직접 확인했습니다."
+ "notes": "{{slide:step1-fetch}}장에서 받은 문서 안에서 값을 찾아 옮기는 절차입니다. 지금까지는 담당자가 수백 쪽 문서를 넘기며 담보를 찾아 읽고 비교표에 옮겨 적었습니다. 한화생명은 상품 하나의 상품요약서가 {{fact:hanwha_summary_pages}}쪽입니다. 암 수술비는 우체국 요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽, 한화생명 요약서 {{fact:example_cancer_surgery.orgs.HANWHALIFE.doc_page}}쪽, 삼성화재 요약서 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.doc_page}}쪽에 있습니다. 이 도구에서는 AI가 우체국 요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽의 암 수술비 행에서 지급액 '{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원'을 원문 글자 그대로 옮깁니다. 숫자는 AI가 아니라 코드가 읽고, 코드는 같은 글자를 늘 같은 숫자로 읽습니다. 코드가 옮긴 글자가 원문과 같은지 대조하고, 통과한 값은 구글 시트에 급부 한 행으로 쌓입니다. 글자가 다르면 다시 추출하고, 확신이 낮은 값은 검수 대기로 남아 검수 담당자가 원문과 대조합니다. 삼성화재 급부표는 AI 대신 코드가 PDF 표를 규칙으로 읽어 옮깁니다. 작업별 모델 배정표에도 AI 모델 대신 '{{fact:samsungfire_benefit_reader}}'로 적혀 있습니다. 이 일은 실무자가 비교를 시작하기 전에 미리 해 둡니다. 왜 이 결과를 믿을 수 있는지는 {{slide:ai-code-human}}장부터 설명합니다.",
+ "footnote": "삼성화재 급부표는 AI 대신 코드가 PDF 표를 규칙으로 읽습니다",
+ "source": "출처: 담보 비교 자료, 자료 기준 {{asof:example_cancer_surgery}}, docs/submission.md, docs/limitations.md"
 }
