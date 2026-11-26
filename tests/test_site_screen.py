@@ -226,6 +226,36 @@ def test_limited_only_cells_match_the_landscape_count(data):
             assert ga["값"]["전용만칸수"] > 0
 
 
+LIMITED_NOTE = "우체국은 암, 2대질병 전용 상품인 더간편건강보험 2504만 가입 가능"
+
+
+def test_limited_only_cell_note_and_landscape_count(data):
+    # 입원 3개월~1년 전: 우리 간편 가운데 3.0.5(EC, EB. 30~80세)만 질문을 넘는다. 두 종형 모두 보장 범위 한정이라
+    # 그 칸은 전용 상품으로만 가입 가능하고, 보조 줄에 그 사실을 적는다
+    out = S.export(data, I.analyze(data, REL), REL)
+    m = out["지도"]["전체"]
+    row = [r["이름"] for r in m["행"]].index("입원 3개월~1년 전")
+    limited = [(j, c) for j, c in enumerate(m["칸"][row]) if c.get("우리전용만")]
+    assert [m["열"][j]["lo"] for j, _ in limited] == [30, 71]                     # 30세 미만은 3.0.5 가입나이 밖
+    for _, c in limited:
+        assert sorted(c["우리전용만"]) == sorted([EC, EB]) and sorted(c["열린종형"]["EPOST"]) == sorted([EC, EB])
+        assert c["보조"] == LIMITED_NOTE and c["닫힌사유"] == []
+        assert S.forbidden_in(c["보조"]) == []
+    # 전용 상품만 열린 칸이 아닌 칸의 보조는 일반심사 확인 줄이거나 비어 있다
+    others = [c for line in m["칸"] for c in line if not c.get("우리전용만")]
+    assert {c["보조"] for c in others} <= {"", S.GENERAL_NOTE}
+    # 고객군과 시장 요약의 둘째 문장이 그 칸 수를 적는다
+    ga = {x["줄"]: x for x in out["기준별"][E2]["브리핑"]}["가"]
+    assert "가_전용만" in ga["틀"] and ga["값"]["전용만칸수"] == len(limited) == 2
+    assert "2개 고객군은 우체국에서 가입 가능한 간편심사 종형이 더간편건강보험 2504(암, 2대질병 전용 상품)뿐입니다." in ga["문장"]
+    # 열린 우리 간편 종형 가운데 종합형이 있으면 전용 상품만이 아니다(EC 에 공통보장 담보를 더해 종합형으로 바꾸면 보조가 빈다)
+    wide = make(wide_limited=True)
+    wm = S.export(wide, I.analyze(wide, REL), REL)["지도"]["전체"]
+    wrow = wm["칸"][[r["이름"] for r in wm["행"]].index("입원 3개월~1년 전")]
+    opened = [c for c in wrow if c["열린종형"]["EPOST"]]
+    assert opened and all(not c.get("우리전용만") and c["보조"] == "" for c in opened)
+
+
 def test_product_short_names():
     d = make()
     assert S.product_short(d, E2) == "간편한건강보험 2606" and S.product_short(d, ET) == "통합건강보험 2504"

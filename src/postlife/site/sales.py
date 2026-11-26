@@ -348,6 +348,8 @@ TEMPLATES = {
     "가_모름": "타사의 가입 가능 여부 자료가 없어 분류하지 못한 고객군은 {자료없음칸수}개",
     "가_관문만": "{관문만칸수}개 고객군은 타사에서 가입 가능한 종형이 우체국에 없는 간편심사 유형({관문만종형})뿐입니다.",
     "가_전용만": "{전용만칸수}개 고객군은 우체국에서 가입 가능한 간편심사 종형이 {전용상품}뿐입니다.",
+    # 지도 칸의 보조 줄: 우체국에서 가입 가능한 간편심사 종형이 모두 보장 범위 한정 종형인 칸(limited_note)
+    "보조_전용만": "우체국은 {전용표시}인 {전용상품}만 가입 가능",
     "가_관문만_같은유형": "{관문만칸수}개 고객군은 타사에서 가입 가능한 종형이 담보를 수집하지 않은 종형({관문만종형})뿐입니다.",
     "가_나이자료없음": f"{{나이자료없음회사:은}} 가입나이 자료가 없어 {terms.SEGMENT_TABLE}에서 가입 가능 여부 미확인 타사로 "
                  "집계합니다.",
@@ -1057,6 +1059,8 @@ def cell(data: Data, p: Profile, analysis: dict | None, relations: Relations | N
     분류수는 칸의 인사이트 수를 다섯 분류 이름으로 센 것이다. 관문 차이는 그 칸의 관문 포인트 수(cell_gate_points)이고,
     나머지 넷과 검토 대기는 우리 대표와 상대 대표를 견준 수(category_counts)다. 견줄 대표가 없으면 그 다섯은 None이다.
     수는 안쪽 값(counts)으로 남겨 둔다. 관문만수집은 열린 종형이 관문전용뿐인 상대 회사의 그 종형이다(gate_only_open).
+    보조는 일반심사 확인 줄(general_note)이고, 우리 간편심사 종형이 보장 범위 한정 종형으로만 열린 칸(우리전용만)은 그 사실을
+    적은 줄(limited_note)이다.
     """
     ctx = _ctx(data, analysis, relations, ctx)
     g = gate(data, p)
@@ -1081,6 +1085,7 @@ def cell(data: Data, p: Profile, analysis: dict | None, relations: Relations | N
     limited = limited_only(ctx, home)
     if limited:
         out["우리전용만"] = limited
+        out["보조"] = limited_note(ctx, limited)
     if cls == ALL_CLOSED:
         out["안내"] = ALL_CLOSED_NOTE
     return out
@@ -1094,6 +1099,16 @@ def limited_only(ctx: _Ctx, home: dict[str, Any] | None) -> list[str] | None:
     if opened and all(I.coverage_scope(data, v, ctx.holding(v)) is not None for v in opened):
         return opened
     return None
+
+
+def limited_note(ctx: _Ctx, vids: list[str]) -> str:
+    """우리 간편심사 종형이 보장 범위 한정 종형으로만 열린 칸(limited_only)의 보조 줄:
+    "우체국은 암, 2대질병 전용 상품인 더간편건강보험 2504만 가입 가능". 전용 표시는 첫 종형의 limited_label이고 상품은
+    열린 종형들의 상품약칭(product_short)을 잇는다. 이 칸은 우리 간편이 열렸으므로 일반심사 확인 줄(general_note)과 겹치지 않는다."""
+    data = ctx.data
+    scope = I.coverage_scope(data, vids[0], ctx.holding(vids[0])) or []
+    heads = list(dict.fromkeys(product_short(data, v) for v in vids))
+    return render("보조_전용만", {"전용표시": limited_label(data, vids[0], scope), "전용상품": and_join(heads)})
 
 
 PEER_TALLY = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수", "일부열린상대수")
@@ -1371,7 +1386,8 @@ def _row_profile(r: dict[str, Any], age: int, sex: str, renewal: str | None) -> 
 
 
 def _home_key(data: Data, g: dict[str, Any], renewal: str | None) -> tuple:
-    """칸에서 우리 기관만으로 정해지는 값: 우리 회사 상태와 열린 종형, 간편 쪽, 대표, 보조 줄, 닫힌 사유. 이웃 열을 합칠지 가른다."""
+    """칸에서 우리 기관만으로 정해지는 값: 우리 회사 상태와 열린 종형, 간편 쪽, 대표, 보조 줄, 닫힌 사유. 이웃 열을 합칠지 가른다.
+    전용 상품 보조 줄(limited_note)은 열린 종형으로 정해지므로 따로 넣지 않는다."""
     home = g["회사"].get(HOME_ORG)
     if not home:
         return (None,)

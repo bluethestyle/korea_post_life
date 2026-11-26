@@ -334,7 +334,7 @@ DOC_FACTS += [
 # git 과 GitHub 에서 센 값. 사본에서 셀 수 없고 커밋할 때마다 바뀌므로 손으로 적고, note 에 다시 세는 명령을 적는다.
 GIT_COUNTED_AT = "2026-11-24"
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
-    ("test_count", 1563, "전체 자동 시험 수", "2026-11-25",
+    ("test_count", 1565, "전체 자동 시험 수", "2026-11-25",
      "메인 세션이 2026-11-25(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
     ("commit_count", 287, "main 의 커밋 수", GIT_COUNTED_AT,
      "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),
@@ -914,6 +914,24 @@ TEXT_EXAMPLE = {"amount": "1,000만원", "reduced_period": "1년미만", "reduce
 TEXT_EXAMPLE_QUOTE = "\"1년미만 500만원 / 1년이상 1,000만원\""
 
 
+def gate_org_texts(sales: dict[str, Any], x: dict[str, Any]) -> dict[str, str]:
+    """덱 8장 시연 카드의 회사별 글(example_gate_6months 의 orgs). 회사 상태의 화면 이름(terms.DISPLAY)이고, 우체국이
+    보장 범위 한정 종형으로만 가입 가능한 칸(칸의 우리전용만)은 우체국 글을 그 종형의 전용 표시(기준종형의 전용표시)에 "만"을
+    붙인 것("암, 2대질병 전용 상품만")으로 바꾼다. 카드는 상태 이름("가입 가능")과 이 글을 나란히 쓰므로 같은 말이 두 번 나오지
+    않고 전용 상품이라는 사실이 보인다."""
+    from postlife.site import terms
+    from postlife.site.sales import HOME_ORG
+    out = {org: terms.name(st) for org, st in x["회사"].items()}
+    limited = x.get("우리전용만")
+    if limited:
+        marks = {b["종형ID"]: b.get("전용표시") for b in sales["기준종형"]}
+        mark = next((marks[v] for v in limited if marks.get(v)), None)
+        if not mark:
+            raise FactsError(f"전용 상품으로만 가입 가능한 칸의 종형에 전용표시가 없다: {', '.join(limited)}")
+        out[HOME_ORG] = f"{mark}만"
+    return out
+
+
 def whole(x: float | None) -> float | int | None:
     """정수로 떨어지는 실수는 정수로(1000.0 → 1000). 덱이 "1,000"으로 적게 한다."""
     return int(x) if isinstance(x, float) and x.is_integer() else x
@@ -1134,14 +1152,15 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
         only = [{"org": g["기관코드"], "variant": sales["종형"][g["종형ID"]]["종형명"],
                  "simple_type": sales["종형"][g["종형ID"]]["간편고지약칭"], "note": g.get("안내")} for g in x.get("관문만수집") or []]
         return {"row": row_name, "column": f"{m['열'][col]['lo']}~{m['열'][col]['hi']}세", "label": terms.name(x["라벨"]),
-                "sub": x.get("보조") or None, "orgs": {org: terms.name(st) for org, st in x["회사"].items()},
+                "sub": x.get("보조") or None, "orgs": gate_org_texts(sales, x),
                 "states": {org: "open" if st in OPEN_STATES else "closed" for org, st in x["회사"].items()}, "gate_only": only}
 
     out["example_gate_6months"] = fact(
         {"age": age, "sex": sales["기준조건"]["성별"], "cell": cell_view(EXAMPLE_GATE_ROW), "later": cell_view(EXAMPLE_GATE_ROW_LATER)},
         "6개월 전 입원 고객 예: 대표 조건 나이의 고객군 칸(입원 3개월~1년 전)과 1년 반 전 입원 칸(입원 1~2년 전)의 회사별 가입 가능 여부. "
-        "라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다. states 는 회사별 가입 가능(open, 열림과 일부 나이만 열림) "
-        "또는 가입 제한(closed, 그 밖) 표시 값", as_of,
+        "라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다. orgs 는 회사별 글로, 우체국이 전용 상품으로만 가입 가능한 칸은 "
+        "우체국 글이 전용 표시(\"암, 2대질병 전용 상품만\")다(gate_org_texts). sub 는 칸의 보조 줄. states 는 회사별 가입 가능"
+        "(open, 열림과 일부 나이만 열림) 또는 가입 제한(closed, 그 밖) 표시 값", as_of,
         screen_source(f"지도.전체.칸[{EXAMPLE_GATE_ROW}, {EXAMPLE_GATE_ROW_LATER}][나이 열].회사, 라벨, 관문만수집"))
 
     # 담보 매핑 자동 확정의 두 경로(확률 산정 결과가 있는 줄, 교차 검증으로 확정해 확률이 빈 줄)

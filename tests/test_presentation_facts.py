@@ -106,6 +106,22 @@ def test_deck_example_facts_agree_with_the_count_keys():
     assert facts["project_days"]["days"] == len(facts["commits_by_date"])
 
 
+def test_gate_card_org_text_marks_limited_only_cells():
+    # 덱 8장 시연 카드는 상태 이름과 회사별 글을 나란히 쓴다. 전용 상품으로만 가입 가능한 칸은 우체국 글이 전용 표시다
+    sales = {"기준종형": [{"종형ID": "EPOST_C", "전용표시": "암, 2대질병 전용 상품"}, {"종형ID": "EPOST_W", "전용표시": None}]}
+    cell = {"회사": {"EPOST": "열림", "HANWHALIFE": "열림", "SAMSUNGFIRE": "심사로 확인"}}
+    plain = epf.gate_org_texts(sales, cell)
+    assert plain == {"EPOST": "가입 가능", "HANWHALIFE": "가입 가능", "SAMSUNGFIRE": "일반심사 대상"}
+    limited = epf.gate_org_texts(sales, {**cell, "우리전용만": ["EPOST_C"]})
+    assert limited == {**plain, "EPOST": "암, 2대질병 전용 상품만"}
+    with pytest.raises(epf.FactsError, match="전용표시"):
+        epf.gate_org_texts(sales, {**cell, "우리전용만": ["EPOST_W"]})
+    # 지금 사실 자료: 카드의 우체국 행이 같은 말을 두 번 쓰지 않는다(상태 이름은 가입 가능, 가입 제한)
+    gate = json.loads(FACTS.read_text(encoding="utf-8"))["facts"]["example_gate_6months"]["value"]["cell"]
+    name = "가입 가능" if gate["states"]["EPOST"] == "open" else "가입 제한"
+    assert gate["orgs"]["EPOST"] != name
+
+
 def test_no_local_paths_or_secrets():
     text = FACTS.read_text(encoding="utf-8")
     for bad in ("/home/", "/data/projects", "/tmp/", ":\\\\", "local/", "SPREADSHEET", "GEMINI_API_KEY", "SERVICE_ACCOUNT"):

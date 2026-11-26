@@ -817,7 +817,8 @@ def test_map_cell_labels_notes_and_closed_reasons(data, analysis):
     assert (cells[0][2]["보조"], cells[0][2]["닫힌사유"]) == ("", ["고지항목"])
     # 15~19세 입원 1~5년 전: 1종은 질문을 넘지만 나이로 닫히고, 3종은 질문에 걸린다
     assert (cells[1][0]["보조"], cells[1][0]["닫힌사유"]) == ("일반심사 대상", ["나이", "고지항목"])
-    # 열린 칸에는 보조와 닫힌 사유가 없다(우열 판정어도 없다)
+    # 열린 칸에는 보조와 닫힌 사유가 없다(우열 판정어도 없다). 우리 간편이 전용 상품으로만 열린 칸은 예외로 보조가 있다
+    # (test_site_screen.py::test_limited_only_cell_note_and_landscape_count)
     for x in (cells[3][1], cells[2][1]):
         assert (x["보조"], x["닫힌사유"]) == ("", [])
     assert not any(w in x["라벨"] for line in cells for x in line for w in ("나음", "못함", "유리", "불리"))
