@@ -25,6 +25,7 @@ import base64
 import importlib.util
 import json
 import re
+import struct
 import shutil
 import subprocess
 import sys
@@ -58,6 +59,30 @@ SKIP_DIGIT_KEYS = {"form", "literal_digits", "format", "id", "img", "icon", "url
 ARROW = ('<svg class="arw" viewBox="0 0 10 6" aria-hidden="true">'
          '<path d="M0.5 3H8.6M6.4 0.9L8.8 3L6.4 5.1" fill="none" stroke="currentColor" stroke-width="1.1" '
          'stroke-linecap="round" stroke-linejoin="round"/></svg>')
+
+
+def jpeg_size(path: Path) -> tuple[int, int]:
+    """JPEG 의 폭과 높이를 표준 라이브러리만으로 읽는다(테스트를 실행하는 CI 에는 Pillow 가 없다)."""
+    data = path.read_bytes()
+    if data[:2] != b"\xff\xd8":
+        raise ValueError(f"JPEG 가 아닙니다: {path}")
+    i = 2
+    while i + 9 < len(data):
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker == 0xFF:
+            i += 1
+            continue
+        if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+            i += 2
+            continue
+        if marker in (0xC0, 0xC1, 0xC2, 0xC3):
+            h, w = struct.unpack(">HH", data[i + 5:i + 9])
+            return w, h
+        i += 2 + struct.unpack(">H", data[i + 2:i + 4])[0]
+    raise ValueError(f"JPEG 크기를 읽지 못했습니다: {path}")
 
 
 def esc(s: Any) -> str:
@@ -247,9 +272,7 @@ class Form:
 
     def aspect(self, name: str) -> float:
         if name not in self.img_size and name in self.images:
-            from PIL import Image
-            with Image.open(self.images[name]) as im:
-                self.img_size[name] = im.size
+            self.img_size[name] = jpeg_size(Path(self.images[name]))
         w, h = self.img_size.get(name, (16, 9))
         return w / h
 

@@ -114,7 +114,6 @@ FULLS = ("summary", "tab_gate", "tab_insight", "tab_graph", "cancer_surgery", "t
 
 def test_zoom_cuts_exist_and_are_used(sample):
     """확대 컷 파일이 있고(300KB 이하는 위 시험이 본다), 폭이 2배 배율 이상으로 찍혀 글자가 읽히며, 쪽에서 실제로 쓰인다."""
-    from PIL import Image
     _, info = sample
     for name in CUTS + FULLS:
         f = FORM / "assets" / f"{name}.jpg"
@@ -122,8 +121,8 @@ def test_zoom_cuts_exist_and_are_used(sample):
         assert name in info["images"], f"{name} 이 어느 쪽에서도 쓰이지 않음"
     # 2배 배율로 찍은 컷의 폭은 화면 폭(1280) 안 요소의 2배 이상이어야 한다: 가장 좁은 응대 화법 카드도 600px 이상
     for name in ("cut_kpi", "cut_gate", "cut_cover", "cut_insight", "cut_talk", "cut_head_a", "cut_head_b"):
-        with Image.open(FORM / "assets" / f"{name}.jpg") as im:
-            assert im.width >= 600, (name, im.width)
+        width = form_build.jpeg_size(FORM / "assets" / f"{name}.jpg")[0]
+        assert width >= 600, (name, width)
     # 옛 머리 띠 캡처는 쓰지 않는다
     assert not (FORM / "assets" / "head_gate.jpg").exists()
 
