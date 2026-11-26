@@ -135,7 +135,7 @@ python3 proto_src/console4/build.py          # proto_src/console4 → site/proto
 python3 proto_src/console4/shoot.py <사진 폴더>   # 분석 화면 여러 해상도 점검 (playwright)
 python3 scripts/export_presentation_facts.py # 발표 사실 자료 presentation_animation/facts.json
 python3 proto_src/deck/build.py --out site/deck/index.html --used proto_src/deck/facts_used.json --strict   # 발표 덱
-python3 proto_src/deck/tools/standalone.py --check   # 영상까지 넣은 단일 파일 덱 → local/submission/standalone/ (커밋하지 않음)
+python3 proto_src/deck/tools/standalone.py --check   # 영상까지 넣은 단일 파일 덱과 분석 화면 복사 → local/submission/standalone/ (커밋하지 않음)
 python3 proto_src/form/shoot.py              # 작품설명서에 넣는 화면 캡처 다시 찍기
 python3 proto_src/form/build.py --strict --identity local/submission/identity.json --out local/submission/작품설명서.pdf --html local/submission/작품설명서.html --preview local/submission/preview   # 작품설명서 PDF (결과는 local/ 에만)
 python3 scripts/build_site.py                # data/snapshot → site/v1/index.html (초기 버전 판단 화면)
