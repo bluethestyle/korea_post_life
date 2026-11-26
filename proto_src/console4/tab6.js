@@ -539,25 +539,38 @@
       const jd = lay ? lay.jd : judgeOf(g, c, sc);
       const doms = domOrder(g);
       const dIdx = si => { const i = doms.indexOf(sc.info.get(si).dom); return i < 0 ? 4 : Math.min(i, 4); };
+      // 요청 43 5번: 실제로 그려지는 규칙(tab6.css 의 .gr-mk, .is-keep, .is-on)과 같게 계산한다. 호버는 일시적이라 넣지 않는다.
+      // 선택 강조(.is-keep)가 있으면 그 노드(그룹 선택은 그룹의 담보, 담보 선택은 focusSets 의 노드)의 표시 기호만,
+      // 선택이 없으면 필터 대상(.is-on, 선택이 없을 때만 is-flt)의 표시 기호만 보인다. 검수 대기(점선 테두리)는 늘 그려진다.
+      const si = state.selStd != null && sc.info.has(state.selStd) ? state.selStd : null;
+      const gk = state.selGroup && sc.groupMap.has(state.selGroup) ? state.selGroup : null;
+      const fs = lay && (si != null || gk) ? focusSets(g, lay, si != null ? { t: 'std', si } : { t: 'group', key: gk }) : null;
+      const fset = lay && !fs && state.filter ? filterSet(g, lay) : null;
+      const shown = fs ? fs.nodes : fset;
+      const anyMark = !!state.filter || si != null || !!gk;
       const marks = new Set();
-      // 표시 기호는 필터 대상과 선택 강조(그리고 호버) 때만 보이고, 기본 화면에서는 검수 대기만 보인다
-      const fset = state.filter && lay ? filterSet(g, lay) : null;
-      const anyMark = !!fset || state.selStd != null || !!state.selGroup;
-      sc.stds.forEach(si => jd.per.get(si).marks.forEach(m => { if (m === 'wait' || (anyMark && (!fset || fset.has(si)))) marks.add(m); }));
+      sc.stds.forEach(s => jd.per.get(s).marks.forEach(m => { if (m === 'wait' || (lay ? shown && shown.has(s) : anyMark)) marks.add(m); }));
       const edges = new Set();
-      if (!lay || lay.bundles.length) edges.add('bundle');
-      const si = state.selStd;
-      if (lay && si != null && sc.info.has(si)) {
-        const ex = net.ex && net.ex.si === si ? net.ex : null;
+      const ex = lay && si != null && net.ex && net.ex.si === si ? net.ex : null;
+      // 번들 엣지는 담보를 펼치면(is-exp) 보이지 않는다(tab6.css 의 요청 43 5번)
+      if ((!lay || lay.bundles.length) && !ex) edges.add('bundle');
+      if (lay && si != null) {
         if (!ex) edges.add('held');
         netRelEdges(g, sc, si).map(x => x.e).concat(evidenceEdges(g, lay, si)).forEach(e => edges.add(e.p['관계'] === '통합' ? 'rel-uni' : 'rel-inc'));
-        if (ex) ex.edges.forEach(ed => edges.add(ed.ek === 'rec' ? 'rec' : ed.ek === '보유' ? 'held' : 'incmap'));
+        // 펼친 담보의 선은 종류와 관계없이 모두 빨강 선택 강조선(.gr-e-sum)으로 그려진다
+        if (ex && ex.edges.length) edges.add('sel');
+      } else if (lay && gk) {
+        // 그룹 선택: 그 그룹과 회사 앵커를 잇는 번들 엣지를 빨강으로(.is-ssel)
+        if (lay.bundles.some(b => b.key === gk)) edges.add('sel');
       } else if (state.selNode != null && g.N[state.selNode] && g.N[state.selNode].k === NK['종형']) edges.add('held');
-      // 노드: 회사 종형(이중 원)은 늘, 회사별 요약 노드는 담보를 선택해 펼쳤을 때. 빨간 선택 강조선은 담보나 그룹을 선택했을 때
+      // 노드: 회사 종형(이중 원)은 늘, 회사별 요약 노드는 담보를 선택해 펼쳤을 때
       const nodes = new Set(['anchor']);
-      if (lay && si != null && net.ex && net.ex.si === si && net.ex.nodes.length) nodes.add('sum');
-      if (lay && ((si != null && sc.info.has(si)) || (state.selGroup && sc.groupMap.has(state.selGroup)))) edges.add('sel');
-      return { cls: new Set(sc.groups.map(grp => grp.cls)), dom: new Set(sc.stds.map(dIdx)), marks, ring: sc.nPeer > 3, edges, nodes };
+      if (ex && ex.nodes.length) nodes.add('sum');
+      // 번호 상자와 지시선은 번호 방식으로 그렸을 때만, 필터 대상의 굵은 테두리는 필터가 선택 없이 켜져 있을 때만
+      const cs = net.callShown;
+      const call = !!(cs && cs.mode === 'num' && cs.items && cs.items.length);
+      const fltOn = !!(fset && fset.size);
+      return { cls: new Set(sc.groups.map(grp => grp.cls)), dom: new Set(sc.stds.map(dIdx)), marks, ring: sc.nPeer > 3, edges, nodes, call, fltOn };
     }
     if (state.preset === 'news') {
       const lay = alt.lay && alt.lay.kind === 'mk' ? alt.lay : null;
@@ -1609,46 +1622,12 @@
     return out.join('');
   }
 
-  // 그룹을 호버하거나 선택하면 그룹 안 보장 대분류 구역마다 "대분류 n" 을 그 구역 쪽 원 바깥에 표시한다(명암만으로 구분하기 어려워서, 비평 2번)
+  // 그룹을 호버하거나 선택하면 그룹 안 보장 대분류 구역마다 "대분류 n" 을 그 구역 쪽 원 바깥에 표시한다(명암만으로 구분하기 어려워서, 비평 2번).
+  // 선택한 그룹은 번호 상자보다 먼저 둔 칩(calloutPlan 의 dom)을 그대로 쓰고, 호버한 그룹은 보이는 담보 이름과 번호 상자, 지시선을 피해 둔다.
+  // 이름은 무채색 칩(굵은 글자와 배경)으로 담보 이름과 구분한다(3차 개선 9번). 자리가 없어도 칩을 빼지 않는다(요청 43 3번)
   function domZoneHTML(g, lay, key, plan) {
-    const grp = lay.sc.groupMap.get(key), gg = lay.gpos.get(key);
-    if (!grp || !gg) return '';
-    const by = new Map();
-    grp.members.forEach(si => { const d = domOf(g, si); if (!by.has(d)) by.set(d, []); by.get(d).push(si); });
-    const doms = domOrder(g);
-    const zs = Array.from(by.entries()).map(([d, mem]) => {
-      let x = 0, y = 0;
-      mem.forEach(si => { const p = lay.npos.get(si); x += p.x; y += p.y; });
-      x = x / mem.length - gg.x; y = y / mem.length - gg.y;
-      const ang = Math.hypot(x, y) < 1 ? -Math.PI / 2 : Math.atan2(y, x);
-      return { d, n: mem.length, ang, o: doms.indexOf(d) };
-    }).sort((a, b) => a.ang - b.ang);
-    const h = textLineH();
-    // 앵커 라벨, 그룹 라벨, 보이는 담보 라벨과 겹치지 않게 둔다
-    // 대상 담보 이름표와 번호가 있으면 그 상자와 지시선도 피한다. 다른 그룹 원과 앵커, 번들 엣지 위에도 두지 않는다
-    // 이름은 무채색 칩(굵은 글자와 배경)으로 담보 이름과 구분한다(3차 개선 9번)
-    const placed = lay.anc.map(a => a.box).concat(Array.from(lay.glabels.values()).map(gl => gl.box), plan ? [] : Array.from(lay.slabels.values()), plan ? plan.items.map(it => it.box) : []);
-    const leads = plan ? plan.items.map(it => it.lead) : [];
-    const circles = Array.from(lay.gpos.values()).map(v => [v.x, v.y, v.R]).concat(lay.anc.map(a => [a.x, a.y, a.r + 4]));
-    const px = 5, py = 2;
-    return zs.map(z => {
-      const tx = `${z.d} ${fmt(z.n)}`, w = textW(tx, 700) + 2 * px, hh = h + 2 * py;
-      let box = null;
-      for (let d = 4; d < 96 && !box; d += 4) {
-        for (const da of [0, 0.25, -0.25, 0.5, -0.5, 0.8, -0.8]) {
-          const ux = Math.cos(z.ang + da), uy = Math.sin(z.ang + da);
-          const bx = gg.x + ux * (gg.R + d) - w / 2 + ux * w / 2, by = gg.y + uy * (gg.R + d) - hh / 2 + uy * hh / 2;
-          const b = [bx, by, bx + w, by + hh];
-          if (b[0] < 2 || b[1] < 2 || b[2] > lay.W - 2 || b[3] > lay.H - 2 || boxHit(b, placed, circles, lay.W, lay.H)) continue;
-          if (leads.some(l => segHitsBox(l[0], l[1], l[2], l[3], b, 1)) || lay.bundles.some(e => segHitsBox(e.x1, e.y1, e.x2, e.y2, b, e.w / 2 + 1))) continue;
-          box = b;
-          break;
-        }
-      }
-      if (!box) return '';
-      placed.push(box);
-      return `<g class="gr-dz" data-gr-lb="dom" data-gr-lbox="${box.map(f1).join(',')}"><rect rx="3" x="${f1(box[0])}" y="${f1(box[1])}" width="${f1(box[2] - box[0])}" height="${f1(box[3] - box[1])}"/><text class="gr-tx" x="${f1(box[0] + px)}" y="${f1(box[1] + py + textAsc())}">${esc(tx)}</text></g>`;
-    }).join('');
+    const res = plan && plan.domKey === key && plan.dom ? plan.dom : placeDomChips(g, lay, key, plan, !plan);
+    return res.items.map(z => `<g class="gr-dz" data-gr-lb="dom" data-gr-lbox="${z.box.map(f1).join(',')}"><rect rx="3" x="${f1(z.box[0])}" y="${f1(z.box[1])}" width="${f1(z.box[2] - z.box[0])}" height="${f1(z.box[3] - z.box[1])}"/><text class="gr-tx" x="${f1(z.box[0] + z.px)}" y="${f1(z.box[1] + z.py + textAsc())}">${esc(z.tx)}</text></g>`).join('');
   }
 
   // 강조할 노드와 앵커, 그룹(호버, 선택, 필터)
@@ -1689,11 +1668,11 @@
     return out;
   }
 
-  // ---------- 대상 담보 이름표와 번호(3차 개선 3번) ----------
-  // 그룹을 선택했거나 필터를 켰을 때 대상 담보를 빠짐없이 보인다. 대상이 CALL_NAME_MAX 개 이하이고 이름표가 모두
-  // 다른 요소와 겹치지 않게 들어가면 그룹 원 바깥 좌우 열에 이름표와 지시선을, 아니면 노드마다 번호를 원 둘레 바깥에 두고
-  // 상세 패널에 같은 번호의 목록을 보인다. 번호 차례는 상세 패널의 목록 차례(그룹 차례, 보장 대분류 차례, 담보 차례)와 같다
-  const CALL_NAME_MAX = 8;
+  // ---------- 대상 담보 번호(3차 개선 3번, 요청 43 1~3번) ----------
+  // 그룹을 선택했거나 필터를 켰을 때 대상 담보를 빠짐없이 보인다. 노드마다 번호 상자를 그룹 원 둘레 바깥에 두고 지시선으로 잇고,
+  // 상세 패널에 같은 번호의 목록을 보인다. 번호 차례는 상세 패널의 목록 차례(그룹 차례, 보장 대분류 차례, 담보 차례)와 같다.
+  // 대상이 적을 때의 이름표 방식은 기준 해상도에서 이름표가 겹치지 않게 들어가지 않는 상태가 있어 번호 방식 하나로 정리했다(요청 43 2번).
+  // 그룹 선택이면 보장 대분류 집계 칩도 함께 두고, 번호 상자와 지시선과 칩이 서로 겹치지 않게 한다(요청 43 3번)
   const CLS_KEY = { only: 'grClsOnly', shared: 'grClsShared', peer: 'grClsPeer' };
   function domSorted(g, sis) {
     const doms = domOrder(g);
@@ -1715,34 +1694,94 @@
   function calloutPlan(g, lay, tg) {
     const ck = `${tg.kind}|${tg.key || tg.f}|${tg.list.join(',')}`;
     if (net.call && net.call.lay === lay && net.call.k === ck) return net.call.p;
-    let p = tg.list.length <= CALL_NAME_MAX ? placeCallNames(g, lay, tg.list) : null;
-    if (!p) p = placeCallNums(g, lay, tg.list);
+    const t0 = performance.now();
+    // 배치 차례 몇 가지(원 둘레 차례, 자리 후보가 적은 것 먼저, 안쪽 노드 먼저, 바깥 노드 먼저, 그 반대, 그룹 차례 반대)와 집계 칩을
+    // 나중에 둘지 먼저 둘지를 바꿔 보고, 자리를 못 찾은 수(misses)가 가장 적고 지시선이 가장 짧은 배치를 고른다.
+    // 모두 자리를 찾은 배치가 나오면 거기서 멈춘다(요청 43 1, 3번)
+    const multi = new Set(tg.list.map(si => lay.sc.info.get(si).key)).size > 1;
+    const variants = [['spread', false, false], ['mrv', false, false]];
+    if (tg.kind === 'group') variants.push(['spread', true, false], ['mrv', true, false]);
+    if (multi) variants.push(['mrv', false, true], ['spread', false, true]);
+    const preps = new Map();
+    let p = null;
+    for (const [order, chipsFirst, grpRev] of variants) {
+      const pre = chipsFirst ? placeDomChips(g, lay, tg.key, null, false) : null;
+      const pk = chipsFirst ? 'c' : 'n';
+      if (!preps.has(pk)) preps.set(pk, prepCallouts(g, lay, tg.list, pre ? pre.items.map(z => z.box) : []));
+      const q = placeCallouts(preps.get(pk), order, grpRev);
+      q.dom = tg.kind === 'group' ? (pre || placeDomChips(g, lay, tg.key, q, false)) : null;
+      q.domKey = q.dom ? tg.key : null;
+      q.total = q.misses + (q.dom ? q.dom.misses : 0);
+      if (!p || q.total < p.total || (q.total === p.total && q.leadLen < p.leadLen - 0.5)) p = q;
+      if (!p.total) break;
+    }
+    p.ms = performance.now() - t0;
     p.k = ck;
     net.call = { lay, k: ck, p };
     return p;
   }
-  // 이름표와 번호가 피할 것: 앵커와 그룹 라벨, 모든 그룹 원과 앵커 원, 번들 엣지와 그룹 라벨 지시선
-  function callObstacles(lay) {
-    // 그룹 라벨은 버튼형 테두리(글자 상자 바깥 3px)까지 피하도록 4px 넓힌다
-    const grow = b => [b[0] - 4, b[1] - 4, b[2] + 4, b[3] + 4];
-    const boxes = lay.anc.map(a => a.box).concat(Array.from(lay.glabels.values()).map(gl => grow(gl.box)));
-    const circles = Array.from(lay.gpos.entries()).map(([key, v]) => [v.x, v.y, v.R, key]).concat(lay.anc.map(a => [a.x, a.y, a.r + 4, '']));
+  // 이름표와 번호 상자가 피할 것(요청 43 1번): 앵커 라벨, 그룹 라벨(버튼 테두리까지), 보장 대분류 집계 칩, 그룹 원, 앵커 원,
+  // 모든 담보 노드 원(자기 노드 포함, 표시 기호 자리까지), 번들 엣지와 그룹 라벨 지시선
+  function callObstacles(lay, extra, avoidStd) {
+    const grow = (b, d) => [b[0] - d, b[1] - d, b[2] + d, b[3] + d];
+    const boxes = lay.anc.map(a => grow(a.box, 1.5)).concat(Array.from(lay.glabels.values()).map(gl => grow(gl.box, 3.5)), (extra || []).map(b => grow(b, 1.5)),
+      avoidStd ? Array.from(lay.slabels.values()) : []);
+    const groups = Array.from(lay.gpos.entries()).map(([key, v]) => [v.x, v.y, v.R + 2, key]);
+    const anchors = lay.anc.map(a => [a.x, a.y, a.r + 5]);
+    const nodes = Array.from(lay.npos.values()).map(p => [p.x, p.y, p.r + 1.5]);
     const segs = lay.bundles.map(b => [b.x1, b.y1, b.x2, b.y2, b.w / 2 + 1]);
     lay.glabels.forEach(gl => { if (gl.lead) segs.push([gl.lead[0], gl.lead[1], gl.lead[2], gl.lead[3], 1]); });
-    return { boxes, circles, segs };
+    return { boxes, groups, anchors, nodes, segs };
   }
-  const CALL_EDGE = 2;
-  function callBoxOk(b, ob, placed, W, H) {
+  const CALL_EDGE = 2, CALL_EXT_MAX = 216;
+  const ovBox = (b, q) => b[0] < q[2] && q[0] < b[2] && b[1] < q[3] && q[1] < b[3];
+  const hitCirc = (b, x, y, r) => { const cx = Math.min(Math.max(x, b[0]), b[2]), cy = Math.min(Math.max(y, b[1]), b[3]); return (cx - x) * (cx - x) + (cy - y) * (cy - y) < r * r; };
+  // 상자 자리: 노드, 앵커, 라벨, 칩, 앞서 둔 상자와 지시선은 늘 피한다. tier 0 은 모든 그룹 원과 번들 엣지 밖,
+  // tier 1 은 다른 그룹 원 안의 빈자리와 번들 엣지 위도 허용, tier 2 는 자기 그룹 원 안의 빈자리도 허용
+  function callBoxFree(b, ownKey, ob, placed, leads, tier, W, H) {
     if (b[0] < CALL_EDGE || b[1] < CALL_EDGE || b[2] > W - CALL_EDGE || b[3] > H - CALL_EDGE) return false;
-    if (boxHit(b, ob.boxes.concat(placed), ob.circles, W, H)) return false;
-    return !ob.segs.some(s => segHitsBox(s[0], s[1], s[2], s[3], b, s[4]));
+    for (const q of ob.boxes) if (ovBox(b, q)) return false;
+    for (const q of placed) if (ovBox(b, q)) return false;
+    for (const [x, y, r] of ob.nodes) if (hitCirc(b, x, y, r)) return false;
+    for (const [x, y, r] of ob.anchors) if (hitCirc(b, x, y, r)) return false;
+    for (const l of leads) if (segHitsBox(l[0], l[1], l[2], l[3], b, 1)) return false;
+    if (tier < 2) for (const [x, y, r, key] of ob.groups) if ((tier === 0 || key === ownKey) && hitCirc(b, x, y, r)) return false;
+    if (tier === 0) for (const s of ob.segs) if (segHitsBox(s[0], s[1], s[2], s[3], b, s[4])) return false;
+    return true;
   }
-  // 지시선은 다른 라벨을 지나지 않고, 자기 그룹이 아닌 그룹 원과 앵커를 지나지 않고, 앞서 둔 지시선과 엇갈리지 않는다
-  function callLeadOk(ln, ownKey, ob, placed, leads) {
+  // 지시선: 라벨, 칩, 다른 상자는 늘 지나지 않는다. tier 0 은 자기 그룹이 아닌 그룹 원, 앵커, 앞서 둔 지시선과도 엇갈리지 않는다
+  function callLeadFree(ln, ownKey, ob, placed, leads, tier) {
+    for (const q of ob.boxes) if (segHitsBox(ln[0], ln[1], ln[2], ln[3], q, 0)) return false;
+    for (const q of placed) if (segHitsBox(ln[0], ln[1], ln[2], ln[3], q, 0)) return false;
+    if (tier > 0) return true;
     const a = [ln[0], ln[1]], b = [ln[2], ln[3]];
-    if (ob.boxes.concat(placed).some(q => segHitsBox(ln[0], ln[1], ln[2], ln[3], q, 0))) return false;
-    if (ob.circles.some(([x, y, r, key]) => key !== ownKey && segCircleDist(a, b, [x, y]) < r)) return false;
+    if (ob.groups.some(([x, y, r, key]) => key !== ownKey && segCircleDist(a, b, [x, y]) < r - 2)) return false;
+    if (ob.anchors.some(([x, y, r]) => segCircleDist(a, b, [x, y]) < r)) return false;
     return !leads.some(q => segX(a, b, [q[0], q[1]], [q[2], q[3]]));
+  }
+  // 둘 자리가 없을 때의 겹침 수(가장 적은 후보에 두고 misses 로 센다)
+  function callBoxCost(b, ob, placed, leads, W, H) {
+    let n = 0;
+    if (b[0] < CALL_EDGE || b[1] < CALL_EDGE || b[2] > W - CALL_EDGE || b[3] > H - CALL_EDGE) n += 100;
+    ob.boxes.concat(placed).forEach(q => { if (ovBox(b, q)) n += 1; });
+    ob.nodes.concat(ob.anchors).forEach(([x, y, r]) => { if (hitCirc(b, x, y, r)) n += 1; });
+    leads.forEach(l => { if (segHitsBox(l[0], l[1], l[2], l[3], b, 1)) n += 1; });
+    return n;
+  }
+  // 원(중심 cx, cy, 반지름 R) 바깥에서 각도 th0 쪽부터 둘레 전체와 더 먼 자리까지의 상자 후보(가까운 차례). 상자의 원 쪽 변이 그 점에 닿는다
+  function ringCands(cx, cy, R, th0, w, h, extMax, extStep, angStep) {
+    const out = [];
+    const nk = Math.ceil(Math.PI / angStep);
+    for (let ext = 0; ext <= extMax; ext += extStep) {
+      for (let k = 0; k <= 2 * nk; k++) {
+        const da = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * angStep;
+        const th = th0 + da, ux = Math.cos(th), uy = Math.sin(th);
+        const px = cx + ux * (R + ext), py = cy + uy * (R + ext);
+        const bx = px - w / 2 + ux * w / 2, by = py - h / 2 + uy * h / 2;
+        out.push([ext + Math.abs(da) * (R + ext) * 0.6, [bx, by, bx + w, by + h]]);
+      }
+    }
+    return out.sort((a, b) => a[0] - b[0]).map(c => c[1]);
   }
   function groupedTargets(lay, list) {
     const by = new Map();
@@ -1753,109 +1792,243 @@
     });
     return by;
   }
-  function placeCallNames(g, lay, list) {
-    const ob = callObstacles(lay);
-    const W = lay.W, H = lay.H, h = textLineH(), gapY = 4;
-    const items = [], placed = [], leads = [];
-    for (const [key, its0] of groupedTargets(lay, list)) {
-      const gg = lay.gpos.get(key);
-      const its = its0.map(it => {
-        const p = lay.npos.get(it.si);
-        return Object.assign({}, it, { p, w: textW(g.N[it.si].l, 400) + 2, cos: Math.cos(Math.atan2(p.y - gg.y, p.x - gg.x)) });
-      });
-      const tryCols = (sides, pad) => {
-        const out = [], pl = placed.slice(), ld = leads.slice();
-        for (const s of [1, -1]) {
-          const col = its.filter((_, i) => sides[i] === s).sort((a, b) => a.p.y - b.p.y || a.si - b.si);
-          if (!col.length) continue;
-          const [ys, gEff] = pavaSpread(col.map(it => it.p.y), h / 2 + CALL_EDGE, H - h / 2 - CALL_EDGE, h + gapY);
-          if (gEff < h + gapY - 0.01) return null;
-          for (let i = 0; i < col.length; i++) {
-            const it = col[i], y = ys[i];
-            const x0 = s > 0 ? gg.x + gg.R + pad : gg.x - gg.R - pad - it.w;
-            const box = [x0, y - h / 2, x0 + it.w, y + h / 2];
-            const lx = s > 0 ? box[0] - 3 : box[2] + 3;
-            const dx = lx - it.p.x, dy = y - it.p.y, d = Math.hypot(dx, dy) || 1;
-            const lead = [it.p.x + dx / d * (it.p.r + 1), it.p.y + dy / d * (it.p.r + 1), lx, y];
-            if (!callBoxOk(box, ob, pl, W, H) || !callLeadOk(lead, key, ob, pl, ld)) return null;
-            pl.push(box); ld.push(lead);
-            out.push({ si: it.si, num: it.num, box, lead });
-          }
-        }
-        return out;
-      };
-      // 노드가 원 중심의 오른쪽이면 오른쪽 열, 왼쪽이면 왼쪽 열. 막히면 한쪽 열에 모두, 원에서 더 떨어뜨려 다시 찾는다
-      const splits = [its.map(it => (it.cos >= 0 ? 1 : -1)), its.map(() => 1), its.map(() => -1)];
-      let ok = null;
-      for (const pad of [14, 30, 46]) {
-        for (const sides of splits) { ok = tryCols(sides, pad); if (ok) break; }
-        if (ok) break;
-      }
-      if (!ok) return null;
-      ok.forEach(x => { items.push(x); placed.push(x.box); leads.push(x.lead); });
-    }
-    items.sort((a, b) => a.num - b.num);
-    return { mode: 'name', items, misses: 0 };
-  }
-  const ang2t = a => ((a / (2 * Math.PI)) % 1 + 1) % 1;
-  function placeCallNums(g, lay, list) {
-    const ob = callObstacles(lay);
+  // 번호 상자 후보와 고정 장애물(라벨, 칩, 노드, 앵커, 그룹 원, 번들 엣지)에 대한 판정은 한 번만 계산해 두고,
+  // 배치 차례를 바꿔 볼 때는 앞서 둔 상자와 지시선만 다시 본다(요청 43 1번)
+  function prepCallouts(g, lay, list, extra) {
+    const ob = callObstacles(lay, extra, false);
     const W = lay.W, H = lay.H, h = textLineH() + 4;
-    const items = [], placed = [], leads = [];
-    let misses = 0;
+    ob.h = h;
+    const staticTier = (b, key) => {
+      if (b[0] < CALL_EDGE || b[1] < CALL_EDGE || b[2] > W - CALL_EDGE || b[3] > H - CALL_EDGE) return 3;
+      for (const q of ob.boxes) if (ovBox(b, q)) return 3;
+      for (const [x, y, r] of ob.nodes) if (hitCirc(b, x, y, r)) return 3;
+      for (const [x, y, r] of ob.anchors) if (hitCirc(b, x, y, r)) return 3;
+      let own = false, other = false;
+      for (const [x, y, r, k] of ob.groups) if (hitCirc(b, x, y, r)) { if (k === key) own = true; else other = true; }
+      if (own) return 2;
+      if (other || ob.segs.some(sg => segHitsBox(sg[0], sg[1], sg[2], sg[3], b, sg[4]))) return 1;
+      return 0;
+    };
+    const groups = [];
     for (const [key, its0] of groupedTargets(lay, list)) {
       const gg = lay.gpos.get(key);
       const its = its0.map(it => {
         const p = lay.npos.get(it.si);
         const ang = Math.hypot(p.x - gg.x, p.y - gg.y) < 1 ? -Math.PI / 2 : Math.atan2(p.y - gg.y, p.x - gg.x);
-        return Object.assign({}, it, { p, ang, w: Math.max(h, textW(String(it.num), 700) + 10) });
+        return Object.assign({}, it, { p, ang, key, w: Math.max(h, textW(String(it.num), 700) + 10), dist: Math.hypot(p.x - gg.x, p.y - gg.y) });
       });
-      const rr = gg.R + 4 + h / 2;
+      const rr = gg.R + 4;
       const wMax = Math.max(...its.map(it => it.w));
-      const spread = circSpread(its.map(it => [it.si, ang2t(it.ang)]), 2 * Math.PI * rr, wMax + 3);
+      const spread = circSpread(its.map(it => [it.si, ang2t(it.ang)]), 2 * Math.PI * (rr + h / 2), wMax + 3);
       its.sort((a, b) => spread.get(a.si)[0] - spread.get(b.si)[0]);
       its.forEach(it => {
-        const [tt, zz] = spread.get(it.si);
-        const th0 = 2 * Math.PI * tt;
-        const cands = [];
-        for (const ext of [0, 14, 28, 42, 60, 80]) {
-          for (const da of [0, 0.06, -0.06, 0.12, -0.12, 0.2, -0.2, 0.3, -0.3]) {
-            const th = th0 + da, rad = rr + Math.max(0, zz) * 2 + ext;
-            cands.push([gg.x + Math.cos(th) * rad, gg.y + Math.sin(th) * rad]);
+        const leadOf = b => {
+          const e = clipToBox((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, (b[2] - b[0]) / 2 + 1, (b[3] - b[1]) / 2 + 1, it.p.x, it.p.y);
+          const dx = e[0] - it.p.x, dy = e[1] - it.p.y, d = Math.hypot(dx, dy) || 1;
+          return [it.p.x + dx / d * (it.p.r + 1), it.p.y + dy / d * (it.p.r + 1), e[0], e[1]];
+        };
+        const extMax = list.length > 24 ? 340 : CALL_EXT_MAX;
+        const extStep = list.length > 24 ? 7 : 8;
+        it.all = ringCands(gg.x, gg.y, rr, 2 * Math.PI * spread.get(it.si)[0], it.w, h, extMax, extStep, 0.06)
+          .concat(ringCands(it.p.x, it.p.y, (it.p.cr || it.p.r) + 3, it.ang, it.w, h, 36, 6, 0.25));
+        it.leadOf = leadOf;
+        it.cands = [];
+        for (const b of it.all) {
+          const tb = staticTier(b, key);
+          if (tb > 2) continue;
+          const ln = leadOf(b);
+          if (ob.boxes.some(q => segHitsBox(ln[0], ln[1], ln[2], ln[3], q, 0))) continue;
+          const a = [ln[0], ln[1]], c = [ln[2], ln[3]];
+          const l0 = !ob.groups.some(([x, y, r, k]) => k !== key && segCircleDist(a, c, [x, y]) < r - 2) && !ob.anchors.some(([x, y, r]) => segCircleDist(a, c, [x, y]) < r);
+          it.cands.push({ b, ln, tb, l0 });
+        }
+      });
+      groups.push({ key, its });
+    }
+    return { ob, W, H, groups };
+  }
+  // 번호 상자 자리 찾기(요청 43 1번). order: spread(원 둘레 차례), mrv(남은 후보가 가장 적은 항목을 매 단계 먼저), cons(초기 후보 적은 순),
+  // inner, outer, rev. grpRev 는 그룹 차례를 거꾸로(필터처럼 여러 그룹일 때). 상자는 tier 0(그룹 원과 번들 엣지 밖)부터, 지시선은
+  // tier 0(다른 그룹 원, 앵커, 다른 지시선과 엇갈리지 않음)부터 찾고, 라벨, 칩, 노드, 앵커, 다른 상자와 지시선은 어느 tier 에서도 피한다
+  function placeCallouts(prep, order, grpRev) {
+    const { ob, W, H } = prep;
+    const items = [], placed = [], leads = [], missed = [];
+    const tiers = [[0, 0], [0, 1], [1, 1], [2, 1]];
+    const conflict = (b1, l1, b2, l2) => ovBox(b1, b2) || segHitsBox(l1[0], l1[1], l1[2], l1[3], b2, 1) || segHitsBox(l2[0], l2[1], l2[2], l2[3], b1, 0);
+    const fineCands = it => {
+      const out = [], maxR = Math.hypot(W, H), nk = Math.ceil(Math.PI / 0.02), hh = ob.h || 20;
+      for (let rad = 6; rad <= maxR; rad += 6) {
+        for (let k = 0; k <= 2 * nk; k++) {
+          const da = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.02;
+          const th = it.ang + da, ux = Math.cos(th), uy = Math.sin(th);
+          const px = it.p.x + ux * (it.p.r + rad), py = it.p.y + uy * (it.p.r + rad);
+          const bx = px - it.w / 2 + ux * it.w / 2, by = py - hh / 2 + uy * hh / 2;
+          const b = [bx, by, bx + it.w, by + hh];
+          if (!callBoxFree(b, it.key, ob, [], [], 2, W, H)) continue;
+          const ln = it.leadOf(b);
+          if (!ob.boxes.some(q => segHitsBox(ln[0], ln[1], ln[2], ln[3], q, 0))) out.push({ b, ln });
+        }
+      }
+      return out;
+    };
+    const gs = grpRev ? prep.groups.slice().reverse() : prep.groups;
+    let pool = [];
+    if (order === 'cons' || order === 'mrv') pool = gs.flatMap(gr => gr.its).sort((a, b) => a.cands.length - b.cands.length || a.num - b.num);
+    else gs.forEach(gr => {
+      const its = gr.its.slice();
+      if (order === 'rev') its.reverse();
+      else if (order === 'inner') its.sort((a, b) => a.dist - b.dist || a.si - b.si);
+      else if (order === 'outer') its.sort((a, b) => b.dist - a.dist || a.si - b.si);
+      pool.push(...its);
+    });
+    const work = pool.map((it, idx) => ({ it, idx, rem: it.cands.slice(), cross: new Uint8Array(it.cands.length) }));
+    const strangles = (B, L) => {
+      for (let i = 0; i < work.length; i++) {
+        const w = work[i];
+        if (!w.rem.length) continue;
+        let ok = false;
+        for (let j = 0; j < w.rem.length; j++) {
+          const wc = w.rem[j];
+          if (!conflict(wc.b, wc.ln, B, L)) { ok = true; break; }
+        }
+        if (!ok) return true;
+      }
+      return false;
+    };
+    while (work.length) {
+      let wi = 0;
+      if (order === 'mrv' && work.length > 1) {
+        let bRem = Infinity, bT0 = Infinity;
+        for (let i = 0; i < work.length; i++) {
+          const w = work[i], nRem = w.rem.length;
+          if (nRem > bRem) continue;
+          let nT0 = 0;
+          for (let j = 0; j < nRem; j++) if (w.rem[j].tb === 0 && w.rem[j].l0 && !w.cross[j]) nT0++;
+          if (nRem < bRem || nT0 < bT0) { bRem = nRem; bT0 = nT0; wi = i; if (bRem === 0) break; }
+        }
+      }
+      const cur = work.splice(wi, 1)[0];
+      const it = cur.it;
+      let hit = null;
+      for (const safe of [true, false]) {
+        for (const [tb, tl] of tiers) {
+          for (let j = 0; j < cur.rem.length; j++) {
+            const c = cur.rem[j];
+            if (c.tb > tb || (tl === 0 && (!c.l0 || cur.cross[j]))) continue;
+            if (safe && strangles(c.b, c.ln)) continue;
+            hit = { box: c.b, lead: c.ln };
+            break;
+          }
+          if (hit) break;
+        }
+        if (hit) break;
+      }
+      if (!hit) { missed.push(it); continue; }
+      const B = hit.box, L = hit.lead, la = [L[0], L[1]], lc = [L[2], L[3]];
+      placed.push(B); leads.push(L);
+      items.push({ si: it.si, num: it.num, box: B, lead: L, ref: it });
+      for (let i = 0; i < work.length; i++) {
+        const w = work[i], nr = [], nc = [];
+        for (let j = 0; j < w.rem.length; j++) {
+          const c = w.rem[j];
+          if (conflict(c.b, c.ln, B, L)) continue;
+          let cr = w.cross[j];
+          if (!cr && c.l0 && segX([c.ln[0], c.ln[1]], [c.ln[2], c.ln[3]], la, lc)) cr = 1;
+          nr.push(c); nc.push(cr);
+        }
+        w.rem = nr; w.cross = Uint8Array.from(nc);
+      }
+    }
+    // 기본 루프에서 빠진 항목은 세밀한 각도 후보와 1단계 자리 양보(이미 둔 상자 하나를 다른 빈자리로 옮김)로 채운다
+    let misses = 0;
+    for (const it of missed) {
+      let hit = null;
+      const fc = fineCands(it);
+      for (const c of fc) {
+        let bad = false;
+        for (let q = 0; q < placed.length; q++) if (conflict(c.b, c.ln, placed[q], leads[q])) { bad = true; break; }
+        if (!bad) { hit = { box: c.b, lead: c.ln }; break; }
+      }
+      if (!hit) {
+        const poolC = it.cands.concat(fc);
+        for (let ci = 0; ci < poolC.length && !hit; ci++) {
+          const c = poolC[ci];
+          let blk = -1, cnt = 0;
+          for (let q = 0; q < placed.length; q++) if (conflict(c.b, c.ln, placed[q], leads[q])) { blk = q; if (++cnt > 1) break; }
+          if (cnt !== 1) continue;
+          const victim = items[blk].ref;
+          const vPool = victim.cands.length ? victim.cands : fineCands(victim);
+          for (const vc of vPool) {
+            if (conflict(vc.b, vc.ln, c.b, c.ln)) continue;
+            let ok = true;
+            for (let q = 0; q < placed.length; q++) if (q !== blk && conflict(vc.b, vc.ln, placed[q], leads[q])) { ok = false; break; }
+            if (ok) {
+              placed[blk] = vc.b; leads[blk] = vc.ln; items[blk].box = vc.b; items[blk].lead = vc.ln;
+              hit = { box: c.b, lead: c.ln };
+              break;
+            }
           }
         }
-        const mk = ([cx0, cy0]) => {
-          // 마지막 대안(첫 후보)도 그래프 영역 밖으로 나가 잘리지 않게 영역 안으로 당긴다
-          const cx = Math.min(Math.max(cx0, CALL_EDGE + it.w / 2), W - CALL_EDGE - it.w / 2);
-          const cy = Math.min(Math.max(cy0, CALL_EDGE + h / 2), H - CALL_EDGE - h / 2);
-          const box = [cx - it.w / 2, cy - h / 2, cx + it.w / 2, cy + h / 2];
-          const e = clipToBox(cx, cy, it.w / 2 + 1, h / 2 + 1, it.p.x, it.p.y);
-          const dx = e[0] - it.p.x, dy = e[1] - it.p.y, d = Math.hypot(dx, dy) || 1;
-          return { box, lead: [it.p.x + dx / d * (it.p.r + 1), it.p.y + dy / d * (it.p.r + 1), e[0], e[1]] };
-        };
-        let hit = null;
-        for (const c of cands) { const m = mk(c); if (callBoxOk(m.box, ob, placed, W, H) && callLeadOk(m.lead, key, ob, placed, leads)) { hit = m; break; } }
-        // 지시선 조건을 모두 채우는 자리가 없으면 번호 상자가 겹치지 않는 첫 자리, 그것도 없으면 첫 후보에 두고 수를 센다
-        if (!hit) { for (const c of cands) { const m = mk(c); if (callBoxOk(m.box, ob, placed, W, H)) { hit = m; break; } } }
-        // 그래도 없으면 라벨과 앞서 둔 번호 상자에 가장 적게 겹치는 후보(같으면 앞 후보)에 두고 수를 센다
-        if (!hit) {
-          const ovl = b => ob.boxes.concat(placed).reduce((n, q) => n + (b[0] < q[2] && b[2] > q[0] && b[1] < q[3] && b[3] > q[1] ? 1 : 0), 0);
-          let bs = Infinity;
-          for (const c of cands) { const m = mk(c), v = ovl(m.box); if (v < bs) { bs = v; hit = m; if (!v) break; } }
-          misses += 1;
+      }
+      if (!hit) {
+        misses += 1;
+        let bv = Infinity;
+        for (const b of it.all) {
+          const ln = it.leadOf(b);
+          const v = callBoxCost(b, ob, placed, leads, W, H) + ob.boxes.concat(placed).reduce((n, q) => n + (segHitsBox(ln[0], ln[1], ln[2], ln[3], q, 0) ? 1 : 0), 0);
+          if (v < bv) { bv = v; hit = { box: b, lead: ln }; if (!v) break; }
         }
-        placed.push(hit.box); leads.push(hit.lead);
-        items.push({ si: it.si, num: it.num, box: hit.box, lead: hit.lead });
-      });
+      }
+      placed.push(hit.box); leads.push(hit.lead);
+      items.push({ si: it.si, num: it.num, box: hit.box, lead: hit.lead, ref: it });
     }
     items.sort((a, b) => a.num - b.num);
-    return { mode: 'num', items, misses };
+    const leadLen = items.reduce((s, it) => s + Math.hypot(it.lead[2] - it.lead[0], it.lead[3] - it.lead[1]), 0);
+    return { mode: 'num', items, misses, leadLen };
+  }
+  const ang2t = a => ((a / (2 * Math.PI)) % 1 + 1) % 1;
+  // 그룹의 보장 대분류 집계 칩(요청 43 3번): 대분류마다 하나. 그 구역 쪽 원 바깥에서 시작해 원 둘레 전체와 더 먼 자리까지 찾고,
+  // 그래도 자리가 없으면 겹침이 가장 적은 곳에 두고 misses 로 센다(칩이 빠지지 않게)
+  function placeDomChips(g, lay, key, plan, avoidStd) {
+    const grp = lay.sc.groupMap.get(key), gg = lay.gpos.get(key);
+    if (!grp || !gg) return { items: [], misses: 0 };
+    const by = new Map();
+    grp.members.forEach(si => { const d = domOf(g, si); if (!by.has(d)) by.set(d, []); by.get(d).push(si); });
+    const doms = domOrder(g);
+    const zs = Array.from(by.entries()).map(([d, mem]) => {
+      let x = 0, y = 0;
+      mem.forEach(si => { const p = lay.npos.get(si); x += p.x; y += p.y; });
+      x = x / mem.length - gg.x; y = y / mem.length - gg.y;
+      const ang = Math.hypot(x, y) < 1 ? -Math.PI / 2 : Math.atan2(y, x);
+      return { d, n: mem.length, ang, o: doms.indexOf(d) };
+    }).sort((a, b) => a.ang - b.ang);
+    const ob = callObstacles(lay, plan ? plan.items.map(it => it.box) : [], avoidStd);
+    const leads = plan ? plan.items.map(it => it.lead) : [];
+    const px = 5, py = 2, hh = textLineH() + 2 * py;
+    const placed = [], items = [];
+    let misses = 0;
+    zs.forEach(z => {
+      const tx = `${z.d} ${fmt(z.n)}`, w = textW(tx, 700) + 2 * px;
+      const cands = ringCands(gg.x, gg.y, gg.R + 4, z.ang, w, hh, CALL_EXT_MAX, 6, 0.08);
+      let box = null;
+      for (const tier of [0, 1, 2]) {
+        box = cands.find(b => callBoxFree(b, key, ob, placed, leads, tier, lay.W, lay.H)) || null;
+        if (box) break;
+      }
+      if (!box) {
+        misses += 1;
+        let bv = Infinity;
+        for (const b of cands) { const v = callBoxCost(b, ob, placed, leads, lay.W, lay.H); if (v < bv) { bv = v; box = b; if (!v) break; } }
+      }
+      placed.push(box);
+      items.push({ d: z.d, n: z.n, tx, box, px, py });
+    });
+    return { items, misses };
   }
   function calloutSVG(g, plan) {
     const leads = plan.items.map(it => `<line class="gr-cl-lead" x1="${f1(it.lead[0])}" y1="${f1(it.lead[1])}" x2="${f1(it.lead[2])}" y2="${f1(it.lead[3])}"/>`).join('');
     const labs = plan.items.map(it => {
       const b = it.box, id = esc(g.N[it.si].id), lbox = b.map(f1).join(',');
-      if (plan.mode === 'name') return `<text class="gr-tx gr-cl-nm" data-gr-lb="call" data-gr-for="${id}" data-gr-lbox="${lbox}" x="${f1(b[0] + 1)}" y="${f1(b[1] + textAsc())}">${esc(g.N[it.si].l)}</text>`;
       return `<g class="gr-cl-num" data-gr-lb="num" data-gr-for="${id}" data-gr-lbox="${lbox}"><rect rx="3" x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2] - b[0])}" height="${f1(b[3] - b[1])}"/><text class="gr-tx" x="${f1((b[0] + b[2]) / 2)}" y="${f1(b[1] + 2 + textAsc())}" text-anchor="middle">${it.num}</text></g>`;
     }).join('');
     return [leads, labs];
@@ -1962,6 +2135,8 @@
       cl.innerHTML = lh;
       cb.innerHTML = bh;
       cb.dataset.k = plan ? plan.k : '';
+      // 번호 상자와 지시선이 그려지거나 빠지면 범례도 맞춘다(요청 43 5번)
+      syncLegend();
     }
     // 필터 상태의 상세 패널(선택이 없을 때)을 켠 필터의 대상 목록으로 맞춘다
     const fpk = tg && tg.kind === 'flt' ? plan.k : '';
@@ -2030,11 +2205,15 @@
     syncRoving(svg);
   }
 
+  // 지금 그린 대상 담보 번호 상자(또는 이름표) 배치. graph_check.py 가 자리를 못 찾은 수(misses)를 읽는다(요청 43 1번)
+  App.graphCallPlan = () => net.callShown;
   function netHit(svg, clientX, clientY) {
     const lay = net.lay;
     if (!lay) return null;
     const r = svg.getBoundingClientRect();
     const x = clientX - r.left, y = clientY - r.top;
+    // 대상 담보 번호 상자와 이름표는 노드보다 먼저 본다. 상자 안을 누르면 그 번호의 담보를 고른다(요청 43 1번)
+    if (net.callShown) for (const it of net.callShown.items) { const b = it.box; if (x >= b[0] - 1 && x <= b[2] + 1 && y >= b[1] - 1 && y <= b[3] + 1) return { t: 'std', si: it.si }; }
     let best = null, bd = Infinity;
     const big = net.ex ? focusSets(ensureGraph(), lay, { t: 'std', si: net.ex.si }).nodes : null;
     lay.npos.forEach((p, si) => {
@@ -2051,8 +2230,6 @@
       if (d <= Math.max(nd.r + 4, 12) && d < bd) { bd = d; best = { t: 'x', i }; }
     });
     if (best) return best;
-    // 대상 담보 이름표와 번호는 그 담보를 가리킨다
-    if (net.callShown) for (const it of net.callShown.items) { const b = it.box; if (x >= b[0] - 2 && x <= b[2] + 2 && y >= b[1] - 2 && y <= b[3] + 2) return { t: 'std', si: it.si }; }
     for (const [key, gl] of lay.glabels) {
       const b = gl.box;
       if (x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]) return { t: 'group', key };
@@ -2827,7 +3004,10 @@
       ['ours-part', `<g transform="translate(8 7)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${markGlyph('ours-part', 5)}</g>`],
       ['wait', '<g class="gr-n is-wait" transform="translate(11 9)"><circle class="gr-n-c" r="6" style="fill:var(--gr-dom-4)"/></g>'],
     ].filter(([m]) => on('marks', m)).map(([m, sw]) => row(swatchSVG(sw), t(MARK_KEY[m]))).join('')
-      + (ring && (!drawn || drawn.ring) ? row(swatchSVG(`<g transform="translate(11 9)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${ringSVG(7, 0.7)}</g>`), t('grLgRing')) : '');
+      + (ring && (!drawn || drawn.ring) ? row(swatchSVG(`<g transform="translate(11 9)"><circle class="gr-n-c" r="5" style="fill:var(--gr-dom-4)"/>${ringSVG(7, 0.7)}</g>`), t('grLgRing')) : '')
+      // 요청 43 5번: 필터 대상의 굵은 테두리(.is-flt .gr-n.is-on)와 번호 상자와 지시선(.gr-cl-num, .gr-cl-lead)은 그려졌을 때만
+      + (!drawn || drawn.fltOn ? row(swatchSVG('<g class="gr-lg-flt" transform="translate(11 9)"><circle class="gr-n-c" r="6" style="fill:var(--gr-dom-4)"/></g>'), t('grLgFltOn')) : '')
+      + (!drawn || drawn.call ? row(swatchSVG('<line class="gr-cl-lead" x1="1" y1="9" x2="8" y2="9"/><g class="gr-cl-num"><rect x="8" y="3" width="13" height="12" rx="2"/><path d="M13 7.4L14.8 6V12" fill="none" stroke="var(--ink-0)" stroke-width="1.25"/></g>'), t('grLgCallNum')) : '');
     const edges = [
       ['bundle', `<line class="gr-e gr-e-bundle" x1="2" y1="9" x2="20" y2="9" stroke-width="3"/>`, t('grLgBundle')],
       ['held', `<line class="gr-e gr-e-held" x1="2" y1="9" x2="20" y2="9"/>`, t('grLgHeldOne')],
@@ -3411,6 +3591,43 @@
   const renewText = ri => { const v = ensureGraph().N[ri].p['갱신여부']; return RENEW_KEY[v] ? t(RENEW_KEY[v]) : ''; };
   const riderBody = l => String(l || '').replace(/^무배당 /, '');
   const clipName = s => (s.length > VT_LBL_MAX ? s.slice(0, VT_LBL_MAX) + '…' : s);
+  // 요청 43 4번: 이름을 자르지 않고 두 줄 이상으로 나눈다. 끊는 자리는 띄어쓰기, 괄호 앞뒤, 그 밖의 글자 사이 순으로 고르고,
+  // 괄호 안은 되도록 피한다. maxW 는 줄 너비 상한(0이면 글자 수 VT_LBL_MAX 로 어림). 줄이 maxW 를 넘으면 줄 수를 늘린다
+  const VT_NAME_LH = 16, VT_BOX_XW = 28;
+  function wrapName(s, maxW, weight) {
+    const w = x => textW(x, weight);
+    const fits = x => (maxW ? w(x) <= maxW : x.length <= VT_LBL_MAX);
+    if (fits(s)) return [s];
+    const breaks = [];
+    let depth = 0;
+    for (let i = 1; i < s.length; i++) {
+      const prev = s[i - 1], ch = s[i];
+      if (prev === '(') depth += 1;
+      else if (prev === ')') depth = Math.max(0, depth - 1);
+      const cost = ch === ' ' ? 0 : (prev === ')' || ch === '(' ? 1 : 3) + (depth > 0 ? 6 : 0) + (ch === ')' ? 3 : 0);
+      if (ch === ' ' || prev !== ' ') breaks.push([i, cost + (ch === ' ' && depth > 0 ? 4 : 0)]);
+    }
+    const cut = (a, b) => [s.slice(0, a).trim(), s.slice(b).trim()];
+    let best = null;
+    breaks.forEach(([i, cost]) => {
+      const [p, q] = cut(i, s[i] === ' ' ? i + 1 : i);
+      if (!p || !q || !fits(p) || !fits(q)) return;
+      const sc = Math.max(w(p), w(q)) * 0.08 + cost * 4;
+      if (!best || sc < best[0]) best = [sc, [p, q]];
+    });
+    if (best) return best[1];
+    // 두 줄로 안 맞으면 글자 단위로 채워 가며 줄을 늘린다(띄어쓰기 자리를 우선)
+    const out = [];
+    let cur = '';
+    Array.from(s).forEach(ch => {
+      if (cur && !fits(cur + ch)) {
+        const sp = cur.lastIndexOf(' ');
+        if (sp > 0 && ch !== ' ') { out.push(cur.slice(0, sp)); cur = cur.slice(sp + 1) + ch; } else { out.push(cur); cur = ch === ' ' ? '' : ch; }
+      } else cur += ch;
+    });
+    if (cur) out.push(cur);
+    return out;
+  }
   // 종형 구성 보기의 특약 라벨: 특약마다 반복되는 꼬리(갱신형 표기, 고지통합, 약관 버전 TA1.1, 상품 코드, 무배당)를 떼어
   // 핵심 이름이 말줄임에 가려지지 않게 한다. 갱신 여부는 라벨 끝에 따로 붙고, 전체 이름은 툴팁과 상세 패널에 남는다(비평 5번)
   const riderCore = l => {
@@ -3474,13 +3691,29 @@
     cands.forEach((b, k) => { if (!free(b)) return; const v = lineHits(b, eb, own) * 10 + k * 0.05; if (v < bv) { bv = v; best = b; } });
     return best;
   }
+  // 요청 43 4번: 빠지면 안 되는 이름표용 먼 자리. 노드에서 24~96px 떨어진 곳을 16방향으로 본다(가까운 거리 먼저)
+  function farCands(x, y, r, w, h) {
+    const out = [];
+    [24, 38, 52, 68, 84, 100].forEach(ex => {
+      for (let k = 0; k < 16; k++) {
+        const a = (k * Math.PI) / 8, c = Math.cos(a), s = Math.sin(a);
+        const d = r + 3 + ex + Math.abs(c) * w / 2 + Math.abs(s) * h / 2;
+        const cx = x + c * d, cy = y + s * d;
+        out.push([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2]);
+      }
+    });
+    return out;
+  }
   // 그리디 라벨 배치: 다른 라벨, 노드, 상자와 겹치지 않는 자리 가운데 선이 가장 적게 지나는 자리
   function placeLabels(items, obstacles, W, H, edges) {
     const placed = [], out = new Map();
     const eb = edges.map(e => [e, ptsBox(e.pts)]);
     items.forEach(it => {
       const free = b => b[0] >= 1 && b[1] >= 1 && b[2] <= W - 1 && b[3] <= H - 1 && !placed.some(q => boxOv(b, q)) && !obstacles.some(([k, q]) => k !== it.key && boxOv(b, q));
-      const best = bestCand(labelCands(it.x, it.y, it.r, it.w, VT_LBL_H, it.nx, it.ny), free, eb, it.ni);
+      const base = labelCands(it.x, it.y, it.r, it.w, it.h || VT_LBL_H, it.nx, it.ny);
+      // 빠지면 안 되는 이름표는 가까운 자리가 모두 막힌 경우에 더 먼 자리까지 본다
+      const cands = it.must ? base.concat(farCands(it.x, it.y, it.r, it.w, it.h)) : base;
+      const best = bestCand(cands, free, eb, it.ni);
       if (best) { placed.push(best); out.set(it.key, best); }
     });
     return out;
@@ -3578,7 +3811,12 @@
     riders.forEach(r => { const [tt, off] = spR.get(r); add(r, 'r', tt, off, VT_RHO.r, VT_R.r); });
     bens.forEach(b => { const [tt, off] = spB.get(b); add(b, 'b', tt, off, VT_RHO.b, VT_R.b); });
     stds.forEach(s => { const [tt, off] = st.get(s); add(s, 's', tt, off, VT_RHO.s, VT_R.s); });
-    const cx = ring.cx, cy = ring.cy, hw = VT_BOX[0] / 2, hh = VT_BOX[1] / 2;
+    // 요청 43 4번: 종형명은 자르지 않고 상자 안에서 두 줄 이상으로 나눈다(상자 높이가 줄 수만큼 늘어난다)
+    const fullNm = fullVarName(g, vi);
+    // 이름이 한 줄에 들어가도록 상자 폭을 VT_BOX_XW 까지 넓히고, 그래도 안 들어가면 두 줄 이상으로 나눈다(상자 높이를 줄 수만큼 키운다)
+    const boxW = Math.min(Math.max(VT_BOX[0], Math.ceil(textW(fullNm, 600)) + 14 + VT_GO + 2), VT_BOX[0] + VT_BOX_XW);
+    const nameLines = wrapName(fullNm, boxW - 14 - VT_GO, 600);
+    const cx = ring.cx, cy = ring.cy, hw = boxW / 2, hh = (VT_BOX[1] + (nameLines.length - 1) * VT_NAME_LH) / 2;
     const box = [cx - hw, cy - hh, cx + hw, cy + hh];
     // 엣지: 종형->특약, 특약->급부(포함), 급부->표준담보(매핑), 담보 관계, 특약 부가 조건
     riders.forEach(r => { const n = nmap.get(r); edges.push({ k: '포함', s: vi, t: r, e: eOf(g, vi, r, EK['포함']), pts: [clipToBox(cx, cy, hw, hh, n.x, n.y), [n.x, n.y]] }); });
@@ -3706,25 +3944,37 @@
     const items = [];
     const labelText = new Map();
     stds.forEach(s => { const nd = nmap.get(s); const tx = g.N[s].l; labelText.set(s, { body: tx, suffix: '' }); items.push({ key: 'n' + s, ni: s, x: nd.x, y: nd.y, r: nd.r, nx: nd.nx, ny: nd.ny, w: textW(tx) }); });
+    // "표준담보 매핑 대상 외" 특약의 급부: 이어지는 표준담보가 없어 이름이 보이지 않으므로 급부 이름표를 붙인다.
+    // 요청 43 4번: 이름은 자르지 않고 두 줄로 나누며, 빠지지 않도록 특약 이름표보다 먼저 자리를 잡는다(must)
+    const lonelySet = new Set(lonely);
+    bens.filter(b => lonelySet.has(benRider.get(b))).forEach(b => {
+      const nd = nmap.get(b), lines = wrapName(riderBody(g.N[b].l), 0);
+      labelText.set(b, { body: lines[0], lines, suffix: '' });
+      items.push({ key: 'n' + b, ni: b, x: nd.x, y: nd.y, r: nd.r, nx: nd.nx, ny: nd.ny, w: Math.max(...lines.map(s => textW(s))), h: lines.length * VT_NAME_LH, must: true });
+    });
     riders.forEach(r => {
       const nd = nmap.get(r);
       const body = clipName(riderCore(g.N[r].l)), rn = renewText(r);
       labelText.set(r, { body, suffix: rn ? `(${rn})` : '' });
       items.push({ key: 'n' + r, ni: r, x: nd.x, y: nd.y, r: nd.r, nx: nd.nx, ny: nd.ny, w: textW(rn ? `${body} (${rn})` : body) });
     });
-    // "표준담보 매핑 대상 외" 특약의 급부: 이어지는 표준담보가 없어 이름이 보이지 않으므로 급부 이름표를 붙인다
-    const lonelySet = new Set(lonely);
-    bens.filter(b => lonelySet.has(benRider.get(b))).forEach(b => {
-      const nd = nmap.get(b), body = clipName(riderBody(g.N[b].l));
-      labelText.set(b, { body, suffix: '' });
-      items.push({ key: 'n' + b, ni: b, x: nd.x, y: nd.y, r: nd.r, nx: nd.nx, ny: nd.ny, w: textW(body) });
-    });
     const allLines = edges.concat(secLines.map(p => ({ s: -1, t: -1, pts: p })));
     const lab = placeLabels(items, obstacles, W, H, allLines);
     const labels = new Map();
-    lab.forEach((b, k) => { const ni = +k.slice(1); labels.set(ni, Object.assign({ box: b }, labelText.get(ni))); });
+    const itemOf = new Map(items.map(it => [it.key, it]));
+    lab.forEach((b, k) => {
+      const ni = +k.slice(1), nd = nmap.get(ni), it = itemOf.get(k);
+      const lb = Object.assign({ box: b }, labelText.get(ni));
+      // 요청 43 4번: 노드에서 떨어져 놓인 급부 이름표는 노드와 이름표 사이에 가는 지시선을 긋는다
+      if (it && it.must) {
+        const qx = Math.min(Math.max(nd.x, b[0]), b[2]), qy = Math.min(Math.max(nd.y, b[1]), b[3]);
+        const dd = Math.hypot(qx - nd.x, qy - nd.y);
+        if (dd > nd.r + 9) { const ux = (qx - nd.x) / dd, uy = (qy - nd.y) / dd; lb.lead = [nd.x + ux * (nd.r + 1), nd.y + uy * (nd.r + 1), qx - ux * 1, qy - uy * 1]; }
+      }
+      labels.set(ni, lb);
+    });
     const lay = {
-      kind: 'vt', key, W, H, vi, ring, box, nodes, nmap, edges, secLines, secLabels, outLabel, labels, badges, revLine,
+      kind: 'vt', key, W, H, vi, ring, box, nameLines, nodes, nmap, edges, secLines, secLabels, outLabel, labels, badges, revLine,
       riders, bens, stds, benRider, kLim, limited: kLim != null, ms: performance.now() - t0,
     };
     if (vtCache.size > 40) vtCache.clear();
@@ -3794,11 +4044,8 @@
     const [bx0, by0, bx1, by1] = lay.box;
     const bw = bx1 - bx0, bh = by1 - by0;
     const umTx = um != null ? t('grUnmappedTpl', { n: fmt(um) }) : '';
-    let nm = fullVarName(g, vi);
-    // 오른쪽 VT_GO 폭은 클릭 표시(셰브런) 칸으로 비워 둔다
+    // 요청 43 4번: 종형명은 vtLayout 이 나눈 줄(nameLines)을 그대로 그린다(자르지 않는다)
     const maxW = bw - 14 - VT_GO;
-    const nmMax = maxW;
-    if (textW(nm, 600) > nmMax) { while (nm.length > 1 && textW(nm + '…', 600) > nmMax) nm = nm.slice(0, -1); nm += '…'; }
     let org = orgLabel(vn.o);
     const orgMax = maxW - (umTx ? textW(umTx) + 8 : 0);
     if (textW(org) > orgMax) { while (org.length > 1 && textW(org + '…') > orgMax) org = org.slice(0, -1); org += '…'; }
@@ -3807,11 +4054,14 @@
       + `<rect class="gr-vbox-r" x="${f1(-bw / 2)}" y="${f1(-bh / 2)}" width="${f1(bw)}" height="${f1(bh)}"/>`
       + `<text class="gr-tx" x="${f1(-bw / 2 + 7)}" y="${f1(-bh / 2 + 4 + asc)}">${esc(org)}</text>`
       + (umTx ? `<text class="gr-tx gr-vbox-um" x="${f1(bw / 2 - 7 - VT_GO)}" y="${f1(-bh / 2 + 4 + asc)}" text-anchor="end">${esc(umTx)}</text>` : '')
-      + `<text class="gr-tx gr-vbox-nm" x="${f1(-bw / 2 + 7)}" y="${f1(-bh / 2 + 4 + asc + NET_FS + 5)}">${esc(nm)}</text>`
+      + `<text class="gr-tx gr-vbox-nm" x="${f1(-bw / 2 + 7)}" y="${f1(-bh / 2 + 4 + asc + NET_FS + 5)}">${lay.nameLines.map((ln, k) => `<tspan x="${f1(-bw / 2 + 7)}"${k ? ` dy="${VT_NAME_LH}"` : ''}>${esc(ln)}</tspan>`).join('')}</text>`
       // 클릭할 수 있음을 알리는 셰브런: 오른쪽 칸의 세로 가운데, 높이 14px(글자 › 는 16px 로 써도 작게 보였다)
       + `<line class="gr-vbox-div" x1="${f1(bw / 2 - VT_GO)}" y1="${f1(-bh / 2 + 6)}" x2="${f1(bw / 2 - VT_GO)}" y2="${f1(bh / 2 - 6)}"/>`
       + `<path class="gr-vbox-go" d="M${f1(bw / 2 - VT_GO / 2 - 3)},-7 L${f1(bw / 2 - VT_GO / 2 + 4)},0 L${f1(bw / 2 - VT_GO / 2 - 3)},7"/></g></g>`);
     // 라벨
+    parts.push('<g class="gr-l-lead" aria-hidden="true">');
+    lay.labels.forEach(lb => { if (lb.lead) parts.push(`<line class="gr-vlead" x1="${f1(lb.lead[0])}" y1="${f1(lb.lead[1])}" x2="${f1(lb.lead[2])}" y2="${f1(lb.lead[3])}"/>`); });
+    parts.push('</g>');
     parts.push('<g class="gr-l-labels">');
     lay.secLabels.forEach(sl => parts.push(`<text class="gr-tx gr-vsec${sl.zero ? ' is-zero' : ''}" data-gr-lb="sector" data-gr-lbox="${sl.box.map(f1).join(',')}" x="${f1(sl.box[0])}" y="${f1(sl.box[1] + 1 + asc)}">${esc(sl.tx)}</text>`));
     if (lay.outLabel) { const b = lay.outLabel.box; parts.push(`<text class="gr-tx gr-vsec" data-gr-lb="out" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + 1 + asc)}">${esc(lay.outLabel.tx)}</text>`); }
@@ -3822,7 +4072,7 @@
     });
     lay.labels.forEach((lb, ni) => {
       const b = lb.box;
-      parts.push(`<text class="gr-tx gr-vlb" data-gr-lb="${({ r: 'rider', b: 'ben', s: 'std' })[lay.nmap.get(ni).kind]}" data-gr-for="${esc(g.N[ni].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + 1 + asc)}"><tspan class="gr-vlb-b">${esc(lb.body)}</tspan>${lb.suffix ? `<tspan class="gr-vlb-rn">&#160;${esc(lb.suffix)}</tspan>` : ''}</text>`);
+      parts.push(`<text class="gr-tx gr-vlb" data-gr-lb="${({ r: 'rider', b: 'ben', s: 'std' })[lay.nmap.get(ni).kind]}" data-gr-for="${esc(g.N[ni].id)}" data-gr-lbox="${b.map(f1).join(',')}" x="${f1(b[0])}" y="${f1(b[1] + 1 + asc)}"><tspan class="gr-vlb-b">${lb.lines && lb.lines.length > 1 ? lb.lines.map((ln, k) => `<tspan x="${f1(b[0])}"${k ? ` dy="${VT_NAME_LH}"` : ''}>${esc(ln)}</tspan>`).join('') : esc(lb.body)}</tspan>${lb.suffix ? `<tspan class="gr-vlb-rn">&#160;${esc(lb.suffix)}</tspan>` : ''}</text>`);
     });
     parts.push('</g>');
     return `<svg class="gr-net-svg gr-alt-svg gr-vt-svg" id="gr-vt-svg" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(t('grPresetVariant'))}" data-gr-w="${W}" data-gr-h="${H}" data-gr-k-lim="${lay.kLim == null ? '' : lay.kLim}" data-gr-ms="${f1(lay.ms)}">${parts.join('')}</svg>`;
@@ -4164,7 +4414,7 @@
       el.style.transition = 'none';
       if (q) {
         used.add(q.el);
-        el.style.transform = `translate(${f1(q.x)}px, ${f1(q.y)}px)` + (isBox ? ` scale(${Math.max(0.05, (2 * q.R) / VT_BOX[0]).toFixed(3)})` : '');
+        el.style.transform = `translate(${f1(q.x)}px, ${f1(q.y)}px)` + (isBox ? ` scale(${Math.max(0.05, (2 * q.R) / (isBox ? (+el.querySelector('.gr-vbox-r').getAttribute('width') || VT_BOX[0]) : VT_BOX[0])).toFixed(3)})` : '');
         moves.push([el, to, false]);
       } else {
         el.style.transform = `${to} scale(0.6)`;

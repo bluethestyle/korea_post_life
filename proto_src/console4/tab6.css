@@ -369,10 +369,9 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .kv.gr-held{grid-template-columns:minmax(4.5em,max-content) minmax(0,1fr);gap:4px 12px}
 .kv.gr-held dd{text-align:left;font-weight:400;color:var(--ink-0)}
 @media (min-width:1000px){.board[data-tab="graph"] #ev-body{padding-bottom:26px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent)}}
-/* 3차 개선 3번: 그룹 선택과 필터의 대상 담보 이름표, 번호, 지시선. 이때는 미리 배치한 담보 이름 라벨을 감춘다 */
+/* 3차 개선 3번: 그룹 선택과 필터의 대상 담보 번호와 지시선(요청 43 2번에서 이름표 방식은 지우고 번호 방식 하나로 정리). 이때는 미리 배치한 담보 이름 라벨을 감춘다 */
 .gr-net-svg.is-call .gr-l-labels .gr-lb-s{opacity:0!important}
 .gr-cl-lead{stroke:var(--ink-1);stroke-width:1;fill:none}
-.gr-net-svg .gr-cl-nm{cursor:pointer}
 .gr-cl-num{cursor:pointer}
 .gr-cl-num rect{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:1.25}
 .gr-net-svg .gr-cl-num .gr-tx{font-weight:700;stroke:none}
@@ -383,3 +382,28 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-fl-note{margin:0 0 6px;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
 /* 3차 개선 8번: 표시 기호 뒤의 무채색 배경 원 */
 .gr-mk-bg{fill:var(--panel-t);stroke:var(--ink-1);stroke-width:.75}
+/* 요청 43 5번 */
+/* 담보를 선택해 펼치면(is-exp) 선택한 그룹이 없으므로 번들 엣지는 그리지 않는다(범례와 그림을 맞춘다) */
+.gr-net-svg.is-exp .gr-e-bundle:not(.is-ssel){opacity:0}
+/* 범례의 필터 대상 견본: .gr-net-svg.is-flt .gr-n.is-on .gr-n-c 와 같은 굵은 테두리 */
+.gr-sw .gr-lg-flt .gr-n-c{stroke:var(--ink-0);stroke-width:2.5;stroke-dasharray:none}
+/* 요청 43 4번 */
+/* 종형 구성: 노드에서 떨어져 놓인 급부 이름표의 지시선(색은 기존 무채색 토큰) */
+.gr-vlead{fill:none;stroke:var(--ink-2);stroke-width:1;pointer-events:none}
+.gr-alt-svg.is-selm .gr-l-lead{opacity:.3}
+/* 낮은 화면(높이 1,000px 미만, 1600x900 등)에서는 범례 항목이 늘어도 스크롤 없이 다 보이게 범례를 한 줄 흐름으로 촘촘히 두고(글자 크기는 그대로 13px),
+   바로 위 칸의 간격을 줄인다. 높이 1,000px 이상(1920x1080)은 지금 배치(소제목과 2열 격자)를 그대로 쓴다.
+   소제목은 화면 낭독용으로만 남긴다(항목마다 견본과 이름이 있어 구분된다) */
+@media (min-width:1000px) and (max-height:999px){
+  .gr-left-wrap:has(>.gr-flt-wrap){gap:4px}
+  .gr-left-wrap:has(>.gr-flt-wrap) .gr-flt-wrap{gap:4px}
+  .gr-left-wrap:has(>.gr-flt-wrap) .gr-flt-sub{margin-bottom:3px}
+  .gr-left-wrap:has(>.gr-flt-wrap) .gr-tools{gap:4px}
+  .board[data-tab="graph"] .gr-left-wrap{padding-bottom:4px}
+  .gr-left-wrap .gr-lg-body{display:flex;flex-wrap:wrap;align-items:center;column-gap:8px}
+  .gr-left-wrap .gr-lg-body>.gr-lg-sec{display:contents}
+  .gr-left-wrap .gr-lg-body .gr-lg-h{position:absolute;width:1px;height:1px;margin:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .gr-left-wrap .gr-lg-body .gr-lg-it{flex:0 1 auto;width:auto;max-width:100%;min-height:0;padding:0 2px}
+  .gr-left-wrap .gr-lg-body .gr-sw{margin:-1px 0}
+  .gr-left-wrap .gr-lg-body :is(.gr-lg-foot,.gr-lg-note){flex:0 0 100%;margin-top:2px;line-height:1.3}
+}
