@@ -141,7 +141,7 @@ python3 proto_src/deck/tools/standalone.py --check   # 영상까지 넣은 단�
 python3 proto_src/form/shoot.py              # 작품설명서에 넣는 화면 캡처 다시 찍기
 python3 proto_src/form/build.py --strict --identity local/submission/identity.json --out local/submission/작품설명서.pdf --html local/submission/작품설명서.html --preview local/submission/preview   # 작품설명서 PDF (결과는 local/ 에만)
 python3 proto_src/form/build.py --strict --content proto_src/form/content_v2.json --identity local/submission/identity.json --out local/submission/작품설명서_v2.pdf --html local/submission/작품설명서_v2.html --preview local/submission/preview_v2   # 작품설명서 버전 2(4쪽, 평가기준 표시 없음)
-python3 proto_src/form/export_docx.py --identity local/submission/identity.json --out local/submission/작품설명서.docx   # 편집용 Word 파일(python-docx 필요: uv pip install --python .venv/bin/python python-docx. 결과는 local/ 에만)
+python3 proto_src/form/export_docx.py --identity local/submission/identity.json --out local/submission/작품설명서.docx   # 편집용 Word 파일(python-docx 필요: uv pip install --python .venv/bin/python python-docx. 결과는 local/ 에만. 버전 2는 --content proto_src/form/content_v2.json --out local/submission/작품설명서_v2.docx)
 python3 scripts/build_site.py                # data/snapshot → site/v1/index.html (초기 버전 판단 화면)
 python3 scripts/dev/check_site_browser.py site/v1/index.html <사진 폴더>   # 초기 버전 380px, 1280px 화면 점검 (playwright)
 python3 scripts/score_goldset.py --result <상품명에 든 글자>=<결과 JSON> [--gold data/goldset/hanwha_goldset.jsonl] [--numbers 101-114] [--area 가입조건]   # 정답 대조 (--result는 필수, 기본은 우체국 정답셋의 보장금액 영역)
