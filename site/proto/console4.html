@@ -1704,7 +1704,7 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 :is(.cv-modal-root,#print-root) .cv-sum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 20px 10px;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
 :is(.cv-modal-root,#print-root) .cv-sum b{font:600 14px/1 var(--f-num);color:var(--ink-0);margin-right:8px}
 #data-modal .cv-tw-bar{position:sticky;top:-18px;z-index:6;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;
-  padding:6px 16px;background:var(--panel-lo);border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2);font:600 13px/1.3 var(--f-ko);color:var(--ink-0)}
+  padding:6px 16px;background:var(--cv-sticky-bg);border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2);font:600 13px/1.3 var(--f-ko);color:var(--ink-0)}
 #data-modal .cv-tw-bar[hidden]{display:none!important}
 #data-modal .cv-tw-btns{display:inline-flex;align-items:center;gap:6px}
 :root{--cv-sticky-bg:#EAEEF2;--cv-sticky-hover:#DCE2E8}
@@ -1736,28 +1736,40 @@ body.boot-unfold #shell{animation:bootOpen 300ms var(--ease)}
 #data-modal .cv-t.is-many-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--cv-sticky-bg);min-width:178px;max-width:210px}
 #data-modal .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){position:sticky;right:0;z-index:3;background:var(--cv-sticky-bg);min-width:196px;max-width:244px;padding-right:26px}
 #data-modal .cv-t.is-many-orgs thead :is(th.cv-n,th.cv-vd-sticky){z-index:4}
-#data-modal .cv-tw.has-more-l .cv-t.is-many-orgs :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
-#data-modal .cv-tw.has-more-r .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){box-shadow:-6px 0 12px -4px rgba(21,29,36,.28);border-left:1px solid var(--line-2)}
+#data-modal :is(.cv-tw,.cv-hd).has-more-l .cv-t.is-many-orgs :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
+#data-modal :is(.cv-tw,.cv-hd).has-more-r .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){box-shadow:-6px 0 12px -4px rgba(21,29,36,.28);border-left:1px solid var(--line-2)}
 #data-modal .cv-t.is-many-orgs tr.pick:hover :is(td.cv-n,td.cv-vd-sticky){background:var(--cv-sticky-hover)}
 #data-modal .cv-gh-pin{position:sticky;left:14px;display:inline-block}
+/* 머리 행 고정: .cv-tw 가 가로 스크롤 영역이라 thead 의 sticky 가 상세 창 스크롤에 걸리지 않는다. 그래서 같은 머리 행을 .cv-hd 로 복제해 .cv-tbox 안에서 sticky 로 붙인다(tab4.src.js syncCoverHead). */
+.cv-tbox{position:relative}
+#data-modal .cv-hd{position:sticky;top:calc(-18px + var(--cv-bar-h,0px));z-index:5;overflow:hidden;background:var(--cv-sticky-bg);pointer-events:none;
+  box-shadow:0 2px 0 var(--line-2),0 8px 10px -8px rgba(21,29,36,.30)}
+#data-modal .cv-hd .cv-t{table-layout:fixed;min-width:0;max-width:none;margin:0}
+/* 열 구분: 회사 열 사이 세로선, 기준 회사(우체국) 열의 옅은 바탕, 비교 결과 열 묶음 앞의 굵은 선 */
+#data-modal .cv-t :is(th,td).cv-c{border-left:1px solid var(--line-2)}
+#data-modal .cv-t :is(th,td).cv-c.k0{background-color:var(--hover)}
+#data-modal .cv-t :is(th,td).cv-c + :is(th,td).cv-vd{border-left:2px solid var(--ink-3)}
+#data-modal .cv-t :is(th,td).cv-vd + :is(th,td).cv-vd{border-left:1px solid var(--line-2)}
+#data-modal .cv-t thead tr.cv-h2 th{border-bottom:2px solid var(--line-2)}
 @media (max-width:1279px){
   #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--cv-sticky-bg);min-width:140px;max-width:180px}
   #data-modal .cv-t.is-compact-orgs thead th.cv-n{z-index:4}
-  #data-modal .cv-tw.has-more-l .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
+  #data-modal :is(.cv-tw,.cv-hd).has-more-l .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
   #data-modal .cv-t.is-compact-orgs tr.pick:hover td.cv-n{background:var(--cv-sticky-hover)}
 }
 @media (max-width:999px){
   #data-modal .cv-tw-bar{top:-12px;padding:6px 10px}
+  #data-modal .cv-hd{top:calc(-12px + var(--cv-bar-h,0px))}
 }
 @media (max-width:640px){
   #data-modal .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky),
-  #data-modal .cv-tw.has-more-r .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){position:static;min-width:148px;max-width:none;box-shadow:none;border-left:0;padding-right:22px}
+  #data-modal :is(.cv-tw,.cv-hd).has-more-r .cv-t.is-many-orgs :is(th.cv-vd-sticky,td.cv-vd-sticky){position:static;min-width:148px;max-width:none;box-shadow:none;border-left:0;padding-right:22px}
   #data-modal .cv-t.is-many-orgs tr.pick:hover td.cv-vd-sticky{background:var(--hover)}
   #data-modal .cv-t :is(th.cv-n,td.cv-n),
   #data-modal .cv-t.is-many-orgs :is(th.cv-n,td.cv-n),
   #data-modal .cv-t.is-compact-orgs :is(th.cv-n,td.cv-n){position:sticky;left:0;z-index:3;background:var(--cv-sticky-bg);min-width:112px;max-width:128px}
   #data-modal .cv-t thead th.cv-n{z-index:4}
-  #data-modal .cv-tw.has-more-l .cv-t :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
+  #data-modal :is(.cv-tw,.cv-hd).has-more-l .cv-t :is(th.cv-n,td.cv-n){box-shadow:6px 0 12px -4px rgba(21,29,36,.28);border-right:1px solid var(--line-2)}
   #data-modal .cv-t tr.pick:hover td.cv-n{background:var(--cv-sticky-hover)}
   #data-modal .cv-t td.cv-n .nm{overflow-wrap:anywhere}
   #data-modal .cv-t :is(th.cv-c,td.cv-c){min-width:164px}
@@ -12005,9 +12017,9 @@ function tableHTML(c) {
     </div>
     <div class="cv-sum">${esc(t('cvSumCellsTpl', { tot: totCells, rows: m.rows.length, peers: peerN }))}: ${sumChipsHTML} <span class="note">나머지 <b class="num" data-sum-name="${esc(BOTH_NONE_TEXT)}">${byName[BOTH_NONE_TEXT] || 0}</b>${esc(t('cvSumRestSuffixTpl', { bothNone: App.label(BOTH_NONE_TEXT) }))}</span></div>
     ${scrollBarHTML}
-    <div class="cv-tw" id="cover-tw"><table class="tbl cv-t ${manyOrgs ? 'is-many-orgs' : 'is-compact-orgs'}" id="cover-tbl">
+    <div class="cv-tbox" id="cover-tbox"><div class="cv-tw" id="cover-tw"><table class="tbl cv-t ${manyOrgs ? 'is-many-orgs' : 'is-compact-orgs'}" id="cover-tbl">
       ${theadHTML}
-      <tbody>${tr.html}</tbody></table></div>
+      <tbody>${tr.html}</tbody></table></div></div>
     <div class="panel-f">${esc(t('cvTblFoot'))}</div>
   </section>`;
 }
@@ -12036,6 +12048,53 @@ function syncCoverTwScroll(root) {
     if (btnL) btnL.disabled = !moreL;
     if (btnR) btnR.disabled = !moreR;
   }
+  syncCoverHeadScroll(root || document);
+}
+/* 머리 행 고정. .cv-tw 는 가로 스크롤 영역이라 thead 에 sticky 를 걸어도 상세 창(.dm-body) 스크롤에 붙지 않는다.
+   그래서 머리 행을 복제한 .cv-hd 를 .cv-tbox 안에서 sticky 로 붙이고, 열 너비와 가로 스크롤 위치를 본 표에 맞춘다.
+   복제본은 aria-hidden, no-print 이며 본 표(읽기 순서, 인쇄, 복사)는 그대로다. */
+function buildCoverHead(root) {
+  const scope = root || document;
+  const tw = scope.querySelector('#cover-tw');
+  const tbl = tw && tw.querySelector('#cover-tbl');
+  const box = tw && tw.parentElement;
+  const thead = tbl && tbl.tHead;
+  if (!thead || !box || !thead.rows.length) return;
+  let hd = box.querySelector('#cover-hd');
+  if (!hd) {
+    hd = document.createElement('div');
+    hd.id = 'cover-hd';
+    hd.className = 'cv-hd no-print';
+    hd.setAttribute('aria-hidden', 'true');
+    box.insertBefore(hd, tw);
+  }
+  const tblW = tbl.offsetWidth;
+  const rect = tbl.getBoundingClientRect();
+  const k = tblW && rect.width ? rect.width / tblW : 1;
+  const widths = [...thead.rows[0].cells].map(c => (c.getBoundingClientRect().width / k).toFixed(2));
+  const ct = tbl.cloneNode(false);
+  ct.removeAttribute('id');
+  ct.style.width = tblW + 'px';
+  ct.innerHTML = '<colgroup>' + widths.map(w => `<col style="width:${w}px">`).join('') + '</colgroup>';
+  ct.appendChild(thead.cloneNode(true));
+  const h = thead.offsetHeight;
+  hd.replaceChildren(ct);
+  hd.style.height = h + 'px';
+  hd.style.marginBottom = -h + 'px';
+  hd.style.marginLeft = tw.offsetLeft + 'px';
+  hd.style.width = tw.clientWidth + 'px';
+  syncCoverHeadScroll(scope);
+}
+function syncCoverHeadScroll(scope) {
+  const tw = scope.querySelector('#cover-tw');
+  const hd = scope.querySelector('#cover-hd');
+  const bar = scope.querySelector('#cv-tw-bar');
+  if (!tw || !hd) return;
+  hd.scrollLeft = tw.scrollLeft;
+  hd.classList.toggle('has-more-l', tw.classList.contains('has-more-l'));
+  hd.classList.toggle('has-more-r', tw.classList.contains('has-more-r'));
+  const box = hd.parentElement;
+  if (box) box.style.setProperty('--cv-bar-h', (bar && !bar.hidden ? bar.offsetHeight : 0) + 'px');
 }
 function bindCoverTw(root) {
   const tw = root && root.querySelector('#cover-tw');
@@ -12043,9 +12102,17 @@ function bindCoverTw(root) {
   if (!tw._bound) {
     tw._bound = true;
     tw.addEventListener('scroll', () => syncCoverTwScroll(root), { passive: true });
+    if (typeof ResizeObserver === 'function') {
+      let raf = 0;
+      const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { buildCoverHead(root); syncCoverTwScroll(root); }); });
+      ro.observe(tw);
+      const tbl = tw.querySelector('#cover-tbl');
+      if (tbl) ro.observe(tbl);
+    }
   }
   syncCoverTwScroll(root);
-  requestAnimationFrame(() => syncCoverTwScroll(root));
+  buildCoverHead(root);
+  requestAnimationFrame(() => { syncCoverTwScroll(root); buildCoverHead(root); });
 }
 function refreshTable(body, c) {
   const tb = body.querySelector('#cover-tbl tbody');
