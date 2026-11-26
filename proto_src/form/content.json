@@ -82,7 +82,7 @@
      {"crit": "참신성", "text": "AI가 뽑은 값을 다른 AI가 확률로 다시 검증하고, 회사마다 다른 담보 이름을 표준담보 {{fact:standard_coverage_in_use}}개로 연결했습니다"},
      {"crit": "실용성", "text": "비교표 한 건에 {{fact:practice_compare_time}}(실무자 어림값) 걸리던 일을 화면 확인과 비교표 복사로 바꿉니다"},
      {"crit": "확장성", "text": "목표 생명보험 {{fact:comparison_target_counts.생명보험}}곳, 손해보험 {{fact:comparison_target_counts.손해보험}}곳 가운데 타사 {{fact:comparison_targets_loaded.sheet}}곳을 시트에 적재했습니다"},
-     {"crit": "완성도", "text": "일부러 오류를 넣은 값 {{fact:calibration_flipped_rows.rows}}건 가운데 자동 확정 {{fact:calibration_flipped_rows.passed}}건, 자동 테스트 {{fact:test_count}}개. 한계도 함께 공개합니다"}
+     {"crit": "완성도", "text": "모의 테스트의 오류 {{fact:calibration_flipped_rows.rows}}건 중 자동 확정 {{fact:calibration_flipped_rows.passed}}건, 자동 테스트 {{fact:test_count}}개. 한계도 함께 공개합니다"}
     ],
     "caution": "화면의 '가입 가능'은 공시 문서만으로 낸 참고 결과이며 실제 인수 심사 결과가 아닙니다. 보험료와 질병코드 범위는 다루지 않습니다."
    }
@@ -162,8 +162,8 @@
      "crit": ["실용성"],
      "head": "사용 순서",
      "items": [
-      {"name": "넓게 보기", "tabs": ["{{fact:console4_tabs.names.0}}", "{{fact:console4_tabs.names.1}}"], "text": "핵심 수를 한눈에 봅니다"},
-      {"name": "좁혀 확인", "tabs": ["{{fact:console4_tabs.names.2}}", "{{fact:console4_tabs.names.3}}", "{{fact:console4_tabs.names.5}}"], "text": "회사 간 차이를 근거와 함께 봅니다"},
+      {"name": "현황 파악", "tabs": ["{{fact:console4_tabs.names.0}}", "{{fact:console4_tabs.names.1}}"], "text": "핵심 수를 한눈에 봅니다"},
+      {"name": "상세 비교", "tabs": ["{{fact:console4_tabs.names.2}}", "{{fact:console4_tabs.names.3}}", "{{fact:console4_tabs.names.5}}"], "text": "회사 간 차이를 근거와 함께 봅니다"},
       {"name": "결론", "tabs": ["{{fact:console4_tabs.names.4}}"], "text": "비교 결과를 문장으로 읽습니다"},
       {"name": "내보내기", "tabs": ["응대 화법"], "text": "A4 한 장으로 인쇄하거나 복사합니다"}
      ]
@@ -290,13 +290,13 @@
     "gauge": {
      "crit": ["완성도*", "참신성"],
      "head": "확률 산정 모델: 확률만 산출합니다",
-     "stack_label": "일부러 오류를 넣은 값 {{fact:calibration_flipped_rows.rows}}건의 처리 결과",
+     "stack_label": "모의 테스트: 오류를 넣은 값 {{fact:calibration_flipped_rows.rows}}건의 처리 결과",
      "seg_re": "다른 AI로 재추출 {{fact:calibration_reextract_band.wrong_caught_pct|f1}}%",
      "seg_rv": "사람 검수 {{fact:calibration_review_band_pct|f1}}%(계산값)",
      "big": "{{fact:calibration_flipped_rows.passed}}건",
      "big_label": "오류가 자동 확정된 건수",
      "zones": ["재추출", "사람 검수", "자동 확정"],
-     "line": "글은 쓰지 않고 확률만 산정하는 모델({{ref:gemini_decision_release.model}})을 {{len:decision_model_uses}}가지 작업에 씁니다",
+     "line": "텍스트를 생성하지 않고 확률만 산정하는 모델({{ref:gemini_decision_release.model}})을 {{len:decision_model_uses}}가지 작업에 씁니다",
      "chip": "초기 적재 매핑은 두 AI의 이중 추출이 일치한 {{fact:mapping_auto_confirm_by_route.site.cross_check}}건, 확률 산정 경로 {{fact:mapping_auto_confirm_by_route.site.decision_model}}건을 자동 확정",
      "scope": "우체국 상품요약서 두 건에서 만든 좁은 표본의 결과입니다"
     },
@@ -316,11 +316,11 @@
     },
     "gold": {
      "crit": ["완성도"],
-     "head": "정답셋 대조 결과",
+     "head": "정답표 대조 결과",
      "rings": [
       {"value": "{{fact:epost_summary_rows_matched.matched}}", "total": "{{fact:epost_summary_rows_matched.total}}", "label": "우체국 요약서 급부 행"},
-      {"value": "{{fact:goldset_epost_benefit.auto_match}}", "hatch": "{{fact:goldset_epost_benefit.manual_match}}", "total": "{{fact:goldset_epost_benefit.items}}", "label": "우체국 급부 정답셋", "legend": "빗금: 직접 확인 {{fact:goldset_epost_benefit.manual_match}}"},
-      {"value": "{{fact:goldset_hanwha_benefit.match}}", "total": "{{fact:goldset_hanwha_benefit.items}}", "label": "한화생명 급부 정답셋"}
+      {"value": "{{fact:goldset_epost_benefit.auto_match}}", "hatch": "{{fact:goldset_epost_benefit.manual_match}}", "total": "{{fact:goldset_epost_benefit.items}}", "label": "우체국 급부 정답표", "legend": "빗금: 직접 확인 {{fact:goldset_epost_benefit.manual_match}}"},
+      {"value": "{{fact:goldset_hanwha_benefit.match}}", "total": "{{fact:goldset_hanwha_benefit.items}}", "label": "한화생명 급부 정답표"}
      ],
      "ring_note": "링 안의 수는 일치한 행 수/대조한 행 수입니다",
      "weak_head": "일치율이 낮은 영역도 그대로 공개합니다",
@@ -328,7 +328,7 @@
       {"label": "우체국 가입조건", "match": "{{fact:goldset_epost_conditions.match}}", "items": "{{fact:goldset_epost_conditions.items}}"},
       {"label": "우체국 결합 제약", "match": "{{fact:goldset_epost_constraints.match}}", "items": "{{fact:goldset_epost_constraints.items}}"}
      ],
-     "unscored": {"label": "삼성화재 급부", "badge": "측정 전", "text": "정답셋 {{fact:goldset_not_scored.SAMSUNGFIRE}}항목은 만들었고 아직 대조하지 않았습니다"}
+     "unscored": {"label": "삼성화재 급부", "badge": "측정 전", "text": "정답표 {{fact:goldset_not_scored.SAMSUNGFIRE}}항목은 만들었고 아직 대조하지 않았습니다"}
     },
     "team": {
      "crit": ["참신성"],
@@ -427,7 +427,7 @@
      "evidence_head": "대신 있는 근거",
      "evidence": [
       {"calc": "opinions", "unit": "건", "label": "의견 반영(일부 반영 포함)"},
-      {"calc": "goldset", "unit": "항목", "label": "급부 정답셋 대조 일치(전체 결과는 {{pg:p6}}쪽)"},
+      {"calc": "goldset", "unit": "항목", "label": "급부 정답표 대조 일치(전체 결과는 {{pg:p6}}쪽)"},
       {"value": "{{fact:test_count}}", "unit": "개", "label": "자동 테스트"}
      ],
      "have": "실무자 {{fact:practice_respondents}}명의 응답과 의견({{asof:practice_respondents}}, {{asof:practice_tool_need}})을 받아 아래와 같이 반영했습니다.",
@@ -453,8 +453,7 @@
   "links": [
    {"icon": "monitor-cog", "name": "분석 화면", "url": "https://bluethestyle.github.io/korea_post_life/proto/console4.html", "note": "시연용 화면, 컴퓨터 화면 권장"},
    {"icon": "file-text", "name": "발표 자료", "url": "https://bluethestyle.github.io/korea_post_life/deck/", "note": "발표 덱, 설명 영상 {{len:video_seconds}}편이 덱 안에서 재생됩니다"},
-   {"icon": "map-pin", "name": "안내 화면", "url": "https://bluethestyle.github.io/korea_post_life/", "note": "위 화면들로 가는 첫 화면"},
-   {"icon": "network", "name": "저장소", "url": "https://github.com/bluethestyle/korea_post_life", "note": "코드, 문서, 테스트"}
+   {"icon": "map-pin", "name": "안내 화면", "url": "https://bluethestyle.github.io/korea_post_life/", "note": "위 화면들로 가는 첫 화면"}
   ],
   "videos_head": "설명 영상(발표 자료 안에서 재생, 그림은 영상의 한 장면)",
   "videos": [

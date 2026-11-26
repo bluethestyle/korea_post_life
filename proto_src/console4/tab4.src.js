@@ -2155,4 +2155,4 @@ App.cover = {
   switchStep: switchCoverStep,
 };
 
-App.registerTab({ id: 'cover', layout: 'band', kicker: '좁혀 확인한다, 담보', renderStage, conclusion, pick, actions, copySummary: copyTable, focus, enter });
+App.registerTab({ id: 'cover', layout: 'band', kicker: '상세 비교, 담보', renderStage, conclusion, pick, actions, copySummary: copyTable, focus, enter });

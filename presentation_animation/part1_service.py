@@ -388,7 +388,7 @@ class Part1ServiceScene(PostLifeBaseScene):
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
-            f"{TERM['sheet_master']}를 {TERM['snapshot']}으로 담아 본부 단독 HTML 화면과 창구 A4 단일 {TERM['script_doc']} 문서를 제공합니다",
+            f"{TERM['sheet_master']}를 {TERM['snapshot']}로 보관해 본부 단독 HTML 화면과 창구 A4 단일 {TERM['script_doc']} 문서를 제공합니다",
         )
 
         srv_top_pill = fit(
@@ -711,7 +711,7 @@ class Part1ServiceScene(PostLifeBaseScene):
             txt("막대: 결과별 건수(모든 기관)", size=12.6, color=C_INK_1, bold=True),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.035)
         wg6 = VGroup(wg6_bars, wg6_info).arrange(RIGHT, buff=0.14)
-        m_6 = make_radial_module(4.36, -1.60, "#93C5FD", "cpu_decide", "화면 ⑥", "AI 작업 내역", f"{TERM['extract']}, 코드 대조, 판정, {TERM['review_wait']} 이관 기록 공개", wg6)
+        m_6 = make_radial_module(4.36, -1.60, "#93C5FD", "cpu_decide", "화면 ⑥", "AI 작업 내역", f"{TERM['extract']}, 코드 대조, 확률 산정, {TERM['review_wait']} 이관 기록 공개", wg6)
 
         self.add(dial_needle)
         self.cam_move(
@@ -821,7 +821,7 @@ class Part1ServiceScene(PostLifeBaseScene):
 
         hb = self.update_subtitle(
             hb,
-            "이어서 수집, 추출, 판정 검증, 표준담보 매핑 단계별 발생 문제와 해결 구조를 살펴봅니다",
+            "이어서 수집, 추출, 검증, 표준담보 매핑 단계별 발생 문제와 해결 구조를 살펴봅니다",
         )
         self.play(FadeIn(guard_ribbon, shift=UP * 0.08), run_time=0.90)
 

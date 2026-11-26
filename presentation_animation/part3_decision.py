@@ -79,12 +79,12 @@ class Part3DecisionScene(PostLifeBaseScene):
         quota_fails = fact("decide_quota_failures_logged")
 
         # ===================================================================
-        # 5장: 판정 모델의 원리와 단일 호출 아키텍처
+        # 5장: 확률 산정 모델의 원리와 단일 호출 아키텍처
         # ===================================================================
         hl, hr, hb = self.make_hud(
             5,
-            f"판정 모델 {decide_model}: 선택지 확률 반환 방식",
-            "판정 모델은 텍스트를 생성하지 않고 지정된 선택지별 확률만 반환합니다",
+            f"확률 산정 모델 {decide_model}: 선택지 확률 반환 방식",
+            "확률 산정 모델은 텍스트를 생성하지 않고 지정된 선택지별 확률만 반환합니다",
         )
 
         # -------------------------------------------------------------------
@@ -128,7 +128,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         dec_hdr_row = fit(
             VGroup(
                 pill(f"{rel_date} 출시", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=13.0, px=0.11, py=0.04),
-                txt(f"비생성 판정 모델 {decide_model} (최대 {num(d_spec['items_per_call'])}문항 사양)", size=14.8, color=C_GOLD, bold=True, z=7),
+                txt(f"비생성 확률 산정 모델 {decide_model} (최대 {num(d_spec['items_per_call'])}문항 사양)", size=14.8, color=C_GOLD, bold=True, z=7),
             ).arrange(RIGHT, buff=0.14),
             max_w=7.40,
         ).move_to([-2.26, -0.44, 0]).set_z_index(7)
@@ -151,7 +151,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         for b_i, (by, b_lbl, b_val, b_w, b_col) in enumerate(
             [
                 (-1.22, "정상 값", f"{sym_prob['correct_min']:.2f}↑", w_corr, C_GOLD),
-                (-1.90, "반전 오류값", f"{sym_prob['flipped_max']:.2f}↓", w_flip, C_SLATE),
+                (-1.90, "모의 오류값", f"{sym_prob['flipped_max']:.2f}↓", w_flip, C_SLATE),
             ]
         ):
             dec_out_arrs.add(arrow_2d([-1.78, -1.56, 0], [-1.50, by, 0], color=C_GOLD if b_i == 0 else C_SLATE, sw=2.0, tip=0.08, z=6))
@@ -162,7 +162,7 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         # 우측 적용 파이프라인 스택
         use_hdr = fit(
-            pill(f"판정 모델 적용 {num(len(d_uses))}개 영역", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=14.8, z=8),
+            pill(f"확률 산정 모델 적용 {num(len(d_uses))}개 영역", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=14.8, z=8),
             max_w=4.16,
         ).move_to([4.20, 2.38, 0])
         use_specs = [
@@ -288,7 +288,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         pkt_ex_note = txt("(문항 배열 예시 그림)", size=12.8, color=C_INK_1, bold=True, z=7).move_to([-4.22, -1.72, 0])
         st5_left = VGroup(pkt_box, pkt_hdr, pkt_top, pkt_top_c, plus_badge, pkt_bot, pkt_bot_t, q_dots, pkt_ex_note)
 
-        # Stage 2 (Center): 비생성 선택지 채점 코어 & 정형 판정 사양
+        # Stage 2 (Center): 비생성 선택지 확률 산정 코어 & 정형 문항 사양
         d1_c = np.array([0.0, 0.12, 0.0])
         d1_outer_dash = DashedVMobject(Circle(radius=1.34, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=2.2).move_to(d1_c), num_dashes=28).set_z_index(6)
         d1_core = Circle(radius=1.14, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_VIOLET, stroke_width=3.0).move_to(d1_c).set_z_index(7)
@@ -303,7 +303,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         ).move_to(d1_c + DOWN * 0.30)
 
         modes_3 = [
-            pill("예 / 아니오 양자 판정", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=13.0, px=0.12, py=0.05, z=8),
+            pill("예 / 아니오 양자택일", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=13.0, px=0.12, py=0.05, z=8),
             pill(f"{num(d_spec['choices_min'])}~{num(d_spec['choices_max'])}지선다 매핑", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD, size=13.0, px=0.12, py=0.05, z=8),
         ]
         modes_row = fit(VGroup(*modes_3).arrange(DOWN, buff=0.12), max_w=3.40).move_to([0.0, -1.74, 0])
@@ -319,7 +319,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             svg_icon("shield_check", size=0.50, col=C_GOLD, accent=C_MINT, z=7).move_to([2.88, 0.64, 0]),
             fit(
                 VGroup(
-                    txt(f"오류 반전 {num(cal_flip['rows'])}행 테스트", size=14.2, color=C_GOLD, bold=True, z=7),
+                    txt(f"모의 오류 {num(cal_flip['rows'])}행 테스트", size=14.2, color=C_GOLD, bold=True, z=7),
                     txt(f"확정 통과 {num(cal_flip['passed'])}행 차단 ✓", size=13.0, color=C_WHITE, bold=True, z=7),
                 ).arrange(DOWN, aligned_edge=LEFT, buff=0.07),
                 max_w=2.76,
@@ -594,7 +594,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
-            f"해결 ①, ② 원문 단일 입력 후 {TERM['rider_cond']}은 개별 질의하고, 대칭 선택지로 정상 값과 반전 오류값을 분리했습니다",
+            f"해결 ①, ② 원문 단일 입력 후 {TERM['rider_cond']}은 개별 질의하고, 대칭 선택지로 정상 값과 모의 오류값을 분리했습니다",
         )
 
         sep_p0, sep_p1 = bnd_chk["separated_probabilities"]
@@ -646,7 +646,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         ).move_to([0.0, 2.76, 0])
         calib_chip = fit(
             pill(
-                f"임계값 보정: 인위적 오류 반전 {num(cal_flip['rows'])}행 중 확정 통과 {num(cal_flip['passed'])}행 ({TERM['ours']} 요약서 소규모 표본 기준) ✓",
+                f"임계값 보정: 모의 오류 {num(cal_flip['rows'])}행 중 확정 통과 {num(cal_flip['passed'])}행 ({TERM['ours']} 요약서 소규모 표본 기준) ✓",
                 fg=C_MINT,
                 bg="#091018",
                 border=C_MINT,
@@ -753,7 +753,7 @@ class Part3DecisionScene(PostLifeBaseScene):
             sub_col=C_MINT,
         ).move_to([2.48, -2.90, 0.48])
         bb_aft_flip = bb_badge(
-            f"반전 오류값 {sym_prob['flipped_max']:.2f}↓",
+            f"모의 오류값 {sym_prob['flipped_max']:.2f}↓",
             fg=C_CORAL,
             bg="#2A0F14",
             border=C_CORAL,
@@ -937,7 +937,7 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         quota_bar = fit(
             pill(
-                f"한도 점검: 한도 초과 실패 기록은 {num(quota_fails)}건이나 재시도 성공 호출은 미기록되어 한도 초과 여부는 미확인 (오류 반전 {num(cal_flip['rows'])}행 통과 {num(cal_flip['passed'])}행, {TERM['ours']} 소규모 표본)",
+                f"한도 점검: 한도 초과 실패 기록은 {num(quota_fails)}건이나 재시도 성공 호출은 미기록되어 한도 초과 여부는 미확인 (모의 오류 {num(cal_flip['rows'])}행 통과 {num(cal_flip['passed'])}행, {TERM['ours']} 소규모 표본)",
                 fg=C_INK_0,
                 bg=C_PANEL_HI,
                 border=C_SLATE,

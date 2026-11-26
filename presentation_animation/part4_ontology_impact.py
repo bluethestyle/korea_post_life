@@ -1760,12 +1760,12 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             1.54,
             C_VIOLET,
             "cpu_decide",
-            "③ 비생성 판정, 표준담보",
+            "③ 비생성 확률 산정, 표준담보",
             (
-                f"{decide_model} 정형 채점",
+                f"{decide_model} 정형 확률 산정",
                 f"표준담보 {num(cov_use)}개 ({rel_kinds_str} 관계)",
             ),
-            (f"오류 반전 {num(cal_flip['rows'])}행", f"통과 {num(cal_flip['passed'])}행(소규모 표본)"),
+            (f"모의 오류 {num(cal_flip['rows'])}행", f"통과 {num(cal_flip['passed'])}행(소규모 표본)"),
             C_GOLD,
             "#383016",
         )

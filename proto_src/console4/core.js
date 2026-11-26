@@ -385,7 +385,7 @@
     gtCopyTableBtn: '표 복사',
     gtPrintBtn: '인쇄',
     gtSecEvidence: '근거 문서와 쪽',
-    gtTabKicker: '좁혀 확인한다, 청약 규정',
+    gtTabKicker: '상세 비교, 인수기준',
 
     gtRangeBoth: '입원과 수술',
     gtRangeHosp: '입원',

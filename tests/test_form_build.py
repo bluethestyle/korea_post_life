@@ -65,7 +65,7 @@ def test_unknown_fact_stops_the_build(tmp_path):
         form_build.build_html(p)
 
 
-def test_no_external_requests_only_the_four_clickable_links(sample):
+def test_no_external_requests_only_the_listed_clickable_links(sample):
     doc, _ = sample
     hrefs = re.findall(r'<a\b[^>]*href="([^"]+)"', doc)
     assert sorted(set(hrefs)) == sorted(LINKS)

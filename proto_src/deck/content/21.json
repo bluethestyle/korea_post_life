@@ -4,12 +4,12 @@
  "kind": "video",
  "chapter": 4,
  "status": "video",
- "headline": "면책 문항을 참 거짓에서 두 보기 고르기로 바꾸자 맞는 값과 오류 값이 갈렸습니다",
+ "headline": "면책 문항을 참 거짓에서 두 보기 고르기로 바꾸자 맞는 값과 모의 오류 값이 갈렸습니다",
  "video": {
   "part": 3,
   "src": "media/part3.mp4",
   "dur": "{{fact:video_length_label.part3}}",
-  "q": "면책 문항 한 가지의 확률: 맞는 값 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 오류 값 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하",
+  "q": "면책 문항 한 가지의 확률: 맞는 값 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 모의 오류 값 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하",
   "stills": [
    "part3_1"
   ]

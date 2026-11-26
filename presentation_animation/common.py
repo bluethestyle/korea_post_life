@@ -30,8 +30,8 @@ def num(n) -> str:
 TERM: dict[str, str] = {
     "master": "마스터 데이터",
     "sheet_master": "구글 시트 마스터 데이터",
-    "snapshot": "스냅샷",
-    "snapshot_first": "스냅샷(특정 시점의 데이터 복사본)",
+    "snapshot": "주간 마감 자료",
+    "snapshot_first": "주간 마감 자료(매주 일요일 보관본)",
     "uw": "인수기준",
     "uw_first": "인수기준(가입 심사 기준)",
     "uw_cmp": "인수기준 비교",
@@ -56,7 +56,7 @@ TERM: dict[str, str] = {
     "batch_query": "일괄 질의",
     "unit_first": "특약 단위(추출 단위)",
     "unit": "특약 단위",
-    "verdict": "우열 판정",
+    "verdict": "비교 결과",
     "verdict_hold": "판정 보류",
     "unheld_cov": "미보유 담보",
     "review_wait": "검수 대기",
@@ -811,7 +811,7 @@ def make_npu_chip(
     label_mob: Mobject | None = None,
     z: int = 6,
 ) -> VGroup:
-    """회로 리드 핀과 내부 실리콘 다이 프레임을 갖춘 판정 모델 칩."""
+    """회로 리드 핀과 내부 실리콘 다이 프레임을 갖춘 확률 산정 모델 칩."""
     p = np.array(pos, dtype=float)
     pins = VGroup()
     for i in range(6):
