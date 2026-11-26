@@ -332,23 +332,23 @@ DOC_FACTS += [
 ]
 
 # git 과 GitHub 에서 센 값. 사본에서 셀 수 없고 커밋할 때마다 바뀌므로 손으로 적고, note 에 다시 세는 명령을 적는다.
-GIT_COUNTED_AT = "2026-11-24"
+GIT_COUNTED_AT = "2026-11-26"
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
     ("test_count", 1568, "전체 자동 시험 수", "2026-11-26",
      "메인 세션이 2026-11-26(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
-    ("commit_count", 287, "main 의 커밋 수", GIT_COUNTED_AT,
-     "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),
+    ("commit_count", 421, "main 의 커밋 수", GIT_COUNTED_AT,
+     "2026-11-26 main(b434ea5)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),
     ("commits_by_date", {"2026-11-18": 41, "2026-11-19": 54, "2026-11-20": 63, "2026-11-21": 8, "2026-11-22": 0,
-                         "2026-11-23": 87, "2026-11-24": 34},
+                         "2026-11-23": 92, "2026-11-24": 64, "2026-11-25": 78, "2026-11-26": 21},
      "main 의 날짜별 커밋 수(한국 시간)", GIT_COUNTED_AT,
      "`TZ=Asia/Seoul git log main --format=%ad --date=format-local:%Y-%m-%d | sort | uniq -c` 로 센 값입니다(커밋이 없는 날은 0). "
      "제출 직전에 다시 셉니다."),
-    ("commits_by_author", {"Claude": 245, "Antigravity": 31, "github-actions[bot]": 11}, "main 의 작성자별 커밋 수", GIT_COUNTED_AT,
+    ("commits_by_author", {"Claude": 342, "Antigravity": 67, "github-actions[bot]": 12}, "main 의 작성자별 커밋 수", GIT_COUNTED_AT,
      "`git shortlog -sn main` 으로 센 값입니다. github-actions[bot] 은 주간 스냅샷과 시장 동향 수집의 자동 커밋입니다."),
-    ("project_days", {"first": "2026-11-18", "last": "2026-11-24", "days": 7}, "첫 커밋 날부터 셈한 날까지의 날 수(양 끝 포함, 한국 시간)",
+    ("project_days", {"first": "2026-11-18", "last": "2026-11-26", "days": 9}, "첫 커밋 날부터 셈한 날까지의 날 수(양 끝 포함, 한국 시간)",
      GIT_COUNTED_AT, "commits_by_date 의 첫 날과 센 날입니다. 제출 직전에 commits_by_date 와 함께 다시 셉니다."),
-    ("pr_counts", {"total": 8, "merged": 7, "open": 1}, "Antigravity 가 연 PR 수(전체, 머지, 열림)", GIT_COUNTED_AT,
-     "`gh pr list --state all` 로 센 값입니다. 열린 하나는 PR 7(발표 애니메이션)입니다."),
+    ("pr_counts", {"total": 11, "merged": 11, "open": 0}, "Antigravity 가 연 PR 수(전체, 머지, 열림)", GIT_COUNTED_AT,
+     "`gh pr list --state all` 에서 antigravity/ 브랜치의 PR 만 센 값입니다. Claude 분리 실행이 연 PR 6건은 넣지 않았고 모두 머지했습니다."),
     ("pages_status", {"status": "built", "url": "https://bluethestyle.github.io/korea_post_life/"},
      "GitHub Pages 배포 상태와 공개 주소", GIT_COUNTED_AT,
      "`gh api repos/bluethestyle/korea_post_life/pages` 의 status 와 html_url 입니다. 데모는 url 뒤에 proto/console4.html 을 붙입니다."),

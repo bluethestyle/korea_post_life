@@ -4876,13 +4876,13 @@
       "note": "메인 세션이 2026-11-26(한국 시간) main 에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."
     },
     "commit_count": {
-      "value": 287,
+      "value": 421,
       "label": "main 의 커밋 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "manual"
       },
-      "note": "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."
+      "note": "2026-11-26 main(b434ea5)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."
     },
     "commits_by_date": {
       "value": {
@@ -4891,11 +4891,13 @@
         "2026-11-20": 63,
         "2026-11-21": 8,
         "2026-11-22": 0,
-        "2026-11-23": 87,
-        "2026-11-24": 34
+        "2026-11-23": 92,
+        "2026-11-24": 64,
+        "2026-11-25": 78,
+        "2026-11-26": 21
       },
       "label": "main 의 날짜별 커밋 수(한국 시간)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "manual"
       },
@@ -4903,12 +4905,12 @@
     },
     "commits_by_author": {
       "value": {
-        "Claude": 245,
-        "Antigravity": 31,
-        "github-actions[bot]": 11
+        "Claude": 342,
+        "Antigravity": 67,
+        "github-actions[bot]": 12
       },
       "label": "main 의 작성자별 커밋 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "manual"
       },
@@ -4917,11 +4919,11 @@
     "project_days": {
       "value": {
         "first": "2026-11-18",
-        "last": "2026-11-24",
-        "days": 7
+        "last": "2026-11-26",
+        "days": 9
       },
       "label": "첫 커밋 날부터 셈한 날까지의 날 수(양 끝 포함, 한국 시간)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "manual"
       },
@@ -4929,16 +4931,16 @@
     },
     "pr_counts": {
       "value": {
-        "total": 8,
-        "merged": 7,
-        "open": 1
+        "total": 11,
+        "merged": 11,
+        "open": 0
       },
       "label": "Antigravity 가 연 PR 수(전체, 머지, 열림)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "manual"
       },
-      "note": "`gh pr list --state all` 로 센 값입니다. 열린 하나는 PR 7(발표 애니메이션)입니다."
+      "note": "`gh pr list --state all` 에서 antigravity/ 브랜치의 PR 만 센 값입니다. Claude 분리 실행이 연 PR 6건은 넣지 않았고 모두 머지했습니다."
     },
     "pages_status": {
       "value": {
@@ -4946,7 +4948,7 @@
         "url": "https://bluethestyle.github.io/korea_post_life/"
       },
       "label": "GitHub Pages 배포 상태와 공개 주소",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "manual"
       },

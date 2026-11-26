@@ -78,7 +78,7 @@
   }
  ],
  "points": [
-  "화면 AI의 PR {{fact:pr_counts.total}}건 중 {{fact:pr_counts.merged}}건 머지, {{fact:pr_counts.open}}건 검수 중"
+  "화면 AI의 PR {{fact:pr_counts.total}}건 중 {{fact:pr_counts.merged}}건 머지"
  ],
  "footnote": "이 장부터 세 장은 앱을 만들 때 쓴 AI입니다. 앱 안에서 실행되는 AI는 {{slide:ai-code-human}}장부터입니다",
  "terms": [

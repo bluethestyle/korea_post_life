@@ -1047,7 +1047,8 @@ def c8(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
         placed.append((idx, f, cx, spot[0], spot[1]))
     nlv = max([p[4] for p in placed], default=0) + 1
     bars = spec.get("bars", [])
-    bar_top_space = nlv * (fh + 18) + 10
+    # bar_pad: 깃발 아래 꼬리표와 가장 높은 막대의 숫자 사이를 더 띄울 때(px). 기본 0
+    bar_top_space = nlv * (fh + 18) + 10 + float(spec.get("bar_pad", 0))
     max_bar = max(40.0, ay - bar_top_space - 34)
     vals = [ctx.num(b.get("v", 0), f"{where}.bars[{i}].v") for i, b in enumerate(bars)]
     vmax = max(vals) if vals else 1
