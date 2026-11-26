@@ -13,7 +13,7 @@
 | 무엇 | 주소 | 설명 |
 | --- | --- | --- |
 | 분석 화면 | [열기](https://bluethestyle.github.io/korea_post_life/proto/console4.html) | 직접 눌러 볼 수 있는 화면입니다. 열면 전체 요약 화면이 먼저 나오고, 위쪽 메뉴를 눌러 화면을 옮겨 다닙니다. 위쪽의 "조건 변경"에서 고객의 나이와 병력을 바꿔 가며 회사별 차이를 봅니다 |
-| 발표 자료 | [열기](https://bluethestyle.github.io/korea_post_life/deck/) | 32장입니다. 키보드 방향키로 넘기고, 설명 영상 네 편이 들어 있습니다 |
+| 발표 자료 | [열기](https://bluethestyle.github.io/korea_post_life/deck/) | 37장입니다. 키보드 방향키로 넘기고, 설명 영상 네 편이 들어 있습니다 |
 | 안내 화면 | [열기](https://bluethestyle.github.io/korea_post_life/) | 위 두 가지와 그 밖의 화면으로 가는 첫 화면입니다 |
 
 > 화면에 나오는 "가입 가능"은 공개된 문서만 보고 낸 참고 결과입니다. 실제 가입 심사 결과가 아닙니다.

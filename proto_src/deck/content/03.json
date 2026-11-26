@@ -49,5 +49,5 @@
   "소비자용 보험료 비교 서비스는 이미 있습니다",
   "실무자 {{fact:practice_tool_need.respondents}}명은 기획용 비교 도구가 없다고 봤습니다"
  ],
- "footnote": "기능은 실무자 {{fact:practice_respondents}}명의 응답과 의견을 바탕으로 출품자가 정리했습니다"
+ "footnote": "기능은 실무자 {{fact:practice_respondents}}명의 응답과 의견을 바탕으로 출품자가 정리했습니다. 절차 칩은 3부({{slide:scenario-steps}}장)의 다섯 절차 번호입니다"
 }

@@ -1,4 +1,4 @@
-"""데모 화면(site/proto/console4.html)의 작은 부분을 2배 배율로 찍어 덱 29장의 확대 컷 JPEG 를 만든다.
+"""데모 화면(site/proto/console4.html)의 작은 부분을 2배 배율로 찍어 덱의 확대 컷 JPEG 를 만든다.
 
 실행(playwright 와 Pillow 가 든 파이썬, 리포 루트에서):
     python proto_src/deck/tools/capture_cuts.py site/proto/console4.html proto_src/deck/assets [--png <PNG 를 남길 폴더>]
@@ -10,7 +10,7 @@
 캡처 조건은 화면이 처음 여는 기본값 그대로다(기준 종형과 비교 대상 타사를 바꾸지 않는다). capture_app.py 의
 cancer_surgery 와 같은 조작(담보 비교 탭, 수술 단계, 암 수술비 선택)을 한다. 주간 마감 자료나 기준 종형 기본값이
 바뀌면 이 명령 하나로 다시 찍고 덱을 다시 빌드한다. 암 수술비에 검수 대기 칩이 없으면(타사 비교가 모두 끝난 경우)
-1로 끝난다. 그때는 29장의 넷째 컷과 문장을 다른 예로 바꿔야 한다.
+1로 끝난다. 그때는 15장(절차 5)의 검수 대기 칩 컷을 다른 예로 바꿔야 한다(15장의 글은 사실 자료 example_pending_case 를 따라간다).
 
 버튼과 칩만(둘레 3px 포함) 잘라, 그 둘레의 화면 바탕색으로 채운 css 190x107px(16:9) 판의 가운데에 놓는다.
 옆 버튼이나 위 줄의 글자가 반쯤 걸리지 않게 하려는 것이다. 판의 폭 190px 는 덱의 컷 폭(407px)에 놓았을 때
@@ -101,7 +101,7 @@ def main(html: str, out: str, png_dir: str | None) -> None:
         # 상세 머리(왼쪽 패널)의 비교 결과 칩 가운데 "검수 대기"가 든 것
         chip = page.locator(".cv-bd", has_text="검수 대기").first
         if chip.count() == 0 or not chip.is_visible():
-            sys.exit("암 수술비 상세 머리에 검수 대기 칩이 없습니다. 29장의 넷째 컷을 다른 예로 바꿔야 합니다")
+            sys.exit("암 수술비 상세 머리에 검수 대기 칩이 없습니다. 15장(절차 5)의 검수 대기 칩 컷을 다른 예로 바꿔야 합니다")
         pngs["cut_pending_chip"] = on_board(page.screenshot(clip=clip_of(chip.bounding_box())))
         browser.close()
     if external or errors:

@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | 안내 화면 | `site/index.html`(아래 화면들로 가는 링크만 있음) | https://bluethestyle.github.io/korea_post_life/ |
 | 분석 화면(제출 데모) | `proto_src/console4/` → `site/proto/console4.html` | https://bluethestyle.github.io/korea_post_life/proto/console4.html |
-| 발표 덱(32장) | `proto_src/deck/` → `site/deck/index.html`, 영상 네 편은 `site/deck/media/` | https://bluethestyle.github.io/korea_post_life/deck/ |
+| 발표 덱(37장) | `proto_src/deck/` → `site/deck/index.html`, 영상 네 편은 `site/deck/media/` | https://bluethestyle.github.io/korea_post_life/deck/ |
 | 관계 그래프 화면 | `proto_src/graph/` → `site/proto/graph2.html` | https://bluethestyle.github.io/korea_post_life/proto/graph2.html |
 | 초기 버전(처음 만든 판단 화면) | `scripts/build_site.py` → `site/v1/index.html` | https://bluethestyle.github.io/korea_post_life/v1/ |
 
