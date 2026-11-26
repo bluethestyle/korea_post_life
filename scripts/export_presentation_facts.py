@@ -334,7 +334,7 @@ DOC_FACTS += [
 # git 과 GitHub 에서 센 값. 사본에서 셀 수 없고 커밋할 때마다 바뀌므로 손으로 적고, note 에 다시 세는 명령을 적는다.
 GIT_COUNTED_AT = "2026-11-24"
 MANUAL_FACTS: list[tuple[str, Any, str, str, str]] = [
-    ("test_count", 1565, "전체 자동 시험 수", "2026-11-26",
+    ("test_count", 1566, "전체 자동 시험 수", "2026-11-26",
      "2026-11-26(한국 시간) 덱 재구성 브랜치(claude/deck-v5)에서 센 값이고 문서에는 아직 없습니다. 발표 전에 `python -m pytest -q` 로 다시 셉니다."),
     ("commit_count", 287, "main 의 커밋 수", GIT_COUNTED_AT,
      "2026-11-24 main(544137848bee)에서 `git rev-list --count main` 으로 센 값입니다. 제출 직전에 다시 셉니다."),
@@ -729,6 +729,14 @@ def config_facts(as_of: str) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     out["sheet_tab_count"] = fact(len(schema.TABS), "구글 시트 정본의 탭 수", as_of,
                                   {"kind": "schema", "file": "src/postlife/schema.py", "name": "TABS"})
+    sys_tabs = [t for t in schema.TABS if t.startswith("sys_")]
+    hum_tabs = [t for t in schema.TABS if t.startswith("hum_")]
+    if len(sys_tabs) + len(hum_tabs) != len(schema.TABS):
+        raise FactsError("schema.TABS 에 sys_ 나 hum_ 로 시작하지 않는 탭이 있다")
+    out["sheet_tabs_by_owner"] = fact(
+        {"sys": len(sys_tabs), "hum": len(hum_tabs), "hum_names": [t.removeprefix("hum_") for t in hum_tabs]},
+        "구글 시트 정본의 탭을 쓰는 쪽으로 나눈 수: 코드가 쓰는 탭(sys_)과 담당자가 값을 정하는 탭(hum_), 담당자 탭의 이름(탭 차례)", as_of,
+        {"kind": "schema", "file": "src/postlife/schema.py", "name": "TABS", "method": "탭 이름의 앞머리 sys_, hum_ 로 나눔"})
     out["market_news_institution_count"] = fact(len(config.TREND_INSTITUTIONS), "시장 소식을 모으는 기관 수", as_of,
                                                 config_source("TREND_INSTITUTIONS"))
     out["market_news_institutions_by_sector"] = fact(
@@ -1049,6 +1057,26 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
     out["example_cancer_surgery_names"] = fact({org: v["benefit"] for org, v in per_org.items()},
                                                "암 수술비 예의 회사별 급부 이름(원문 급부명 그대로)", as_of, cover_src)
 
+    # 검수 대기로 비교에서 뺀 첫 비교 건(3부 절차 5의 예). 암 수술비 행에 있으면 그것, 없으면 행 차례로 첫 건
+    pending = [(r, vid) for r in base["rows"] for vid, p in r[2].items() if p.get("x")]
+    pending.sort(key=lambda rv: rv[0][0] != EXAMPLE_STD)
+    if not pending:
+        raise FactsError("기준 종형의 담보 비교에 검수 대기로 뺀 비교 건이 없다")
+    prow, pvid = pending[0]
+    pben = cover_cell_benefit(cover, prow[1][base["cols"].index(pvid)])
+    if pben is None:
+        raise FactsError(f"{prow[0]} {pvid}: 검수 대기 칸에 대표 급부가 없다")
+    is_cancer = prow[0] == EXAMPLE_STD
+    out["example_pending_case"] = fact(
+        {"standard_coverage": sales["표준담보"][prow[0]]["이름"], "standard_coverage_id": prow[0],
+         "org": sales["종형"][pvid]["기관코드"], "org_name": sales["종형"][pvid]["회사"], "variant": sales["종형"][pvid]["종형명"],
+         "benefit": pben[0], "doc_kind": pben[10], "doc_page": pben[11], "is_cancer_surgery": is_cancer,
+         "scope_note": "" if is_cancer else "다른 담보의 예"},
+        "화면이 처음 여는 기준 종형의 담보 비교에서 검수 대기라 비교에서 뺀 첫 비교 건(암 수술비 행에 있으면 그 건, 없으면 행 차례로 첫 건): "
+        "표준담보, 타사, 타사 대표 급부의 원문 이름, 근거 문서와 쪽. scope_note 는 암 수술비가 아니면 '다른 담보의 예'", as_of,
+        screen_source("b[기준종형[0].종형ID].rows 의 비교쌍 가운데 x(검수 대기로 뺌)가 참인 첫 건과 그 칸의 대표 급부(r)", COVER),
+        "자료를 갱신하면 예가 바뀔 수 있어 덱은 이 항목을 읽습니다(3부 절차 5).")
+
     # 나눈 특약과 통합 특약의 예(뇌·심장질환 수술비). 화면이 처음 여는 기준 종형의 담보 비교 행을 읽는다
     by_id = {r[0]: r for r in base["rows"]}
     for sid in (EXAMPLE_SPLIT_BROAD, *EXAMPLE_SPLIT_NARROW):
@@ -1212,6 +1240,25 @@ def deck_facts(root: Path, tables: dict[str, list[dict[str, Any]]], sales: dict[
                                     repo_source(WORKFLOWS.as_posix(), "워크플로마다 on 의 열쇠(schedule, push, pull_request, workflow_dispatch)"),
                                     "예약 실행은 시장 동향 수집과 주간 마감(스냅샷 커밋)뿐이고, 공시 문서 수집, 추출, 매핑은 사람이 실행합니다. "
                                     "화면 배포는 site/ 에 푸시할 때 돌고, 화면 빌드는 사람이 합니다.")
+
+    # 화면 배포(GitHub Pages)가 도는 조건. 화면은 배포에서 다시 빌드하지 않고 커밋된 파일을 그대로 올린다
+    pages_text = (root / WORKFLOWS / "pages.yml").read_text(encoding="utf-8")
+    pages_on = re.search(r"^on:\s*\n((?:[ \t]+.*\n|\s*\n)+)", pages_text, re.M)
+    if not pages_on:
+        raise FactsError("pages.yml: on 을 읽지 못했다")
+    on_block = pages_on.group(1)
+    branches = re.search(r"branches:\s*\[([^\]]*)\]", on_block)
+    paths = re.findall(r"^\s+-\s*\"?([^\"\n]+?)\"?\s*$", on_block, re.M)
+    code_lines = [ln for ln in pages_text.splitlines() if not ln.lstrip().startswith("#")]
+    rebuilds = any(re.search(r"\bbuild(_site)?\.py\b|export_app_data", ln) for ln in code_lines)
+    if not branches or not paths:
+        raise FactsError("pages.yml: push 의 branches 나 paths 를 읽지 못했다")
+    out["pages_deploy_trigger"] = fact(
+        {"branches": [b.strip().strip("\"'") for b in branches.group(1).split(",") if b.strip()], "paths": paths,
+         "manual": "workflow_dispatch" in on_block, "rebuilds_screen": rebuilds},
+        "화면 배포(GitHub Pages)가 도는 조건: 푸시 브랜치, 바뀐 파일의 경로, 수동 실행 가능 여부, 배포 때 화면을 다시 빌드하는지", as_of,
+        repo_source((WORKFLOWS / "pages.yml").as_posix(), "on.push.branches, on.push.paths, workflow_dispatch, run 의 빌드 명령"),
+        "main 에 site/ 아래 파일을 푸시하면 배포됩니다. 화면 빌드는 사람이 하고 커밋한 파일을 그대로 올립니다.")
 
     # 확률 산정 문항 예: 면책기간 문항의 보기(0.94, 0.06 을 잰 문항)
     from postlife.extract import verify as V
