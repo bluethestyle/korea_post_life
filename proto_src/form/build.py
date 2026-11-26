@@ -53,7 +53,7 @@ IDENTITY_KEYS = ("소속부서", "성명", "출품구분")
 LOCAL_PH = re.compile(r"\{\{(pg|state):([^{}]+)\}\}")
 ANY_PH = re.compile(r"\{\{[^{}]*\}\}")
 SKIP_DIGIT_KEYS = {"form", "literal_digits", "format", "id", "img", "icon", "url", "prefix", "marks", "zones_xy", "state",
-                   "rows_from", "names_from", "table_img", "html_title", "layout"}
+                   "rows_from", "names_from", "table_img", "html_title", "layout", "variant"}
 
 
 def sec_of(bid: str) -> int:
@@ -263,7 +263,9 @@ class Form:
                 self.images.setdefault(p.stem, p)
         self.img_used: list[str] = []
         self.img_size: dict[str, tuple[int, int]] = {}
-        self.crit_marks = self._crit_marks()
+        # 평가기준 표시(소제목 옆 알약, 꼬리말의 근거 알약): 기본은 표시. 내용 파일의 "show_criteria": false 로 끈다(버전 2)
+        self.show_crit = bool(content.get("show_criteria", True))
+        self.crit_marks = self._crit_marks() if self.show_crit else {}
 
     # 평가기준 표식 -------------------------------------------------------
     def _crit_marks(self) -> dict[int, dict[str, bool]]:
@@ -372,6 +374,8 @@ class Form:
         return w / h
 
     def crit_pills(self, crit: Any) -> str:
+        if not self.show_crit:
+            return ""
         items = crit if isinstance(crit, list) else ([crit] if crit else [])
         out = []
         for c in items[:2]:
@@ -445,6 +449,9 @@ class Form:
         return f'<ul class="rail" aria-label="활용 내용 및 설명의 쪽 구성">{"".join(items)}</ul>'
 
     def footer(self, no: int) -> str:
+        if not self.show_crit:
+            return (f'<footer class="ft"><span>{esc(self.c["footer_name"])}</span>'
+                    f'<span class="pgno">{no} / {self.total}</span></footer>')
         marks = self.crit_marks.get(no, {})
         pills = "".join(f'<span class="cp {"on" if c in marks else "off"}">{c}</span>' for c in CRITERIA)
         return (f'<footer class="ft"><span>{esc(self.c["footer_name"])}</span>'
@@ -529,7 +536,7 @@ class Form:
                  f'<span class="fn">{esc(op["file"])}</span><span>{self.t(op["text"])}</span></p>')
         tiles = f'<div class="tiles" style="grid-template-columns:repeat({len(b["tiles"])},1fr)">' + "".join(self.tile(t) for t in b["tiles"]) + "</div>"
         cards = []
-        for cd in b["cards"]:
+        for cd in b.get("cards", []):
             pgs = self.crit_pages(cd["crit"])
             go = f'{self.lab("crit_go")} {ARROW} ' + ", ".join(str(p) for p in pgs) + "쪽" if pgs else ""
             if not pgs:
@@ -540,7 +547,7 @@ class Form:
                 ("p1.lead", f'<p class="p1-lead">{self.t(b["lead"])}</p>'),
                 ("p1.intro", f'<div class="p1-intro">{intro}</div>'),
                 ("p1.flow", f'<div>{self.bh(fl["head"], fl.get("crit"))}{flow}{openl}</div>'),
-                ("p1.cards", f'<div>{self.bh(b["cards_head"])}<div class="p1-cards">{"".join(cards)}</div></div>'),
+                *([("p1.cards", f'<div>{self.bh(b["cards_head"])}<div class="p1-cards">{"".join(cards)}</div></div>')] if cards else []),
                 ("p1.tiles", tiles),
                 ("p1.caution", f'<p class="caution">{self.ic("info", 3.6)}<span>{self.t(b["caution"])}</span></p>')]
 
@@ -591,6 +598,19 @@ class Form:
                 ("p2.needs", f'<div>{self.bh(nd["head"], nd.get("crit"))}<div class="p2-needs">{"".join(cols)}</div>'
                              f'<p class="sm mut" style="margin-top:1.2mm">{self.t(nd["cue_go"])}</p></div>')]
 
+    def order_html(self, od: dict, flex: list[float] | None = None) -> str:
+        """사용 순서(네 단계 상자). flex 를 주면 상자 폭의 비율을 바꾼다(버전 2)."""
+        nodes = []
+        for i, o in enumerate(od["items"]):
+            tabs = "".join(f'<span class="chip line">{self.t(x)}</span>' for x in o["tabs"])
+            fx = f' style="flex:{flex[i]}"' if flex else ""
+            text = f'<p>{self.t(o["text"])}</p>' if o.get("text") else ""
+            nodes.append(f'<div class="nd"{fx}><p class="nm"><span class="no">{i + 1}</span>{self.t(o["name"])}</p>'
+                         f'<div class="tabs">{tabs}</div>{text}</div>')
+        order = f'<div class="order">{(chr(10)).join(nodes[:1])}' + "".join(
+            f'<div class="ar">{self.arrow_svg(4, 3)}</div>{n}' for n in nodes[1:]) + "</div>"
+        return order
+
     # 3쪽 -------------------------------------------------------------------
     def p3_body(self) -> list[tuple[str, str]]:
         b = self.pages[2]["blocks"]
@@ -622,13 +642,7 @@ class Form:
                        f'<p class="sm hl2">{self.t(r["label"])}</p></div></div>')
         shot = f'<div class="hrows">{"".join(rws)}</div>'
         od = b["order"]
-        nodes = []
-        for i, o in enumerate(od["items"]):
-            tabs = "".join(f'<span class="chip line">{self.t(x)}</span>' for x in o["tabs"])
-            nodes.append(f'<div class="nd"><p class="nm"><span class="no">{i + 1}</span>{self.t(o["name"])}</p>'
-                         f'<div class="tabs">{tabs}</div><p>{self.t(o["text"])}</p></div>')
-        order = f'<div class="order">{(chr(10)).join(nodes[:1])}' + "".join(
-            f'<div class="ar">{self.arrow_svg(4, 3)}</div>{n}' for n in nodes[1:]) + "</div>"
+        order = self.order_html(od)
         legend = (f'<p class="legendline">{self.role("AI")}{self.role("코드")}{self.role("사람")}<span>{self.t(b["legend"])}</span></p>')
         return [("p3.head", self.body_head(3, b["headline"])),
                 ("p3.legend", legend),
@@ -776,9 +790,8 @@ class Form:
         d = ", ".join(f'{esc(i["item"])} 상이(우체국 {esc(i["ours"])}, {org} {esc(i["peer"])})' for i in diff)
         return False, f"{org}: {esc(', '.join(same))} 동일, {d}"
 
-    def p5_body(self) -> list[tuple[str, str]]:
-        b = self.pages[4]["blocks"]
-        tb = b["table"]
+    def five_step_table(self, tb: dict) -> str:
+        """다섯 단계의 전후 비교 표(기존 방식, 적용 후, 예시 그림)."""
         fg = tb["fig"]
         pg_chips = "".join(f'<span class="chip paper">{self.org(c)} {self.t("{{fact:example_cancer_surgery.orgs." + c + ".doc_page}}")}쪽</span>'
                            for c in ORGS3)
@@ -809,6 +822,12 @@ class Form:
                          f'<div class="af{" hero" if r.get("hero") else ""}"><p>{self.role(r["role"])} {self.t(r["after"])}</p>'
                          f'<p class="hm"><b>{self.lab("human")}</b> {self.t(r["human"])}</p></div><div class="fg">{figs[i]}</div>')
         table = f'<div class="p5t">{"".join(cells)}</div>'
+        return table
+
+    def p5_body(self) -> list[tuple[str, str]]:
+        b = self.pages[4]["blocks"]
+        tb = b["table"]
+        table = self.five_step_table(tb)
         sh = b["shot"]
         legend = "".join(f'<span class="nw"><b class="red">{m["n"]}</b> {self.t(m["label"])}</span>' for m in sh["marks"])
         results = []
@@ -849,17 +868,8 @@ class Form:
                         f'stroke-dasharray="0 {a:.2f} {hb:.2f} {c:.2f}" transform="rotate(-90 10 10)"/>')
         return f'<svg style="width:{d}mm;height:{d}mm" viewBox="0 0 20 20" aria-hidden="true">{"".join(segs)}</svg>'
 
-    def p6_body(self) -> list[tuple[str, str]]:
-        b = self.pages[5]["blocks"]
-        ro = b["roles"]
-        chips = "".join(f'<div class="rchip">{self.role(c["role"])}<span>{self.t(c["text"])}</span></div>' for c in ro["chips"])
-        ex1 = "".join(f'<span class="in">{self.t(x)}</span>' for x in ro["ex1_in"])
-        roles = (f'<div>{self.bh(ro["head"], ro.get("crit"))}{chips}'
-                 f'<div class="exband"><p class="lb">{self.t(ro["ex1_label"])}</p><div class="exrow">{ex1}<span class="via">{self.lab("code_reads")}</span>{self.arrow_svg(4, 3)}'
-                 f'<span class="out">{self.t(ro["ex1_out"])}</span></div></div>'
-                 f'<div class="exband"><p class="lb">{self.t(ro["ex2_label"])}</p><div class="exrow"><span class="in bad">{self.t(ro["ex2_in"])}</span>'
-                 f'{self.arrow_svg(4, 3)}<span class="out">{self.t(ro["ex2_out"])}</span></div><p class="sm mut" style="margin-top:0.6mm">{self.t(ro["ex2_mid"])}</p></div></div>')
-        g = b["gauge"]
+    def gauge_html(self, g: dict, compact: bool = False) -> str:
+        """확률 산정 모의 테스트 막대와 구간 눈금. compact 이면 초기 적재 매핑 문구를 뺀다."""
         re_pct = self.num("{{fact:calibration_reextract_band.wrong_caught_pct}}")
         rv_pct = self.num("{{fact:calibration_review_band_pct}}")
         lo = self.num("{{fact:verify_reextract_threshold}}")
@@ -876,31 +886,24 @@ class Form:
                  + "".join(f'<span class="sm mut" style="position:absolute;left:{x:.1f}%;top:-4.4mm;transform:translateX(-50%);white-space:nowrap">{self.t(z)}</span>'
                            for x, z in ((lo * 50, g["zones"][0]), ((lo + hi) * 50, g["zones"][1]), ((hi + 1) * 50, g["zones"][2])))
                  + '</div>')
+        chip = "" if compact else f'<p class="sm" style="margin-top:0.6mm">{self.t(g["chip"])}</p>'
         gauge = (f'<div>{self.bh(g["head"], g.get("crit"), "확률 산정 모델")}'
                  f'<p class="sm" style="font-weight:600">{self.t(g["stack_label"])}</p>{stack}'
                  f'<p class="sm" style="display:flex;justify-content:space-between;margin-top:0.4mm"><span>{self.t(g["seg_re"])}</span><span>{self.t(g["seg_rv"])}</span></p>'
                  f'<div style="display:flex;align-items:center;gap:2.4mm;margin:1.4mm 0 5mm"><span class="gbig">{self.t(g["big"])}</span>'
                  f'<span style="font-weight:600">{self.t(g["big_label"])}</span></div>{scale}'
-                 f'<p style="margin-top:1mm">{self.t(g["line"])}</p><p class="sm" style="margin-top:0.6mm">{self.t(g["chip"])}</p>'
+                 f'<p style="margin-top:1mm">{self.t(g["line"])}</p>{chip}'
                  f'<p class="sm mut">{self.t(g["scope"])}</p></div>')
-        on = b["onto"]
-        names = "".join(f'<div class="ncard" style="margin-bottom:1mm"><span class="o">{self.org(c)}</span>'
-                        f'{self.t("{{fact:example_cancer_surgery_names." + c + "}}")}</div>' for c in ORGS3)
-        conv = ('<svg style="width:8mm;height:100%;display:block" viewBox="0 0 8 30" preserveAspectRatio="none" aria-hidden="true">'
-                '<path d="M0 5L7.6 15M0 15H7.6M0 25L7.6 15" stroke="#5c5650" stroke-width="0.3" fill="none"/></svg>')
-        onto = (f'<div>{self.bh(on["head"], on.get("crit"), "관계 그래프")}'
-                f'<div style="display:grid;grid-template-columns:1fr 8mm 20mm;align-items:stretch"><div>{names}</div>{conv}'
-                f'<div style="display:flex;flex-direction:column;justify-content:center"><div style="border:0.5mm solid var(--kp-ink);padding:1.4mm 1mm;text-align:center">'
-                f'<p style="font-weight:600;line-height:1.2">{self.t(on["target"])}</p><p class="sm mut">{self.t(on["target_sub"])}</p></div></div></div>'
-                f'<p class="sm" style="margin:0.6mm 0 1.4mm"><span class="chip paper" style="white-space:normal">{self.t(on["chip"])}</span></p>'
-                f'<div class="tiles" style="grid-template-columns:1fr 1fr">{"".join(self.tile(t, "mini") for t in on["tiles"])}</div></div>')
-        gd = b["gold"]
+        return gauge
+
+    def gold_html(self, gd: dict, ring_d: float = 22) -> str:
+        """정답표 대조 링과 일치율이 낮은 영역의 막대."""
         rings = []
         for r in gd["rings"]:
             v = self.num(r["value"]); tot = self.num(r["total"]); hv = self.num(r["hatch"]) if r.get("hatch") else 0
             val = self.t(r["value"]) if not r.get("hatch") else self.t("{{fact:goldset_epost_benefit.auto_match}}") + "+" + self.t(r["hatch"])
             lg = f'<p class="sm mut">{self.t(r["legend"])}</p>' if r.get("legend") else ""
-            rings.append(f'<div><div style="position:relative;display:inline-block">{self.ring(v, tot, hv)}'
+            rings.append(f'<div><div style="position:relative;display:inline-block">{self.ring(v, tot, hv, ring_d)}'
                          f'<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:9pt">'
                          f'{val}/{self.t(r["total"])}</span></div><p class="lb">{self.t(r["label"])}</p>{lg}</div>')
         bars = []
@@ -914,6 +917,33 @@ class Form:
         gold = (f'<div>{self.bh(gd["head"], gd.get("crit"), "자동 확정")}<div class="rings">{"".join(rings)}</div>'
                 f'<p class="sm mut" style="margin-top:0.8mm">{self.t(gd["ring_note"])}</p>'
                 f'<p class="sm" style="font-weight:600;margin-top:1.6mm">{self.t(gd["weak_head"])}</p>{"".join(bars)}</div>')
+        return gold
+
+    def p6_body(self) -> list[tuple[str, str]]:
+        b = self.pages[5]["blocks"]
+        ro = b["roles"]
+        chips = "".join(f'<div class="rchip">{self.role(c["role"])}<span>{self.t(c["text"])}</span></div>' for c in ro["chips"])
+        ex1 = "".join(f'<span class="in">{self.t(x)}</span>' for x in ro["ex1_in"])
+        roles = (f'<div>{self.bh(ro["head"], ro.get("crit"))}{chips}'
+                 f'<div class="exband"><p class="lb">{self.t(ro["ex1_label"])}</p><div class="exrow">{ex1}<span class="via">{self.lab("code_reads")}</span>{self.arrow_svg(4, 3)}'
+                 f'<span class="out">{self.t(ro["ex1_out"])}</span></div></div>'
+                 f'<div class="exband"><p class="lb">{self.t(ro["ex2_label"])}</p><div class="exrow"><span class="in bad">{self.t(ro["ex2_in"])}</span>'
+                 f'{self.arrow_svg(4, 3)}<span class="out">{self.t(ro["ex2_out"])}</span></div><p class="sm mut" style="margin-top:0.6mm">{self.t(ro["ex2_mid"])}</p></div></div>')
+        g = b["gauge"]
+        gauge = self.gauge_html(g)
+        on = b["onto"]
+        names = "".join(f'<div class="ncard" style="margin-bottom:1mm"><span class="o">{self.org(c)}</span>'
+                        f'{self.t("{{fact:example_cancer_surgery_names." + c + "}}")}</div>' for c in ORGS3)
+        conv = ('<svg style="width:8mm;height:100%;display:block" viewBox="0 0 8 30" preserveAspectRatio="none" aria-hidden="true">'
+                '<path d="M0 5L7.6 15M0 15H7.6M0 25L7.6 15" stroke="#5c5650" stroke-width="0.3" fill="none"/></svg>')
+        onto = (f'<div>{self.bh(on["head"], on.get("crit"), "관계 그래프")}'
+                f'<div style="display:grid;grid-template-columns:1fr 8mm 20mm;align-items:stretch"><div>{names}</div>{conv}'
+                f'<div style="display:flex;flex-direction:column;justify-content:center"><div style="border:0.5mm solid var(--kp-ink);padding:1.4mm 1mm;text-align:center">'
+                f'<p style="font-weight:600;line-height:1.2">{self.t(on["target"])}</p><p class="sm mut">{self.t(on["target_sub"])}</p></div></div></div>'
+                f'<p class="sm" style="margin:0.6mm 0 1.4mm"><span class="chip paper" style="white-space:normal">{self.t(on["chip"])}</span></p>'
+                f'<div class="tiles" style="grid-template-columns:1fr 1fr">{"".join(self.tile(t, "mini") for t in on["tiles"])}</div></div>')
+        gd = b["gold"]
+        gold = self.gold_html(gd)
         tm = b["team"]
         team = self.p6_team(tm)
         return [("p6.head", self.body_head(6, b["headline"])),
@@ -1048,8 +1078,9 @@ class Form:
 
     def output_blocks(self) -> list[tuple[str, str]]:
         o = self.c["output"]
+        sep = " " if self.c.get("variant") == "v2" else "<br>"          # 버전 2 는 파일 이름과 설명을 한 줄에 쓴다
         links = "".join(f'<div class="l">{self.ic(l["icon"], 5)}<span class="nm">{self.t(l["name"])}</span>'
-                        f'<span><span class="fn">{esc(l["file"])}</span><br><span class="nt">{self.t(l["note"])}</span></span></div>'
+                        f'<span><span class="fn">{esc(l["file"])}</span>{sep}<span class="nt">{self.t(l["note"])}</span></span></div>'
                         for l in o["files"])
         oh = o["open_how"]
         links += (f'<div class="l">{self.ic(oh["icon"], 5)}<span class="nm">{self.t(oh["name"])}</span>'
@@ -1059,11 +1090,11 @@ class Form:
         vids = "".join(f'<div class="s"><div class="im {self.img_cls(v["img"])}" role="img">{play}<span class="vl">{self.t(v["len"])}</span></div>'
                        f'<p class="lb">{self.t(v["label"])}</p></div>'
                        for v in o.get("videos", []))
-        out = [("out.files", f'<div>{self.bh(o["head"])}<div class="links">{links}</div></div>')]
+        out = [("out.files", f'<div>{self.bh(o["head"]) if o.get("head") else ""}<div class="links">{links}</div></div>')]
         if vids:
             out.append(("out.videos", f'<div>{self.bh(o["videos_head"])}<div class="shots vids">{vids}</div></div>'))
-        n = len(o["shots"])
-        for i, s_ in enumerate(o["shots"]):
+        n = len(o.get("shots", []))
+        for i, s_ in enumerate(o.get("shots", [])):
             html = f'<div class="srows">{self.shot_row(i, s_)}</div>'
             if i == 0:
                 html = f'{self.bh(o["shots_head"])}{html}'
@@ -1091,10 +1122,138 @@ class Form:
             return f'<div class="srow">{title}<div class="pair">{full}{cut}</div></div>'
         return f'<div class="srow">{title}{full}{cut}</div>'
 
+    # 버전 2: 평가기준 표시 없이 4쪽 이내로 줄인 판(content_v2.json 의 "variant": "v2") ----------------------------
+    # 블록 id 의 절 번호는 content_v2.json 의 pages 순서(1 개요 … 6 사용 실적)를 따른다. 13쪽 판의 블록 함수는 그대로 두고,
+    # 줄인 블록만 아래에서 따로 만든다. 도해 부품(타일, 막대, 링, 점 그림, 단계 표)은 13쪽 판의 것을 그대로 쓴다.
+    def p2_body_v2(self) -> list[tuple[str, str]]:
+        b = self.pages[1]["blocks"]
+        fa = b["facts"]
+        chips = "".join(f'<div class="c"><p class="k">{self.t(c["label"])}</p><p class="v">{self.t(c["value"])}</p></div>' for c in fa["chips"])
+        w = b["why"]
+        pages = self.num(w[0]["value"])
+        c1 = (f'<div class="wcard"><p class="t"><span class="i">1</span>{self.t(w[0]["title"])}</p>'
+              f'<div style="display:flex;align-items:flex-end;gap:1mm">{self.stack_svg(pages, 13, 13)}'
+              f'<p class="big" style="font-size:20pt">{self.t(w[0]["value"])}<span class="u">{self.t(w[0]["unit"])}</span></p></div>'
+              f'<p class="wl">{self.t(w[0]["caption"])}</p><p class="sm mut">{self.t(w[0]["note"])}</p></div>')
+        rows = []
+        for code in ORGS3:
+            q = self.t("{{fact:simple_uw_questions_by_org." + code + ".period_question}}").replace("수술", "<u>수술</u>")
+            rows.append(f'<p class="wl"><b>{self.org(code)}</b> {q}</p>')
+        c2 = (f'<div class="wcard"><p class="t"><span class="i">2</span>{self.t(w[1]["title"])}</p>'
+              f'<p class="sm mut">{self.t(w[1]["caption"])}</p>{"".join(rows)}<p class="sm" style="font-weight:600">{self.t(w[1]["tag"])}</p></div>')
+        names = "".join(f'<p class="wl"><b>{self.org(code)}</b> {self.t("{{fact:example_cancer_surgery_names." + code + "}}")}</p>' for code in ORGS3)
+        c3 = (f'<div class="wcard"><p class="t"><span class="i">3</span>{self.t(w[2]["title"])}</p>'
+              f'<p class="sm mut">{self.t(w[2]["caption"])}</p>{names}</div>')
+        tb = b["table"]
+        ef = b["effect"]
+        effect = (f'<div class="effect v2">'
+                  f'<div class="side"><p class="k">{self.lab("effect")}: {self.t(ef["now_label"])}</p>'
+                  f'<p class="ln"><span class="big">{self.t(ef["now_value"])}</span><span>{self.t(ef["now_sub"])}</span></p>'
+                  f'<p class="sm mut">{self.t(ef["now_note"])}</p></div>'
+                  f'<div class="ar" style="display:flex;align-items:center;justify-content:center">{self.arrow_svg(6, 3)}</div>'
+                  f'<div class="side"><p class="k">{self.lab("effect")}: {self.t(ef["tool_label"])}</p>'
+                  f'<p class="tl"><span class="badge-um">{self.t(ef["tool_badge"])}</span> {self.t(ef["tool_text"])}</p>'
+                  f'<p class="struct"><b>{self.t(ef["tool_struct"])}</b> <span class="sm mut">({self.t(ef["tool_struct_note"])})</span></p></div></div>')
+        out = [("p2.head", self.body_head(2, b.get("headline"))),
+               ("p2.situation", f'<p class="band"><span class="k">{self.t(b["situation"]["label"])}</span><span>{self.t(b["situation"]["text"])}</span></p>'),
+               ("p2.facts", f'<div><div class="p2-chips">{chips}</div><p class="sm mut" style="margin-top:0.8mm">{self.t(fa["note"])}</p></div>'),
+               ("p2.why", f'<div>{self.bh(b["why_head"])}<div class="p2-why v2">{c1}{c2}{c3}</div></div>')]
+        if b.get("notes"):
+            notes = "".join(f'<p style="font-size:10pt;line-height:1.4">{self.t(n)}</p>' for n in b["notes"])
+            out.append(("p2.notes", f'<div>{notes}</div>'))
+        out += [("p2.table", f'<div class="t5">{self.bh(tb["head"])}<p class="sm mut" style="margin:0 0 1.2mm">{self.t(tb["situation"])}</p>'
+                             f'{self.five_step_table(tb)}</div>'),
+                ("p2.effect", effect)]
+        return out
+
+    def p3_body_v2(self) -> list[tuple[str, str]]:
+        b = self.pages[2]["blocks"]
+        st = b["steps"]
+        cells = ""
+        for i, s_ in enumerate(st["items"]):
+            hero = " hero" if s_.get("hero") else ""
+            roles = "".join(self.role(r) for r in s_["roles"])
+            cells += (f'<div class="nm{hero}"><span class="no">{i + 1}</span><span>{self.t(s_["name"])}</span>{roles}</div>'
+                      f'<div class="tx{hero}">{self.t(s_["text"])}</div><div class="tl{hero}">{self.t(s_["tool"])}</div>')
+        au = b["auto"]
+        auto = (f'<div><p class="band" style="padding:0.9mm 2.4mm"><span class="k">{self.t(au["label"])}</span><span>{self.t(au["text"])}</span></p>'
+                f'<p class="sm mut" style="margin-top:0.8mm">{self.t(au["note"])}</p></div>')
+        od = b["order"]
+        return [("p3.head", self.body_head(3, b.get("headline"))),
+                ("p3.steps", f'<div><div class="stab">{cells}</div></div>'),
+                ("p3.auto", auto),
+                ("p3.order", f'<div>{self.bh(od["head"])}{self.order_html(od, od.get("flex"))}</div>')]
+
+    def p4_body_v2(self) -> list[tuple[str, str]]:
+        b = self.pages[3]["blocks"]
+        ro = b["roles"]
+        chips = "".join(f'<p class="rl">{self.role(c["role"])}<span>{self.t(c["text"])}</span></p>' for c in ro["chips"])
+        roles = f'<div class="rls"><p class="lb">{self.t(ro["head"])}</p><div>{chips}</div></div>'
+        on = b["onto"]
+        onto = (f'<div style="margin-top:1.6mm">{self.bh(on["head"], None, "관계 그래프")}'
+                f'<div class="tiles" style="grid-template-columns:1fr 1fr">{"".join(self.tile({k: v for k, v in t.items() if k != "sub"}, "mini") for t in on["tiles"])}</div></div>')
+        tm = b["team"]
+        lines = "".join(f'<p class="tr"><b>{self.t(x["who"])}</b> {self.t(x["role"])}</p>' for x in tm["lines"])
+        team = (f'<div>{self.bh(tm["head"])}{lines}<p class="sm mut" style="margin:0.6mm 0 1.2mm">{self.t(tm["note"])}</p>'
+                f'<div class="tiles" style="grid-template-columns:repeat({len(tm["tiles"])},1fr)">{"".join(self.tile(t, "mini") for t in tm["tiles"])}</div></div>')
+        return [("p4.head", self.body_head(4, b.get("headline"))),
+                ("p4.g1", f'<div class="p6g">{self.gauge_html(b["gauge"], compact=True)}{self.gold_html(b["gold"], 19)}</div>'),
+                ("p4.g2", f'<div class="p6g"><div>{roles}{onto}</div>{team}</div>')]
+
+    def p5_body_v2(self) -> list[tuple[str, str]]:
+        b = self.pages[4]["blocks"]
+        og = b["orgs"]
+        notes = "".join(f'<p class="sm mut">{self.t(x)}</p>' for x in og.get("notes", []))
+        us = b["uses"]
+        rows = "".join(f'<div class="nmc">{self.ic(c["icon"], 4.8)}<b>{self.t(c["name"])}</b></div><div class="txc">{self.t(c["text"])}</div>' for c in us["items"])
+        lm = b["limits"]
+        left = "".join(f"<li>{self.t(x)}</li>" for x in lm["left"])
+        right = "".join(f"<li>{self.t(x)}</li>" for x in lm["right"])
+        um = "".join(f'<p class="um"><span class="badge-um">{self.t(lm["badge"])}</span><span>{self.t(x)}</span></p>' for x in lm["unmeasured"])
+        return [("p5.head", self.body_head(5, b.get("headline"))),
+                ("p5.orgs", f'<div>{self.bh(og["head"], None, "우체국")}<p style="margin-bottom:1mm">{self.t(og["next"])}</p>{self.org_progress(og["progress"])}'
+                            f'{f"<div style=margin-top:1mm>{notes}</div>" if notes else ""}</div>'),
+                ("p5.uses", f'<div>{self.bh(us["head"])}<div class="urows">{rows}</div>'
+                            f'<p class="sm mut" style="margin-top:1mm">{self.t(us["out"])}</p></div>'),
+                ("p5.limits", f'<div>{self.bh(lm["head"])}<div class="lims"><div><p class="sh">{self.t(lm["left_head"])}</p><ul>{left}</ul></div>'
+                              f'<div><p class="sh">{self.t(lm["right_head"])}</p><ul>{right}</ul></div></div>'
+                              f'<p class="sh" style="font-weight:600;margin:0.6mm 0 0.8mm">{self.t(lm["unmeasured_head"])}</p><div class="umg">{um}</div></div>')]
+
+    def p6_body_v2(self) -> list[tuple[str, str]]:
+        b = self.pages[5]["blocks"]
+        rc = b["record"]
+
+        def pill_of(x: str) -> str:
+            if x.startswith("state:"):
+                return self.c["states"][x[6:]]["on" if self.states[x[6:]] else "off"]["pill"]
+            return x
+        rows = []
+        for r in rc["rows"]:
+            pill = pill_of("state:" + r["state"]) if r.get("state") else r["pill"]
+            pcls = "chip ink" if pill == "반영" else ("chip line" if pill in ("일부 반영", "진행 중") else "chip dash")
+            rows.append(f'<tr><td class="a">{self.t(r["ask"])}</td><td class="d">{self.t(r["done"])}</td>'
+                        f'<td class="s"><span class="{pcls}">{esc(pill)}</span></td></tr>')
+        head = "".join(f"<th>{self.t(c)}</th>" for c in rc["cols"])
+        pills = [pill_of(x) for x in rc["status_all"]]       # 확인한 사항 전체의 상태(표에는 대표 사례만 적는다)
+        done = sum(1 for x in pills if x in ("반영", "일부 반영"))
+        gold = (self.num("{{fact:goldset_epost_benefit.auto_match}}") + self.num("{{fact:goldset_epost_benefit.manual_match}}")
+                + self.num("{{fact:goldset_hanwha_benefit.match}}"))
+        gold_all = self.num("{{fact:goldset_epost_benefit.items}}") + self.num("{{fact:goldset_hanwha_benefit.items}}")
+        calc = {"opinions": f"{done}/{len(pills)}", "goldset": f"{int(gold)}/{int(gold_all)}"}
+        ev = "".join(self.tile({**t, "value": calc[t["calc"]] if t.get("calc") else t["value"]}, "ev") for t in rc["evidence"])
+        return [("p6.head", self.body_head(6, b.get("headline"))),
+                ("p6.record", f'<div class="rec-none"><span class="zero">{self.lab("no_record")}</span><p>{self.t(rc["none"])}</p>'
+                              f'<div class="tiles" style="flex:none;width:{rc.get("tile_w", 34)}mm">{ev}</div></div>'),
+                ("p6.table", f'<div><p style="margin:0 0 1mm">{self.t(rc["have"])}</p>'
+                             f'<table class="rtab"><thead><tr>{head}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
+                             f'<p style="margin-top:0.8mm;font-weight:600">{self.t(rc["next"])}</p></div>')]
+
     # 조립 -----------------------------------------------------------------
     def all_blocks(self) -> dict[str, str]:
         bodies = [self.p1_body, self.p2_body, self.p3_body, self.p4_body, self.p5_body, self.p6_body, self.p7_body, self.p8_body,
                   self.output_blocks]
+        if self.c.get("variant") == "v2":
+            bodies = [self.p1_body, self.p2_body_v2, self.p3_body_v2, self.p4_body_v2, self.p5_body_v2, self.p6_body_v2, self.output_blocks]
         blocks: dict[str, str] = {}
         for fn in bodies:
             for bid, html in fn():
@@ -1178,6 +1337,8 @@ def build_html(content_path: Path = HERE / "content.json", facts_path: Path | No
         f'.im-{re.sub(r"[^A-Za-z0-9_-]", "_", n)}{{background-image:url(data:image/jpeg;base64,'
         f'{base64.b64encode(form.images[n].read_bytes()).decode("ascii")})}}' for n in form.img_used)
     tpl = tpl_path.read_text(encoding="utf-8")
+    if content.get("variant") == "v2":
+        tpl = tpl.replace("</style>", V2_CSS + "</style>", 1)
     doc = (tpl.replace("__HTML_TITLE__", esc(content["html_title"]))
               .replace("<!--__FONT_NOTICE__-->", FONT_NOTICE)
               .replace("/*__FONT_FACES__*/", deck_build.font_faces(fonts_css))
@@ -1196,6 +1357,44 @@ def build_html(content_path: Path = HERE / "content.json", facts_path: Path | No
     info = {"pages": form.total, "images": list(form.img_used), "digits": digits, "facts_used": form.ctx.used_facts,
             "states": form.states, "identity": identity is not None}
     return doc, info
+
+
+# 버전 2 전용 스타일(tpl.html 은 13쪽 판과 함께 쓰므로 바꾸지 않고, 버전 2 를 만들 때만 덧붙인다). 글자 크기는 9pt 이상.
+V2_CSS = """
+.p2-why.v2 { grid-template-columns: 0.72fr 1.1fr 1.38fr; gap: 2mm; }
+.p2-why.v2 .wcard { padding: 1.2mm 1.8mm 1.4mm; gap: 0.8mm; }
+.wl { font-size: 10pt; line-height: 1.32; margin: 0; }
+.t5 .p5t { grid-template-columns: 16mm 1.1fr 3mm 1.5fr 28mm; column-gap: 1.2mm; row-gap: 0.9mm; }
+.t5 .p5t .bf { padding: 0.9mm 1.6mm; }
+.t5 .p5t .af { padding: 0.8mm 1.6mm; }
+.effect.v2 { grid-template-columns: 0.8fr 7mm 1.5fr; }
+.effect.v2 .side { padding: 1.2mm 2.2mm; gap: 0.6mm; }
+.effect.v2 .ln { display: flex; align-items: baseline; gap: 2mm; }
+.stab { display: grid; grid-template-columns: 38mm minmax(0, 1fr) 60mm; border-top: 0.35mm solid var(--kp-ink); }
+.stab > div { padding: 0.5mm 1.6mm; border-bottom: 0.25mm solid var(--border-subtle); }
+.stab > .h { font-size: 9pt; font-weight: 600; color: var(--fg-muted); padding-top: 0.5mm; padding-bottom: 0.5mm; }
+.stab > .nm { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6mm 1.2mm; font-weight: 600; font-size: 10.5pt; line-height: 1.2; }
+.stab .no { width: 5.4mm; height: 5.4mm; border-radius: 50%; background: var(--kp-ink); color: #fff; font-size: 9pt; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.stab > .tx { display: flex; align-items: center; line-height: 1.34; }
+.stab > .tl { font-size: 9pt; color: var(--fg-muted); line-height: 1.3; display: flex; align-items: center; }
+.stab > .hero { background: var(--kp-paper); }
+.stab > .nm.hero { box-shadow: inset 0.8mm 0 0 var(--kp-red); }
+.stab > .nm.hero .no { background: var(--kp-red); }
+.bh { padding-bottom: 0.3mm; margin-bottom: 0.9mm; font-size: 10.5pt; }
+.hbar { margin-top: 0.4mm; }
+.rtab td.a { width: 44%; }
+.rec-none { padding: 1.2mm 3mm; }
+.band.v2 .k { flex: none; }
+.order .nd { padding: 1.2mm 2mm; gap: 0.8mm; }
+.rls { background: var(--kp-paper); padding: 1.2mm 2mm; display: grid; grid-template-columns: 17mm minmax(0, 1fr); column-gap: 1.2mm; align-items: center; }
+.rls .lb { font-size: 9pt; font-weight: 600; line-height: 1.3; }
+.rls .rl .role { min-width: 10mm; }
+.rls .rl { display: flex; gap: 1.6mm; align-items: center; line-height: 1.32; margin: 0 0 0.5mm; }
+.tr { line-height: 1.34; margin: 0 0 0.4mm; }
+.urows { display: grid; grid-template-columns: 34mm minmax(0, 1fr); }
+.urows > div { padding: 0.8mm 1.4mm; border-bottom: 0.25mm solid var(--border-subtle); line-height: 1.34; display: flex; align-items: center; gap: 1.2mm; }
+.urows > .txc { display: block; }
+"""
 
 
 LAYOUT_JS = """() => {

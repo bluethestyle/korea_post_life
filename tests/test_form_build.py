@@ -167,6 +167,20 @@ def test_page_count_and_page_names(sample):
     assert doc.count('<section class="page"') == 13
     assert "확장과 한계" in doc
     assert "넓혀 쓰기와 한계" not in doc
+    # 버전 2(평가기준 표시 없이 4쪽 이내)도 같은 빌더로 --strict 빌드되고, 13쪽 판의 평가기준 표시는 기본값으로 그대로 있다
+    v2_path = FORM / "content_v2.json"
+    v2 = json.loads(v2_path.read_text(encoding="utf-8"))
+    doc2, info2 = build(v2_path, strict=True)
+    assert info2["digits"] == [] and info2["pages"] == len(v2["layout"]) <= 4
+    assert doc2.count('<section class="page"') == info2["pages"]
+    assert 'class="cp ' not in doc2 and CONTENT["labels"]["crit_footer"] not in doc2 and 'class="cp ' in doc
+    text2 = re.sub(r"<[^>]+>", "\n", re.sub(r"<style.*?</style>|<svg.*?</svg>", "", doc2, flags=re.S))
+    assert text2.count("평가기준별 근거") == 0
+    guide = v2["form"]["body"]["guide_head"]            # 평가기준 이름은 양식 원문 안내 문장에만 나온다
+    for name in form_build.CRITERIA:
+        assert text2.count(name) == guide.count(name) == 1
+    assert re.findall(r"[가-힣]*니다", text2) == [] and form_build.check_links(doc2) == []
+    assert f"{info2['pages']} / {info2['pages']}" in doc2
 
 
 def test_layout_places_every_block_once_in_order_and_continued_sections_say_so(sample):
@@ -229,6 +243,7 @@ def test_replaced_terms_do_not_come_back():
     text = (FORM / "content.json").read_text(encoding="utf-8")
     for bad in ("틀린 값", "틀리게", "정식 배포 전", "비교 상대", "뒤져", "지료 기준", "넓혀 쓰기와", "판올림", "스냅샷"):
         assert bad not in text.replace("'스냅샷'이라는 용어가", ""), bad
+        assert bad not in (FORM / "content_v2.json").read_text(encoding="utf-8").replace("'스냅샷'이라는 용어가", ""), bad
     assert "·" not in re.sub(r"AI담당관 제작 AI업무비서·AI에이전트|이미지·동영상|부서·업무|평가기준\(참신성·실용성·확장성·완성도\)", "", text).split('"labels"', 1)[1]
 
 
