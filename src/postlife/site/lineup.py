@@ -10,6 +10,7 @@
   차례(우체국이 처음), 그 밖의 회사는 사본의 종형 차례다(company_codes).
 - 종형은 간편 세 등급(GRADES)마다 회사마다 하나다(pick_lineup). 비교역할구분이 정밀비교이고 판매종료일이 비었으며 간편고지약칭이
   그 등급인 종형이 하나뿐이면 그 종형, 없거나 둘 이상이면 고르지 않고 null 로 둔다. 우체국 종형을 고를 수 없으면 멈춘다.
+  우체국 종형이 한 등급에 둘 이상이면 화면 기본 상품(screen.DEFAULT_PRODUCT)의 종형을 고른다(2026-11-25).
   세 회사 사본에서는 우체국 간편한건강 2606, 한화생명 시그니처 H 간편가입형, 삼성화재 새로고침 7종의 아홉 개(2026-11-23 전에
   손으로 적어 두었던 LINEUP 과 같다)이고, 메리츠화재를 넣으면 통합간편건강보험 2610 의 315, 325, 355 간편심사형이 더해진다.
 - hum_담보매핑에서 검토상태가 "자동확정"인 줄만 쓴다. 승인, 수정, 대기 줄은 표준담보에 잇지 않는다.
@@ -27,6 +28,7 @@ from typing import Any
 
 from .. import config
 from . import compare as C
+from . import screen as SC
 from .model import HOME_ORG, MAX_AGE, Cond, Data
 
 STATE = "자동확정"
@@ -90,7 +92,9 @@ def company_codes(d: Data) -> list[str]:
 
 def pick_lineup(d: Data, codes: list[str]) -> dict[str, list[str | None]]:
     """등급(GRADES)마다 회사(codes 차례)마다 종형 하나. 정밀비교이고 판매 중(판매종료일이 빈 값)이며 간편고지약칭이 그 등급인
-    종형이 하나뿐일 때만 고르고, 없거나 둘 이상이면 None 이다. 우체국 종형을 고르지 못하면 멈춘다."""
+    종형이 하나뿐일 때만 고르고, 없거나 둘 이상이면 None 이다. 우체국 종형을 고르지 못하면 멈춘다.
+    우체국은 화면 비교에서 빼는 상품(screen.EXCLUDED_PRODUCTS)의 종형을 후보에서 빼고, 후보가 둘 이상이면 화면 기본 상품
+    (screen.DEFAULT_PRODUCT)의 종형만 남긴다(예: 하나로OK보험 2종과 간편한건강보험 2606 2종이 모두 3.2.5)."""
     out: dict[str, list[str | None]] = {}
     for grade in GRADES:
         row: list[str | None] = []
@@ -98,6 +102,8 @@ def pick_lineup(d: Data, codes: list[str]) -> dict[str, list[str | None]]:
             found = [v for v in d.variant_order if d.variants[v].get("기관코드") == code
                      and d.variants[v].get("비교역할구분") == C.COMPARE_ROLE
                      and d.variants[v].get("판매종료일") in (None, "") and d.variants[v].get("간편고지약칭") == grade]
+            if code == HOME_ORG:
+                found = SC.prefer_default_product(d, [v for v in found if not SC.excluded(d, v)])
             row.append(found[0] if len(found) == 1 else None)
         if row[0] is None or codes[0] != HOME_ORG:
             raise ValueError(f"사본에서 {grade} 등급의 우체국 종형을 하나로 고르지 못했다")

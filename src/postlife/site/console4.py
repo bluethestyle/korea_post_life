@@ -128,7 +128,7 @@ def build_combo(data: Data) -> dict:
     성별마다 목적에 드는 특약을 모두 고른 조합(가입금액은 고를 수 있는 최대)을 combo.evaluate 에 넣고, 켜진 특약의 급부를
     combo.payouts 로 묶는다. 이웃 나이 구간의 결과가 같으면 합친다. 한도 표(sales.limit_steps)의 구간도 함께 싣는다."""
     conds = data.conds()
-    bases = I.base_variants(data)[1]
+    bases = I.order_bases(data, I.base_variants(data)[1])
     benefits = {bid: data.benefit_view(bid) for bid in data.benefits}
     limits = {x['종형ID']: x for x in SA.limit_steps(data)}
     out = {'형식': 1, '자료시각': data.meta.get('snapshot_at'), '목적': [p['이름'] for p in SA.PURPOSE_BASIS],
@@ -488,6 +488,9 @@ def build_cover(data: Data, sales_obj: dict, rel: Relations, analysis: dict | No
                 hold[v] = I.Holding(data, v)
         H = {v: hold[v] for v in vids}
         sids = sorted({s for v in vids for s in H[v].possible if s in data.std}, key=lambda s: (order.get(s, 9999), s))
+        scope = I.coverage_scope(data, bid0, H[bid0])
+        if scope is not None:
+            sids = [s for s in sids if data.std[s]['보장대분류'] in scope]
 
         # 비교쌍(같은 담보를 둘 다 가진 짝): 판정, 보류밖판정, 지급 형태, 뺀 사유, 항목
         pair = {}

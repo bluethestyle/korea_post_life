@@ -182,10 +182,17 @@ def test_new_cover_types_get_their_own_lineage_and_one_summary_group():
     keys = [rows[c]["종형계보키"] for c in sorted(new)]
     assert len(set(keys)) == 4
     assert not set(keys) & {r["종형계보키"] for c, r in rows.items() if c not in new}
+    # 스냅샷과 견주기: 적재 전에는 새 종형이 스냅샷에 없고, 적재 뒤에는 스냅샷의 행이 여기서 만든 행과 종형계보키, 모상품ID 가 같다.
+    # 어느 쪽이든 새 계보키는 다른 종형의 계보키와 겹치지 않는다(2026-11-25. 스냅샷 갱신 뒤에도 통과하게 바꿈)
     snapshot = [json.loads(line) for line in
                 (ROOT / "data/snapshot/sys_상품종형.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
-    assert not set(keys) & {r["종형계보키"] for r in snapshot}
-    assert not {rows[c]["종형ID"] for c in new} & {r["종형ID"] for r in snapshot}
+    by_id = {r["종형ID"]: r for r in snapshot}
+    new_ids = {rows[c]["종형ID"] for c in new}
+    for c in new:
+        had = by_id.get(rows[c]["종형ID"])
+        if had is not None:
+            assert (had["종형계보키"], had["모상품ID"]) == (rows[c]["종형계보키"], rows[c]["모상품ID"]), c
+    assert not set(keys) & {r["종형계보키"] for r in snapshot if r["종형ID"] not in new_ids}
     assert {rows[c]["모상품ID"] for c in ("P610196", "P610198")} == {"EPOST_MORESIMPLE_CANCER"}
     assert {rows[c]["모상품ID"] for c in ("P610197", "P610199")} == {"EPOST_MORESIMPLE_2CI"}
     groups = [sorted(v.row["공시상품코드"] for v in g) for g in VV.by_summary(found)]

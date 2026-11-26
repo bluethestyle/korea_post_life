@@ -214,6 +214,20 @@ class GeminiTruncated(GeminiError):
                             f"{usage_text(self.usage, max_output_tokens)})")
 
 
+def truncation_retry_limit(error: BaseException) -> int | None:
+    """잘린 응답을 같은 모델로 한 번 더 요청할 때 쓸 출력 상한(config.TRUNCATION_RETRY_MAX_OUTPUT_TOKENS).
+
+    잘림(GeminiTruncated)이 아니거나, 잘린 요청의 출력 상한이 이미 그 값 이상이라 올려도 늘지 않으면 None이다.
+    그래서 출력 상한이 32,768인 상위 모델은 다시 요청하지 않는다(하루 한도를 더 쓰지 않는다).
+    """
+    if not isinstance(error, GeminiTruncated):
+        return None
+    limit = config.TRUNCATION_RETRY_MAX_OUTPUT_TOKENS
+    if error.max_output_tokens is not None and error.max_output_tokens >= limit:
+        return None
+    return limit
+
+
 @dataclass
 class Source:
     index: int

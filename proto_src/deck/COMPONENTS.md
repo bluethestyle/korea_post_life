@@ -265,9 +265,9 @@ $PY tools/check_glyphs.py out/index.html      # 심은 글꼴(PLKo)에 없는 �
 
 `{"use": "C12", "img": "tab_market", "alt": "고객군과 시장 탭", "marks": [{"n": 1, "x": 0.81, "y": 0.08, "label": "조건 변경"}], "caption": "..."}`
 
-- `img`는 `assets/<이름>.jpg`의 이름(`tools/capture_app.py`가 만든 summary, tab_market, tab_gate, tab_cover, tab_insight, tab_graph, talk_preview, cancer_surgery). 사진은 덱에 한 번만 심긴다. `x`, `y`는 사진 안 비율. 번호가 있으면 오른쪽 300px 열에 라벨(26px)과 리더 선, 없으면 썸네일(가운데 맞춤). 라벨 칸은 짚는 곳의 높이 순서로 놓는다(리더 선이 엇갈리지 않게).
+- `img`는 `assets/<이름>.jpg`의 이름(`tools/capture_app.py`가 만든 summary, tab_market, tab_gate, tab_cover, tab_insight, tab_graph, talk_preview, cancer_surgery, 그리고 `tools/capture_cuts.py`가 화면의 작은 부분을 2배로 찍어 만든 확대 컷 cut_copy_button, cut_pending_chip). 사진은 덱에 한 번만 심긴다. `x`, `y`는 사진 안 비율. 번호가 있으면 오른쪽 300px 열에 라벨(26px)과 리더 선, 없으면 썸네일(가운데 맞춤). 라벨 칸은 짚는 곳의 높이 순서로 놓는다(리더 선이 엇갈리지 않게).
 - 구역 짚기(디자인 시스템의 an-zone): `"zones": [{"n": "A", "x": 0.52, "y": 0.13, "w": 0.46, "h": 0.1, "label": "인쇄와 글 복사"}]`. 사진 안 비율의 상자를 빨강 테두리와 옅은 빨강 면으로 짚고, 왼쪽 위에 번호 칩을 붙인다. 점(`marks`)과 함께 쓸 수 있고, 번호는 합쳐 넷 이하. 화면의 한 영역(버튼 묶음, 표 한 칸)을 가리킬 때 점보다 낫다. 작은 버튼을 짚을 때는 구역마다 `"chip"`을 `above`, `below`, `left`, `right`로 주어 번호 칩을 구역 밖에 둔다(기본 `tl`은 구역 안 왼쪽 위라 작은 대상을 가린다). 리더 선이 사진 속 글자를 지나가면 `"lead": [x, y]`(사진 안 비율)를 주어, 선이 구역의 윗변이나 아랫변의 그 x 에서 나와 그 y 까지 세로로 간 뒤 라벨 쪽으로 가게 한다.
-- 상한: 번호 넷(점과 구역 합계), 라벨 10자, 캡션 28자. 쓰는 장: 1(썸네일), 6(구역 표시 사진 하나와 확대 사진 하나), 8(구역 표시), 29(구역 표시).
+- 상한: 번호 넷(점과 구역 합계), 라벨 10자, 캡션 28자. 쓰는 장: 1(썸네일), 6(구역 표시 사진 하나와 확대 사진 하나), 8(구역 표시), 29(확대 컷 썸네일 둘. 컷 폭 407px 에 css 190px 폭을 놓아 화면 글자가 약 28px). 주간 마감 자료나 화면의 기본값이 바뀌면 `python proto_src/deck/tools/capture_cuts.py site/proto/console4.html proto_src/deck/assets` 로 확대 컷을 다시 찍는다.
 
 ### C13 영상 슬롯
 

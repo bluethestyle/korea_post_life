@@ -265,6 +265,8 @@ button{cursor:pointer}
 .chev-sel .v{display:flex;align-items:center;justify-content:center;padding:0 6px;min-width:var(--w,72px);
   font:600 14px/1 var(--f-body);color:var(--ink-0);white-space:nowrap;font-variant-numeric:tabular-nums}
 .chev-sel.num .v{font-family:var(--f-num)}
+.chev-sel .v.two{flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.chev-sel .v.two .vs{font:500 11px/1 var(--f-body);color:var(--ink-2)}
 .chev-sel input{width:var(--w,56px);border:0;background:transparent;text-align:center;font:600 15px/1 var(--f-num);
   color:var(--ink-0);font-variant-numeric:tabular-nums;padding:0}
 .chev-sel input:focus{outline:none}

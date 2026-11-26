@@ -285,12 +285,13 @@ def test_truncated_upper_model_call_does_not_end_the_upper_model_budget_of_the_r
     from postlife.worklog import WorkLog
 
     usage = {"promptTokenCount": 1_429, "thoughtsTokenCount": 30_000, "candidatesTokenCount": 2_000}
-    g, sent, _ = make([ok('{"benefits": [', finish="MAX_TOKENS", usage=usage) for _ in range(3)])
+    g, sent, _ = make([ok('{"benefits": [', finish="MAX_TOKENS", usage=usage) for _ in range(5)])
     budget = {"상위모델": 5}
     log = WorkLog(datetime(2026, 11, 20, 14, 0), "t")
     assert P.run_block(g, Block("t", "x", 1, 1), P.DEFAULT_THRESHOLDS, log, "V1", budget) is None
+    # 두 추출 모델은 출력 상한을 올려 한 번씩 더 요청하고, 상한이 이미 그 값인 상위 모델은 다시 요청하지 않는다
     assert [s["url"].split("/models/")[1].split(":")[0] for s in sent] == \
-        [config.MODEL_EXTRACT, config.MODEL_EXTRACT_ALT, UPPER]
+        [config.MODEL_EXTRACT, config.MODEL_EXTRACT, config.MODEL_EXTRACT_ALT, config.MODEL_EXTRACT_ALT, UPPER]
     assert budget == {"상위모델": 4}                   # 한 번 쓴 만큼만 줄고, 하루 한도가 찼다고 보지 않는다
     upper = [row for row in log.rows if row["호출모델"] == UPPER]
     assert len(upper) == 1 and "잘림" in upper[0]["사유"] and "MAX_TOKENS" in upper[0]["사유"]

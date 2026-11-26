@@ -1846,7 +1846,9 @@
     const vEl = $('.v', el), pB = $('.p', el), nB = $('.n', el);
     function sync() {
       const cur = opts[idx];
-      vEl.textContent = cur.t;
+      // 옵션에 s(윗줄 작은 글자. 기준 종형의 상품약칭)가 있으면 두 줄로 보인다
+      if (cur.s) { vEl.classList.add('two'); vEl.innerHTML = `<span class="vs">${esc(cur.s)}</span><span class="vt">${esc(cur.t)}</span>`; }
+      else { vEl.classList.remove('two'); vEl.textContent = cur.t; }
       vEl.title = cur.title || '';
       if (!o.wrap) { pB.disabled = idx <= 0; nB.disabled = idx >= opts.length - 1; }
     }
@@ -2255,7 +2257,7 @@
       </div>`;
     C.age = stepper({ label: cp('condAge'), value: st.age, min: 1, max: 100, unit: cp('condAgeUnit'), onChange: (v, keepCond) => set({ age: v }, { keepCond }) });
     C.sex = chevSel({ label: cp('condSex'), options: [{ v: 'M', t: cp('condMale') }, { v: 'F', t: cp('condFemale') }], value: st.sex, w: '56px', onChange: v => set({ sex: v }) });
-    C.base = chevSel({ label: cp('condBase'), options: BASES.map(b => ({ v: b['종형ID'], t: b['이름'], title: vinfo(b['종형ID']) ? vinfo(b['종형ID'])['전체이름'] : '' })), value: st.base, w: '150px', onChange: v => set({ base: v }) });
+    C.base = chevSel({ label: cp('condBase'), options: BASES.map(b => ({ v: b['종형ID'], t: b['이름'], s: b['상품약칭'] || '', title: (vinfo(b['종형ID']) ? vinfo(b['종형ID'])['전체이름'] : (b['표시이름'] || '')) + (b['전용표시'] ? ` (${b['전용표시']})` : '') })), value: st.base, w: '150px', onChange: v => set({ base: v }) });
     C.ren = chevSel({ label: cp('condRenewal'), options: [{ v: null, t: cp('condRenAll') }, { v: '갱신', t: cp('condRenRenew') }, { v: '비갱신', t: cp('condRenNon') }], value: st.renewal, w: '64px', onChange: v => set({ renewal: v }) });
     $('[data-slot="age"]', el).replaceWith(C.age);
     $('[data-slot="sex"]', el).replaceWith(C.sex);
@@ -2939,6 +2941,8 @@
     const fadeOutBoard = !!(bdRect && bdRect.height > 0 && outDur > 0 && typeof board.animate === 'function');
 
     applyBgParallax(st.tab);
+    // 첫 화면 상태 표시: 제목 영역 위 여백(tab1.css 의 body.is-home .top-head)이 첫 화면에서만 적용되게 한다
+    document.body.classList.toggle('is-home', isHome);
     renderRingTabs(curC, snap);
     if (!fadeOutHome) homePanel.hidden = !isHome;
     if (!fadeOutBoard) board.hidden = isHome;

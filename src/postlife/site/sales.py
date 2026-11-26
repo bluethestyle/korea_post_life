@@ -101,6 +101,7 @@ from . import compare as C
 from . import eligibility
 from . import insights as I
 from . import revision as RV
+from . import screen as SC
 from . import terms
 from . import weekly
 from .model import Cond, Data, HOME_ORG, MAX_AGE, SECTOR_LIFE, SECTOR_NONLIFE, _blank
@@ -346,6 +347,7 @@ TEMPLATES = {
     "가_모두닫힘": "간편 가입이 모두 제한된 고객군은 {간편모두닫힘칸수}개",
     "가_모름": "타사의 가입 가능 여부 자료가 없어 분류하지 못한 고객군은 {자료없음칸수}개",
     "가_관문만": "{관문만칸수}개 고객군은 타사에서 가입 가능한 종형이 우체국에 없는 간편심사 유형({관문만종형})뿐입니다.",
+    "가_전용만": "{전용만칸수}개 고객군은 우체국에서 가입 가능한 간편심사 종형이 {전용상품}뿐입니다.",
     "가_관문만_같은유형": "{관문만칸수}개 고객군은 타사에서 가입 가능한 종형이 담보를 수집하지 않은 종형({관문만종형})뿐입니다.",
     "가_나이자료없음": f"{{나이자료없음회사:은}} 가입나이 자료가 없어 {terms.SEGMENT_TABLE}에서 가입 가능 여부 미확인 타사로 "
                  "집계합니다.",
@@ -379,6 +381,10 @@ TEMPLATES = {
     "라_범위_대기없음": "공통 담보 {견준쌍}건을 모두 비교했습니다.",
     "라_범위_모두대기": "공통 담보 {뺀비교쌍}건이 모두 검수 대기라 비교한 건은 없습니다.",
     "라_범위_없음": "비교한 공통 담보는 없습니다.",
+    "라_범위한정": "{상품약칭:은} {전용표시}이라 이 종형이 보장하는 {범위} 담보만 비교했습니다.",
+    "라_범위밖": "보장 범위 밖 담보 {범위밖수}개({범위밖나눔})는 비교하지 않았습니다.",
+    "라_가까운유형": "같은 간편심사 유형({간편고지약칭})의 타사 종형({관문만종형})은 인수기준만 수집돼 있어, 담보는 같은 회사의 "
+                "다른 간편심사 유형 종형({가까운종형})과 비교했습니다.",
     "라_보유": "확정 급부 기준으로 우체국 {우리종형:이} 가진 담보는 모두 {보유수}개({보유나눔})입니다.",
     "라_보유_상대": "확정 급부 기준으로 우체국 {우리종형:이} 가진 담보는 모두 {보유수}개({보유나눔})이고, "
                  "비교 대상 종형은 {상대보유나눔}입니다.",
@@ -652,9 +658,10 @@ def gate_targets(data: Data, renewal: str | None = None) -> list[str]:
 
 
 def _selling(data: Data, roles: tuple[str, ...], renewal: str | None) -> list[str]:
+    """판매 중인 종형 가운데 비교역할구분이 roles 인 것. 화면 비교에서 빼는 상품(screen.EXCLUDED_PRODUCTS)의 종형은 뺀다."""
     return [v for v in data.variant_order
             if data.variants[v].get("비교역할구분") in roles and _blank(data.variants[v].get("판매종료일"))
-            and (renewal is None or data.variants[v].get("갱신유형") == renewal)]
+            and (renewal is None or data.variants[v].get("갱신유형") == renewal) and not SC.excluded(data, v)]
 
 
 def gate_only(data: Data, vid: str) -> bool:
@@ -878,9 +885,10 @@ class _Ctx:
     def __init__(self, data: Data, analysis: dict | None, relations: Relations | None):
         self.data = data
         self.rel = load_relations() if relations is None else relations
-        self.vids, self.bases = I.base_variants(data)
+        self.vids, bases = I.base_variants(data)
         self.order = I.std_order(data)
         self.hold: dict[str, I.Holding] = {}
+        self.bases = I.order_bases(data, bases, self.hold)
         self.results: dict[tuple, dict] = {}
         self.counted: dict[tuple, dict] = {}
         for r in (analysis or {}).get("기준", []):
@@ -918,6 +926,43 @@ class _Ctx:
         if vid not in self.hold:
             self.hold[vid] = I.Holding(self.data, vid)
         return self.hold[vid]
+
+
+def product_short(data: Data, vid: str) -> str:
+    """상품 약칭: 공시상품명에서 끝의 종형명, "무배당", 회사명 머리("우체국"), 괄호 안 글, 종 번호만 남은 낱말("1종")을 뺀 것.
+    "간편한건강보험 2606". 공시상품명이 종형명으로 끝나지 않는 상품(예: "…하나로OK보험(해약환급금50%지급형) 2609 1종(일반가입)(종신)")도
+    괄호와 종 번호를 빼면 "하나로OK보험 2609"가 된다."""
+    v = data.variants[vid]
+    product, kind = str(v.get("공시상품명") or ""), str(v.get("종형명") or "")
+    if kind and product.endswith(kind):
+        product = product[:-len(kind)]
+    product = re.sub(r"\([^()]*\)", "", product)
+    words = [w for w in product.split() if w != "무배당" and not re.fullmatch(r"\d+종", w)]
+    short = SHORT_ORG.get(_org(data, vid))
+    words = [w[len(short):] if short and w.startswith(short) and len(w) > len(short) else w for w in words]
+    return " ".join(words).strip() or str(v.get("공시상품명") or vid)
+
+
+SHORT_ORG = {HOME_ORG: "우체국"}
+_FOCUS = I.FOCUS_KIND
+
+
+def limited_label(data: Data, vid: str, scope: list[str]) -> str:
+    """보장 범위 한정 종형의 상품 표시: 상품약칭이 같은 판매 중인 우리 범위 한정 종형들의 종형명 대괄호("[암보장형]")에서
+    "보장형"을 뗀 이름을 그 종형 보장 범위의 첫 보장대분류 차례(compare.GROUP_ORDER)로 잇는다("암, 2대질병 전용 상품").
+    대괄호 이름을 못 찾으면 scope 의 보장대분류에서 "보장"을 뗀 이름이다. 모상품ID 는 보장형마다 다르므로 묶는 데 쓰지 않는다."""
+    head = product_short(data, vid)
+    found: dict[str, int] = {}
+    for v in data.variant_order:
+        x = data.variants[v]
+        if x.get("기관코드") != _org(data, vid) or not _blank(x.get("판매종료일")) or product_short(data, v) != head:
+            continue
+        m = _FOCUS.search(str(x.get("종형명") or ""))
+        sc = I.coverage_scope(data, v) if m else None
+        if m and sc and m.group(1) not in found:
+            found[m.group(1)] = C.GROUP_ORDER.index(sc[0]) if sc[0] in C.GROUP_ORDER else len(C.GROUP_ORDER)
+    names = sorted(found, key=lambda n: found[n]) or [m[:-2] if m.endswith("보장") else m for m in scope]
+    return f"{', '.join(names)} 전용 상품"
 
 
 def _ctx(data: Data, analysis: dict | None, relations: Relations | None, ctx: _Ctx | None) -> _Ctx:
@@ -1032,9 +1077,22 @@ def cell(data: Data, p: Profile, analysis: dict | None, relations: Relations | N
            "열린종형": {o: [y["종형ID"] for y in x["종형"] if y["상태"] == OPEN] for o, x in g["회사"].items()},
            "관문만수집": gate_only_open(data, g)}
     out.update(peer_tally(out["회사"], out["관문만수집"]))
+    limited = limited_only(ctx, home)
+    if limited:
+        out["우리전용만"] = limited
     if cls == ALL_CLOSED:
         out["안내"] = ALL_CLOSED_NOTE
     return out
+
+
+def limited_only(ctx: _Ctx, home: dict[str, Any] | None) -> list[str] | None:
+    """우리 기관에서 열린 간편심사 종형이 있고 그 종형이 모두 보장 범위 한정 종형이면 그 종형ID 목록, 아니면 None."""
+    data = ctx.data
+    opened = [x["종형ID"] for x in (home["종형"] if home else []) if x["상태"] == OPEN and _is_simple(data, x["종형ID"])
+              and not gate_only(data, x["종형ID"])]
+    if opened and all(I.coverage_scope(data, v, ctx.holding(v)) is not None for v in opened):
+        return opened
+    return None
 
 
 PEER_TALLY = ("상대수", "열린상대수", "닫힌상대수", "모르는상대수", "관문만열린상대수", "일부열린상대수")
@@ -2378,10 +2436,14 @@ def journey(data: Data, base: str, peers: list[str] | None = None, analysis: dic
     ctx.check_base(base)
     peers = ctx.default_peers(base) if peers is None else [p for p in peers if p != base]
     majors = _majors(data)
+    scope = I.coverage_scope(data, base, ctx.holding(base))
+    if scope is not None:
+        majors = [m for m in majors if m in scope]
     order = ctx.order
     rows = []
     for vid in [base] + peers:
-        held = sorted((s for s in ctx.holding(vid).has if s in data.std), key=lambda s: (order.get(s, len(order)), s))
+        held = sorted((s for s in ctx.holding(vid).has if s in data.std and data.std[s]["보장대분류"] in majors),
+                      key=lambda s: (order.get(s, len(order)), s))
         sids = {m: {t: [] for t in JOURNEY_TYPES} for m in majors}
         other = []
         for sid in held:
@@ -2694,6 +2756,13 @@ def _line_landscape(data: Data, seg: dict[str, Any]) -> dict[str, Any]:
     # 지도 열 안의 일부 나이에서만 열리는 상대(span_cell)가 있는 칸은 둘째 문장의 끝 절로 적는다(없으면 문장은 지금 그대로다)
     if values["일부열림칸수"]:
         tails.append("가_일부나이만" if values["일부나이로만열림칸수"] else "가_일부나이")
+    limited = [x for x in cells if x.get("우리전용만")]
+    if limited:
+        vids = list(dict.fromkeys(v for x in limited for v in x["우리전용만"]))
+        heads = list(dict.fromkeys(product_short(data, v) for v in vids))
+        label = limited_label(data, vids[0], [])
+        values.update({"전용만칸수": len(limited), "전용상품": f"{and_join(heads)}({label})"})
+        tails.append("가_전용만")
     if tails:              # 관문만 열린 칸, 나이 자료가 없는 상대, 일부 나이만 열린 상대는 둘째 문장 하나로 잇는다
         text += " " + _connect([render(t, {**values, "관문만종형": and_join(gate_names, UNIT_KIND),
                                            "나이자료없음회사": and_join(no_age, UNIT_ORG)})
@@ -2778,10 +2847,12 @@ def _line_gate(data: Data, base: str, p: Profile, pts: dict[str, Any]) -> dict[s
                        원문대조글=SOURCE_CHECK_TEXT if check else None)
 
 
-def _line_position(pts: dict[str, Any], grid: dict[str, Any], cautions: list[dict], mine: str) -> dict[str, Any]:
+def _line_position(pts: dict[str, Any], grid: dict[str, Any], cautions: list[dict], mine: str,
+                   note: tuple[list[str], dict[str, Any]] | None = None) -> dict[str, Any]:
     """(라) 담보 포지션. 첫 문장은 견준 쌍(공통 담보 쌍에서 검토 대기를 뺀 것)과 우열을 단정하지 않은 비교 두 종류(조건이 다른
     특약 함께 판매 단정보류수, 지급 형태 다름 지급형태다름수)를 잇고, 둘째 문장은 기준 종형과 맞붙는 상대 종형의 보유 수(치료 여정
-    격자의 줄마다 전체. 확정 급부 기준이고, 기준 종형의 다섯 급부유형 밖은 기타로 덧붙인다)다. mine은 기준 종형의 종형명이다."""
+    격자의 줄마다 전체. 확정 급부 기준이고, 기준 종형의 다섯 급부유형 밖은 기타로 덧붙인다)다. mine은 기준 종형의 종형명이다.
+    note는 비교 범위 안내(scope_note의 틀 목록과 값)이고, 있으면 그 문장들을 첫 문장 앞에 둔다."""
     s = pts["범위"]
     row = grid["종형"][0]
     held = row["합계"]
@@ -2812,6 +2883,11 @@ def _line_position(pts: dict[str, Any], grid: dict[str, Any], cautions: list[dic
     used = [first, second, third]
     # 첫 문장은 견준 쌍과 우열을 단정하지 않은 비교를 잇고, 둘째 문장은 보유 수다(틀 목록은 지금처럼 범위, 보유, 보류 차례)
     text = render("라", {"절1": _connect([render(first, values), render(third, values)]), "절2": render(second, values)})
+    if note:              # 비교 범위 안내(scope_note)는 첫 문장 앞에 둔다
+        ids, extra = note
+        values.update(extra)
+        used = ids + used
+        text = " ".join(render(t, values) for t in ids) + " " + text
     return _brief_line("라", SCOPE_BASE, values, text, TAB_COMPARE, used)
 
 
@@ -2865,7 +2941,53 @@ def briefing(data: Data, base: str, p: Profile, analysis: dict | None, relations
     cautions = cautions if cautions is not None else caution(data, base, None, ctx=ctx, pts=pts)
     grid = grid if grid is not None else journey(data, base, pts["맞붙는종형"], ctx=ctx)
     return [_line_landscape(data, seg), _line_market(data, rev, news), _line_gate(data, base, p, pts),
-            _line_position(pts, grid, cautions, _kind_name(data, base)), _line_insight(pts)]
+            _line_position(pts, grid, cautions, _kind_name(data, base), scope_note(ctx, base)), _line_insight(pts)]
+
+
+def scope_note(ctx: _Ctx, base: str) -> tuple[list[str], dict[str, Any]] | None:
+    """기준 종형의 비교 범위 안내(틀 목록, 값). 안내할 것이 없으면 None.
+
+    - 보장 범위 한정 종형(insights.coverage_scope)이면 "라_범위한정"(이 종형이 보장하는 범위의 담보만 비교했다)과, 기준 종형과
+      맞붙는 종형이 가진 담보 가운데 범위 밖 담보가 있으면 "라_범위밖"(그 수와 보장대분류별 수)이다. 담보 비교 표(console4.build_cover)가
+      범위 밖 행을 빼는 것과 같은 담보 집합(기준 종형과 맞붙는 종형의 Holding.possible)을 센다.
+    - 기준 종형이 간편심사이고, 같은 간편고지약칭의 타사 종형이 관문전용(인수기준만 수집)뿐이라 맞붙는 종형이 다른 간편고지약칭이면
+      "라_가까운유형"이다(compare.peers 가 같은 심사유형 가운데 고른 종형)."""
+    data = ctx.data
+    peers = ctx.default_peers(base)
+    ids: list[str] = []
+    values: dict[str, Any] = {}
+    scope = I.coverage_scope(data, base, ctx.holding(base))
+    if scope is not None:
+        ids.append("라_범위한정")
+        values.update({"상품약칭": product_short(data, base), "전용표시": limited_label(data, base, scope),
+                       "범위": ", ".join(scope)})
+        sids = {s for v in [base] + peers for s in ctx.holding(v).possible if s in data.std}
+        out: dict[str, int] = {}
+        for sid in sids:
+            major = data.std[sid]["보장대분류"]
+            if major not in scope:
+                out[major] = out.get(major, 0) + 1
+        if out:
+            ids.append("라_범위밖")
+            majors = sorted(out, key=lambda m: (C.GROUP_ORDER.index(m) if m in C.GROUP_ORDER else len(C.GROUP_ORDER), m))
+            values.update({"범위밖수": sum(out.values()), "범위밖나눔": ", ".join(f"{m} {out[m]}개" for m in majors)})
+    grade = data.variants[base].get("간편고지약칭")
+    if _is_simple(data, base) and grade:
+        gated = [v for v in gate_targets(data) if _org(data, v) != HOME_ORG and gate_only(data, v)
+                 and data.variants[v].get("간편고지약칭") == grade]
+        gated_orgs = {_org(data, v) for v in gated}
+        near = [p for p in peers if _org(data, p) in gated_orgs and data.variants[p].get("간편고지약칭") != grade]
+        if gated and near:
+            ids.append("라_가까운유형")
+            values.update({"간편고지약칭": grade, "관문만종형": and_join(_peer_name(data, v) for v in gated),
+                           "가까운종형": and_join(_peer_name(data, p) for p in near)})
+    return (ids, values) if ids else None
+
+
+def scope_note_text(ctx: _Ctx, base: str) -> str | None:
+    """비교 범위 안내 문장(전체 요약 (라) 줄의 앞 문장과 같은 글). 담보 비교 탭이 한 줄로 보인다."""
+    note = scope_note(ctx, base)
+    return " ".join(render(t, note[1]) for t in note[0]) if note else None
 
 
 # ---------- 지도 칸의 관문 포인트 ----------
@@ -2966,7 +3088,7 @@ def _export_cell(ctx: _Ctx, seg: dict[str, Any], r: dict[str, Any], x: dict[str,
             "열린종형": x["열린종형"], "관문기준": base, "관문포인트": [y["포인트ID"] for y in found],
             "관문만수집": x["관문만수집"],
             **{k: x[k] for k in PEER_TALLY}, **peer_codes(x["회사"], x["관문만수집"]),
-            **{k: x[k] for k in SPAN_KEYS}}
+            **{k: x[k] for k in SPAN_KEYS}, **({"우리전용만": x["우리전용만"]} if x.get("우리전용만") else {})}
 
 
 def _export_map(ctx: _Ctx, seg: dict[str, Any], pool: dict[str, dict], texts: _Texts) -> dict[str, Any]:
@@ -3058,7 +3180,7 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
         "목적": [dict(x) for x in PURPOSE_BASIS],
         "기준종형": [{"종형ID": b, "이름": _kind_name(data, b), "심사": data.variants[b].get("심사유형"),
                    "간편고지약칭": data.variants[b].get("간편고지약칭"), "갱신": data.variants[b].get("갱신유형"),
-                   "환급": data.variants[b].get("환급유형")} for b in ctx.bases],
+                   "환급": data.variants[b].get("환급유형"), **_base_extra(data, ctx, b)} for b in ctx.bases],
         "종형": {v: _variant_info(data, v) for v in data.variant_order if v in used},
         "표준담보": {sid: {"이름": s["표준담보명"], "대분류": s["보장대분류"], "중분류": s["보장중분류"], "급부유형": s.get("급부유형")}
                  for sid, s in sorted(data.std.items(), key=lambda kv: ctx.order.get(kv[0], len(ctx.order)))},
@@ -3075,6 +3197,15 @@ def export(data: Data, analysis: dict | None = None, relations: Relations | None
         "글": texts.items,
         "표시명": terms.display_names(),
     }
+
+
+def _base_extra(data: Data, ctx: _Ctx, b: str) -> dict[str, Any]:
+    """기준 종형 목록의 표시 열쇠: 상품약칭, 표시이름(상품약칭 + 종형명), 보장범위(범위 한정 종형의 보장대분류, 종합형은 null),
+    전용표시(범위 한정 종형의 상품 표시, 종합형은 null), 범위안내(비교 범위 안내 문장 scope_note_text, 없으면 null)."""
+    scope = I.coverage_scope(data, b, ctx.holding(b))
+    short = product_short(data, b)
+    return {"상품약칭": short, "표시이름": f"{short} {_kind_name(data, b)}", "보장범위": scope,
+            "전용표시": limited_label(data, b, scope) if scope else None, "범위안내": scope_note_text(ctx, b)}
 
 
 def to_json(value: Any) -> Any:

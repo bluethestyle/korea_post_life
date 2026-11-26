@@ -397,12 +397,20 @@ def parse(block: Block, raw: dict[str, Any], model: str) -> Extraction:
     return Extraction(block, base, benefits, model, problems, list(left.values()))
 
 
-def extract(gemini: Any, block: Block, model: str, feedback: list[str] | None = None) -> Extraction:
-    """feedback: 앞선 추출에서 드러난 문제. 다시 뽑을 때 지시문 끝에 붙여 같은 실수를 피하게 한다."""
+def extract(gemini: Any, block: Block, model: str, feedback: list[str] | None = None,
+            max_output_tokens: int | None = None) -> Extraction:
+    """feedback: 앞선 추출에서 드러난 문제. 다시 뽑을 때 지시문 끝에 붙여 같은 실수를 피하게 한다.
+
+    max_output_tokens: 응답이 출력 상한에서 잘려 같은 모델로 다시 요청할 때만 준다(pipeline.run_block).
+    주지 않으면 예전 요청 그대로 보낸다.
+    """
     prompt = PROMPT.format(title=block.title, text=block.text)
     if feedback:
         prompt += "\n\n앞선 추출에서 드러난 문제 (같은 실수를 되풀이하지 않습니다)\n" + "\n".join(f"- {f}" for f in feedback[:8])
-    raw = gemini.generate(model, prompt, schema=SCHEMA)
+    if max_output_tokens is None:
+        raw = gemini.generate(model, prompt, schema=SCHEMA)
+    else:
+        raw = gemini.generate(model, prompt, schema=SCHEMA, max_output_tokens=max_output_tokens)
     return parse(block, raw if isinstance(raw, dict) else {}, model)
 
 

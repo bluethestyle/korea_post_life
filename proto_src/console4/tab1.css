@@ -3,12 +3,29 @@
 .home-panel{position:relative;background:transparent;border:0;box-shadow:none;margin:0}
 .home-panel[hidden]{display:none!important}
 
+/* 첫 화면 세로 배치(2026-11-25 사용자 지적: 위쪽 여백이 없고 아래 빈 공간이 많다)
+   - 제목 영역: 첫 화면에서만 위 여백을 늘려, 첫 화면 패널의 위쪽 경계를 다른 탭의 탭 줄 위쪽 경계(가이드 선)와 같은 높이에 둔다.
+     해상도별 늘린 값: 1600 이상 +22px, 1280~1599 +18px, 1000~1279 +19px. 999 이하는 다른 탭과 이미 같아 그대로 둔다.
+     body.is-home 은 core.js 의 renderActiveScreen 이 정하므로 다른 탭의 제목 영역은 바뀌지 않는다.
+   - 무대(.hm-stage): 높이(--hm-h)는 늘린 위 여백만큼 줄이고, 위쪽 여백(padding-top)을 두고 기준축 행의 비율을 키워
+     숫자, 막대, 기준선, 요약 문장을 함께 아래로 내린다. 요약 문장 아래 빈 공간은 이전의 절반 안팎이 된다.
+     .hm-stage 는 첫 화면에만 있으므로 body.is-home 에 묶지 않는다(탭으로 넘어갈 때 사라지는 첫 화면이 제자리에 머물게). */
+@media (min-width:1000px){
+  body.is-home .top-head{padding-top:21px}
+}
+@media (min-width:1280px){
+  body.is-home .top-head{padding-top:20px}
+}
+@media (min-width:1600px){
+  body.is-home .top-head{padding-top:26px}
+}
 .hm-stage{display:grid;grid-template-rows:62% 38%;min-height:clamp(540px,calc(100vh - 216px),700px)}
 @media (min-width:1280px){
-  .hm-stage{min-height:calc(100vh - 144px);height:calc(100vh - 144px);grid-template-rows:minmax(270px,62%) minmax(0,38%)}
+  .hm-stage{--hm-h:calc(100vh - 166px);min-height:var(--hm-h);height:var(--hm-h);padding-top:calc(var(--hm-h) * .09);
+    grid-template-rows:minmax(270px,77%) minmax(0,23%)}
 }
 @media (max-width:1599px) and (min-width:1280px){
-  .hm-stage{min-height:calc(100vh - 129px);height:calc(100vh - 129px)}
+  .hm-stage{--hm-h:calc(100vh - 147px)}
 }
 .hm-axis-wrap{position:relative;display:grid;grid-template-columns:1.44fr 1.04fr 1.02fr 0.98fr 0.76fr;
   align-items:stretch;border-bottom:2px solid var(--axis);padding-left:28px}
@@ -52,7 +69,7 @@
 .hm-read-sub{margin:0;max-width:1280px;font:400 13.5px/1.58 var(--f-body);color:var(--ink-1);word-break:keep-all}
 
 @media (max-width:1279px) and (min-width:1000px){
-  .hm-stage{min-height:clamp(490px,calc(100vh - 204px),640px)}
+  .hm-stage{--hm-h:clamp(471px,calc(100vh - 223px),621px);min-height:var(--hm-h);padding-top:calc(var(--hm-h) * .07);grid-template-rows:72% 28%}
 }
 @media (max-width:1599px) and (min-width:1000px){
   .hm-grp{padding:12px 12px 0}

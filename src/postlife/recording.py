@@ -28,6 +28,8 @@ class Recording:
 
     def generate(self, model: str, prompt: str, schema: dict | None = None, *args: Any, **kwargs: Any) -> Any:
         entry: dict[str, Any] = {"kind": "generate", "model": model, "prompt_sha": _sha(prompt), "prompt_chars": len(prompt)}
+        if kwargs.get("max_output_tokens") is not None:     # 응답이 잘려 출력 상한을 올려 다시 요청한 호출
+            entry["max_output_tokens"] = kwargs["max_output_tokens"]
         self.records.append(entry)
         try:
             out = self._inner.generate(model, prompt, schema, *args, **kwargs)

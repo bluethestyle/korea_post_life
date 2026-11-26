@@ -24,9 +24,11 @@ INDEX = (
 
 def test_variant_rows_follow_schema_and_group_by_summary_file():
     variants, problems = VV.build(TARGETS, INDEX)
-    # 수집 결과에 없는 상품은 만들지 않는다(INDEX에 없는 간편건강보험 2504 두 종과 더간편건강보험 2504 네 종)
+    # 수집 결과에 없는 상품은 만들지 않는다(INDEX에 없는 간편건강보험 2504 두 종, 더간편건강보험 2504 네 종, 하나로OK보험 2609 여덟 종)
     # 더간편건강보험은 보장형마다 상품 항목이 나뉘어 [암보장형] 두 종 다음에 [2대질병보장형] 두 종이 온다
-    assert [p[:7] for p in problems] == ["P500109", "P500110", "P610196", "P610198", "P610197", "P610199"]
+    # 하나로OK보험은 주계약 보험기간(종신, 90세와 100세만기)과 환급유형(표준형, 50%지급형)마다 상품 항목이 나뉜다
+    assert [p[:7] for p in problems] == ["P500109", "P500110", "P610196", "P610198", "P610197", "P610199",
+                                         "P400084", "P400086", "P400083", "P400085", "P400088", "P400090", "P400087", "P400089"]
     rows = [v.row for v in variants]
     assert check_rows("sys_상품종형", rows) == {}
     assert len({r["종형ID"] for r in rows}) == 6
@@ -35,6 +37,29 @@ def test_variant_rows_follow_schema_and_group_by_summary_file():
     assert (first["고지입원수술년수"], first["고지수술포함여부"], first["고지중대질병수"]) == (1, False, 6)
     groups = VV.by_summary(variants)
     assert sorted(len(g) for g in groups) == [1, 1, 4]              # 2606의 네 종은 요약서 하나를 함께 쓴다
+
+
+def test_hanarook_eight_variants_get_separate_lineage_keys():
+    """우체국하나로OK보험 2609의 여덟 종형은 한 요약서를 함께 쓰고, 종형계보키가 모두 다르다.
+
+    계보키에 보험기간이 없어 종신과 90세, 100세만기를 모상품ID로 나눴다. 같은 가입유형과 환급유형의 두 보험기간이 한 계보로 묶이지 않는다.
+    상품명은 지어낸 것이다(상품코드와 종형명만 대상 설정에서 찾는 데 쓴다).
+    """
+    codes = [f"P4000{n}" for n in range(83, 91)]
+    index = [entry(c, f"무배당 가나보험 2609 {c}", k, f"hok{k}", "2026-09-16") for c in codes for k in ("상품요약서", "사업방법서")]
+    variants, problems = VV.build(TARGETS, index)
+    mine = [v for v in variants if v.row["공시상품코드"] in codes]
+    assert len(mine) == 8 and check_rows("sys_상품종형", [v.row for v in mine]) == {}
+    assert len({v.row["종형계보키"] for v in mine}) == 8 and len({v.row["종형ID"] for v in mine}) == 8
+    assert {v.row["모상품ID"] for v in mine} == {"EPOST_HANAROOK_WHOLE", "EPOST_HANAROOK_TERM"}
+    assert [len(g) for g in VV.by_summary(mine)] == [8]
+    simple = [v.row for v in mine if v.row["심사유형"] == "간편심사"]
+    assert len(simple) == 4 and {r["간편고지약칭"] for r in simple} == {"3.2.5"}
+    assert {(r["고지입원수술년수"], r["고지수술포함여부"], r["고지중대질병수"], r["고지소견범위"]) for r in simple} == {(2, False, 6, "서면")}
+    # 정밀비교는 종신 해약환급금 50%지급형의 1종과 2종 둘이다(급부 표가 종형마다 갈리지 않아 대표 둘만 둔다).
+    # 간편 3.2.5 등급에 우체국 정밀비교 종형이 둘이 된다. 등급별 대표 고르기(site/lineup.pick_lineup)는 화면 기본 상품
+    # (site/screen.DEFAULT_PRODUCT, 간편한건강보험)의 종형을 고른다(tests/test_site_screen.py)
+    assert [v.row["공시상품코드"] for v in mine if v.row["비교역할구분"] == "정밀비교"] == ["P400083", "P400085"]
 
 
 def test_previous_revision_links_to_current_by_lineage_key():
