@@ -2,6 +2,7 @@
    [표로 보기] 전체 모달에서는 치료 여정 격자(통원과 합계 열 포함)와 담보 비교표(상대 회사 지급, 면책, 감액 열 포함)가 잘림 없이 열린다. */
 
 .cvp-stage{position:relative;display:flex;flex-direction:column;gap:8px;padding-top:2px}
+.cv-scope-note{margin:0;line-height:1.5}
 
 /* ---------- 1. 위쪽 전체 띠(.cv-ov-top: 단계 선택과 현재 위치 표시 전용) ---------- */
 .cv-ov-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:6px 16px;
