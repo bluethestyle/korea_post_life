@@ -1765,9 +1765,9 @@ function tableHTML(c) {
     </div>
     <div class="cv-sum">${esc(t('cvSumCellsTpl', { tot: totCells, rows: m.rows.length, peers: peerN }))}: ${sumChipsHTML} <span class="note">나머지 <b class="num" data-sum-name="${esc(BOTH_NONE_TEXT)}">${byName[BOTH_NONE_TEXT] || 0}</b>${esc(t('cvSumRestSuffixTpl', { bothNone: App.label(BOTH_NONE_TEXT) }))}</span></div>
     ${scrollBarHTML}
-    <div class="cv-tw" id="cover-tw"><table class="tbl cv-t ${manyOrgs ? 'is-many-orgs' : 'is-compact-orgs'}" id="cover-tbl">
+    <div class="cv-tbox" id="cover-tbox"><div class="cv-tw" id="cover-tw"><table class="tbl cv-t ${manyOrgs ? 'is-many-orgs' : 'is-compact-orgs'}" id="cover-tbl">
       ${theadHTML}
-      <tbody>${tr.html}</tbody></table></div>
+      <tbody>${tr.html}</tbody></table></div></div>
     <div class="panel-f">${esc(t('cvTblFoot'))}</div>
   </section>`;
 }
@@ -1796,6 +1796,53 @@ function syncCoverTwScroll(root) {
     if (btnL) btnL.disabled = !moreL;
     if (btnR) btnR.disabled = !moreR;
   }
+  syncCoverHeadScroll(root || document);
+}
+/* 머리 행 고정. .cv-tw 는 가로 스크롤 영역이라 thead 에 sticky 를 걸어도 상세 창(.dm-body) 스크롤에 붙지 않는다.
+   그래서 머리 행을 복제한 .cv-hd 를 .cv-tbox 안에서 sticky 로 붙이고, 열 너비와 가로 스크롤 위치를 본 표에 맞춘다.
+   복제본은 aria-hidden, no-print 이며 본 표(읽기 순서, 인쇄, 복사)는 그대로다. */
+function buildCoverHead(root) {
+  const scope = root || document;
+  const tw = scope.querySelector('#cover-tw');
+  const tbl = tw && tw.querySelector('#cover-tbl');
+  const box = tw && tw.parentElement;
+  const thead = tbl && tbl.tHead;
+  if (!thead || !box || !thead.rows.length) return;
+  let hd = box.querySelector('#cover-hd');
+  if (!hd) {
+    hd = document.createElement('div');
+    hd.id = 'cover-hd';
+    hd.className = 'cv-hd no-print';
+    hd.setAttribute('aria-hidden', 'true');
+    box.insertBefore(hd, tw);
+  }
+  const tblW = tbl.offsetWidth;
+  const rect = tbl.getBoundingClientRect();
+  const k = tblW && rect.width ? rect.width / tblW : 1;
+  const widths = [...thead.rows[0].cells].map(c => (c.getBoundingClientRect().width / k).toFixed(2));
+  const ct = tbl.cloneNode(false);
+  ct.removeAttribute('id');
+  ct.style.width = tblW + 'px';
+  ct.innerHTML = '<colgroup>' + widths.map(w => `<col style="width:${w}px">`).join('') + '</colgroup>';
+  ct.appendChild(thead.cloneNode(true));
+  const h = thead.offsetHeight;
+  hd.replaceChildren(ct);
+  hd.style.height = h + 'px';
+  hd.style.marginBottom = -h + 'px';
+  hd.style.marginLeft = tw.offsetLeft + 'px';
+  hd.style.width = tw.clientWidth + 'px';
+  syncCoverHeadScroll(scope);
+}
+function syncCoverHeadScroll(scope) {
+  const tw = scope.querySelector('#cover-tw');
+  const hd = scope.querySelector('#cover-hd');
+  const bar = scope.querySelector('#cv-tw-bar');
+  if (!tw || !hd) return;
+  hd.scrollLeft = tw.scrollLeft;
+  hd.classList.toggle('has-more-l', tw.classList.contains('has-more-l'));
+  hd.classList.toggle('has-more-r', tw.classList.contains('has-more-r'));
+  const box = hd.parentElement;
+  if (box) box.style.setProperty('--cv-bar-h', (bar && !bar.hidden ? bar.offsetHeight : 0) + 'px');
 }
 function bindCoverTw(root) {
   const tw = root && root.querySelector('#cover-tw');
@@ -1803,9 +1850,17 @@ function bindCoverTw(root) {
   if (!tw._bound) {
     tw._bound = true;
     tw.addEventListener('scroll', () => syncCoverTwScroll(root), { passive: true });
+    if (typeof ResizeObserver === 'function') {
+      let raf = 0;
+      const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { buildCoverHead(root); syncCoverTwScroll(root); }); });
+      ro.observe(tw);
+      const tbl = tw.querySelector('#cover-tbl');
+      if (tbl) ro.observe(tbl);
+    }
   }
   syncCoverTwScroll(root);
-  requestAnimationFrame(() => syncCoverTwScroll(root));
+  buildCoverHead(root);
+  requestAnimationFrame(() => { syncCoverTwScroll(root); buildCoverHead(root); });
 }
 function refreshTable(body, c) {
   const tb = body.querySelector('#cover-tbl tbody');
