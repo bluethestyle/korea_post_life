@@ -78,7 +78,7 @@
    "value": "{{fact:graph_nodes_by_kind.급부}}",
    "unit": "개",
    "caption": "급부(지급 사유)",
-   "scope": "관계 그래프에 올린 {{fact:graph_company_nodes_with_variants.count}}개 회사",
+   "scope": "관계 그래프에 반영한 {{fact:graph_company_nodes_with_variants.count}}개 회사",
    "size": "small",
    "hero": false,
    "box": [
@@ -110,7 +110,7 @@
    "value": "{{fact:graph_nodes_by_kind.표준담보}}",
    "unit": "개",
    "caption": "표준담보",
-   "scope": "보장 대분류 {{fact:coverage_major_class_count}}개로 다시 묶음",
+   "scope": "보장 대분류 {{fact:coverage_major_class_count}}개로 다시 분류",
    "size": "small",
    "hero": false,
    "box": [
@@ -129,5 +129,5 @@
   "검수 대기"
  ],
  "source": "출처: 담보 매핑 자료, 관계 그래프 화면 자료, 상품 종형 주간 마감 자료, 자료 기준 {{asof:graph_nodes_by_kind}}",
- "notes": "이 장은 앞에서 본 연결, 곧 매핑을 수천 건 규모로 어떻게 했는지입니다. 왼쪽은 {{slide:cancer-surgery}}장의 암 수술비입니다. 우체국, 한화생명, 삼성화재의 공시 문서에 적힌 급부 이름이 이렇게 달라도, 셋 모두 표준담보 '{{fact:example_cancer_surgery.standard_coverage}}' 하나에 연결합니다. 카드의 글은 문서의 급부 이름을 그대로 옮긴 것입니다. 연결할 표준담보는 AI가 고르고, 그 결과를 언제 그대로 믿을지는 사람이 정한 기준을 따릅니다. 확률 산정 모델이 매긴 확률이 기준값 {{fact:mapping_auto_confirm_threshold|f2}} 이상이거나, 서로 다른 AI 둘이 따로 고른 결과가 같으면 자동으로 확정합니다. 나머지는 검수 대기로 두고 담당자가 확인할 때까지 비교에서 뺍니다. 지금 자동 확정된 매핑 {{fact:mapping_auto_confirm_by_route.all.total}}행 가운데 확률 산정 결과로 확정한 것이 {{fact:mapping_auto_confirm_by_route.all.decision_model}}행, AI 둘의 답이 같아 확정한 것이 {{fact:mapping_auto_confirm_by_route.all.cross_check}}행입니다. 화면에 올린 세 회사의 검수 대기는 {{fact:mapping_status_site.대기}}행입니다. 다만 매핑 쪽의 확률 기준값은 앞의 기준값 보정 장처럼 일부러 오류 값을 넣어 보는 테스트를 아직 하지 않아, 틀린 연결을 얼마나 거르는지는 측정 전입니다. 표준담보 사전은 처음에 우체국 상품 기준으로 {{fact:dictionary_initial_size}}개로 시작했고, 우체국이 가졌거나 공시 요약서에서 {{fact:dictionary_addition_rule.min_holder_orgs}}곳 이상이 가진 담보를 더해 지금 {{fact:standard_coverage_rows}}행(사용 {{fact:standard_coverage_in_use}}개)이 됐습니다. 담보 관계는 대부분 Claude와 제미나이가 따로 만들어 두 쪽이 같은 행만 넣었고, 사전이 바뀐 뒤에 더한 한 건은 제미나이와 대조하지 않고 Claude가 넣었습니다. 오른쪽은 이렇게 연결한 결과입니다. 관계 그래프에 올린 회사 {{fact:graph_company_nodes_with_variants.count}}곳({{fact:graph_company_nodes_with_variants.names}})의 급부 {{fact:graph_nodes_by_kind.급부}}개가 표준담보 {{fact:graph_nodes_by_kind.표준담보}}개로 모이고, 표준담보는 다시 보장 대분류 {{fact:coverage_major_class_count}}개로 묶입니다. 급부 수천 개가 표준담보 수십 개로 줄어드는 것이 이 관계 그래프의 쓸모입니다. 급부를 담은 종형은 {{fact:graph_nodes_by_kind.종형}}개, 특약은 {{fact:graph_nodes_by_kind.특약}}개입니다. 종형 {{fact:variant_sale_status_site.total}}개 가운데 판매 중인 것은 {{fact:variant_sale_status_site.on_sale}}개입니다. 나머지 {{fact:variant_sale_status_site.ended}}개는 지금 판매하는 {{fact:epost_renewal.after}}으로 리뉴얼되기 전 상품인 {{fact:variant_sale_status_site.ended_products}}(판매 종료, {{fact:variant_sale_status_site.ended_dates}})의 종형으로, 개정 전후를 비교하는 데에만 씁니다. 관계 그래프에는 시장 동향에 나온 회사까지 점으로 있지만 회사 수에는 상품을 올린 회사만 셉니다. 특약 수가 화면 자료의 특약 수보다 적은 것은 인수기준만 수집한 종형의 특약을 그래프에 포함하지 않았기 때문입니다."
+ "notes": "이 장은 앞에서 본 연결, 곧 매핑을 수천 건 규모로 어떻게 했는지입니다. 왼쪽은 {{slide:cancer-surgery}}장의 암 수술비입니다. 우체국, 한화생명, 삼성화재의 공시 문서에 적힌 급부 이름이 이렇게 달라도, 셋 모두 표준담보 '{{fact:example_cancer_surgery.standard_coverage}}' 하나에 연결합니다. 카드의 글은 문서의 급부 이름을 그대로 옮긴 것입니다. 연결할 표준담보는 AI가 고르고, 그 결과를 언제 그대로 믿을지는 사람이 정한 기준을 따릅니다. 확률 산정 모델이 매긴 확률이 기준값 {{fact:mapping_auto_confirm_threshold|f2}} 이상이거나, 서로 다른 AI 둘이 따로 고른 결과가 같으면 자동으로 확정합니다. 나머지는 검수 대기로 두고 담당자가 확인할 때까지 비교에서 뺍니다. 지금 자동 확정된 매핑 {{fact:mapping_auto_confirm_by_route.all.total}}행 가운데 확률 산정 결과로 확정한 것이 {{fact:mapping_auto_confirm_by_route.all.decision_model}}행, AI 둘의 답이 같아 확정한 것이 {{fact:mapping_auto_confirm_by_route.all.cross_check}}행입니다. 화면에 올린 세 회사의 검수 대기는 {{fact:mapping_status_site.대기}}행입니다. 다만 매핑 쪽의 확률 기준값은 앞의 기준값 보정 장처럼 일부러 오류 값을 넣어 보는 테스트를 아직 하지 않아, 틀린 연결을 얼마나 거르는지는 측정 전입니다. 표준담보 사전은 처음에 우체국 상품 기준으로 {{fact:dictionary_initial_size}}개로 시작했고, 우체국이 가졌거나 공시 요약서에서 {{fact:dictionary_addition_rule.min_holder_orgs}}곳 이상이 가진 담보를 더해 지금 {{fact:standard_coverage_rows}}행(사용 {{fact:standard_coverage_in_use}}개)이 됐습니다. 담보 관계는 대부분 Claude와 제미나이가 따로 만들어 두 쪽이 같은 행만 넣었고, 사전이 바뀐 뒤에 더한 한 건은 제미나이와 대조하지 않고 Claude가 넣었습니다. 오른쪽은 이렇게 연결한 결과입니다. 관계 그래프에 반영한 회사 {{fact:graph_company_nodes_with_variants.count}}곳({{fact:graph_company_nodes_with_variants.names}})의 급부 {{fact:graph_nodes_by_kind.급부}}개가 표준담보 {{fact:graph_nodes_by_kind.표준담보}}개로 모이고, 표준담보는 다시 보장 대분류 {{fact:coverage_major_class_count}}개로 묶입니다. 급부 수천 개가 표준담보 수십 개로 줄어드는 것이 이 관계 그래프의 쓸모입니다. 급부를 담은 종형은 {{fact:graph_nodes_by_kind.종형}}개, 특약은 {{fact:graph_nodes_by_kind.특약}}개입니다. 종형 {{fact:variant_sale_status_site.total}}개 가운데 판매 중인 것은 {{fact:variant_sale_status_site.on_sale}}개입니다. 나머지 {{fact:variant_sale_status_site.ended}}개는 지금 판매하는 {{fact:epost_renewal.after}}으로 리뉴얼되기 전 상품인 {{fact:variant_sale_status_site.ended_products}}(판매 종료, {{fact:variant_sale_status_site.ended_dates}})의 종형으로, 개정 전후를 비교하는 데에만 씁니다. 관계 그래프에는 시장 동향에 나온 회사까지 점으로 있지만 회사 수에는 상품을 올린 회사만 셉니다. 특약 수가 화면 자료의 특약 수보다 적은 것은 인수기준만 수집한 종형의 특약을 그래프에 포함하지 않았기 때문입니다."
 }

@@ -4,7 +4,7 @@
  "kind": "body",
  "chapter": 4,
  "status": "revised",
- "headline": "우체국 상품요약서에서 일부러 틀리게 바꾼 값 {{fact:calibration_flipped_rows.rows}}건 중<br>자동 확정된 값은 {{fact:calibration_flipped_rows.passed}}건입니다",
+ "headline": "우체국 상품요약서에서 일부러 오류를 넣은 값 {{fact:calibration_flipped_rows.rows}}건 중<br>자동 확정된 값은 {{fact:calibration_flipped_rows.passed}}건입니다",
  "frame": {
   "top": 320
  },
@@ -22,8 +22,8 @@
     120
    ],
    "build": 1,
-   "alt": "테스트 방법: 상품요약서에서 맞게 옮긴 값을 일부러 틀리게 바꾸고, 확률 산정 결과로 아래 세 구간 가운데 어디로 가는지 봅니다",
-   "svg": "<rect x='0' y='4' width='520' height='112' rx='8' class='sv-paper'/><use href='{{icon:공시 문서}}' x='28' y='32' width='56' height='56'/><text x='108' y='52' class='b'>맞게 옮긴 값</text><text x='108' y='92' class='aux'>상품요약서 {{len:epost_summary_rows_by_doc}}건에서 {{fact:calibration_reextract_band.correct_rows}}건</text><path d='M532 60H608' class='sv-muted' marker-end='url(#ah)'/><rect x='620' y='4' width='520' height='112' rx='8' class='sv-paper'/><text x='648' y='52' class='b'>일부러 틀리게 바꿈</text><text x='648' y='92' class='aux'>{{len:calibration_flip_methods}}가지 방식(예: {{fact:calibration_flip_methods.0}})</text><path d='M1152 60H1228' class='sv-muted' marker-end='url(#ah)'/><rect x='1240' y='4' width='520' height='112' rx='8' class='sv-paper'/><text x='1268' y='52' class='b'>확률 산정 모델로 검증</text><text x='1268' y='92' class='aux'>아래 세 구간 가운데 어디로 가나</text>"
+   "alt": "테스트 방법: 상품요약서에서 맞게 옮긴 값에 일부러 오류를 넣고, 확률 산정 결과로 아래 세 구간 가운데 어디로 가는지 봅니다",
+   "svg": "<rect x='0' y='4' width='520' height='112' rx='8' class='sv-paper'/><use href='{{icon:공시 문서}}' x='28' y='32' width='56' height='56'/><text x='108' y='52' class='b'>맞게 옮긴 값</text><text x='108' y='92' class='aux'>상품요약서 {{len:epost_summary_rows_by_doc}}건에서 {{fact:calibration_reextract_band.correct_rows}}건</text><path d='M532 60H608' class='sv-muted' marker-end='url(#ah)'/><rect x='620' y='4' width='520' height='112' rx='8' class='sv-paper'/><text x='648' y='52' class='b'>일부러 오류를 넣음</text><text x='648' y='92' class='aux'>{{len:calibration_flip_methods}}가지 방식(예: {{fact:calibration_flip_methods.0}})</text><path d='M1152 60H1228' class='sv-muted' marker-end='url(#ah)'/><rect x='1240' y='4' width='520' height='112' rx='8' class='sv-paper'/><text x='1268' y='52' class='b'>확률 산정 모델로 검증</text><text x='1268' y='92' class='aux'>아래 세 구간 가운데 어디로 가나</text>"
   },
   {
    "use": "C10",
