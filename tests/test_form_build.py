@@ -19,7 +19,7 @@ sys.modules["form_build"] = form_build
 spec.loader.exec_module(form_build)
 
 CONTENT = json.loads((FORM / "content.json").read_text(encoding="utf-8"))
-LINKS = [l["url"] for l in CONTENT["output"]["links"]]
+ATTACHMENTS = [f["file"] for f in CONTENT["output"]["files"]]
 OPTIONS = CONTENT["form"]["kind"]["options"]
 
 
@@ -65,15 +65,39 @@ def test_unknown_fact_stops_the_build(tmp_path):
         form_build.build_html(p)
 
 
-def test_no_external_requests_only_the_listed_clickable_links(sample):
+def test_no_urls_and_no_clickable_links_only_attachment_names(sample):
     doc, _ = sample
-    hrefs = re.findall(r'<a\b[^>]*href="([^"]+)"', doc)
-    assert sorted(set(hrefs)) == sorted(LINKS)
-    assert form_build.check_links(doc, LINKS) == []
+    # 문서에는 주소(http)와 클릭 링크(<a>)가 하나도 없고, 첨부 파일 이름 둘로 안내한다
+    assert "http" not in doc          # 대소문자를 구분한다(사진과 글꼴의 base64 글자가 우연히 HTTP 로 읽히는 경우는 제외)
+    assert not re.search(r"https?:", doc, re.I)
+    assert not re.search(r"<a[\s>]", doc, re.I)
+    assert ATTACHMENTS == ["postlife_app.html", "postlife_deck.html"]
+    for name in ATTACHMENTS:
+        assert name in doc
+    assert form_build.check_links(doc) == []
     # src, url(), @import 로 부르는 외부 자원은 없다
     assert not re.search(r"""\bsrc\s*=\s*["']?(?:https?:)?//""", doc, re.I)
     assert not re.search(r"""url\(\s*["']?(?:https?:)?//""", doc, re.I)
     assert "@import" not in doc
+
+
+def test_body_uses_noun_style_without_polite_endings(sample):
+    """개조식 문어체: 본문에 "~니다" 경어체 종결이 없다(양식 원문 안내와 화면에서 옮긴 문구에도 없다)."""
+    doc, _ = sample
+    text = re.sub(r"<style.*?</style>|<svg.*?</svg>|<script.*?</script>", "", doc, flags=re.S)
+    text = re.sub(r"<[^>]+>", "\n", text)
+    assert re.findall(r"[가-힣]*니다", text) == []
+
+
+def test_progress_percentages_sum_to_one_hundred(sample):
+    doc, _ = sample
+    assert form_build.pct_split([2, 3, 2, 12], 19) == [10.5, 15.8, 10.5, 63.2]
+    assert sum(form_build.pct_split([1, 1, 1], 3)) == pytest.approx(100.0)
+    assert sum(form_build.pct_split([5, 7, 11, 13], 36)) == pytest.approx(100.0)
+    assert form_build.pct_split([0, 0], 0) == [0.0, 0.0]
+    # 진행 현황에는 상태별 가로 막대가 있고, 막대 안 비율의 합은 100.0
+    pcts = [float(x) for x in re.findall(r'<span class="seg \w+" style="[^"]*"><span>([0-9.]+)%</span>', doc)]
+    assert pcts and sum(pcts) == pytest.approx(100.0)
 
 
 def test_identity_fills_the_head_rows_and_checks_one_option(tmp_path):
@@ -129,8 +153,8 @@ def test_zoom_cuts_exist_and_are_used(sample):
 
 def test_page_count_and_page_names(sample):
     doc, info = sample
-    assert info["pages"] == 10
-    assert doc.count('<section class="page"') == 10
+    assert info["pages"] == 11
+    assert doc.count('<section class="page"') == 11
     assert "확장과 한계" in doc
     assert "넓혀 쓰기와 한계" not in doc
 
@@ -138,7 +162,7 @@ def test_page_count_and_page_names(sample):
 def test_replaced_terms_do_not_come_back():
     text = (FORM / "content.json").read_text(encoding="utf-8")
     for bad in ("틀린 값", "틀리게", "정식 배포 전", "비교 상대", "뒤져", "지료 기준", "넓혀 쓰기와", "판올림", "스냅샷"):
-        assert bad not in text.replace("'스냅샷'이라는 말이", ""), bad
+        assert bad not in text.replace("'스냅샷'이라는 용어가", ""), bad
     assert "·" not in re.sub(r"AI담당관 제작 AI업무비서·AI에이전트|이미지·동영상|부서·업무|평가기준\(참신성·실용성·확장성·완성도\)", "", text).split('"labels"', 1)[1]
 
 

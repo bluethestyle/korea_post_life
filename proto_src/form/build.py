@@ -13,8 +13,8 @@
   파일을 주지 않으면 양식의 안내 문구를 넣은 견본을 만든다. 이 값은 화면에 출력하지 않는다.
 - 색과 글꼴은 발표 덱의 틀(proto_src/deck/tpl.html 의 :root)과 심은 글꼴(PLKo)을, 아이콘은 덱의 아이콘 세트를 그대로 쓴다.
 - 사진은 proto_src/form/assets/ 를 먼저, 없으면 proto_src/deck/assets/ 를 찾는다(proto_src/form/shoot.py 가 다시 찍는다).
-- 결과 HTML 에 외부 주소를 부르는 src, href, url(), @import 가 있으면 멈춘다. 예외는 content.json 의 output.links 네 주소를
-  가리키는 <a href> 뿐이다(PDF 에서 클릭되는 링크).
+- 결과 HTML 에는 주소(URL)와 클릭 링크(<a>)를 두지 않는다. 외부 주소를 부르는 src, href, url(), @import 가 있으면 멈춘다.
+  제출할 때 PDF 와 함께 첨부하는 HTML 파일 두 개는 content.json 의 output.files 이름으로 안내한다.
 - --strict: 자리 표시 밖에 적은 숫자(양식 원래 문구와 literal_digits 제외), 채우지 못한 자리 표시, PDF 단계의 넘침(칸 밖으로 나간 글,
   8pt 미만 글자)을 오류로 본다.
 """
@@ -55,6 +55,9 @@ ANY_PH = re.compile(r"\{\{[^{}]*\}\}")
 SKIP_DIGIT_KEYS = {"form", "literal_digits", "format", "id", "img", "icon", "url", "prefix", "marks", "zones_xy", "state",
                    "rows_from", "names_from", "table_img", "html_title"}
 
+
+# 글꼴 표기는 덱과 같되 주소는 뺀다(이 문서에는 주소를 두지 않는다. 저작권과 라이선스 이름은 그대로 둔다)
+FONT_NOTICE = re.sub(r"\s*\(https?://[^)]*\)", "", deck_build.FONT_NOTICE)
 
 ARROW = ('<svg class="arw" viewBox="0 0 10 6" aria-hidden="true">'
          '<path d="M0.5 3H8.6M6.4 0.9L8.8 3L6.4 5.1" fill="none" stroke="currentColor" stroke-width="1.1" '
@@ -151,6 +154,19 @@ def digits_outside(content: dict) -> list[str]:
 # ---------------------------------------------------------------------------
 # 그리기 도구
 # ---------------------------------------------------------------------------
+def pct_split(counts: list[int], total: int) -> list[float]:
+    """건수를 전체 대비 비율(%)로, 소수 첫째 자리까지. 반올림한 합이 항상 100.0 이 되도록 큰 나머지 순으로 0.1 을 배분한다."""
+    if total <= 0:
+        return [0.0 for _ in counts]
+    raw = [c * 1000 / total for c in counts]            # 0.1% 단위
+    base = [int(r) for r in raw]
+    short = 1000 - sum(base)
+    order = sorted(range(len(counts)), key=lambda i: raw[i] - base[i], reverse=True)
+    for i in order[:short]:
+        base[i] += 1
+    return [v / 10 for v in base]
+
+
 class Form:
     def __init__(self, content: dict, facts: dict, refs: dict, deck: dict, identity: dict | None,
                  parents: set[str], image_dirs: list[Path]):
@@ -173,7 +189,6 @@ class Form:
         self.img_size: dict[str, tuple[int, int]] = {}
         self.errors: list[str] = []
         self.crit_marks = self._crit_marks()
-        self.links_ok = [l["url"] for l in content["output"]["links"]]
 
     # 평가기준 표식 -------------------------------------------------------
     def _crit_marks(self) -> dict[int, dict[str, bool]]:
@@ -424,7 +439,7 @@ class Form:
         flow = f'<div class="p1-flow">{n0}{arr(fl["arrows"][0])}{n1}{arr(fl["arrows"][1])}{n2}</div>'
         op = b["open"]
         openl = (f'<p class="openl">{self.ic("monitor-cog", 4.6)}<b>{self.t(op["label"])}</b>'
-                 f'<a href="{esc(self.links_ok[0])}">{esc(self.links_ok[0])}</a></p>')
+                 f'<span class="fn">{esc(op["file"])}</span><span>{self.t(op["text"])}</span></p>')
         tiles = f'<div class="tiles" style="grid-template-columns:repeat({len(b["tiles"])},1fr)">' + "".join(self.tile(t) for t in b["tiles"]) + "</div>"
         cards = []
         for cd in b["cards"]:
@@ -622,7 +637,10 @@ class Form:
               '<span class="sw" style="border:0.3mm dashed var(--kp-ink)"></span>',
               '<span class="sw" style="border-bottom:0.9mm solid var(--kp-red);height:1.6mm"></span>']
         legend = '<p class="legend4">' + "".join(f'<span>{s}{self.t(t)}</span>' for s, t in zip(sw, fl["legend"])) + "</p>"
-        lanes = f'<div class="lane-wrap" style="width:{W}mm;height:{H}mm">{svg}{heads}{"".join(boxes)}</div>'
+        # 쪽 아래 여백을 키우면서 줄어든 칸 높이에 맞춰 흐름도 전체를 조금 줄인다(안의 좌표는 그대로 두고 배율만 적용)
+        K = 0.985
+        lanes = (f'<div style="width:{W}mm;height:{H * K:.2f}mm"><div class="lane-wrap" style="width:{W}mm;height:{H}mm;'
+                 f'transform:scale({K});transform-origin:top left">{svg}{heads}{"".join(boxes)}</div></div>')
         wk = b["week"]
         days = "".join(f'<span class="d{" sun" if i == 6 else ""}">{self.t(d)}</span>' for i, d in enumerate(wk["days"]))
         def dots(on: list[bool]) -> str:
@@ -854,11 +872,17 @@ class Form:
             x += 2.4
         W = x
         svg = f'<svg style="width:{W:.1f}mm;height:6mm;flex:none" viewBox="0 0 {W:.1f} 6" aria-hidden="true">{"".join(dots)}</svg>'
+        pct = pct_split([counts[st["key"]] for st in pg["states"]], targets)
         key = "".join(
             f'<span class="nw"><svg style="width:4.6mm;height:4.6mm;vertical-align:-1mm;margin-right:0.6mm" viewBox="0 0 6 6" aria-hidden="true">{look[st["key"]].format(cx="3")}</svg>'
-            f'{self.t(st["label"])} <b>{counts[st["key"]]}</b></span>' for st in pg["states"])
+            f'{self.t(st["label"])} <b>{counts[st["key"]]}곳</b> ({pct[i]:.1f}%)</span>'
+            for i, st in enumerate(pg["states"]))
+        seg = "".join(
+            f'<span class="seg {st["key"]}" style="flex:{counts[st["key"]]} 1 0"><span>{pct[i]:.1f}%</span></span>'
+            for i, st in enumerate(pg["states"]) if counts[st["key"]])
         return (f'<div class="prog"><p class="sh">{self.t(pg["head"])}</p><div style="display:flex;align-items:center;gap:3mm">{svg}</div>'
-                f'<p class="sm" style="display:flex;flex-wrap:wrap;gap:0.6mm 4.4mm;margin-top:0.6mm">{key}</p></div>')
+                f'<div class="pbar" role="img">{seg}</div>'
+                f'<p class="sm" style="display:flex;flex-wrap:wrap;gap:0.6mm 4.4mm;margin-top:0.8mm">{key}</p></div>')
 
     def p7_body(self) -> str:
         b = self.pages[6]["blocks"]
@@ -921,8 +945,11 @@ class Form:
     def output_body(self) -> str:
         o = self.c["output"]
         links = "".join(f'<div class="l">{self.ic(l["icon"], 5)}<span class="nm">{self.t(l["name"])}</span>'
-                        f'<span><a href="{esc(l["url"])}">{esc(l["url"])}</a><br><span class="nt">{self.t(l["note"])}</span></span></div>'
-                        for l in o["links"])
+                        f'<span><span class="fn">{esc(l["file"])}</span><br><span class="nt">{self.t(l["note"])}</span></span></div>'
+                        for l in o["files"])
+        oh = o["open_how"]
+        links += (f'<div class="l">{self.ic(oh["icon"], 5)}<span class="nm">{self.t(oh["name"])}</span>'
+                  f'<span>{self.t(oh["text"])}<br><span class="nt">{self.t(oh["note"])}</span></span></div>')
         play = ('<svg class="play" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.6" fill="#161616" fill-opacity="0.72"/>'
                 '<path d="M4 3L7.2 5L4 7z" fill="#ffffff"/></svg>')
         vids = "".join(f'<div class="s"><div class="im {self.img_cls(v["img"])}" role="img">{play}<span class="vl">{self.t(v["len"])}</span></div>'
@@ -931,24 +958,23 @@ class Form:
         video = f'<div>{self.bh(o["videos_head"])}<div class="shots vids">{vids}</div></div>' if vids else ""
         return f'<div>{self.bh(o["head"])}<div class="links">{links}</div></div>' + video
 
-    # 읽히는 폭(mm): 확대 컷 안의 글자가 인쇄 크기에서 7pt 안팎이 되도록 컷마다 정한다(본문 칸의 폭은 150mm)
-    CUT_W = {"cut_kpi": 78, "cut_gate": 126, "cut_cover": 150, "cut_insight": 114, "cut_talk": 68}
-    FULL_W = {"summary": 60, "tab_gate": 68, "cancer_surgery": 68, "tab_insight": 68, "talk_preview": 36, "tab_graph": 84}
+    # 화면 캡처 쪽(2026-11-26 사용자 지시): 화면 이름과 설명이 먼저 오고, 다음 줄에 전체 캡처, 그 아래에 확대 컷을 둔다.
+    # 전체 캡처는 작성내용 칸의 폭(150mm) 안에서 두 화면이 한 쪽에 들어가는 가장 큰 폭으로 맞춘다.
+    # 확대 컷은 안의 글자가 인쇄 크기에서 6~7pt 가 되는 폭이다. 세로로 긴 응대 화법 카드만 확대 컷을 옆에 둔다
+    FULL_W = {"summary": 126, "tab_gate": 126, "cancer_surgery": 126, "tab_insight": 126, "talk_preview": 70, "tab_graph": 150}
+    CUT_W = {"cut_kpi": 126, "cut_gate": 108, "cut_cover": 126, "cut_insight": 106, "cut_talk": 62}
 
     def shot_row(self, i: int, s: dict) -> str:
-        """화면 하나: 전체 캡처(모양)와 확대 컷(글자)을 짝으로 보이고 설명 한 줄을 붙인다."""
-        full = self.shot(s["img"], self.FULL_W[s["img"]])
-        fullw = f'<div class="pf"><span class="nb2">{i + 1}</span>{full}</div>'
+        """화면 하나: 화면 이름과 설명, 다음 줄에 전체 캡처, 그 아래에 확대 컷."""
         title = f'<div class="st"><p class="lb">{i + 1}. {self.t(s["label"])}</p><p class="sm mut">{self.t(s["text"])}</p></div>'
+        full = f'<div class="pf">{self.shot(s["img"], self.FULL_W[s["img"]])}</div>'
         if not s.get("cut"):
-            # 확대 컷이 없으면 설명을 전체 캡처 오른쪽에 둔다
-            return f'<div class="srow"><div class="pair">{fullw}{title}</div></div>'
+            return f'<div class="srow">{title}{full}</div>'
         cw = self.CUT_W[s["cut"]]
-        cut = self.shot(s["cut"], cw)
-        if cw + self.FULL_W[s["img"]] <= 142:
-            return f'<div class="srow"><div class="pair">{fullw}<div class="pc">{cut}</div></div>{title}</div>'
-        # 확대 컷이 넓으면 전체 캡처 오른쪽에 설명을 두고, 확대 컷은 그 아래에 본문 폭으로 놓는다(캡처 옆을 비워 두지 않는다)
-        return f'<div class="srow"><div class="pair">{fullw}{title}</div><div class="pc wide">{cut}</div></div>'
+        cut = f'<div class="pc">{self.shot(s["cut"], cw)}</div>'
+        if self.FULL_W[s["img"]] + cw <= 142:
+            return f'<div class="srow">{title}<div class="pair">{full}{cut}</div></div>'
+        return f'<div class="srow">{title}{full}{cut}</div>'
 
     def shots_page(self, group: list[int]) -> str:
         o = self.c["output"]
@@ -960,7 +986,7 @@ class Form:
         out = [self.p1()]
         bodies = {2: self.p2_body, 3: self.p3_body, 4: self.p4_body, 5: self.p5_body, 6: self.p6_body, 7: self.p7_body}
         for no in range(2, self.n_body):
-            rows = [("top", self.cont_left(no), "body", bodies[no]())]
+            rows = [("top", self.cont_left(no), f"body pg{no}", bodies[no]())]
             out.append(self.page(no, self.frame(rows, "auto 1fr")))
         f = self.c["form"]["output"]
         no = self.n_body
@@ -986,11 +1012,12 @@ def tokens_from_deck(tpl: Path) -> str:
     return m.group(0)
 
 
-def check_links(doc: str, allowed: list[str]) -> list[str]:
-    stripped = doc
-    for u in allowed:
-        stripped = stripped.replace(f'<a href="{esc(u)}">', "<a>")
-    return deck_build.check_external(stripped)
+def check_links(doc: str) -> list[str]:
+    """외부 요청이 될 주소와 클릭 링크(<a>), 주소 글자(http)를 모두 찾는다. 문서에는 하나도 없어야 한다."""
+    hits = deck_build.check_external(doc)
+    hits += [m.group(0) for m in re.finditer(r"<a[\s>][^>]*>", doc, re.I)]
+    hits += [doc[m.start():m.start() + 60] for m in re.finditer(r"https?:", doc, re.I)]
+    return hits
 
 
 def build_html(content_path: Path = HERE / "content.json", facts_path: Path | None = None, refs_path: Path = DECK / "refs.json",
@@ -1016,7 +1043,7 @@ def build_html(content_path: Path = HERE / "content.json", facts_path: Path | No
         f'{base64.b64encode(form.images[n].read_bytes()).decode("ascii")})}}' for n in form.img_used)
     tpl = tpl_path.read_text(encoding="utf-8")
     doc = (tpl.replace("__HTML_TITLE__", esc(content["html_title"]))
-              .replace("<!--__FONT_NOTICE__-->", deck_build.FONT_NOTICE)
+              .replace("<!--__FONT_NOTICE__-->", FONT_NOTICE)
               .replace("/*__FONT_FACES__*/", deck_build.font_faces(fonts_css))
               .replace("/*__TOKENS__*/", tokens_from_deck(DECK / "tpl.html"))
               .replace("/*__IMAGES__*/", css_images)
@@ -1025,7 +1052,7 @@ def build_html(content_path: Path = HERE / "content.json", facts_path: Path | No
     leftovers = re.findall(r"__[A-Z_]+__|\{\{[^}]*\}\}", doc)
     if leftovers:
         raise SystemExit(f"채우지 못한 자리: {leftovers[:5]}")
-    hits = check_links(doc, form.links_ok)
+    hits = check_links(doc)
     if hits:
         raise SystemExit("외부 요청이 될 주소:\n  " + "\n  ".join(hits))
     if strict and digits:

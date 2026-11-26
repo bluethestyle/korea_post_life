@@ -1187,6 +1187,23 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
             else:
                 grouped_seg.append([row_obj])
 
+        # 나이 구간(열)도 행처럼 값이 같은 것끼리 묶는다. 구간이 둘에서 넷으로 늘었을 때 두 칸 자리에 겹쳐 그려지지 않게 한다
+        col_groups: list[tuple[tuple, list[int]]] = []
+        for c_i in range(len(seg_cols)):
+            c_sig = tuple((r["cells"][c_i]["label"], r["cells"][c_i]["gate_only"]) for r in seg_grid)
+            if col_groups and col_groups[-1][0] == c_sig:
+                col_groups[-1][1].append(c_i)
+            else:
+                col_groups.append((c_sig, [c_i]))
+        compact_cols = len(col_groups) >= 3
+        col_x0, col_span, col_gap = -3.78, 3.98, 0.10
+        col_w = (col_span - col_gap * (len(col_groups) - 1)) / len(col_groups)
+
+        def col_group_label(idxs: list[int]) -> str:
+            if len(idxs) == 1:
+                return seg_cols[idxs[0]]
+            return f"{seg_cols[idxs[0]].split('~')[0]}~{seg_cols[idxs[-1]].split('~')[-1]}"
+
         pm_cells = VGroup()
         focus_cell = None
         for r_i, grp in enumerate(grouped_seg):
@@ -1207,11 +1224,14 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                     max_w=2.26,
                 ).move_to([-4.98, ry, 0])
             pm_cells.add(r_mob)
-            for c_i, c_info in enumerate(grp[0]["cells"]):
-                cw_p = 1.84 if c_i == 0 else 2.04
-                cx = -2.86 if c_i == 0 else -0.82
+            for g_i, (_sig, c_idxs) in enumerate(col_groups):
+                c_info = grp[0]["cells"][c_idxs[0]]
+                cw_p = col_w
+                cx = col_x0 + col_w / 2 + g_i * (col_w + col_gap)
                 raw_lbl = c_info["label"]
                 disp_lbl = label_ko(raw_lbl)
+                if compact_cols and disp_lbl == TERM["ours_closed_short"]:
+                    disp_lbl = f"{TERM['ours']} {TERM['closed']}"
                 is_open = raw_lbl in (seg_lbls[0], seg_lbls[1])
                 is_gate = bool(c_info["gate_only"])
                 is_hi = is_open and is_gate
@@ -1227,7 +1247,7 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                 cell_col = C_GOLD if is_hi else (C_CYAN if is_open else C_INK_1)
                 if is_gate:
                     ct = fit(txt(disp_lbl, size=12.8, color=cell_col, bold=True, z=7), max_w=cw_p - 0.10).move_to(cell_r.get_center() + UP * 0.15)
-                    gt = fit(pill(f"{TERM['peer']}: {TERM['uw_only']}", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=12.6, px=0.07, py=0.025, z=8), max_w=cw_p - 0.08).move_to(cell_r.get_center() + DOWN * 0.15)
+                    gt = fit(pill(TERM["uw_only"] if compact_cols else f"{TERM['peer']}: {TERM['uw_only']}", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=12.6, px=0.07, py=0.025, z=8), max_w=cw_p - 0.08).move_to(cell_r.get_center() + DOWN * 0.15)
                     cell_grp = VGroup(cell_r, ct, gt)
                 else:
                     ct = fit(txt(disp_lbl, size=12.6, color=cell_col, bold=is_open, z=7), max_w=cw_p - 0.10).move_to(cell_r)
@@ -1236,10 +1256,16 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
                     focus_cell = cell_r
                 pm_cells.add(cell_grp)
 
-        pm_age_hdr = VGroup(
-            pill(seg_cols[0], fg=C_INK_0, bg=C_BG_SUB, border=C_SLATE, size=13.0, px=0.12, py=0.04, z=7).move_to([-2.86, 1.66, 0]),
-            pill(seg_cols[1], fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=13.0, px=0.12, py=0.04, z=7).move_to([-0.82, 1.66, 0]),
-        )
+        pm_age_hdr = VGroup(*[
+            pill(
+                col_group_label(c_idxs),
+                fg=C_CYAN if any(lb in (seg_lbls[0], seg_lbls[1]) for lb, _g in c_sig) else C_INK_0,
+                bg=C_BG_SUB,
+                border=C_CYAN if any(lb in (seg_lbls[0], seg_lbls[1]) for lb, _g in c_sig) else C_SLATE,
+                size=13.0, px=0.12, py=0.04, z=7,
+            ).move_to([col_x0 + col_w / 2 + g_i * (col_w + col_gap), 1.66, 0])
+            for g_i, (c_sig, c_idxs) in enumerate(col_groups)
+        ])
         pm_foot = fit(
             VGroup(
                 txt(
@@ -1268,7 +1294,8 @@ class Part4OntologyImpactScene(PostLifeBaseScene):
         ).move_to([-2.98, -1.98, 0])
 
         assert focus_cell is not None
-        pin_pt = focus_cell.get_right() + LEFT * 0.20 + UP * 0.14
+        # 칸이 좁은 세 칸 배치에서는 표식이 칸 글자를 가리지 않게 오른쪽 위 모서리에 둔다
+        pin_pt = (focus_cell.get_corner(UR) + RIGHT * 0.04 + UP * 0.04) if compact_cols else (focus_cell.get_right() + LEFT * 0.20 + UP * 0.14)
         target_cursor = VGroup(
             Circle(radius=0.14, fill_opacity=0.0, stroke_color=WHITE, stroke_width=2.3).move_to(pin_pt),
             Line(pin_pt + LEFT * 0.20, pin_pt + RIGHT * 0.20, color=WHITE, stroke_width=1.5),

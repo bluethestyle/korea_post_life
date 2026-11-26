@@ -11,12 +11,9 @@
    "hanwha_summary_pages",
    "simple_uw_product_short",
    "simple_uw_questions_by_org",
-   "practice_compare_source",
-   "practice_respondents"
+   "practice_compare_source"
   ],
   "03": [
-   "practice_respondents",
-   "practice_tool_need",
    "comparison_targets_loaded",
    "comparison_target_counts",
    "combination_constraints_by_org",
@@ -35,7 +32,6 @@
   ],
   "05": [
    "team_size",
-   "practice_respondents",
    "practice_compare_frequency",
    "site_file_size_mb",
    "sales_insight_category_names",
@@ -76,7 +72,6 @@
    "hanwha_summary_pages",
    "practice_compare_time",
    "practice_compare_frequency",
-   "practice_respondents",
    "practice_compare_source"
   ],
   "10": [
@@ -269,7 +264,6 @@
    "hanwha_first_extract"
   ],
   "35": [
-   "practice_respondents",
    "standard_coverage_in_use",
    "practice_compare_time",
    "practice_compare_frequency",

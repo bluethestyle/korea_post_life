@@ -91,7 +91,7 @@ class Part1ServiceScene(PostLifeBaseScene):
         hl, hr, hb = self.make_hud(
             1,
             f"구현 목표 서비스: 공시 문서 비교 화면과 현장 {TERM['script_doc']}",
-            f"우체국 포함 화면 {num(site_org_cnt)}개사({TERM['snapshot_first']} {num(prod_org_cnt)}개사)의 공시 문서를 동일 기준으로 비교합니다",
+            f"우체국 포함 화면 {num(site_org_cnt)}개사, {TERM['snapshot_first']} {num(prod_org_cnt)}개사의 공시 문서를 동일 기준으로 비교합니다",
         )
 
         # -------------------------------------------------------------------

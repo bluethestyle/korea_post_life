@@ -47,7 +47,7 @@ u { text-decoration: none; border-bottom: 0.5mm solid var(--kp-red); }
 
 /* 쪽 */
 .page {
-  width: 210mm; height: 297mm; margin: 0 auto; padding: 9mm 12mm 0;
+  width: 210mm; height: 297mm; margin: 0 auto; padding: 10mm 12mm 7mm;
   background: var(--bg-base); display: flex; flex-direction: column; overflow: hidden;
   break-after: page; page-break-after: always; position: relative;
 }
@@ -73,6 +73,7 @@ u { text-decoration: none; border-bottom: 0.5mm solid var(--kp-red); }
 .frame > .lc.top { justify-content: flex-start; }
 .frame > .rc { padding: 2mm 3mm; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
 .frame > .rc.body { justify-content: flex-start; padding: 2.4mm 3mm 2mm; gap: 2mm; }
+.frame > .rc.body.pg2 { gap: 3.4mm; }
 .frame > .last { border-bottom: 0; }
 .guide { font-size: 8pt; font-weight: 400; color: var(--fg-muted); line-height: 1.35; margin-top: 1mm; }
 .guide .go { display: block; color: var(--kp-red-600); font-weight: 600; margin: 0.4mm 0 1.4mm; }
@@ -89,7 +90,7 @@ u { text-decoration: none; border-bottom: 0.5mm solid var(--kp-red); }
 .rail .pg { margin-left: auto; flex: none; }
 
 /* 꼬리말: 평가기준 알약 넷과 쪽 번호 */
-.ft { height: 11mm; flex: none; display: flex; align-items: center; justify-content: space-between; font-size: 8pt; color: var(--fg-muted); }
+.ft { height: 8mm; flex: none; display: flex; align-items: center; justify-content: space-between; font-size: 8pt; color: var(--fg-muted); }
 .ft .crit { display: flex; gap: 1.2mm; align-items: center; }
 .ft .crit .lab { margin-right: 0.8mm; }
 .cp { display: inline-block; font-size: 8pt; line-height: 1; padding: 0.9mm 1.8mm; border-radius: 2mm; white-space: nowrap; }
@@ -143,7 +144,7 @@ u { text-decoration: none; border-bottom: 0.5mm solid var(--kp-red); }
 .p1-flow .lab { font-weight: 600; font-size: 10pt; margin-top: 1.4mm; }
 .p1-flow .sub { font-size: 8pt; color: var(--fg-muted); line-height: 1.3; max-width: 46mm; }
 .openl { display: flex; align-items: center; gap: 2mm; flex-wrap: wrap; margin-top: 1.6mm; padding: 1.2mm 2.4mm; border: 0.3mm solid var(--kp-ink); background: var(--kp-paper); }
-.openl a { color: var(--kp-ink); text-decoration: underline; text-underline-offset: 0.5mm; font-weight: 600; word-break: break-all; }
+.openl .fn { color: var(--kp-ink); font-weight: 600; background: #ffffff; border: 0.3mm solid var(--kp-ink); padding: 0.2mm 1.6mm; }
 .p1-flow .arr { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 1mm 9mm; }
 .p1-flow .arr .t { font-size: 8pt; color: var(--fg-muted); text-align: center; line-height: 1.25; margin-bottom: 0.8mm; }
 .tiles { display: grid; gap: 2mm; }
@@ -317,6 +318,14 @@ u { text-decoration: none; border-bottom: 0.5mm solid var(--kp-red); }
 .ucards .c .tabs { display: flex; flex-wrap: wrap; gap: 0.8mm 1.2mm; align-items: center; margin-top: 0.4mm; }
 .prog { margin-top: 1.6mm; border: 0.25mm solid var(--border-default); padding: 1.4mm 2.2mm; }
 .prog .sh { font-size: 9pt; font-weight: 600; margin-bottom: 0.8mm; }
+.pbar { display: flex; height: 5.4mm; margin-top: 1.2mm; border: 0.3mm solid var(--kp-ink); background: #ffffff; }
+.pbar .seg { display: flex; align-items: center; justify-content: center; font-size: 8pt; font-weight: 600; line-height: 1; min-width: 0; border-right: 0.3mm solid var(--kp-ink); }
+.pbar .seg:last-child { border-right: 0; }
+.pbar .seg.site { background: var(--kp-ink); color: #ffffff; }
+.pbar .seg.sheet { background: repeating-linear-gradient(135deg, #d9d4cc 0 0.5mm, #ffffff 0.5mm 1.1mm); }
+.pbar .seg.sheet > span { background: #ffffff; padding: 0.3mm 0.8mm; }
+.pbar .seg.ext { background: #ffffff; }
+.pbar .seg.plan { background: var(--kp-paper); color: var(--fg-muted); }
 .lims { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 4mm; }
 .lims .sh { font-size: 9pt; font-weight: 600; margin-bottom: 0.6mm; }
 .lims li { position: relative; padding-left: 3mm; margin-bottom: 0.7mm; line-height: 1.36; }
@@ -331,7 +340,7 @@ u { text-decoration: none; border-bottom: 0.5mm solid var(--kp-red); }
 .tile.ev .big { font-size: 15pt; }
 .tile.ev .cap { flex: 1 1 22mm; }
 .rtab { width: 100%; border-collapse: collapse; }
-.rtab th { text-align: left; font-size: 8pt; color: var(--fg-muted); font-weight: 600; padding: 0.8mm 1.4mm; border-bottom: 0.35mm solid var(--kp-ink); }
+.rtab th { text-align: left; letter-spacing: 0; word-spacing: 0.1em; font-size: 8pt; color: var(--fg-muted); font-weight: 600; padding: 0.8mm 1.4mm; border-bottom: 0.35mm solid var(--kp-ink); }
 .rtab td { padding: 0.7mm 1.4mm; border-bottom: 0.25mm solid var(--border-subtle); vertical-align: top; line-height: 1.34; }
 .rtab td.a { font-size: 8.5pt; width: 47%; }
 .rtab td.d { font-size: 8.5pt; }
@@ -339,7 +348,7 @@ u { text-decoration: none; border-bottom: 0.5mm solid var(--kp-red); }
 .links { display: flex; flex-direction: column; gap: 0.6mm; }
 .links .l { display: grid; grid-template-columns: 6mm 19mm 1fr; align-items: center; gap: 1mm; border-bottom: 0.25mm solid var(--border-subtle); padding-bottom: 0.4mm; }
 .links .nm { font-weight: 600; font-size: 10pt; }
-.links a { font-size: 9pt; color: var(--kp-ink); text-decoration: underline; text-decoration-color: var(--border-default); text-underline-offset: 0.5mm; word-break: break-all; }
+.links .fn { font-size: 9.5pt; font-weight: 600; color: var(--kp-ink); }
 .links .nt { font-size: 8pt; color: var(--fg-muted); }
 .shots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm 4mm; }
 .shots.shots-top { display: flex; gap: 4mm; align-items: flex-start; margin-bottom: 4mm; }
@@ -355,8 +364,9 @@ u { text-decoration: none; border-bottom: 0.5mm solid var(--kp-red); }
 .shots .im .nb { position: absolute; left: 1mm; top: 1mm; width: 4.2mm; height: 4.2mm; border-radius: 50%; background: var(--kp-red); color: #fff; font-size: 8pt; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .shots .lb { font-size: 8.5pt; font-weight: 600; }
 .srows { display: flex; flex-direction: column; gap: 5mm; }
-.srow { display: flex; flex-direction: column; gap: 0.6mm; }
-.srow .lb { font-size: 9.5pt; font-weight: 600; margin-top: 1mm; }
+.srow { display: flex; flex-direction: column; gap: 1.6mm; }
+.srow .lb { font-size: 10pt; font-weight: 600; }
+.srow .pf, .srow .pc { align-self: flex-start; }
 .pair { display: flex; gap: 4mm; align-items: flex-start; }
 .pair.stack { flex-direction: column; gap: 2mm; }
 .pair .pf { position: relative; }
