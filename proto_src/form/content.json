@@ -1,0 +1,456 @@
+{
+ "format": "작품설명서 내용 파일. 쪽(pages)마다 블록의 문구를 적는다. 수치는 {{fact:}}, {{ref:}}, {{len:}}, {{asof:}}, {{name:}} 자리 표시로만 적고 build.py 가 사실 자료(presentation_animation/facts.json)와 외부 출처(proto_src/deck/refs.json), 덱 공통 설정(proto_src/deck/content/_deck.json)의 names 로 채운다. {{pg:쪽id}}는 그 쪽의 쪽 번호, {{crit:기준}}은 그 기준의 주된 근거 블록이 있는 쪽 번호들이다. crit 의 이름 뒤 * 는 그 기준의 주된 근거 블록이다. 성명과 소속부서는 이 파일에 적지 않는다(빌드할 때 identity 파일에서 읽는다). form 아래의 양식 원래 문구와 literal_digits 의 글자만 숫자를 직접 적을 수 있다.",
+ "html_title": "우체국보험 상품-영업 분석 작품설명서",
+ "footer_name": "우체국보험 상품-영업 분석 | 작품설명서",
+ "form": {
+  "doc_title": "2026년 PoSID AI 공모전 왕중왕전 작품설명서",
+  "head": ["항 목", "작 성 내 용"],
+  "dept": {"label": "소속부서", "guide": "실/팀명 순으로 입력"},
+  "name": {"label": "성 명", "guide": "성명 입력"},
+  "kind": {"label": "출품 구분", "options": ["AI담당관 제작 AI업무비서·AI에이전트", "공모전(시즌 3) 트랙① 8강 이상 입상작", "개인 제작 AI도구"]},
+  "title": {"label": "제 목"},
+  "tools": {"label": "활용 AI도구", "guide": "(웍스AI, Gemini, Ollama 등)"},
+  "body": {"label": "활용 내용 및 설명", "cont": "활용 내용 및 설명 (계속)",
+           "guide_head": "※ 평가기준(참신성·실용성·확장성·완성도)이 드러나도록 작성",
+           "guide": [
+            {"text": "- 어떤 업무에 쓰는지, 기존 방식과 무엇이 다른지", "go": "{{pg:p2}}, {{pg:p5}}쪽"},
+            {"text": "- 다른 부서·업무로 넓혀 쓸 수 있는지, 사용 방법은 어떤지", "go": "넓혀 쓰기 {{pg:p7}}쪽, 사용 방법 {{pg:p3}}쪽"},
+            {"text": "- 사용 실적(사용자 수·사용 횟수 등)이 있으면 함께 작성", "go": "{{pg:p8}}쪽"}
+           ]},
+  "output": {"label": "생성물", "cont": "생성물 (계속)", "guide": "이미지·동영상 파일 첨부 또는 링크"}
+ },
+ "literal_digits": [
+  {"text": "3.2.5", "why": "간편심사 유형 이름(실무자 의견의 원래 표현)"},
+  {"text": "3.0.5", "why": "간편심사 유형 이름"},
+  {"text": "2609", "why": "상품 이름에 든 개정 번호(우체국하나로OK보험 2609)"},
+  {"text": "2504", "why": "상품 이름에 든 개정 번호(우체국통합건강보험 2504)"},
+  {"text": "A4", "why": "용지 크기 이름"}
+ ],
+ "labels": {
+  "crit_footer": "이 쪽의 평가기준 근거",
+  "crit_go": "근거",
+  "gist": "응답 요지",
+  "tab_suffix": "탭",
+  "human": "사람:",
+  "head_shot": "분석 화면의 머리: 조건과 탭",
+  "conv_note": "원문 이름 셋 → 표준담보",
+  "code_reads": "코드가 읽음",
+  "effect": "효과",
+  "no_record": "실적 없음"
+ },
+ "title": {"main": "우체국보험 상품-영업 분석", "sub": "타사 공시 문서의 가입조건과 보장 내용을 AI로 뽑아 한 화면에서 비교하는 도구"},
+ "tools": {
+  "lines": [
+   {"label": "도구 안에서 일하는 AI", "text": "Gemini API(Google). 공시 문서 추출 {{fact:models.extract}}, 재추출 {{fact:models.extract_alt}}와 {{fact:models.upper}}, 추출값 검증과 담보 매핑의 확률 산정 {{fact:models.decide}}, 시장 동향 검색 {{fact:models.search}}"},
+   {"label": "만들 때 쓴 AI", "text": "{{name:claude_code}}(Anthropic. {{name:opus}}, {{name:sonnet}}, {{name:haiku}} 서브에이전트), Gemini(구독 패널과 웹), {{name:antigravity}}(Google, 화면 구현)"}
+  ],
+  "note": "함께 쓴 도구(AI 아님): 구글 시트(마스터 데이터), GitHub Actions(자동 실행), GitHub Pages(배포)"
+ },
+ "states": {
+  "moresimple": {"prefix": "EPOST_MORESIMPLE", "on": {"text": "화면에 반영했습니다", "pill": "반영"}, "off": {"text": "주간 마감 자료를 갱신할 때 화면에 반영합니다", "pill": "진행 중"}},
+  "hanarook": {"prefix": "EPOST_HANAROOK", "on": {"text": "화면에 반영했습니다", "pill": "반영"}, "off": {"text": "적재는 제출 뒤에 합니다", "pill": "진행 중"}}
+ },
+ "pages": [
+  {
+   "id": "p1", "topic": "한눈에 보기",
+   "blocks": {
+    "lead": "회사마다 다르게 적힌 보험 조건을 AI가 공시 문서에서 뽑아, 근거 쪽수와 함께 한 화면에서 비교합니다.",
+    "intro": [
+     {"label": "무엇을", "text": "상품요약서, 사업방법서의 가입조건(가입연령, 가입한도, 고지사항)과 보장 내용(지급액, 면책기간, 감액기간)"},
+     {"label": "누구를 위해", "text": "우체국보험 상품 기획과 영업 지원 담당자. 내부 비교와 교육 참고용입니다"},
+     {"label": "무엇이 달라지나", "text": "문서를 뒤져 비교표를 손으로 만들던 일을, 화면에서 확인하고 비교표를 복사하는 일로 바꿉니다"}
+    ],
+    "flow": {
+     "crit": ["실용성"],
+     "head": "문서에서 화면, 응대 화법까지",
+     "nodes": [
+      {"label": "공시 문서", "sub": "한화생명 상품 하나의 상품요약서"},
+      {"label": "분석 화면", "sub": "탭 {{fact:console4_tabs.count}}개, 웹 주소로 열기"},
+      {"label": "응대 화법 A4", "sub": "대외 배포 금지 한 장"}
+     ],
+     "arrows": ["AI가 옮기고 코드가 대조", "담보 선택, 비교표 복사"]
+    },
+    "tiles": [
+     {"value": "{{fact:site_org_count}}", "unit": "곳", "label": "화면에서 비교하는 회사"},
+     {"value": "{{fact:variant_count_site}}", "unit": "개", "label": "자료에 든 상품 종형"},
+     {"value": "{{fact:benefit_count_site}}", "unit": "건", "label": "보장 항목(급부)"},
+     {"value": "{{fact:epost_summary_rows_matched.matched}}/{{fact:epost_summary_rows_matched.total}}", "unit": "행", "label": "우체국 요약서 행 원문 일치"}
+    ],
+    "cards_head": "평가기준별 근거",
+    "cards": [
+     {"crit": "참신성", "text": "확률만 산정하는 AI({{fact:models.decide}})로 추출값을 검증하고, 회사마다 다른 담보 이름을 표준담보 {{fact:standard_coverage_in_use}}개로 묶었습니다"},
+     {"crit": "실용성", "text": "비교표 한 건에 {{fact:practice_compare_time}}(실무자 어림값) 걸리던 일을 화면 확인과 비교표 복사로 바꿉니다"},
+     {"crit": "확장성", "text": "목표 생명보험 {{fact:comparison_target_counts.생명보험}}곳, 손해보험 {{fact:comparison_target_counts.손해보험}}곳 가운데 타사 {{fact:comparison_targets_loaded.sheet}}곳을 시트에 적재했습니다"},
+     {"crit": "완성도", "text": "일부러 틀리게 바꾼 값 {{fact:calibration_flipped_rows.rows}}건 가운데 자동 확정 {{fact:calibration_flipped_rows.passed}}건, 자동 테스트 {{fact:test_count}}개. 한계도 함께 공개합니다"}
+    ],
+    "caution": "화면의 '가입 가능'은 공시 문서만으로 낸 참고 결과이며 실제 인수 심사 결과가 아닙니다. 보험료와 질병코드 범위는 다루지 않습니다."
+   }
+  },
+  {
+   "id": "p2", "topic": "어떤 업무에 쓰나",
+   "blocks": {
+    "headline": "타사 상품 하나를 비교하려면 수백 쪽 문서 속 문장을 손으로 찾아야 합니다",
+    "situation": {"label": "쓰는 업무", "text": "우체국보험 상품 기획과 영업 지원 담당자가 타사 상품과 보장을 당사 상품과 비교하는 일"},
+    "facts": {
+     "crit": ["실용성*"],
+     "head": "지금은 이렇게 합니다",
+     "chips": [
+      {"label": "비교 근거", "value": "{{fact:practice_compare_source}}"},
+      {"label": "비교표 한 건", "value": "{{fact:practice_compare_time}}"},
+      {"label": "빈도", "value": "{{fact:practice_compare_frequency}}"}
+     ],
+     "note": "실무자 {{fact:practice_respondents}}명이 보기에서 골라 어림한 값입니다(측정값 아님)."
+    },
+    "why_head": "왜 어려운가",
+    "why": [
+     {"title": "문서가 깁니다", "value": "{{fact:hanwha_summary_pages}}", "unit": "쪽", "caption": "한화생명 상품 하나의 상품요약서", "note": "사업방법서와 약관은 따로 있습니다"},
+     {"title": "고지사항이 회사마다 다릅니다", "rows_from": "simple_uw_questions_by_org", "caption": "간편심사에서 묻는 병력", "tag": "세 상품 가운데 우체국만 수술 이력을 묻지 않습니다"},
+     {"title": "같은 담보 이름이 다릅니다", "names_from": "example_cancer_surgery_names", "caption": "암 수술비 하나를 세 회사 문서는 이렇게 적습니다"}
+    ],
+    "quote": {"crit": ["참신성"], "text": "회사마다 필수 특약과 가입금액이 달라 같은 보장을 나란히 비교하기 어렵습니다", "who": "보험영업 실무자 {{fact:practice_respondents}}명, 응답 요지"},
+    "notes": [
+     "소비자가 보험료를 비교해 가입하는 서비스는 이미 있습니다({{ref:insurance_damoa.name}}, 금융위원회 보도자료 {{ref:insurance_damoa.date}}).",
+     "영업 기획 담당자의 관점에서 회사별 상품을 비교해 주는 도구는 없다는 것이 실무자 {{fact:practice_respondents}}명의 의견입니다."
+    ],
+    "needs": {
+     "crit": ["실용성"],
+     "head": "그래서 필요한 기능 셋",
+     "cols": [
+      {"ask": "누가 가입할 수 있나?", "icon": "users", "tab": "인수기준 비교", "text": "고객군 {{fact:segment_map_cell_count}}개 구간마다 당사와 타사의 가입 가능 여부를 나란히 봅니다"},
+      {"ask": "같은 보장을 어떤 조건으로 파나?", "icon": "scale", "tab": "담보 비교", "text": "같은 담보를 한 행에 놓고 근거 쪽수와 함께 확인한 뒤 비교표를 복사합니다", "tag": "아직: 타사 특약 가입조건과 결합 제약은 적재 전"},
+      {"ask": "영업에서 무엇을 말하나?", "icon": "headset", "tab": "영업 인사이트", "text": "영업 인사이트 {{fact:sales_insight_count}}건 가운데 고른 항목을 A4 한 장 응대 화법으로 만듭니다"}
+     ]
+    }
+   }
+  },
+  {
+   "id": "p3", "topic": "쓴 AI와 기술, 사용 방법",
+   "blocks": {
+    "headline": "공시 문서를 모으고, 옮기고, 확인하고, 쌓아서, 한 화면으로 배포합니다",
+    "legend": "AI는 글자를 옮기고 확률을 산정하며, 코드는 숫자 변환과 원문 대조를, 사람은 기준을 맡습니다",
+    "steps": {
+     "crit": ["참신성*"],
+     "head": "일곱 단계와 쓴 도구",
+     "items": [
+      {"name": "수집", "roles": ["코드", "AI"], "icon": "공시 문서", "text": "공시 문서는 실행할 때 회사 공시실에서 받고, 시장 동향은 매일 자동으로 모읍니다", "tool": "GitHub Actions, 회사별 접속 모듈, {{fact:models.search}}"},
+      {"name": "추출", "roles": ["AI", "코드"], "icon": "추출", "text": "AI가 급부와 가입조건의 글자를 옮기고, 금액과 기간은 코드가 숫자로 바꿉니다", "tool": "{{fact:models.extract}}, 삼성화재는 {{fact:samsungfire_benefit_reader}}"},
+      {"name": "검증", "roles": ["코드", "AI"], "icon": "검증", "hero": true, "text": "옮긴 값이 원문에 있는지 코드가 대조하고, 다른 AI가 맞을 확률만 산정합니다", "tool": "원문 대조 코드, {{fact:models.decide}}, 확률 {{fact:verify_confirm_threshold|f2}} 이상 자동 확정"},
+      {"name": "저장과 검수", "roles": ["사람"], "icon": "마스터 데이터", "text": "검증을 거친 값을 구글 시트에 쌓고, 검수 담당자가 검수 대기 값과 기준을 정합니다", "tool": "구글 시트 마스터 데이터", "big": "{{fact:sheet_tab_count}}", "big_unit": "탭"},
+      {"name": "보관", "roles": ["코드"], "icon": "주간 마감 자료", "text": "매주 일요일 {{fact:schedule_weekly_close_kst.time}}에 주간 마감 자료로 보관합니다", "tool": "주간 마감 자료: 매주 일요일에 그 시점의 자료를 통째로 보관한 것"},
+      {"name": "화면", "roles": ["코드"], "icon": "비교 화면", "text": "인터넷 연결 없이도 열리는 파일 하나로 분석 화면을 만듭니다", "tool": "파일 한 개, 약 {{fact:site_file_size_mb}}MB"},
+      {"name": "배포", "roles": ["코드"], "text": "웹 주소로 누구나 열어 볼 수 있게 공개합니다", "tool": "GitHub Pages, 무료 도구만 쓰는 설계 기준", "big": "{{fact:operating_cost_won}}", "big_unit": "원"}
+     ]
+    },
+    "users": {
+     "crit": ["실용성*"],
+     "head": "누가 어떤 상황에서 쓰나",
+     "items": [
+      {"title": "상품 기획 담당자", "text": "타사가 새 상품을 내면 당사 상품과의 차이를 근거 쪽수가 붙은 비교표로 정리합니다"},
+      {"title": "영업 지원 담당자", "text": "나이와 병력이 다른 고객군에서 어느 회사에 가입할 수 있는지 확인합니다"},
+      {"title": "교육과 응대 준비", "text": "고른 항목을 A4 한 장 응대 화법으로 만들어 내부 교육에 씁니다", "img": "talk_preview", "img_note": "대외 배포 금지"}
+     ]
+    },
+    "cond": {"head": "처음 열 때의 조건", "text": "{{fact:reference_condition.age}}세 남성, 입원과 수술 이력 없음, 기준 종형 {{fact:default_base_variant.name}}", "note": "화면 위 '조건 변경'에서 나이, 성별, 이력, 기준 종형을 바꿉니다"},
+    "shot": {"img": "head_gate", "zones": [
+      {"n": "A", "x": 0.6, "y": 0.04, "w": 0.35, "h": 0.44, "chip": "left", "label": "지금 조건과 '조건 변경', '요약 복사' 같은 버튼"},
+      {"n": "B", "x": 0.0, "y": 0.56, "w": 1.0, "h": 0.42, "chip": "below", "label": "탭 여섯: {{fact:console4_tabs.names}}"}
+     ]},
+    "order": {
+     "crit": ["실용성"],
+     "head": "사용 순서",
+     "items": [
+      {"name": "넓게 보기", "tabs": ["{{fact:console4_tabs.names.0}}", "{{fact:console4_tabs.names.1}}"], "text": "핵심 수를 한눈에 봅니다"},
+      {"name": "좁혀 확인", "tabs": ["{{fact:console4_tabs.names.2}}", "{{fact:console4_tabs.names.3}}", "{{fact:console4_tabs.names.5}}"], "text": "회사 간 차이를 근거와 함께 봅니다"},
+      {"name": "결론", "tabs": ["{{fact:console4_tabs.names.4}}"], "text": "비교 결과를 문장으로 읽습니다"},
+      {"name": "내보내기", "tabs": ["응대 화법"], "text": "A4 한 장으로 인쇄하거나 복사합니다"}
+     ]
+    }
+   }
+  },
+  {
+   "id": "p4", "topic": "전체 흐름",
+   "blocks": {
+    "headline": "자동 실행과 AI가 미리 해 두고, 사람은 기준을 정하고 화면에서 확인합니다",
+    "flow": {
+     "crit": ["완성도*", "확장성"],
+     "head": "누가 언제 무엇을 하나",
+     "lanes": [
+      {"icon": "person", "name": "실무자", "sub": "상품 기획, 영업 지원"},
+      {"icon": "user-check", "name": "검수 담당자", "sub": "기준값과 사전"},
+      {"icon": "calendar-check", "name": "자동 실행", "sub": "GitHub Actions"},
+      {"icon": "ai", "name": "AI", "sub": "Gemini 모델"},
+      {"icon": "database", "name": "저장소", "sub": "구글 시트, GitHub"}
+     ],
+     "t1a": "매일 {{fact:schedule_collect_kst.time}} 예약 실행",
+     "t1b": "시장 동향 검색, 확률 산정으로 선별",
+     "t1c": "시장 동향 기록",
+     "t2a": "필요할 때 수집과 추출을 실행",
+     "t2b": "공시 문서 수집, 추출 시작",
+     "t3": ["AI가 글자 추출", "코드가 원문 대조", "AI가 확률 산정"],
+     "t4d": "확률",
+     "t4hi": "{{fact:verify_confirm_threshold|f2}} 이상 자동 확정",
+     "t4mid": "그 사이는 검수 대기",
+     "t4lo": "{{fact:verify_reextract_threshold|f2}} 미만은 다른 AI로 재추출 뒤 다시 대조",
+     "t5a": "검수 대기 값을 원문과 확인",
+     "t5b": "확정 값과 표준담보 매핑 저장",
+     "t6a": "매주 일요일 {{fact:schedule_weekly_close_kst.time}} 예약 실행",
+     "t6b": "주간 마감 자료 보관",
+     "t7a": "화면 빌드, 공개 주소로 배포",
+     "t7b": "화면에서 비교, 비교표 복사, 응대 화법",
+     "t8a": "기준값과 표준담보 사전을 정함",
+     "t8b": "담당자 탭(기준값, 사전)",
+     "always": "상시",
+     "legend": [
+      "진한 테두리: 자동 실행과 AI",
+      "회색 바탕: 사람이 하는 일",
+      "점선: 상시 작업",
+      "빨강 선: 확률이 중간이면 사람에게"
+     ]
+    },
+    "week": {
+     "crit": ["완성도"],
+     "head": "언제 자동으로 실행되나",
+     "days": ["월", "화", "수", "목", "금", "토", "일"],
+     "daily": "매일 {{fact:schedule_collect_kst.time}} 시장 동향 수집",
+     "sun": "일요일 {{fact:schedule_weekly_close_kst.time}} 주간 마감 자료",
+     "manual": "공시 문서 수집, 추출, 매핑은 사람이 필요할 때 실행합니다"
+    },
+    "receipt": {
+     "crit": ["실용성"],
+     "head": "매주 운영 비용",
+     "items": [
+      {"label": "AI 호출(Gemini 무료 한도)", "won": "{{fact:operating_cost_won}}원"},
+      {"label": "마스터 데이터(구글 시트)", "won": "{{fact:operating_cost_won}}원"},
+      {"label": "자동 실행(GitHub Actions)", "won": "{{fact:operating_cost_won}}원"},
+      {"label": "웹 주소(GitHub Pages)", "won": "{{fact:operating_cost_won}}원"}
+     ],
+     "total_label": "합계",
+     "total": "{{fact:operating_cost_won}}원"
+    },
+    "note": "개발에 쓴 구독 요금은 운영비와 별도입니다: Claude 월 {{fact:subscription_claude_usd_per_month}}달러, Gemini 월 {{fact:subscription_gemini_krw_per_month}}원."
+   }
+  },
+  {
+   "id": "p5", "topic": "기존 방식과 비교",
+   "blocks": {
+    "headline": "타사가 새 상품을 내면, 비교표를 만드는 다섯 단계가 이렇게 바뀝니다",
+    "situation": "예: 당사 {{fact:default_base_variant.name}}과 한화생명 {{fact:example_cancer_surgery.orgs.HANWHALIFE.variant}}, 삼성화재 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.variant}}의 {{fact:example_cancer_surgery.standard_coverage}} 비교",
+    "table": {
+     "crit": ["실용성*", "완성도"],
+     "head": "다섯 단계의 전후 비교",
+     "cols": ["단계", "지금까지 사람이 직접", "이 도구로 누가 무엇을", "예: 암 수술비"],
+     "groups": ["자동 실행, AI, 검수 담당자가 미리 해 두는 일", "실무자가 화면에서 하는 일"],
+     "rows": [
+      {"name": "문서 받기", "icon": "공시 문서", "before": "각 회사 공시실에서 상품요약서, 사업방법서, 약관을 내려받습니다", "role": "코드", "after": "회사별 접속 모듈이 공시실에서 받습니다", "human": "수집 실행"},
+      {"name": "찾아 옮기기", "icon": "추출", "before": "수백 쪽 문서에서 담보를 찾아 금액과 조건을 읽습니다", "role": "AI", "after": "AI가 급부 글자를 옮기고 코드가 원문과 대조합니다", "human": "새 상품의 검증 결과 확인"},
+      {"name": "이름 맞추기", "icon": "관계 그래프", "before": "회사마다 다른 담보 이름을 사람이 읽고 맞춥니다", "role": "AI", "after": "AI가 표준담보에 연결하고, 확률 {{fact:mapping_auto_confirm_threshold|f2}} 이상이거나 두 AI가 일치하면 자동 확정합니다", "human": "검수 담당자가 나머지 확인"},
+      {"name": "표로 옮기기", "icon": "비교 화면", "before": "비교표에 값을 손으로 옮겨 적습니다", "role": "코드", "after": "코드가 담보 비교 표를 만들고 버튼 하나로 복사합니다", "human": "담보 선택, 비교표 복사"},
+      {"name": "원문 확인", "icon": "사람 검수", "before": "옮긴 값을 원문과 다시 대조합니다", "role": "사람", "after": "검수 대기 값만 원문과 대조하고, 그 전까지는 비교에서 뺍니다", "human": "상세와 근거에서 문서와 쪽수 확인", "hero": true}
+     ],
+     "fig": {"pay": "{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}", "pay_unit": "만 원", "pay_sub": "면책 {{fact:example_cancer_surgery.orgs.EPOST.waiting_days}}일", "pay_note": "우체국, 원문에서 읽은 값", "target": "{{fact:example_cancer_surgery.standard_coverage}}", "copy": "비교표 복사 버튼", "pending": "검수 대기 칩"}
+    },
+    "shot": {"crit": ["실용성"], "head": "화면에서 확인하는 모습", "img": "cancer_surgery",
+             "marks": [{"n": 1, "x": 0.058, "y": 0.43, "label": "담보 선택"}, {"n": 2, "x": 0.53, "y": 0.70, "label": "회사별 조건 표"}, {"n": 3, "x": 0.235, "y": 0.695, "label": "비교 결과와 검수 대기"}],
+             "result_head": "비교 결과(화면의 회사별 조건 표에서)", "result_note": "기준 가입금액이 회사마다 달라 금액만으로 우열을 매기지 않습니다",
+             "caption": "분석 화면 담보 비교 탭에서 암 수술비를 선택한 모습, 자료 기준 {{asof:example_cancer_surgery}}"},
+    "effect": {
+     "crit": ["완성도"],
+     "now_label": "지금", "now_value": "{{fact:practice_compare_time}}", "now_sub": "비교표 한 건, {{fact:practice_compare_frequency}}", "now_note": "실무자 {{fact:practice_respondents}}명이 어림한 값(측정값 아님)",
+     "tool_label": "이 도구로", "tool_badge": "측정 전", "tool_text": "줄어드는 시간은 아직 측정하지 않았습니다", "tool_note": "화면에 올린 회사의 검수 대기 매핑 {{fact:mapping_status_site.대기}}건은 담당자가 원문과 대조합니다",
+     "go": "왜 믿을 수 있나 → {{pg:p6}}쪽"
+    }
+   }
+  },
+  {
+   "id": "p6", "topic": "믿을 수 있는 이유",
+   "blocks": {
+    "headline": "AI가 옮긴 값은 코드와 다른 AI가 다시 확인하고, 기준은 사람이 정합니다",
+    "roles": {
+     "crit": ["완성도"],
+     "head": "역할 분담: 한 곳이 다 하지 않습니다",
+     "chips": [
+      {"role": "AI", "text": "원문 글자만 옮깁니다"},
+      {"role": "코드", "text": "글자를 숫자로 읽고 원문과 대조합니다"},
+      {"role": "사람", "text": "기준값과 표준담보 사전을 정합니다"}
+     ],
+     "ex1_label": "코드가 글자를 숫자로 읽는 예(추출 지시문의 예시)",
+     "ex1_in": ["{{fact:example_text_to_number.text.amount}}", "{{fact:example_text_to_number.text.reduced_period}}", "{{fact:example_text_to_number.text.reduced_amount}}"],
+     "ex1_out": "지급 {{fact:example_text_to_number.read.pay_manwon}}만 원, 감액 {{fact:example_text_to_number.read.reduce_months}}개월, 감액 중 {{fact:example_text_to_number.read.reduced_manwon}}만 원",
+     "ex2_label": "실제로 걸러 낸 예: 표적항암약물허가치료특약",
+     "ex2_in": "잘못 옮긴 지급액 {{fact:targeted_anticancer_misread.misread_pay_manwon}}만 원",
+     "ex2_mid": "원문 대조에서 걸러 상위 모델로 재추출",
+     "ex2_out": "바로잡은 값 {{fact:targeted_anticancer_misread.correct_pay_manwon}}만 원"
+    },
+    "gauge": {
+     "crit": ["완성도*", "참신성"],
+     "head": "확률 산정 모델: 확률만 매깁니다",
+     "stack_label": "일부러 틀리게 바꾼 값 {{fact:calibration_flipped_rows.rows}}건이 간 곳",
+     "seg_re": "다른 AI로 재추출 {{fact:calibration_reextract_band.wrong_caught_pct|f1}}%",
+     "seg_rv": "사람 검수 {{fact:calibration_review_band_pct|f1}}%(계산값)",
+     "big": "{{fact:calibration_flipped_rows.passed}}건",
+     "big_label": "틀린 값이 자동 확정을 통과한 수",
+     "zones": ["재추출", "사람 검수", "자동 확정"],
+     "line": "글은 쓰지 않고 확률만 산정하는 모델({{ref:gemini_decision_release.model}})을 {{len:decision_model_uses}}가지 일에 씁니다",
+     "chip": "초기 적재 매핑은 두 AI의 이중 추출이 일치한 {{fact:mapping_auto_confirm_by_route.site.cross_check}}건, 확률 산정 경로 {{fact:mapping_auto_confirm_by_route.site.decision_model}}건을 자동 확정",
+     "scope": "우체국 상품요약서 두 건으로 맞춘 좁은 표본의 결과입니다"
+    },
+    "onto": {
+     "crit": ["참신성*"],
+     "head": "이름이 달라도 같은 담보로 묶습니다",
+     "names_from": "example_cancer_surgery_names",
+     "target": "{{fact:example_cancer_surgery.standard_coverage}}",
+     "target_sub": "표준담보",
+     "chip": "자동 확정: 확률 {{fact:mapping_auto_confirm_threshold|f2}} 이상 또는 두 AI 일치",
+     "tiles": [
+      {"value": "{{fact:standard_coverage_in_use}}", "unit": "개", "label": "표준담보"},
+      {"value": "{{fact:coverage_major_class_count}}", "unit": "개", "label": "보장 대분류"},
+      {"value": "{{fact:coverage_relation_count}}", "unit": "건", "label": "담보 관계", "sub": "포함 {{fact:coverage_relations_by_kind.포함}}, 통합 {{fact:coverage_relations_by_kind.통합}}"},
+      {"value": "{{fact:graph_counts.nodes}}", "unit": "개", "label": "관계 그래프의 점"}
+     ]
+    },
+    "gold": {
+     "crit": ["완성도"],
+     "head": "정답표와 맞춰 본 결과",
+     "rings": [
+      {"value": "{{fact:epost_summary_rows_matched.matched}}", "total": "{{fact:epost_summary_rows_matched.total}}", "label": "우체국 요약서 급부 행"},
+      {"value": "{{fact:goldset_epost_benefit.auto_match}}", "hatch": "{{fact:goldset_epost_benefit.manual_match}}", "total": "{{fact:goldset_epost_benefit.items}}", "label": "우체국 급부 정답표", "legend": "빗금: 직접 확인 {{fact:goldset_epost_benefit.manual_match}}"},
+      {"value": "{{fact:goldset_hanwha_benefit.match}}", "total": "{{fact:goldset_hanwha_benefit.items}}", "label": "한화생명 급부 정답표"}
+     ],
+     "weak_head": "덜 맞는 곳도 그대로 공개합니다",
+     "bars": [
+      {"label": "우체국 가입조건", "match": "{{fact:goldset_epost_conditions.match}}", "items": "{{fact:goldset_epost_conditions.items}}"},
+      {"label": "우체국 결합 제약", "match": "{{fact:goldset_epost_constraints.match}}", "items": "{{fact:goldset_epost_constraints.items}}"}
+     ],
+     "unscored": {"label": "삼성화재 급부", "badge": "측정 전", "text": "정답표 {{fact:goldset_not_scored.SAMSUNGFIRE}}항목은 만들었고 아직 대조하지 않았습니다"}
+    },
+    "team": {
+     "crit": ["참신성"],
+     "head": "AI와 일한 방식: 지휘는 한 곳, 결과는 다시 실행해 확인",
+     "me": "출품자 {{fact:team_size}}명", "me_sub": "방향과 결정",
+     "cc": "{{name:claude_code}}", "cc_sub": "지휘와 최종 검수",
+     "gem": "{{name:gemini_panel}}", "gem_sub": "조사, 의견, 교차 확인",
+     "ag": "{{name:antigravity}}", "ag_sub": "화면 구현",
+     "subs": [{"name": "{{name:opus}}", "sub": "구현"}, {"name": "{{name:sonnet}}", "sub": "점검"}, {"name": "{{name:haiku}}", "sub": "기계 점검"}],
+     "gh": "{{name:github}} 저장소", "gh_sub": "요청서 {{fact:request_doc_count}}건, PR {{fact:pr_counts.total}}건",
+     "ring": "결과는 다시 실행해 확인한 뒤 반영",
+     "asof": "자료 기준 {{asof:commit_count}}",
+     "tiles": [
+      {"value": "{{fact:project_days.days}}", "unit": "일", "label": "만든 기간"},
+      {"value": "{{fact:commit_count}}", "unit": "건", "label": "커밋"},
+      {"value": "{{fact:test_count}}", "unit": "개", "label": "자동 테스트"},
+      {"value": "{{fact:request_doc_count}}", "unit": "건", "label": "AI에 준 요청서"}
+     ]
+    }
+   }
+  },
+  {
+   "id": "p7", "topic": "넓혀 쓰기와 한계",
+   "blocks": {
+    "headline": "실무자가 실제로 비교하는 회사부터 하나씩 넓힙니다",
+    "orgs": {
+     "crit": ["확장성*"],
+     "head": "다른 회사로",
+     "nodes": [
+      {"icon": "layout-dashboard", "name": "지금 화면", "sub": "{{fact:org_names.EPOST}}, {{fact:comparison_targets_loaded.site_names}}", "state": "now"},
+      {"icon": "building-2", "name": "교보생명", "sub": "생명보험 대형사를 채움", "state": "next", "badge": "다음"},
+      {"icon": "shield-alert", "name": "손해보험 대형 셋", "sub": "현대해상, DB손해보험, KB손해보험", "state": "later"},
+      {"icon": "landmark", "name": "농협 둘", "sub": "NH농협생명, NH농협손해보험", "state": "later"},
+      {"icon": "user-check", "name": "나머지", "sub": "사용검증 의견을 보고 정함", "state": "later"}
+     ],
+     "notes": [
+      "시트에 적재했고 화면에는 아직 올리지 않은 회사: {{fact:org_names.SAMSUNGLIFE}}, {{fact:org_names.KBLIFE}}, {{fact:org_names.MERITZ}}",
+      "추출과 원문 표본 대조까지 끝났고 시트 적재 전인 회사: {{fact:next_load_orgs.names}}"
+     ],
+     "tiles": [
+      {"value": "{{fact:disclosure_batch_org_count}}", "unit": "곳", "label": "회사별 접속 모듈로 공시 문서를 받은 회사"},
+      {"value": "{{fact:disclosure_batch_auto_org_count}}", "unit": "곳", "label": "그 가운데 로그인 없이 받은 회사"},
+      {"value": "{{fact:market_news_institution_count}}", "unit": "곳", "label": "시장 동향을 모으는 보험회사"}
+     ]
+    },
+    "uses": {
+     "crit": ["확장성"],
+     "head": "다른 업무로",
+     "cards": [
+      {"icon": "file-signature", "name": "상품 개발", "text": "개정 전후 상품을 같은 틀로 놓고 담보의 신설, 변경, 종료를 봅니다", "note": "{{fact:epost_renewal.before}}에서 {{fact:epost_renewal.after}}로의 리뉴얼: 변동 {{fact:revision_changes.전체}}건"},
+      {"icon": "gavel", "name": "인수기준 검토", "text": "회사별 가입연령, 가입한도, 고지사항을 한 표에서 대조합니다", "note": "고객군 {{fact:segment_map_cell_count}}개 구간의 가입 가능 여부"},
+      {"icon": "headset", "name": "영업 교육", "text": "비교 결과를 A4 한 장 응대 화법으로 인쇄하거나 복사합니다", "note": "내부 교육과 비교 참고용"},
+      {"icon": "radar", "name": "시장 모니터링", "text": "타사 신상품과 개정 소식을 분류해 모아 봅니다", "note": "분류 {{fact:market_news_category_count}}개, 매일 수집"}
+     ],
+     "out": "범위 밖(다음 단계 후보): 다른 상품 종류(암보험 단독, 치매와 간병, 어린이보험), 공제(새마을금고, 신협, 수협)"
+    },
+    "limits": {
+     "crit": ["완성도*"],
+     "head": "한계와 다음 계획",
+     "left_head": "지금 다루지 않는 것",
+     "left": [
+      "보험료: 보험료 예시 {{fact:premium_example_rows}}행. 보험료는 비교하지 않습니다",
+      "질병코드 범위: 급부별 질병코드 {{fact:benefit_disease_code_rows}}행. 약관 별표는 아직 읽지 않습니다",
+      "'가입 가능'은 참고 결과이며 실제 인수 심사 결과가 아닙니다",
+      "특약 가입조건 {{fact:rider_condition_rows_by_org.EPOST}}행과 결합 제약 {{fact:combination_constraints_by_org.EPOST}}건은 우체국만 적재했습니다"
+     ],
+     "right_head": "다음 계획",
+     "right": [
+      "개정 자동 감지: 문서 파일 해시는 보관하고 있고, 바뀐 상품만 다시 추출하는 단계를 더합니다",
+      "타사 특약 가입조건과 결합 제약을 적재해 가입 조건을 맞춘 비교로 넓힙니다",
+      "약관 별표의 질병코드 범위를 KCD 버전과 함께 적재해 회사끼리 비교합니다"
+     ],
+     "unmeasured_head": "아직 측정하지 않은 것",
+     "unmeasured": ["{{fact:not_yet_measured.2}}", "{{fact:not_yet_measured.0}}", "{{fact:not_yet_measured.1}}"],
+     "badge": "측정 전"
+    }
+   }
+  },
+  {
+   "id": "p8", "topic": "사용 실적",
+   "blocks": {
+    "headline": "아직 정식 배포 전이라 사용 실적은 없고, 실무자 의견을 받아 반영했습니다",
+    "record": {
+     "crit": ["완성도", "실용성"],
+     "head": "사용 실적",
+     "none": "정식 배포 전이라 사용자 수와 사용 횟수의 실적은 없습니다. 화면에는 접속 기록을 남기는 기능이 없어 열람 수도 알 수 없습니다.",
+     "have": "있는 것은 실무자 {{fact:practice_respondents}}명의 응답과 의견({{asof:practice_respondents}}, {{asof:practice_tool_need}})이고, 받은 의견은 아래와 같이 반영했습니다.",
+     "cols": ["받은 의견(요지)", "반영한 것", "상태"],
+     "rows": [
+      {"ask": "타사 비교는 공시실의 상품요약서, 사업방법서, 약관을 직접 보고 비교표 한 건에 {{fact:practice_compare_time}}, {{fact:practice_compare_frequency}} 합니다", "done": "어림값으로 표시하고, 줄어드는 시간은 사용검증에서 측정하기로 했습니다", "pill": "기록"},
+      {"ask": "회사마다 필수 특약과 가입금액이 달라 같은 보장의 비교가 어렵습니다", "done": "기준 가입금액이 다르면 금액만으로 우열을 매기지 않습니다. 타사 특약 가입조건과 결합 제약 적재는 다음 계획입니다", "pill": "일부 반영"},
+      {"ask": "간편보험의 통상적인 기준은 3.2.5입니다", "done": "화면이 처음 여는 기준 종형을 {{fact:default_base_variant.name}}으로 바꿨습니다", "pill": "반영"},
+      {"ask": "간편심사 건강보험을 비교하려면 3.0.5 상품이 있어야 합니다", "done": "우체국더간편건강보험을 추출 대상에 등록하고 시트에 적재했습니다. {{state:moresimple}}", "state": "moresimple"},
+      {"ask": "한화생명 시그니처H통합보험의 비교 상대로는 우체국하나로OK보험 2609가 알맞습니다", "done": "2609 개정에서 간편가입형이 신설된 상품임을 공시실 목록에서 확인하고 추출 대상에 등록했습니다. {{state:hanarook}}", "state": "hanarook"},
+      {"ask": "우체국통합건강보험 2504는 비교 상대로 맞지 않습니다", "done": "화면의 비교 대상에서 뺐습니다. 시트의 자료는 검증 근거로 남겼습니다", "pill": "반영"},
+      {"ask": "'스냅샷'이라는 말이 이해되지 않습니다", "done": "발표 자료와 안내 문서, 이 설명서에서 '주간 마감 자료'로 바꿨습니다", "pill": "반영"},
+      {"ask": "약관과 KCD가 바뀌는데 그것이 반영되는지 걱정됩니다", "done": "되는 것과 안 되는 것을 나눠 적고, 개정 자동 감지와 질병코드 범위 비교를 다음 계획에 넣었습니다({{pg:p7}}쪽)", "pill": "계획"},
+      {"ask": "영업 기획 관점에서 회사별 상품을 비교해 주는 도구가 없어 쓸모 있다고 봅니다", "done": "의견으로만 소개했습니다({{pg:p2}}쪽)", "pill": "의견"}
+     ],
+     "next": "다음 실적: 과제 여섯과 의견 양식으로 하는 실무자 사용검증을 준비했습니다. 제출 뒤 이 사용검증에서 비교표를 만드는 시간을 측정합니다."
+    }
+   }
+  }
+ ],
+ "output": {
+  "head": "직접 열어 보기",
+  "links": [
+   {"icon": "monitor-cog", "name": "분석 화면", "url": "https://bluethestyle.github.io/korea_post_life/proto/console4.html", "note": "시연용 화면, 컴퓨터 화면 권장"},
+   {"icon": "file-text", "name": "발표 자료", "url": "https://bluethestyle.github.io/korea_post_life/deck/", "note": "발표 덱, 설명 영상 {{len:video_seconds}}편이 덱 안에서 재생됩니다"},
+   {"icon": "map-pin", "name": "안내 화면", "url": "https://bluethestyle.github.io/korea_post_life/", "note": "위 화면들로 가는 첫 화면"},
+   {"icon": "network", "name": "저장소", "url": "https://github.com/bluethestyle/korea_post_life", "note": "코드, 문서, 테스트"}
+  ],
+  "videos_head": "설명 영상(발표 자료 안에서 재생)",
+  "videos": [
+   {"img": "part1_1", "label": "문서의 양과 화면 구성", "len": "{{fact:video_length_label.part1}}"},
+   {"img": "part2_1", "label": "공시 문서와 시장 동향 수집", "len": "{{fact:video_length_label.part2}}"},
+   {"img": "part3_1", "label": "확률 산정 모델로 면책 값 검증", "len": "{{fact:video_length_label.part3}}"},
+   {"img": "part4_1", "label": "이름이 다른 같은 보장 묶기", "len": "{{fact:video_length_label.part4}}"}
+  ],
+  "videos_note": "영상 파일은 발표 자료 주소에서 함께 열립니다. 위 그림은 영상의 한 장면입니다.",
+  "shots_head": "화면 캡처",
+  "shots": [
+   {"img": "summary", "top": true, "label": "전체 요약", "text": "지금 조건에서 탭마다의 핵심 수를 한 화면에 봅니다"},
+   {"img": "tab_gate", "label": "인수기준 비교", "text": "간편심사 유형마다 고지사항과 가입 가능 여부를 회사별로 봅니다"},
+   {"img": "cancer_surgery", "label": "담보 비교(암 수술비)", "text": "같은 담보의 지급액, 면책기간, 감액기간을 한 표에서 봅니다"},
+   {"img": "tab_insight", "label": "영업 인사이트", "text": "인수기준 차이, 우위 담보, 미보유 담보를 문장 카드로 읽습니다"},
+   {"img": "talk_preview", "top": true, "label": "응대 화법 A4", "text": "고른 항목을 A4 한 장으로 인쇄하거나 복사합니다(대외 배포 금지)"},
+   {"img": "tab_graph", "label": "관계 그래프", "text": "회사, 상품, 특약, 담보의 연결을 그림으로 따라갑니다"}
+  ],
+  "shots_note": "화면 기본 조건으로 캡처, 자료 기준 {{asof:snapshot_at}}. PDF를 확대하면 화면의 글자를 읽을 수 있습니다."
+ }
+}
