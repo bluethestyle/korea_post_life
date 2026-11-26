@@ -53,7 +53,8 @@
 .gr-g-only{fill:var(--gold-soft);stroke:var(--gold-line);stroke-width:1.5}
 .gr-g-shared{fill:var(--hover);stroke:var(--ink-2)}
 .gr-g-peer{fill:url(#gr-hatch);stroke:var(--dash);stroke-dasharray:3 3}
-.gr-sw .gr-g-peer{fill:none}
+.gr-sw .gr-g-peer{fill:none;stroke:var(--ink-1);stroke-width:2;stroke-dasharray:4 2.5}
+.gr-sw .gr-lg-sel{stroke:var(--red);stroke-width:3;stroke-linecap:round;opacity:1}
 .gr-hatch-l{stroke:var(--hatch);stroke-width:1}
 .gr-g.is-gsel{stroke:var(--red);stroke-width:2;stroke-dasharray:none}
 .gr-e{fill:none}
@@ -165,9 +166,15 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-lg-it{min-height:18px;line-height:1.2;min-width:0}
 .gr-lg-it>span{min-width:0}
 .gr-sec-k{margin:0 0 4px}
+.gr-flt-sub .gr-fs-s{display:none}
 @container (max-width:240px){
-  .gr-flts,.gr-legend .gr-lg-sec,.gr-presets{grid-template-columns:minmax(0,1fr)}
-  .gr-preset{justify-content:flex-start;align-items:flex-start;text-align:left;padding:6px 10px}
+  /* 3차 개선: 좁은 패널(1280x800)에서도 보기 방식은 3열, 필터는 2열로 두어 범례가 보이는 면적을 늘린다. 범례 항목만 1열 */
+  .gr-legend .gr-lg-sec{grid-template-columns:minmax(0,1fr)}
+  .gr-preset{min-height:38px;padding:3px 2px}
+  .gr-preset .gp-t{font-size:13px;line-height:1.2}
+  .gr-flt{min-height:34px;padding:2px 6px;line-height:1.2}
+  .gr-flt-sub .gr-fs-l{display:none}
+  .gr-flt-sub .gr-fs-s{display:inline}
 }
 .gr-preset .gp-t{word-break:keep-all}
 
@@ -233,7 +240,11 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-ve-inc{stroke:var(--ink-2)}
 .gr-ve-map{stroke:var(--ink-1)}
 .gr-ve-map.is-human{stroke:var(--ink-0);stroke-width:2}
-.gr-ve-cons{stroke:var(--ink-0);stroke-width:1.25;stroke-dasharray:4 3}
+/* 종형 구성의 점선 엣지 셋은 실선 엣지(굵기 1, 회색)보다 굵고 진하게, 대시 모양으로 서로 구분한다(범례는 같은 클래스로 그린다) */
+.gr-ve-cons{stroke:var(--ink-0);stroke-width:1.6;stroke-dasharray:9 3 2 3}
+.gr-ve-rel.gr-e-rel-inc{stroke:var(--ink-0);stroke-width:1.6;stroke-dasharray:6 3}
+.gr-ve-rel.gr-e-rel-uni{stroke:var(--ink-0);stroke-width:2.2;stroke-dasharray:.1 4;stroke-linecap:round}
+.gr-alt-svg .gr-tx.gr-vsec.is-zero{fill:var(--ink-1);font-weight:400}
 .gr-arrow-h{fill:var(--ink-0)}
 .gr-alt-svg .gr-e.is-esel{stroke:var(--red)}
 .gr-alt-svg .gr-e:hover{stroke:var(--red)}
@@ -245,6 +256,8 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-mk-o.is-ours .gr-v-c{stroke:var(--gold-line);stroke-width:2.5}
 .gr-mk-n .gr-v-c{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:1.25}
 .gr-mk-n.is-below .gr-v-c{fill:none;stroke:var(--ink-2);stroke-dasharray:2 1.5}
+/* 채움이 없는 빈 원도 가운데를 클릭하면 선택되게 */
+.gr-alt-svg .gr-mk-n .gr-v-c{pointer-events:all}
 .gr-me{stroke:var(--ink-1);stroke-width:1}
 @media (max-width:999px){
   .gr-left-wrap{gap:8px;padding-right:0}
@@ -264,8 +277,11 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-lg-tg .gr-sec-k{margin:0}
 .gr-lg-tg-s{margin-left:auto;font:400 13px/1.2 var(--f-body);color:var(--ink-2)}
 .gr-lg-tg:hover .gr-lg-tg-s,.gr-lg-tg:focus-visible .gr-lg-tg-s{color:var(--ink-0)}
-.gr-lg-chev{flex:none;transition:transform 160ms var(--ease-in)}
-.gr-legend.is-closed .gr-lg-chev{transform:rotate(-90deg)}
+/* 펼친 상태는 위쪽(접기), 접힌 상태는 아래쪽(펼치기) 화살표 */
+.gr-lg-chev{flex:none;transform:rotate(180deg);transition:transform 160ms var(--ease-in)}
+.gr-legend.is-closed .gr-lg-chev{transform:none}
+.gr-lg-tg .gr-lg-ic{flex:none;display:inline-flex;color:var(--ink-1)}
+.gr-lg-tg .gr-lg-ic svg{width:14px;height:14px}
 .gr-lg-body[hidden]{display:none!important}
 .gr-lg-foot{margin:2px 0 0;font:400 13px/1.35 var(--f-body);color:var(--ink-2)}
 .gr-left-more{position:sticky;bottom:0;margin:0;padding:5px 4px;background:var(--slate);color:var(--on-slate);
@@ -301,12 +317,15 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-net-svg .gr-e-bundle.is-ssel{stroke:var(--red);opacity:1}
 
 /* 3차 개선: 필터 대상 표시, 보장 대분류 구역 이름, 표시 기호 */
-/* 필터를 켜면 대상이 아닌 담보는 채움 없는 가는 점선 원, 대상은 굵은 테두리(명암과 상관없이 대상이 보이게) */
-.gr-net-svg.is-flt .gr-n:not(.is-on){opacity:1}
-.gr-net-svg.is-flt .gr-n:not(.is-on) .gr-n-c{fill:none!important;stroke:var(--ink-2);stroke-width:1;stroke-dasharray:2 2}
+/* 필터를 켜면 대상이 아닌 담보는 옅게(투명도와 가는 실선), 대상은 굵은 테두리. 점선은 검수 대기에만 쓴다(3차 개선 8번) */
+.gr-net-svg.is-flt .gr-n:not(.is-on){opacity:.22}
+.gr-net-svg.is-flt .gr-n:not(.is-on) .gr-n-c{stroke:var(--ink-1);stroke-width:1;stroke-dasharray:none}
+.gr-net-svg.is-flt .gr-n.is-wait:not(.is-on) .gr-n-c{stroke-dasharray:2 1.5}
 .gr-net-svg.is-flt .gr-n.is-on .gr-n-c{stroke:var(--ink-0);stroke-width:2.5;stroke-dasharray:none}
-/* 그룹을 호버하거나 선택하면 보이는 보장 대분류 구역 이름 */
-.gr-net-svg .gr-dz{font-size:12px;font-weight:600;fill:var(--ink-0);paint-order:stroke;stroke:var(--panel-t);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+/* 그룹을 호버하거나 선택하면 보이는 보장 대분류 구역 이름: 담보 이름과 섞이지 않게 무채색 칩에 굵은 글자(3차 개선 9번) */
+.gr-net-svg .gr-dz{pointer-events:none}
+.gr-net-svg .gr-dz rect{fill:var(--hover);stroke:var(--ink-2);stroke-width:1}
+.gr-net-svg .gr-dz .gr-tx{font-size:12px;font-weight:700;stroke:none}
 /* 담보 원 가장자리의 표시 기호는 필터를 켰을 때(대상)와 호버, 선택 강조 때만. 검수 대기(점선 테두리)는 늘 보인다 */
 .gr-net-svg .gr-n .gr-mk{opacity:0;transition:opacity 120ms var(--ease-in)}
 .gr-net-svg.is-flt .gr-n.is-on .gr-mk,.gr-net-svg .gr-n:hover .gr-mk,.gr-net-svg:is(.is-hl,.is-selm) .gr-n.is-keep .gr-mk{opacity:1}
@@ -331,14 +350,60 @@ button.gr-lg-it.is-on{background:var(--slate);color:var(--on-slate)}
 .gr-net-svg .gr-g-peer{stroke:var(--ink-1);stroke-width:2;stroke-dasharray:7 4}
 .gr-net-svg .gr-g-peer.is-gsel{stroke:var(--red)}
 .gr-hatch-l{stroke-width:1.4}
-/* 클릭할 수 있는 그룹 이름표는 버튼형 테두리 */
-.gr-lb-g .gr-lb-hit{fill:var(--panel-t);fill-opacity:.55;stroke:var(--line-2);stroke-width:1}
+/* 클릭할 수 있는 그룹 이름표는 버튼형 테두리. 우체국과 타사 보유도 다른 그룹 이름표와 같은 굵기의 실선(3차 개선 9번) */
+.gr-lb-g .gr-lb-hit{fill:var(--panel-t);fill-opacity:.85;stroke:var(--ink-1);stroke-width:1.5}
 .gr-lb-g{cursor:pointer}
 .gr-lb-g:hover .gr-lb-hit,.gr-lb-g:focus-visible .gr-lb-hit{stroke:var(--ink-0)}
-.gr-alt-svg .gr-tx.gr-vbox-go{font-size:16px;font-weight:700;fill:var(--ink-0)}
-.gr-vbox:hover .gr-vbox-go{fill:var(--red)}
+.gr-vbox-go{fill:none;stroke:var(--ink-0);stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
+.gr-vbox:hover .gr-vbox-go,.gr-vbox:focus-visible .gr-vbox-go,.gr-vbox.is-sel .gr-vbox-go{stroke:var(--red)}
+.gr-vbox-div{stroke:var(--line-2);stroke-width:1}
 /* 보유 구분을 그룹 라벨 테두리에도: 타사만 보유(우체국 미보유)는 그룹 원과 같은 굵은 파선, 우체국만 보유는 금색 테두리 */
 .gr-lb-g-peer .gr-lb-hit{stroke:var(--ink-1);stroke-width:1.5;stroke-dasharray:5 3}
 .gr-lb-g-only .gr-lb-hit{stroke:var(--gold-line);stroke-width:1.5}
 /* 위로 올린 검색 라벨이 배경 장식의 어두운 면 위에 놓여도 명암비 4.5 이상이 되게 */
 .gr-search-box .gr-sec-k{color:var(--ink-0)}
+
+/* 3차 개선: 필터 두 묶음, 상세 패널의 회사별 특약과 급부, 상세 패널 아래 페이드 */
+.gr-flt-wrap{display:flex;flex-direction:column;gap:8px}
+.gr-flt-blk .gr-sec-k{display:block}
+.kv.gr-held{grid-template-columns:minmax(4.5em,max-content) minmax(0,1fr);gap:4px 12px}
+.kv.gr-held dd{text-align:left;font-weight:400;color:var(--ink-0)}
+@media (min-width:1000px){.board[data-tab="graph"] #ev-body{padding-bottom:26px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent)}}
+/* 3차 개선 3번: 그룹 선택과 필터의 대상 담보 번호와 지시선(요청 43 2번에서 이름표 방식은 지우고 번호 방식 하나로 정리). 이때는 미리 배치한 담보 이름 라벨을 감춘다 */
+.gr-net-svg.is-call .gr-l-labels .gr-lb-s{opacity:0!important}
+.gr-cl-lead{stroke:var(--ink-1);stroke-width:1;fill:none}
+.gr-cl-num{cursor:pointer}
+.gr-cl-num rect{fill:var(--panel-t);stroke:var(--ink-0);stroke-width:1.25}
+.gr-net-svg .gr-cl-num .gr-tx{font-weight:700;stroke:none}
+.gr-num{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 4px;margin-right:4px;border:1.25px solid var(--ink-0);border-radius:3px;font:700 12px/1 var(--f-body);color:var(--ink-0);font-variant-numeric:tabular-nums}
+.gr-fl-k{margin:0 0 2px;font:600 13px/1.4 var(--f-body);color:var(--ink-1)}
+.gr-fl h3{margin:0 0 6px}
+.gr-fl-gh{margin:12px 0 4px;font:600 13px/1.4 var(--f-body);color:var(--ink-1)}
+.gr-fl-note{margin:0 0 6px;font:400 13px/1.5 var(--f-body);color:var(--ink-1)}
+/* 3차 개선 8번: 표시 기호 뒤의 무채색 배경 원 */
+.gr-mk-bg{fill:var(--panel-t);stroke:var(--ink-1);stroke-width:.75}
+/* 요청 43 5번 */
+/* 담보를 선택해 펼치면(is-exp) 선택한 그룹이 없으므로 번들 엣지는 그리지 않는다(범례와 그림을 맞춘다) */
+.gr-net-svg.is-exp .gr-e-bundle:not(.is-ssel){opacity:0}
+/* 범례의 필터 대상 견본: .gr-net-svg.is-flt .gr-n.is-on .gr-n-c 와 같은 굵은 테두리 */
+.gr-sw .gr-lg-flt .gr-n-c{stroke:var(--ink-0);stroke-width:2.5;stroke-dasharray:none}
+/* 요청 43 4번 */
+/* 종형 구성: 노드에서 떨어져 놓인 급부 이름표의 지시선(색은 기존 무채색 토큰) */
+.gr-vlead{fill:none;stroke:var(--ink-2);stroke-width:1;pointer-events:none}
+.gr-alt-svg.is-selm .gr-l-lead{opacity:.3}
+/* 낮은 화면(높이 1,000px 미만, 1600x900 등)에서는 범례 항목이 늘어도 스크롤 없이 다 보이게 범례를 한 줄 흐름으로 촘촘히 두고(글자 크기는 그대로 13px),
+   바로 위 칸의 간격을 줄인다. 높이 1,000px 이상(1920x1080)은 지금 배치(소제목과 2열 격자)를 그대로 쓴다.
+   소제목은 화면 낭독용으로만 남긴다(항목마다 견본과 이름이 있어 구분된다) */
+@media (min-width:1000px) and (max-height:999px){
+  .gr-left-wrap:has(>.gr-flt-wrap){gap:4px}
+  .gr-left-wrap:has(>.gr-flt-wrap) .gr-flt-wrap{gap:4px}
+  .gr-left-wrap:has(>.gr-flt-wrap) .gr-flt-sub{margin-bottom:3px}
+  .gr-left-wrap:has(>.gr-flt-wrap) .gr-tools{gap:4px}
+  .board[data-tab="graph"] .gr-left-wrap{padding-bottom:4px}
+  .gr-left-wrap .gr-lg-body{display:flex;flex-wrap:wrap;align-items:center;column-gap:8px}
+  .gr-left-wrap .gr-lg-body>.gr-lg-sec{display:contents}
+  .gr-left-wrap .gr-lg-body .gr-lg-h{position:absolute;width:1px;height:1px;margin:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .gr-left-wrap .gr-lg-body .gr-lg-it{flex:0 1 auto;width:auto;max-width:100%;min-height:0;padding:0 2px}
+  .gr-left-wrap .gr-lg-body .gr-sw{margin:-1px 0}
+  .gr-left-wrap .gr-lg-body :is(.gr-lg-foot,.gr-lg-note){flex:0 0 100%;margin-top:2px;line-height:1.3}
+}
