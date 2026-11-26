@@ -108,6 +108,41 @@ def test_form_assets_are_small_jpegs():
         assert f.stat().st_size <= 300 * 1024, f.name
 
 
+CUTS = ("cut_kpi", "cut_gate", "cut_cover", "cut_insight", "cut_talk", "cut_head_a", "cut_head_b", "cut_copy_button", "cut_pending_chip")
+FULLS = ("summary", "tab_gate", "tab_insight", "tab_graph", "cancer_surgery", "talk_preview")
+
+
+def test_zoom_cuts_exist_and_are_used(sample):
+    """확대 컷 파일이 있고(300KB 이하는 위 시험이 본다), 폭이 2배 배율 이상으로 찍혀 글자가 읽히며, 쪽에서 실제로 쓰인다."""
+    from PIL import Image
+    _, info = sample
+    for name in CUTS + FULLS:
+        f = FORM / "assets" / f"{name}.jpg"
+        assert f.is_file(), name
+        assert name in info["images"], f"{name} 이 어느 쪽에서도 쓰이지 않음"
+    # 2배 배율로 찍은 컷의 폭은 화면 폭(1280) 안 요소의 2배 이상이어야 한다: 가장 좁은 응대 화법 카드도 600px 이상
+    for name in ("cut_kpi", "cut_gate", "cut_cover", "cut_insight", "cut_talk", "cut_head_a", "cut_head_b"):
+        with Image.open(FORM / "assets" / f"{name}.jpg") as im:
+            assert im.width >= 600, (name, im.width)
+    # 옛 머리 띠 캡처는 쓰지 않는다
+    assert not (FORM / "assets" / "head_gate.jpg").exists()
+
+
+def test_page_count_and_page_names(sample):
+    doc, info = sample
+    assert info["pages"] == 10
+    assert doc.count('<section class="page"') == 10
+    assert "확장과 한계" in doc
+    assert "넓혀 쓰기와 한계" not in doc
+
+
+def test_replaced_terms_do_not_come_back():
+    text = (FORM / "content.json").read_text(encoding="utf-8")
+    for bad in ("틀린 값", "틀리게", "정식 배포 전", "비교 상대", "뒤져", "지료 기준", "넓혀 쓰기와", "판올림", "스냅샷"):
+        assert bad not in text.replace("'스냅샷'이라는 말이", ""), bad
+    assert "·" not in re.sub(r"AI담당관 제작 AI업무비서·AI에이전트|이미지·동영상|부서·업무|평가기준\(참신성·실용성·확장성·완성도\)", "", text).split('"labels"', 1)[1]
+
+
 def _identity_file() -> Path | None:
     cands = []
     if os.environ.get("FORM_IDENTITY"):

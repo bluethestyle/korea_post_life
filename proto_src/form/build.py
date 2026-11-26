@@ -135,7 +135,9 @@ class Form:
         self.pages = content["pages"]
         self.page_no = {p["id"]: i + 1 for i, p in enumerate(self.pages)}
         self.n_body = len(self.pages)          # "활용 내용 및 설명" 행이 끝나는 쪽(이 쪽에서 "생성물" 행이 시작한다)
-        self.total = self.n_body + 1           # 마지막 쪽은 "생성물 (계속)": 화면 캡처
+        self.shot_groups = content["output"]["shots_pages"]
+        self.total = self.n_body + len(self.shot_groups)   # 뒤의 쪽들은 "생성물 (계속)": 화면 캡처
+        self.page_no["shots"] = self.n_body + 1
         self.L = content.get("labels", {})
         self.states = {name: any(x.startswith(s["prefix"]) for x in parents) for name, s in content.get("states", {}).items()}
         self.images: dict[str, Path] = {}
@@ -366,7 +368,7 @@ class Form:
         tl = self.c["tools"]
         tools = ('<div class="tools">' + "".join(f'<span class="k">{self.t(x["label"])}</span><span class="v">{self.t(x["text"])}</span>'
                                                  for x in tl["lines"])
-                 + f'</div><p class="sm mut" style="margin-top:0.8mm">{self.t(tl["note"])}</p>')
+                 + f'</div><p class="mut toolnote">{self.t(tl["note"])}</p>')
         b = f["body"]
         gl = "".join(f'{esc(g["text"])}<span class="go">{ARROW}{self.t(g["go"])}</span>' for g in b["guide"])
         left6 = (f'<p>{esc(b["label"])}</p><p class="guide">{esc(b["guide_head"])}</p><p class="guide">{gl}</p>{self.rail(1)}')
@@ -385,7 +387,7 @@ class Form:
         intro = "".join(f'<span class="k">{self.t(x["label"])}</span><span>{self.t(x["text"])}</span>' for x in b["intro"])
         fl = b["flow"]
         pages = self.num("{{fact:hanwha_summary_pages}}")
-        FH = 27
+        FH = 22
         n0 = (f'<div class="node" style="width:40mm"><div class="fig" style="height:{FH}mm;gap:1mm;align-items:flex-end">{self.stack_svg(pages, 17, FH)}'
               f'<span class="big" style="padding-bottom:1mm">{self.t("{{fact:hanwha_summary_pages}}")}<span class="u">쪽</span></span></div>'
               f'<p class="lab">{self.t(fl["nodes"][0]["label"])}</p><p class="sub">{self.t(fl["nodes"][0]["sub"])}</p></div>')
@@ -397,6 +399,9 @@ class Form:
               f'<p class="lab">{self.t(fl["nodes"][2]["label"])}</p><p class="sub">{self.t(fl["nodes"][2]["sub"])}</p></div>')
         arr = lambda s: f'<div class="arr"><p class="t">{self.t(s)}</p>{self.arrow_svg(9, 3)}</div>'  # noqa: E731
         flow = f'<div class="p1-flow">{n0}{arr(fl["arrows"][0])}{n1}{arr(fl["arrows"][1])}{n2}</div>'
+        op = b["open"]
+        openl = (f'<p class="openl">{self.ic("monitor-cog", 4.6)}<b>{self.t(op["label"])}</b>'
+                 f'<a href="{esc(self.links_ok[0])}">{esc(self.links_ok[0])}</a></p>')
         tiles = f'<div class="tiles" style="grid-template-columns:repeat({len(b["tiles"])},1fr)">' + "".join(self.tile(t) for t in b["tiles"]) + "</div>"
         cards = []
         for cd in b["cards"]:
@@ -409,7 +414,7 @@ class Form:
         return (self.body_head(1, None)
                 + f'<p class="p1-lead">{self.t(b["lead"])}</p>'
                 + f'<div class="p1-intro">{intro}</div>'
-                + f'<div>{self.bh(fl["head"], fl.get("crit"))}{flow}</div>'
+                + f'<div>{self.bh(fl["head"], fl.get("crit"))}{flow}{openl}</div>'
                 + tiles
                 + f'<div>{self.bh(b["cards_head"])}<div class="p1-cards">{"".join(cards)}</div></div>'
                 + f'<p class="caution">{self.ic("info", 3.6)}<span>{self.t(b["caution"])}</span></p>')
@@ -447,14 +452,18 @@ class Form:
         cols = []
         for c in nd["cols"]:
             tag = f'<p class="sm" style="margin-top:auto"><span class="badge-um" style="white-space:normal;line-height:1.3">{self.t(c["tag"])}</span></p>' if c.get("tag") else ""
+            cue = ""
+            if c.get("cue"):
+                cue = (f'<div class="cue">{self.shot(c["cue"]["img"], 41)}<p class="sm mut">{self.t(c["cue"]["note"])}</p></div>')
             cols.append(f'<div class="need"><p class="ask">{self.t(c["ask"])}</p><div class="down">{self.down_svg(5)}</div>'
-                        f'<div class="card"><p class="tab">{self.ic(c["icon"], 5)}{self.t(c["tab"])} {self.lab("tab_suffix")}</p><p>{self.t(c["text"])}</p>{tag}</div></div>')
+                        f'<div class="card"><p class="tab">{self.ic(c["icon"], 5)}{self.t(c["tab"])} {self.lab("tab_suffix")}</p><p>{self.t(c["text"])}</p>{tag}{cue}</div></div>')
         return (self.body_head(2, b["headline"])
                 + f'<p class="band"><span class="k">{self.t(b["situation"]["label"])}</span><span>{self.t(b["situation"]["text"])}</span></p>'
                 + f'<div>{self.bh(fa["head"], fa.get("crit"))}<div class="p2-chips">{chips}</div><p class="sm mut" style="margin-top:0.8mm">{self.t(fa["note"])}</p></div>'
                 + f'<div>{self.bh(b["why_head"])}<div class="p2-why">{c1}{c2}{c3}</div></div>'
                 + quote + f'<div>{notes}</div>'
-                + f'<div>{self.bh(nd["head"], nd.get("crit"))}<div class="p2-needs">{"".join(cols)}</div></div>')
+                + f'<div>{self.bh(nd["head"], nd.get("crit"))}<div class="p2-needs">{"".join(cols)}</div>'
+                + f'<p class="sm mut" style="margin-top:1.2mm">{self.t(nd["cue_go"])}</p></div>')
 
     # 3쪽 -------------------------------------------------------------------
     def p3_body(self) -> str:
@@ -480,9 +489,12 @@ class Form:
         cond = (f'<div class="ucard" style="background:var(--kp-paper);border-color:var(--kp-paper)"><p class="t">{self.t(cd["head"])}</p>'
                 f'<p>{self.t(cd["text"])}</p><p class="sm mut" style="margin-top:0.6mm">{self.t(cd["note"])}</p></div>')
         sh = b["shot"]
-        zl = "".join(f'<p class="sm"><b class="red">{esc(z["n"])}</b> {self.t(z["label"])}</p>' for z in sh["zones"])
-        shot = (f'<div style="padding-top:0.6mm">{self.shot(sh["img"], 150, zones=sh["zones"])}</div>'
-                f'<div style="display:flex;flex-direction:column;gap:0.2mm;margin-top:5.4mm">{zl}</div>')
+        widths = {"cut_head_a": 112, "cut_head_b": 144}
+        rws = []
+        for r in sh["rows"]:
+            rws.append(f'<div class="hrow"><span class="hn">{esc(r["n"])}</span><div>{self.shot(r["img"], widths[r["img"]])}'
+                       f'<p class="sm hl2">{self.t(r["label"])}</p></div></div>')
+        shot = f'<div class="hrows">{"".join(rws)}</div>'
         od = b["order"]
         nodes = []
         for i, o in enumerate(od["items"]):
@@ -520,10 +532,12 @@ class Form:
             col = "#da291c" if red else "#3d3935"
             mk = "ah-r" if red else "ah"
             da = ' stroke-dasharray="1 0.8"' if dash else ""
-            lines.append(f'<path d="{d}" fill="none" stroke="{col}" stroke-width="{0.45 if red else 0.3}"{da} marker-end="url(#{mk})"/>')
+            lines.append(f'<path d="{d}" fill="none" stroke="{col}" stroke-width="{0.9 if red else 0.3}"{da} marker-end="url(#{mk})"/>')
 
-        # 1 매일 시장 동향
+        # 1 매일 시장 동향: 주 흐름과 별개라 얇은 띠로 구분한다
         y = 21
+        boxes.append(f'<div class="band1" style="left:0;top:{y - 2.4}mm;width:{W}mm;height:16.6mm"></div>')
+        boxes.append(f'<div class="bx plain note1" style="left:1mm;top:{y}mm;width:57mm;height:11mm">{self.t(fl["t1_note"])}</div>')
         bx(2, y, 11, fl["t1a"]); bx(3, y, 14, fl["t1b"]); bx(4, y, 11, fl["t1c"])
         nb(2, y, "1")
         ln(f"M89 {y + 5.5}H90.6"); ln(f"M119 {y + 5.5}H120.6")
@@ -550,7 +564,8 @@ class Form:
         bx(4, dy + 1, 12, fl["t4hi"])
         ln(f"M{dcx + dhw} {dy + dhh}H120.6")
         boxes.append(f'<div class="bx redt" style="left:61mm;top:{dy - 0.2}mm;width:28mm;height:6mm">{self.t(fl["t4mid"])}</div>')
-        ln(f"M{dcx - dhw} {dy + dhh}H59.6", red=True)
+        lines.append(f'<path d="M{dcx - dhw} {dy + dhh}H62.2" fill="none" stroke="#da291c" stroke-width="0.9"/>'
+                     f'<path d="M63.2 {dy + dhh - 1.8}L59.6 {dy + dhh}L63.2 {dy + dhh + 1.8}Z" fill="#da291c"/>')
         bx(1, dy + 1, 12, fl["t5a"], "hum")
         bx(3, dy + 2 * dhh + 3, 14, fl["t4lo"], "plain", x_off=1.5, w=27)
         ln(f"M105 {dy + 2 * dhh}V{dy + 2 * dhh + 2.7}")
@@ -582,7 +597,7 @@ class Form:
         sw = ['<span class="sw" style="border:0.35mm solid var(--kp-ink)"></span>',
               '<span class="sw" style="background:var(--kp-paper-deep)"></span>',
               '<span class="sw" style="border:0.3mm dashed var(--kp-ink)"></span>',
-              '<span class="sw" style="border-bottom:0.45mm solid var(--kp-red);height:1.6mm"></span>']
+              '<span class="sw" style="border-bottom:0.9mm solid var(--kp-red);height:1.6mm"></span>']
         legend = '<p class="legend4">' + "".join(f'<span>{s}{self.t(t)}</span>' for s, t in zip(sw, fl["legend"])) + "</p>"
         lanes = f'<div class="lane-wrap" style="width:{W}mm;height:{H}mm">{svg}{heads}{"".join(boxes)}</div>'
         wk = b["week"]
@@ -630,7 +645,7 @@ class Form:
                           f'<path d="M9 {2.1 + i * 4.2}L15.4 6.5" stroke="#5c5650" stroke-width="0.3" fill="none"/>' for i in range(3))
                 + '<rect x="15.6" y="3.4" width="12.2" height="6.2" fill="#ffffff" stroke="#3d3935" stroke-width="0.4"/></svg>')
         figs = [
-            f'<div style="display:flex;flex-direction:column;gap:0.6mm;align-items:center">{self.ic("공시 문서", 4.4)}{pg_chips}</div>',
+            f'<div style="display:flex;flex-direction:column;gap:0.6mm;align-items:center">{pg_chips}</div>',
             (f'<p class="big" style="font-size:15pt">{self.t(fg["pay"])}<span class="u">{self.t(fg["pay_unit"])}</span></p>'
              f'<p class="sm">{self.t(fg["pay_sub"])}</p><p class="sm mut">{self.t(fg["pay_note"])}</p>'),
             (f'<div style="position:relative">{conv}<span style="position:absolute;left:15.6mm;top:3.4mm;width:12.2mm;height:6.2mm;'
@@ -660,18 +675,18 @@ class Form:
             mark = ('<svg style="width:3.6mm;height:3.6mm;flex:none;margin-top:0.4mm" viewBox="0 0 4 4"><circle cx="2" cy="2" r="1.6" fill="#3d3935"/></svg>' if same else
                     '<svg style="width:3.6mm;height:3.6mm;flex:none;margin-top:0.4mm" viewBox="0 0 4 4"><circle cx="2" cy="2" r="1.6" fill="#fff" stroke="#3d3935" stroke-width="0.35"/><path d="M0.9 3.1L3.1 0.9" stroke="#3d3935" stroke-width="0.35"/></svg>')
             results.append(f'<div class="res{" same" if same else ""}">{mark}<span>{txt}</span></div>')
-        mid = (f'<div class="p5-mid"><div>{self.shot(sh["img"], 84, marks=sh["marks"])}'
-               f'<p class="sm" style="display:flex;gap:3mm;margin-top:0.8mm">{legend}</p>'
-               f'<p class="sm mut">{self.t(sh["caption"])}</p></div>'
-               f'<div style="display:flex;flex-direction:column;gap:1.6mm"><p class="sm" style="font-weight:600">{self.t(sh["result_head"])}</p>{"".join(results)}'
-               f'<p class="sm mut">{self.t(sh["result_note"])}</p></div></div>')
+        mid = (f'<div>{self.shot(sh["img"], 150, marks=sh["marks"])}'
+               f'<p class="sm" style="display:flex;gap:4mm;margin-top:0.8mm">{legend}<span class="mut">{self.t(sh["caption"])}</span></p></div>'
+               f'<div class="p5-res">{"".join(results)}<p class="sm mut">{self.t(sh["result_note"])}</p></div>')
         ef = b["effect"]
         effect = (f'<div>{self.bh(self.L.get("effect", ""), ef.get("crit"), "걸리는 시간")}<div class="effect">'
                   f'<div class="side"><p class="k">{self.t(ef["now_label"])}</p><p class="big">{self.t(ef["now_value"])}</p>'
                   f'<p>{self.t(ef["now_sub"])}</p><p class="sm mut">{self.t(ef["now_note"])}</p></div>'
                   f'<div class="ar" style="display:flex;align-items:center;justify-content:center">{self.arrow_svg(6, 3)}</div>'
-                  f'<div class="side"><p class="k">{self.t(ef["tool_label"])}</p><p><span class="badge-um">{self.t(ef["tool_badge"])}</span></p>'
-                  f'<p>{self.t(ef["tool_text"])}</p><p class="sm mut">{self.t(ef["tool_note"])}</p>'
+                  f'<div class="side"><p class="k">{self.t(ef["tool_label"])}</p>'
+                  f'<p class="tl"><span class="badge-um">{self.t(ef["tool_badge"])}</span> {self.t(ef["tool_text"])}</p>'
+                  f'<p class="struct"><b>{self.t(ef["tool_struct"])}</b><br><span class="sm mut">{self.t(ef["tool_struct_note"])}</span></p>'
+                  f'<p class="sm mut">{self.t(ef["tool_note"])}</p>'
                   f'<p class="sm" style="text-align:right;font-weight:600;margin-top:auto">{self.t(ef["go"])}</p></div></div></div>')
         return (self.body_head(5, b["headline"])
                 + f'<p class="band"><span>{self.t(b["situation"])}</span></p>'
@@ -755,6 +770,7 @@ class Form:
         bars.append(f'<div class="hbar"><span>{self.t(us["label"])}</span><span class="trk dash"></span><span class="badge-um">{self.t(us["badge"])}</span></div>'
                     f'<p class="sm mut" style="text-align:right">{self.t(us["text"])}</p>')
         gold = (f'<div>{self.bh(gd["head"], gd.get("crit"), "자동 확정")}<div class="rings">{"".join(rings)}</div>'
+                f'<p class="sm mut" style="margin-top:0.8mm">{self.t(gd["ring_note"])}</p>'
                 f'<p class="sm" style="font-weight:600;margin-top:1.6mm">{self.t(gd["weak_head"])}</p>{"".join(bars)}</div>')
         tm = b["team"]
         team = self.p6_team(tm)
@@ -794,6 +810,33 @@ class Form:
                 f'<div><p class="sm mut" style="margin-bottom:0.8mm">{self.t(tm["asof"])}</p><div class="tiles" style="grid-template-columns:1fr 1fr">{tiles}</div></div></div></div>')
 
     # 7쪽 -------------------------------------------------------------------
+    def org_progress(self, pg: dict) -> str:
+        """목표 회사 수만큼의 점을 진행 상태(화면 반영, 시트 적재, 추출 완료, 예정)로 나눠 그린다. 수는 사실 자료에서 센다."""
+        targets = int(self.num("{{fact:comparison_targets_loaded.targets}}"))
+        site = int(self.num("{{fact:comparison_targets_loaded.site}}"))
+        sheet = int(self.num("{{fact:comparison_targets_loaded.sheet}}"))
+        ext = len(self.fact("next_load_orgs.names") or [])
+        counts = {"site": site, "sheet": sheet - site, "ext": ext, "plan": targets - sheet - ext}
+        if min(counts.values()) < 0 or sum(counts.values()) != targets:
+            self.errors.append(f"목표 회사 진행 현황의 수가 맞지 않음: {counts}")
+        look = {"site": '<circle cx="{cx}" cy="3" r="2.3" fill="#3d3935"/>',
+                "sheet": '<circle cx="{cx}" cy="3" r="2.3" fill="url(#hf)" stroke="#3d3935" stroke-width="0.4"/>',
+                "ext": '<circle cx="{cx}" cy="3" r="2.1" fill="#ffffff" stroke="#3d3935" stroke-width="0.9"/>',
+                "plan": '<circle cx="{cx}" cy="3" r="2.1" fill="#ffffff" stroke="#8a847d" stroke-width="0.4" stroke-dasharray="0.7 0.6"/>'}
+        dots, x = [], 3.0
+        for st in pg["states"]:
+            for _ in range(counts[st["key"]]):
+                dots.append(look[st["key"]].format(cx=f"{x:.1f}"))
+                x += 6.2
+            x += 2.4
+        W = x
+        svg = f'<svg style="width:{W:.1f}mm;height:6mm;flex:none" viewBox="0 0 {W:.1f} 6" aria-hidden="true">{"".join(dots)}</svg>'
+        key = "".join(
+            f'<span class="nw"><svg style="width:4.6mm;height:4.6mm;vertical-align:-1mm;margin-right:0.6mm" viewBox="0 0 6 6" aria-hidden="true">{look[st["key"]].format(cx="3")}</svg>'
+            f'{self.t(st["label"])} <b>{counts[st["key"]]}</b></span>' for st in pg["states"])
+        return (f'<div class="prog"><p class="sh">{self.t(pg["head"])}</p><div style="display:flex;align-items:center;gap:3mm">{svg}</div>'
+                f'<p class="sm" style="display:flex;flex-wrap:wrap;gap:0.6mm 4.4mm;margin-top:0.6mm">{key}</p></div>')
+
     def p7_body(self) -> str:
         b = self.pages[6]["blocks"]
         og = b["orgs"]
@@ -804,15 +847,18 @@ class Form:
         flow = '<div class="orgflow">' + nodes[0] + "".join(f'<div class="ar">{self.arrow_svg(4, 3)}</div>{x}' for x in nodes[1:]) + "</div>"
         notes = "".join(f'<p class="sm mut">{self.t(x)}</p>' for x in og["notes"])
         tiles = f'<div class="tiles" style="grid-template-columns:1fr 1fr 1fr">{"".join(self.tile(t) for t in og["tiles"])}</div>'
+        progress = self.org_progress(og["progress"])
         us = b["uses"]
         cards = "".join(f'<div class="c"><p class="nm">{self.ic(c["icon"], 5)}{self.t(c["name"])}</p><p>{self.t(c["text"])}</p>'
-                        f'<p class="sm mut">{self.t(c["note"])}</p></div>' for c in us["cards"])
+                        f'<p class="sm mut">{self.t(c["note"])}</p>'
+                        f'<p class="tabs"><span class="sm mut">{self.t(us["tabs_label"])}</span>'
+                        + "".join(f'<span class="chip line">{self.t(x)}</span>' for x in c["tabs"]) + '</p></div>' for c in us["cards"])
         lm = b["limits"]
         left = "".join(f"<li>{self.t(x)}</li>" for x in lm["left"])
         right = "".join(f"<li>{self.t(x)}</li>" for x in lm["right"])
         um = "".join(f'<p class="um"><span class="badge-um">{self.t(lm["badge"])}</span><span>{self.t(x)}</span></p>' for x in lm["unmeasured"])
         return (self.body_head(7, b["headline"])
-                + f'<div>{self.bh(og["head"], og.get("crit"), "우체국")}<div style="padding-top:2.6mm">{flow}</div><div style="margin:1.2mm 0">{notes}</div>{tiles}</div>'
+                + f'<div>{self.bh(og["head"], og.get("crit"), "우체국")}<div style="padding-top:2.6mm">{flow}</div><div style="margin:1.2mm 0">{notes}</div>{progress}{tiles}</div>'
                 + f'<div>{self.bh(us["head"], us.get("crit"))}<div class="ucards">{cards}</div>'
                 + f'<p class="sm" style="margin-top:1.4mm;border:0.25mm dashed var(--border-default);padding:1mm 1.6mm;color:var(--fg-muted)">{self.t(us["out"])}</p></div>'
                 + f'<div>{self.bh(lm["head"], lm.get("crit"))}<div class="lims"><div><p class="sh">{self.t(lm["left_head"])}</p><ul>{left}</ul></div>'
@@ -834,9 +880,17 @@ class Form:
             rows.append(f'<tr><td class="a">{self.t(r["ask"])}</td><td class="d">{self.t(r["done"])}</td>'
                         f'<td class="s"><span class="{pcls}">{esc(pill)}</span></td></tr>')
         head = "".join(f"<th>{self.t(c)}</th>" for c in rc["cols"])
+        done = sum(1 for r in rc["rows"] if (self.c["states"][r["state"]]["on" if self.states[r["state"]] else "off"]["pill"] if r.get("state") else r["pill"]) in ("반영", "일부 반영"))
+        gold = (self.num("{{fact:goldset_epost_benefit.auto_match}}") + self.num("{{fact:goldset_epost_benefit.manual_match}}")
+                + self.num("{{fact:goldset_hanwha_benefit.match}}"))
+        gold_all = self.num("{{fact:goldset_epost_benefit.items}}") + self.num("{{fact:goldset_hanwha_benefit.items}}")
+        calc = {"opinions": f"{done}/{len(rc['rows'])}", "goldset": f"{int(gold)}/{int(gold_all)}"}
+        ev = "".join(self.tile({**t, "value": calc[t["calc"]] if t.get("calc") else t["value"]}, "ev") for t in rc["evidence"])
+        evidence = f'<div><p class="sh evh">{self.t(rc["evidence_head"])}</p><div class="tiles" style="grid-template-columns:repeat({len(rc["evidence"])},1fr)">{ev}</div></div>'
         return (self.body_head(8, b["headline"])
                 + f'<div>{self.bh(rc["head"], rc.get("crit"), "users")}'
                 + f'<div class="rec-none"><span class="zero">{self.lab("no_record")}</span><p>{self.t(rc["none"])}</p></div>'
+                + f'<div style="margin-top:1.6mm">{evidence}</div>'
                 + f'<p style="margin:2mm 0 1mm">{self.t(rc["have"])}</p>'
                 + f'<table class="rtab"><thead><tr>{head}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
                 + f'<p style="margin-top:1.6mm;font-weight:600">{self.t(rc["next"])}</p></div>')
@@ -846,27 +900,34 @@ class Form:
         links = "".join(f'<div class="l">{self.ic(l["icon"], 5)}<span class="nm">{self.t(l["name"])}</span>'
                         f'<span><a href="{esc(l["url"])}">{esc(l["url"])}</a><br><span class="nt">{self.t(l["note"])}</span></span></div>'
                         for l in o["links"])
-        return f'<div>{self.bh(o["head"])}<div class="links">{links}</div></div>'
-
-    def shots_body(self) -> str:
-        o = self.c["output"]
-        top, rest = [], []
-        for i, s in enumerate(o["shots"]):
-            port = self.aspect(s["img"]) < 1
-            style = f' style="aspect-ratio:{self.aspect(s["img"]):.4f}"' if port else ""
-            html_ = (f'<div class="s{" port" if port else ""}"><div class="im {self.img_cls(s["img"])}{" port" if port else ""}" role="img"{style}>'
-                     f'<span class="nb">{i + 1}</span></div>'
-                     f'<p class="lb">{i + 1}. {self.t(s["label"])}</p><p class="sm mut">{self.t(s["text"])}</p></div>')
-            (top if s.get("top") else rest).append(html_)
         play = ('<svg class="play" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.6" fill="#161616" fill-opacity="0.72"/>'
                 '<path d="M4 3L7.2 5L4 7z" fill="#ffffff"/></svg>')
-        vids = "".join(f'<div class="s"><div class="im {self.img_cls(v["img"])}" role="img">{play}</div>'
-                       f'<p class="lb">{self.t(v["label"])}</p><p class="sm mut">{self.t(v["len"])}</p></div>'
+        vids = "".join(f'<div class="s"><div class="im {self.img_cls(v["img"])}" role="img">{play}<span class="vl">{self.t(v["len"])}</span></div>'
+                       f'<p class="lb">{self.t(v["label"])}</p></div>'
                        for v in o.get("videos", []))
-        video = (f'<div>{self.bh(o["videos_head"])}<div class="shots vids">{vids}</div>'
-                 f'<p class="sm mut" style="margin-top:1mm">{self.t(o["videos_note"])}</p></div>') if vids else ""
-        return (f'<div>{self.bh(o["shots_head"])}<div class="shots shots-top">{"".join(top)}</div><div class="shots">{"".join(rest)}</div>'
-                + f'<p class="sm mut" style="margin-top:1.6mm">{self.t(o["shots_note"])}</p></div>') + video
+        video = f'<div>{self.bh(o["videos_head"])}<div class="shots vids">{vids}</div></div>' if vids else ""
+        return f'<div>{self.bh(o["head"])}<div class="links">{links}</div></div>' + video
+
+    # 읽히는 폭(mm): 확대 컷 안의 글자가 인쇄 크기에서 7pt 안팎이 되도록 컷마다 정한다(본문 칸의 폭은 150mm)
+    CUT_W = {"cut_kpi": 78, "cut_gate": 126, "cut_cover": 150, "cut_insight": 114, "cut_talk": 68}
+    FULL_W = {"summary": 60, "tab_gate": 52, "cancer_surgery": 52, "tab_insight": 52, "talk_preview": 36, "tab_graph": 84}
+
+    def shot_row(self, i: int, s: dict) -> str:
+        """화면 하나: 전체 캡처(모양)와 확대 컷(글자)을 짝으로 보이고 설명 한 줄을 붙인다."""
+        full = self.shot(s["img"], self.FULL_W[s["img"]])
+        fullw = f'<div class="pf"><span class="nb2">{i + 1}</span>{full}</div>'
+        title = f'<p class="lb">{i + 1}. {self.t(s["label"])}</p><p class="sm mut">{self.t(s["text"])}</p>'
+        if not s.get("cut"):
+            return f'<div class="srow"><div class="pair">{fullw}</div>{title}</div>'
+        cw = self.CUT_W[s["cut"]]
+        cut = self.shot(s["cut"], cw)
+        stack = "" if cw + self.FULL_W[s["img"]] <= 142 else " stack"
+        return f'<div class="srow"><div class="pair{stack}">{fullw}<div class="pc">{cut}</div></div>{title}</div>'
+
+    def shots_page(self, group: list[int]) -> str:
+        o = self.c["output"]
+        rows = "".join(self.shot_row(i, o["shots"][i]) for i in group)
+        return f'<div>{self.bh(o["shots_head"])}<div class="srows">{rows}</div></div>'
 
     # 조립 -----------------------------------------------------------------
     def pages_html(self) -> str:
@@ -880,8 +941,12 @@ class Form:
         rows = [("top", self.cont_left(no), "body", self.p8_body()),
                 ("top", f'<p>{esc(f["label"])}</p><p class="guide">{esc(f["guide"])}</p>', "body", self.output_body())]
         out.append(self.page(no, self.frame(rows, "auto auto 1fr")))
-        rows = [("top", f'<p class="cont">{esc(f["cont"])}</p><p class="guide">{esc(f["guide"])}</p>', "body", self.shots_body())]
-        out.append(self.page(self.total, self.frame(rows, "auto 1fr")))
+        for k, group in enumerate(self.shot_groups):
+            body = self.shots_page(group)
+            if k == len(self.shot_groups) - 1:
+                body += f'<p class="sm mut">{self.t(self.c["output"]["shots_note"])}</p>'
+            rows = [("top", f'<p class="cont">{esc(f["cont"])}</p><p class="guide">{esc(f["guide"])}</p>', "body", body)]
+            out.append(self.page(self.n_body + 1 + k, self.frame(rows, "auto 1fr")))
         return "\n".join(out)
 
 
