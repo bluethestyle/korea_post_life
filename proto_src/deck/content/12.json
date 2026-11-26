@@ -3,77 +3,163 @@
  "id": "why-ontology",
  "kind": "body",
  "chapter": 3,
- "status": "new",
- "headline": "이름이 다르면 컴퓨터는 같은 보장인지 알아보지 못합니다",
+ "status": "revised",
+ "headline": "절차 3: 이름이 다른 같은 담보를 표준담보 하나로 미리 맞춰 둡니다",
  "diagram": [
+  {
+   "use": "svg",
+   "box": [
+    0,
+    0,
+    330,
+    160
+   ],
+   "vb": [
+    330,
+    160
+   ],
+   "build": 1,
+   "alt": "절차 다섯 가운데 절차 3 이름 맞추기. 절차 1~3은 미리 해 두는 일, 절차 4~5는 화면에서 하는 일",
+   "svg": "<circle cx='20' cy='20' r='18' class='sv-paper'/><text x='20' y='28' text-anchor='middle' class='aux'>1</text><circle cx='82' cy='20' r='18' class='sv-paper'/><text x='82' y='28' text-anchor='middle' class='aux'>2</text><circle cx='144' cy='20' r='18' class='sv-deep'/><circle cx='144' cy='20' r='18' class='sv-ink'/><text x='144' y='28' text-anchor='middle' class='b'>3</text><circle cx='208' cy='20' r='17' class='sv-line'/><text x='208' y='28' text-anchor='middle' class='aux'>4</text><circle cx='270' cy='20' r='17' class='sv-line'/><text x='270' y='28' text-anchor='middle' class='aux'>5</text><path d='M176 0V76' class='sv-muted'/><text x='168' y='66' text-anchor='end' class='aux'>미리 해 두는 일</text><text x='184' y='66' class='aux'>화면에서</text><text x='0' y='112' class='b'>절차 3 이름 맞추기</text>"
+  },
+  {
+   "use": "C5",
+   "box": [
+    350,
+    0,
+    1090,
+    160
+   ],
+   "fill": false,
+   "labels": [
+    "지금까지",
+    "이 도구로"
+   ],
+   "build": 1,
+   "rows": [
+    {
+     "before": "회사마다 다른 담보 이름을 사람이 읽고 맞춤",
+     "after": "AI가 표준담보에 연결하고 담보 관계로 맞춤",
+     "note": "설명 {{slide:kg-ontology}}~{{slide:video-4}}장"
+    }
+   ]
+  },
+  {
+   "use": "C20",
+   "box": [
+    1460,
+    0,
+    300,
+    160
+   ],
+   "dir": "v",
+   "build": 1,
+   "chips": [
+    {
+     "role": "AI",
+     "label": "담보 연결"
+    },
+    {
+     "role": "검수 담당자",
+     "label": "매핑 검수"
+    }
+   ]
+  },
   {
    "use": "text",
    "size": "s",
    "tone": "muted",
-   "text": "세 회사의 암 수술비를 문서에 적힌 이름 그대로 비교표에 옮기면(●는 그 회사 문서에 있는 이름)",
    "box": [
     0,
-    0,
-    1760,
-    44
+    184,
+    1100,
+    40
    ],
-   "build": 1,
-   "limit": 56
+   "build": 2,
+   "limit": 56,
+   "text": "문서에 적힌 이름 그대로 옮기면(●는 그 회사 문서에 있는 이름)"
   },
   {
    "use": "svg",
    "box": [
     0,
-    56,
-    1760,
-    316
+    232,
+    1100,
+    300
    ],
    "vb": [
-    1760,
-    316
+    1100,
+    300
    ],
+   "build": 2,
    "limit": 60,
    "alt": "문서에 적힌 암 수술비 이름 셋을 그대로 비교표에 옮기면 같은 보장이 세 행으로 나뉘고 행마다 한 회사만 채워지는 그림",
-   "svg": "<rect x='0' y='0' width='1760' height='60' class='sv-paper'/><text x='24' y='40' class='b'>문서에 적힌 급부 이름</text><text x='1230' y='40' text-anchor='middle' class='b'>우체국</text><text x='1440' y='40' text-anchor='middle' class='b'>한화생명</text><text x='1650' y='40' text-anchor='middle' class='b'>삼성화재</text><path d='M0 60H1760M0 144H1760M0 228H1760M0 312H1760' class='sv-line'/><path d='M1125 0V312M1335 0V312M1545 0V312' class='sv-line'/><text x='24' y='112'>{{fact:example_cancer_surgery_names.EPOST}}</text><circle cx='1230' cy='102' r='14' class='sv-fill-ink'/><text x='1440' y='110' text-anchor='middle' class='aux'>없음</text><text x='1650' y='110' text-anchor='middle' class='aux'>없음</text><text x='24' y='196'>{{fact:example_cancer_surgery_names.HANWHALIFE}}</text><text x='1230' y='194' text-anchor='middle' class='aux'>없음</text><circle cx='1440' cy='186' r='14' class='sv-fill-ink'/><text x='1650' y='194' text-anchor='middle' class='aux'>없음</text><text x='24' y='280'>{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}</text><text x='1230' y='278' text-anchor='middle' class='aux'>없음</text><text x='1440' y='278' text-anchor='middle' class='aux'>없음</text><circle cx='1650' cy='270' r='14' class='sv-fill-ink'/>",
-   "build": 1
+   "svg": "<rect x='0' y='0' width='1100' height='60' class='sv-paper'/><text x='20' y='40' class='b'>문서에 적힌 급부 이름</text><text x='810' y='40' text-anchor='middle' class='b'>우체국</text><text x='925' y='40' text-anchor='middle' class='b'>한화생명</text><text x='1040' y='40' text-anchor='middle' class='b'>삼성화재</text><path d='M0 60H1100M0 140H1100M0 220H1100M0 300H1100' class='sv-line'/><path d='M752 0V300M868 0V300M984 0V300' class='sv-line'/><text x='20' y='110'>{{fact:example_cancer_surgery_names.EPOST}}</text><circle cx='810' cy='100' r='14' class='sv-fill-ink'/><text x='925' y='108' text-anchor='middle' class='aux'>없음</text><text x='1040' y='108' text-anchor='middle' class='aux'>없음</text><text x='20' y='190'>{{fact:example_cancer_surgery_names.HANWHALIFE}}</text><text x='810' y='188' text-anchor='middle' class='aux'>없음</text><circle cx='925' cy='180' r='14' class='sv-fill-ink'/><text x='1040' y='188' text-anchor='middle' class='aux'>없음</text><text x='20' y='270'>{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}</text><text x='810' y='268' text-anchor='middle' class='aux'>없음</text><text x='925' y='268' text-anchor='middle' class='aux'>없음</text><circle cx='1040' cy='260' r='14' class='sv-fill-ink'/>"
   },
   {
    "use": "text",
    "size": "m",
    "tone": "red",
    "hero": true,
-   "text": "같은 암 수술비가 세 행으로 나뉘어 나란히 비교할 수 없습니다",
    "box": [
     0,
-    400,
-    1760,
-    56
+    550,
+    1100,
+    54
    ],
-   "build": 2
+   "build": 3,
+   "text": "같은 암 수술비가 세 행으로 나뉘어 나란히 비교할 수 없습니다"
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "box": [
+    1140,
+    184,
+    620,
+    40
+   ],
+   "build": 4,
+   "text": "표준담보 하나로 맞추면"
   },
   {
    "use": "svg",
    "box": [
-    0,
-    488,
-    1760,
-    112
+    1140,
+    232,
+    620,
+    300
    ],
    "vb": [
-    1760,
-    112
+    620,
+    300
    ],
-   "alt": "사람은 세 이름을 모두 암 수술비로 알아보지만 컴퓨터는 글자가 달라 서로 다른 세 항목으로 센다는 대비",
-   "svg": "<rect x='0' y='2' width='860' height='108' class='sv-paper'/><text x='28' y='46' class='b'>사람이 읽으면</text><text x='28' y='88'>세 이름 모두 암 수술비로 알아봄</text><rect x='900' y='2' width='860' height='108' class='sv-ink'/><text x='928' y='46' class='b'>컴퓨터가 읽으면</text><text x='928' y='88'>글자가 달라 서로 다른 세 항목으로 셈</text>",
-   "build": 2
+   "build": 4,
+   "alt": "우체국, 한화생명, 삼성화재 세 회사의 급부가 표준담보 암 수술비 하나로 모이고, 비교표에서 한 행에 세 회사가 모두 채워지는 그림",
+   "svg": "<text x='0' y='38'>우체국</text><text x='0' y='98'>한화생명</text><text x='0' y='158'>삼성화재</text><path d='M88 29C160 29 170 89 230 89M122 89H230M122 149C170 149 160 89 230 89' class='sv-muted' marker-end='url(#ah)'/><rect x='240' y='24' width='380' height='130' class='sv-paper'/><rect x='240' y='24' width='380' height='130' class='sv-ink'/><text x='430' y='84' text-anchor='middle' class='b'>{{fact:example_cancer_surgery.standard_coverage}}</text><text x='430' y='124' text-anchor='middle' class='aux'>표준담보</text><rect x='0' y='190' width='620' height='50' class='sv-paper'/><text x='16' y='224' class='b'>표준담보</text><text x='250' y='224' text-anchor='middle' class='b'>우체국</text><text x='375' y='224' text-anchor='middle' class='b'>한화생명</text><text x='510' y='224' text-anchor='middle' class='b'>삼성화재</text><path d='M0 240H620M0 300H620' class='sv-line'/><text x='16' y='280'>{{fact:example_cancer_surgery.standard_coverage}}</text><circle cx='250' cy='270' r='14' class='sv-fill-ink'/><circle cx='375' cy='270' r='14' class='sv-fill-ink'/><circle cx='510' cy='270' r='14' class='sv-fill-ink'/>"
+  },
+  {
+   "use": "text",
+   "size": "m",
+   "tone": "ink",
+   "box": [
+    1140,
+    550,
+    620,
+    54
+   ],
+   "build": 4,
+   "text": "한 행에서 세 회사를 나란히 비교합니다"
   }
  ],
  "points": [
   "같은 것을 같은 이름으로 부르는 약속이 필요합니다"
  ],
  "terms": [
-  "급부"
+  "표준담보",
+  "매핑"
  ],
  "source": "출처: 각 사 상품요약서의 급부 이름(담보 비교 자료), 자료 기준 {{asof:example_cancer_surgery_names}}",
- "notes": "{{slide:cancer-surgery}}장에서 암 수술비 하나를 세 회사 문서에서 찾아 같은 행에 놓았습니다. 그런데 문서에 적힌 이름은 이렇게 다릅니다. 우체국은 '{{fact:example_cancer_surgery_names.EPOST}}', 한화생명은 '{{fact:example_cancer_surgery_names.HANWHALIFE}}', 삼성화재는 '{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}'입니다. 보험을 아는 사람은 세 이름을 읽고 모두 암 수술비라는 것을 바로 알아봅니다. 하지만 컴퓨터는 글자가 하나라도 다르면 서로 다른 항목으로 셉니다. 그래서 이름을 그대로 비교표에 옮기면 같은 보장이 세 행으로 나뉘고, 행마다 한 회사만 채워집니다. 화면은 세 회사가 서로 다른 담보를 하나씩 가진 것처럼 보여 주고, 어느 회사든 다른 두 회사에는 암 수술비가 없다는 잘못된 결과가 나옵니다. {{ref:kg_google_2012.year}}년 구글이 지식그래프를 내놓으며 내세운 {{ref:kg_google_2012.text}}도, 글자가 같은지가 아니라 같은 것을 가리키는지를 따지자는 발상입니다. 이 문제를 사람이 손으로 풀기도 어렵습니다. 화면에 올린 세 회사의 급부(보험금을 주는 사유 한 건)만 {{fact:benefit_count_site}}개이고, 회사를 늘릴 때마다 이름 대조를 처음부터 다시 해야 합니다. 그래서 같은 것을 같은 이름으로 부르자는 약속을 먼저 정했습니다. 이 약속을 온톨로지라고 부르고, 다음 장에서 쉽게 풀어 설명하겠습니다."
+ "notes": "{{slide:step2-extract}}장에서 세 회사 문서의 암 수술비를 찾아 시트에 옮겼습니다. 그런데 문서에 적힌 이름은 이렇게 다릅니다. 우체국은 '{{fact:example_cancer_surgery_names.EPOST}}', 한화생명은 '{{fact:example_cancer_surgery_names.HANWHALIFE}}', 삼성화재는 '{{fact:example_cancer_surgery_names.SAMSUNGFIRE}}'입니다. 보험을 아는 사람은 세 이름을 읽고 모두 암 수술비라는 것을 바로 알아봅니다. 하지만 컴퓨터는 글자가 하나라도 다르면 서로 다른 항목으로 셉니다. 그래서 이름을 그대로 비교표에 옮기면 같은 보장이 세 행으로 나뉘고, 행마다 한 회사만 채워집니다. 화면은 세 회사가 서로 다른 담보를 하나씩 가진 것처럼 보여 주고, 어느 회사든 다른 두 회사에는 암 수술비가 없다는 잘못된 결과가 나옵니다. {{ref:kg_google_2012.year}}년 구글이 지식그래프를 내놓으며 내세운 {{ref:kg_google_2012.text}}도, 글자가 같은지가 아니라 같은 것을 가리키는지를 따지자는 발상입니다. 이 문제를 사람이 손으로 풀기도 어렵습니다. 화면에 올린 세 회사의 급부(보험금을 주는 사유 한 건)만 {{fact:benefit_count_site}}개이고, 회사를 늘릴 때마다 이름 대조를 처음부터 다시 해야 합니다. 그래서 같은 것을 같은 이름으로 부르자는 약속을 먼저 정했습니다. 이 도구는 세 회사의 급부를 표준담보 '{{fact:example_cancer_surgery.standard_coverage}}' 하나에 미리 연결해 둡니다. 이 연결을 매핑이라고 부르고, AI가 표준담보에 연결한 뒤 확신이 낮은 연결은 검수 담당자가 확인합니다. 그러면 오른쪽처럼 암 수술비가 한 행에 모이고 세 회사를 나란히 비교할 수 있습니다. 다음 장에서 이 한 행을 화면에서 비교합니다. 이 약속이 온톨로지이고 {{slide:kg-ontology}}장부터 설명합니다."
 }

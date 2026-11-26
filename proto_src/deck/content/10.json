@@ -7,19 +7,139 @@
  "headline": "절차 1: 담당자가 수집을 실행하면, 회사별 수집 기능이 공시실에서 문서를 받습니다",
  "diagram": [
   {
-   "use": "text",
-   "size": "m",
-   "tone": "muted",
-   "text": "구성 중: 절차 1 문서 받기",
+   "use": "svg",
    "box": [
     0,
     0,
-    1760,
-    44
+    330,
+    160
+   ],
+   "vb": [
+    330,
+    160
+   ],
+   "build": 1,
+   "alt": "절차 다섯 가운데 절차 1 문서 받기. 절차 1~3은 미리 해 두는 일, 절차 4~5는 화면에서 하는 일",
+   "svg": "<circle cx='20' cy='20' r='18' class='sv-deep'/><circle cx='20' cy='20' r='18' class='sv-ink'/><text x='20' y='28' text-anchor='middle' class='b'>1</text><circle cx='82' cy='20' r='17' class='sv-line'/><text x='82' y='28' text-anchor='middle' class='aux'>2</text><circle cx='144' cy='20' r='17' class='sv-line'/><text x='144' y='28' text-anchor='middle' class='aux'>3</text><circle cx='208' cy='20' r='17' class='sv-line'/><text x='208' y='28' text-anchor='middle' class='aux'>4</text><circle cx='270' cy='20' r='17' class='sv-line'/><text x='270' y='28' text-anchor='middle' class='aux'>5</text><path d='M176 0V76' class='sv-muted'/><text x='168' y='66' text-anchor='end' class='aux'>미리 해 두는 일</text><text x='184' y='66' class='aux'>화면에서</text><text x='0' y='112' class='b'>절차 1 문서 받기</text>"
+  },
+  {
+   "use": "C5",
+   "box": [
+    350,
+    0,
+    1090,
+    160
+   ],
+   "fill": false,
+   "labels": [
+    "지금까지",
+    "이 도구로"
+   ],
+   "build": 1,
+   "rows": [
+    {
+     "before": "공시실에서 요약서, 사업방법서, 약관을 내려받음",
+     "after": "자동 수집 기능이 공시 문서를 받음(지원하는 회사)",
+     "note": "수집 장면은 {{slide:video-2}}장 영상"
+    }
    ]
+  },
+  {
+   "use": "C20",
+   "box": [
+    1460,
+    0,
+    300,
+    160
+   ],
+   "dir": "v",
+   "build": 1,
+   "chips": [
+    {
+     "role": "코드",
+     "label": "문서 받기"
+    },
+    {
+     "role": "검수 담당자",
+     "label": "수집 실행"
+    }
+   ]
+  },
+  {
+   "use": "C3",
+   "dir": "h",
+   "box": [
+    0,
+    176,
+    1760,
+    156
+   ],
+   "compact": true,
+   "build": 2,
+   "nodes": [
+    {
+     "label": "매일 아침 신상품 소식",
+     "sub": "{{fact:schedule_collect_kst.time}} 자동 수집, 화면 첫 탭",
+     "icon": "시장 동향"
+    },
+    {
+     "label": "담당자가 확인",
+     "sub": "새 상품이나 개정이면 수집 대상",
+     "icon": "사람 검수"
+    },
+    {
+     "label": "문서 수집 실행",
+     "sub": "담당자가 회사를 골라 실행",
+     "icon": "일정"
+    },
+    {
+     "label": "공시실에서 받기",
+     "sub": "상품요약서와 사업방법서 PDF",
+     "icon": "공시 문서",
+     "hero": true
+    }
+   ]
+  },
+  {
+   "use": "C10",
+   "box": [
+    0,
+    344,
+    620,
+    184
+   ],
+   "build": 3,
+   "tile": true,
+   "size": "small",
+   "value": "{{fact:disclosure_batch_auto_org_count}}",
+   "unit": "곳",
+   "caption": "로그인 없이 문서를 받은 회사",
+   "scope": "일괄 실행한 {{fact:disclosure_batch_org_count}}곳 중",
+   "hero": false
+  },
+  {
+   "use": "svg",
+   "box": [
+    660,
+    344,
+    1100,
+    184
+   ],
+   "vb": [
+    1100,
+    184
+   ],
+   "build": 3,
+   "alt": "예외 카드: 한화손해보험은 공시실이 자동 접속을 막아 사람이 내려받고, 차단을 우회하지 않음",
+   "svg": "<rect x='0' y='0' width='1100' height='184' class='sv-paper'/><use href='{{icon:사람 검수}}' x='32' y='36' width='56' height='56'/><text x='112' y='62' class='b'>예외: 한화손해보험은 사람이 내려받습니다</text><text x='112' y='108'>공시실이 자동 접속을 막습니다(상태 {{fact:hanwhafire_block_status}})</text><text x='112' y='152'>차단을 우회하지 않습니다</text>"
   }
  ],
- "points": [],
- "terms": [],
- "notes": ""
+ "points": [
+  "새 회사는 수집 기능부터 만들어야 합니다"
+ ],
+ "terms": [
+  "사업방법서"
+ ],
+ "notes": "지금까지는 회사마다 공시실에 들어가 상품요약서, 사업방법서, 약관을 내려받았습니다. 이 도구는 매일 아침 {{fact:schedule_collect_kst.time}}에 시장 동향으로 타사 신상품과 개정 소식을 모아 화면 첫 탭에 보여 줍니다. 예약으로 자동 실행되는 것은 이 소식 수집이고, 공시 문서까지 자동으로 받지는 않습니다. 담당자는 소식에서 새 상품이나 개정을 확인하고, GitHub Actions에서 회사를 골라 문서 수집을 실행합니다. 그러면 회사별 수집 기능이 공시실에서 상품요약서와 사업방법서 PDF를 받습니다. 시범 뒤 {{fact:disclosure_batch_org_count}}개 회사를 한꺼번에 실행했고, 그 가운데 {{fact:disclosure_batch_auto_org_count}}곳은 로그인이나 토큰 없이 받았습니다. 남은 한 곳인 한화손해보험은 공시실이 자동 접속을 막아 상태 {{fact:hanwhafire_block_status}}이 돌아오므로, 차단을 우회하지 않고 사람이 내려받습니다. 수집 기능을 만들어 둔 회사만 자동으로 받으므로, 새 회사의 상품이면 수집 기능부터 만들어야 합니다. 받은 문서의 해시는 보관하지만, 바뀐 문서만 골라 다시 추출하는 기능은 아직 없습니다. 이 장의 예는 세 회사의 상품요약서이고, 그 안에 지금부터 따라갈 암 수술비가 있습니다. 수집 장면은 {{slide:video-2}}장 영상에서 봅니다.",
+ "source": "출처: .github/workflows 의 실행 방식, docs/submission.md, docs/limitations.md"
 }

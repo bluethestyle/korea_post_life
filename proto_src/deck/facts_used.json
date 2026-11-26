@@ -59,8 +59,20 @@
    "practice_compare_source",
    "example_cancer_surgery"
   ],
+  "10": [
+   "schedule_collect_kst",
+   "disclosure_batch_org_count",
+   "disclosure_batch_auto_org_count",
+   "hanwhafire_block_status"
+  ],
+  "11": [
+   "hanwha_summary_pages",
+   "example_cancer_surgery",
+   "samsungfire_benefit_reader"
+  ],
   "12": [
    "example_cancer_surgery_names",
+   "example_cancer_surgery",
    "benefit_count_site"
   ],
   "13": [

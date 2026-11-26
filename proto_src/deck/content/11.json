@@ -7,19 +7,117 @@
  "headline": "절차 2: 수백 쪽에서 찾아 옮기던 값을 AI와 코드가 옮기고 원문과 대조해 둡니다",
  "diagram": [
   {
-   "use": "text",
-   "size": "m",
-   "tone": "muted",
-   "text": "구성 중: 절차 2 찾아 옮기기",
+   "use": "svg",
    "box": [
     0,
     0,
-    1760,
-    44
+    330,
+    160
+   ],
+   "vb": [
+    330,
+    160
+   ],
+   "build": 1,
+   "alt": "절차 다섯 가운데 절차 2 찾아 옮기기. 절차 1~3은 미리 해 두는 일, 절차 4~5는 화면에서 하는 일",
+   "svg": "<circle cx='20' cy='20' r='18' class='sv-paper'/><text x='20' y='28' text-anchor='middle' class='aux'>1</text><circle cx='82' cy='20' r='18' class='sv-deep'/><circle cx='82' cy='20' r='18' class='sv-ink'/><text x='82' y='28' text-anchor='middle' class='b'>2</text><circle cx='144' cy='20' r='17' class='sv-line'/><text x='144' y='28' text-anchor='middle' class='aux'>3</text><circle cx='208' cy='20' r='17' class='sv-line'/><text x='208' y='28' text-anchor='middle' class='aux'>4</text><circle cx='270' cy='20' r='17' class='sv-line'/><text x='270' y='28' text-anchor='middle' class='aux'>5</text><path d='M176 0V76' class='sv-muted'/><text x='168' y='66' text-anchor='end' class='aux'>미리 해 두는 일</text><text x='184' y='66' class='aux'>화면에서</text><text x='0' y='112' class='b'>절차 2 찾아 옮기기</text>"
+  },
+  {
+   "use": "C5",
+   "box": [
+    350,
+    0,
+    1090,
+    160
+   ],
+   "fill": false,
+   "labels": [
+    "지금까지",
+    "이 도구로"
+   ],
+   "build": 1,
+   "rows": [
+    {
+     "before": "수백 쪽 문서에서 담보를 찾아 읽음",
+     "after": "AI가 급부 글자를 옮기고 코드가 원문과 대조",
+     "note": "삼성화재 급부표는 코드가 읽음. 설명 {{slide:decision-model}}~{{slide:where-to-use}}장"
+    }
    ]
+  },
+  {
+   "use": "C20",
+   "box": [
+    1460,
+    0,
+    300,
+    160
+   ],
+   "dir": "v",
+   "build": 1,
+   "chips": [
+    {
+     "role": "AI",
+     "label": "글자 옮기기"
+    },
+    {
+     "role": "코드",
+     "label": "원문 대조"
+    }
+   ]
+  },
+  {
+   "use": "C18",
+   "icon": "stack",
+   "pages": "{{fact:hanwha_summary_pages}}",
+   "scale_pages": 600,
+   "label": "한화생명 요약서 {{fact:hanwha_summary_pages}}쪽",
+   "box": [
+    0,
+    184,
+    220,
+    352
+   ],
+   "build": 2
+  },
+  {
+   "use": "svg",
+   "box": [
+    240,
+    184,
+    400,
+    352
+   ],
+   "vb": [
+    400,
+    352
+   ],
+   "build": 2,
+   "alt": "암 수술비가 있는 쪽: 우체국 요약서, 한화생명 요약서, 삼성화재 요약서의 쪽수",
+   "svg": "<text x='0' y='34' class='b'>암 수술비가 있는 쪽</text><path d='M0 56H400' class='sv-line'/><text x='0' y='110'>우체국 요약서</text><text x='400' y='110' text-anchor='end' class='b'>{{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽</text><text x='0' y='180'>한화생명 요약서</text><text x='400' y='180' text-anchor='end' class='b'>{{fact:example_cancer_surgery.orgs.HANWHALIFE.doc_page}}쪽</text><text x='0' y='250'>삼성화재 요약서</text><text x='400' y='250' text-anchor='end' class='b'>{{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.doc_page}}쪽</text><path d='M0 130H400M0 200H400M0 270H400' class='sv-line'/><text x='0' y='322' class='aux'>사람은 이 쪽을 직접 찾아 읽었습니다</text>"
+  },
+  {
+   "use": "svg",
+   "box": [
+    700,
+    184,
+    1060,
+    352
+   ],
+   "vb": [
+    1060,
+    352
+   ],
+   "build": 3,
+   "hero": true,
+   "alt": "우체국 요약서의 암 수술비 쪽에서 AI가 지급액 글자를 옮기고, 코드가 원문과 일치하는지 대조해 구글 시트에 한 행으로 쌓는 흐름. 글자가 다르면 다시 추출하고, 확신이 낮으면 검수 대기로 남아 검수 담당자가 확인함",
+   "svg": "<rect x='0' y='70' width='232' height='120' class='sv-paper'/><rect x='0' y='70' width='232' height='120' class='sv-ink'/><text x='116' y='120' text-anchor='middle' class='b'>우체국 요약서</text><text x='116' y='162' text-anchor='middle'>{{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽</text><rect x='276' y='70' width='232' height='120' class='sv-paper'/><rect x='276' y='70' width='232' height='120' class='sv-ink'/><text x='392' y='120' text-anchor='middle' class='b'>원문 글자</text><text x='392' y='162' text-anchor='middle'>‘{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원’</text><rect x='552' y='70' width='232' height='120' class='sv-paper'/><rect x='552' y='70' width='232' height='120' class='sv-red'/><text x='668' y='120' text-anchor='middle' class='b'>원문과 일치</text><text x='668' y='162' text-anchor='middle'>코드가 대조</text><rect x='828' y='70' width='232' height='120' class='sv-paper'/><rect x='828' y='70' width='232' height='120' class='sv-ink'/><text x='944' y='120' text-anchor='middle' class='b'>구글 시트</text><text x='944' y='162' text-anchor='middle'>한 행으로 쌓음</text><path d='M238 130H268' class='sv-ink' marker-end='url(#ah)'/><path d='M514 130H544' class='sv-ink' marker-end='url(#ah)'/><path d='M790 130H820' class='sv-ink' marker-end='url(#ah)'/><path d='M668 66V30H392V60' class='sv-muted' stroke-dasharray='8 8' marker-end='url(#ah)'/><text x='684' y='38' class='aux'>글자가 다르면 다시 추출</text><text x='116' y='226' text-anchor='middle' class='aux'>수백 쪽 중 한 쪽</text><text x='392' y='226' text-anchor='middle' class='aux'>AI가 글자 그대로</text><path d='M668 194V254' class='sv-muted' marker-end='url(#ah)'/><text x='654' y='232' text-anchor='end' class='aux'>확신이 낮으면</text><rect x='552' y='262' width='232' height='64' class='sv-paper'/><text x='668' y='303' text-anchor='middle'>검수 대기</text><path d='M790 294H820' class='sv-muted' marker-end='url(#ah)'/><rect x='828' y='262' width='232' height='64' rx='32' class='sv-ink'/><text x='944' y='303' text-anchor='middle'>검수 담당자</text>"
   }
  ],
  "points": [],
- "terms": [],
- "notes": ""
+ "terms": [
+  "급부"
+ ],
+ "notes": "{{slide:step1-fetch}}장에서 받은 문서 안에서 값을 찾아 옮기는 절차입니다. 지금까지는 담당자가 수백 쪽 문서를 넘기며 담보를 찾아 읽고 비교표에 옮겨 적었습니다. 한화생명은 상품 하나의 상품요약서가 {{fact:hanwha_summary_pages}}쪽입니다. 암 수술비는 우체국 요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽, 한화생명 요약서 {{fact:example_cancer_surgery.orgs.HANWHALIFE.doc_page}}쪽, 삼성화재 요약서 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.doc_page}}쪽에 있습니다. 이 도구에서는 AI가 우체국 요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽의 암 수술비 행에서 지급액 '{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원'을 원문 글자 그대로 옮깁니다. 숫자는 AI가 아니라 코드가 읽고, 코드는 같은 글자를 늘 같은 숫자로 읽습니다. 코드가 옮긴 글자가 원문과 같은지 대조하고, 통과한 값은 구글 시트에 급부 한 행으로 쌓입니다. 글자가 다르면 다시 추출하고, 확신이 낮은 값은 검수 대기로 남아 검수 담당자가 원문과 대조합니다. 삼성화재 급부표는 AI 대신 코드가 PDF 표를 규칙으로 읽어 옮깁니다. 작업별 모델 배정표에도 AI 모델 대신 '{{fact:samsungfire_benefit_reader}}'로 적혀 있습니다. 이 일은 실무자가 비교를 시작하기 전에 미리 해 둡니다. 왜 이 결과를 믿을 수 있는지는 {{slide:ai-code-human}}장부터 설명합니다.",
+ "footnote": "삼성화재 급부표는 AI 대신 코드가 PDF 표를 규칙으로 읽습니다",
+ "source": "출처: 담보 비교 자료, 자료 기준 {{asof:example_cancer_surgery}}, docs/submission.md, docs/limitations.md"
 }
