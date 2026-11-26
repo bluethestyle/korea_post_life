@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any
 
 from .. import config, ids
-from ..gemini import GeminiError
+from ..gemini import GeminiError, GeminiTruncated, truncation_retry_limit
 from ..worklog import WorkLog
 from . import benefits as B
 from . import verify as V
@@ -144,8 +144,10 @@ class _Try:
         return out
 
 
-def _attempt(gemini: Any, block: Block, model: str, feedback: list[str] | None = None) -> _Try:
-    ex = B.extract(gemini, block, model, feedback)
+def _attempt(gemini: Any, block: Block, model: str, feedback: list[str] | None = None,
+             max_output_tokens: int | None = None) -> _Try:
+    """max_output_tokens: 응답이 출력 상한에서 잘려 같은 모델로 다시 요청할 때만 준다(run_block)."""
+    ex = B.extract(gemini, block, model, feedback, max_output_tokens)
     try:
         probs = V.judge(gemini, ex, config.MODEL_DECIDE)
     except GeminiError:
@@ -179,11 +181,24 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
                 break
             budget["상위모델"] -= 1
         stage = "추출" if best is None else "재추출"
+        raised: int | None = None      # 응답이 잘려 같은 모델로 다시 요청했으면 그때 쓴 출력 상한
         try:
-            got = _attempt(gemini, block, model, best.feedback(thresholds) if best else None)
+            feedback = best.feedback(thresholds) if best else None
+            try:
+                got = _attempt(gemini, block, model, feedback)
+            except GeminiTruncated as e:
+                # 출력 상한에서 잘렸으면 다음 모델로 넘기기 전에 같은 모델로 상한만 올려 한 번 더 요청한다(모델마다 한 번).
+                # 다시 요청해도 실패하면 아래 except에서 지금처럼 다음 모델로 넘어간다
+                raised = truncation_retry_limit(e)
+                if raised is None:
+                    raise
+                log.add(stage, rider, "보류", f"응답이 출력 상한에서 잘림. 출력 상한 {raised:,}로 올려 같은 모델로 다시 요청: "
+                        f"{str(e)[:200]}", model=model)
+                got = _attempt(gemini, block, model, feedback, max_output_tokens=raised)
         except (GeminiError, ValueError, KeyError) as e:
             failed = True
-            log.add(stage, rider, "보류", f"호출 실패: {str(e)[:200]}", model=model)
+            again = f"(출력 상한 {raised:,}로 올려 다시 요청한 뒤)" if raised else ""
+            log.add(stage, rider, "보류", f"호출 실패{again}: {str(e)[:200]}", model=model)
             if model == config.MODEL_SUMMARY and getattr(e, "status", None) == 429:    # 사유 글자가 아니라 HTTP 상태로 가린다
                 budget["상위모델"] = 0        # 상위 모델의 하루 한도가 찼다. 남은 조각에서 헛되이 부르지 않는다
             continue
@@ -194,7 +209,8 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
         if best is None:
             best = got
             log.add("추출", rider, "통과", f"{block.rider_name}: 급부 {len(got.ex.benefits)}건" +
-                    (f", 형식 문제 {len(got.ex.problems)}건" if got.ex.problems else ""), model=model)
+                    (f", 형식 문제 {len(got.ex.problems)}건" if got.ex.problems else "") +
+                    (f", 출력 상한 {raised:,}로 다시 요청한 답" if raised else ""), model=model)
             continue
         retried = True
         was, now = best.score(thresholds), got.score(thresholds)
@@ -203,7 +219,8 @@ def run_block(gemini: Any, block: Block, thresholds: dict[str, float], log: Work
         log.add("재추출", rider, "통과" if better else "반려",
                 f"{block.rider_name}: 틀렸다고 볼 줄 {was[0]}건 → {now[0]}건, 사람이 볼 줄 {was[1]}건 → {now[1]}건, "
                 f"가장 낮은 확률 {before:.2f} → {after:.2f}. " +
-                ("다시 뽑은 값으로 바꿈" if better else "앞선 값을 유지"),
+                ("다시 뽑은 값으로 바꿈" if better else "앞선 값을 유지") +
+                (f" (출력 상한 {raised:,}로 다시 요청한 답)" if raised else ""),
                 model=model, prob=after, before=f"급부 {len(best.ex.benefits)}건", after=f"급부 {len(got.ex.benefits)}건")
         if better:
             best = got

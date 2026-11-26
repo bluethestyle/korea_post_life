@@ -846,12 +846,18 @@ def prompt_for(kind: str, text: str) -> str:
     return head + notes + "본문\n" + text + tail
 
 
-def extract(gemini: Any, kind: str, section: Section, model: str, feedback: list[str] | None = None) -> Extracted:
+def extract(gemini: Any, kind: str, section: Section, model: str, feedback: list[str] | None = None,
+            max_output_tokens: int | None = None) -> Extracted:
+    """max_output_tokens: 응답이 출력 상한에서 잘려 같은 모델로 다시 요청할 때만 준다(conditions_run.run_section).
+    주지 않으면 예전 요청 그대로 보낸다."""
     schema = PROMPTS[kind][1]
     prompt = prompt_for(kind, section.text)
     if feedback:
         prompt += "\n\n앞선 추출에서 드러난 문제 (같은 실수를 되풀이하지 않습니다)\n" + "\n".join(f"- {f}" for f in feedback[:8])
-    raw = gemini.generate(model, prompt, schema=schema)
+    if max_output_tokens is None:
+        raw = gemini.generate(model, prompt, schema=schema)
+    else:
+        raw = gemini.generate(model, prompt, schema=schema, max_output_tokens=max_output_tokens)
     return parse(kind, section, raw if isinstance(raw, dict) else {}, model)
 
 

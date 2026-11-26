@@ -187,7 +187,7 @@
 - 화면에 올린 세 회사의 급부 6,615행은 모두 `hum_담보매핑.jsonl`의 행과 1대1로 이어져 매핑이 비어 있는 행은 없습니다(`data/snapshot/hum_담보매핑.jsonl`, 2026-11-24 주간 마감 자료). 시트 전체의 매핑 8,134행에는 화면에 올리지 않은 메리츠화재 1,519행이 함께 있고, 삼성생명과 KB라이프생명의 급부 966행은 주간 마감 자료 기준으로 아직 매핑 행이 없습니다.
 
 **품질과 운영**
-- 자동 테스트 1,552개가 통과합니다(2026-11-25 전체 테스트).
+- 자동 테스트 1,561개가 통과합니다(2026-11-25 전체 테스트).
 - 초기 버전 판단 화면은 380px와 1280px 폭의 브라우저 점검에서 오버플로, 잘림, 겹침, 콘솔 오류, 외부 요청이 모두 0건입니다(`scripts/dev/check_site_browser.py`). 분석 화면은 1920x1080, 1600x900, 1280x800, 1180x820, 380x780에서 스크린샷을 찍고 가로 오버플로, 콘솔 오류, 외부 요청을 측정합니다(`proto_src/console4/shoot.py`).
 - Gemini 무료 티어, 구글 시트, GitHub Actions(무료 계정 월 2,000분 포함), GitHub Pages만으로 운영 비용이 들지 않게 짰습니다. 무료 한도는 AI Studio 화면에서 읽은 값입니다. 화면은 2026-11-20부터 GitHub Pages의 공개 주소에 배포하고 있습니다(분석 화면 `https://bluethestyle.github.io/korea_post_life/proto/console4.html`, 발표 덱 `https://bluethestyle.github.io/korea_post_life/deck/`, 관계 그래프 화면 `https://bluethestyle.github.io/korea_post_life/proto/graph2.html`, 초기 버전 `https://bluethestyle.github.io/korea_post_life/v1/`). 루트 주소 `https://bluethestyle.github.io/korea_post_life/`는 이 네 화면으로 가는 안내 화면입니다. `site/` 아래를 main에 푸시하면 배포 워크플로가 다시 올립니다.
 
