@@ -2,12 +2,12 @@
   "format": 1,
   "about": "발표 영상(presentation_animation)이 화면에 띄우는 숫자와 사실입니다. scripts/export_presentation_facts.py 가 만들고, 손으로 고치지 않습니다. 영상 코드는 숫자를 글자로 박지 않고 facts 의 value 를 읽습니다.",
   "as_of_rule": "사본, 설정, 시드, 화면 자료에서 센 값의 as_of 는 사본 기준일이고, 문서에서 옮긴 값의 as_of 는 그 문서나 절이 밝힌 기준일입니다. 사이트 범위(_site)는 화면에 올린 회사(config.SITE_ORGS)만 센 값입니다.",
-  "snapshot_at": "2026-11-24T14:29:59+09:00",
+  "snapshot_at": "2026-11-26T10:04:31+09:00",
   "facts": {
     "snapshot_at": {
-      "value": "2026-11-24T14:29:59+09:00",
+      "value": "2026-11-26T10:04:31+09:00",
       "label": "자료 기준 시각(사본을 뜬 시각)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/meta.json",
@@ -24,7 +24,7 @@
         "MERITZ": "메리츠화재"
       },
       "label": "기관코드와 기관 이름(상품 자료가 든 기관과 화면에 올린 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -41,7 +41,7 @@
         "MERITZ"
       ],
       "label": "상품 자료가 사본에 든 기관",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_상품종형.jsonl",
@@ -51,7 +51,7 @@
     "product_org_count": {
       "value": 6,
       "label": "상품 자료가 사본에 든 기관 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_상품종형.jsonl",
@@ -65,7 +65,7 @@
         "SAMSUNGFIRE"
       ],
       "label": "화면에 올린 기관",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -75,7 +75,7 @@
     "site_org_count": {
       "value": 3,
       "label": "화면에 올린 기관 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -84,7 +84,7 @@
     },
     "variants_by_org": {
       "value": {
-        "EPOST": 8,
+        "EPOST": 20,
         "SAMSUNGLIFE": 6,
         "HANWHALIFE": 8,
         "KBLIFE": 3,
@@ -92,7 +92,7 @@
         "MERITZ": 15
       },
       "label": "기관별 상품 종형 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_상품종형.jsonl",
@@ -102,7 +102,8 @@
     "variants_by_org_role": {
       "value": {
         "EPOST": {
-          "정밀비교": 5,
+          "정밀비교": 11,
+          "관문전용": 6,
           "직전개정시연": 3
         },
         "SAMSUNGLIFE": {
@@ -126,7 +127,7 @@
         }
       },
       "label": "기관별, 비교역할구분별 종형 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_상품종형.jsonl",
@@ -134,9 +135,9 @@
       }
     },
     "variant_count_all": {
-      "value": 47,
+      "value": 59,
       "label": "사본의 상품 종형 수(모든 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_상품종형.jsonl",
@@ -144,9 +145,9 @@
       }
     },
     "variant_count_site": {
-      "value": 23,
+      "value": 35,
       "label": "화면에 올린 기관의 상품 종형 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_상품종형.jsonl",
@@ -155,12 +156,12 @@
     },
     "variant_sale_status_site": {
       "value": {
-        "total": 23,
-        "on_sale": 20,
+        "total": 35,
+        "on_sale": 32,
         "ended": 3,
         "on_sale_by_role": {
-          "정밀비교": 16,
-          "관문전용": 4
+          "정밀비교": 22,
+          "관문전용": 10
         },
         "ended_by_role": {
           "직전개정시연": 3
@@ -178,7 +179,7 @@
         ]
       },
       "label": "화면에 올린 기관의 상품 종형을 판매 중(판매종료일 없음)과 판매 종료로 나눈 수, 비교역할구분별 수, 판매 종료 상품 이름과 판매종료일",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_상품종형.jsonl",
@@ -188,7 +189,7 @@
     },
     "riders_by_org": {
       "value": {
-        "EPOST": 166,
+        "EPOST": 230,
         "SAMSUNGLIFE": 157,
         "HANWHALIFE": 856,
         "KBLIFE": 213,
@@ -196,7 +197,7 @@
         "MERITZ": 904
       },
       "label": "기관별 특약 수(주계약 줄 포함)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_특약.jsonl",
@@ -204,9 +205,9 @@
       }
     },
     "rider_count_all": {
-      "value": 4021,
+      "value": 4085,
       "label": "사본의 특약 수(모든 기관, 주계약 줄 포함)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_특약.jsonl",
@@ -214,9 +215,9 @@
       }
     },
     "rider_count_site": {
-      "value": 2747,
+      "value": 2811,
       "label": "화면에 올린 기관의 특약 수(주계약 줄 포함)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_특약.jsonl",
@@ -225,7 +226,7 @@
     },
     "benefits_by_org": {
       "value": {
-        "EPOST": 383,
+        "EPOST": 681,
         "SAMSUNGLIFE": 600,
         "HANWHALIFE": 3585,
         "KBLIFE": 366,
@@ -233,7 +234,7 @@
         "MERITZ": 1519
       },
       "label": "기관별 급부 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_급부.jsonl",
@@ -243,7 +244,7 @@
     "benefits_by_org_kind": {
       "value": {
         "EPOST": {
-          "amount": 383,
+          "amount": 681,
           "non_amount": 0
         },
         "SAMSUNGLIFE": {
@@ -268,7 +269,7 @@
         }
       },
       "label": "기관별 급부 수를 금액 급부(amount: 금액, 가입금액비율)와 금액 하나로 담기지 않는 급부(non_amount)로 나눈 것",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_급부.jsonl",
@@ -278,7 +279,7 @@
     "benefits_by_org_basis": {
       "value": {
         "EPOST": {
-          "금액": 383
+          "금액": 681
         },
         "SAMSUNGLIFE": {
           "금액": 430,
@@ -305,7 +306,7 @@
         }
       },
       "label": "기관별, 지급기준구분별 급부 수(비면 금액)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_급부.jsonl",
@@ -313,9 +314,9 @@
       }
     },
     "benefit_count_all": {
-      "value": 9100,
+      "value": 9398,
       "label": "사본의 급부 수(모든 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_급부.jsonl",
@@ -323,9 +324,9 @@
       }
     },
     "benefit_count_site": {
-      "value": 6615,
+      "value": 6913,
       "label": "화면에 올린 기관의 급부 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_급부.jsonl",
@@ -334,7 +335,7 @@
     },
     "main_condition_rows_by_org": {
       "value": {
-        "EPOST": 50,
+        "EPOST": 355,
         "SAMSUNGLIFE": 36,
         "HANWHALIFE": 220,
         "KBLIFE": 24,
@@ -342,7 +343,7 @@
         "MERITZ": 102
       },
       "label": "기관별 주계약 가입조건 행 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_가입조건.jsonl",
@@ -351,10 +352,10 @@
     },
     "rider_condition_rows_by_org": {
       "value": {
-        "EPOST": 544
+        "EPOST": 580
       },
       "label": "기관별 특약 가입조건 행 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_가입조건.jsonl",
@@ -363,10 +364,10 @@
     },
     "combination_constraints_by_org": {
       "value": {
-        "EPOST": 79
+        "EPOST": 105
       },
       "label": "기관별 결합 제약 행 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_결합제약.jsonl",
@@ -376,8 +377,9 @@
     "mapping_status_by_org": {
       "value": {
         "EPOST": {
-          "자동확정": 323,
-          "대상외": 60
+          "자동확정": 499,
+          "대상외": 114,
+          "대기": 68
         },
         "HANWHALIFE": {
           "자동확정": 2182,
@@ -396,7 +398,7 @@
         }
       },
       "label": "기관별, 검토상태별 담보 매핑 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_담보매핑.jsonl",
@@ -405,12 +407,12 @@
     },
     "mapping_status_all": {
       "value": {
-        "자동확정": 5357,
-        "대상외": 2629,
-        "대기": 148
+        "자동확정": 5533,
+        "대상외": 2683,
+        "대기": 216
       },
       "label": "검토상태별 담보 매핑 수(모든 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_담보매핑.jsonl",
@@ -419,12 +421,12 @@
     },
     "mapping_status_site": {
       "value": {
-        "자동확정": 4279,
-        "대상외": 2267,
-        "대기": 69
+        "자동확정": 4455,
+        "대상외": 2321,
+        "대기": 137
       },
       "label": "검토상태별 담보 매핑 수(화면에 올린 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_담보매핑.jsonl",
@@ -434,7 +436,7 @@
     "benefits_without_mapping": {
       "value": 966,
       "label": "매핑 줄이 없는 급부 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_급부.jsonl",
@@ -444,7 +446,7 @@
     "mapping_rows_without_benefit": {
       "value": 0,
       "label": "급부가 없는 매핑 줄 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_담보매핑.jsonl",
@@ -454,7 +456,7 @@
     "standard_coverage_rows": {
       "value": 87,
       "label": "표준담보 사전 줄 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_표준담보사전.jsonl",
@@ -464,7 +466,7 @@
     "standard_coverage_in_use": {
       "value": 86,
       "label": "표준담보 사전에서 쓰는 담보 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_표준담보사전.jsonl",
@@ -571,7 +573,7 @@
         ]
       },
       "label": "표준담보 사전에서 쓰는 담보 이름(급부유형별, 사본의 행 차례)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_표준담보사전.jsonl",
@@ -581,7 +583,7 @@
     "coverage_relation_count": {
       "value": 32,
       "label": "표준담보 사이의 관계 줄 수(포함과 통합)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "seed",
         "file": "data/seed/표준담보_관계.jsonl",
@@ -594,7 +596,7 @@
         "통합": 13
       },
       "label": "관계별 표준담보 관계 줄 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "seed",
         "file": "data/seed/표준담보_관계.jsonl",
@@ -602,9 +604,9 @@
       }
     },
     "work_log_count": {
-      "value": 15964,
+      "value": 16869,
       "label": "작업 로그 건수(모든 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_작업로그.jsonl",
@@ -612,9 +614,9 @@
       }
     },
     "work_log_count_site": {
-      "value": 13975,
+      "value": 14880,
       "label": "화면에 실리는 작업 로그 건수(화면에 올린 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_작업로그.jsonl",
@@ -623,14 +625,14 @@
     },
     "work_log_by_stage": {
       "value": {
-        "추출": 1856,
-        "코드대조": 3606,
-        "판정": 8540,
-        "재추출": 101,
-        "사람검토이관": 1861
+        "추출": 1909,
+        "코드대조": 3765,
+        "판정": 9120,
+        "재추출": 113,
+        "사람검토이관": 1962
       },
       "label": "작업단계별 작업 로그 건수(모든 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_작업로그.jsonl",
@@ -639,12 +641,12 @@
     },
     "work_log_by_result": {
       "value": {
-        "통과": 11683,
-        "보류": 4133,
-        "반려": 148
+        "통과": 12349,
+        "보류": 4363,
+        "반려": 157
       },
       "label": "결과별 작업 로그 건수(모든 기관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_작업로그.jsonl",
@@ -652,9 +654,9 @@
       }
     },
     "market_news_count": {
-      "value": 26,
+      "value": 27,
       "label": "사본의 시장 소식 건수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_시장동향.jsonl",
@@ -664,10 +666,10 @@
     "market_news_by_week": {
       "value": {
         "2026-W47": 19,
-        "2026-W48": 7
+        "2026-W48": 8
       },
       "label": "수집주차별 시장 소식 건수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_시장동향.jsonl",
@@ -678,14 +680,14 @@
       "value": {
         "배타적사용권": 7,
         "신담보출시": 5,
-        "상품개정": 5,
+        "상품개정": 6,
         "판매중지": 4,
         "간편고지완화": 1,
         "한도한시상향": 1,
         "제도변화": 3
       },
       "label": "분류유형별 시장 소식 건수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_시장동향.jsonl",
@@ -695,7 +697,7 @@
     "premium_example_rows": {
       "value": 0,
       "label": "보험료 예시 행 수(2단계 과제)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_보험료예시.jsonl",
@@ -705,7 +707,7 @@
     "benefit_disease_code_rows": {
       "value": 0,
       "label": "급부 질병코드 행 수(2단계 과제)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_급부질병코드.jsonl",
@@ -722,7 +724,7 @@
         }
       },
       "label": "표준질병군 초안의 행 수, 질병군 수, KCD 버전별 행 수(회사와 무관한 담당자 탭)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_표준질병군.jsonl",
@@ -732,16 +734,16 @@
     },
     "doc_hash_coverage_site": {
       "value": {
-        "variants": 23,
-        "summary": 23,
-        "method": 23,
-        "terms_annex": 8,
+        "variants": 35,
+        "summary": 35,
+        "method": 35,
+        "terms_annex": 20,
         "terms_annex_by_org": {
-          "EPOST": 8
+          "EPOST": 20
         }
       },
       "label": "화면에 올린 기관의 종형 가운데 상품요약서, 사업방법서, 약관 별표의 파일 해시가 있는 종형 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_상품종형.jsonl",
@@ -752,7 +754,7 @@
     "verify_confirm_threshold": {
       "value": 0.75,
       "label": "추출값 검증: 이 확률 이상이면 자동 확정",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_기준값.jsonl",
@@ -762,7 +764,7 @@
     "verify_reextract_threshold": {
       "value": 0.4,
       "label": "추출값 검증: 이 확률 미만이면 다른 모델로 다시 뽑음(사이는 사람 검토)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_기준값.jsonl",
@@ -772,7 +774,7 @@
     "mapping_auto_confirm_threshold": {
       "value": 0.8,
       "label": "담보 매핑: 이 확률 이상이면 자동 확정",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_기준값.jsonl",
@@ -782,7 +784,7 @@
     "mapping_out_of_scope_threshold": {
       "value": 0.9,
       "label": "담보 매핑: 해당 없음 확률이 이 값 이상이면 대상외",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_기준값.jsonl",
@@ -792,7 +794,7 @@
     "news_pass_threshold": {
       "value": 0.7,
       "label": "시장 소식 선별: 이 확률 이상이면 기록",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_기준값.jsonl",
@@ -802,7 +804,7 @@
     "news_hold_threshold": {
       "value": 0.4,
       "label": "시장 소식 선별: 이 확률 미만이면 버림(사이는 사람 검토)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_기준값.jsonl",
@@ -812,7 +814,7 @@
     "news_duplicate_threshold": {
       "value": 0.7,
       "label": "중복 소식: 이 확률 이상이면 같은 사건으로 합침",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_기준값.jsonl",
@@ -822,7 +824,7 @@
     "post_contract_limit_manwon": {
       "value": 4000,
       "label": "우체국보험 계약보험금 한도(만 원)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_기준값.jsonl",
@@ -895,7 +897,7 @@
         ]
       },
       "label": "개정 전후 예시: 우체국 표적항암약물허가치료특약 주급부의 지급액, 면책, 감액, 근거 쪽",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/sys_급부.jsonl",
@@ -906,7 +908,7 @@
     "sheet_tab_count": {
       "value": 13,
       "label": "구글 시트 정본의 탭 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "schema",
         "file": "src/postlife/schema.py",
@@ -916,7 +918,7 @@
     "market_news_institution_count": {
       "value": 19,
       "label": "시장 소식을 모으는 기관 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -930,7 +932,7 @@
         "우체국": 1
       },
       "label": "시장 소식을 모으는 기관 수(업권별)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -966,7 +968,7 @@
         ]
       },
       "label": "시장 소식을 모으는 기관 이름",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -984,7 +986,7 @@
         "제도변화"
       ],
       "label": "모으는 시장 소식의 분류유형",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -994,7 +996,7 @@
     "market_news_category_count": {
       "value": 7,
       "label": "모으는 시장 소식의 분류유형 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -1014,7 +1016,7 @@
         "주가"
       ],
       "label": "버리는 소식 주제",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -1028,7 +1030,7 @@
         "화재·배상책임보험"
       ],
       "label": "버리는 보험 종목(사람의 건강, 생명 보장과 무관)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -1097,7 +1099,7 @@
         }
       },
       "label": "요일별 시장 소식 검색 대상 기관과 검색 질의 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -1108,7 +1110,7 @@
     "search_daily_limit_config": {
       "value": 20,
       "label": "검색 모델 하루 한도(회). 코드가 지키는 값",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -1118,7 +1120,7 @@
     "upper_model_calls_per_run": {
       "value": 12,
       "label": "한 번 실행에서 상위 모델로 다시 뽑는 횟수 상한",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -1128,7 +1130,7 @@
     "decide_tokens_per_minute_guard": {
       "value": 45000,
       "label": "확률 산정 모델 호출 전에 최근 60초 입력 토큰(어림)을 이 값 아래로 맞춤(한도 5만에 여유 10%)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -1145,7 +1147,7 @@
         "upper": "gemini-3.8-flash"
       },
       "label": "작업별 모델 이름(검색, 추출, 보조 재추출, 확률 산정, 상위)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": "src/postlife/config.py",
@@ -1174,7 +1176,7 @@
         "갈아타세요"
       ],
       "label": "화면의 분석 문장에 쓰지 않는 말(빌드가 막음)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "code",
         "file": "src/postlife/site/sales.py",
@@ -1188,7 +1190,7 @@
         "history": null
       },
       "label": "브리핑 값을 계산한 대표 조건(sex M 은 남성, history null 은 이력 없음)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1220,10 +1222,46 @@
           "name": "4종(일반가입)",
           "underwriting": "일반심사",
           "renewal": "갱신"
+        },
+        {
+          "id": "EPOST_P400083_33bf47",
+          "name": "1종(일반가입)[해약환급금50%지급형, 종신]",
+          "underwriting": "일반심사",
+          "renewal": "비갱신"
+        },
+        {
+          "id": "EPOST_P400085_e0a7cd",
+          "name": "2종(간편가입)[해약환급금50%지급형, 종신]",
+          "underwriting": "간편심사",
+          "renewal": "비갱신"
+        },
+        {
+          "id": "EPOST_P610197_cd2c91",
+          "name": "1종(간편가입)[2대질병보장형]",
+          "underwriting": "간편심사",
+          "renewal": "갱신"
+        },
+        {
+          "id": "EPOST_P610196_feb381",
+          "name": "1종(간편가입)[암보장형]",
+          "underwriting": "간편심사",
+          "renewal": "갱신"
+        },
+        {
+          "id": "EPOST_P610199_3501df",
+          "name": "2종(일반가입)[2대질병보장형]",
+          "underwriting": "일반심사",
+          "renewal": "갱신"
+        },
+        {
+          "id": "EPOST_P610198_3819d8",
+          "name": "2종(일반가입)[암보장형]",
+          "underwriting": "일반심사",
+          "renewal": "갱신"
         }
       ],
       "label": "기준으로 고를 수 있는 우체국 종형(첫째가 화면이 처음 여는 종형)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1237,7 +1275,7 @@
         "underwriting": "간편심사"
       },
       "label": "화면이 처음 여는 기준 종형",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1245,9 +1283,9 @@
       }
     },
     "segment_map_cell_count": {
-      "value": 24,
+      "value": 48,
       "label": "고객군 지도 칸 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1255,9 +1293,9 @@
       }
     },
     "segment_map_open_together_cells": {
-      "value": 11,
+      "value": 35,
       "label": "고객군 지도: 우리 간편과 상대가 함께 열린 칸 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1267,7 +1305,7 @@
     "segment_map_ours_closed_cells": {
       "value": 13,
       "label": "고객군 지도: 우리 간편이 닫혀 일반심사로 확인할 칸 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1277,7 +1315,7 @@
     "segment_map_ours_only_open_cells": {
       "value": 0,
       "label": "고객군 지도: 우리 간편만 열린 칸 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1285,9 +1323,9 @@
       }
     },
     "segment_map_gate_only_cells": {
-      "value": 4,
+      "value": 8,
       "label": "고객군 지도: 상대가 우리에게 없는 고지 유형(관문만 수집한 종형)으로만 열린 칸 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1300,7 +1338,7 @@
         80
       ],
       "label": "기준 종형의 가입나이(최저, 최고) (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1310,7 +1348,7 @@
     "reference_main_contract_limit_manwon": {
       "value": 4000,
       "label": "대표 조건 나이의 주계약 한도(만 원) (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1320,7 +1358,7 @@
     "gate_question_diff_peer_count": {
       "value": 2,
       "label": "고지 질문 범위가 다른 상대 회사 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1330,7 +1368,7 @@
     "common_coverage_pairs": {
       "value": 33,
       "label": "공통 담보 쌍 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1340,7 +1378,7 @@
     "compared_coverage_pairs": {
       "value": 20,
       "label": "견준 담보 쌍 수(검토 대기 쌍을 뺌) (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1350,7 +1388,7 @@
     "excluded_pending_pairs": {
       "value": 13,
       "label": "검토 대기라 견주지 않은 담보 쌍 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1360,7 +1398,7 @@
     "held_coverage_count": {
       "value": 25,
       "label": "기준 종형이 가진 담보 수(확정 급부 기준) (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1376,7 +1414,7 @@
         "통원": 0
       },
       "label": "치료 단계별 기준 종형의 보유 담보 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1389,7 +1427,7 @@
         "payment_form": 3
       },
       "label": "우열을 단정하지 않은 비교 수(조건이 다른 특약을 함께 판매, 지급 형태가 다름) (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1408,7 +1446,7 @@
         }
       ],
       "label": "맞붙는 상대 종형이 가진 담보 수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1416,9 +1454,9 @@
       }
     },
     "sales_insight_count": {
-      "value": 36,
+      "value": 35,
       "label": "영업 인사이트 건수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1427,14 +1465,14 @@
     },
     "sales_insight_by_category": {
       "value": {
-        "관문 차이": 3,
+        "관문 차이": 2,
         "앞세울 강점": 2,
         "관련 담보 안내": 7,
         "조건 열위 방어": 0,
         "개정 검토 후보": 24
       },
       "label": "분류별 영업 인사이트 건수 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1444,7 +1482,7 @@
     "lead_strengths": {
       "value": "뇌혈관질환 입원일당, 심장질환 입원일당",
       "label": "앞세울 강점의 대표 담보 (화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1455,13 +1493,13 @@
       "value": {
         "2종(간편가입325)": {
           "segment_map": {
-            "cells": 24,
+            "cells": 48,
             "ours_only_open": 0,
-            "open_together": 11,
+            "open_together": 35,
             "ours_closed": 13,
             "all_closed": 0,
             "no_data": 0,
-            "gate_only": 4
+            "gate_only": 8
           },
           "gate": {
             "age_min": 20,
@@ -1500,9 +1538,9 @@
             ]
           },
           "insights": {
-            "total": 36,
+            "total": 35,
             "by_category": {
-              "관문 차이": 3,
+              "관문 차이": 2,
               "앞세울 강점": 2,
               "관련 담보 안내": 7,
               "조건 열위 방어": 0,
@@ -1513,13 +1551,13 @@
         },
         "1종(간편가입315)": {
           "segment_map": {
-            "cells": 24,
+            "cells": 48,
             "ours_only_open": 0,
-            "open_together": 11,
+            "open_together": 35,
             "ours_closed": 13,
             "all_closed": 0,
             "no_data": 0,
-            "gate_only": 4
+            "gate_only": 8
           },
           "gate": {
             "age_min": 20,
@@ -1558,9 +1596,9 @@
             ]
           },
           "insights": {
-            "total": 36,
+            "total": 35,
             "by_category": {
-              "관문 차이": 3,
+              "관문 차이": 2,
               "앞세울 강점": 2,
               "관련 담보 안내": 7,
               "조건 열위 방어": 0,
@@ -1571,13 +1609,13 @@
         },
         "3종(간편가입355)": {
           "segment_map": {
-            "cells": 24,
+            "cells": 48,
             "ours_only_open": 0,
-            "open_together": 11,
+            "open_together": 35,
             "ours_closed": 13,
             "all_closed": 0,
             "no_data": 0,
-            "gate_only": 4
+            "gate_only": 8
           },
           "gate": {
             "age_min": 20,
@@ -1616,9 +1654,9 @@
             ]
           },
           "insights": {
-            "total": 36,
+            "total": 35,
             "by_category": {
-              "관문 차이": 3,
+              "관문 차이": 2,
               "앞세울 강점": 2,
               "관련 담보 안내": 7,
               "조건 열위 방어": 0,
@@ -1629,13 +1667,13 @@
         },
         "4종(일반가입)": {
           "segment_map": {
-            "cells": 24,
+            "cells": 48,
             "ours_only_open": 0,
-            "open_together": 11,
+            "open_together": 35,
             "ours_closed": 13,
             "all_closed": 0,
             "no_data": 0,
-            "gate_only": 4
+            "gate_only": 8
           },
           "gate": {
             "age_min": 15,
@@ -1681,10 +1719,343 @@
             },
             "lead_strengths": "뇌혈관질환 입원일당, 심장질환 입원일당"
           }
+        },
+        "1종(일반가입)[해약환급금50%지급형, 종신]": {
+          "segment_map": {
+            "cells": 48,
+            "ours_only_open": 0,
+            "open_together": 35,
+            "ours_closed": 13,
+            "all_closed": 0,
+            "no_data": 0,
+            "gate_only": 8
+          },
+          "gate": {
+            "age_min": 15,
+            "age_max": 70,
+            "main_limit_manwon": 4000,
+            "question_diff_peer_count": 0,
+            "question_diff_peers": [],
+            "structure_diff_peer_count": 2
+          },
+          "coverage": {
+            "common_pairs": 38,
+            "compared_pairs": 20,
+            "excluded_pending_pairs": 18,
+            "held": 25,
+            "held_by_stage": {
+              "진단": 7,
+              "수술": 6,
+              "치료": 3,
+              "입원": 6,
+              "통원": 3
+            },
+            "no_verdict_other_rider": 5,
+            "no_verdict_payment_form": 3,
+            "peer_held": [
+              {
+                "name": "한화생명 일반가입형",
+                "held": 59
+              },
+              {
+                "name": "삼성화재 8종(일반형)",
+                "held": 58
+              }
+            ]
+          },
+          "insights": {
+            "total": 32,
+            "by_category": {
+              "관문 차이": 0,
+              "앞세울 강점": 2,
+              "관련 담보 안내": 6,
+              "조건 열위 방어": 2,
+              "개정 검토 후보": 22
+            },
+            "lead_strengths": "뇌혈관질환 입원일당, 심장질환 입원일당"
+          }
+        },
+        "2종(간편가입)[해약환급금50%지급형, 종신]": {
+          "segment_map": {
+            "cells": 48,
+            "ours_only_open": 0,
+            "open_together": 35,
+            "ours_closed": 13,
+            "all_closed": 0,
+            "no_data": 0,
+            "gate_only": 8
+          },
+          "gate": {
+            "age_min": 20,
+            "age_max": 66,
+            "main_limit_manwon": 4000,
+            "question_diff_peer_count": 2,
+            "question_diff_peers": [
+              "한화생명",
+              "삼성화재"
+            ],
+            "structure_diff_peer_count": 2
+          },
+          "coverage": {
+            "common_pairs": 37,
+            "compared_pairs": 16,
+            "excluded_pending_pairs": 21,
+            "held": 25,
+            "held_by_stage": {
+              "진단": 7,
+              "수술": 6,
+              "치료": 3,
+              "입원": 6,
+              "통원": 3
+            },
+            "no_verdict_other_rider": 9,
+            "no_verdict_payment_form": 3,
+            "peer_held": [
+              {
+                "name": "한화생명 간편가입형(2년)",
+                "held": 59
+              },
+              {
+                "name": "삼성화재 7종(해약환급금 미지급형) 325·5",
+                "held": 60
+              }
+            ]
+          },
+          "insights": {
+            "total": 32,
+            "by_category": {
+              "관문 차이": 2,
+              "앞세울 강점": 2,
+              "관련 담보 안내": 6,
+              "조건 열위 방어": 0,
+              "개정 검토 후보": 22
+            },
+            "lead_strengths": "뇌혈관질환 입원일당, 심장질환 입원일당"
+          }
+        },
+        "1종(간편가입)[2대질병보장형]": {
+          "segment_map": {
+            "cells": 48,
+            "ours_only_open": 0,
+            "open_together": 35,
+            "ours_closed": 13,
+            "all_closed": 0,
+            "no_data": 0,
+            "gate_only": 8
+          },
+          "gate": {
+            "age_min": 30,
+            "age_max": 80,
+            "main_limit_manwon": 2000,
+            "question_diff_peer_count": 0,
+            "question_diff_peers": [],
+            "structure_diff_peer_count": 2
+          },
+          "coverage": {
+            "common_pairs": 10,
+            "compared_pairs": 8,
+            "excluded_pending_pairs": 2,
+            "held": 6,
+            "held_by_stage": {
+              "진단": 6,
+              "수술": 0,
+              "치료": 0,
+              "입원": 0,
+              "통원": 0
+            },
+            "no_verdict_other_rider": 4,
+            "no_verdict_payment_form": 0,
+            "peer_held": [
+              {
+                "name": "한화생명 간편가입형(1년)",
+                "held": 20
+              },
+              {
+                "name": "삼성화재 7종(해약환급금 미지급형) 315·5",
+                "held": 22
+              }
+            ]
+          },
+          "insights": {
+            "total": 11,
+            "by_category": {
+              "관문 차이": 0,
+              "앞세울 강점": 0,
+              "관련 담보 안내": 1,
+              "조건 열위 방어": 0,
+              "개정 검토 후보": 10
+            },
+            "lead_strengths": ""
+          }
+        },
+        "1종(간편가입)[암보장형]": {
+          "segment_map": {
+            "cells": 48,
+            "ours_only_open": 0,
+            "open_together": 35,
+            "ours_closed": 13,
+            "all_closed": 0,
+            "no_data": 0,
+            "gate_only": 8
+          },
+          "gate": {
+            "age_min": 30,
+            "age_max": 80,
+            "main_limit_manwon": 2000,
+            "question_diff_peer_count": 0,
+            "question_diff_peers": [],
+            "structure_diff_peer_count": 2
+          },
+          "coverage": {
+            "common_pairs": 8,
+            "compared_pairs": 7,
+            "excluded_pending_pairs": 1,
+            "held": 5,
+            "held_by_stage": {
+              "진단": 2,
+              "수술": 2,
+              "치료": 0,
+              "입원": 1,
+              "통원": 0
+            },
+            "no_verdict_other_rider": 1,
+            "no_verdict_payment_form": 1,
+            "peer_held": [
+              {
+                "name": "한화생명 간편가입형(1년)",
+                "held": 22
+              },
+              {
+                "name": "삼성화재 7종(해약환급금 미지급형) 315·5",
+                "held": 23
+              }
+            ]
+          },
+          "insights": {
+            "total": 12,
+            "by_category": {
+              "관문 차이": 0,
+              "앞세울 강점": 0,
+              "관련 담보 안내": 1,
+              "조건 열위 방어": 0,
+              "개정 검토 후보": 11
+            },
+            "lead_strengths": ""
+          }
+        },
+        "2종(일반가입)[2대질병보장형]": {
+          "segment_map": {
+            "cells": 48,
+            "ours_only_open": 0,
+            "open_together": 35,
+            "ours_closed": 13,
+            "all_closed": 0,
+            "no_data": 0,
+            "gate_only": 8
+          },
+          "gate": {
+            "age_min": 15,
+            "age_max": 70,
+            "main_limit_manwon": 2500,
+            "question_diff_peer_count": 0,
+            "question_diff_peers": [],
+            "structure_diff_peer_count": 2
+          },
+          "coverage": {
+            "common_pairs": 10,
+            "compared_pairs": 8,
+            "excluded_pending_pairs": 2,
+            "held": 6,
+            "held_by_stage": {
+              "진단": 6,
+              "수술": 0,
+              "치료": 0,
+              "입원": 0,
+              "통원": 0
+            },
+            "no_verdict_other_rider": 4,
+            "no_verdict_payment_form": 0,
+            "peer_held": [
+              {
+                "name": "한화생명 일반가입형",
+                "held": 20
+              },
+              {
+                "name": "삼성화재 8종(해약환급금 미지급형,일반고지)",
+                "held": 22
+              }
+            ]
+          },
+          "insights": {
+            "total": 13,
+            "by_category": {
+              "관문 차이": 0,
+              "앞세울 강점": 0,
+              "관련 담보 안내": 1,
+              "조건 열위 방어": 2,
+              "개정 검토 후보": 10
+            },
+            "lead_strengths": ""
+          }
+        },
+        "2종(일반가입)[암보장형]": {
+          "segment_map": {
+            "cells": 48,
+            "ours_only_open": 0,
+            "open_together": 35,
+            "ours_closed": 13,
+            "all_closed": 0,
+            "no_data": 0,
+            "gate_only": 8
+          },
+          "gate": {
+            "age_min": 15,
+            "age_max": 70,
+            "main_limit_manwon": 2500,
+            "question_diff_peer_count": 0,
+            "question_diff_peers": [],
+            "structure_diff_peer_count": 2
+          },
+          "coverage": {
+            "common_pairs": 8,
+            "compared_pairs": 6,
+            "excluded_pending_pairs": 2,
+            "held": 5,
+            "held_by_stage": {
+              "진단": 2,
+              "수술": 2,
+              "치료": 0,
+              "입원": 1,
+              "통원": 0
+            },
+            "no_verdict_other_rider": 1,
+            "no_verdict_payment_form": 1,
+            "peer_held": [
+              {
+                "name": "한화생명 일반가입형",
+                "held": 22
+              },
+              {
+                "name": "삼성화재 8종(해약환급금 미지급형,일반고지)",
+                "held": 23
+              }
+            ]
+          },
+          "insights": {
+            "total": 13,
+            "by_category": {
+              "관문 차이": 0,
+              "앞세울 강점": 0,
+              "관련 담보 안내": 1,
+              "조건 열위 방어": 1,
+              "개정 검토 후보": 11
+            },
+            "lead_strengths": ""
+          }
         }
       },
       "label": "기준 종형마다의 브리핑 값(대표 조건). 위 항목과 같은 값을 종형마다 모은 것",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1700,7 +2071,7 @@
         "통원"
       ],
       "label": "치료 단계(차례대로)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1716,7 +2087,7 @@
         "개정 검토 후보"
       ],
       "label": "영업 인사이트 분류",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1732,7 +2103,7 @@
         "개정 검토 후보"
       ],
       "label": "응대 카드에 싣는 분류의 차례",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1748,7 +2119,7 @@
         "자료 없음"
       ],
       "label": "고객군 지도 칸의 라벨",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1771,7 +2142,7 @@
         "수술만 5년 초과 또는 없음"
       ],
       "label": "고객군 지도의 행(입원과 수술 이력)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1781,10 +2152,12 @@
     "segment_map_columns": {
       "value": [
         "15~19세",
-        "20~80세"
+        "20~29세",
+        "30~66세",
+        "67~80세"
       ],
       "label": "고객군 지도의 열(가입나이 구간)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -1803,9 +2176,21 @@
               "gate_only": true
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
               "label": "우리 간편 닫힘",
               "sub": "일반심사 대상",
+              "gate_only": true
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": true
+            },
+            {
+              "column": "67~80세",
+              "label": "함께 열림",
+              "sub": "",
               "gate_only": true
             }
           ]
@@ -1820,7 +2205,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1837,7 +2234,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1854,7 +2263,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1871,7 +2292,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1888,7 +2321,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1905,7 +2350,19 @@
               "gate_only": true
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": true
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": true
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": true
@@ -1922,7 +2379,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1939,7 +2408,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1956,7 +2437,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1973,7 +2466,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1990,7 +2495,19 @@
               "gate_only": false
             },
             {
-              "column": "20~80세",
+              "column": "20~29세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "30~66세",
+              "label": "함께 열림",
+              "sub": "",
+              "gate_only": false
+            },
+            {
+              "column": "67~80세",
               "label": "함께 열림",
               "sub": "",
               "gate_only": false
@@ -1999,7 +2516,7 @@
         }
       ],
       "label": "고객군 지도의 칸마다의 값(행은 segment_map_rows, 칸은 segment_map_columns 차례). label 은 칸의 라벨, sub 는 칸의 보조 줄, gate_only 는 그 칸의 상대가 우리에게 없는 고지 유형(관문만 수집한 종형)으로만 열렸는지",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -2009,10 +2526,10 @@
     "screen_market_news": {
       "value": {
         "week": "2026-W48",
-        "count": 7
+        "count": 8
       },
       "label": "화면 1이 싣는 이번 주차와 그 주차의 시장 소식 건수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -2027,7 +2544,7 @@
         "전체": 23
       },
       "label": "직전 개정과 견주어 달라진 담보 수(신설, 변경, 종료, 전체)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -2160,7 +2677,7 @@
         ]
       },
       "label": "기준 종형이 그 담보의 확정 급부도 매핑 대기 급부도 없이 관계 담보(넓은 담보, 부분 담보)로만 덮는 표준담보 (화면이 처음 여는 기준 종형). via 는 덮는 우리 담보, partial 은 부분 담보 가운데 일부만 가졌는지",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/cover.json",
@@ -3476,7 +3993,7 @@
         "종료": "삭제"
       },
       "label": "자료의 값과 화면에 보일 이름(사용자 승인 용어, 2026-11-24)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "code",
         "file": "src/postlife/site/terms.py",
@@ -3492,7 +4009,7 @@
         "개정 검토 후보": "미보유 담보"
       },
       "label": "영업 인사이트 분류의 자료 이름과 화면 이름(분류 차례)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "code",
         "file": "src/postlife/site/terms.py",
@@ -3501,14 +4018,14 @@
     },
     "sales_insight_by_category_display": {
       "value": {
-        "인수기준 차이": 3,
+        "인수기준 차이": 2,
         "우위 담보": 2,
         "관련 담보": 7,
         "열위 담보": 0,
         "미보유 담보": 24
       },
       "label": "분류별 영업 인사이트 건수를 화면 이름으로(화면이 처음 여는 기준 종형, 대표 조건)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -3518,15 +4035,15 @@
     "graph_nodes_by_kind": {
       "value": {
         "회사": 14,
-        "종형": 23,
-        "특약": 2743,
-        "급부": 6615,
+        "종형": 35,
+        "특약": 2801,
+        "급부": 6913,
         "표준담보": 86,
         "보장 대분류": 5,
-        "시장 동향": 26
+        "시장 동향": 27
       },
       "label": "관계 그래프의 종류별 노드 수(kinds 차례)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/graph/graph.json",
@@ -3535,12 +4052,12 @@
     },
     "graph_edges_by_kind": {
       "value": {
-        "판매": 23,
-        "포함": 9358,
-        "매핑": 4279,
+        "판매": 35,
+        "포함": 9714,
+        "매핑": 4455,
         "분류": 86,
         "담보 관계": 32,
-        "발표": 26,
+        "발표": 27,
         "보유": 0,
         "결합제약": 0,
         "개정": 0,
@@ -3548,7 +4065,7 @@
         "언급 상품": 0
       },
       "label": "관계 그래프의 종류별 엣지 수(ekinds 차례)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/graph/graph.json",
@@ -3557,13 +4074,13 @@
     },
     "graph_counts": {
       "value": {
-        "nodes": 9512,
-        "edges": 13804,
+        "nodes": 9881,
+        "edges": 14349,
         "node_kinds": 7,
         "edge_kinds": 11
       },
       "label": "관계 그래프의 노드 수, 엣지 수, 노드 종류 수, 엣지 종류 수",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/graph/graph.json",
@@ -3573,7 +4090,7 @@
     "coverage_major_class_count": {
       "value": 5,
       "label": "보장 대분류 수(관계 그래프의 보장 대분류 노드)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/graph/graph.json",
@@ -3590,7 +4107,7 @@
         ]
       },
       "label": "관계 그래프에서 종형과 판매 엣지로 이어진 회사 노드(계층의 맨 위)의 수와 이름",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/graph/graph.json",
@@ -3746,7 +4263,7 @@
         ]
       },
       "label": "담보 관계를 넓은 담보마다 묶은 것(포함: 넓은 담보가 좁은 담보를 포함, 통합: 좁은 담보들이 넓은 담보 하나를 채움)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "seed",
         "file": "data/seed/표준담보_관계.jsonl",
@@ -3878,7 +4395,7 @@
         }
       },
       "label": "암 수술비 예: 화면이 처음 여는 기준 종형의 담보 비교 행에서 회사마다 대표 급부의 이름, 지급액, 기준 가입금액, 면책, 감액, 근거 문서와 쪽, 비교쌍의 항목별 비교 결과. 그리고 치료 단계에서 우체국에 없고 두 타사가 모두 가진 담보",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/cover.json",
@@ -3893,7 +4410,7 @@
         "SAMSUNGFIRE": "[갱신형][간편](체증형,수술시30%)암 수술비(유사암 포함)(1년50%)"
       },
       "label": "암 수술비 예의 회사별 급부 이름(원문 급부명 그대로)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/cover.json",
@@ -3957,7 +4474,7 @@
         "ours_variant": "2종(간편가입325)"
       },
       "label": "나눈 특약과 통합 특약의 예: 우체국은 좁은 담보 둘(narrow)을 특약 둘로, 타사는 넓은 담보(broad) 하나로 가진 경우. 칸마다 대표 급부의 원문 이름, 특약 이름, 근거 문서와 쪽, 담보마다 타사별 비교 결과(화면 이름). ours_cover 는 넓은 담보 행의 우체국 칸이 관계 담보로 덮는 종류(부분 담보)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/cover.json",
@@ -3983,7 +4500,7 @@
         }
       },
       "label": "기준 종형의 담보 비교에서 비교 결과가 관련 담보로 보장(우체국은 그 담보를 가졌고 타사는 넓은 담보나 부분 담보로 보장)인 비교 건 수(담보와 타사의 짝), 담보 수와 이름, 타사별 수(화면이 처음 여는 기준 종형)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/cover.json",
@@ -4000,7 +4517,7 @@
         "공통보장"
       ],
       "label": "보장 대분류의 이름(관계 그래프 노드 차례)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/graph/graph.json",
@@ -4035,7 +4552,7 @@
         }
       },
       "label": "AI 가 원문 글자로 옮긴 금액과 감액 기간을 코드가 숫자로 읽는 예. text 는 추출 지시문의 예시 글자이고 read 는 extract/benefits.py 의 parse_money, parse_months 가 읽은 값. epost_row 는 우체국 암 수술비 행에서 코드가 읽어 둔 값",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "code",
         "file": "src/postlife/extract/benefits.py",
@@ -4049,16 +4566,16 @@
         "sex": "M",
         "cell": {
           "row": "입원 3개월~1년 전",
-          "column": "20~80세",
-          "label": "우체국 간편 가입 제한",
-          "sub": "일반심사 대상",
+          "column": "30~66세",
+          "label": "함께 가입 가능",
+          "sub": null,
           "orgs": {
-            "EPOST": "일반심사 대상",
+            "EPOST": "가입 가능",
             "HANWHALIFE": "가입 가능",
             "SAMSUNGFIRE": "일반심사 대상"
           },
           "states": {
-            "EPOST": "closed",
+            "EPOST": "open",
             "HANWHALIFE": "open",
             "SAMSUNGFIRE": "closed"
           },
@@ -4073,7 +4590,7 @@
         },
         "later": {
           "row": "입원 1~2년 전",
-          "column": "20~80세",
+          "column": "30~66세",
           "label": "함께 가입 가능",
           "sub": null,
           "orgs": {
@@ -4090,7 +4607,7 @@
         }
       },
       "label": "6개월 전 입원 고객 예: 대표 조건 나이의 고객군 칸(입원 3개월~1년 전)과 1년 반 전 입원 칸(입원 1~2년 전)의 회사별 가입 가능 여부. 라벨과 상태는 화면 이름(terms.DISPLAY)으로 바꿔 실었다. states 는 회사별 가입 가능(open, 열림과 일부 나이만 열림) 또는 가입 제한(closed, 그 밖) 표시 값",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "screen_data",
         "file": "proto_src/console4/sales.json",
@@ -4100,18 +4617,18 @@
     "mapping_auto_confirm_by_route": {
       "value": {
         "all": {
-          "total": 5357,
-          "decision_model": 2243,
+          "total": 5533,
+          "decision_model": 2419,
           "cross_check": 3114
         },
         "site": {
-          "total": 4279,
-          "decision_model": 2243,
+          "total": 4455,
+          "decision_model": 2419,
           "cross_check": 2036
         }
       },
       "label": "자동 확정 매핑을 경로로 나눈 수: 확률 산정 결과가 있는 줄(decision_model)과 두 판독 일치로 확정해 확률이 빈 줄(cross_check). all 은 모든 기관, site 는 화면에 올린 기관",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "snapshot",
         "file": "data/snapshot/hum_담보매핑.jsonl",
@@ -4121,7 +4638,7 @@
     "calibration_review_band_pct": {
       "value": 4.1,
       "label": "일부러 틀리게 바꾼 줄 가운데 사람 검수 구간(0.40 이상 0.75 미만)에 남은 비율(%). 100에서 재추출 구간 비율을 뺀 계산값(자동 확정 0줄)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "derived",
         "from": [
@@ -4139,7 +4656,7 @@
         "cron_utc": "10 21 * * *"
       },
       "label": "시장 동향 수집 일정(한국 시간)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": ".github/workflows/collect.yml",
@@ -4153,7 +4670,7 @@
         "cron_utc": "40 14 * * 0"
       },
       "label": "주간 마감과 스냅샷 일정(한국 시간)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "config",
         "file": ".github/workflows/weekly-close.yml",
@@ -4163,7 +4680,7 @@
     "request_doc_count": {
       "value": 42,
       "label": "docs/gemini_requests 의 요청서 수(번호가 붙은 파일, 부록은 본문과 한 건으로 셈)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "repo",
         "file": "docs/gemini_requests",
@@ -4177,7 +4694,7 @@
         "gemini_web_or_panel": 15
       },
       "label": "요청서를 받은 쪽으로 나눈 수: Antigravity 지시문, 브라우저 에이전트 점검, 제미나이(웹과 구독 패널) 요청문",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "repo",
         "file": "docs/gemini_requests",
@@ -4198,7 +4715,7 @@
         ]
       },
       "label": "데모 화면(시안 4)의 탭 수와 탭 이름(화면 이름, 탭 차례)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "code",
         "file": "src/postlife/site/terms.py",
@@ -4230,7 +4747,7 @@
         ]
       },
       "label": "GitHub Actions 워크플로를 시작하는 방법으로 나눈 이름: 예약 실행, 푸시(시험, 배포), 사람이 실행",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "repo",
         "file": ".github/workflows",
@@ -4248,7 +4765,7 @@
         ]
       },
       "label": "symmetric_choice_probability 를 측정한 확률 산정 문항: 문항 이름, 묻는 말(줄임), 보기 둘",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "code",
         "file": "src/postlife/extract/verify.py",
@@ -4264,7 +4781,7 @@
         "part4": 103
       },
       "label": "발표 영상(part1~part4)의 길이(초, 반올림)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "repo",
         "file": "proto_src/deck/assets/stills_timings.json",
@@ -4279,7 +4796,7 @@
         "part4": "1분 43초"
       },
       "label": "발표 영상의 길이를 화면에 적는 글(분과 초)",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "repo",
         "file": "proto_src/deck/assets/stills_timings.json",
@@ -4480,7 +4997,7 @@
         ]
       },
       "label": "정밀 비교 대상(목표, 우체국 제외) 가운데 시트 사본에 적재한 회사와 화면에 올린 회사",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-26",
       "source": {
         "kind": "derived",
         "from": [
