@@ -29,7 +29,7 @@
  "labels": {
   "crit_footer": "이 쪽의 평가기준 근거",
   "crit_go": "근거",
-  "gist": "출품자 판단",
+  "gist": "본인 판단",
   "tab_suffix": "탭",
   "human": "사람:",
   "head_shot": "분석 화면 상단: 조건과 탭",
@@ -80,7 +80,7 @@
     "cards_head": "평가기준별 근거",
     "cards": [
      {"crit": "참신성", "text": "AI가 추출한 값을 다른 AI가 확률로 재검증, 회사별로 다른 담보 이름을 표준담보 {{fact:standard_coverage_in_use}}개로 연결"},
-     {"crit": "실용성", "text": "비교표 한 건에 {{fact:practice_compare_time}}(출품자 어림값) 걸리던 작업을 화면 확인과 비교표 복사로 대체"},
+     {"crit": "실용성", "text": "비교표 한 건에 {{fact:practice_compare_time}}(업무 경험 기준 어림값) 걸리던 작업을 화면 확인과 비교표 복사로 대체"},
      {"crit": "확장성", "text": "목표 생명보험 {{fact:comparison_target_counts.생명보험}}곳, 손해보험 {{fact:comparison_target_counts.손해보험}}곳 중 타사 {{fact:comparison_targets_loaded.sheet}}곳을 시트에 적재"},
      {"crit": "완성도", "text": "모의 테스트의 오류 {{fact:calibration_flipped_rows.rows}}건 중 자동 확정 {{fact:calibration_flipped_rows.passed}}건, 자동 테스트 {{fact:test_count}}개, 한계 공개"}
     ],
@@ -100,7 +100,7 @@
       {"label": "비교표 한 건", "value": "{{fact:practice_compare_time}}"},
       {"label": "빈도", "value": "{{fact:practice_compare_frequency}}"}
      ],
-     "note": "출품자의 업무 경험에 따른 어림값(측정값 아님)"
+     "note": "본인의 업무 경험에 따른 어림값(측정값 아님)"
     },
     "why_head": "어려운 점",
     "why": [
@@ -108,10 +108,10 @@
      {"title": "회사별 고지사항 차이", "rows_from": "simple_uw_questions_by_org", "caption": "간편심사에서 묻는 병력", "tag": "세 상품 중 우체국만 수술 이력을 묻지 않음"},
      {"title": "동일 담보의 명칭 차이", "names_from": "example_cancer_surgery_names", "caption": "암 수술비 하나에 대한 세 회사 문서의 표기"}
     ],
-    "quote": {"crit": ["참신성"], "text": "회사별로 필수 특약과 가입금액이 달라 같은 보장을 나란히 비교하기 어려움", "who": "출품자(보험영업 실무자)의 업무 경험"},
+    "quote": {"crit": ["참신성"], "text": "회사별로 필수 특약과 가입금액이 달라 같은 보장을 나란히 비교하기 어려움", "who": "보험영업 실무자인 본인의 업무 경험"},
     "notes": [
      "소비자가 보험료를 비교해 가입하는 서비스는 기존에 운영 중({{ref:insurance_damoa.name}}, 금융위원회 보도자료 {{ref:insurance_damoa.date}})",
-     "영업 기획 담당자의 관점에서 회사별 상품을 비교하는 도구는 확인하지 못함(출품자 판단)"
+     "영업 기획 담당자의 관점에서 회사별 상품을 비교하는 도구는 확인하지 못함(본인 판단)"
     ],
     "needs": {
      "crit": ["실용성"],
@@ -259,7 +259,7 @@
              "caption": "담보 비교 탭 암 수술비 확대 컷, 자료 기준 {{asof:example_cancer_surgery}}"},
     "effect": {
      "crit": ["완성도"],
-     "now_label": "현재", "now_value": "{{fact:practice_compare_time}}", "now_sub": "비교표 한 건, {{fact:practice_compare_frequency}}", "now_note": "출품자의 업무 경험에 따른 어림값(측정값 아님)",
+     "now_label": "현재", "now_value": "{{fact:practice_compare_time}}", "now_sub": "비교표 한 건, {{fact:practice_compare_frequency}}", "now_note": "본인의 업무 경험에 따른 어림값(측정값 아님)",
      "tool_label": "이 도구 적용 시", "tool_badge": "측정 전", "tool_text": "단축되는 시간은 아직 측정하지 않음",
      "tool_struct": "직접 수행하던 다섯 단계 중 세 단계는 사전 처리, 실무자는 두 단계만 화면에서 수행",
      "tool_struct_note": "위 표의 구조를 기준으로 센 값, 측정값 아님", "tool_note": "화면에 반영한 회사의 검수 대기 매핑 {{fact:mapping_status_site.대기}}건은 담당자가 원문과 대조",
@@ -333,7 +333,7 @@
     "team": {
      "crit": ["참신성"],
      "head": "개발 체계: 총괄 일원화, 재실행을 통한 결과 확인",
-     "me": "출품자 {{fact:team_size}}명", "me_sub": "방향 설정과 의사결정",
+     "me": "본인 {{fact:team_size}}명", "me_sub": "방향 설정과 의사결정",
      "cc": "{{name:claude_code}}", "cc_sub": "총괄과 최종 검수",
      "gem": "{{name:gemini_panel}}", "gem_sub": "조사, 의견, 교차 확인",
      "ag": "{{name:antigravity}}", "ag_sub": "화면 구현",
@@ -419,7 +419,7 @@
   {
    "id": "p8", "topic": "사용 실적",
    "blocks": {
-    "headline": "사내 정식 도입 전으로 사용 실적 없음, 출품자가 실무에서 직접 써 보며 확인한 개선점 반영",
+    "headline": "사내 정식 도입 전으로 사용 실적 없음, 본인이 실무에서 직접 사용하며 확인한 개선점 반영",
     "record": {
      "crit": ["완성도", "실용성"],
      "head": "사용 실적",
@@ -430,8 +430,8 @@
       {"calc": "goldset", "unit": "항목", "label": "급부 정답표 대조 일치(전체 결과는 {{pg:p6}}쪽)"},
       {"value": "{{fact:test_count}}", "unit": "개", "label": "자동 테스트"}
      ],
-     "have": "출품자가 실무 관점에서 직접 써 보며 확인한 사항({{asof:practice_respondents}}, {{asof:practice_tool_need}})과 반영 내용",
-     "cols": ["써 보며 확인한 점", "반영 내용", "상태"],
+     "have": "본인이 실무 관점에서 직접 사용하며 확인한 사항({{asof:practice_respondents}}, {{asof:practice_tool_need}})과 반영 내용",
+     "cols": ["사용하며 확인한 점", "반영 내용", "상태"],
      "rows": [
       {"ask": "타사 비교 시 공시실의 상품요약서, 사업방법서, 약관을 직접 확인해야 하며, 비교표 한 건에 {{fact:practice_compare_time}}, {{fact:practice_compare_frequency}} 소요", "done": "어림값으로 표시, 단축 시간은 사용검증에서 측정 예정", "pill": "기록"},
       {"ask": "회사별 필수 특약과 가입금액이 달라 같은 보장의 비교가 어려움", "done": "기준 가입금액이 다르면 금액만으로 우열을 정하지 않음, 타사 결합 제약 적재는 다음 계획", "pill": "일부 반영"},
@@ -441,7 +441,7 @@
       {"ask": "우체국통합건강보험 2504는 비교 대상으로 부적합", "done": "화면의 비교 대상에서 제외, 시트 자료는 검증 근거로 보존", "pill": "반영"},
       {"ask": "'스냅샷'이라는 용어가 실무 현장에서 낯섦", "done": "발표 자료와 안내 문서, 이 설명서에서 '주간 마감 자료'로 변경", "pill": "반영"},
       {"ask": "약관과 KCD가 개정되므로 반영 여부가 우려됨", "done": "한계를 구분해 기재, 개정 자동 감지와 질병코드 범위 비교를 다음 계획에 포함({{pg:p7}}쪽)", "pill": "계획"},
-      {"ask": "영업 기획 관점에서 회사별 상품을 비교하는 도구는 확인하지 못했고, 활용 가치가 있다고 판단", "done": "출품자 판단으로만 소개({{pg:p2}}쪽)", "pill": "판단"}
+      {"ask": "영업 기획 관점에서 회사별 상품을 비교하는 도구는 확인하지 못했고, 활용 가치가 있다고 판단", "done": "본인 판단으로만 소개({{pg:p2}}쪽)", "pill": "판단"}
      ],
      "next": "다음 실적: 다른 실무자 대상 사용검증 준비 완료(과제 여섯, 의견 양식), 제출 후 비교표 작성 시간 측정 예정"
     }
