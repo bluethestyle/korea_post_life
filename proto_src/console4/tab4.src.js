@@ -136,7 +136,7 @@ function verdictOf(B, row, cols, k) {
   if (cause === '단정 주의') {
     const cau = row.cau.find(x => (x['상대종형ID'] || []).includes(peer));
     const d = q && q.it ? q.it.filter(t => t[3] === '나음' || t[3] === '못함').map(t => `${t[0]} ${t[1]} 대 ${t[2]}`).join(', ') : '';
-    why = cau ? `${cau['문장']}${d ? ` 대표 급부끼리 다른 항목(${d})이 있지만 우열을 판단하지 않았습니다.` : ''}` : reasonText(reasons);
+    why = cau ? `${cau['문장']}${d ? ` (대표 급부 간 차이: ${d})` : ''}` : reasonText(reasons);
   } else if (cause === '검토 대기') {
     why = reasons.length ? t('cvWhyWaitTpl', { reasons: reasonText(reasons) }) : t('cvWhyWait');
   } else if (cause === '판정 보류') {
@@ -150,7 +150,7 @@ function verdictOf(B, row, cols, k) {
     why = c && c.c ? t('cvWhyRelCoverTpl', { org: txt.josa(po, '은'), kind: c.c[0], covs: txt.josa(c.c[1].map(stdN).join(', '), '으로') }) : t('cvWhyRelCoverTplShort', { org: txt.josa(po, '은') });
   } else if (cause === '우체국에 없음') {
     const b = row.cells[0];
-    const rel = b && b.c ? `우체국은 ${b.c[0]}인 ${txt.josa(b.c[1].map(stdN).join(', '), '이')} 관련 보장을 합니다` : '';
+    const rel = b && b.c ? `우체국은 ${b.c[0]}인 ${txt.josa(b.c[1].map(stdN).join(', '), '으로')} 관련 보장을 합니다` : '';
     why = rel || `${po}에는 있고 우체국에는 없는 담보입니다`;
   } else if (cause === '상대에 없음') {
     why = `${po}에는 이 담보가 없습니다`;
@@ -1328,7 +1328,7 @@ function rowEvidence(c, sid, mode) {
     <details class="zr-det"><summary><span>관계도와 근거 문서 쪽 번호 보기</span>${ui.IC.chevD}</summary><div class="zr-det-b">
       <div class="cv-rel" data-sid="${esc(sid)}"></div>${relLegend()}
       <h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">근거 문서와 쪽</h3>
-      ${mode === 'caution' && cauEv ? `<ul class="cv-evl">${cauEv}</ul><p class="note">"대표 밖"은 대표 급부 밖에 조건이 다른 급부입니다.</p>` : evidenceList(m, row, '', c)}
+      ${mode === 'caution' && cauEv ? `<ul class="cv-evl">${cauEv}</ul><p class="note">"대표 밖"은 대표 급부 외에 조건이 다른 급부입니다.</p>` : evidenceList(m, row, '', c)}
       ${out.length ? `<h3 style="margin:12px 0 6px;font:600 13.5px/1.3 var(--f-ko)">${esc(t('cvOmitHead'))}</h3><ul class="cv-evl">${out.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
     </div></details>`;
 
@@ -1579,7 +1579,7 @@ function pendingHTML(c) {
       <div class="r"><span class="live">${ui.btn(t('cvCopyTableBtn'), { sm: true, ghost: true, icon: 'copy', attrs: `data-copy="cover-pd-tbl" data-title="${esc(t('cvPdTitle'))}"` })}${ui.btn('인쇄', { sm: true, ghost: true, icon: 'print', attrs: `data-print="cover-pending" data-title="${esc(t('cvPdTitle'))}"` })}</span></div></div>
     <div class="cv-pd-eq">${ui.eq({ total: { t: t('cvPdColCommon'), n: sp.total }, parts: [{ t: t('cvPdColCmp'), n: sp.cmp }, { t: t('cvPdWaitExcl'), n: sp.wait }], tail: t('cvPdTailUnit') })}
       ${cellsBar}
-      ${sp.wait > 0 && Object.keys(why).length ? `<div class="nadd">${esc(t('cvPdWhyHeadTpl', { list: Object.entries(why).map(([a, b]) => `${a} ${b}`).join(', '), tail: whySum > sp.wait ? t('cvPdWhyOverlapTpl', { sum: txt.josa(String(whySum), '으로'), wait: sp.wait }) : t('cvPdWhySumTpl', { sum: whySum }) }))}</div>` : ''}</div>
+      ${sp.wait > 0 && Object.keys(why).length ? `<div class="nadd">${esc(t('cvPdWhyHeadTpl', { list: Object.entries(why).map(([a, b]) => `${a} ${b}`).join(', '), tail: whySum > sp.wait ? t('cvPdWhyOverlapTpl', { sum: fmt(whySum), wait: fmt(sp.wait) }) : t('cvPdWhySumTpl', { sum: fmt(whySum) }) }))}</div>` : ''}</div>
     <div class="cv-pd-t">${ui.table({ id: 'cover-pd-tbl', head: headCols, rows, num: numCols })}</div>
     <div class="panel-f">${cellsBar ? `${esc(t('cvPdCellsLegendPrefix'))}<span class="kd-l"><i class="cq cmp"></i>${esc(t('cvPdCellsCmp'))}</span> <span class="kd-l"><i class="cq wait"></i>${esc(t('cvPdCellsWait'))}</span>. ` : ''}${esc(sumNote)}</div>
   </section>`;
@@ -1735,13 +1735,13 @@ function tableHTML(c) {
   const sumChipsHTML = chipNames.map(nm => `${ui.verdict(chipKindByName(nm), nm)} <b class="num" data-sum-name="${esc(nm)}">${byName[nm] || 0}</b>`).join(' ');
   const head2 = '<span class="cv-v hd"><span class="pv">지급</span><span class="wv">면책</span><span class="rv">감액</span></span>';
   const twHintTxt = (innerWidth <= 640 || !manyOrgs)
-    ? '담보 열은 고정되고, 회사 및 비교 결과 열을 좌우로 밀어 확인합니다.'
-    : '담보와 비교 결과 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
+    ? '담보 열은 고정되고, 회사 및 비교 결과 열을 좌우로 스크롤해 확인합니다.'
+    : '담보와 비교 결과 열은 고정되고, 가운데 회사 열을 좌우로 스크롤해 확인합니다.';
   const scrollBarHTML = `<div class="cv-tw-bar no-print" id="cv-tw-bar" hidden>
     <span class="cv-tw-hint" id="cv-tw-hint">${esc(twHintTxt)}</span>
     <span class="cv-tw-btns">
-      <button type="button" class="btn sm ghost" id="cv-scroll-l" data-act="cv-scroll-l" disabled>${ui.IC.chevL}<span>왼쪽 회사 열</span></button>
-      <button type="button" class="btn sm ghost" id="cv-scroll-r" data-act="cv-scroll-r"><span>오른쪽 회사 열</span>${ui.IC.chevR}</button>
+      <button type="button" class="btn sm ghost" id="cv-scroll-l" data-act="cv-scroll-l" disabled>${ui.IC.chevL}<span>이전 회사 열</span></button>
+      <button type="button" class="btn sm ghost" id="cv-scroll-r" data-act="cv-scroll-r"><span>다음 회사 열</span>${ui.IC.chevR}</button>
     </span>
   </div>`;
   const theadHTML = manyOrgs
@@ -1787,8 +1787,8 @@ function syncCoverTwScroll(root) {
       const tbl = tw.querySelector('#cover-tbl');
       const manyOrgs = !!(tbl && tbl.classList.contains('is-many-orgs'));
       hint.textContent = (innerWidth <= 640 || !manyOrgs)
-        ? '담보 열은 고정되고, 회사 및 비교 결과 열을 좌우로 밀어 확인합니다.'
-        : '담보와 비교 결과 열은 고정되고, 가운데 회사 열을 좌우로 넘겨 확인합니다.';
+        ? '담보 열은 고정되고, 회사 및 비교 결과 열을 좌우로 스크롤해 확인합니다.'
+        : '담보와 비교 결과 열은 고정되고, 가운데 회사 열을 좌우로 스크롤해 확인합니다.';
     }
     const btnL = bar.querySelector('#cv-scroll-l');
     const btnR = bar.querySelector('#cv-scroll-r');

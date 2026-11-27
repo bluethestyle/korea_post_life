@@ -3255,7 +3255,7 @@
         <dl class="kv" style="margin-top:8px">
           <dt>전체 노드</dt><dd class="num">${fmt(g.N.length)}개</dd>
           <dt>전체 엣지</dt><dd class="num">${fmt(g.E.length)}개</dd>
-          <dt>자료 시각</dt><dd class="num">${esc(String(g.snapshotAt || '').replace('T', ' ').slice(0, 16))}</dd>
+          <dt>자료 기준</dt><dd class="num">${esc(String(g.snapshotAt || '').replace('T', ' ').slice(0, 16))}</dd>
         </dl>
       </div>`,
     };
@@ -3387,7 +3387,7 @@
       .sort((a, b) => (pri[a.k] ?? 9) - (pri[b.k] ?? 9) || a.l.length - b.l.length)
       .slice(0, 12);
     if (!hits.length) {
-      sugg.innerHTML = '<div class="gr-sugg-empty">맞는 이름의 노드가 없습니다.</div>';
+      sugg.innerHTML = '<div class="gr-sugg-empty">일치하는 검색 결과가 없습니다.</div>';
       sugg.hidden = false;
       return;
     }
