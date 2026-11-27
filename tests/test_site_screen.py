@@ -247,7 +247,7 @@ def test_limited_only_cell_note_and_landscape_count(data):
     # 고객군과 시장 요약의 둘째 문장이 그 칸 수를 적는다
     ga = {x["줄"]: x for x in out["기준별"][E2]["브리핑"]}["가"]
     assert "가_전용만" in ga["틀"] and ga["값"]["전용만칸수"] == len(limited) == 2
-    assert "2개 고객군은 우체국에서 가입 가능한 간편심사 종형이 더간편건강보험 2504(암, 2대질병 전용 상품)뿐입니다." in ga["문장"]
+    assert "2개 고객군에서 가입 가능한 우체국 간편심사 상품은 더간편건강보험 2504(암, 2대질병 전용 상품)뿐입니다." in ga["문장"]
     # 열린 우리 간편 종형 가운데 종합형이 있으면 전용 상품만이 아니다(EC 에 공통보장 담보를 더해 종합형으로 바꾸면 보조가 빈다)
     wide = make(wide_limited=True)
     wm = S.export(wide, I.analyze(wide, REL), REL)["지도"]["전체"]
