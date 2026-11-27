@@ -267,7 +267,7 @@ App.registerTab((function () {
       case 'need': return t('gtWhyComboNeedTpl', { name: txt.shortName(base).short });
       case 'needAmount': return t('gtWhyComboNeedAmtTpl', { name: txt.shortName(base).short, amt: man(w[3]) });
       case 'exclusive': return t('gtWhyComboExclTpl', { name: txt.josa(txt.shortName(base).short, '과') });
-      case 'belowMin': return t('gtWhyComboBelowMinTpl', { amt: txt.josa(man(w[4]), '이') });
+      case 'belowMin': return t('gtWhyComboBelowMinTpl', { amt: man(w[4]) });
       default: return w[0];
     }
   }
@@ -675,7 +675,9 @@ App.registerTab((function () {
     if (isPrem) {
       stopHTML += `<p class="note">${esc(t('gtFlowPremNote'))}</p>`;
     }
-    if (cell && (c.st.age !== cell['세부나이'] || c.st.sex !== map['성별'])) {
+    const repSpan = cell && Array.isArray(cell['대표구간']) ? cell['대표구간'] : null;
+    const inRepSpan = repSpan ? (c.st.age >= repSpan[0] && c.st.age <= repSpan[1]) : (cell && c.st.age === cell['세부나이']);
+    if (cell && (!inRepSpan || c.st.sex !== map['성별'])) {
       stopHTML += `<p class="note">${esc(t(c.st.since == null ? 'flowAgeNoteNoHistTpl' : 'flowAgeNoteTpl', { age: fmt(cell['세부나이']), sex: txt.sexText(map['성별']) }))}</p>`;
     }
     if (stopEntries.length) {
@@ -806,7 +808,7 @@ App.registerTab((function () {
     let act = '';
     if (f['회사'] === 'EPOST' && vid !== c.baseId && BASE_IDS.includes(vid)) act = ui.btn(t('gtSwitchBaseBtnTpl', { targetWithJosa: txt.josa(vk(vid), '으로') }), { main: true, chev: true, attrs: `data-act="base-to" data-v="${esc(vid)}"` });
     const grBtn = `<div style="margin-top:8px">${ui.btn(t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="var:${esc(vid)}"` })}</div>`;
-    body += sec(t('gtSecEvidence'), `<p class="note">${esc(full)}${startT}${esc(t('gtNodeNoPageSuffix'))}</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}${grBtn}`, true);
+    body += sec(t('gtSecEvidence'), `<p class="note">${esc(full)}${startT}</p><p class="note">${esc(txt.PAGE_WHY)}.</p>${act}${grBtn}`, true);
     return { kicker: t('gtNodeKickerTpl', { org: txt.orgShort(f['회사']) }), title: vk(vid), badges: [ui.scope('now'), `<span class="tag gt-k k-${k}">${esc(App.short(stT))}</span>`].concat(vid === c.baseId ? [ui.tag(t('gtTagBase'))] : []).concat(f['관문전용'] ? [ui.tag(t('gtTagGateOnly'))] : []), body };
   }
 
@@ -833,7 +835,7 @@ App.registerTab((function () {
     let body = sec('', `<p>${z[2] ? t('gtCbRiderJoinedTpl', { amt: esc(man(z[3])), josa: jo(man(z[3]), '으로') }) : t('gtCbRiderNotJoined')}${memo.length ? ` ${esc(memo.join(', '))}.` : ''}</p>`);
     body += sec(t('gtCbSecAmt'), `<dl class="kv"><dt>${esc(t('gtCbMinAmtDt'))}</dt><dd class="num">${esc(man(meta[2]))}</dd><dt>${esc(t('gtCbNowLimDt'))}</dt><dd class="num">${z[4] != null ? esc(man(z[4])) : esc(t('gtNoDataText'))}</dd>
         <dt>${esc(t('gtCbConsCapDt'))}</dt><dd class="num">${z[5] != null ? esc(man(z[5])) : esc(t('gtNoneText'))}</dd><dt>${esc(t('gtCbMaxAmtDt'))}</dt><dd class="num">${esc(man(meta[3]))}</dd></dl>`);
-    if (rules.length) body += sec(t('gtCbRiderConsHeadTpl', { n: fmt(rules.length) }), `<ul class="evl">${rules.map(k => `<li>${ui.tag(k[0])} <span class="note">${esc(t('gtCbRuleFromToTpl', { from: txt.shortName(riderName(v, k[1])).short, to: txt.josa(txt.shortName(riderName(v, k[2])).short, '으로') }))}</span><p>${esc(k[5] || '')}</p></li>`).join('')}</ul>`);
+    if (rules.length) body += sec(t('gtCbRiderConsHeadTpl', { n: fmt(rules.length) }), `<ul class="evl">${rules.map(k => `<li>${ui.tag(k[0])} <span class="note">${esc(t('gtCbRuleFromToTpl', { from: txt.shortName(riderName(v, k[1])).short, to: txt.shortName(riderName(v, k[2])).short }))}</span><p>${esc(k[5] || '')}</p></li>`).join('')}</ul>`);
     if (bens.length) body += sec(t('gtCbRiderRepCovHeadTpl', { n: fmt(bens.length) }), `<ul class="evl">${bens.map(g => `<li><b>${esc((CB['S'][g[0]] || [g[0]])[0])}</b> <span class="num">${esc(man(g[4]))}</span></li>`).join('')}</ul>`);
     body += sec(t('gtSecEvidence'), `<p class="note">${esc(t('gtCbRiderEvNoteTpl', { name: meta[1] || '', lo: r.lo, hi: r.hi }))}</p>`, true);
     return { kicker: t('gtCbRiderKickerTpl', { purpose }), title: meta[1] || '', badges: [ui.scope('base')].concat(z[11] ? [ui.tag(t('gtMainContract'))] : []), body };

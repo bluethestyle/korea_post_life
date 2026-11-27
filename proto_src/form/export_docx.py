@@ -1155,7 +1155,7 @@ class Exporter:
                     rr.image(f.images[s["img"]], fw, alt)
                 else:
                     cw = B.Form.CUT_W[s["cut"]]
-                    if fw + cw <= 146:                       # 세로로 긴 응대 화법 카드: 전체와 확대 컷을 한 줄에
+                    if fw + cw <= 146:                       # 세로로 긴 비교 요약지 카드: 전체와 확대 컷을 한 줄에
                         rr.images([(f.images[s["img"]], 62.0, alt), (f.images[s["cut"]], 62.0, alt + " (확대 컷)")])
                     else:
                         rr.image(f.images[s["img"]], fw, alt)

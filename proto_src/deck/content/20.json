@@ -38,8 +38,8 @@
    ],
    "limit": 26,
    "build": 2,
-   "alt": "영업지원과 교육 부서의 현장 맞춤형 영업 포인트 및 응대 화법 코칭 활용 카드",
-   "svg": "<rect x='0' y='0' width='560' height='576' rx='10' class='sv-paper'/><rect x='0' y='0' width='560' height='576' rx='10' class='sv-ink'/><use href='{{icon:응대 화법}}' x='28' y='26' width='44' height='44'/><text x='86' y='56' class='b' style='font-size:30px'>영업지원·교육 부서</text><text x='86' y='92' class='aux'>현장 맞춤형 영업·응대 코칭</text><path d='M24 118H536' class='sv-line'/><rect x='24' y='140' width='512' height='190' rx='8' class='sv-line'/><text x='44' y='182' class='b'>1. 고객 조건별 가입 시뮬레이션</text><text x='44' y='234'>연령·병력별 가입 가능 구간 확인</text><text x='44' y='282' class='aux'>인수기준 차이 {{fact:sales_insight_by_category_display.인수기준 차이}}건·우위 {{fact:sales_insight_by_category_display.우위 담보}}건</text><rect x='24' y='350' width='512' height='202' rx='8' class='sv-line'/><text x='44' y='392' class='b'>2. 창구·설계사 A4 1장 배포</text><text x='44' y='444'>비교표·예상 질답을 바로 복사</text><text x='44' y='494' class='aux'>현장 응대 화법 자료로 즉시 활용</text>"
+   "alt": "영업지원과 교육 부서의 현장 맞춤형 영업 포인트 및 비교 요약지 활용 코칭 카드",
+   "svg": "<rect x='0' y='0' width='560' height='576' rx='10' class='sv-paper'/><rect x='0' y='0' width='560' height='576' rx='10' class='sv-ink'/><use href='{{icon:비교 요약지}}' x='28' y='26' width='44' height='44'/><text x='86' y='56' class='b' style='font-size:30px'>영업지원·교육 부서</text><text x='86' y='92' class='aux'>현장 맞춤형 영업·요약지 코칭</text><path d='M24 118H536' class='sv-line'/><rect x='24' y='140' width='512' height='190' rx='8' class='sv-line'/><text x='44' y='182' class='b'>1. 고객 조건별 가입 시뮬레이션</text><text x='44' y='234'>연령·병력별 가입 가능 구간 확인</text><text x='44' y='282' class='aux'>인수기준 차이 {{fact:sales_insight_by_category_display.인수기준 차이}}건·우위 {{fact:sales_insight_by_category_display.우위 담보}}건</text><rect x='24' y='350' width='512' height='202' rx='8' class='sv-line'/><text x='44' y='392' class='b'>2. 창구·설계사 A4 1장 배포</text><text x='44' y='444'>비교표·예상 질답을 바로 복사</text><text x='44' y='494' class='aux'>현장 비교 요약지 자료로 즉시 활용</text>"
   },
   {
    "use": "svg",
@@ -62,9 +62,9 @@
  "points": [],
  "terms": [
   "영업 인사이트",
-  "응대 화법",
+  "비교 요약지",
   "시장 동향"
  ],
  "source": "",
- "notes": "현업 부서별로 이 도구를 어떻게 활용하는지 세 가지 시나리오로 정리했습니다. 첫째, 상품개발·기획 부서는 타사 공통 보유 대비 당사에 없는 미보유 담보 {{fact:sales_insight_by_category_display.미보유 담보}}건을 바로 확인해 신상품 기획에 활용하고, {{fact:epost_renewal.before}}에서 {{fact:epost_renewal.after}}으로 개정된 {{fact:revision_changes.전체}}건의 변동 담보와 근거 쪽수를 즉시 대조합니다. 둘째, 영업지원·교육 부서는 병력별 가입 가능 시뮬레이션과 인수기준 차이 {{fact:sales_insight_by_category_display.인수기준 차이}}건, 우위 담보 {{fact:sales_insight_by_category_display.우위 담보}}건을 추려 창구·설계사 참고용 A4 1장 응대 화법으로 배포합니다. 셋째, 시장조사·전략 부서는 생·손보 {{fact:market_news_institution_count}}개 보험사의 신담보, 배타적사용권, 고지완화 등 {{fact:market_news_category_count}}개 핵심 동향을 매일 자동 수집·분류해 주간 마감 자료로 축적하며 경쟁사 움직임에 선제 대응합니다."
+ "notes": "현업 부서별로 이 도구를 어떻게 활용하는지 세 가지 시나리오로 정리했습니다. 첫째, 상품개발·기획 부서는 타사 공통 보유 대비 당사에 없는 미보유 담보 {{fact:sales_insight_by_category_display.미보유 담보}}건을 바로 확인해 신상품 기획에 활용하고, {{fact:epost_renewal.before}}에서 {{fact:epost_renewal.after}}으로 개정된 {{fact:revision_changes.전체}}건의 변동 담보와 근거 쪽수를 즉시 대조합니다. 둘째, 영업지원·교육 부서는 병력별 가입 가능 시뮬레이션과 인수기준 차이 {{fact:sales_insight_by_category_display.인수기준 차이}}건, 우위 담보 {{fact:sales_insight_by_category_display.우위 담보}}건을 추려 창구·설계사 참고용 A4 1장 비교 요약지로 배포합니다. 셋째, 시장조사·전략 부서는 생·손보 {{fact:market_news_institution_count}}개 보험사의 신담보, 배타적사용권, 고지완화 등 {{fact:market_news_category_count}}개 핵심 동향을 매일 자동 수집·분류해 주간 마감 자료로 축적하며 경쟁사 움직임에 선제 대응합니다."
 }

@@ -57,11 +57,11 @@
      {"label": "변화", "text": "문서를 찾아 비교표를 직접 작성하던 업무를 화면 확인과 비교표 복사로 전환"}
     ],
     "flow": {
-     "head": "문서에서 화면, 응대 화법까지의 흐름",
+     "head": "문서에서 화면, 비교 요약지까지의 흐름",
      "nodes": [
       {"label": "공시 문서", "sub": "한화생명 상품 하나의 상품요약서"},
       {"label": "분석 화면", "sub": "탭 {{fact:console4_tabs.count}}개, 첨부 파일로 열기"},
-      {"label": "응대 화법 A4", "sub": "대외 배포 금지, 한 장"}
+      {"label": "비교 요약지 A4", "sub": "대외 배포 금지, 한 장"}
      ],
      "arrows": ["AI 추출, 코드 대조", "담보 선택, 비교표 복사"]
     },
@@ -141,7 +141,7 @@
       {"name": "현황 파악", "tabs": ["{{fact:console4_tabs.names.0}}", "{{fact:console4_tabs.names.1}}"]},
       {"name": "상세 비교", "tabs": ["{{fact:console4_tabs.names.2}}", "{{fact:console4_tabs.names.3}}", "{{fact:console4_tabs.names.5}}"]},
       {"name": "결론", "tabs": ["{{fact:console4_tabs.names.4}}"]},
-      {"name": "내보내기", "tabs": ["응대 화법"]}
+      {"name": "내보내기", "tabs": ["비교 요약지"]}
      ]
     }
    }
@@ -230,7 +230,7 @@
      "items": [
       {"icon": "file-signature", "name": "상품 개발", "text": "개정 전후 상품을 같은 기준으로 비교, 담보 신설과 종료 확인"},
       {"icon": "gavel", "name": "인수기준 검토", "text": "회사별 가입연령, 가입한도, 고지사항을 한 표에서 대조"},
-      {"icon": "headset", "name": "영업 교육", "text": "비교 결과를 A4 한 장 응대 화법으로 인쇄 또는 복사"},
+      {"icon": "headset", "name": "영업 교육", "text": "비교 결과를 A4 한 장 비교 요약지로 인쇄 또는 복사"},
       {"icon": "radar", "name": "시장 모니터링", "text": "타사 신상품과 개정 소식을 분류해 확인, 매일 수집"}
      ],
      "out": "범위 밖(다음 단계 후보): 다른 상품 종류(암보험 단독, 치매와 간병, 어린이보험), 공제(새마을금고, 신협, 수협)"

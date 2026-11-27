@@ -310,7 +310,7 @@ $PY tools/check_glyphs.py out/index.html      # 심은 글꼴(PLKo)에 없는 �
 
 - 블록: `{"use": "C18", "icon": "stack", "pages": "{{fact:hanwha_summary_pages}}", "scale_pages": 600, "label": "..."}`(문서 더미, 높이가 쪽수에 비례) 또는 `{"use": "C18", "icon": "monitor", "size": 64}`.
 - 아이콘은 세 가지 이름으로 부른다. C3 노드의 `icon`, C5의 `icon`, C2 단계의 `icon`, C10 타일의 `icon`, 인용의 `icon`, 인라인 그림의 `{{icon:}}`에 같은 이름을 쓴다.
-  1. 개념 이름(먼저 쓴다): `_deck.json`의 `icons`(덱 아이콘 사전)에 있는 개념. 공시 문서, 추출, 검증, 자동 확정, 사람 검수, 코드, 마스터 데이터, 관계 그래프, 비교 화면, 응대 화법, 스냅샷, 담보, 우체국, 계산, 연동, 비용, 일정, 기간, 걸리는 시간, 목표. 같은 개념은 덱 전체에서 같은 아이콘이 된다.
+  1. 개념 이름(먼저 쓴다): `_deck.json`의 `icons`(덱 아이콘 사전)에 있는 개념. 공시 문서, 추출, 검증, 자동 확정, 사람 검수, 코드, 마스터 데이터, 관계 그래프, 비교 화면, 비교 요약지, 스냅샷, 담보, 우체국, 계산, 연동, 비용, 일정, 기간, 걸리는 시간, 목표. 같은 개념은 덱 전체에서 같은 아이콘이 된다.
   2. 디자인 시스템 "발표용(우체국)"의 Lucide 아이콘 55종의 이름(`icons/*.svg`, 예: `file-text`, `network`, `coins`). 뜻은 디자인 시스템 사전(`reference/icons-logos.md` 5절)을 따르고, 사전에 없는 개념에 비슷한 아이콘을 빌려 쓰지 않는다. 라이선스는 `icons/LICENSE.txt`(ISC).
   3. 덱 자체 아이콘: stack, ai, code, person, search, table, monitor, a4, copy, print, camera, clock, building, video, arrow, dot, square. doc, check, graph 는 디자인 시스템 도안(file-text, badge-check, network)으로 그린다.
 - 빌드는 장에서 실제로 쓴 아이콘만 스프라이트에 심는다. 모르는 이름이면 빌드가 멈춘다. 상한: 라벨 13자(26px). 쓰는 장: 전 장.
