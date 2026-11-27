@@ -715,6 +715,161 @@ u.g { border-bottom: 3px solid var(--border-default); }
   .ui { display: none !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* === 개편 추가 스타일 및 직관성 강화 마이크로 모션 === */
+.c1a-r { padding: 0 18px; }
+
+@keyframes mFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mFadeRight {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mPopIn {
+  0% { opacity: 0; transform: scale(0.25); }
+  70% { opacity: 1; transform: scale(1.14); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes mGrowX {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes mDrawPath {
+  from { stroke-dashoffset: 1; opacity: 0.25; }
+  to { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes mChevH {
+  0%, 100% { transform: translateX(0); }
+  45% { transform: translateX(6px); }
+}
+@keyframes mChevV {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(6px); }
+}
+@keyframes mZoneGlow {
+  0%, 100% { fill: rgba(218, 41, 28, 0.08); stroke-width: 3; }
+  50% { fill: rgba(218, 41, 28, 0.22); stroke-width: 4.5; }
+}
+@keyframes mBadgePop {
+  0% { opacity: 0; transform: scale(0.4); }
+  75% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes mHeroSettle {
+  0% { box-shadow: 0 0 0 0 rgba(218, 41, 28, 0.34); }
+  60% { box-shadow: 0 0 0 10px rgba(218, 41, 28, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(218, 41, 28, 0); }
+}
+@keyframes mNodeHalo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(218, 41, 28, 0.38); }
+  55% { box-shadow: 0 0 0 14px rgba(218, 41, 28, 0); }
+}
+@keyframes mGlideIn {
+  from { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+/* 1) 표지 챕터 보드 및 우측 3단 흐름 순차 등장 */
+.slide.cover.active .c3-row.c3-v > .c3-n:nth-of-type(1) { animation: mFadeUp 380ms var(--ease-out) 120ms both; }
+.slide.cover.active .c3-row.c3-v > .c3-a:nth-of-type(2) .chev { animation: mChevV 900ms ease-in-out 380ms 2; }
+.slide.cover.active .c3-row.c3-v > .c3-n:nth-of-type(3) { animation: mFadeUp 380ms var(--ease-out) 300ms both; }
+.slide.cover.active .c3-row.c3-v > .c3-a:nth-of-type(4) .chev { animation: mChevV 900ms ease-in-out 560ms 2; }
+.slide.cover.active .c3-row.c3-v > .c3-n:nth-of-type(5) { animation: mFadeUp 420ms var(--ease-out) 480ms both, mHeroSettle 1.1s ease-out 780ms 1; }
+.slide.cover.active .c1b-i:nth-child(1) { animation: mFadeUp 320ms var(--ease-out) 220ms both; }
+.slide.cover.active .c1b-i:nth-child(2) { animation: mFadeUp 320ms var(--ease-out) 300ms both; }
+.slide.cover.active .c1b-i:nth-child(3) { animation: mFadeUp 320ms var(--ease-out) 380ms both; }
+.slide.cover.active .c1b-i:nth-child(4) { animation: mFadeUp 320ms var(--ease-out) 460ms both; }
+.slide.cover.active .c1b-i:nth-child(5) { animation: mFadeUp 320ms var(--ease-out) 540ms both; }
+.slide.cover.active .c1b-i:nth-child(6) { animation: mFadeUp 320ms var(--ease-out) 620ms both; }
+
+/* 2) 가로 흐름도(C3) 도미노 시퀀스 및 화살표 웨이브 */
+.slide.active .c3-row:not(.c3-v) > .c3-n:nth-child(1) { animation: mFadeUp 300ms var(--ease-out) 80ms both; }
+.slide.active .c3-row:not(.c3-v) > .c3-n:nth-child(3) { animation: mFadeUp 300ms var(--ease-out) 170ms both; }
+.slide.active .c3-row:not(.c3-v) > .c3-n:nth-child(5) { animation: mFadeUp 300ms var(--ease-out) 260ms both; }
+.slide.active .c3-row:not(.c3-v) > .c3-n:nth-child(7) { animation: mFadeUp 300ms var(--ease-out) 350ms both; }
+.slide.active .c3-row:not(.c3-v) > .c3-n:nth-child(9) { animation: mFadeUp 300ms var(--ease-out) 440ms both; }
+.slide.active .c3-row:not(.c3-v) > .c3-a .chev { animation: mChevH 750ms ease-in-out 360ms 2; }
+.slide.active .c5-a .chev { animation: mChevH 750ms ease-in-out 400ms 2; }
+
+/* 3) 비교표(C4, C1 answers) 및 주간 캘린더(C16) 순차 등장 */
+.slide.active .c4-r:nth-of-type(2), .slide.active .c4r-r:nth-of-type(1) { animation: mFadeUp 280ms var(--ease-out) 140ms both; }
+.slide.active .c4-r:nth-of-type(3), .slide.active .c4r-r:nth-of-type(2) { animation: mFadeUp 280ms var(--ease-out) 240ms both; }
+.slide.active .c4-r:nth-of-type(4), .slide.active .c4r-r:nth-of-type(3) { animation: mFadeUp 280ms var(--ease-out) 340ms both; }
+.slide.active .c1a-r:nth-child(1) { animation: mFadeRight 280ms var(--ease-out) 80ms both; }
+.slide.active .c1a-r:nth-child(2) { animation: mFadeRight 280ms var(--ease-out) 150ms both; }
+.slide.active .c1a-r:nth-child(3) { animation: mFadeRight 280ms var(--ease-out) 220ms both; }
+.slide.active .c1a-r:nth-child(4) { animation: mFadeRight 300ms var(--ease-out) 290ms both, mHeroSettle 1s ease-out 620ms 1; }
+.slide.active .c1a-r:nth-child(5) { animation: mFadeRight 280ms var(--ease-out) 360ms both; }
+.slide.active .c1a-r:nth-child(6) { animation: mFadeRight 280ms var(--ease-out) 430ms both; }
+.slide.active .c16-d:nth-of-type(1) .c16-mk { animation: mPopIn 280ms var(--ease-out) 240ms both; }
+.slide.active .c16-d:nth-of-type(2) .c16-mk { animation: mPopIn 280ms var(--ease-out) 300ms both; }
+.slide.active .c16-d:nth-of-type(3) .c16-mk { animation: mPopIn 280ms var(--ease-out) 360ms both; }
+.slide.active .c16-d:nth-of-type(4) .c16-mk { animation: mPopIn 280ms var(--ease-out) 420ms both; }
+.slide.active .c16-d:nth-of-type(5) .c16-mk { animation: mPopIn 280ms var(--ease-out) 480ms both; }
+.slide.active .c16-d:nth-of-type(6) .c16-mk { animation: mPopIn 280ms var(--ease-out) 540ms both; }
+.slide.active .c16-d:nth-of-type(7) .c16-mk { animation: mPopIn 320ms var(--ease-out) 600ms both; }
+
+/* 4) SVG 연결 화살표·리더 선 자동 드로잉 */
+.slide.active path[data-draw="1"] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: mDrawPath 480ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+}
+.slide.active path.m-strike[data-draw="1"] {
+  animation: mDrawPath 400ms cubic-bezier(0.22, 1, 0.36, 1) 360ms both;
+}
+
+/* 5) 화면 캡처(C12) 스포트라이트 구역 & 배지 포커스 */
+.slide.active .c12-zn {
+  animation: mZoneGlow 1s ease-in-out 340ms 2;
+}
+.slide.active .c12-zk {
+  animation: mBadgePop 340ms var(--ease-out) 260ms both;
+}
+.slide.active .c12-lb {
+  animation: mFadeRight 300ms var(--ease-out) 320ms both;
+}
+
+/* 6) 다이어그램 내부 시맨틱 모션 (점 팝업, 확률 막대 성장, 단계별 웨이브, 지식그래프 중심 파동) */
+.m-pop-1, .m-pop-2, .m-pop-3 { transform-box: fill-box; transform-origin: center; }
+.slide.active .m-pop-1 { animation: mPopIn 320ms var(--ease-out) 220ms both; }
+.slide.active .m-pop-2 { animation: mPopIn 320ms var(--ease-out) 340ms both; }
+.slide.active .m-pop-3 { animation: mPopIn 320ms var(--ease-out) 460ms both; }
+
+.m-bar { transform-box: fill-box; transform-origin: left center; }
+.slide.active .m-bar { animation: mGrowX 580ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both; }
+
+.slide.active .c7-mk { transform-box: fill-box; transform-origin: center; animation: mPopIn 380ms var(--ease-out) 280ms both; }
+.slide.active .c7-ml { animation: mGlideIn 380ms var(--ease-out) 280ms both; }
+
+.slide.active .m-stage-1 { animation: mFadeUp 300ms var(--ease-out) 120ms both; }
+.slide.active .m-stage-2 { animation: mFadeUp 300ms var(--ease-out) 240ms both; }
+.slide.active .m-stage-3 { animation: mFadeUp 300ms var(--ease-out) 360ms both; }
+.slide.active .m-stage-4 { animation: mFadeUp 300ms var(--ease-out) 480ms both; }
+.slide.active .m-stage-5 { animation: mFadeUp 300ms var(--ease-out) 600ms both; }
+
+.slide.active .c9-gn.hero i { animation: mNodeHalo 1.2s ease-out 480ms 2; }
+.slide.active .c10.tile.hero, .slide.active .c3-n.hero, .slide.active .c5-c.hero {
+  animation: mHeroSettle 1s ease-out 420ms 1;
+}
+.slide.active u {
+  display: inline-block;
+  transform-origin: left bottom;
+  animation: mGrowX 420ms var(--ease-out) 360ms both;
+}
+
+/* 전체보기 썸네일, 점검 모드(.no-motion), 모션 줄임, 인쇄 시에는 모든 추가 애니메이션 비활성화 */
+html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide *::after,
+.thumb-inner *, .thumb-inner *::before, .thumb-inner *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .slide.active *, .slide.cover.active * { animation: none !important; }
+}
+@media print {
+  .slide *, .slide *::before, .slide *::after { animation: none !important; }
+}
+
 </style>
 </head>
 <body>
@@ -787,7 +942,7 @@ u.g { border-bottom: 3px solid var(--border-default); }
   function updateNotes() {
     var s = slides[cur];
     var n = s.querySelector(".notes");
-    notesPanel.querySelector(".nh").textContent = "발표자 노트 (" + (cur + 1) + " / " + total + "), N 키로 닫기";
+    notesPanel.querySelector(".nh").textContent = "발표자 노트 (" + (s.getAttribute("data-pg") || ((cur + 1) + " / " + total)) + "), N 키로 닫기";
     notesPanel.querySelector(".nb").textContent = n ? n.textContent : "이 장에는 노트가 없습니다.";
   }
 
@@ -811,7 +966,7 @@ u.g { border-bottom: 3px solid var(--border-default); }
       try { history.replaceState(null, "", "#" + (i + 1)); } catch (e) { window.location.hash = "#" + (i + 1); }
     }
     updateNotes();
-    live.textContent = (i + 1) + " / " + total + ", " + (slides[i].getAttribute("data-title") || "");
+    live.textContent = (slides[i].getAttribute("data-pg") || ((i + 1) + " / " + total)) + ", " + (slides[i].getAttribute("data-title") || "");
   }
 
   function next() { go(cur + 1); }
@@ -841,7 +996,7 @@ u.g { border-bottom: 3px solid var(--border-default); }
       b.appendChild(inner);
       var num = document.createElement("span");
       num.className = "thumb-n";
-      num.textContent = String(i + 1);
+      num.textContent = s.getAttribute("data-badge") || String(i + 1);
       b.appendChild(num);
       b.addEventListener("click", function () { closeOverview(); go(i); });
       grid.appendChild(b);
@@ -934,6 +1089,89 @@ u.g { border-bottom: 3px solid var(--border-default); }
   var start = hashIndex();
   go(start === null ? 0 : start, true);
   setTimeout(function () { help.classList.add("off"); }, 5000);
+})();
+</script>
+<script>
+(function () {
+  "use strict";
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // 1) 화살표·리더 선(실선)에 pathLength=1 부여해 슬라이드 진입 시 드로잉 모션 활성화
+  Array.prototype.forEach.call(
+    document.querySelectorAll(".slide svg path[marker-end], .slide svg path.c12-ld, .slide svg path.m-strike, .slide svg path.c16-arw"),
+    function (p) {
+      var cls = p.getAttribute("class") || "";
+      if (cls.indexOf("dash") >= 0 || p.hasAttribute("stroke-dasharray")) { return; }
+      p.setAttribute("pathLength", "1");
+      p.setAttribute("data-draw", "1");
+    }
+  );
+
+  // 점검 도구(shot.py 의 NO_ANIM)가 .dg 의 애니메이션을 끈 경우 하위 마이크로 모션도 함께 비활성화해 최종 프레임을 찍게 함
+  function syncNoMotion() {
+    var probeDg = document.querySelector(".slide.active .dg") || document.querySelector(".slide .dg");
+    if (probeDg && window.getComputedStyle(probeDg).animationName === "none") {
+      document.documentElement.classList.add("no-motion");
+      return true;
+    }
+    return false;
+  }
+
+  // 2) 핵심 수치(.c10-v) 슬라이드 진입 시 부드러운 카운트업 롤업
+  function animateNumbers(slide) {
+    if (!slide || reduced || syncNoMotion()) { return; }
+    var els = slide.querySelectorAll(".c10-v");
+    Array.prototype.forEach.call(els, function (el) {
+      var orig = el.getAttribute("data-orig");
+      if (!orig) {
+        orig = el.textContent;
+        el.setAttribute("data-orig", orig);
+      }
+      if (el._raf) { cancelAnimationFrame(el._raf); }
+      // "101/101" 형태 또는 일반 정수·실수("567", "95.9", "0") 처리
+      var ratioMatch = /^(\d+)\/(\d+)$/.exec(orig.trim());
+      var numMatch = /^([\d,]+(?:\.\d+)?)$/.exec(orig.trim());
+      if (!ratioMatch && !numMatch) { el.textContent = orig; return; }
+      if (orig.trim() === "0") { el.textContent = "0"; return; }
+      var dur = 580;
+      var t0 = performance.now();
+      function tick(now) {
+        var p = Math.min(1, (now - t0) / dur);
+        var ease = 1 - Math.pow(1 - p, 4);
+        if (p >= 1) {
+          el.textContent = orig;
+          el._raf = null;
+          return;
+        }
+        if (ratioMatch) {
+          var a = Math.round(parseInt(ratioMatch[1], 10) * ease);
+          el.textContent = a + "/" + ratioMatch[2];
+        } else {
+          var raw = parseFloat(orig.replace(/,/g, ""));
+          var dec = orig.indexOf(".") >= 0 ? orig.split(".")[1].length : 0;
+          var cur = raw * ease;
+          el.textContent = dec > 0 ? cur.toFixed(dec) : Math.round(cur).toLocaleString("en-US");
+        }
+        el._raf = requestAnimationFrame(tick);
+      }
+      el._raf = requestAnimationFrame(tick);
+    });
+  }
+
+  var deck = document.getElementById("deck");
+  if (deck && window.MutationObserver) {
+    var obs = new MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        if (m.type === "attributes" && m.attributeName === "class" && m.target.classList.contains("active")) {
+          animateNumbers(m.target);
+        }
+      });
+    });
+    Array.prototype.forEach.call(deck.querySelectorAll(".slide"), function (s) {
+      obs.observe(s, { attributes: true, attributeFilter: ["class"] });
+      if (s.classList.contains("active")) { animateNumbers(s); }
+    });
+  }
 })();
 </script>
 </body>

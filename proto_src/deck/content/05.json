@@ -1,66 +1,87 @@
 {
  "no": 5,
- "id": "who-uses",
+ "id": "practitioner-before-after",
  "kind": "body",
- "chapter": 1,
- "status": "new",
- "headline": "본부 담당자는 웹 주소로 화면을 열고,<br>검수 담당자는 구글 시트에서 값을 확인합니다",
+ "chapter": 2,
+ "status": "revised",
+ "headline": "실무자의 다섯 단계 수기 대조가 화면에서의 확인 세 단계로 바뀝니다",
  "diagram": [
   {
-   "use": "svg",
+   "use": "C5",
    "box": [
     0,
     0,
-    1760,
-    468
+    1020,
+    560
    ],
-   "vb": [
-    1760,
-    468
+   "labels": [
+    "기존 수기 업무",
+    "이 도구 도입 후"
    ],
-   "limit": 24,
-   "alt": "행은 사람, 열은 상황인 표: 실무자, 검수 담당자, 결과물을 받는 창구와 설계사가 상황마다 하는 일과 여는 곳",
-   "svg": "<text x='16' y='40' class='aux'>사람 \\ 상황</text><rect x='340' y='0' width='360' height='108' class='sv-deep'/><text x='356' y='34' class='b'>① 타사가 새 상품이나</text><text x='356' y='66' class='b'>개정을 냈을 때</text><text x='356' y='96' class='aux'>제작자 업무 기준: {{fact:practice_compare_frequency}} 비교</text><rect x='710' y='0' width='360' height='108' class='sv-deep'/><text x='726' y='34' class='b'>② 당사 상품의 우위와</text><text x='726' y='66' class='b'>열위를 정리할 때</text><rect x='1080' y='0' width='360' height='108' class='sv-deep'/><text x='1096' y='34' class='b'>③ 창구 교육 자료가</text><text x='1096' y='66' class='b'>필요할 때</text><rect x='1450' y='0' width='310' height='108' class='sv-deep'/><text x='1466' y='34' class='b'>여는 곳</text><use href='{{icon:본부}}' x='16' y='134' width='40' height='40' class='ic-use'/><text x='68' y='164' class='b' style='font-size:28px'>실무자</text><text x='68' y='196' class='aux'>본부 영업 기획, 상품 분석</text><rect x='340' y='126' width='360' height='92' class='sv-paper'/><text x='356' y='165.0'>담보 비교 탭에서</text><text x='356' y='199.0'>비교표 복사</text><rect x='710' y='126' width='360' height='92' class='sv-paper'/><text x='726' y='165.0'>영업 인사이트 탭에서</text><text x='726' y='199.0'>우위, 열위 정리</text><rect x='1080' y='126' width='360' height='92' class='sv-paper'/><text x='1096' y='165.0'>응대 화법 A4</text><text x='1096' y='199.0'>인쇄</text><rect x='1450' y='126' width='310' height='92' class='sv-paper'/><text x='1466' y='165.0'>웹 주소 또는</text><text x='1466' y='199.0'>파일 하나</text><rect x='2' y='118' width='1756' height='108' class='sv-red'/><use href='{{icon:검토}}' x='16' y='254' width='40' height='40' class='ic-use'/><text x='68' y='284' class='b' style='font-size:28px'>검수 담당자</text><text x='68' y='316' class='aux'>수집, 추출, 매핑 실행</text><rect x='340' y='246' width='360' height='92' class='sv-paper'/><text x='356' y='285.0'>수집과 추출 실행,</text><text x='356' y='319.0'>검수 대기 확인</text><rect x='710' y='246' width='360' height='92' class='sv-paper'/><text x='726' y='285.0'>우위, 열위의</text><text x='726' y='319.0'>기준값 정하기</text><path d='M1244.0 292.0H1276.0' class='sv-line'/><rect x='1450' y='246' width='310' height='92' class='sv-paper'/><text x='1466' y='285.0'>구글 시트 담당자 탭,</text><text x='1466' y='319.0'>{{name:github_actions}} 실행</text><use href='{{icon:우체국}}' x='16' y='374' width='40' height='40' class='ic-use'/><text x='68' y='404' class='b' style='font-size:28px'>창구와 설계사</text><text x='68' y='436' class='aux'>결과물을 받는 쪽</text><path d='M504.0 412.0H536.0' class='sv-line'/><path d='M874.0 412.0H906.0' class='sv-line'/><rect x='1080' y='366' width='360' height='92' class='sv-deep'/><text x='1160' y='405.0'>응대 화법 A4</text><text x='1160' y='439.0'>교육, 비교 참고용</text><rect x='1450' y='366' width='310' height='92' class='sv-deep'/><text x='1466' y='421.0'>인쇄물</text>",
-   "build": 1
+   "build": 1,
+   "rows": [
+    {
+     "head": "자료 수집·정리",
+     "before": "공시 문서 수백 쪽을 직접 찾아 엑셀에 입력",
+     "after": "AI가 미리 추출·검증해 [[주간 마감 자료]]로 준비"
+    },
+    {
+     "head": "담보 이름 대조",
+     "before": "회사마다 다른 특약·보장 이름을 눈으로 맞춤",
+     "after": "온톨로지 표준담보로 같은 행에 자동 정렬"
+    },
+    {
+     "head": "실무자 역할",
+     "before": "문서 전체를 처음부터 끝까지 수기 대조",
+     "after": "조건 선택·비교표 복사·[[검수 대기]] 값만 확인",
+     "hero": true
+    }
+   ]
   },
   {
-   "use": "svg",
+   "use": "C12",
+   "img": "summary",
+   "alt": "전체 요약 탭 화면 캡처",
+   "caption": "첫 화면(전체 요약): 핵심 수치 한눈 확인",
    "box": [
+    1060,
     0,
-    480,
-    1760,
-    56
+    700,
+    440
    ],
-   "vb": [
-    1760,
-    56
-   ],
-   "limit": 34,
-   "alt": "화면은 웹 주소 또는 파일 하나로 연다",
-   "svg": "<rect x='0' y='4' width='520' height='48' class='sv-paper'/><text x='16' y='37' class='b'>웹 주소</text><text x='130' y='37' class='aux'>{{name:github_pages}} 공개 주소</text><text x='544' y='37' class='aux b'>또는</text><rect x='610' y='4' width='640' height='48' class='sv-paper'/><text x='626' y='37' class='b'>파일 하나</text><text x='756' y='37' class='aux'>약 {{fact:site_file_size_mb}}MB, 인터넷 없이 열림</text><text x='1274' y='37' class='aux'>전달 방식은 {{slide:cost-deploy}}장, 화면 구성은 {{slide:screens}}장</text>",
    "build": 2
   },
   {
-   "use": "C19",
-   "size": "s",
+   "use": "C15",
+   "kind": "unmeasured",
    "box": [
-    1092,
-    372,
-    58,
-    80
+    1060,
+    476,
+    140,
+    46
    ],
-   "blocks": [
-    "인수기준",
-    "예상 질문"
-   ]
+   "build": 2
+  },
+  {
+   "use": "text",
+   "size": "s",
+   "tone": "muted",
+   "text": "단축 시간은 현업 [[사용검증]]으로 측정 예정",
+   "box": [
+    1216,
+    468,
+    544,
+    76
+   ],
+   "build": 2
   }
  ],
  "points": [],
  "terms": [
+  "주간 마감 자료",
   "검수 대기",
-  "영업 인사이트"
+  "사용검증"
  ],
- "notes": "이 장은 이 도구를 누가, 어떤 상황에서, 어디서 여는지 보여 드립니다. 표의 행은 사람, 열은 상황입니다. 화면을 쓰는 사람은 본부의 영업 기획과 상품 분석 담당자입니다. 타사가 새 상품을 내거나 개정했을 때 담보 비교 탭에서 비교표를 복사하고, 당사 상품의 우위와 열위를 정리할 때 영업 인사이트 탭을 열고, 창구 교육 자료가 필요할 때 응대 화법 A4를 인쇄합니다. 제작자의 업무 기준으로는 이런 타사 상품 비교를 {{fact:practice_compare_frequency}} 합니다. 측정값이 아니라 제작자가 어림한 값입니다. 영업 인사이트 탭은 비교 결과를 {{fact:sales_insight_category_names.앞세울 강점}}, {{fact:sales_insight_category_names.조건 열위 방어}}, {{fact:sales_insight_category_names.개정 검토 후보}} 같은 분류로 정리합니다. 값의 확인은 검수 담당자가 {{name:google_sheets}}의 담당자 탭({{fact:sheet_tabs_by_owner.hum_names}})에서 합니다. 공시 문서 수집, 추출, 매핑을 {{name:github_actions}}에서 실행하고, 확신이 낮아 검수 대기로 남은 값을 확인하며, 우위와 열위를 표시하는 기준값을 정합니다. 창구와 설계사는 화면을 직접 열지 않고, 담당자가 만든 응대 화법 A4를 내부 교육과 비교 참고용으로 받습니다. 화면은 웹 주소({{fact:pages_status.url}})로 열거나, 약 {{fact:site_file_size_mb}}MB인 파일 하나를 받아 인터넷 없이 엽니다. 화면의 탭 {{fact:console4_tabs.count}}개({{fact:console4_tabs.names}})는 {{slide:screens}}장에서, 전달 방식은 {{slide:cost-deploy}}장에서 자세히 말씀드립니다. 역할로 나눈 것이고, 지금은 제작자 {{fact:team_size}}명이 실무자와 검수 담당자를 겸합니다. 상황은 설계한 쓰임이고 실제 사용 기록이 아닙니다. 이 일들이 어떤 순서로 이어지는지는 다음 장의 흐름도에서 봅니다.",
- "footnote": "역할로 나눈 것이고 지금은 제작자 {{fact:team_size}}명이 실무자와 검수 담당자를 겸합니다. 상황은 설계한 쓰임이고 사용 기록이 아닙니다",
- "source": "출처: 제작자의 업무 경험, 화면 탭 구성, 시트 탭 정의(schema.py), 배포 설정"
+ "source": "",
+ "notes": "2장에서는 이 도구가 실무자의 업무를 어떻게 바꾸는지 실무자 관점에서 짚어 봅니다. 기존에는 문서 받기, 찾아 옮기기, 이름 맞추기, 표로 옮기기, 원문 확인의 다섯 단계를 사람이 처음부터 끝까지 수기로 대조했습니다. 도입 후에는 자료 수집·정리와 표준담보 연결을 AI와 코드가 미리 처리해 주간 마감 자료로 준비해 둡니다. 실무자는 오른쪽 전체 요약 화면에서 현황을 보고, 화면에서 조건 선택, 비교표 복사, 그리고 AI 확신도가 낮아 검수 대기로 남은 값의 원문 쪽수 확인 세 단계만 수행하면 됩니다. 단축 시간은 아직 실측하지 않았기 때문에 추측 수치를 제시하지 않고, 향후 현업 사용검증으로 정확히 측정할 계획입니다."
 }

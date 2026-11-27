@@ -1,86 +1,83 @@
 {
  "no": 9,
- "id": "scenario-steps",
+ "id": "ai-role-split",
  "kind": "body",
  "chapter": 3,
  "status": "revised",
- "headline": "타사가 새 상품을 내면, 비교표를 만드는 다섯 단계가 이렇게 바뀝니다",
+ "headline": "생성형 AI는 글자만 옮기고, 계산은 코드가, 기준은 담당자가 정합니다",
  "diagram": [
   {
-   "use": "text",
-   "size": "s",
-   "tone": "muted",
-   "limit": 64,
+   "use": "C3",
+   "dir": "h",
+   "align": "top",
    "box": [
     0,
     0,
-    1060,
-    72
+    1760,
+    360
    ],
    "build": 1,
-   "text": "상황(예시): 타사가 새 상품을 냈고, 담당자는 당사 상품과 담보별로 무엇이 다른지 비교표로 정리해야 합니다"
-  },
-  {
-   "use": "chip",
-   "tone": "paper",
-   "align": "right",
-   "box": [
-    1080,
-    10,
-    680,
-    50
-   ],
-   "build": 1,
-   "text": "따라갈 예: 암 수술비 한 건(화면에 들어 있는 상품)"
+   "nodes": [
+    {
+     "num": "1",
+     "label": "AI 원문 추출",
+     "icon": "추출",
+     "sub": "\"{{fact:example_text_to_number.text.reduced_period}} {{fact:example_text_to_number.text.reduced_amount}}, {{fact:example_text_to_number.text.amount}}\"",
+     "note": "{{fact:models.extract}}"
+    },
+    {
+     "num": "2",
+     "label": "코드 숫자 변환",
+     "icon": "계산",
+     "sub": "{{fact:example_text_to_number.read.reduce_months}}개월 {{fact:example_text_to_number.read.reduced_manwon}}만, {{fact:example_text_to_number.read.pay_manwon}}만원",
+     "note": "정해진 규칙, 늘 같은 결과"
+    },
+    {
+     "num": "3",
+     "label": "코드 원문 대조",
+     "icon": "검증",
+     "sub": "원문에 같은 글자가 있는지",
+     "note": "불일치 시 재추출"
+    },
+    {
+     "num": "4",
+     "label": "의사결정 모델 검증",
+     "icon": "의사결정 모델",
+     "hero": true,
+     "sub": "옮긴 값이 맞을 확률 계산",
+     "note": "{{fact:models.decide}}"
+    },
+    {
+     "num": "5",
+     "label": "담당자 확정 기준선",
+     "icon": "사람 검수",
+     "sub": "기준선 미만은 사람이 검수",
+     "note": "담당자가 시트에서 정함"
+    }
+   ]
   },
   {
    "use": "svg",
    "box": [
     0,
-    80,
+    396,
     1760,
-    560
+    160
    ],
    "vb": [
     1760,
-    560
-   ],
-   "limit": 40,
-   "hero": true,
-   "build": 1,
-   "alt": "타사 신상품 비교표를 만드는 절차 다섯(문서 받기, 찾아 옮기기, 이름 맞추기, 표로 옮기기, 원문 확인)을 지금까지의 방식과 이 도구로 나란히 놓은 표. 왼쪽 괄호는 절차 1~3을 미리 해 두는 일(검수 담당자가 실행, AI와 코드가 처리), 절차 4~5를 실무자가 화면에서 하는 일로 묶고, 행 끝에 절차를 설명하는 장 번호, 아래에 지금까지 방식의 걸리는 시간(제작자의 업무 경험)",
-   "svg": "<rect x='220' y='0' width='1540' height='46' class='sv-paper'/><text x='234' y='32' class='b'>절차</text><text x='506' y='32' class='b'>지금까지(사람이 직접)</text><text x='1046' y='32' class='b'>이 도구로</text><text x='234' y='97.0' class='b'>절차</text><circle cx='306' cy='88.0' r='19' class='sv-ink'/><text x='306' y='97.0' text-anchor='middle' class='b'>1</text><text x='336' y='97.0' class='b'>문서 받기</text><text x='506' y='97.0'>공시실에서 요약서, 사업방법서, 약관을 내려받음</text><text x='1046' y='82'>자동 수집 기능이 공시 문서를 받음(지원하는 회사)</text><text x='1046' y='116' class='aux'>사람: 수집을 실행</text><text x='1752' y='82' text-anchor='end' class='aux'>{{slide:step1-fetch}}장</text><path d='M220 130H1760' class='sv-line'/><text x='234' y='181.0' class='b'>절차</text><circle cx='306' cy='172.0' r='19' class='sv-ink'/><text x='306' y='181.0' text-anchor='middle' class='b'>2</text><text x='336' y='181.0' class='b'>찾아 옮기기</text><text x='506' y='166'>수백 쪽 문서에서 담보를 찾아 읽음</text><text x='506' y='200' class='aux'>예: 한화생명 요약서 하나가 {{fact:hanwha_summary_pages}}쪽</text><text x='1046' y='166'>AI가 급부 글자를 옮기고 코드가 원문과 대조</text><text x='1046' y='200' class='aux'>새 상품은 확률 산정 모델이 검증, 삼성화재 급부표는 코드가 읽음</text><text x='1752' y='166' text-anchor='end' class='aux'>{{slide:step2-extract}}장</text><path d='M220 214H1760' class='sv-line'/><text x='234' y='265.0' class='b'>절차</text><circle cx='306' cy='256.0' r='19' class='sv-ink'/><text x='306' y='265.0' text-anchor='middle' class='b'>3</text><text x='336' y='265.0' class='b'>이름 맞추기</text><text x='506' y='265.0'>회사마다 다른 담보 이름을 사람이 읽고 맞춤</text><text x='1046' y='250'>AI가 표준담보에 연결하고 담보 관계로 맞춤</text><text x='1046' y='284' class='aux'>사람: 검수 대기인 연결을 확인</text><text x='1752' y='250' text-anchor='end' class='aux'>{{slide:why-ontology}}장</text><path d='M220 298H1760' class='sv-line'/><text x='234' y='349.0' class='b'>절차</text><circle cx='306' cy='340.0' r='19' class='sv-ink'/><text x='306' y='349.0' text-anchor='middle' class='b'>4</text><text x='336' y='349.0' class='b'>표로 옮기기</text><text x='506' y='349.0'>비교표에 직접 옮겨 적음</text><text x='1046' y='334'>코드가 담보 비교 탭에 비교표를 만듦</text><text x='1046' y='368' class='aux'>사람: 담보를 선택하고 비교표 복사</text><text x='1752' y='334' text-anchor='end' class='aux'>{{slide:cancer-surgery}}~{{slide:demo}}장</text><path d='M220 382H1760' class='sv-line'/><text x='234' y='433.0' class='b'>절차</text><circle cx='306' cy='424.0' r='19' class='sv-ink'/><text x='306' y='433.0' text-anchor='middle' class='b'>5</text><text x='336' y='433.0' class='b'>원문 확인</text><text x='506' y='433.0'>옮긴 값을 원문과 다시 대조</text><text x='1046' y='418'>화면의 값마다 근거 문서와 쪽수 표시</text><text x='1046' y='452' class='aux'>사람: 검수 대기 값만 원문과 대조</text><text x='1752' y='418' text-anchor='end' class='aux'>{{slide:step5-source}}장</text><path d='M220 466H1760' class='sv-line'/><path d='M490 0V466M1030 0V466' class='sv-line'/><path d='M206 52H194V292H206' class='sv-muted'/><text x='180' y='150.0' text-anchor='end' class='b'>미리 해 두는 일</text><text x='180' y='184.0' text-anchor='end' class='aux'>검수 담당자가 실행,</text><text x='180' y='214.0' text-anchor='end' class='aux'>AI와 코드가 처리</text><path d='M206 304H194V460H206' class='sv-red'/><text x='180' y='376.0' text-anchor='end' class='b red'>실무자가</text><text x='180' y='410.0' text-anchor='end' class='b red'>화면에서</text><rect x='490' y='482' width='530' height='78' class='sv-paper'/><use href='{{icon:걸리는 시간}}' x='506' y='499' width='44' height='44'/><text x='566' y='516' class='b'>비교표 한 건에 {{fact:practice_compare_time}}, {{fact:practice_compare_frequency}}</text><text x='566' y='550' class='aux'>제작자의 업무 경험에 따른 어림값(측정값 아님)</text>"
-  },
-  {
-   "use": "C15",
-   "kind": "unmeasured",
-   "box": [
-    1046,
-    577,
-    160,
-    48
-   ],
-   "build": 2
-  },
-  {
-   "use": "text",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    1220,
-    562,
-    540,
-    78
+    160
    ],
    "build": 2,
-   "text": "이 도구로 걸리는 시간은 실무자 사용검증으로 측정합니다({{slide:before-after}}장)"
+   "alt": "실제 오류 차단 사례: 표적항암약물허가치료특약에서 경량 AI 오독을 코드 원문 대조가 잡아내 상위 AI 교차 확인으로 정상값 복원",
+   "svg": "<rect x='1' y='1' width='1758' height='158' class='sv-paper'/><text x='32' y='66' class='b'>실제 오류 차단 사례</text><text x='32' y='112' class='aux'>표적항암약물허가치료특약</text><g class='m-stage-1'><rect x='340' y='24' width='400' height='112' class='sv-line'/><text x='364' y='66'>경량 AI 오독 지급액</text><text x='364' y='112'>{{fact:targeted_anticancer_misread.misread_pay_manwon}}만 원</text><path d='M362 103H500' class='sv-red m-strike'/></g><path d='M752 80H842' class='sv-muted' marker-end='url(#ah)'/><g class='m-stage-2'><rect x='856' y='24' width='400' height='112' class='sv-line'/><use href='{{icon:검증}}' x='880' y='56' width='48' height='48'/><text x='944' y='66'>코드·원문 대조에서</text><text x='944' y='112'>오류 적발 후 재추출</text></g><path d='M1268 80H1358' class='sv-red' marker-end='url(#ah-r)'/><g class='m-stage-3'><rect x='1372' y='24' width='368' height='112' class='sv-redbg'/><rect x='1372' y='24' width='368' height='112' class='sv-red'/><text x='1396' y='66' class='b'>상위 AI 교차 확인</text><text x='1396' y='112' class='b red'>{{fact:targeted_anticancer_misread.correct_pay_manwon}}만 원(원문 복원)</text></g>"
   }
  ],
- "points": [
-  "도구로 해도 검수 대기 값의 원문 대조는 사람이 합니다"
+ "points": [],
+ "terms": [
+  "의사결정 모델",
+  "자동 확정 기준선"
  ],
- "terms": [],
- "source": "출처: 제작자의 업무 경험(측정값 아님), 제출 설명 자료 4절과 5절, 자동 실행 설정, 자료 기준 {{asof:practice_compare_time}}",
- "notes": "{{slide:pipeline}}장 흐름도를 담당자가 비교표 한 건을 만드는 다섯 절차로 바꿔 봅니다. 이 도구를 운영하면 담당자의 일이 어떻게 바뀌는지 시나리오 하나로 보겠습니다. 상황은 이렇습니다. 타사가 새 상품을 냈고, 담당자는 당사 상품과 담보별로 무엇이 다른지 비교표로 정리해야 합니다. 가운데 열은 지금까지의 방식을 설명을 위해 다섯 절차로 나눈 것입니다. 절차를 나눈 것은 설명을 위한 것이고, 제작자의 업무 경험에 따른 값은 아래 회색 상자의 내용입니다. 첫째, 각 회사 공시실에서 문서를 내려받습니다. 제작자는 실무에서 타사 상품을 비교할 때 {{fact:practice_compare_source}}을 봅니다. 둘째, 수백 쪽 문서에서 담보를 찾아 읽습니다. 한화생명은 상품 하나의 상품요약서만 {{fact:hanwha_summary_pages}}쪽입니다. 셋째, 회사마다 다른 담보 이름을 사람이 읽고 맞춥니다. 넷째, 비교표에 옮겨 적습니다. 다섯째, 옮긴 값을 원문과 다시 대조합니다. 제작자의 업무 기준으로는 이렇게 비교표 한 건을 만드는 데 {{fact:practice_compare_time}}이 걸리고, 이런 비교를 {{fact:practice_compare_frequency}} 합니다. 제작자가 어림한 값이고 측정값이 아닙니다. 오른쪽은 이 도구로 하는 방식입니다. 각 행의 위 글은 AI와 코드가 하는 일이고, 아래 '사람'으로 시작하는 글은 담당자가 하는 일입니다. 왼쪽 괄호처럼 절차 1~3은 미리 해 두는 일로, 검수 담당자가 실행하고 AI와 코드가 처리합니다. 절차 4와 5는 실무자가 화면에서 하는 일입니다. 문서는 자동 수집 기능이 공시실에서 받고, 담당자는 수집을 실행합니다. 다만 자동으로 받는 회사는 수집 기능을 만들어 둔 회사뿐이라, 새 회사의 상품이면 수집 기능부터 만들어야 합니다. AI가 급부 글자를 옮기고 코드가 원문과 대조하며, 새 상품은 확률 산정 모델이 검증합니다. 삼성화재 급부표는 AI가 아니라 코드가 PDF 표를 직접 읽습니다. 옮긴 급부는 AI가 표준담보에 연결하고 담보 관계로 맞춥니다. 코드가 담보 비교 탭에 비교표를 만들고, 담당자는 담보를 선택해 비교표를 복사합니다. 화면에서는 값마다 근거 문서와 쪽수를 보여 주므로 원문을 다시 찾지 않아도 됩니다. 그래도 사람의 일이 없어지지는 않습니다. 확신이 낮아 검수 대기로 남은 연결과 값은 담당자가 원문과 대조해야 하고, 그 전까지 비교에서 빠집니다. 이 도구로 걸리는 시간은 아직 측정하지 않았기 때문에 이 발표에서는 숫자로 말씀드리지 않습니다. 다른 실무자 대상 사용검증에서 측정하겠고, 계획은 {{slide:before-after}}장에서 봅니다. 행 끝의 회색 숫자는 그 절차를 설명하는 장입니다. {{slide:step1-fetch}}장부터 절차마다 한 장씩, 암 수술비 한 건으로 따라갑니다. 새로 나온 상품이 아니라 지금 화면에 들어 있는 상품이고, 새 상품을 적재하면 같은 순서로 봅니다.",
- "footnote": "절차는 설명을 위해 나눈 예시입니다. 제작자의 업무 경험에 따른 값은 보는 자료, 비교표 한 건의 시간과 빈도입니다"
+ "source": "",
+ "notes": "3장에서는 AI 결과를 왜 믿을 수 있는지 역할 분담과 의사결정 모델의 원리를 설명합니다. 앱 안에서 생성형 AI는 공시 문서의 글자만 옮기고, 만 원 단위나 개월 수 변환 같은 계산과 원문 문자열 대조는 코드가 맡아 항상 동일한 결과를 냅니다. 이어서 의사결정 모델이 옮긴 값의 정답 확률을 계산하고, 담당자가 구글 시트에서 정한 자동 확정 기준선에 따라 자동 반영과 사람 검수로 나눕니다. 아래는 실제 오류 차단 사례입니다. 표적항암약물허가치료특약에서 경량 AI 둘이 지급액을 {{fact:targeted_anticancer_misread.misread_pay_manwon}}만 원으로 잘못 옮겼지만, 코드의 원문 대조에서 걸러내 상위 AI 교차 확인으로 원문 정상값 {{fact:targeted_anticancer_misread.correct_pay_manwon}}만 원을 복원했습니다."
 }

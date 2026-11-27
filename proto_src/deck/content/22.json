@@ -1,89 +1,76 @@
 {
  "no": 22,
- "id": "calibration",
+ "id": "roadmap-orgs",
  "kind": "body",
- "chapter": 4,
+ "chapter": 6,
  "status": "revised",
- "headline": "모의 테스트로 오류를 넣은 값 {{fact:calibration_flipped_rows.rows}}건 중<br>자동 확정된 값은 {{fact:calibration_flipped_rows.passed}}건입니다",
+ "headline": "구축된 온톨로지 사전을 바탕으로 주요 경쟁사 {{fact:comparison_targets_loaded.targets}}곳으로 넓힙니다",
  "frame": {
   "top": 320
  },
  "diagram": [
   {
+   "use": "C3",
+   "box": [
+    0,
+    0,
+    1760,
+    220
+   ],
+   "build": 1,
+   "compact": true,
+   "align": "top",
+   "nodes": [
+    {
+     "label": "현재 화면 ({{fact:site_org_count}}곳)",
+     "sub": "우체국, 한화생명, 삼성화재",
+     "icon": "우체국"
+    },
+    {
+     "label": "시트 적재 완료",
+     "sub": "삼성생명, KB라이프, 메리츠화재",
+     "icon": "마스터 데이터"
+    },
+    {
+     "label": "1순위: 교보생명",
+     "sub": "생보 대형 3사 비교 완성",
+     "icon": "목표",
+     "hero": true
+    },
+    {
+     "label": "손보 대형 3사",
+     "sub": "현대해상, DB손보, KB손보",
+     "icon": "building"
+    },
+    {
+     "label": "창구 경쟁 채널",
+     "sub": "NH농협생명, NH농협손보",
+     "icon": "users"
+    }
+   ]
+  },
+  {
    "use": "svg",
    "box": [
     0,
-    0,
+    260,
     1760,
-    120
+    288
    ],
    "vb": [
     1760,
-    120
+    288
    ],
-   "build": 1,
-   "alt": "모의 테스트 방법: 상품요약서에서 맞게 옮긴 값에 오류를 넣고, 확률 산정 결과로 아래 세 구간 가운데 어디로 가는지 봅니다",
-   "svg": "<rect x='0' y='4' width='520' height='112' rx='8' class='sv-paper'/><use href='{{icon:공시 문서}}' x='28' y='32' width='56' height='56'/><text x='108' y='52' class='b'>맞게 옮긴 값</text><text x='108' y='92' class='aux'>상품요약서 {{len:epost_summary_rows_by_doc}}건에서 {{fact:calibration_reextract_band.correct_rows}}건</text><path d='M532 60H608' class='sv-muted' marker-end='url(#ah)'/><rect x='620' y='4' width='520' height='112' rx='8' class='sv-paper'/><text x='648' y='52' class='b'>모의 오류를 넣음</text><text x='648' y='92' class='aux'>{{len:calibration_flip_methods}}가지 방식(예: {{fact:calibration_flip_methods.0}})</text><path d='M1152 60H1228' class='sv-muted' marker-end='url(#ah)'/><rect x='1240' y='4' width='520' height='112' rx='8' class='sv-paper'/><text x='1268' y='52' class='b'>확률 산정 모델로 검증</text><text x='1268' y='92' class='aux'>아래 세 구간 가운데 어디로 가나</text>"
-  },
-  {
-   "use": "C10",
-   "box": [
-    0,
-    168,
-    560,
-    336
-   ],
+   "limit": 32,
    "build": 2,
-   "tile": true,
-   "icon": "추출",
-   "tile_label": "다른 AI로 다시 추출",
-   "value": "{{fact:calibration_reextract_band.wrong_caught_pct|f1}}",
-   "unit": "%",
-   "caption": "확률 {{fact:verify_reextract_threshold|f2}} 미만",
-   "scope": "모의 오류 {{fact:calibration_flipped_rows.rows}}건 중 비율"
-  },
-  {
-   "use": "C10",
-   "box": [
-    600,
-    168,
-    560,
-    336
-   ],
-   "build": 2,
-   "tile": true,
-   "icon": "사람 검수",
-   "tile_label": "사람이 검수",
-   "value": "{{fact:calibration_review_band_pct|f1}}",
-   "unit": "%",
-   "caption": "확률 {{fact:verify_reextract_threshold|f2}} 이상 {{fact:verify_confirm_threshold|f2}} 미만",
-   "scope": "전체에서 다시 추출 비율을 뺀 계산값"
-  },
-  {
-   "use": "C10",
-   "box": [
-    1200,
-    168,
-    560,
-    336
-   ],
-   "build": 3,
-   "tile": true,
-   "hero": true,
-   "icon": "자동 확정",
-   "tile_label": "자동 확정",
-   "value": "{{fact:calibration_flipped_rows.passed}}",
-   "unit": "건",
-   "caption": "확률 {{fact:verify_confirm_threshold|f2}} 이상",
-   "scope": "사람을 거치지 않고 통과한 모의 오류"
+   "alt": "공시 수집 모듈 구축 완료, 데이터 적재 진행 현황, 온톨로지 기반 확장 속도 우위를 정리한 세 개의 현황 카드",
+   "svg": "<g class='m-stage-1'><rect x='0' y='0' width='560' height='288' rx='10' class='sv-paper'/><rect x='0' y='0' width='560' height='288' rx='10' class='sv-line'/><text x='28' y='52' class='b'>1. 공시 수집 모듈 구축 완료</text><text x='28' y='118'>목표 {{fact:comparison_targets_loaded.targets}}개사 수집 기반 확보</text><text x='28' y='174'>기존 {{fact:comparison_targets_loaded.site}}곳 + 시범 1곳 + 일괄 {{fact:disclosure_batch_auto_org_count}}곳 확인</text><text x='28' y='244' class='aux'>자동 차단 1곳은 담당자 수동 확보</text></g><g class='m-stage-2'><rect x='600' y='0' width='560' height='288' rx='10' class='sv-paper'/><rect x='600' y='0' width='560' height='288' rx='10' class='sv-line'/><text x='628' y='52' class='b'>2. 데이터 적재 진행 현황</text><text x='628' y='118'>통합 시트 {{fact:product_org_count}}개사 적재 완료</text><text x='628' y='174'>총 {{fact:variant_count_all}}개 종형 · {{fact:benefit_count_all}}건 보장항목</text><text x='628' y='244' class='aux'>{{fact:next_load_orgs.names}} 원문 검수 완료</text></g><g class='m-stage-3'><rect x='1200' y='0' width='560' height='288' rx='10' class='sv-redbg'/><rect x='1200' y='0' width='560' height='288' rx='10' class='sv-red'/><text x='1228' y='52' class='b red'>3. 온톨로지 기반 확장 속도</text><text x='1228' y='118'>표준담보 {{fact:standard_coverage_in_use}}개 사전에 연결</text><text x='1228' y='174'>연결 즉시 기존 회사와 다자 비교</text><text x='1228' y='244' class='aux'>회사 간 1:1 재대조가 불필요</text></g>"
   }
  ],
  "points": [
-  "맞게 옮긴 값 {{fact:calibration_correct_to_review.of}}건 중 {{fact:calibration_correct_to_review.rows}}건은 사람 검수로 갑니다"
+  "실무자 사용검증 의견으로 후속 보험사 순서를 정합니다"
  ],
- "terms": [
-  "기준값"
- ],
- "source": "표본: 우체국 상품요약서 {{len:epost_summary_rows_by_doc}}건의 맞는 값을 모의 테스트용으로 바꿨습니다. 출처: 제출 설명 자료 7절",
- "notes": "이 장은 안전장치가 실제로 오류를 막는지 테스트한 결과입니다. 정답을 아는 우체국 상품요약서 {{len:epost_summary_rows_by_doc}}건에서 맞게 옮긴 값 {{fact:calibration_reextract_band.correct_rows}}건을 골라, {{len:calibration_flip_methods}}가지 방식({{fact:calibration_flip_methods}})으로 값을 바꿔 모의 오류 {{fact:calibration_flipped_rows.rows}}건을 만들었습니다. 실제 운영에서 생긴 오류가 아니라 테스트를 위해 만든 오류입니다. 확률 산정 결과로 나눠 보니 {{fact:calibration_reextract_band.wrong_caught_pct|f1}}%는 다른 AI로 다시 추출하는 구간으로 갔고, 나머지는 사람이 검수하는 구간에 남았으며, 사람을 거치지 않고 자동 확정된 오류 값은 한 건도 없었습니다. 사람 검수 구간의 {{fact:calibration_review_band_pct|f1}}%는 문서에 적힌 값이 아니라 전체에서 다시 추출 구간의 비율을 빼서 구한 계산값입니다(자동 확정이 {{fact:calibration_flipped_rows.passed}}건이므로). 대가도 있습니다. 맞게 옮긴 값 {{fact:calibration_correct_to_review.of}}건 가운데 {{fact:calibration_correct_to_review.rows}}건은 확정 경계 {{fact:calibration_correct_to_review.threshold|f2}}에 못 미쳐 사람 검수로 가고, 다시 추출로 잘못 보내진 맞는 값은 {{fact:calibration_reextract_band.correct_rows_caught}}건입니다. 세 구간과 기준값({{fact:verify_reextract_threshold|f2}}, {{fact:verify_confirm_threshold|f2}})의 뜻은 {{slide:decision-model}}장에서 설명했습니다. 기준값은 업체 수치가 아니라 정답을 아는 우리 표본으로 맞췄습니다. 다만 우체국 상품요약서 {{len:epost_summary_rows_by_doc}}건만으로 맞춘 좁은 표본이라(알려진 한계 문서), 다른 회사 결과를 더해 다시 측정해야 합니다. 급부 한 행은 지급액, 감액, 면책 같은 문항으로 나눠 묻고 가장 낮은 확률로 판단합니다. 여러 특약을 한 번에 물었을 때는 잘못 끼어든 특약 {{fact:bundled_constraint_check.wrong_riders}}개가 {{fact:bundled_constraint_check.bundled_probability|f2}}로 통과했지만, 하나씩 물으니 {{fact:bundled_constraint_check.separated_probabilities.0|f2}}와 {{fact:bundled_constraint_check.separated_probabilities.1|f2}}로 떨어졌습니다. 실제 운영에서는 한화생명 재추출 {{fact:hanwha_rerun_verify_result.rows}}행이 확정 {{fact:hanwha_rerun_verify_result.confirmed}}행, 검수 {{fact:hanwha_rerun_verify_result.review}}행, 제외 {{fact:hanwha_rerun_verify_result.excluded}}행으로 나뉘었습니다. 담보 매핑의 자동 확정 기준({{fact:mapping_auto_confirm_threshold|f2}})은 오류 표본이 없어 통과율을 아직 측정하지 못했고, {{slide:name-matching}}장이 화면에 측정 전으로 표시합니다."
+ "terms": [],
+ "source": "",
+ "notes": "비교 대상 보험사를 주요 경쟁사 {{fact:comparison_targets_loaded.targets}}곳으로 넓히는 단계적 로드맵입니다. 현재 화면에는 우체국과 한화생명, 삼성화재 {{fact:site_org_count}}곳이 올라와 있고, 통합 시트에는 삼성생명, KB라이프생명, 메리츠화재까지 총 {{fact:product_org_count}}개사({{fact:variant_count_all}}개 가입 유형(종형), {{fact:benefit_count_all}}건 세부 보장 항목(급부))가 적재되어 있습니다. {{fact:next_load_orgs.names}}은 추출과 원문 검수를 마쳤으며, 1순위로 교보생명을 반영해 생보 대형 3사 비교를 완성한 뒤 손보 대형 3사와 창구 경쟁 채널인 농협 생·손보로 확대할 계획입니다. 이미 목표 회사들의 공시 수집 기반을 확보했고, 온톨로지 표준담보 {{fact:standard_coverage_in_use}}개 사전에 연결만 하면 기존 회사와 즉시 다자 비교가 가능해 확장 속도가 빠릅니다."
 }

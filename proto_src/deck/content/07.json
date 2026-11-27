@@ -1,22 +1,118 @@
 {
  "no": 7,
- "id": "video-1",
- "kind": "video",
+ "id": "practitioner-coverage",
+ "kind": "body",
  "chapter": 2,
- "status": "video",
- "headline": "문서가 얼마나 많고 화면은 어떻게 나뉘는지 봅니다",
- "video": {
-  "part": 1,
-  "src": "media/part1.mp4",
-  "dur": "{{fact:video_length_label.part1}}",
-  "q": "한화생명 상품요약서 하나가 {{fact:hanwha_summary_pages}}쪽이고, 검증을 거쳐 화면과 A4 한 장이 됩니다",
-  "stills": [
-   "part1_1"
-  ]
- },
- "diagram": [],
+ "status": "revised",
+ "headline": "암 수술비를 클릭하면 3사 지급 조건을 나란히 보고 표로 복사합니다",
+ "diagram": [
+  {
+   "use": "C4",
+   "box": [
+    0,
+    0,
+    960,
+    560
+   ],
+   "head": "표준담보: {{fact:example_cancer_surgery.standard_coverage}} (요약서 근거 쪽수 포함)",
+   "cols": [
+    "EPOST",
+    "HANWHALIFE",
+    "SAMSUNGFIRE"
+   ],
+   "label_w": 160,
+   "rows": [
+    {
+     "label": "근거 쪽수",
+     "values": [
+      "요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽",
+      "요약서 {{fact:example_cancer_surgery.orgs.HANWHALIFE.doc_page}}쪽",
+      "요약서 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.doc_page}}쪽"
+     ]
+    },
+    {
+     "label": "<span>[[면책기간]]<br>[[감액기간]]</span>",
+     "same": true,
+     "limit": 24,
+     "values": [
+      "{{fact:example_cancer_surgery.orgs.EPOST.waiting_days}}일 / {{fact:example_cancer_surgery.orgs.EPOST.reduce.0.months}}개월 {{fact:example_cancer_surgery.orgs.EPOST.reduce.0.rate|pct}}%"
+     ]
+    },
+    {
+     "label": "지급액",
+     "limit": 26,
+     "hero": true,
+     "values": [
+      "{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원(가입 {{fact:example_cancer_surgery.orgs.EPOST.basis_manwon}}만)",
+      "{{fact:example_cancer_surgery.orgs.HANWHALIFE.pay_manwon}}만 원(가입 {{fact:example_cancer_surgery.orgs.HANWHALIFE.basis_manwon}}만)",
+      "가입금액의 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.pay_manwon}}%"
+     ],
+     "chip": {
+      "col": 2,
+      "text": "금액으로 비교하지 않음"
+     }
+    }
+   ],
+   "tag": "기준 가입금액이 달라 억지 우열 대신 기준을 함께 표시합니다",
+   "build": 1
+  },
+  {
+   "use": "C12",
+   "img": "cancer_surgery",
+   "box": [
+    1000,
+    0,
+    760,
+    280
+   ],
+   "alt": "담보 비교 탭에서 암 수술비 막대를 선택한 화면. 막대와 비교표 복사 버튼에 구역 표시",
+   "zones": [
+    {
+     "n": "A",
+     "x": 0.044,
+     "y": 0.318,
+     "w": 0.026,
+     "h": 0.157,
+     "label": "암 수술비 클릭",
+     "chip": "above"
+    },
+    {
+     "n": "B",
+     "x": 0.632,
+     "y": 0.068,
+     "w": 0.05,
+     "h": 0.026,
+     "label": "비교표 복사",
+     "chip": "below"
+    }
+   ],
+   "caption": "담보 비교 탭, [[기준 종형]] {{fact:default_base_variant.name}}",
+   "build": 2
+  },
+  {
+   "use": "svg",
+   "box": [
+    1000,
+    304,
+    760,
+    160
+   ],
+   "vb": [
+    760,
+    160
+   ],
+   "limit": 32,
+   "alt": "비교표 복사 버튼으로 복사되는 항목: 보장영역, 담보, 지급액, 면책, 감액, 비교 결과",
+   "svg": "<rect x='1' y='1' width='758' height='158' rx='10' class='sv-paper'/><rect x='1' y='1' width='758' height='158' rx='10' class='sv-line'/><use href='{{icon:copy}}' x='24' y='34' width='44' height='44'/><text x='84' y='64' class='b'>원클릭 엑셀 호환 비교표 복사</text><text x='24' y='120'>복사 항목: 보장영역·담보·지급액·면책·감액·비교 결과</text>",
+   "build": 3
+  }
+ ],
  "points": [],
- "terms": [],
- "source": "영상: 발표용 애니메이션 1부, 자료 기준 {{asof:sheet_tab_count}}",
- "notes": "앞 장의 흐름도를 영상으로 다시 봅니다. 이 영상은 장에 들어오면 재생되고(브라우저가 소리 있는 자동 재생을 막으면 소리를 끄고 재생합니다), 다음 장으로 넘기면 멈춥니다. 앞부분은 상품요약서 쪽수를 막대 높이로 세워, 한화생명 상품 하나의 요약서가 {{fact:hanwha_summary_pages}}쪽이라는 분량을 눈으로 보여 줍니다. 가운데 부분은 공시 문서가 검증을 거쳐 마스터 데이터에 쌓이고, 그 주간 마감 자료가 비교 화면과 A4 한 장의 응대 화법으로 이어지는 구조를 보여 줍니다. 뒷부분은 기본 조건인 {{fact:reference_condition.age}}세 남성, 기준 종형 {{fact:default_base_variant.name}}를 가운데 두고 초기 버전 화면 여섯이 조건 연동 화면과 조건 무관 화면으로 어떻게 나뉘는지 보여 줍니다. 영상의 화면 여섯은 초기 버전이고, 지금 데모 화면의 탭이 몇 개이고 담당자의 일 순서대로 어떻게 묶였는지는 다음 장에서 말합니다."
+ "terms": [
+  "면책기간",
+  "감액기간",
+  "기준 종형"
+ ],
+ "source": "",
+ "notes": "두 번째 실무 작업은 담보별 상세 비교와 표 복사입니다. 오른쪽 화면 A처럼 담보 비교 탭에서 암 수술비 막대를 클릭하면, 회사마다 세부 보장 항목(급부) 이름이 달라도 표준담보로 묶인 3사의 지급 조건이 왼쪽 표처럼 나란히 표시됩니다. 각 회사의 요약서 근거 쪽수({{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽, {{fact:example_cancer_surgery.orgs.HANWHALIFE.doc_page}}쪽, {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.doc_page}}쪽)가 함께 붙고, 면책기간과 감액기간이 같으면 동일 배지로 합쳐 줍니다. 지급액은 기준 가입금액이 다르고 삼성화재는 체증형 지급 형태여서 억지로 금액 우열을 매기지 않고 기준을 함께 보여 줍니다. 오른쪽 위 B의 비교표 복사 버튼을 누르면 보장영역, 담보, 지급액, 면책, 감액, 비교 결과가 엑셀에 바로 붙여 넣을 수 있는 표 형태로 복사됩니다."
 }

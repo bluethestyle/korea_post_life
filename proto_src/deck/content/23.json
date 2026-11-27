@@ -1,82 +1,107 @@
 {
  "no": 23,
- "id": "where-to-use",
+ "id": "roadmap-depth",
  "kind": "body",
- "chapter": 4,
- "status": "new",
- "headline": "확률 산정 모델은 새 상품과 시장 동향에만 쓰고, 초기 적재에는 쓰지 않았습니다",
+ "chapter": 6,
+ "status": "revised",
+ "headline": "가입 한도, 질병코드 범위, 보험료까지 정밀 비교의 깊이를 넓힙니다",
+ "frame": {
+  "top": 320
+ },
  "diagram": [
   {
-   "use": "text",
+   "use": "svg",
    "box": [
     0,
     0,
-    500,
-    48
+    860,
+    240
    ],
-   "text": "대량 자료를 확률 산정 모델로 다시 물으면",
-   "size": "m",
-   "build": 1
+   "vb": [
+    860,
+    240
+   ],
+   "limit": 36,
+   "hero": true,
+   "build": 1,
+   "alt": "동일 가입조건 맞춤 비교를 위해 특약 한도와 결합 조건을 타사로 확대하는 과제",
+   "svg": "<rect x='0' y='0' width='860' height='240' rx='10' class='sv-redbg'/><rect x='0' y='0' width='860' height='240' rx='10' class='sv-red'/><use href='{{icon:담보}}' x='28' y='26' width='40' height='40'/><text x='82' y='56' class='b red'>1. 동일 가입조건 맞춤 비교 (한도·결합 조건)</text><text x='28' y='120'>우체국 특약 조건 {{fact:rider_condition_rows_by_org.EPOST}}행·결합제약 {{fact:combination_constraints_by_org.EPOST}}건 적재</text><text x='28' y='174' class='aux'>타사까지 확대해 동일 가입조건 기준 정밀 비교 구현</text>"
   },
   {
-   "use": "C17",
+   "use": "svg",
    "box": [
+    900,
     0,
-    72,
-    500,
-    576
+    860,
+    240
    ],
-   "top": "다시 물을 자료<br>한화생명 매핑 {{fact:mapping_requery.rows}}행",
-   "neck": "확률 산정 모델 무료 한도<br>분당 처리량 제한",
-   "bottom": "모두 묻는 데<br>약 {{fact:mapping_requery.estimated_minutes}}분(추정값)",
-   "hero": "none",
-   "build": 1
+   "vb": [
+    860,
+    240
+   ],
+   "limit": 36,
+   "build": 2,
+   "alt": "약관 별표 질병코드 KCD 보장 범위 비교 과제",
+   "svg": "<rect x='0' y='0' width='860' height='240' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='240' rx='10' class='sv-line'/><use href='{{icon:공시 문서}}' x='28' y='26' width='40' height='40'/><text x='82' y='56' class='b'>2. 약관 별표 질병코드(KCD) 보장 범위 비교</text><text x='28' y='120'>담보명이 같아도 실제 보장 질병 폭 차이를 추적</text><text x='28' y='174' class='aux'>표준질병군 {{fact:disease_group_draft.groups}}개 초안과 약관 별표 KCD 범위 연동</text>"
   },
   {
-   "use": "C3",
+   "use": "svg",
    "box": [
-    580,
-    72,
-    1180,
-    576
+    0,
+    264,
+    860,
+    220
    ],
-   "nodes": [
-    {
-     "label": "들어오는 자료"
-    }
+   "vb": [
+    860,
+    220
    ],
-   "branch": {
-    "at": 1,
-    "label": "양이 많은가",
-    "hero": true,
-    "up_label": "적음",
-    "down_label": "많음",
-    "up": [
-     {
-      "label": "새 자료",
-      "sub": "새 상품, 개정 상품, 시장 동향"
-     },
-     {
-      "label": "확률 산정 모델로 검증",
-      "sub": "확률에 따라<br>세 구간으로"
-     }
-    ],
-    "down": [
-     {
-      "label": "처음 채우는 대량 자료",
-      "sub": "회사별 기존 상품"
-     },
-     {
-      "label": "이중 추출로 확인",
-      "sub": "앞에서 본 AI 둘의 대조"
-     }
-    ]
-   },
-   "build": 2
+   "limit": 36,
+   "build": 3,
+   "alt": "대표 연령 보험료 비교 추가 과제",
+   "svg": "<rect x='0' y='0' width='860' height='220' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='220' rx='10' class='sv-line'/><use href='{{icon:계산}}' x='28' y='24' width='40' height='40'/><text x='82' y='54' class='b'>3. 대표 연령 보험료 비교 추가</text><text x='28' y='114'>각 사 보험가격공시실 계산기 연동 검토</text><text x='28' y='166' class='aux'>주력 담보별 대표 연령({{fact:reference_condition.age}}세 등) 보험료 격차 제공</text>"
+  },
+  {
+   "use": "svg",
+   "box": [
+    900,
+    264,
+    860,
+    220
+   ],
+   "vb": [
+    860,
+    220
+   ],
+   "limit": 36,
+   "build": 4,
+   "alt": "문서 개정 자동 감지 및 현업 사용검증 과제",
+   "svg": "<rect x='0' y='0' width='860' height='220' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='220' rx='10' class='sv-line'/><use href='{{icon:검토}}' x='28' y='24' width='40' height='40'/><text x='82' y='54' class='b'>4. 문서 개정 자동 감지 및 현업 사용검증</text><text x='28' y='114'>보관 문서 지문({{fact:doc_hash_coverage_site.variants}}개 종형) 기반 개정 자동 재추출</text><text x='28' y='166' class='aux'>현업 실무자 업무 시간 단축 효과 사용검증 측정</text>"
+  },
+  {
+   "use": "svg",
+   "box": [
+    0,
+    508,
+    1760,
+    52
+   ],
+   "vb": [
+    1760,
+    52
+   ],
+   "limit": 60,
+   "build": 4,
+   "alt": "실제 인수 심사 결과, 손해율, 판매 시책, 보유계약 합산 한도 등 비공개 영역은 다루지 않는다는 범위 안내",
+   "svg": "<rect x='0' y='0' width='1760' height='52' rx='8' class='sv-paper'/><text x='24' y='34' class='aux'>비공개 영역 제외 원칙: 실제 인수 심사 결과, 손해율, 판매 시책, 보유계약 합산 한도는 다루지 않습니다</text>"
   }
  ],
  "points": [],
- "terms": [],
- "source": "출처: 확률 산정 모델의 무료 한도 화면, 진행 기록(다시 묻는 시간은 추정값)",
- "notes": "왼쪽 모래시계가 확률 산정 모델을 대량 자료에 쓰지 않은 이유입니다. 확률 산정 모델은 호출 한 번에 특약 원문 전체와 문항을 함께 보내기 때문에 읽어야 할 글이 깁니다. 무료로 쓸 때 분당 읽을 수 있는 양이 {{fact:decide_per_minute_limit.tokens}} 토큰으로 정해져 있어(모래시계의 좁은 목), 한화생명 담보 매핑 가운데 검수 대기로 남은 {{fact:mapping_requery.rows}}행을 확률 산정 모델에 다시 묻는 데만 약 {{fact:mapping_requery.estimated_minutes}}분이 걸린다고 추정했습니다. 이 {{fact:mapping_requery.estimated_minutes}}분 가운데 {{fact:mapping_requery.waiting_minutes}}분은 한도 때문에 기다리는 시간이고, 나머지가 실제로 묻고 답을 받는 시간입니다. 한때 분당 사용량이 {{fact:decide_tokens_per_minute_peak_k|f2}}천 토큰까지 올라 한도를 넘겼고, 그 뒤로는 호출하기 전에 분당 보낸 양을 {{fact:decide_tokens_per_minute_guard}} 토큰 아래로 맞추는 대기 장치를 넣었습니다. 그래서 오른쪽 분기처럼 양으로 나눴습니다. 새 상품, 개정 상품, 시장 동향처럼 조금씩 들어오는 자료는 확률 산정 모델이 검증하고, 확률에 따라 자동 확정과 사람 검수로 나눕니다(세 구간의 기준값은 {{slide:decision-model}}장). 시장 동향은 매주 자동으로 모으고, 새 상품과 개정 상품은 사람이 추출을 실행할 때 들어옵니다. 양이 많은 기존 상품의 첫 적재는 확률 산정 모델 없이, {{slide:agent-rules}}장에서 본 이중 추출로 확인했습니다. 서로 다른 AI 둘이 따로 옮기고 코드가 두 결과를 맞대어 다른 곳만 원문으로 다시 확인했습니다. 같은 AI로 다시 읽히면 같은 곳에서 같은 식으로 틀리는 일이 많았기 때문입니다. 초기 적재를 확률 산정 모델 없이 하자는 것은 실무자의 제안이었고, 권고안으로 승인했습니다. 그 결과 주간 마감 자료의 자동 확정 매핑 {{fact:mapping_auto_confirm_by_route.all.total}}행 가운데 확률 산정 결과로 확정한 것은 {{fact:mapping_auto_confirm_by_route.all.decision_model}}행이고, 나머지 {{fact:mapping_auto_confirm_by_route.all.cross_check}}행은 교차 검증으로 확정했습니다. 이 장의 메시지는 새 기술을 무조건 쓰지 않고 맞는 곳에만 썼다는 것입니다."
+ "terms": [
+  "질병코드",
+  "손해율",
+  "판매 시책"
+ ],
+ "source": "",
+ "notes": "비교 대상 회사를 넓히는 동시에 비교의 정밀도를 높이는 네 가지 심화 과제입니다. 첫째, 우체국에 먼저 적재한 특약 가입조건 {{fact:rider_condition_rows_by_org.EPOST}}행과 결합제약 {{fact:combination_constraints_by_org.EPOST}}건을 타사까지 넓혀 동일 가입조건 기준으로 비교합니다. 둘째, 표준질병군 {{fact:disease_group_draft.groups}}개 초안과 약관 별표 KCD 질병코드 범위를 연동해 이름이 같은 담보라도 실제 보장 질병 폭이 다른 점을 가려냅니다. 셋째, 각 사 보험가격공시실 계산기와 연동해 {{fact:reference_condition.age}}세 등 대표 연령 기준 보험료 격차를 함께 보여 줄 계획입니다. 넷째, 보관 중인 {{fact:doc_hash_coverage_site.variants}}개 가입 유형(종형)의 문서 지문으로 상품 개정 여부를 자동 감지해 재추출하고, 현업 실무자 사용검증으로 시간 단축 효과를 측정하겠습니다. 아울러 실제 인수 심사 결과, 손해율, 판매 시책, 보유계약 합산 한도 등 내부 비공개 영역은 다루지 않는다는 원칙을 명확히 지킵니다."
 }

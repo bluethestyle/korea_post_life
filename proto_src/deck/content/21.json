@@ -1,22 +1,99 @@
 {
  "no": 21,
- "id": "video-3",
- "kind": "video",
- "chapter": 4,
- "status": "video",
- "headline": "면책 문항을 참 거짓에서 두 보기 고르기로 바꾸자 맞는 값과 모의 오류 값이 갈렸습니다",
- "video": {
-  "part": 3,
-  "src": "media/part3.mp4",
-  "dur": "{{fact:video_length_label.part3}}",
-  "q": "면책 문항 한 가지의 확률: 맞는 값 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 모의 오류 값 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하",
-  "stills": [
-   "part3_1"
-  ]
+ "id": "zero-cost-ops",
+ "kind": "body",
+ "chapter": 5,
+ "status": "revised",
+ "headline": "매주 AI 운영비 {{fact:operating_cost_won}}원으로 자동 갱신하고 설치 없이 바로 열어 봅니다",
+ "frame": {
+  "top": 320
  },
- "diagram": [],
+ "diagram": [
+  {
+   "use": "C16",
+   "part": "receipt",
+   "box": [
+    0,
+    0,
+    560,
+    560
+   ],
+   "build": 1,
+   "title": "주간 자동 운영 비용",
+   "items": [
+    {
+     "label": "AI 추출·검증 (Gemini 무료)",
+     "won": "{{fact:operating_cost_won}}원"
+    },
+    {
+     "label": "통합 시트·자동 실행 (Actions)",
+     "won": "{{fact:operating_cost_won}}원",
+     "note": "{{ref:github_actions_public_free.short}}"
+    },
+    {
+     "label": "웹 배포 (GitHub Pages)",
+     "won": "{{fact:operating_cost_won}}원"
+    }
+   ],
+   "total": "{{fact:operating_cost_won}}원",
+   "caption": "주간 상시 운영 추가 비용 {{fact:operating_cost_won}}원"
+  },
+  {
+   "use": "C16",
+   "part": "week",
+   "box": [
+    620,
+    0,
+    1140,
+    380
+   ],
+   "build": 2,
+   "week": {
+    "daily": {
+     "time": "{{fact:schedule_collect_kst.time}}",
+     "label": "업계 시장 동향 자동 수집"
+    },
+    "sun": {
+     "time": "{{fact:schedule_weekly_close_kst.time}}",
+     "label": "주간 마감 자료 자동 보관"
+    },
+    "manual": {
+     "label": "담당자 실행",
+     "text": "신상품 공시 문서 수집·추출·화면 갱신"
+    },
+    "after": "검증 통과분만 반영"
+   }
+  },
+  {
+   "use": "C3",
+   "box": [
+    620,
+    396,
+    1140,
+    176
+   ],
+   "build": 3,
+   "arrows": false,
+   "align": "top",
+   "sub_limit": 36,
+   "nodes": [
+    {
+     "num": "1",
+     "label": "웹 주소로 즉시 접속",
+     "sub": "GitHub Pages 인터넷 링크로 바로 열기"
+    },
+    {
+     "num": "2",
+     "label": "오프라인 단일 HTML 파일",
+     "sub": "약 {{fact:site_file_size_mb}}MB 파일 전달 시 사내망에서도 열림"
+    }
+   ]
+  }
+ ],
  "points": [],
- "terms": [],
- "source": "영상: 발표용 애니메이션 3부, 출처: 제출 설명 자료의 확률 산정 모델 절, 진행 기록, 자료 기준 {{asof:symmetric_choice_probability}}",
- "notes": "앞의 두 장에서 확률 산정 모델이 무엇인지 설명드렸고, 이 영상은 그 모델을 실제 자료에 붙였을 때 무슨 일이 있었는지 보여 줍니다. 처음에는 면책 조건이 있는지를 참 거짓(예, 아니오)으로 물었는데, 맞게 옮긴 값도 확률이 {{fact:true_false_probability_range.low|f2}}에서 {{fact:true_false_probability_range.high|f2}} 사이에 머물러 오류 값과 잘 갈리지 않았습니다. 질문을 '{{fact:symmetric_choice_item.choices.0}}'과 '{{fact:symmetric_choice_item.choices.1}}' 가운데 하나를 고르는 방식으로 바꾸자, 맞는 값은 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 일부러 뒤집어 넣은 오류 값은 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하로 뚜렷하게 나뉘었습니다. 다만 이 두 값은 면책 문항 한 가지에서 측정한 것입니다. 모든 문항을 합쳐 행 단위로 보면 맞는 행의 최저 확률은 {{fact:calibration_score_overlap.correct_min|f2}}, 틀리게 바꾼 행의 최고 확률은 {{fact:calibration_score_overlap.wrong_max|f2}}로 서로 겹칩니다. 그래서 확률 하나로 모두 거르지 않고, 자동 확정과 다시 추출 사이의 구간은 사람이 검수합니다. 그 기준값은 두 장 앞에서 설명한 대로이고, 기준값으로 실제로 얼마나 걸렀는지는 다음 장에서 봅니다. 질문을 어떻게 짜느냐가 결과를 바꿨기 때문에, 문항은 실제 결과를 보고 고쳤습니다. 영상 끝에 나오는 분당 처리 한도 이야기는 두 장 뒤에서 이어집니다."
+ "terms": [
+  "주간 마감 자료"
+ ],
+ "source": "",
+ "notes": "현업 도입을 고려한 지속 가능한 무비용 운영 구조입니다. AI 추출·검증은 무료 등급 범위 안에서 동작하며, 통합 시트 보관, 예약 자동 실행, 웹 화면 배포 모두 공개 기반 무료 도구로 구성해 매주 상시 운영에 드는 추가 비용이 {{fact:operating_cost_won}}원입니다. 매일 아침 {{fact:schedule_collect_kst.time}}에 업계 시장 동향을 자동 수집하고, 매주 일요일 밤 {{fact:schedule_weekly_close_kst.time}}에는 주간 마감 자료를 자동 보관합니다. 신상품 공시 문서가 나오면 담당자가 수집·추출을 실행해 검증 통과분만 화면에 반영합니다. 완성된 비교 화면은 별도 프로그램 설치 없이 웹 주소로 바로 열 수 있고, 사내망 등 폐쇄 환경에서는 약 {{fact:site_file_size_mb}}MB 크기의 단일 HTML 파일 하나만 전달해 오프라인으로도 그대로 열어 볼 수 있습니다."
 }

@@ -1,149 +1,128 @@
 {
  "no": 15,
- "id": "step5-source",
+ "id": "ontology-easy",
  "kind": "body",
- "chapter": 3,
- "status": "new",
- "headline": "절차 5: 실무자는 검수 대기 값만 근거 쪽수를 보고 원문과 대조합니다",
+ "chapter": 4,
+ "status": "revised",
+ "headline": "온톨로지는 '보험 비교의 공통 약속', 지식그래프는 '상품 연결 지도'입니다",
  "diagram": [
   {
-   "use": "svg",
+   "use": "C9",
+   "layout": "legend",
+   "size": "large",
+   "legend_w": 330,
    "box": [
     0,
     0,
-    330,
-    160
-   ],
-   "vb": [
-    330,
-    160
+    740,
+    560
    ],
    "build": 1,
-   "alt": "절차 다섯 가운데 절차 5 원문 확인. 절차 1~3은 미리 해 두는 일, 절차 4~5는 화면에서 하는 일",
-   "svg": "<circle cx='20' cy='20' r='18' class='sv-paper'/><text x='20' y='28' text-anchor='middle' class='aux'>1</text><circle cx='82' cy='20' r='18' class='sv-paper'/><text x='82' y='28' text-anchor='middle' class='aux'>2</text><circle cx='144' cy='20' r='18' class='sv-paper'/><text x='144' y='28' text-anchor='middle' class='aux'>3</text><circle cx='208' cy='20' r='18' class='sv-paper'/><text x='208' y='28' text-anchor='middle' class='aux'>4</text><circle cx='270' cy='20' r='18' class='sv-deep'/><circle cx='270' cy='20' r='18' class='sv-ink'/><text x='270' y='28' text-anchor='middle' class='b'>5</text><path d='M176 0V76' class='sv-muted'/><text x='168' y='66' text-anchor='end' class='aux'>미리 해 두는 일</text><text x='184' y='66' class='aux'>화면에서</text><text x='0' y='112' class='b'>절차 5 원문 확인</text>"
-  },
-  {
-   "use": "C5",
-   "box": [
-    350,
-    0,
-    1090,
-    160
+   "captions": [
+    "온톨로지 = 공통 범례",
+    "지식그래프 = 노선도"
    ],
-   "fill": false,
-   "labels": [
-    "지금까지",
-    "이 도구로"
-   ],
-   "build": 1,
-   "rows": [
+   "node_kinds": [
     {
-     "before": "옮긴 값을 원문과 다시 대조",
-     "after": "화면의 값마다 근거 문서와 쪽수 표시",
-     "note": "개발 때의 정답 대조는 {{slide:goldset}}장"
-    }
-   ]
-  },
-  {
-   "use": "C20",
-   "box": [
-    1460,
-    0,
-    300,
-    160
-   ],
-   "dir": "v",
-   "build": 1,
-   "chips": [
-    {
-     "role": "코드",
-     "label": "쪽수 표시"
+     "label": "보험사",
+     "shape": "square"
     },
     {
-     "role": "실무자",
-     "label": "검수 대기 대조"
-    }
-   ]
-  },
-  {
-   "use": "C3",
-   "dir": "h",
-   "box": [
-    0,
-    180,
-    1240,
-    476
-   ],
-   "build": 2,
-   "align": "top",
-   "nodes": [
+     "label": "상품",
+     "shape": "diamond"
+    },
     {
-     "num": "1",
-     "label": "검수 대기 칩",
-     "hero": true,
-     "figure": {
-      "use": "C12",
-      "img": "cut_pending_chip",
-      "alt": "상세 머리에서 타사와의 비교에 표시된 검수 대기 칩을 2배로 확대한 캡처"
+     "label": "표준담보",
+     "shape": "circle"
+    }
+   ],
+   "edge_kinds": [
+    {
+     "label": "판매",
+     "style": "solid"
+    },
+    {
+     "label": "보장 연결",
+     "style": "dash"
+    }
+   ],
+   "graph": {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "우체국",
+      "shape": "square"
      },
-     "fig_h": 196,
-     "sub": "{{fact:example_pending_case.standard_coverage}}의 {{fact:example_pending_case.org_name}} 비교가 빠짐",
-     "note": "{{fact:example_pending_case.scope_note}}"
-    },
-    {
-     "num": "2",
-     "label": "근거 문서와 쪽",
-     "icon": "공시 문서",
-     "sub": "상세와 근거에 문서와 쪽수"
-    },
-    {
-     "num": "3",
-     "label": "원문의 그 쪽을 확인",
-     "icon": "검토",
-     "sub": "{{fact:example_pending_case.org_name}} {{fact:example_pending_case.doc_kind}} {{fact:example_pending_case.doc_page}}쪽을 열어 대조"
-    }
-   ]
-  },
-  {
-   "use": "C10",
-   "box": [
-    1280,
-    180,
-    480,
-    276
-   ],
-   "build": 3,
-   "tile": true,
-   "icon": "사람 검수",
-   "tile_label": "검수 대기",
-   "value": "{{fact:excluded_pending_pairs}}",
-   "unit": "건",
-   "size": "small",
-   "caption": "비교에서 뺀 비교 건",
-   "scope": "화면이 처음 여는 기준 종형"
+     {
+      "id": "b",
+      "label": "한화생명",
+      "shape": "square"
+     },
+     {
+      "id": "c",
+      "label": "암 수술비",
+      "shape": "circle",
+      "hero": true
+     },
+     {
+      "id": "d",
+      "label": "암보험",
+      "shape": "diamond"
+     },
+     {
+      "id": "e",
+      "label": "암보험",
+      "shape": "diamond"
+     }
+    ],
+    "edges": [
+     {
+      "from": "a",
+      "to": "d",
+      "style": "solid"
+     },
+     {
+      "from": "b",
+      "to": "e",
+      "style": "solid"
+     },
+     {
+      "from": "d",
+      "to": "c",
+      "style": "dash"
+     },
+     {
+      "from": "e",
+      "to": "c",
+      "style": "dash"
+     }
+    ]
+   }
   },
   {
    "use": "svg",
    "box": [
-    1280,
-    472,
-    480,
-    184
+    790,
+    0,
+    970,
+    560
    ],
    "vb": [
-    446,
-    171
+    970,
+    560
    ],
-   "build": 3,
-   "limit": 20,
-   "alt": "검수 대기가 아닌 값도 근거 쪽수가 있어, 필요할 때 원문을 바로 찾을 수 있습니다",
-   "svg": "<rect x='0' y='0' width='446' height='171' class='sv-paper'/><text x='20' y='52'>검수 대기가 아닌 값도 근거</text><text x='20' y='94'>쪽수가 있어, 필요할 때 원문을</text><text x='20' y='136'>바로 찾을 수 있습니다</text>"
+   "limit": 42,
+   "hero": false,
+   "build": 2,
+   "alt": "온톨로지는 비교 규칙집 범례이고 지식그래프는 그 규칙대로 실제 상품과 보장을 이은 노선도이며 둘이 결합해 지식그래프 화면이 되는 설명 카드",
+   "svg": "<rect x='0' y='0' width='970' height='175' rx='8' class='sv-paper'/><rect x='0' y='0' width='970' height='175' rx='8' class='sv-line'/><use href='{{icon:온톨로지}}' x='24' y='22' width='38' height='38'/><text x='74' y='50' class='b'>온톨로지 (Ontology) = 비교 규칙집 (범례)</text><text x='24' y='100'>제각각인 보장 이름을 통일하고 같은 보장을 정해 둔 사전 약속</text><text x='24' y='142' class='aux'>예: '관혈 암수술금'과 '비급여 암수술비'는 모두 [암 수술비]로 부른다</text><rect x='0' y='195' width='970' height='175' rx='8' class='sv-paper'/><rect x='0' y='195' width='970' height='175' rx='8' class='sv-line'/><use href='{{icon:지식그래프}}' x='24' y='217' width='38' height='38'/><text x='74' y='245' class='b'>지식그래프 (Knowledge Graph) = 상품 연결 지도 (노선도)</text><text x='24' y='295'>약속에 따라 실제 회사·상품·특약·보장을 점과 선으로 연결한 결과물</text><text x='24' y='337' class='aux'>이름이 달라도 같은 보장 점 하나로 모여 즉시 비교 가능</text><rect x='0' y='406' width='260' height='134' rx='8' class='sv-line'/><text x='130' y='462' text-anchor='middle' class='b'>공통 약속</text><text x='130' y='504' text-anchor='middle' class='aux'>온톨로지 규칙집</text><text x='286' y='482' text-anchor='middle' class='b'>+</text><rect x='312' y='406' width='310' height='134' rx='8' class='sv-line'/><text x='467' y='462' text-anchor='middle' class='b'>공시 문서 데이터</text><text x='467' y='504' text-anchor='middle' class='aux'>{{fact:benefit_count_site}}건 보장 항목</text><path d='M634 473H686' class='sv-red' marker-end='url(#ah-r)'/><rect x='698' y='406' width='272' height='134' rx='8' class='sv-redbg'/><rect x='698' y='406' width='272' height='134' rx='8' class='sv-red'/><text x='834' y='462' text-anchor='middle' class='b red'>지식그래프 화면</text><text x='834' y='504' text-anchor='middle' class='aux'>관계 그래프 탭</text>"
   }
  ],
  "points": [],
  "terms": [
-  "검수 대기"
+  "온톨로지",
+  "지식그래프"
  ],
- "notes": "절차 5는 원문 확인입니다. 지금까지는 비교표에 옮긴 값을 원문과 다시 하나하나 대조했습니다. 이 도구에서는 화면의 값마다 근거 문서와 쪽수가 붙어 있고, 자동으로 확정되지 않은 값은 검수 대기로 표시되어 비교 결과에서 빠져 있습니다. 실무자는 그 값만 원문과 대조합니다.\n\n앞 장에서 이어서 {{fact:example_pending_case.standard_coverage}}의 {{fact:example_pending_case.org_name}} 쪽을 보겠습니다. 1번처럼 상세 머리에 검수 대기 칩이 표시됩니다. 비교 대상의 급부 가운데 검수 대기가 있어 {{fact:example_pending_case.org_name}}와의 비교는 비교 결과에서 뺐다는 뜻입니다. 2번, 상세와 근거 패널에 근거 문서와 쪽이 적혀 있습니다. 이 건의 대표 급부는 {{fact:example_pending_case.benefit}}이고, 근거는 {{fact:example_pending_case.org_name}} {{fact:example_pending_case.doc_kind}} {{fact:example_pending_case.doc_page}}쪽입니다. 3번, 실무자는 원문의 그 쪽을 열어 화면의 값이 맞는지 대조합니다. 수백 쪽을 처음부터 찾지 않고 그 쪽만 엽니다. 화면이 처음 여는 조건에서 이렇게 검수 대기라 비교에서 뺀 비교 건은 {{fact:excluded_pending_pairs}}건입니다. 검수 대기가 아닌 값도 근거 쪽수가 있어, 필요할 때 원문을 바로 찾을 수 있습니다.\n\n개발할 때는 AI가 옮긴 값을 정답표와 한 행씩 대조했습니다({{slide:goldset}}장).",
- "source": "화면: 데모의 담보 비교 탭 상세와 근거(기준 종형 우체국 {{fact:default_base_variant.name}}), 자료 기준 {{asof:example_pending_case}}"
+ "source": "",
+ "notes": "생소한 두 용어를 지하철 노선도에 비유해 쉽게 정리했습니다. 노선도 한쪽 귀퉁이에 네모는 환승역, 실선은 1호선처럼 약속을 적어 둔 표가 '범례'이고, 그 범례대로 역과 노선을 실제로 이어 그린 것이 '노선도'입니다. 보험 비교에서도 같습니다. 온톨로지는 어떤 이름들을 같은 보장으로 볼지 미리 정해 둔 공통 약속(규칙집)이고, 지식그래프는 그 약속에 따라 실제 회사·상품·특약·보장 데이터 {{fact:benefit_count_site}}건을 점과 선으로 연결해 완성한 지도입니다. 왼쪽 그림처럼 우체국 상품과 한화생명 상품이 각자 다른 이름으로 부르던 암 수술비도 규칙집에 따라 하나의 동그라미 '암 수술비'로 모입니다."
 }

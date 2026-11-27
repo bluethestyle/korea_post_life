@@ -1,177 +1,126 @@
 {
  "no": 16,
- "id": "scenario-summary",
+ "id": "ontology-three-pillars",
  "kind": "body",
- "chapter": 3,
- "status": "new",
- "headline": "암 수술비 한 건으로 보면, 실무자가 화면에서 하는 일은 선택, 복사, 원문 대조입니다",
+ "chapter": 4,
+ "status": "revised",
+ "headline": "우리 앱의 온톨로지는 통일 명칭, 보장 분류, 포함·통합 규칙 세 가지입니다",
  "diagram": [
   {
-   "use": "svg",
+   "use": "C10",
    "box": [
     0,
     0,
-    1760,
-    440
-   ],
-   "vb": [
-    1760,
-    440
+    560,
+    270
    ],
    "build": 1,
-   "limit": 40,
-   "alt": "절차 1~5를 같은 프레임 다섯으로 나란히 놓은 그림. 1 요약서 셋 받기, 2 우체국 요약서의 지급액이 시트 한 행으로, 3 세 회사 이름이 표준담보 하나로, 4 비교표와 복사 버튼, 5 검수 대기 칩과 근거 쪽 대조. 1~3은 미리 해 두는 일, 4~5는 실무자가 화면에서 하는 일",
-   "svg": "<text x='0' y='26' class='aux'>미리 해 두는 일: 자동 실행, AI, 코드, 검수 담당자</text><text x='1068' y='26' class='b'>실무자가 화면에서 하는 일</text><rect x='0' y='48' width='336' height='392' class='sv-paper'/><text x='20' y='92' class='b'>절차 1 문서 받기</text><text x='20' y='420' class='aux'>설명 {{slide:video-2}}장</text><rect x='356' y='48' width='336' height='392' class='sv-paper'/><text x='376' y='92' class='b'>절차 2 찾아 옮기기</text><text x='376' y='420' class='aux'>설명 {{slide:ai-code-human}}장, {{slide:decision-model}}~{{slide:where-to-use}}장</text><rect x='712' y='48' width='336' height='392' class='sv-paper'/><text x='732' y='92' class='b'>절차 3 이름 맞추기</text><text x='732' y='420' class='aux'>설명 {{slide:kg-ontology}}~{{slide:video-4}}장</text><rect x='1068' y='48' width='336' height='392' class='sv-line'/><rect x='1068' y='48' width='336' height='6' class='sv-fill-red'/><text x='1088' y='92' class='b'>절차 4 표로 옮기기</text><text x='1088' y='420' class='aux'>화면 구성 {{slide:screens}}장</text><rect x='1424' y='48' width='336' height='392' class='sv-line'/><rect x='1424' y='48' width='336' height='6' class='sv-fill-red'/><text x='1444' y='92' class='b'>절차 5 원문 확인</text><text x='1444' y='420' class='aux'>정답 대조 {{slide:goldset}}장</text><g transform='translate(0 10)'><path d='M24 234H86L106 254V334H24Z' class='sv-ink'/><path d='M86 234V254H106' class='sv-ink'/><text x='65' y='292' text-anchor='middle' class='aux'>요약서</text><text x='65' y='366' text-anchor='middle' class='aux'>우체국</text><path d='M126 234H188L208 254V334H126Z' class='sv-ink'/><path d='M188 234V254H208' class='sv-ink'/><text x='167' y='292' text-anchor='middle' class='aux'>요약서</text><text x='167' y='366' text-anchor='middle' class='aux'>한화생명</text><path d='M228 234H290L310 254V334H228Z' class='sv-ink'/><path d='M290 234V254H310' class='sv-ink'/><text x='269' y='292' text-anchor='middle' class='aux'>요약서</text><text x='269' y='366' text-anchor='middle' class='aux'>삼성화재</text><text x='376' y='246' class='aux'>요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽 → 시트 한 행</text><rect x='376' y='262' width='296' height='44' class='sv-deep'/><rect x='376' y='262' width='296' height='96' class='sv-ink'/><path d='M486 262V358' class='sv-ink'/><text x='390' y='292' class='aux'>회사</text><text x='500' y='292' class='aux'>지급액</text><text x='390' y='342'>우체국</text><text x='500' y='342' class='b'>{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원</text><text x='732' y='256' class='aux'>우체국</text><text x='732' y='310' class='aux'>한화생명</text><text x='732' y='364' class='aux'>삼성화재</text><path d='M828 248C858 248 858 302 882 302M828 302H882M828 356C858 356 858 302 882 302' class='sv-muted' marker-end='url(#ah)'/><rect x='888' y='262' width='144' height='80' class='sv-ink'/><text x='960' y='311' text-anchor='middle' class='b'>{{fact:example_cancer_surgery.standard_coverage}}</text><rect x='1088' y='228' width='296' height='84' class='sv-line'/><path d='M1088 270H1384' class='sv-line'/><text x='1096' y='258' class='aux'>우체국</text><text x='1188' y='258' class='aux'>한화생명</text><text x='1290' y='258' class='aux'>삼성화재</text><rect x='1096' y='284' width='74' height='14' class='sv-deep'/><rect x='1188' y='284' width='84' height='14' class='sv-deep'/><rect x='1290' y='284' width='84' height='14' class='sv-deep'/><rect x='1088' y='324' width='176' height='48' class='sv-ink'/><text x='1176' y='357' text-anchor='middle' class='b'>비교표 복사</text><rect x='1444' y='234' width='190' height='50' class='sv-ink' stroke-dasharray='6 5'/><text x='1462' y='268' class='b'>? 검수 대기</text><path d='M1464 290V318' class='sv-muted' marker-end='url(#ah)'/><text x='1444' y='354' class='b'>{{fact:example_pending_case.org_name}} {{fact:example_pending_case.doc_page}}쪽 대조</text></g>"
+   "tile": true,
+   "size": "small",
+   "icon": "담보",
+   "tile_label": "1. 통일 명칭",
+   "value": "{{fact:standard_coverage_in_use}}",
+   "unit": "개",
+   "caption": "표준담보 사전 구축",
+   "scope": "예: {{fact:example_cancer_surgery.standard_coverage}}, 일반암 진단비",
+   "hero": false
   },
   {
-   "use": "C20",
+   "use": "C10",
    "box": [
-    20,
-    108,
-    300,
-    112
-   ],
-   "dir": "v",
-   "build": 1,
-   "chips": [
-    {
-     "role": "코드",
-     "label": "문서 받기"
-    },
-    {
-     "role": "검수 담당자",
-     "label": "수집 실행"
-    }
-   ]
-  },
-  {
-   "use": "C20",
-   "box": [
-    376,
-    108,
-    300,
-    112
-   ],
-   "dir": "v",
-   "build": 1,
-   "chips": [
-    {
-     "role": "AI",
-     "label": "글자 옮기기"
-    },
-    {
-     "role": "코드",
-     "label": "원문 대조"
-    }
-   ]
-  },
-  {
-   "use": "C20",
-   "box": [
-    732,
-    108,
-    300,
-    112
-   ],
-   "dir": "v",
-   "build": 1,
-   "chips": [
-    {
-     "role": "AI",
-     "label": "담보 연결"
-    },
-    {
-     "role": "검수 담당자",
-     "label": "매핑 검수"
-    }
-   ]
-  },
-  {
-   "use": "C20",
-   "box": [
-    1088,
-    108,
-    300,
-    112
-   ],
-   "dir": "v",
-   "build": 1,
-   "chips": [
-    {
-     "role": "코드",
-     "label": "비교표 만들기"
-    },
-    {
-     "role": "실무자",
-     "label": "선택, 복사"
-    }
-   ]
-  },
-  {
-   "use": "C20",
-   "box": [
-    1444,
-    108,
-    300,
-    112
-   ],
-   "dir": "v",
-   "build": 1,
-   "chips": [
-    {
-     "role": "코드",
-     "label": "쪽수 표시"
-    },
-    {
-     "role": "실무자",
-     "label": "검수 대기 대조"
-    }
-   ]
-  },
-  {
-   "use": "svg",
-   "box": [
+    600,
     0,
-    456,
-    1760,
-    140
-   ],
-   "vb": [
-    1600.0,
-    127.27
+    560,
+    270
    ],
    "build": 2,
-   "limit": 50,
-   "alt": "이 한 건에서 담당자가 한 일(담보 선택, 비교표 복사, 검수 대기 원문 대조)과 AI와 코드가 미리 한 일(급부 옮기기, 원문 대조, 표준담보 연결, 비교표 만들기)",
-   "svg": "<rect x='0' y='0' width='1600' height='127' class='sv-paper'/><use href='{{icon:사람 검수}}' x='24' y='14' width='40' height='40'/><text x='82' y='45' class='b'>담당자가 한 일: 담보 선택, 비교표 복사, 검수 대기 원문 대조</text><use href='{{icon:추출}}' x='24' y='74' width='40' height='40'/><text x='82' y='105'>AI와 코드가 미리 한 일: 급부 옮기기, 원문 대조, 표준담보 연결, 비교표 만들기</text>"
+   "tile": true,
+   "size": "small",
+   "icon": "비교 화면",
+   "tile_label": "2. 체계적 분류",
+   "value": "{{fact:coverage_major_class_count}}",
+   "unit": "대 영역",
+   "caption": "보장 대분류 × 치료 {{len:treatment_stages}}단계",
+   "scope": "예: {{fact:coverage_major_class_names.0}}, {{fact:coverage_major_class_names.1}} 외 3개",
+   "hero": false
   },
   {
-   "use": "C15",
-   "kind": "unmeasured",
+   "use": "C10",
    "box": [
-    700,
-    606,
-    140,
-    42
+    1200,
+    0,
+    560,
+    270
    ],
-   "build": 3
+   "build": 3,
+   "tile": true,
+   "size": "small",
+   "icon": "온톨로지",
+   "tile_label": "3. 포함·통합 규칙",
+   "value": "{{fact:coverage_relation_count}}",
+   "unit": "건",
+   "caption": "담보 간 상하·결합 관계",
+   "scope": "포함 {{fact:coverage_relations_by_kind.포함}}건 + 통합 {{fact:coverage_relations_by_kind.통합}}건",
+   "hero": true
   },
   {
-   "use": "text",
-   "size": "s",
-   "tone": "muted",
-   "text": "걸리는 시간은 실무자 사용검증으로 측정합니다({{slide:before-after}}장)",
+   "use": "svg",
    "box": [
-    856,
-    604,
-    904,
-    44
+    0,
+    292,
+    560,
+    272
    ],
-   "build": 3
+   "vb": [
+    560,
+    272
+   ],
+   "limit": 26,
+   "build": 1,
+   "alt": "우체국, 한화, 삼성의 다른 표현이 표준담보 암 수술비 하나로 모이는 예시",
+   "svg": "<rect x='0' y='0' width='560' height='272' rx='8' class='sv-paper'/><rect x='16' y='16' width='212' height='52' rx='6' class='sv-line'/><text x='122' y='51' text-anchor='middle'>관혈 암수술금</text><rect x='16' y='84' width='212' height='52' rx='6' class='sv-line'/><text x='122' y='119' text-anchor='middle'>비급여 암수술</text><rect x='16' y='152' width='212' height='52' rx='6' class='sv-line'/><text x='122' y='187' text-anchor='middle'>체증형 암수술</text><path d='M228 42H268V178H228' class='sv-muted'/><path d='M228 110H308' class='sv-red' marker-end='url(#ah-r)'/><rect x='320' y='58' width='224' height='104' rx='8' class='sv-ink'/><text x='432' y='105' text-anchor='middle' class='b'>{{fact:example_cancer_surgery.standard_coverage}}</text><text x='432' y='142' text-anchor='middle' class='aux'>표준담보 기준점</text><text x='280' y='250' text-anchor='middle' class='aux'>회사별 다른 표현을 하나로 통일</text>"
+  },
+  {
+   "use": "svg",
+   "box": [
+    600,
+    292,
+    560,
+    272
+   ],
+   "vb": [
+    560,
+    272
+   ],
+   "limit": 26,
+   "build": 2,
+   "alt": "진단, 수술, 치료, 입원, 통원 5단계 치료 여정과 5대 보장 영역 분류 예시",
+   "svg": "<rect x='0' y='0' width='560' height='272' rx='8' class='sv-paper'/><text x='24' y='42' class='b'>치료 여정 {{len:treatment_stages}}단계 기준 배열</text><g class='m-stage-1'><rect x='16' y='70' width='90' height='60' rx='6' class='sv-line'/><text x='61' y='109' text-anchor='middle' class='b'>진단</text></g><path d='M108 100H124' class='sv-muted'/><g class='m-stage-2'><rect x='126' y='70' width='90' height='60' rx='6' class='sv-line'/><text x='171' y='109' text-anchor='middle' class='b'>수술</text></g><path d='M218 100H234' class='sv-muted'/><g class='m-stage-3'><rect x='236' y='70' width='90' height='60' rx='6' class='sv-line'/><text x='281' y='109' text-anchor='middle' class='b'>치료</text></g><path d='M328 100H344' class='sv-muted'/><g class='m-stage-4'><rect x='346' y='70' width='90' height='60' rx='6' class='sv-line'/><text x='391' y='109' text-anchor='middle' class='b'>입원</text></g><path d='M438 100H454' class='sv-muted'/><g class='m-stage-5'><rect x='456' y='70' width='88' height='60' rx='6' class='sv-line'/><text x='500' y='109' text-anchor='middle' class='b'>통원</text></g><rect x='16' y='152' width='528' height='58' rx='6' class='sv-line'/><text x='280' y='190' text-anchor='middle'>암 · 뇌혈관 · 심장 · 뇌심장 · 공통보장</text><text x='280' y='250' text-anchor='middle' class='aux'>고객 치료 여정 순서대로 공백 파악</text>"
+  },
+  {
+   "use": "svg",
+   "box": [
+    1200,
+    292,
+    560,
+    272
+   ],
+   "vb": [
+    560,
+    272
+   ],
+   "limit": 30,
+   "build": 3,
+   "alt": "포함 관계와 통합 관계의 차이를 실제 담보 예시로 대비한 그림",
+   "svg": "<rect x='0' y='0' width='560' height='100' rx='8' class='sv-paper'/><rect x='0' y='0' width='560' height='100' rx='8' class='sv-line'/><text x='20' y='38' class='b'>포함 ({{fact:coverage_relations_by_kind.포함}}건)</text><text x='20' y='78' class='aux'>{{fact:coverage_relation_examples.포함.1.broad}} 안에 {{fact:coverage_relation_examples.포함.1.narrow.0}} 포함</text><rect x='0' y='116' width='560' height='100' rx='8' class='sv-redbg'/><rect x='0' y='116' width='560' height='100' rx='8' class='sv-red'/><text x='20' y='154' class='b red'>통합 ({{fact:coverage_relations_by_kind.통합}}건)</text><text x='20' y='194' class='aux'>뇌·심장질환 수술비 = 뇌혈관 + 심장 수술비</text><text x='280' y='250' text-anchor='middle' class='aux'>넓은 보장·묶음 특약까지 관계로 연결</text>"
   }
  ],
  "points": [],
- "terms": [],
- "notes": "3부를 암 수술비 한 건으로 정리하겠습니다. 다섯 프레임은 절차 1부터 5까지이고, 프레임마다 그 절차를 누가 맡는지 절차 바와 같은 칩으로 표시했습니다. 절차 1에서 검수 담당자가 수집을 실행하면 세 회사의 상품요약서를 받습니다. 절차 2에서 AI가 급부 글자를 옮기고 코드가 원문과 대조해, 우체국 상품요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽의 지급액 {{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원이 시트의 한 행이 됩니다. 절차 3에서 회사마다 다른 급부 이름이 표준담보 {{fact:example_cancer_surgery.standard_coverage}} 하나에 연결됩니다. 여기까지 회색 프레임 셋은 실무자가 화면을 열기 전에 미리 해 두는 일입니다.\n\n흰 프레임 둘이 실무자가 화면에서 하는 일입니다. 절차 4에서 담보를 선택하고 비교표를 복사하고, 절차 5에서 검수 대기인 {{fact:example_pending_case.org_name}} 값만 근거 쪽수를 보고 원문과 대조합니다. 아래 회색 상자처럼 이 한 건에서 담당자가 한 일은 담보 선택, 비교표 복사, 검수 대기 원문 대조이고, 급부 옮기기, 원문 대조, 표준담보 연결, 비교표 만들기는 AI와 코드가 미리 해 두었습니다. 이렇게 했을 때 걸리는 시간이 얼마나 줄어드는지는 아직 측정하지 않았고, {{slide:before-after}}장에서 말씀드리는 실무자 사용검증으로 측정합니다.\n\n4부는 이 다섯 프레임의 순서대로, 각 절차의 결과를 왜 믿을 수 있는지를 봅니다. 프레임 아래 회색 글이 그 설명이 있는 장입니다.",
- "source": "화면: 데모의 담보 비교 탭(기준 종형 우체국 {{fact:default_base_variant.name}}), 자료 기준 {{asof:example_cancer_surgery}}"
+ "terms": [
+  "표준담보",
+  "보장 대분류",
+  "담보 관계"
+ ],
+ "source": "",
+ "notes": "우리 앱이 실제로 구축한 온톨로지는 세 가지 기둥으로 이루어집니다. 첫째, 통일 명칭입니다. 회사마다 다른 보장 이름을 하나의 기준으로 맞추기 위해 {{fact:standard_coverage_in_use}}개의 표준담보 사전을 구축했습니다. 둘째, 체계적 분류입니다. {{fact:coverage_major_class_names}}의 {{fact:coverage_major_class_count}}개 보장 대분류와 진단·수술·치료·입원·통원 {{len:treatment_stages}}단계 치료 여정으로 나누어 고객 치료 단계별 보장 공백을 바로 찾아냅니다. 셋째, 포함·통합 규칙입니다. 넓은 담보가 좁은 담보를 감싸는 '포함' {{fact:coverage_relations_by_kind.포함}}건과 여러 담보를 한 특약으로 묶은 '통합' {{fact:coverage_relations_by_kind.통합}}건 등 총 {{fact:coverage_relation_count}}건의 담보 관계를 정의해 특약 구조가 다른 상품도 정확히 비교합니다."
 }

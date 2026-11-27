@@ -1,268 +1,55 @@
 {
  "no": 8,
- "id": "screens",
+ "id": "practitioner-insight",
  "kind": "body",
  "chapter": 2,
  "status": "revised",
- "headline": "데모 화면의 탭 여섯을 담당자의 일 순서대로 네 단계로 묶었습니다",
+ "headline": "강점과 보완점을 자동 도출해 창구용 A4 한 장으로 바로 전달합니다",
  "diagram": [
   {
-   "use": "svg",
+   "use": "C3",
+   "dir": "h",
+   "compact": true,
    "box": [
     0,
     0,
-    400,
-    216
+    1760,
+    176
    ],
-   "vb": [
-    400,
-    216
-   ],
-   "alt": "1단계 카드",
-   "svg": "<rect x='1' y='1' width='398' height='214' class='sv-line'/><circle cx='46' cy='40' r='22' class='sv-ink'/><text x='46' y='49' text-anchor='middle' class='b'>1</text>",
-   "build": 1
-  },
-  {
-   "use": "text",
-   "text": "현황 파악",
-   "size": "m",
-   "box": [
-    80,
-    18,
-    300,
-    44
-   ],
-   "build": 1
-  },
-  {
-   "use": "text",
-   "text": "누가 가입할 수 있나",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    24,
-    80,
-    360,
-    40
-   ],
-   "build": 1
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.0}}",
-   "tone": "paper",
-   "box": [
-    24,
-    142,
-    150,
-    52
-   ],
-   "build": 1
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.1}}",
-   "tone": "paper",
-   "box": [
-    182,
-    142,
-    204,
-    52
-   ],
-   "build": 1
-  },
-  {
-   "use": "svg",
-   "box": [
-    400,
-    0,
-    644,
-    216
-   ],
-   "vb": [
-    644,
-    216
-   ],
-   "alt": "2단계 카드와 앞 단계에서 오는 화살표",
-   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='594' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>2</text>",
-   "build": 2
-  },
-  {
-   "use": "text",
-   "text": "상세 비교",
-   "size": "m",
-   "box": [
-    528,
-    18,
-    496,
-    44
-   ],
-   "build": 2
-  },
-  {
-   "use": "text",
-   "text": "조건과 보장이 어떻게 다른가",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    468,
-    80,
-    560,
-    40
-   ],
-   "build": 2
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.2}}",
-   "tone": "paper",
-   "box": [
-    468,
-    142,
-    206,
-    52
-   ],
-   "build": 2
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.3}}",
-   "tone": "paper",
-   "box": [
-    684,
-    142,
-    152,
-    52
-   ],
-   "build": 2
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.5}}",
-   "tone": "paper",
-   "box": [
-    846,
-    142,
-    180,
-    52
-   ],
-   "build": 2
-  },
-  {
-   "use": "svg",
-   "box": [
-    1044,
-    0,
-    348,
-    216
-   ],
-   "vb": [
-    348,
-    216
-   ],
-   "alt": "3단계 카드와 앞 단계에서 오는 화살표",
-   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='298' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>3</text>",
-   "build": 3
-  },
-  {
-   "use": "text",
-   "text": "결론",
-   "size": "m",
-   "box": [
-    1172,
-    18,
-    200,
-    44
-   ],
-   "build": 3
-  },
-  {
-   "use": "text",
-   "text": "앞세울 점과 고칠 점",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    1116,
-    80,
-    260,
-    40
-   ],
-   "build": 3
-  },
-  {
-   "use": "chip",
-   "text": "{{fact:console4_tabs.names.4}}",
-   "tone": "paper",
-   "box": [
-    1116,
-    142,
-    220,
-    52
-   ],
-   "build": 3
-  },
-  {
-   "use": "svg",
-   "box": [
-    1392,
-    0,
-    368,
-    216
-   ],
-   "vb": [
-    368,
-    216
-   ],
-   "alt": "4단계 카드와 앞 단계에서 오는 화살표",
-   "svg": "<path d='M6 108H40' class='sv-muted' marker-end='url(#ah)'/><rect x='49' y='1' width='318' height='214' class='sv-line'/><circle cx='94' cy='40' r='22' class='sv-ink'/><text x='94' y='49' text-anchor='middle' class='b'>4</text>",
-   "build": 4
-  },
-  {
-   "use": "text",
-   "text": "내보내기",
-   "size": "m",
-   "box": [
-    1520,
-    18,
-    220,
-    44
-   ],
-   "build": 4
-  },
-  {
-   "use": "text",
-   "text": "인쇄, 복사해 전달",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    1464,
-    80,
-    280,
-    40
-   ],
-   "build": 4
-  },
-  {
-   "use": "chip",
-   "text": "응대 화법 A4 패널",
-   "tone": "paper",
-   "box": [
-    1464,
-    142,
-    272,
-    52
-   ],
-   "build": 4
+   "build": 1,
+   "nodes": [
+    {
+     "num": "1",
+     "label": "현황 파악",
+     "sub": "{{fact:console4_tabs.names.0}}·{{fact:console4_tabs.names.1}}"
+    },
+    {
+     "num": "2",
+     "label": "상세 비교",
+     "sub": "인수기준·담보·관계 그래프"
+    },
+    {
+     "num": "3",
+     "label": "영업 인사이트 {{fact:sales_insight_count}}건",
+     "sub": "강점·보완 포인트 자동 도출",
+     "hero": true
+    },
+    {
+     "num": "4",
+     "label": "A4 내보내기",
+     "sub": "창구용 응대 화법 바로 인쇄"
+    }
+   ]
   },
   {
    "use": "C12",
    "img": "tab_insight",
-   "alt": "영업 인사이트 탭 캡처. 3은 영업 인사이트 한 건, 4는 같은 탭 안의 응대 화법 A4 패널",
+   "alt": "영업 인사이트 탭 캡처. 3은 영업 인사이트 한 건, 4는 응대 화법 A4 패널",
    "box": [
     0,
-    248,
+    204,
     960,
-    360
+    364
    ],
    "zones": [
     {
@@ -282,49 +69,43 @@
      "label": "응대 화법 A4"
     }
    ],
-   "build": 5
+   "build": 2
   },
   {
    "use": "svg",
    "box": [
-    880,
-    476,
-    290,
+    966,
+    370,
+    190,
     40
    ],
    "vb": [
-    290,
+    190,
     40
    ],
-   "alt": "4번 상자에서 오른쪽 확대 사진으로 가는 화살표",
-   "svg": "<path d='M4 20H276' class='sv-red' marker-end='url(#ah-r)'/>",
-   "build": 6
+   "alt": "응대 화법 A4 패널에서 미리 보기 확대 화면으로 이어지는 화살표",
+   "svg": "<path d='M4 20H176' class='sv-red' marker-end='url(#ah-r)'/>",
+   "build": 3
   },
   {
    "use": "C12",
    "img": "talk_preview",
-   "alt": "응대 화법 A4 미리 보기의 맨 윗부분 확대. 대외 배포 금지 표시가 보인다",
+   "alt": "응대 화법 A4 미리 보기 상단 확대. 내부 참고용 및 대외 배포 금지 표시",
+   "caption": "상단 고정: 내부 참고용(대외 배포 금지)",
    "box": [
-    1181,
-    248,
-    579,
-    360
+    1170,
+    204,
+    590,
+    364
    ],
-   "caption": "4의 맨 위 확대: 대외 배포 금지 표시",
-   "build": 6
+   "build": 3
   }
  ],
- "points": [
-  "고객군 {{fact:segment_map_cell_count}}개 중 {{fact:segment_map_open_together_cells}}개는 우체국도 타사도 [[가입 가능]]"
- ],
+ "points": [],
  "terms": [
-  "가입 가능",
-  "간편심사",
-  "탭"
+  "영업 인사이트",
+  "응대 화법"
  ],
- "source": "예시 조건: {{fact:reference_condition.age}}세 남성, 이력 없음, 우체국 간편심사 기준(인수 결과 아님), 자료 기준 {{asof:segment_map_cell_count}}",
- "notes": "데모 화면에는 탭이 {{fact:console4_tabs.count}}개 있고, 담당자가 실제로 일하는 순서에 따라 네 단계로 묶었습니다. {{slide:video-1}}장 영상의 화면 여섯은 초기 버전 화면이고, 지금 데모는 이 탭들입니다. 첫째 현황 파악은 전체 요약 탭과 고객군과 시장 탭입니다. 고객군은 입원과 수술 이력 {{len:segment_map_rows}}행과 가입나이 {{len:segment_map_columns}}구간을 곱한 {{fact:segment_map_cell_count}}개 고객군이고, 그 가운데 {{fact:segment_map_open_together_cells}}개는 우체국 간편심사로 가입 가능하면서 타사 한 곳 이상도 가입 가능한 고객군입니다. 타사 모두가 가입 가능하다는 뜻은 아닙니다. 가입 가능은 공시된 고지사항과 가입나이로 본 결과이고 실제 인수 결과가 아닙니다. 둘째 상세 비교는 인수기준 비교, 담보 비교, 관계 그래프 탭입니다. 공통 담보 {{fact:common_coverage_pairs}}건 가운데 검수 대기 {{fact:excluded_pending_pairs}}건을 뺀 {{fact:compared_coverage_pairs}}건의 우열을 확인하고, 근거 특약은 관계 그래프 탭에서 찾아 들어갑니다. 셋째 결론은 영업 인사이트 탭입니다. 비교 결과에서 규칙으로 뽑은 영업 인사이트가 {{fact:sales_insight_count}}건이고, 분류별로 인수기준 차이 {{fact:sales_insight_by_category_display.인수기준 차이}}건, 우위 담보 {{fact:sales_insight_by_category_display.우위 담보}}건, 관련 담보 {{fact:sales_insight_by_category_display.관련 담보}}건, 열위 담보 {{fact:sales_insight_by_category_display.열위 담보}}건, 미보유 담보 {{fact:sales_insight_by_category_display.미보유 담보}}건입니다. 아래 캡처의 3번 상자가 그 가운데 인수기준 차이 한 건입니다. 넷째 내보내기의 응대 화법 A4는 탭이 아니라 영업 인사이트 탭 안의 미리 보기 패널이고, 캡처의 4번 상자가 그 패널입니다. 인쇄하거나 글을 복사해 내부 교육과 비교 참고용으로 넘기고, 표 복사는 엑셀에 바로 붙는 형식입니다. 오른쪽 확대 사진처럼 A4 맨 위에는 대외 배포 금지 표시가 고정되고, 분석 문장에는 최고, 유리, 추천 같은 말 {{len:forbidden_words}}개를 빌드 단계에서 막습니다. 숫자는 모두 화면이 처음 여는 기본 조건({{fact:reference_condition.age}}세 남성, 이력 없음)과 기준 종형 우체국 {{fact:default_base_variant.name}}에서 센 값입니다.",
- "frame": {
-  "top": 240
- }
+ "source": "",
+ "notes": "비교 화면의 {{fact:console4_tabs.count}}개 탭은 실무자의 업무 순서에 따라 현황 파악, 상세 비교, 영업 인사이트, A4 내보내기 네 단계로 이어집니다. 상세 비교 결과를 바탕으로 규칙에 따라 {{fact:sales_insight_count}}건의 영업 인사이트(인수기준 차이, 우위 담보, 관련 담보, 열위 담보, 미보유 담보)가 자동 도출됩니다. 실무자는 왼쪽 3번처럼 인사이트와 근거 쪽수를 확인한 뒤, 오른쪽 4번 응대 화법 패널에서 창구와 설계사 교육용 A4 한 장을 바로 인쇄하거나 복사할 수 있습니다. 확대 화면 상단에는 내부 참고용 및 대외 배포 금지 문구가 고정되며, 최고·유리·추천 같은 부적절한 표현은 화면 제작 단계에서 자동 차단합니다."
 }

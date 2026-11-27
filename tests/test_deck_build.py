@@ -67,7 +67,7 @@ def test_video_slides_play_the_media_next_to_the_deck_and_keep_the_still(tmp_pat
     # 영상이 있어도 정지 화면은 남는다(인쇄, 전체 장 보기, 영상을 읽지 못할 때)
     assert html.count('<div class="vph has-st"><div class="vst im-part') == 4
     # 영상 폴더에 파일이 없으면 <video> 없이 정지 화면만 남는다
-    res = deck_build.build_deck(SRC / "content", FACTS, REFS, FONTS, media_root=tmp_path, only={7, 18, 21, 29})
+    res = deck_build.build_deck(SRC / "content", FACTS, REFS, FONTS, media_root=tmp_path, only={4, 10, 12, 19})
     assert res.videos == [] and "<video" not in res.html
     assert res.html.count('<div class="vph has-st"><div class="vst im-part') == 4
 
@@ -83,16 +83,19 @@ def test_deck_is_a_standalone_offline_file():
     assert OUT.stat().st_size < 50_000_000
 
 
-def test_deck_has_37_slide_files_in_order():
+def test_deck_has_20_content_and_4_video_slides_in_order():
     files = sorted(p.name for p in (SRC / "content").glob("[0-9][0-9].json"))
-    assert files == [f"{n:02d}.json" for n in range(1, 38)]
+    assert files == [f"{n:02d}.json" for n in range(1, 25)]
     slides = deck_build.load_slides(SRC / "content")
-    assert [s["no"] for s in slides] == list(range(1, 38))
+    assert [s["no"] for s in slides] == list(range(1, 25))
     assert slides[0]["kind"] == "cover" and slides[-1]["kind"] == "closing"
-    assert [s["no"] for s in slides if s["kind"] == "video"] == [7, 18, 21, 29]
+    assert [s["no"] for s in slides if s["kind"] == "video"] == [4, 10, 12, 19]
+    assert sum(1 for s in slides if s["kind"] != "video") == 20
     assert {s["chapter"] for s in slides[1:-1]} == {1, 2, 3, 4, 5, 6}
     html = OUT.read_text(encoding="utf-8")
-    assert len(re.findall(r'<section class="slide ', html)) == 37
+    assert len(re.findall(r'<section class="slide ', html)) == 24
+    assert "20 / 20" in html and "애니메이션 4 / 4" in html
+    assert re.findall(r'<p class="src">([^<]+)</p>', html) == []
 
 
 def test_every_placeholder_names_a_fact_or_a_ref():
@@ -110,7 +113,7 @@ def test_every_placeholder_names_a_fact_or_a_ref():
 def test_deck_builds_without_limit_warnings():
     res = build(SRC / "content")
     assert res.warnings == []
-    assert len(res.slides) == 37
+    assert len(res.slides) == 24
 
 
 def test_samples_use_every_component_and_build_without_warnings():
@@ -161,6 +164,9 @@ def test_box_outside_the_region_is_warned(tmp_path):
 def test_press_ref_gets_the_badge_and_its_domain_in_the_footer(tmp_path):
     folder = write_slides(tmp_path / "c", [body(1, diagram=[{"use": "text", "text": "{{ref:insurance_underwriting_example}}"}]),
                                            body(2, diagram=[{"use": "text", "text": "{{ref:jev_release.date}}"}])])
+    deck_cfg = json.loads((SRC / "content" / "_deck.json").read_text(encoding="utf-8"))
+    deck_cfg["hide_sources"] = False
+    (folder / "_deck.json").write_text(json.dumps(deck_cfg, ensure_ascii=False), encoding="utf-8")
     res = build(folder)
     s1, s2 = res.html.split('id="s2"')
     assert '<span class="pb">보도 기준</span>' in s1 and "외부 출처: siliconangle.com" in s1
@@ -224,7 +230,7 @@ def test_optional_scope_and_note_labels_render_and_are_limited(tmp_path):
 def test_only_builds_the_named_slides_with_full_page_numbers():
     res = build(SRC / "content", only={2, 3})
     assert [s["no"] for s in res.slides] == [2, 3]
-    assert "02 / 37" in res.html and "03 / 37" in res.html and 'data-no="4"' not in res.html
+    assert "02 / 20" in res.html and "03 / 20" in res.html and 'data-no="4"' not in res.html
 
 
 def test_refs_are_checked_sources_only():

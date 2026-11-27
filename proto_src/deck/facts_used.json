@@ -2,340 +2,146 @@
  "facts": {
   "01": [
    "snapshot_at",
-   "team_size",
-   "comparison_targets_loaded",
    "hanwha_summary_pages",
-   "default_base_variant"
+   "comparison_targets_loaded",
+   "default_base_variant",
+   "team_size"
   ],
   "02": [
+   "practice_compare_time",
    "hanwha_summary_pages",
-   "simple_uw_product_short",
-   "simple_uw_questions_by_org",
-   "practice_compare_source"
+   "simple_uw_questions_by_org"
   ],
   "03": [
-   "comparison_targets_loaded",
-   "comparison_target_counts",
-   "combination_constraints_by_org",
-   "rider_condition_rows_by_org",
-   "practice_compare_source",
-   "practice_compare_time",
-   "practice_compare_frequency"
-  ],
-  "04": [
-   "models",
-   "samsungfire_benefit_reader",
-   "sheet_tab_count",
-   "sheet_tabs_by_owner",
-   "schedule_collect_kst",
-   "schedule_weekly_close_kst"
-  ],
-  "05": [
-   "team_size",
-   "practice_compare_frequency",
-   "site_file_size_mb",
-   "sales_insight_category_names",
-   "sheet_tabs_by_owner",
-   "pages_status",
    "console4_tabs"
   ],
-  "06": [
-   "workflow_triggers",
-   "schedule_collect_kst",
-   "schedule_weekly_close_kst",
-   "pages_deploy_trigger",
-   "sheet_tab_count"
-  ],
-  "07": [
+  "04": [
    "video_length_label",
    "hanwha_summary_pages",
-   "sheet_tab_count",
    "reference_condition",
+   "default_base_variant"
+  ],
+  "06": [
+   "segment_map_cell_count",
+   "example_gate_6months"
+  ],
+  "07": [
+   "example_cancer_surgery",
    "default_base_variant"
   ],
   "08": [
-   "segment_map_cell_count",
-   "segment_map_open_together_cells",
    "console4_tabs",
-   "reference_condition",
-   "segment_map_rows",
-   "segment_map_columns",
-   "common_coverage_pairs",
-   "excluded_pending_pairs",
-   "compared_coverage_pairs",
-   "sales_insight_count",
-   "sales_insight_by_category_display",
-   "forbidden_words",
-   "default_base_variant"
+   "sales_insight_count"
   ],
   "09": [
-   "hanwha_summary_pages",
-   "practice_compare_time",
-   "practice_compare_frequency",
-   "practice_compare_source"
-  ],
-  "10": [
-   "schedule_collect_kst",
-   "disclosure_batch_org_count",
-   "disclosure_batch_auto_org_count",
-   "hanwhafire_block_status"
-  ],
-  "11": [
-   "hanwha_summary_pages",
-   "example_cancer_surgery",
-   "samsungfire_benefit_reader"
-  ],
-  "12": [
-   "example_cancer_surgery_names",
-   "example_cancer_surgery",
-   "benefit_count_site"
-  ],
-  "13": [
-   "example_cancer_surgery",
-   "default_base_variant",
-   "no_verdict_pairs"
-  ],
-  "14": [
-   "example_gate_6months",
-   "pages_status",
-   "example_pending_case"
-  ],
-  "15": [
-   "example_pending_case",
-   "excluded_pending_pairs",
-   "default_base_variant"
-  ],
-  "16": [
-   "example_cancer_surgery",
-   "example_pending_case",
-   "default_base_variant"
-  ],
-  "17": [
    "example_text_to_number",
    "models",
-   "targeted_anticancer_misread",
-   "work_log_count_site",
-   "samsungfire_benefit_reader",
-   "daily_limit_search",
-   "daily_limit_extract",
-   "daily_limit_decide",
-   "daily_limit_extract_alt",
-   "daily_limit_upper"
+   "targeted_anticancer_misread"
   ],
-  "18": [
+  "10": [
    "video_length_label",
    "first_collect_news",
-   "image_doc",
-   "daily_limit_search",
-   "models",
-   "disclosure_pilot_org",
-   "disclosure_batch_org_count"
+   "market_news_institution_count"
   ],
-  "19": [
+  "11": [
    "symmetric_choice_item",
    "symmetric_choice_probability",
+   "decision_model_uses",
    "verify_reextract_threshold",
    "verify_confirm_threshold"
   ],
-  "20": [
-   "decision_model_uses"
-  ],
-  "21": [
+  "12": [
    "video_length_label",
    "symmetric_choice_probability",
    "true_false_probability_range",
-   "symmetric_choice_item",
-   "calibration_score_overlap"
+   "symmetric_choice_item"
   ],
-  "22": [
-   "calibration_correct_to_review",
+  "13": [
    "calibration_flipped_rows",
-   "epost_summary_rows_by_doc",
-   "calibration_reextract_band",
-   "calibration_flip_methods",
    "verify_reextract_threshold",
-   "verify_confirm_threshold",
+   "calibration_reextract_band",
    "calibration_review_band_pct",
-   "bundled_constraint_check",
-   "hanwha_rerun_verify_result",
-   "mapping_auto_confirm_threshold"
-  ],
-  "23": [
-   "mapping_requery",
-   "decide_per_minute_limit",
-   "decide_tokens_per_minute_peak_k",
-   "decide_tokens_per_minute_guard",
-   "mapping_auto_confirm_by_route"
-  ],
-  "25": [
-   "example_cancer_surgery",
-   "standard_coverage_in_use",
-   "coverage_major_class_names",
-   "coverage_major_class_count",
-   "coverage_relation_count",
-   "coverage_relations_by_kind",
-   "coverage_relation_examples"
-  ],
-  "26": [
-   "example_split_rider"
-  ],
-  "27": [
-   "example_cancer_surgery_names",
-   "mapping_auto_confirm_threshold",
-   "graph_company_nodes_with_variants",
-   "graph_nodes_by_kind",
-   "coverage_major_class_count",
-   "example_cancer_surgery",
-   "mapping_auto_confirm_by_route",
-   "mapping_status_site",
-   "dictionary_initial_size",
-   "dictionary_addition_rule",
-   "standard_coverage_rows",
-   "standard_coverage_in_use",
-   "variant_sale_status_site",
-   "epost_renewal"
-  ],
-  "28": [
-   "example_cancer_surgery",
-   "common_coverage_pairs",
-   "compared_coverage_pairs",
+   "goldset_hanwha_benefit",
+   "epost_summary_rows_matched",
+   "verify_confirm_threshold",
    "excluded_pending_pairs",
-   "example_split_rider",
-   "relation_covered_pairs",
-   "org_names",
-   "site_org_count",
-   "standard_coverage_in_use",
-   "mapping_status_by_org",
-   "sales_insight_by_category_display"
+   "example_pending_case"
   ],
-  "29": [
-   "video_length_label",
-   "coverage_relation_count",
+  "14": [
+   "example_cancer_surgery_names",
    "example_cancer_surgery"
   ],
-  "30": [
-   "epost_summary_rows_matched",
-   "epost_summary_rows_by_doc",
-   "goldset_epost_benefit",
-   "goldset_item_totals",
-   "goldset_hanwha_benefit",
-   "goldset_epost_conditions",
-   "goldset_epost_constraints",
-   "goldset_not_scored",
-   "work_log_count_site",
-   "work_log_by_stage",
-   "site_browser_check_problems",
-   "mapping_status_site",
-   "test_count"
+  "15": [
+   "benefit_count_site"
   ],
-  "31": [
-   "pr_counts",
-   "request_docs_by_recipient",
-   "team_size",
-   "request_doc_count"
+  "16": [
+   "example_cancer_surgery",
+   "standard_coverage_in_use",
+   "treatment_stages",
+   "coverage_major_class_names",
+   "coverage_major_class_count",
+   "coverage_relations_by_kind",
+   "coverage_relation_count",
+   "coverage_relation_examples"
   ],
-  "32": [
-   "project_days",
-   "commits_by_date",
-   "commit_count",
-   "test_count",
-   "text_switch_confirmed_rows",
-   "comparison_target_counts",
-   "commits_by_author"
+  "17": [
+   "example_split_rider",
+   "relation_covered_pairs"
   ],
-  "33": [
-   "image_doc_same_reader_repeat",
-   "image_doc",
-   "code_review_items",
-   "image_doc_opus_reread_chars",
-   "local_ocr_test",
-   "review_not_applied_items",
-   "disclosure_batch_org_count",
-   "disclosure_batch_auto_org_count",
-   "disclosure_batch_pdf_count"
+  "18": [
+   "benefit_count_site",
+   "graph_counts",
+   "standard_coverage_in_use",
+   "common_coverage_pairs",
+   "relation_covered_pairs",
+   "sales_insight_by_category_display",
+   "mapping_status_by_org"
   ],
-  "34": [
+  "19": [
+   "video_length_label"
+  ],
+  "20": [
+   "sales_insight_by_category_display",
+   "epost_renewal",
+   "revision_changes",
+   "market_news_institution_count",
+   "market_news_category_count"
+  ],
+  "21": [
    "operating_cost_won",
-   "subscription_claude_usd_per_month",
-   "subscription_gemini_krw_per_month",
    "schedule_collect_kst",
    "schedule_weekly_close_kst",
-   "site_file_size_mb",
-   "hanwha_first_extract"
+   "site_file_size_mb"
   ],
-  "35": [
-   "standard_coverage_in_use",
-   "practice_compare_time",
-   "practice_compare_frequency",
-   "practice_compare_source",
-   "epost_renewal",
-   "variant_sale_status_site",
-   "revision_changes",
-   "segment_map_cell_count",
-   "mapping_status_site",
-   "not_yet_measured"
-  ],
-  "36": [
-   "org_names",
-   "next_load_orgs",
-   "combination_constraints_by_org",
-   "rider_condition_rows_by_org",
-   "product_org_count",
-   "comparison_target_counts",
-   "variants_by_org",
-   "benefits_by_org",
-   "premium_example_rows",
-   "benefit_disease_code_rows",
-   "practice_revision_concern",
-   "doc_hash_coverage_site",
-   "epost_renewal",
-   "disease_group_draft"
-  ],
-  "37": [
-   "operating_cost_won",
-   "pages_status",
+  "22": [
    "comparison_targets_loaded",
-   "snapshot_at",
-   "epost_summary_rows_matched"
+   "site_org_count",
+   "disclosure_batch_auto_org_count",
+   "product_org_count",
+   "variant_count_all",
+   "benefit_count_all",
+   "next_load_orgs",
+   "standard_coverage_in_use"
+  ],
+  "23": [
+   "rider_condition_rows_by_org",
+   "combination_constraints_by_org",
+   "disease_group_draft",
+   "reference_condition",
+   "doc_hash_coverage_site"
+  ],
+  "24": [
+   "operating_cost_won",
+   "comparison_targets_loaded",
+   "pages_status"
   ]
  },
  "refs": {
-  "02": [
-   "association_disclosure"
+  "11": [
+   "gemini_decision_release"
   ],
-  "03": [
-   "insurance_damoa"
-  ],
-  "12": [
-   "kg_google_2012"
-  ],
-  "19": [
-   "gemini_decision_release",
-   "gemini_decision_spec"
-  ],
-  "20": [
-   "openai_calibration_2023",
-   "openai_structured_2024",
-   "jev_release",
-   "gemini_decision_release",
-   "judgment_not_decision",
-   "decision_model_use_cases",
-   "insurance_claims_triage_example",
-   "insurance_claim_example"
-  ],
-  "24": [
-   "ontology_definition",
-   "kg_definition",
-   "owl_rdf",
-   "kg_google_2012",
-   "gql_2024",
-   "graphrag_2024",
-   "graphrag_not_always_better",
-   "fibo_acord"
-  ],
-  "34": [
-   "github_actions_public_free",
-   "gemini_decision_price"
+  "21": [
+   "github_actions_public_free"
   ]
  }
 }

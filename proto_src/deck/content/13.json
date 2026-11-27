@@ -1,169 +1,104 @@
 {
  "no": 13,
- "id": "cancer-surgery",
+ "id": "error-guard",
  "kind": "body",
  "chapter": 3,
  "status": "revised",
- "headline": "절차 4: 암 수술비를 클릭하면 세 회사 조건이 한 표에 나오고, 비교표를 복사합니다",
+ "headline": "고의 오류 {{fact:calibration_flipped_rows.rows}}건 중 자동 확정 통과는 {{fact:calibration_flipped_rows.passed}}건이며 불확실한 값은 분리합니다",
  "diagram": [
+  {
+   "use": "C10",
+   "box": [
+    0,
+    0,
+    560,
+    270
+   ],
+   "tile": true,
+   "size": "small",
+   "icon": "검증",
+   "tile_label": "재추출 구간 포착",
+   "value": "{{fact:calibration_reextract_band.wrong_caught_pct|f1}}",
+   "unit": "%",
+   "caption": "기준선 {{fact:verify_reextract_threshold|f2}} 미만으로 즉시 차단",
+   "scope": "고의 오류 {{fact:calibration_flipped_rows.rows}}건 테스트",
+   "hero": false,
+   "build": 1
+  },
+  {
+   "use": "C10",
+   "box": [
+    600,
+    0,
+    560,
+    270
+   ],
+   "tile": true,
+   "size": "small",
+   "icon": "자동 확정",
+   "tile_label": "오류 자동 확정",
+   "value": "{{fact:calibration_flipped_rows.passed}}",
+   "unit": "건",
+   "caption": "오류가 확정으로 통과한 건수",
+   "scope": "검수 이관 {{fact:calibration_review_band_pct|f1}}%(계산값)",
+   "hero": true,
+   "build": 1
+  },
+  {
+   "use": "C10",
+   "box": [
+    1200,
+    0,
+    560,
+    270
+   ],
+   "tile": true,
+   "size": "small",
+   "icon": "공시 문서",
+   "tile_label": "우체국 원문 대조",
+   "value": "{{fact:epost_summary_rows_matched.matched}}/{{fact:epost_summary_rows_matched.total}}",
+   "unit": "건",
+   "caption": "요약서 원문 표와 100% 일치",
+   "scope": "정답표 대조: 한화 {{fact:goldset_hanwha_benefit.match}}/{{fact:goldset_hanwha_benefit.items}}건 일치",
+   "hero": false,
+   "build": 1
+  },
   {
    "use": "svg",
    "box": [
     0,
-    0,
-    330,
-    160
+    292,
+    1160,
+    260
    ],
    "vb": [
-    330,
-    160
+    1160,
+    260
    ],
-   "build": 1,
-   "alt": "절차 다섯 가운데 절차 4 표로 옮기기. 절차 1~3은 미리 해 두는 일, 절차 4~5는 화면에서 하는 일",
-   "svg": "<circle cx='20' cy='20' r='18' class='sv-paper'/><text x='20' y='28' text-anchor='middle' class='aux'>1</text><circle cx='82' cy='20' r='18' class='sv-paper'/><text x='82' y='28' text-anchor='middle' class='aux'>2</text><circle cx='144' cy='20' r='18' class='sv-paper'/><text x='144' y='28' text-anchor='middle' class='aux'>3</text><circle cx='208' cy='20' r='18' class='sv-deep'/><circle cx='208' cy='20' r='18' class='sv-ink'/><text x='208' y='28' text-anchor='middle' class='b'>4</text><circle cx='270' cy='20' r='17' class='sv-line'/><text x='270' y='28' text-anchor='middle' class='aux'>5</text><path d='M176 0V76' class='sv-muted'/><text x='168' y='66' text-anchor='end' class='aux'>미리 해 두는 일</text><text x='184' y='66' class='aux'>화면에서</text><text x='0' y='112' class='b'>절차 4 표로 옮기기</text>"
-  },
-  {
-   "use": "C5",
-   "box": [
-    350,
-    0,
-    1090,
-    160
-   ],
-   "fill": false,
-   "labels": [
-    "지금까지",
-    "이 도구로"
-   ],
-   "build": 1,
-   "rows": [
-    {
-     "before": "비교표에 직접 옮겨 적음",
-     "after": "코드가 담보 비교 탭에 비교표를 만듦",
-     "note": "화면 구성은 {{slide:screens}}장"
-    }
-   ]
-  },
-  {
-   "use": "C20",
-   "box": [
-    1460,
-    0,
-    300,
-    160
-   ],
-   "dir": "v",
-   "build": 1,
-   "chips": [
-    {
-     "role": "코드",
-     "label": "비교표 만들기"
-    },
-    {
-     "role": "실무자",
-     "label": "선택, 복사"
-    }
-   ]
-  },
-  {
-   "use": "C4",
-   "box": [
-    0,
-    180,
-    1010,
-    396
-   ],
-   "head": "세 회사 담보의 공통 이름(표준담보): {{fact:example_cancer_surgery.standard_coverage}}",
-   "cols": [
-    "EPOST",
-    "HANWHALIFE",
-    "SAMSUNGFIRE"
-   ],
-   "label_w": 150,
-   "rows": [
-    {
-     "label": "면책기간<br>감액기간",
-     "same": true,
-     "limit": 24,
-     "values": [
-      "{{fact:example_cancer_surgery.orgs.EPOST.waiting_days}}일<br>{{fact:example_cancer_surgery.orgs.EPOST.reduce.0.months}}개월 동안 {{fact:example_cancer_surgery.orgs.EPOST.reduce.0.rate|pct}}% 지급"
-     ]
-    },
-    {
-     "label": "지급액",
-     "limit": 26,
-     "hero": true,
-     "values": [
-      "{{fact:example_cancer_surgery.orgs.EPOST.pay_manwon}}만 원(가입금액 {{fact:example_cancer_surgery.orgs.EPOST.basis_manwon}}만 원 기준)",
-      "{{fact:example_cancer_surgery.orgs.HANWHALIFE.pay_manwon}}만 원(가입금액 {{fact:example_cancer_surgery.orgs.HANWHALIFE.basis_manwon}}만 원 기준)",
-      "가입금액의 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.pay_manwon}}%"
-     ],
-     "chip": {
-      "col": 2,
-      "text": "금액으로 비교하지 않음"
-     }
-    }
-   ],
-   "tag": "기준 가입금액이 달라 금액만으로 우열을 말하지 않습니다",
-   "build": 2
+   "limit": 28,
+   "build": 2,
+   "alt": "확신도가 기준선 아래인 항목은 비교 판단에서 제외하고 검수 대기로 분리해 근거 쪽수만 안내하는 안전장치 흐름도",
+   "svg": "<g class='m-stage-1'><rect x='0' y='0' width='350' height='260' rx='8' class='sv-paper'/><rect x='0' y='0' width='350' height='260' rx='8' class='sv-line'/><use href='{{icon:사람 검수}}' x='24' y='24' width='40' height='40'/><text x='78' y='54' class='b'>1. 기준선 아래 항목 분리</text><text x='24' y='118'>확신도 {{fact:verify_reextract_threshold|f2}}~{{fact:verify_confirm_threshold|f2}} 구간</text><text x='24' y='164' class='aux'>자동 확정에서 제외해 별도 분리</text><text x='24' y='214' class='aux'>불확실한 추측은 반영하지 않음</text></g><path d='M362 130H406' class='sv-red' marker-end='url(#ah-r)'/><g class='m-stage-2'><rect x='416' y='0' width='360' height='260' rx='8' class='sv-redbg'/><rect x='416' y='0' width='360' height='260' rx='8' class='sv-red'/><text x='440' y='54' class='b red'>2. 비교 판단에서 제외</text><text x='440' y='118'>화면에 '검수 대기' 별도 표기</text><text x='440' y='164' class='aux'>미보유·우열 단정으로 섞지 않음</text><text x='440' y='214' class='aux'>기준 종형 비교 제외 {{fact:excluded_pending_pairs}}건</text></g><path d='M788 130H832' class='sv-muted' marker-end='url(#ah)'/><g class='m-stage-3'><rect x='842' y='0' width='318' height='260' rx='8' class='sv-paper'/><rect x='842' y='0' width='318' height='260' rx='8' class='sv-line'/><use href='{{icon:검토}}' x='866' y='24' width='40' height='40'/><text x='920' y='54' class='b'>3. 근거 쪽수 안내</text><text x='866' y='118'>{{fact:example_pending_case.org_name}} {{fact:example_pending_case.doc_kind}} {{fact:example_pending_case.doc_page}}쪽</text><text x='866' y='164' class='aux'>원문 해당 쪽수를 바로 안내</text><text x='866' y='214' class='aux'>담당자가 최종 확인 후 반영</text></g>"
   },
   {
    "use": "C12",
-   "img": "cancer_surgery",
    "box": [
-    1040,
-    180,
-    720,
-    262
+    1200,
+    292,
+    560,
+    260
    ],
    "build": 2,
-   "alt": "담보 비교 탭에서 암 수술비 막대를 선택한 화면. 막대와 비교표 복사 버튼에 구역 표시",
-   "zones": [
-    {
-     "n": "A",
-     "x": 0.044,
-     "y": 0.318,
-     "w": 0.026,
-     "h": 0.157,
-     "label": "암 수술비 클릭",
-     "chip": "above"
-    },
-    {
-     "n": "B",
-     "x": 0.632,
-     "y": 0.068,
-     "w": 0.05,
-     "h": 0.026,
-     "label": "비교표 복사",
-     "chip": "below"
-    }
-   ],
-   "caption": "담보 비교 탭, 기준 종형 {{fact:default_base_variant.name}}"
-  },
-  {
-   "use": "svg",
-   "box": [
-    1040,
-    458,
-    720,
-    118
-   ],
-   "vb": [
-    720,
-    118
-   ],
-   "build": 3,
-   "limit": 30,
-   "alt": "비교표 복사로 복사되는 열: 보장 대분류, 담보, 급부 유형, 회사별 지급, 면책, 감액, 비교 결과와 이유",
-   "svg": "<rect x='0' y='0' width='720' height='118' class='sv-paper'/><text x='20' y='46'><tspan class='b'>복사되는 열</tspan>: 보장 대분류, 담보, 급부 유형,</text><text x='20' y='90'>회사별 지급, 면책, 감액, 비교 결과와 이유</text>"
+   "img": "cut_pending_chip",
+   "alt": "실제 비교 화면에서 검수 대기 항목이 별도 칩으로 분리되어 표시된 모습",
+   "caption": "화면의 '검수 대기' 분리 표시"
   }
  ],
  "points": [],
  "terms": [
-  "면책기간",
-  "감액기간",
-  "기준 종형"
+  "검수 대기",
+  "정답표"
  ],
- "source": "출처: 각 사 상품요약서, 화면: 데모의 담보 비교 탭, 자료 기준 {{asof:example_cancer_surgery}}",
- "notes": "절차 4는 화면에서 비교하고 표로 옮기는 일입니다. 앞에서 따라온 암 수술비를 이어서 보겠습니다. 예로 든 상품은 새로 나온 타사 상품이 아니라 지금 화면에 들어 있는 상품이고, 새 상품도 적재하고 화면을 다시 빌드하면 같은 순서로 봅니다. 기준 종형은 화면이 처음 여는 우체국 {{fact:default_base_variant.name}}, 비교 대상은 한화생명 {{fact:example_cancer_surgery.orgs.HANWHALIFE.variant}}과 삼성화재 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.variant}}입니다.\n\n첫째, 담보를 선택합니다. 오른쪽 화면의 A처럼 담보 비교 탭에서 암 수술비 막대를 클릭합니다. 세 회사의 대표 급부 이름은 우체국 {{fact:example_cancer_surgery.orgs.EPOST.benefit}}, 한화생명 {{fact:example_cancer_surgery.orgs.HANWHALIFE.benefit}}, 삼성화재 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.benefit}}로 모두 다르지만, 절차 3에서 이 셋을 이 앱이 정한 공통 이름인 표준담보 {{fact:example_cancer_surgery.standard_coverage}} 하나에 연결해 두었기 때문에 막대 하나로 세 회사의 급부가 함께 선택됩니다. 근거 문서는 우체국 상품요약서 {{fact:example_cancer_surgery.orgs.EPOST.doc_page}}쪽, 한화생명 상품요약서 {{fact:example_cancer_surgery.orgs.HANWHALIFE.doc_page}}쪽, 삼성화재 상품요약서 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.doc_page}}쪽입니다. 문서에 적힌 실제 이름 셋은 {{slide:why-ontology}}장에서, 맞추는 원리는 {{slide:kg-ontology}}장부터 {{slide:name-matching}}장까지에서 설명합니다.\n\n둘째, 조건을 확인합니다. 막대를 클릭하면 왼쪽처럼 세 회사의 조건이 한 표에 나옵니다. 절차 2에서 문서를 찾아 옮기던 값들입니다. 면책기간과 감액기간은 세 회사가 모두 같아서, 화면에서는 한 셀로 합치고 동일 표시를 붙였습니다. 지급 형태는 우체국 {{fact:example_cancer_surgery.orgs.EPOST.pay_form}}, 한화생명 {{fact:example_cancer_surgery.orgs.HANWHALIFE.pay_form}}, 삼성화재 {{fact:example_cancer_surgery.orgs.SAMSUNGFIRE.pay_form}}입니다. 달라지는 것은 지급액 한 행입니다. 그런데 지급액은 기준 가입금액이 서로 달라 금액만으로 우열을 말하지 않습니다. 삼성화재처럼 지급 형태가 다른 경우는 금액으로 비교하지 않는데, 기본 조건에서 이렇게 지급 형태가 달라 우열을 정하지 않은 비교가 {{fact:no_verdict_pairs.payment_form}}건, 조건이 다른 특약을 함께 판매해 비교 결과를 보류한 건이 {{fact:no_verdict_pairs.other_rider}}건입니다. 이 꼬리표가 {{slide:concerns}}장에서 본 실무자의 고민, 곧 회사마다 비교 기준이 같지 않아 나란히 비교하기 어렵다는 점에 대해 이 앱이 지금 하는 일입니다. 기준이 다르면 우열을 매기지 않고 기준을 옆에 함께 표시합니다. 다만 그 고민을 해결한 것은 아닙니다. 타사의 필수 특약과 결합 제약은 아직 적재하지 않았고, 가입 조건을 맞춘 비교는 {{slide:roadmap}}장의 향후 계획에서 말씀드립니다. 같은 화면에서 우체국에 없고 두 타사가 모두 가진 치료 단계 담보 {{fact:example_cancer_surgery.missing_treatment_both_peers.count}}개, 예를 들어 항암약물치료비와 항암방사선치료비가 미보유 담보로 함께 잡혀 상품 개정 검토로 넘어갑니다.\n\n셋째, 비교표를 복사합니다. 화면 위쪽 B의 비교표 복사 버튼을 클릭하면 표 계산 프로그램에 바로 붙여 넣을 수 있는 형식으로 복사됩니다. 복사되는 열은 아래 회색 행처럼 보장 대분류, 담보, 급부 유형, 회사별 지급과 면책과 감액, 비교 결과와 그 이유입니다. 근거 문서의 쪽수는 들어가지 않으므로 쪽수는 화면의 상세와 근거에서 확인합니다. 지금까지는 비교표에 직접 옮겨 적던 일을, 이 도구에서는 코드가 만든 비교표를 실무자가 선택해 복사합니다."
+ "source": "",
+ "notes": "의사결정 모델의 기준선이 실제로 오류를 걸러 내는지 테스트한 결과입니다. 우체국 상품요약서에서 맞게 옮긴 값에 일부러 오류 {{fact:calibration_flipped_rows.rows}}건을 넣어 검증해 보니, {{fact:calibration_reextract_band.wrong_caught_pct|f1}}%는 기준선 {{fact:verify_reextract_threshold|f2}} 미만으로 즉시 재추출 구간에 포착되었고, 나머지 {{fact:calibration_review_band_pct|f1}}%는 담당자 검수 구간으로 이관되었습니다. 오류 값이 자동 확정을 통과한 건수는 {{fact:calibration_flipped_rows.passed}}건입니다. 실제 원문 및 정답표 대조에서도 우체국 상품요약서 표 {{fact:epost_summary_rows_matched.total}}건이 원문과 100% 일치했고, 한화생명 정답표 보장금액 영역 {{fact:goldset_hanwha_benefit.items}}건도 모두 일치했습니다. 아래 그림처럼 확신도가 기준선 아래인 항목은 비교 판단에 섞지 않고 '검수 대기' 칩으로 분리해 근거 문서와 쪽수만 안내합니다."
 }

@@ -1,124 +1,22 @@
 {
  "no": 19,
- "id": "decision-model",
- "kind": "body",
+ "id": "video-4",
+ "kind": "video",
  "chapter": 4,
- "status": "new",
- "headline": "확률 산정 모델은 텍스트를 생성하지 않고, 보기마다 확률만 산출합니다",
- "diagram": [
-  {
-   "use": "C2",
-   "mode": "tiny",
-   "on": [
-    3
-   ],
-   "box": [
-    1100,
-    0,
-    660,
-    64
-   ]
-  },
-  {
-   "use": "C3",
-   "box": [
-    0,
-    72,
-    1760,
-    350
-   ],
-   "nodes": [
-    {
-     "num": "1",
-     "label": "문항과 보기",
-     "fig_h": 170,
-     "figure": {
-      "use": "svg",
-      "vb": [
-       514,
-       170
-      ],
-      "alt": "면책 문항에서 보장개시일 조건이 있는지 묻는 문항 아래에 보기 둘을 객관식처럼 적은 그림",
-      "svg": "<text x='257' y='30' text-anchor='middle' class='b'>보장개시일 조건이 있나?</text><rect x='2' y='50' width='510' height='54' rx='10' class='sv-line'/><circle cx='34' cy='77' r='12' class='sv-ink'/><text x='62' y='86'>{{fact:symmetric_choice_item.choices.0}}</text><rect x='2' y='112' width='510' height='54' rx='10' class='sv-line'/><circle cx='34' cy='139' r='12' class='sv-ink'/><text x='62' y='148'>{{fact:symmetric_choice_item.choices.1}}</text>"
-     },
-     "sub": "코드가 정해서 물음"
-    },
-    {
-     "num": "2",
-     "label": "확률 산정 모델",
-     "sub": "텍스트는 생성하지 않음",
-     "note": "{{ref:gemini_decision_release.model}}",
-     "icon": "확률 산정 모델"
-    },
-    {
-     "num": "3",
-     "label": "보기마다 확률",
-     "hero": true,
-     "fig_h": 170,
-     "figure": {
-      "use": "svg",
-      "vb": [
-       514,
-       170
-      ],
-      "alt": "조건 있음 보기의 확률 막대는 길고 조건 없음 보기의 막대는 아주 짧은 그림",
-      "svg": "<text x='257' y='28' text-anchor='middle'>예: 원문에 조건이 있을 때</text><text x='0' y='86'>조건 있음</text><rect x='140' y='63' width='230' height='28' class='sv-deep'/><rect x='0' y='0' width='{{fact:symmetric_choice_probability.correct_min|f2}}' height='1' transform='translate(140 63) scale(230 28)' class='sv-fill-red'/><text x='384' y='86' class='red b'>{{fact:symmetric_choice_probability.correct_min|f2}} 이상</text><text x='0' y='148'>조건 없음</text><rect x='140' y='125' width='230' height='28' class='sv-deep'/><rect x='0' y='0' width='{{fact:symmetric_choice_probability.flipped_max|f2}}' height='1' transform='translate(140 125) scale(230 28)' class='sv-fill-ink'/><text x='384' y='148'>{{fact:symmetric_choice_probability.flipped_max|f2}} 이하</text>"
-     },
-     "sub": "면책 문항에서 측정한 값"
-    }
-   ]
-  },
-  {
-   "use": "text",
-   "size": "m",
-   "tone": "ink",
-   "text": "확률로 코드가<br>세 구간으로 나눔",
-   "box": [
-    0,
-    432,
-    300,
-    176
-   ]
-  },
-  {
-   "use": "C7",
-   "box": [
-    300,
-    432,
-    1460,
-    176
-   ],
-   "thresholds": [
-    "{{fact:verify_reextract_threshold}}",
-    "{{fact:verify_confirm_threshold}}"
-   ],
-   "zones": [
-    "다시 추출",
-    "사람이 검수",
-    "자동 확정"
-   ],
-   "markers": [
-    {
-     "v": "{{fact:symmetric_choice_probability.flipped_max}}",
-     "label": "모의 오류 값"
-    },
-    {
-     "v": "{{fact:symmetric_choice_probability.correct_min}}",
-     "label": "맞는 값"
-    }
-   ]
-  }
- ],
- "points": [
-  "{{ref:gemini_decision_release.date}}에 Google이 공개한 새 AI"
- ],
- "terms": [
-  "확률 산정 모델",
-  "확률"
- ],
- "source": "출처: 제출 설명 자료의 확률 산정 모델 절, 기준값 시트, 만든 회사의 공개 문서",
- "notes": "3부 절차 2({{slide:step2-extract}}장)에서 AI와 코드가 옮긴 값을 어떻게 믿는지 봅니다. 일곱 처리 단계 가운데 검증 단계의 이야기입니다. 이 앱이 쓴 확률 산정 모델은 Google이 {{ref:gemini_decision_release.date}}에 공개한 {{ref:gemini_decision_release.model}} 하나입니다. 보통의 AI는 답을 문장으로 써 주기 때문에 얼마나 확신하는지 알기 어렵지만, 확률 산정 모델은 글을 한 글자도 쓰지 않고 우리가 정해 준 보기마다 맞을 확률만 돌려줍니다. ① 코드가 문항과 보기를 만듭니다. 예로 든 문항은 면책기간 문항으로, 급부의 지급사유에 '○○보장개시일 이후'라는 조건이 들어 있는지를 '{{fact:symmetric_choice_item.choices.0}}'과 '{{fact:symmetric_choice_item.choices.1}}' 가운데 고르게 묻습니다. ② 확률 산정 모델은 보기마다 확률을 돌려줍니다. ③ 원문에 조건이 있으면 맞게 옮긴 값의 보기는 {{fact:symmetric_choice_probability.correct_min|f2}} 이상, 모의 테스트로 바꾼 오류 값의 보기는 {{fact:symmetric_choice_probability.flipped_max|f2}} 이하로 갈렸습니다. 막대의 두 값은 면책 문항 한 가지에서 측정한 값이고, 다른 문항의 값이 아닙니다. 아래 막대가 세 구간 분기입니다. 옮긴 값의 보기가 받은 확률이 {{fact:verify_confirm_threshold|f2}} 이상이면 자동 확정, {{fact:verify_reextract_threshold|f2}} 미만이면 다른 AI로 다시 추출, 그 사이면 사람이 검수합니다. 이 두 기준값은 담당자가 시트에서 정하는 값입니다. 다만 만든 회사 문서도 밝히듯 확률은 여러 건을 모았을 때의 적중률이지 한 건의 정답을 보증하지 않습니다. 그래서 기준값을 우리 자료의 정답으로 다시 맞췄고, 그 결과는 세 장 뒤에서 보여 드립니다. 문항은 예/아니오, 보기 고르기, 단계 점수 세 종류가 있고, 이 앱은 앞의 두 종류를 씁니다. 사양: 보기 {{ref:gemini_decision_spec.choices_min}}~{{ref:gemini_decision_spec.choices_max}}개, 한 번에 {{ref:gemini_decision_spec.items_max}}문항까지 받고, 내보내는 글자는 {{ref:gemini_decision_spec.output_tokens}}개입니다. 확률로 답하므로 확신이 낮은 건만 사람에게 넘길 수 있습니다.",
- "frame": {
-  "top": 240
- }
+ "status": "video",
+ "headline": "온톨로지 관계망으로 서로 다른 특약 구조를 하나로 묶어 비교하는 장면",
+ "video": {
+  "part": 4,
+  "src": "media/part4.mp4",
+  "dur": "{{fact:video_length_label.part4}}",
+  "q": "타사의 통합 특약 하나와 우체국의 분리 특약 둘이 온톨로지 관계로 묶이는 과정",
+  "stills": [
+   "part4_1"
+  ]
+ },
+ "diagram": [],
+ "points": [],
+ "terms": [],
+ "source": "",
+ "notes": "앞에서 살펴본 온톨로지와 지식그래프가 실제 화면에서 어떻게 작동하는지 애니메이션으로 확인하겠습니다. 공시 문서에서 추출한 세부 보장 항목(급부), 표준담보와 담보 관계로 구성된 온톨로지 기준, 그리고 이를 바탕으로 비교표와 영업 인사이트를 만들어 내는 3층 구조를 먼저 보신 뒤, 타사의 통합 특약 하나와 우체국의 분리 특약 둘이 포함·통합 관계로 연결되어 같은 담보 비교 행으로 정렬되는 과정을 확인합니다."
 }

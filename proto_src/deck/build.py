@@ -101,16 +101,19 @@ def load_slides(content_dir: Path) -> list[dict]:
 SLIDE_REF = re.compile(r"\{\{slide:([^{}|]+?)\}\}")
 
 
-def resolve_slide_refs(slides: list[dict]) -> list[dict]:
+def resolve_slide_refs(slides: list[dict], separate_videos: bool = False) -> list[dict]:
     """글의 {{slide:장 id}} 를 그 장의 번호로 바꾼 사본. id 가 겹치거나 없는 id 를 부르면 멈춘다."""
     ids: dict[str, int] = {}
+    c_no = 0
     for s in slides:
+        if s.get("kind") != "video":
+            c_no += 1
         sid = s.get("id")
         if sid is None:
             continue
         if sid in ids:
             raise SystemExit(f"장 id 가 겹친다: {sid} ({ids[sid]}장, {s['no']}장)")
-        ids[sid] = s["no"]
+        ids[sid] = c_no if (separate_videos and s.get("kind") != "video") else s["no"]
     missing: list[str] = []
 
     def walk(o: Any, where: str) -> Any:
@@ -153,11 +156,39 @@ def load_refs(path: Path) -> dict:
 # 장의 프레임
 # ---------------------------------------------------------------------------
 class Frame:
-    def __init__(self, ctx: P.Ctx, total: int, media_root: Path):
+    def __init__(self, ctx: P.Ctx, slides_or_total: list[dict] | int, media_root: Path):
         self.ctx = ctx
-        self.total = total
         self.media_root = media_root
         self.videos: list[str] = []
+        self.separate_videos = bool(ctx.deck.get("separate_videos")) and isinstance(slides_or_total, list)
+        self.hide_sources = bool(ctx.deck.get("hide_sources"))
+        self.content_idx: dict[int, int] = {}
+        self.video_idx: dict[int, int] = {}
+        if isinstance(slides_or_total, list):
+            c_i, v_i = 0, 0
+            for s in slides_or_total:
+                if s.get("kind") == "video":
+                    v_i += 1
+                    self.video_idx[s["no"]] = v_i
+                else:
+                    c_i += 1
+                    self.content_idx[s["no"]] = c_i
+            self.content_total = c_i
+            self.video_total = v_i
+            self.total = c_i if self.separate_videos else len(slides_or_total)
+        else:
+            self.total = slides_or_total
+            self.content_total = slides_or_total
+            self.video_total = 0
+
+    def pg_label(self, s: dict) -> tuple[str, str]:
+        if self.separate_videos:
+            if s.get("kind") == "video":
+                vi = self.video_idx.get(s["no"], 1)
+                return f"애니메이션 {vi} / {self.video_total}", f"영상 {vi}"
+            ci = self.content_idx.get(s["no"], s["no"])
+            return f"{ci:02d} / {self.content_total:02d}", str(ci)
+        return f"{s['no']:02d} / {self.total:02d}", str(s["no"])
 
     def blocks(self, s: dict, region: tuple[float, float, float, float]) -> str:
         rx, ry, rw, rh = region
@@ -189,6 +220,9 @@ class Frame:
                 f'{"".join(out)}</div>')
 
     def footer(self, s: dict) -> str:
+        pg_text, _ = self.pg_label(s)
+        if self.hide_sources:
+            return f'<footer class="ft"><p class="src"></p><p class="pg">{P.esc(pg_text)}</p></footer>'
         src = self.ctx.t(s.get("source", ""), None)
         doms = self.ctx.domains.get(self.ctx.slide, [])
         if doms:
@@ -199,15 +233,17 @@ class Frame:
             self.ctx.warn("source", f"폭 약 {width:,.0f}px > {P.SOURCE_WIDTH:,}px(외부 출처 도메인 포함, 한글로 약 "
                                     f"{int(P.SOURCE_WIDTH // (P.AUX_PX * 0.96))}자)")
         return (f'<footer class="ft"><p class="src">{src}</p>'
-                f'<p class="pg">{s["no"]:02d} / {self.total:02d}</p></footer>')
+                f'<p class="pg">{P.esc(pg_text)}</p></footer>')
 
     def notes(self, s: dict) -> str:
         return f'<aside class="notes">{self.ctx.t(s.get("notes", ""))}</aside>'
 
     def section(self, s: dict, cls: str, inner: str) -> str:
         title = P.plain(self.ctx.sub(s["headline"]))
-        return (f'<section class="slide {cls}" id="s{s["no"]}" data-no="{s["no"]}" data-status="{P.esc(s["status"])}" '
-                f'data-title="{P.esc(title)}" aria-roledescription="장" aria-label="{s["no"]} / {self.total}: {P.esc(title)}">'
+        pg_text, badge = self.pg_label(s)
+        return (f'<section class="slide {cls}" id="s{s["no"]}" data-no="{s["no"]}" data-badge="{P.esc(badge)}" '
+                f'data-pg="{P.esc(pg_text)}" data-status="{P.esc(s["status"])}" '
+                f'data-title="{P.esc(title)}" aria-roledescription="장" aria-label="{P.esc(pg_text)}: {P.esc(title)}">'
                 f'{inner}{self.notes(s)}</section>')
 
     def header(self, s: dict, dark: bool = False) -> str:
@@ -286,7 +322,8 @@ class Frame:
         v = s.get("video", {})
         src = v.get("src", "")
         part = v.get("part")
-        tag = f'<span class="vchip">영상 {P.esc(part)}</span>' if part is not None else '<span class="vchip">영상</span>'
+        prefix = "시연 애니메이션" if self.separate_videos else "영상"
+        tag = f'<span class="vchip">{prefix} {P.esc(part)}</span>' if part is not None else f'<span class="vchip">{prefix}</span>'
         dur = f'<span class="vchip dur">{self.ctx.t(v["dur"], 10, "video.dur")}</span>' if v.get("dur") else ""
         q = f'<p class="vq">{self.ctx.t(v["q"], P.LIMITS["question"], "video.q")}</p>' if v.get("q") else ""
         video = ""
@@ -301,9 +338,10 @@ class Frame:
             self.ctx.warn("video.stills", f"정지 화면 {len(stills)}컷(한 컷)")
         st = "".join(f'<div class="vst {self.ctx.img(x, f"video.stills[{i}]")}" role="img" aria-label="영상의 정지 화면"></div>'
                      for i, x in enumerate(stills[:1]))
+        play_msg = "발표 시 이 자리에서 애니메이션이 재생됩니다" if self.separate_videos else "발표 때 이 자리에서 영상이 재생됩니다"
         play = ('<div class="vplay"><span class="vplay-b" aria-hidden="true"><svg width="72" height="72" viewBox="0 0 72 72">'
                 '<path d="M24 14L60 36L24 58z"/></svg></span>'
-                f'<p class="vplay-t">발표 때 이 자리에서 영상이 재생됩니다</p></div>')
+                f'<p class="vplay-t">{play_msg}</p></div>')
         ph = f'<div class="vph{" has-st" if st else ""}">{st}{play}</div>'
         inner = (f'<div class="spine"></div>{self.header(s)}'
                  f'<div class="vhead">{tag}{dur}{self.headline(s, P.LIMITS["video_headline"], "vhl")}{q}</div>'
@@ -412,8 +450,7 @@ def build_deck(content_dir: Path, facts_path: Path, refs_path: Path, fonts_css: 
                only: set[int] | None = None) -> Result:
     deck = json.loads((deck_path or default_deck_path(content_dir)).read_text(encoding="utf-8"))
     raw_slides = load_slides(content_dir)
-    slides = resolve_slide_refs(raw_slides)
-    total = len(slides)
+    slides = resolve_slide_refs(raw_slides, separate_videos=bool(deck.get("separate_videos")))
     facts = json.loads(facts_path.read_text(encoding="utf-8"))["facts"]
     refs = load_refs(refs_path)
     dirs = assets_dir if isinstance(assets_dir, list) else [assets_dir]
@@ -422,7 +459,7 @@ def build_deck(content_dir: Path, facts_path: Path, refs_path: Path, fonts_css: 
         for p in sorted(Path(d).glob("*.jpg")):
             images.setdefault(p.stem, str(p))
     ctx = P.Ctx(facts, refs, deck, images)
-    frame = Frame(ctx, total, media_root)
+    frame = Frame(ctx, slides, media_root)
     shown = [s for s in slides if only is None or s["no"] in only]
     slides_html = "\n".join(frame.render(s) for s in shown)
     if P.ICON_STATE["unknown"]:

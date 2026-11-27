@@ -4,17 +4,18 @@
  "kind": "cover",
  "chapter": 0,
  "status": "revised",
- "badge": "공모전 출품작",
- "headline": "회사마다 다르게 적힌 보험 조건을 한 화면에서 비교합니다",
+ "badge": "AI 도구와 에이전트 활용 공모전 출품작",
+ "subtitle": "AI 의사결정 모델 × 온톨로지(지식그래프) 기반 상품·영업 지원 도구",
+ "headline": "AI와 온톨로지로 회사마다 다른 보험 조건을 한 화면에서 비교합니다",
  "diagram": [
   {
    "use": "C3",
    "dir": "v",
    "box": [
     1180,
-    120,
+    90,
     660,
-    840
+    756
    ],
    "nodes": [
     {
@@ -25,26 +26,26 @@
       "icon": "stack",
       "pages": "{{fact:hanwha_summary_pages}}"
      },
-     "fig_h": 110
+     "fig_h": 96
     },
     {
      "num": "2",
-     "label": "한 화면의 비교",
+     "label": "AI·온톨로지 비교 화면",
      "figure": {
       "use": "C12",
       "img": "summary",
-      "alt": "요약 화면"
+      "alt": "요약 비교 화면"
      },
-     "fig_h": 140
+     "fig_h": 120
     },
     {
      "num": "3",
-     "label": "응대 화법 A4 한 장",
+     "label": "창구용 A4 응대 화법",
      "figure": {
       "use": "C19",
       "size": "s"
      },
-     "fig_h": 120,
+     "fig_h": 104,
      "hero": true
     }
    ]
@@ -56,8 +57,8 @@
    "v": "{{asof:snapshot_at}}"
   },
   {
-   "l": "만든 사람",
-   "v": "실무자 {{fact:team_size}}명과 AI"
+   "l": "핵심 기술",
+   "v": "AI · 의사결정 모델 · 온톨로지"
   },
   {
    "l": "배포 형태",
@@ -67,7 +68,5 @@
  "points": [],
  "terms": [],
  "source": "",
- "notes": "우체국보험 상품-영업 분석은 본부의 보험영업 기획과 분석 담당자가 공개된 공시 문서만으로 우체국과 타사의 차이를 판단하도록 돕는 도구입니다. 공시 문서는 보험회사가 홈페이지 공시실에 올리는 상품요약서, 사업방법서, 약관입니다. 회사마다 다르게 적힌 보험 조건, 곧 가입할 수 있는 기준(인수기준)과 보장 항목(담보)을 한 화면에 모아 비교하고, 그 결과를 응대 화법 A4 한 장으로 정리합니다. 응대 화법은 창구와 설계사가 고객 질문에 답할 때 참고하도록 인수기준, 구성 요약, 예상 질문과 답을 A4 한 장으로 뽑은 자료입니다. 지금은 실제로 배포하는 자료가 아니라 내부 교육과 비교 참고용으로 창구와 설계사에게 전달할 수 있게 만든 것입니다. 오른쪽 그림처럼 수백 쪽 문서가 한 화면의 비교가 되고, 다시 A4 한 장의 결과물이 됩니다. 예를 들어 한화생명 상품 하나의 상품요약서가 {{fact:hanwha_summary_pages}}쪽입니다. 부제의 비교 범위: 지금 화면은 우체국과 타사 {{fact:comparison_targets_loaded.site}}곳({{fact:comparison_targets_loaded.site_names}})이고, 처음 여는 비교는 간편심사 종형({{fact:default_base_variant.name}}) 기준입니다. 보험료, 질병코드, 실제 인수 여부는 다루지 않습니다. 실무자 한 명이 AI 에이전트들({{name:claude_code}}, {{name:antigravity}}, {{name:gemini_panel}})과 함께 만들었고, 웹 주소(GitHub Pages)와 인터넷 없이 열리는 HTML 파일 하나로 배포합니다. 이 화면은 공모전 시연용이며 고객에게 나가는 영업 자료가 아닙니다. 발표는 왜 필요한가, 무엇을 만들었나, 어떻게 만들었나, 확률 산정 모델은 무엇인가, 다른 이름을 어떻게 묶었나, 믿고 운영할 수 있나의 여섯 질문 순서로 진행합니다.",
- "subtitle": "비교 범위: 우체국과 타사 {{fact:comparison_targets_loaded.site}}곳({{fact:comparison_targets_loaded.site_names}}), 기본은 간편심사",
- "no_board": true
+ "notes": "우체국보험 상품-영업 분석은 본부의 보험영업 기획과 상품 분석 담당자가 공개된 공시 문서만으로 우체국과 타사의 차이를 판단하도록 돕는 도구입니다. AI가 수백 쪽 공시 문서에서 조건과 보장 원문을 추출하고, AI 의사결정 모델이 정답 확률로 오류를 가려내며, 온톨로지와 지식그래프가 회사마다 다른 보장 용어를 표준담보 하나로 연결합니다. 비교 대상은 우체국과 타사 {{fact:comparison_targets_loaded.site}}곳({{fact:comparison_targets_loaded.site_names}})이며, 기본 비교 기준은 간편심사 가입 유형(종형)({{fact:default_base_variant.name}})입니다. 실무자 {{fact:team_size}}명이 AI 에이전트들과 함께 구축했고, 웹 주소와 인터넷 없이 열리는 HTML 파일 하나로 배포합니다. 발표는 아래 여섯 장의 흐름 - 배경과 해법, 실무 변화, AI와 의사결정 모델, 온톨로지와 지식그래프, 현업 활용 방향, 확장 계획 - 순서로 진행합니다."
 }
