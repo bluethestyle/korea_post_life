@@ -11555,7 +11555,7 @@ function rowEvidence(c, sid, mode) {
     judge += `<details class="zr-det cv-vg-det" style="margin-top:8px"><summary><span>${esc(t('cvRestPeersJudgeTpl', { n: fmt(restIdxs.length), names: restNames }))}</span>${ui.IC.chevD}</summary><div class="zr-det-b">${restIdxs.map(renderPeerJudge).join('')}</div></details>`;
   }
   const scopedPts = c.peerScope === 'all' ? row.pts : row.pts.filter(p => (p['관련기관코드'] || []).some(o => pSet.has(o)));
-  const pts = scopedPts.map(p => `<li>${ui.tag(App.label(p['분류']))} ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}${scBadge}</p>${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}</li>`).join('');
+  const pts = scopedPts.map(p => `<li>${ui.tag(App.label(p['분류']))} ${p['원문대조'] ? ui.flagText(p['원문대조글']) : ''}<p>${esc(p['문장'])}${scBadge}</p>${p['주의'] && !(p['문장'] || '').includes(p['주의']) ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}</li>`).join('');
   const cauEv = mode === 'caution' ? scopedCau.flatMap(x => (x['근거'] || []).filter(g => g['종형ID'] === c.baseId || c.peerScope === 'all' || pSet.has(orgOf(g['종형ID']))).map(g => `<li><b>${esc(orgN(g['종형ID']))}</b> ${ui.tag(txt.pageText(g['문서'], g['쪽']))} ${g['구분'] ? ui.tag(g['구분']) : ''} <span>${esc(fixG(g['급부명'] || ''))}</span></li>`)).join('') : '';
   const out = [];
   pIdxs.forEach(i => { const v = row.verd[i]; if (v && v.kind === 'unknown') out.push(`${orgN(m.cols[i + 1])}: ${v.why || App.label(v.text)}`); });

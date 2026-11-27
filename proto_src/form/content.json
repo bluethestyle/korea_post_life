@@ -466,7 +466,7 @@
   "shots_head": "화면 캡처: 전체 캡처와 확대 컷",
    "shots": [
    {"img": "summary", "cut": "cut_kpi", "label": "전체 요약", "text": "위는 화면 전체, 아래는 탭별 핵심 수치를 확대한 컷"},
-   {"img": "tab_gate", "cut": "cut_gate", "label": "인수기준 비교", "text": "확대 컷은 표로 보기 상태의 고지항목 비교 표"},
+   {"img": "tab_gate", "cut": "cut_gate", "label": "인수기준 비교", "text": "확대 컷은 상세 표 보기 상태의 고지항목 비교 표"},
    {"img": "cancer_surgery", "cut": "cut_cover", "label": "담보 비교(암 수술비)", "text": "확대 컷은 암 수술비의 지급액, 면책기간, 감액기간 비교 표"},
    {"img": "tab_insight", "cut": "cut_insight", "label": "영업 인사이트", "text": "확대 컷은 인수기준 차이를 문장과 근거 쪽수로 제시한 카드 하나"},
    {"img": "talk_preview", "cut": "cut_talk", "label": "비교 요약지 A4", "text": "선택 항목을 A4 한 장으로 인쇄 또는 복사, 확대 컷은 위쪽 부분(대외 배포 금지)"},

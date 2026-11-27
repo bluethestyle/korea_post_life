@@ -153,7 +153,7 @@ def test_zoom_cuts_exist_and_are_used(sample):
         f = FORM / "assets" / f"{name}.jpg"
         assert f.is_file(), name
         assert name in info["images"], f"{name} 이 어느 쪽에서도 쓰이지 않음"
-    # 2배 배율로 찍은 컷의 폭은 화면 폭(1280) 안 요소의 2배 이상이어야 한다: 가장 좁은 응대 화법 카드도 600px 이상
+    # 2배 배율로 찍은 컷의 폭은 화면 폭(1280) 안 요소의 2배 이상이어야 한다: 가장 좁은 비교 요약지 카드도 600px 이상
     for name in ("cut_kpi", "cut_gate", "cut_cover", "cut_insight", "cut_talk", "cut_head_a", "cut_head_b"):
         width = form_build.jpeg_size(FORM / "assets" / f"{name}.jpg")[0]
         assert width >= 600, (name, width)
