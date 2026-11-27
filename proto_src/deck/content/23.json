@@ -15,17 +15,17 @@
     0,
     0,
     860,
-    240
+    232
    ],
    "vb": [
     860,
-    240
+    232
    ],
    "limit": 36,
-   "hero": true,
+   "hero": false,
    "build": 1,
    "alt": "동일 가입조건 맞춤 비교를 위해 특약 한도와 결합 조건을 타사로 확대하는 과제",
-   "svg": "<rect x='0' y='0' width='860' height='240' rx='10' class='sv-redbg'/><rect x='0' y='0' width='860' height='240' rx='10' class='sv-red'/><use href='{{icon:담보}}' x='28' y='26' width='40' height='40'/><text x='82' y='56' class='b red'>1. 동일 가입조건 맞춤 비교 (한도·결합 조건)</text><text x='28' y='120'>우체국 특약 조건 {{fact:rider_condition_rows_by_org.EPOST}}행·결합제약 {{fact:combination_constraints_by_org.EPOST}}건 적재</text><text x='28' y='174' class='aux'>타사까지 확대해 동일 가입조건 기준 정밀 비교 구현</text>"
+   "svg": "<rect x='0' y='0' width='860' height='232' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='232' rx='10' class='sv-ink'/><use href='{{icon:담보}}' x='28' y='24' width='40' height='40'/><text x='82' y='54' class='b'>1. 동일 가입조건 맞춤 비교 (한도·결합 조건)</text><text x='28' y='118'>우체국 특약 조건 {{fact:rider_condition_rows_by_org.EPOST}}행·결합제약 {{fact:combination_constraints_by_org.EPOST}}건 적재</text><text x='28' y='172' class='aux'>타사까지 확대해 동일 가입조건 기준 정밀 비교 구현</text>"
   },
   {
    "use": "svg",
@@ -33,50 +33,53 @@
     900,
     0,
     860,
-    240
+    232
    ],
    "vb": [
     860,
-    240
+    232
    ],
    "limit": 36,
+   "hero": false,
    "build": 2,
    "alt": "약관 별표 질병코드 KCD 보장 범위 비교 과제",
-   "svg": "<rect x='0' y='0' width='860' height='240' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='240' rx='10' class='sv-line'/><use href='{{icon:공시 문서}}' x='28' y='26' width='40' height='40'/><text x='82' y='56' class='b'>2. 약관 별표 질병코드(KCD) 보장 범위 비교</text><text x='28' y='120'>담보명이 같아도 실제 보장 질병 폭 차이를 추적</text><text x='28' y='174' class='aux'>표준질병군 {{fact:disease_group_draft.groups}}개 초안과 약관 별표 KCD 범위 연동</text>"
+   "svg": "<rect x='0' y='0' width='860' height='232' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='232' rx='10' class='sv-ink'/><use href='{{icon:공시 문서}}' x='28' y='24' width='40' height='40'/><text x='82' y='54' class='b'>2. 약관 별표 질병코드(KCD) 보장 범위 비교</text><text x='28' y='118'>담보명이 같아도 실제 보장 질병 폭 차이를 추적</text><text x='28' y='172' class='aux'>표준질병군 {{fact:disease_group_draft.groups}}개 초안과 약관 별표 KCD 범위 연동</text>"
   },
   {
    "use": "svg",
    "box": [
     0,
-    264,
+    256,
     860,
-    220
+    232
    ],
    "vb": [
     860,
-    220
+    232
    ],
    "limit": 36,
+   "hero": false,
    "build": 3,
    "alt": "대표 연령 보험료 비교 추가 과제",
-   "svg": "<rect x='0' y='0' width='860' height='220' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='220' rx='10' class='sv-line'/><use href='{{icon:계산}}' x='28' y='24' width='40' height='40'/><text x='82' y='54' class='b'>3. 대표 연령 보험료 비교 추가</text><text x='28' y='114'>각 사 보험가격공시실 계산기 연동 검토</text><text x='28' y='166' class='aux'>주력 담보별 대표 연령({{fact:reference_condition.age}}세 등) 보험료 격차 제공</text>"
+   "svg": "<rect x='0' y='0' width='860' height='232' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='232' rx='10' class='sv-ink'/><use href='{{icon:계산}}' x='28' y='24' width='40' height='40'/><text x='82' y='54' class='b'>3. 대표 연령 보험료 비교 추가</text><text x='28' y='118'>각 사 보험가격공시실 계산기 연동 검토</text><text x='28' y='172' class='aux'>주력 담보별 대표 연령({{fact:reference_condition.age}}세 등) 보험료 격차 제공</text>"
   },
   {
    "use": "svg",
    "box": [
     900,
-    264,
+    256,
     860,
-    220
+    232
    ],
    "vb": [
     860,
-    220
+    232
    ],
    "limit": 36,
+   "hero": false,
    "build": 4,
    "alt": "문서 개정 자동 감지 및 현업 사용검증 과제",
-   "svg": "<rect x='0' y='0' width='860' height='220' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='220' rx='10' class='sv-line'/><use href='{{icon:검토}}' x='28' y='24' width='40' height='40'/><text x='82' y='54' class='b'>4. 문서 개정 자동 감지 및 현업 사용검증</text><text x='28' y='114'>보관 문서 지문({{fact:doc_hash_coverage_site.variants}}개 종형) 기반 개정 자동 재추출</text><text x='28' y='166' class='aux'>현업 실무자 업무 시간 단축 효과 사용검증 측정</text>"
+   "svg": "<rect x='0' y='0' width='860' height='232' rx='10' class='sv-paper'/><rect x='0' y='0' width='860' height='232' rx='10' class='sv-ink'/><use href='{{icon:검토}}' x='28' y='24' width='40' height='40'/><text x='82' y='54' class='b'>4. 문서 개정 자동 감지 및 현업 사용검증</text><text x='28' y='118'>보관 문서 지문({{fact:doc_hash_coverage_site.variants}}개 종형) 기반 개정 자동 재추출</text><text x='28' y='172' class='aux'>현업 실무자 업무 시간 단축 효과 사용검증 측정</text>"
   },
   {
    "use": "svg",

@@ -2,6 +2,7 @@
  "facts": {
   "01": [
    "snapshot_at",
+   "operating_cost_won",
    "hanwha_summary_pages",
    "comparison_targets_loaded",
    "default_base_variant",
@@ -132,16 +133,12 @@
   ],
   "24": [
    "operating_cost_won",
-   "comparison_targets_loaded",
-   "pages_status"
+   "comparison_targets_loaded"
   ]
  },
  "refs": {
   "11": [
    "gemini_decision_release"
-  ],
-  "21": [
-   "github_actions_public_free"
   ]
  }
 }

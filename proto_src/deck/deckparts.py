@@ -464,14 +464,17 @@ def c1(ctx: Ctx, spec: dict, w: float, h: float, where: str) -> str:
     if len(answers) > len(chs):
         ctx.warn(where, f"답이 {len(answers)}행 > {len(chs)}행")
     rh = min(90, h / max(1, len(answers)))
+    has_refs = any(a.get("ref") for a in answers)
     for i, a in enumerate(answers):
         ch = next((c for c in chs if c["n"] == a.get("n")), {"q": "", "n": a.get("n")})
         refs = ref_pages(a.get("ref", []))
         hero = " hero" if a.get("hero") else ""
-        rows.append(f'<div class="c1a-r{hero}" style="height:{px(rh)}px"><span class="c1-n">{esc(ch["n"])}</span>'
+        noref = "" if has_refs else " no-ref"
+        ref_el = f'<span class="c1a-ref ax">{esc(refs)}</span>' if has_refs else ""
+        rows.append(f'<div class="c1a-r{noref}{hero}" style="height:{px(rh)}px"><span class="c1-n">{esc(ch["n"])}</span>'
                     f'<span class="c1a-q">{ctx.t(ch["q"], 18, f"{where}.q")}</span>'
-                    f'<span class="c1a-a">{ctx.t(a.get("a", ""), 40, f"{where}.answers[{i}].a")}</span>'
-                    f'<span class="c1a-ref ax">{esc(refs)}</span></div>')
+                    f'<span class="c1a-a">{ctx.t(a.get("a", ""), 42 if not has_refs else 40, f"{where}.answers[{i}].a")}</span>'
+                    f'{ref_el}</div>')
     return f'<div class="c1a">{"".join(rows)}</div>'
 
 

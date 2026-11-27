@@ -52,9 +52,7 @@ LOADER = """<script>
 
 def make(deck: Path, out: Path, app: Path | None = None) -> list[tuple[str, int]]:
     doc = deck.read_text(encoding="utf-8")
-    if app is not None:
-        if DEMO_HREF not in doc:
-            raise SystemExit("덱에서 데모 링크(../proto/console4.html)를 찾지 못했습니다.")
+    if app is not None and DEMO_HREF in doc:
         doc = doc.replace(DEMO_HREF, f'href="{APP_NAME}"')
     media: dict[str, str] = {}
 

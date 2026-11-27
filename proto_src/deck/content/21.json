@@ -22,16 +22,16 @@
    "title": "주간 자동 운영 비용",
    "items": [
     {
-     "label": "AI 추출·검증 (Gemini 무료)",
+     "label": "AI 추출·검증 (무료 등급 범위)",
      "won": "{{fact:operating_cost_won}}원"
     },
     {
-     "label": "통합 시트·자동 실행 (Actions)",
+     "label": "통합 시트·예약 자동 실행",
      "won": "{{fact:operating_cost_won}}원",
-     "note": "{{ref:github_actions_public_free.short}}"
+     "note": "기본 무료 실행 범위 안에서 동작"
     },
     {
-     "label": "웹 배포 (GitHub Pages)",
+     "label": "별도 서버 없는 정적 화면",
      "won": "{{fact:operating_cost_won}}원"
     }
    ],
@@ -79,13 +79,13 @@
    "nodes": [
     {
      "num": "1",
-     "label": "웹 주소로 즉시 접속",
-     "sub": "GitHub Pages 인터넷 링크로 바로 열기"
+     "label": "설치 없는 브라우저 실행",
+     "sub": "별도 프로그램 설치 없이 PC에서 즉시 구동"
     },
     {
      "num": "2",
-     "label": "오프라인 단일 HTML 파일",
-     "sub": "약 {{fact:site_file_size_mb}}MB 파일 전달 시 사내망에서도 열림"
+     "label": "사내망 단일 파일 공유",
+     "sub": "약 {{fact:site_file_size_mb}}MB 파일 하나로 외부 연결 없이 열람"
     }
    ]
   }
@@ -95,5 +95,5 @@
   "주간 마감 자료"
  ],
  "source": "",
- "notes": "현업 도입을 고려한 지속 가능한 무비용 운영 구조입니다. AI 추출·검증은 무료 등급 범위 안에서 동작하며, 통합 시트 보관, 예약 자동 실행, 웹 화면 배포 모두 공개 기반 무료 도구로 구성해 매주 상시 운영에 드는 추가 비용이 {{fact:operating_cost_won}}원입니다. 매일 아침 {{fact:schedule_collect_kst.time}}에 업계 시장 동향을 자동 수집하고, 매주 일요일 밤 {{fact:schedule_weekly_close_kst.time}}에는 주간 마감 자료를 자동 보관합니다. 신상품 공시 문서가 나오면 담당자가 수집·추출을 실행해 검증 통과분만 화면에 반영합니다. 완성된 비교 화면은 별도 프로그램 설치 없이 웹 주소로 바로 열 수 있고, 사내망 등 폐쇄 환경에서는 약 {{fact:site_file_size_mb}}MB 크기의 단일 HTML 파일 하나만 전달해 오프라인으로도 그대로 열어 볼 수 있습니다."
+ "notes": "현업 도입을 고려한 지속 가능한 무비용 운영 구조입니다. AI 추출·검증은 무료 등급 범위 안에서 동작하며, 통합 시트 보관, 예약 자동 실행, 정적 화면 구성 모두 무료 범위 도구로 설계해 매주 상시 운영에 드는 추가 비용이 {{fact:operating_cost_won}}원입니다. 매일 아침 {{fact:schedule_collect_kst.time}}에 업계 시장 동향을 자동 수집하고, 매주 일요일 밤 {{fact:schedule_weekly_close_kst.time}}에는 주간 마감 자료를 자동 보관합니다. 신상품 공시 문서가 나오면 담당자가 수집·추출을 실행해 검증 통과분만 화면에 반영합니다. 완성된 비교 화면은 별도 프로그램 설치 없이 PC 브라우저에서 바로 열 수 있고, 사내망 등 폐쇄 환경에서도 약 {{fact:site_file_size_mb}}MB 크기의 단일 HTML 파일 하나만 전달해 오프라인으로 그대로 열어 볼 수 있습니다."
 }

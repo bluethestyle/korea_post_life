@@ -3,7 +3,7 @@
  "id": "practitioner-gate",
  "kind": "body",
  "chapter": 2,
- "status": "demo",
+ "status": "revised",
  "headline": "고객 나이와 병력만 바꾸면 회사별 가입 가능 여부가 즉시 바뀝니다",
  "diagram": [
   {
@@ -14,7 +14,7 @@
     0,
     0,
     1040,
-    440
+    456
    ],
    "zones": [
     {
@@ -35,6 +35,23 @@
     }
    ],
    "build": 1
+  },
+  {
+   "use": "svg",
+   "box": [
+    0,
+    472,
+    1040,
+    96
+   ],
+   "vb": [
+    1040,
+    96
+   ],
+   "limit": 46,
+   "build": 1,
+   "alt": "약관을 일일이 찾지 않고 고객 조건 선택만으로 회사별 심사 기준 차이를 즉시 확인",
+   "svg": "<rect x='0' y='0' width='1040' height='96' rx='8' class='sv-paper'/><rect x='0' y='0' width='1040' height='96' rx='8' class='sv-line'/><use href='{{icon:검토}}' x='24' y='26' width='44' height='44'/><text x='86' y='58' class='b'>약관을 뒤지지 않고 조건 선택만으로 3사 가입 가능 구간을 즉시 비교</text>"
   },
   {
    "use": "C4",
@@ -81,31 +98,6 @@
    "alt": "입원 시기를 바꾸면 우체국, 한화생명, 삼성화재 모두 간편심사로 가입 가능",
    "svg": "<path d='M24 2V32' class='sv-red' marker-end='url(#ah-r)'/><text x='56' y='28' class='b'>{{fact:example_gate_6months.later.row}}으로 바꾸면</text><rect x='2' y='44' width='676' height='138' class='sv-paper'/><rect x='2' y='44' width='676' height='138' class='sv-line'/><circle cx='46' cy='86' r='15' class='sv-fill-red m-pop-1'/><text x='72' y='95' class='b'>우체국</text><circle cx='256' cy='86' r='15' class='sv-fill-red m-pop-2'/><text x='282' y='95' class='b'>한화생명</text><circle cx='466' cy='86' r='15' class='sv-fill-red m-pop-3'/><text x='492' y='95' class='b'>삼성화재</text><text x='30' y='154' class='b red'>세 회사 모두 간편심사로 가입 가능</text>",
    "build": 3
-  },
-  {
-   "use": "button",
-   "label": "데모 열기",
-   "href": "../proto/console4.html",
-   "box": [
-    0,
-    470,
-    280,
-    70
-   ],
-   "build": 4
-  },
-  {
-   "use": "text",
-   "text": "클릭해 실제 화면에서 고객 조건을 바꿔 봅니다",
-   "size": "s",
-   "tone": "muted",
-   "box": [
-    304,
-    480,
-    736,
-    56
-   ],
-   "build": 4
   }
  ],
  "frame": {
@@ -119,5 +111,5 @@
   "일반심사"
  ],
  "source": "",
- "notes": "실무자가 화면에서 하는 첫 번째 일은 고객군별 가입 가능 현황 확인입니다. 왼쪽 고객군과 시장 탭에서 1번 조건 변경으로 나이와 성별을 고르고, 2번에서 입원 시기를 선택하면 오른쪽 결과가 즉시 바뀝니다. 예를 들어 {{fact:example_gate_6months.age}}세 남성, {{fact:example_gate_6months.cell.row}} 조건에서는 한화생명이 간편심사로 가입 가능한 반면 삼성화재는 일반심사 대상이고 우체국은 전용 상품만 가능합니다. 하지만 입원 시기를 {{fact:example_gate_6months.later.row}}으로 옮기면 세 회사 모두 간편심사 가입 가능으로 바뀝니다. 이 결과는 공시된 고지사항과 가입나이 기준이며 실제 인수 심사 결과는 아닙니다. 아래 데모 열기 버튼을 누르면 실제 동작하는 비교 화면을 바로 열어 시연할 수 있습니다."
+ "notes": "실무자가 화면에서 하는 첫 번째 일은 고객군별 가입 가능 현황 확인입니다. 왼쪽 고객군과 시장 탭에서 1번 조건 변경으로 나이와 성별을 고르고, 2번에서 입원 시기를 선택하면 오른쪽 결과가 즉시 바뀝니다. 예를 들어 {{fact:example_gate_6months.age}}세 남성, {{fact:example_gate_6months.cell.row}} 조건에서는 한화생명이 간편심사로 가입 가능한 반면 삼성화재는 일반심사 대상이고 우체국은 전용 상품만 가능합니다. 하지만 입원 시기를 {{fact:example_gate_6months.later.row}}으로 옮기면 세 회사 모두 간편심사 가입 가능으로 바뀝니다. 이 결과는 공시된 고지사항과 가입나이 기준이며 실제 인수 심사 결과는 아닙니다."
 }
