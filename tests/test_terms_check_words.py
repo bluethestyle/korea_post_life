@@ -21,3 +21,9 @@ def test_남기는_말과_다른_낱말_속_글자는_잡지_않는다():
     for text in ["판정 보류", "판정확률", "판정", "지급액판정", "확률 산정 모델", "비교 결과 필터",
                  "재추출", "재고 수준", "재지정", "측정값"]:
         assert not hits(text), text
+
+
+def test_응대_화법_금지어_검출():
+    for text in ["응대 화법", "응대화법", "응대 화법 미리 보기"]:
+        assert hits(text), text
+    assert not hits("비교 요약지")

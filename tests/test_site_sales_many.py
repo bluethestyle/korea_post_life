@@ -56,7 +56,7 @@ def test_join_shortens_four_or_more_names_only_with_a_unit():
     assert S.render("G1_상대_기간", {"상대": S.and_join(four, S.UNIT_KIND), "상대기간": 1, "상대범위": "입원"}) == \
         "가, 나, 다 등 4개는 1년 이내의 입원을 고지 대상으로 합니다."
     assert S.render("Q3_질문", {"담보": "암 진단비", "상대회사": S.or_join(four, S.UNIT_ORG)}) == \
-        "암 진단비는 가, 나, 다 등 4개사가 조건이 다르던데요."
+        "암 진단비는 가, 나, 다 등 4개사와 지급 조건이 다르다던데요."
 
 
 def test_org_names_and_sectors_come_from_the_meta_table_first(data):
@@ -77,8 +77,8 @@ def test_scope_sentence_counts_companies_by_sector(data):
                               "가상화재 01은 갱신, 해약환급금 미지급형입니다.")
     assert s["업권별"] == {"생명보험": 3, "손해보험": 2}
     assert [r["종형ID"] for r in s["상대"]] == list(PEERS5)          # 목록은 값에 그대로 둔다
-    assert all(r["머리말"].startswith("수집한 ") for r in s["상대"])
-    assert s["머리말"].startswith("수집한 5개사의 상품 5개 기준(2026-07-01~2026-10-01) / 구조 상이: 우체국 갱신, 표준형 대 ")
+    assert all(r["머리말"].startswith("비교 기준: ") for r in s["상대"])
+    assert s["머리말"].startswith("비교 기준: 5개사 상품 5개(2026-07-01~2026-10-01) / 구조 상이: 우체국 갱신, 표준형 대 ")
     # 업권을 모르는 상대가 있으면 구분을 빼고 회사 수만 적는다
     meta = {"기관이름": META["기관이름"], "기관업권": {"SYNFIRE01": "손해보험"}}
     unknown = S.points(Data(many_book().t, meta), E1, P(), None, REL)["범위"]
@@ -98,14 +98,14 @@ def test_point_sentences_shorten_company_lists_but_keep_evidence(data):
     assert q2["카드질문"] == "한화생명, 삼성화재, 가상화재 01 등 5개사에는 암 빈자리가 있던데요."
     assert q2["비교종형ID"] == list(PEERS5)
     assert {e["종형ID"] for e in q2["근거"]} == {*PEERS5}                  # 근거 목록은 줄이지 않는다
-    assert q2["머리말"].startswith("수집한 5개사의 상품 5개 기준")
+    assert q2["머리말"].startswith("비교 기준: 5개사 상품 5개")
     a1 = by_code(pts, "A1", "STD_HT_ONLY")[0]
     assert a1["문장"].startswith("심장 입원은 우체국 1종(간편가입315)에 있는 별도 담보입니다. "
                                "비교한 한화생명, 삼성화재, 가상화재 01 등 5개사의 상품에는 이 담보를 보장하는 별도 급부가 없습니다.")
     q3 = by_code(pts, "Q3", "STD_BR_C")[0]
     assert "한화생명 간편가입형(1년), 가상화재 01 7종(간편315), 가상생명 01 간편가입형(1년) 등 4개는 감액기간이 없습니다" \
         in q3["문장"]
-    assert q3["카드질문"] == "뇌 조건은 한화생명, 가상화재 01, 가상생명 01 등 4개사가 조건이 다르던데요."
+    assert q3["카드질문"] == "뇌 조건은 한화생명, 가상화재 01, 가상생명 01 등 4개사와 지급 조건이 다르다던데요."
 
 
 def test_g2_groups_open_peers_by_age_span(data):
@@ -166,7 +166,8 @@ def test_partial_peer_counts_as_open_and_marks_the_cell():
     seg = S.segment_map(d, "M", None, None, REL)
     x = seg["칸"][2][0]                                     # 15~19세 이력 없음: 우리 간편(20세부터)은 나이로 닫힌다
     assert x["라벨"] == S.LABELS[S.ONLY_CLOSED] and x["회사"]["SYNLIFE02"] == S.PARTIAL
-    assert (x["열린상대수"], x["일부열린상대수"], x["일부나이로만열림"], x["세부나이"]) == (0, 1, True, 17)
+    assert (x["열린상대수"], x["일부열린상대수"], x["일부나이로만열림"], x["세부나이"], x["대표구간"]) == (0, 1, True, 17, [17, 19])
+    assert seg["칸"][2][1]["대표구간"] == [20, 65]
     assert x["상대대표"] == {"SYNLIFE02": L2}                # 17세에서 견준 짝
     line = S.briefing(d, E1, P(age=30), None, REL, seg=seg)[0]
     assert line["값"]["일부열림칸수"] >= line["값"]["일부나이로만열림칸수"] >= 1

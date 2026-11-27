@@ -355,7 +355,7 @@ App.registerTab((function () {
       </dl>
       ${partialSpansHTML}
       ${oursOpenIds.length ? `<p class="note" style="margin-top:6px">${esc(t('mkEvOpenVarCntTpl', { n: fmt(oursOpenIds.length), list: oursOpenIds.map(vk).join(', ') }))}</p>` : ''}
-      ${gateOnly.length ? `<p class="note" style="margin-top:4px">${esc(txt.peerNamesEtc(gateOnly.map(x => `${x['이름']}(${x['안내']})`), 2))}</p>` : ''}
+      ${gateOnly.length ? `<p class="note" style="margin-top:4px">${esc(txt.peerNamesEtc(gateOnly.map(x => `${x['이름']} - ${x['안내']}`), 2))}</p>` : ''}
       ${anyFlag ? `<p style="margin-top:6px">${ui.flagText()}</p>` : ''}
       <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
         ${same ? `<span class="note">${esc(t('mkEvSameCond'))}</span>` : ui.btn(t('mkEvApplyBtn'), { main: true, sm: true, chev: true, attrs: `data-act="mk-apply" data-k="${esc(keyOf(ri, ci))}" title="${esc(willChangeTip)}"` })}
@@ -514,7 +514,7 @@ App.registerTab((function () {
     const lead = bNa ? `<p class="concl">${esc(bNa['문장'])}</p>` : '';
     return {
       kicker: App.TAB_NAME.market,
-      title: t('mkGroupRev'),
+      title: t('mkRevModalTitle'),
       badges: [ui.scope('all')],
       html: lead + renderRevModalHTML(),
     };
@@ -634,7 +634,7 @@ App.registerTab((function () {
       ]);
     }));
     App.copyRows(
-      ['이력', '기간', t('condAge'), t('mkTallyCol1'), '보조', t('scopeClosedWhy'), ...c.activeOrgs.map(o => txt.orgShort(o)), t('mkEvOursRep'), t('mkEvPeerRep'), App.label('관문전용'), ...allCats.map(App.label)],
+      ['이력', '기간', t('condAge'), t('mkTallyCol1'), '세부 안내', t('scopeClosedWhy'), ...c.activeOrgs.map(o => txt.orgShort(o)), t('mkEvOursRep'), t('mkEvPeerRep'), App.label('관문전용'), ...allCats.map(App.label)],
       rows,
       { title: `${App.TAB_NAME.market} (${txt.sexText(map['성별'])}, ${renLabel(c.st.renewal)})` }
     );

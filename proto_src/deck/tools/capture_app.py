@@ -10,7 +10,7 @@
   tab_cover        담보 비교 탭
   tab_insight      영업 인사이트 탭
   tab_graph        관계 그래프 탭(첫 화면)
-  talk_preview     영업 인사이트 탭의 응대 화법 미리 보기(A4 카드 부분만)
+  talk_preview     영업 인사이트 탭의 비교 요약지 미리 보기(A4 카드 부분만)
   cancer_surgery   담보 비교 탭에서 수술 단계의 암 수술비를 선택한 상태
 화면 용어를 바꾼 뒤에는 탭 id 와 글자가 달라질 수 있으니 아래 선택자를 함께 고친다.
 JPEG 는 폭 1600px 로 줄이고, 250KB 를 넘으면 품질을 낮춰 다시 쓴다.
@@ -70,8 +70,8 @@ def main(html: str, out: str, png_dir: str | None) -> None:
             page.wait_for_timeout(2500)
             pngs[f"tab_{tab}"] = page.screenshot()
             if tab == "insight":
-                # 응대 화법 미리 보기: 제목 글자가 든 패널(인쇄 버튼과 A4 카드가 든 가장 가까운 큰 상자).
-                # 용어 교체 뒤 보이는 제목은 "응대 화법"이고 "미리 보기"는 aria-label 에만 남아 그것부터 찾는다.
+                # 비교 요약지 미리 보기: 제목 글자가 든 패널(인쇄 버튼과 A4 카드가 든 가장 가까운 큰 상자).
+                # 용어 교체 뒤 보이는 제목은 "비교 요약지"이고 "미리 보기"는 aria-label 에만 남아 그것부터 찾는다.
                 box = page.evaluate("""() => {
                   const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
                   const h = Array.from(document.querySelectorAll('[aria-label$="미리 보기"]')).find(vis)
@@ -97,7 +97,7 @@ def main(html: str, out: str, png_dir: str | None) -> None:
                   return {x: r.x - 8, y: r.y - 8, width: r.width + 16, height: bottom - r.y + 8};
                 }""")
                 if not box:
-                    sys.exit("영업 인사이트 탭에서 응대 화법 미리 보기를 찾지 못했습니다")
+                    sys.exit("영업 인사이트 탭에서 비교 요약지 미리 보기를 찾지 못했습니다")
                 pngs["talk_preview"] = page.screenshot(clip=box)
             if tab == "cover":
                 page.click('[data-cv-step="수술"]')

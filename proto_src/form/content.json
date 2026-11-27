@@ -62,11 +62,11 @@
     ],
     "flow": {
      "crit": ["실용성"],
-     "head": "문서에서 화면, 응대 화법까지의 흐름",
+     "head": "문서에서 화면, 비교 요약지까지의 흐름",
      "nodes": [
       {"label": "공시 문서", "sub": "한화생명 상품 하나의 상품요약서"},
       {"label": "분석 화면", "sub": "탭 {{fact:console4_tabs.count}}개, 첨부 파일로 열기"},
-      {"label": "응대 화법 A4", "sub": "대외 배포 금지, 한 장"}
+      {"label": "비교 요약지 A4", "sub": "대외 배포 금지, 한 장"}
      ],
      "arrows": ["AI 추출, 코드 대조", "담보 선택, 비교표 복사"]
     },
@@ -119,7 +119,7 @@
      "cols": [
       {"ask": "가입 가능 여부 확인", "icon": "users", "tab": "인수기준 비교", "cue": {"img": "cut_gate", "note": "화면 예: 회사별 고지항목 비교 표"}, "text": "고객군 {{fact:segment_map_cell_count}}개 구간별로 당사와 타사의 가입 가능 여부를 나란히 비교"},
       {"ask": "동일 보장의 조건 비교", "icon": "scale", "tab": "담보 비교", "cue": {"img": "cut_cover", "note": "화면 예: 암 수술비의 회사별 조건 표"}, "text": "같은 담보를 한 행에 놓고 근거 쪽수와 함께 확인한 뒤 비교표 복사", "tag": "미적재: 타사 특약 가입조건과 결합 제약"},
-      {"ask": "영업 응대 문구 작성", "icon": "headset", "tab": "영업 인사이트", "cue": {"img": "cut_insight", "note": "화면 예: 근거 쪽수가 붙은 문장 카드"}, "text": "영업 인사이트 {{fact:sales_insight_count}}건 중 선택한 항목으로 A4 한 장 응대 화법 작성"}
+      {"ask": "비교 요약지 작성", "icon": "headset", "tab": "영업 인사이트", "cue": {"img": "cut_insight", "note": "화면 예: 근거 쪽수가 붙은 문장 카드"}, "text": "영업 인사이트 {{fact:sales_insight_count}}건 중 선택한 항목으로 A4 한 장 비교 요약지 작성"}
      ],
      "cue_go": "확대 컷은 {{pg:shots}}쪽 이후의 화면 캡처에서 확인 가능"
     }
@@ -149,7 +149,7 @@
      "items": [
       {"title": "상품 기획 담당자", "text": "타사 신상품 출시 시 당사 상품과의 차이를 근거 쪽수를 표시한 비교표로 정리"},
       {"title": "영업 지원 담당자", "text": "나이와 병력이 다른 고객군별로 가입 가능한 회사 확인"},
-      {"title": "교육과 응대 준비", "text": "선택 항목을 A4 한 장 응대 화법으로 작성해 내부 교육에 활용", "img": "talk_preview", "img_note": "대외 배포 금지"}
+      {"title": "교육과 요약지 준비", "text": "선택 항목을 A4 한 장 비교 요약지로 작성해 내부 교육에 활용", "img": "talk_preview", "img_note": "대외 배포 금지"}
      ]
     },
     "cond": {"head": "최초 실행 조건", "text": "{{fact:reference_condition.age}}세 남성, 입원과 수술 이력 없음, 기준 종형 {{fact:default_base_variant.name}}", "note": "화면 상단 '조건 변경'에서 나이, 성별, 이력, 기준 종형 변경"},
@@ -165,7 +165,7 @@
       {"name": "현황 파악", "tabs": ["{{fact:console4_tabs.names.0}}", "{{fact:console4_tabs.names.1}}"], "text": "핵심 수치를 한 화면에서 확인"},
       {"name": "상세 비교", "tabs": ["{{fact:console4_tabs.names.2}}", "{{fact:console4_tabs.names.3}}", "{{fact:console4_tabs.names.5}}"], "text": "회사 간 차이를 근거와 함께 확인"},
       {"name": "결론", "tabs": ["{{fact:console4_tabs.names.4}}"], "text": "비교 결과를 문장으로 확인"},
-      {"name": "내보내기", "tabs": ["응대 화법"], "text": "A4 한 장으로 인쇄 또는 복사"}
+      {"name": "내보내기", "tabs": ["비교 요약지"], "text": "A4 한 장으로 인쇄 또는 복사"}
      ]
     }
    }
@@ -200,7 +200,7 @@
      "t6a": "매주 일요일 {{fact:schedule_weekly_close_kst.time}} 예약 실행",
      "t6b": "주간 마감 자료 보관",
      "t7a": "화면 빌드, 웹 페이지로 배포",
-     "t7b": "화면에서 비교, 비교표 복사, 응대 화법",
+     "t7b": "화면에서 비교, 비교표 복사, 비교 요약지",
      "t8a": "기준값과 표준담보 사전 설정",
      "t8b": "담당자 탭(기준값, 사전)",
      "always": "상시",
@@ -389,7 +389,7 @@
      "cards": [
       {"icon": "file-signature", "name": "상품 개발", "tabs": ["{{fact:console4_tabs.names.1}}", "{{fact:console4_tabs.names.3}}"], "text": "개정 전후 상품을 같은 기준으로 비교해 담보의 신설, 변경, 종료 확인", "note": "{{fact:epost_renewal.before}}에서 {{fact:epost_renewal.after}}로의 리뉴얼: 변동 {{fact:revision_changes.전체}}건"},
       {"icon": "gavel", "name": "인수기준 검토", "tabs": ["{{fact:console4_tabs.names.2}}", "{{fact:console4_tabs.names.1}}"], "text": "회사별 가입연령, 가입한도, 고지사항을 한 표에서 대조", "note": "고객군 {{fact:segment_map_cell_count}}개 구간의 가입 가능 여부"},
-      {"icon": "headset", "name": "영업 교육", "tabs": ["{{fact:console4_tabs.names.4}}"], "text": "비교 결과를 A4 한 장 응대 화법으로 인쇄 또는 복사", "note": "내부 교육과 비교 참고용"},
+      {"icon": "headset", "name": "영업 교육", "tabs": ["{{fact:console4_tabs.names.4}}"], "text": "비교 결과를 A4 한 장 비교 요약지로 인쇄 또는 복사", "note": "내부 교육과 비교 참고용"},
       {"icon": "radar", "name": "시장 모니터링", "tabs": ["{{fact:console4_tabs.names.1}}"], "text": "타사 신상품과 개정 소식을 분류해 확인", "note": "분류 {{fact:market_news_category_count}}개, 매일 수집"}
      ],
      "out": "범위 밖(다음 단계 후보): 다른 상품 종류(암보험 단독, 치매와 간병, 어린이보험), 공제(새마을금고, 신협, 수협)"
@@ -466,10 +466,10 @@
   "shots_head": "화면 캡처: 전체 캡처와 확대 컷",
    "shots": [
    {"img": "summary", "cut": "cut_kpi", "label": "전체 요약", "text": "위는 화면 전체, 아래는 탭별 핵심 수치를 확대한 컷"},
-   {"img": "tab_gate", "cut": "cut_gate", "label": "인수기준 비교", "text": "확대 컷은 표로 보기 상태의 고지항목 비교 표"},
+   {"img": "tab_gate", "cut": "cut_gate", "label": "인수기준 비교", "text": "확대 컷은 상세 표 보기 상태의 고지항목 비교 표"},
    {"img": "cancer_surgery", "cut": "cut_cover", "label": "담보 비교(암 수술비)", "text": "확대 컷은 암 수술비의 지급액, 면책기간, 감액기간 비교 표"},
    {"img": "tab_insight", "cut": "cut_insight", "label": "영업 인사이트", "text": "확대 컷은 인수기준 차이를 문장과 근거 쪽수로 제시한 카드 하나"},
-   {"img": "talk_preview", "cut": "cut_talk", "label": "응대 화법 A4", "text": "선택 항목을 A4 한 장으로 인쇄 또는 복사, 확대 컷은 위쪽 부분(대외 배포 금지)"},
+   {"img": "talk_preview", "cut": "cut_talk", "label": "비교 요약지 A4", "text": "선택 항목을 A4 한 장으로 인쇄 또는 복사, 확대 컷은 위쪽 부분(대외 배포 금지)"},
    {"img": "tab_graph", "label": "관계 그래프", "text": "회사, 상품, 특약, 담보의 연결을 그림으로 추적"}
   ],
   "shots_note": "화면 기본 조건으로 캡처, 자료 기준 {{asof:snapshot_at}}. 전체 캡처의 글자는 작으므로, 읽어야 하는 부분은 확대 컷으로 제시(관계 그래프는 구성 확인용이며 글자는 첨부 파일 화면에서 확인)"

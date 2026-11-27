@@ -4,12 +4,12 @@
  "kind": "body",
  "chapter": 2,
  "status": "new",
- "headline": "응대 화법 미리 보기에서 볼 곳은 세 군데입니다",
+ "headline": "비교 요약지 미리 보기에서 볼 곳은 세 군데입니다",
  "diagram": [
   {
    "use": "C12",
    "img": "talk_preview",
-   "alt": "응대 화법 미리 보기 화면",
+   "alt": "비교 요약지 미리 보기 화면",
    "box": [
     0,
     0,
@@ -58,7 +58,7 @@
     {
      "num": "A",
      "label": "출력",
-     "icon": "응대 화법"
+     "icon": "비교 요약지"
     },
     {
      "num": "B",

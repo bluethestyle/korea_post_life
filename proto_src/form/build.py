@@ -1105,10 +1105,10 @@ class Form:
 
     # 화면 캡처 쪽(2026-11-26 사용자 지시): 화면 이름과 설명이 먼저 오고, 다음 줄에 전체 캡처, 그 아래에 확대 컷을 둔다.
     # 전체 캡처(가로형)는 작성내용 칸의 폭(150mm)을 가득 쓴다. 확대 컷은 안의 글자가 인쇄 크기에서 7pt 이상이 되는 폭이다
-    # (화면 글자 13px, 2배 배율로 찍은 컷의 css 폭이 W px 이면 W x 7pt / 13px x 0.3528mm 이상). 세로로 긴 응대 화법 카드만
+    # (화면 글자 13px, 2배 배율로 찍은 컷의 css 폭이 W px 이면 W x 7pt / 13px x 0.3528mm 이상). 세로로 긴 비교 요약지 카드만
     # 전체 그림과 확대 컷을 나란히 둔다.
     FULL_W = {"summary": 150, "tab_gate": 150, "cancer_surgery": 147, "tab_insight": 147, "talk_preview": 72, "tab_graph": 150}
-    CUT_W = {"cut_kpi": 126, "cut_gate": 130, "cut_cover": 128.4, "cut_insight": 124.6, "cut_talk": 72}
+    CUT_W = {"cut_kpi": 126, "cut_gate": 130, "cut_cover": 129.0, "cut_insight": 124.6, "cut_talk": 72}
 
     def shot_row(self, i: int, s: dict) -> str:
         """화면 하나: 화면 이름과 설명, 다음 줄에 전체 캡처, 그 아래에 확대 컷."""

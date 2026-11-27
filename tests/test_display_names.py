@@ -168,7 +168,7 @@ def test_user_picks_are_set_in_one_place():
     assert set(terms.USER_PICKS) == {1, 3, 5, 8, 9, 40, 83, 120, 121, 122, 123, 128}
     assert terms.USER_PICKS == {1: "상품-영업 분석", 3: "전체 요약", 5: "인수기준 비교", 8: "관계 그래프", 9: "고객군별 가입 가능 현황",
                                 40: "인수기준 차이", 83: "단순 비교 불가", 120: "우위 담보", 121: "열위 담보",
-                                122: "미보유 담보", 123: "관련 담보", 128: "응대 화법"}
+                                122: "미보유 담보", 123: "관련 담보", 128: "비교 요약지"}
     d = terms.DISPLAY
     assert d["브리핑"] == terms.TAB_SUMMARY and d["가입 관문"] == terms.TAB_UNDERWRITING
     assert d["단정 주의"] == d["우열을 매기지 않음"] == terms.NO_SIMPLE_COMPARE and d["앞세울 강점"] == terms.STRENGTH

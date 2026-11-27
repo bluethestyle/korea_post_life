@@ -17,13 +17,13 @@
   tab_insight     영업 인사이트 탭, 전체 캡처
   tab_graph       관계 그래프 탭, 전체 캡처
   cancer_surgery  담보 비교 탭에서 수술 단계의 암 수술비를 선택한 상태, 전체 캡처
-  talk_preview    영업 인사이트 탭의 응대 화법 A4 카드(1920x1080 화면에서 2배 배율, 카드 전체)
+  talk_preview    영업 인사이트 탭의 비교 요약지 A4 카드(1920x1080 화면에서 2배 배율, 카드 전체)
   cut_kpi         전체 요약의 핵심 수 네 개(수와 라벨)를 이어 붙인 띠(2배 배율)
   cut_gate        인수기준 비교 탭 표로 보기의 고지항목 비교 표, 표 요소만(2배 배율). 표의 css 폭 672px 가 인쇄에서 7pt 이상이 되는 폭이 130mm 다
   cut_cover       담보 비교 탭에서 암 수술비를 선택했을 때의 회사별 조건 표, 표 요소만(2배 배율). 1280px 화면에서는 표가 853px 로 넓어 150mm 로도
                   7pt 가 안 되므로, 이 컷만 화면 폭 1000px(표 664px)에서 찍는다
   cut_insight     영업 인사이트 탭의 문장 카드 하나, 문장과 근거 쪽수 줄까지(2배 배율)
-  cut_talk        응대 화법 A4 카드의 위쪽 부분(2배 배율)
+  cut_talk        비교 요약지 A4 카드의 위쪽 부분(2배 배율)
   cut_head_a      분석 화면 상단의 조건 줄과 버튼(2배 배율)
   cut_head_b      분석 화면 상단의 탭 여섯(2배 배율)
   cut_copy_button 담보 비교 탭 도구줄의 비교표 복사 버튼(3배 배율)
@@ -43,7 +43,7 @@ from playwright.sync_api import Page, sync_playwright
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 VW, VH = 1280, 720            # 전체 캡처와 확대 컷의 화면 해상도
-BW, BH = 1920, 1080           # 응대 화법 카드 전체를 담는 큰 화면
+BW, BH = 1920, 1080           # 비교 요약지 카드 전체를 담는 큰 화면
 FULL_W = 1600
 MAX_BYTES = 300 * 1024
 
@@ -217,7 +217,7 @@ def cut_insight(page: Page) -> Image.Image:
 
 
 def cut_talk(page: Page) -> Image.Image:
-    card = box_of(page, "#insight-card", what="응대 화법 A4 카드")
+    card = box_of(page, "#insight-card", what="비교 요약지 A4 카드")
     return grab(page, {"x": card["x"], "y": card["y"], "width": card["width"], "height": min(card["height"], 360, VH - card["y"] - 12)})
 
 
@@ -269,13 +269,13 @@ def shoot(html: Path, out_dir: Path, only: set[str] | None = None) -> dict[str, 
         sharp["cut_cover"] = cut_cover(page)
         page.close()
 
-        # 응대 화법 카드 전체: 1920x1080 화면, 2배 배율
+        # 비교 요약지 카드 전체: 1920x1080 화면, 2배 배율
         page = browser.new_page(viewport={"width": BW, "height": BH}, device_scale_factor=2)
         watch(page, external, errors)
         open_tab(page, url, "insight")
         box = page.evaluate(TALK_JS)
         if not box:
-            sys.exit("영업 인사이트 탭에서 응대 화법 미리 보기를 찾지 못했습니다")
+            sys.exit("영업 인사이트 탭에서 비교 요약지 미리 보기를 찾지 못했습니다")
         sharp["talk_preview"] = page.screenshot(clip=box)
         page.close()
 

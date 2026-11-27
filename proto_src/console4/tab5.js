@@ -1,6 +1,6 @@
 /* 탭 5 영업 인사이트. 왼쪽 열은 분류 목차(유일한 분류별 건수 표시), 가운데 열은 한 줄 요약 막대와 분류별 목록,
-   오른쪽 열의 기본 내용은 응대 화법 미리 보기(위 2.5px 금색 선의 짙은 결과 카드)다.
-   항목 근거를 열면 오른쪽 열이 상세 패널로 전환되고, 닫거나 되돌아가기 단추를 누르면 응대 화법 미리 보기로 돌아온다.
+   오른쪽 열의 기본 내용은 비교 요약지 미리 보기(위 2.5px 금색 선의 짙은 결과 카드)다.
+   항목 근거를 열면 오른쪽 열이 상세 패널로 전환되고, 닫거나 되돌아가기 단추를 누르면 비교 요약지 미리 보기로 돌아온다.
    값과 문장은 sales.json 에서만 읽고, 관계도는 탭 4 가 내보낸 App.cover 를 쓴다(같은 판정, R10). */
 App.registerTab((function () {
   const { ui, txt, t } = App;
@@ -11,7 +11,7 @@ App.registerTab((function () {
   const PURPOSES = S['목적'];
   const MARK = t('printMark');
   let purpose = null;
-  const picks = {};          // 기준 종형 -> 응대 화법에 추가할 포인트ID 집합
+  const picks = {};          // 기준 종형 -> 비교 요약지에 추가할 포인트ID 집합
   const openOmit = new Set(); // 펼친 "제외 항목" 묶음
 
   // ---------- 확정 용어(App.label 우선)와 내부 코드 비노출(6-6) ----------
@@ -45,7 +45,7 @@ App.registerTab((function () {
   const evChip = g => ui.tag(`${orgN(g['종형ID'])} ${txt.pageText(g['문서'], g['쪽'])}`, g['급부명'] ? `${fullN(g['종형ID'])}: ${g['급부명']}` : `${fullN(g['종형ID'])} ${g['문서']}`, 'doc');
   const VK = { A1: 'only', A2: 'better', Q3: 'worse', Q1: 'none', Q2: 'none' };
 
-  /** 포인트의 담보가 기준 종형의 단정 주의에도 들면 그 항목(같은 타사). 본문, 근거 패널, 응대 화법 모두 "우열을 매기지 않음"으로 보인다(R10) */
+  /** 포인트의 담보가 기준 종형의 단정 주의에도 들면 그 항목(같은 타사). 본문, 근거 패널, 비교 요약지 모두 "우열을 매기지 않음"으로 보인다(R10) */
   function cautionOf(c, p) {
     if (!c || !c.base || !p || !p['표준담보ID']) return null;
     const peers = p['비교종형ID'] || [];
@@ -106,7 +106,7 @@ App.registerTab((function () {
       <div class="ins-tgm">${pointChip(p, c)}${p['구조다름'] ? ui.tag(t('insStructDiff')) : ''}${p['표준담보ID'] ? '' : `<span class="ins-pe">${esc(t('insPeerPrefix'))}${esc(peerNames)}${!peerVids.length && c.peerScope !== 'all' ? scBadge : ''}</span>`}</div>
       <p class="ins-s">${esc(p['문장'])}${scBadge}</p>
       ${cau ? `<p class="ins-w ins-cau">${ui.verdict('diff')} ${esc(cautionNote(cau))}</p>` : ''}
-      ${p['주의'] ? `<p class="ins-w">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
+      ${p['주의'] && !(p['문장'] || '').includes(p['주의']) ? `<p class="ins-w">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
       <div class="ins-m">${(p['근거'] || []).map(evChip).join('')}${p['원문대조'] ? ui.flagText(p['원문대조글'] || ui.FLAG_TEXT) : ''}</div>
       ${h && h !== groupHead ? `<p class="ins-hd">${esc(h)}${scBadge}</p>` : ''}
       <span class="lrow-chev" aria-hidden="true">${ui.IC.chevR}</span></li>`;
@@ -145,7 +145,7 @@ App.registerTab((function () {
     if (!groups.length) return `<p class="ins-empty">${esc(t('insMissEmpty'))}</p>`;
     return `<ul class="lrows ins-rev" id="ins-rev">${groups.map(({ g, gi, ds }) => `<li class="lrow ins-rg" data-pick="r:${gi}" data-aim="rect">
         <button type="button" class="lrow-hit" aria-pressed="false" aria-label="${esc(t('insMissRowAriaTpl', { mid: g['중분류'], n: ds.length }))}"></button>
-        <div class="ins-ih selbar"><span class="ins-t">${esc(g['중분류'])}</span><span class="sub">${esc(g['대분류'])}</span>${ui.tag(`담보 ${ds.length}`)}${g['좁은담보만수'] ? ui.tag(`좁은 담보만 ${g['좁은담보만수']}`) : ''}${c.peerScope !== 'all' ? ui.fullScopeTag() : ''}</div>
+        <div class="ins-ih selbar"><span class="ins-t">${esc(g['중분류'])}</span><span class="sub">${esc(g['대분류'])}</span>${ui.tag(`담보 ${ds.length}`)}${g['좁은담보만수'] ? ui.tag(`부분 담보만 보유 ${g['좁은담보만수']}`) : ''}${c.peerScope !== 'all' ? ui.fullScopeTag() : ''}</div>
         <ul class="ins-rl">${ds.map(d => {
           const p = S['포인트'][d['포인트ID']];
           const scOrgs = revRowOrgs(d, c);
@@ -207,7 +207,7 @@ App.registerTab((function () {
     return t('insEmptyDefault');
   }
 
-  // ---------- 응대 화법 미리 보기(#z-right 기본 내용) ----------
+  // ---------- 비교 요약지 미리 보기(#z-right 기본 내용) ----------
   function gateLine(c) {
     const g = c.seg;
     const who = App.condSegOnly();
@@ -280,7 +280,7 @@ App.registerTab((function () {
           ${p['카드질문'] ? `<p class="icd-q"><span class="icd-l">예상 질문</span>${esc(p['카드질문'])}${scBadge}</p>` : ''}
           <p class="icd-a"><span class="icd-l">${p['카드질문'] ? '답' : '설명'}</span>${esc(p['카드답'] || p['문장'])}${scBadge}</p>
           ${cautionOf(c, p) ? `<p class="icd-w">주의: ${esc(cautionNote(cautionOf(c, p)))}${scBadge}</p>` : ''}
-          ${p['주의'] ? `<p class="icd-w">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
+          ${p['주의'] && !(p['카드답'] || p['문장'] || '').includes(p['주의']) ? `<p class="icd-w">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
           ${p['원문대조'] ? `<p class="icd-f">${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}</div>`).join('')}`;
     }).join('');
     return `<div class="rcard ins-card" id="insight-card" aria-label="${esc(t('insTalkPreviewAria'))}">
@@ -288,7 +288,7 @@ App.registerTab((function () {
       <span class="k">${esc(t('insTalkKicker'))}</span>
       <h3>우체국 ${esc(kindN(c.baseId))}<br><span class="gold-t">${esc(App.condSegOnly())}</span></h3>
       <div class="sec">${esc(t('insTalkSecCmp'))}</div>
-      <p class="icd-sm">${esc(t('insTalkCmpBodyTpl', { base: txt.josa(`${fullN(c.baseId)}(${vinfo(c.baseId)['적용시작일'] || '기준일 자료 없음'})`, '와'), peers: txt.josa(peers, '를'), asof: App.asofText() }))}</p>
+      <p class="icd-sm">${esc(t('insTalkCmpBodyTpl', { base: `${kindN(c.baseId)}(${vinfo(c.baseId)['적용시작일'] || '기준일 자료 없음'})`, peers: txt.josa(peers, '를'), asof: App.asofText() }))}</p>
       <div class="sec">${esc(t('insTalkSecGate'))}</div>
       <p class="icd-sm">${esc(gateLine(c))}</p>
       ${n ? body : `<div class="sec">${esc(t('insTalkSecAdded'))}</div><p class="icd-sm">${esc(t('insTalkAddedEmpty'))}</p>`}
@@ -785,11 +785,11 @@ App.registerTab((function () {
     const grJump = sid ? `<div style="margin-top:8px">${ui.btn(App.t('mkEvGraphBtn'), { sm: true, ghost: true, chev: true, attrs: `data-go="graph" data-focus="std:${esc(sid)}"` })}</div>` : '';
     const scBadge = c.peerScope !== 'all' ? ' ' + ui.fullScopeTag() : '';
     const sLab = subLabel(p['세부'], p['세부이름']);
-    let body = sec('', `<p>${esc(p['문장'])}${scBadge}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}${cau ? `<p>${ui.verdict('diff')}</p><p class="note">${esc(cautionNote(cau))} ${esc(cau['문장'])}${scBadge}</p>` : ''}${p['주의'] ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
+    let body = sec('', `<p>${esc(p['문장'])}${scBadge}</p>${p['원문대조'] ? `<p>${ui.flagText(p['원문대조글'] || ui.FLAG_TEXT)}</p>` : ''}${cau ? `<p>${ui.verdict('diff')}</p><p class="note">${esc(cautionNote(cau))} ${esc(cau['문장'])}${scBadge}</p>` : ''}${p['주의'] && !(p['문장'] || '').includes(p['주의']) ? `<p class="note">주의: ${esc(p['주의'])}${scBadge}</p>` : ''}
       ${tableV ? `<p class="note" style="margin-top:8px">담보 비교표의 비교 결과: </p><div class="cv-bds">${tableV}</div>` : ''}${grJump}`);
-    if (relOk) body += sec('관계도', `<div class="ins-rel"></div>${App.cover.relLegend()}`);
+    if (relOk) body += sec('담보 연결 관계', `<div class="ins-rel"></div>${App.cover.relLegend()}`);
     body += sec('근거 문서와 쪽', `<ul class="cv-evl">${(p['근거'] || []).map(g => `<li><b>${esc(fullN(g['종형ID']))}</b> ${evChip(g)}${g['급부명'] ? `<br><span class="note">${esc(g['급부명'])}</span>` : ''}</li>`).join('')}</ul>${(p['근거'] || []).some(g => g['쪽'] == null) ? `<p class="note">${esc(txt.PAGE_WHY)}.</p>` : ''}`, true);
-    body += sec('범위 머리말', `<p class="note">${esc(head(p))}${scBadge}</p><p class="note">${esc(t('insEvScopeNoteTpl', { total: c.base['범위']['회사수'], n: p['회사수'] }))}</p>`, true);
+    body += sec('비교 대상 안내', `<p class="note">${esc(head(p))}${scBadge}</p><p class="note">${esc(t('insEvScopeNoteTpl', { total: c.base['범위']['회사수'], n: p['회사수'] }))}</p>`, true);
     if (omit.length) {
       body += sec(t('insEvOmitHead'), `<ul class="cv-evl">${omit.map(o => {
         const osl = subLabel(o['세부']);
@@ -867,7 +867,7 @@ App.registerTab((function () {
     if (el) App.scrollInZone(el);
   }
 
-  // 인수기준 비교 탭에서 목적을 바꾸면 응대 화법의 구성 요약을 고친다
+  // 인수기준 비교 탭에서 목적을 바꾸면 비교 요약지의 구성 요약을 고친다
   document.addEventListener('c4:card', () => {
     if (App.state.tab !== 'insight') return;
     refreshRightSimple();
