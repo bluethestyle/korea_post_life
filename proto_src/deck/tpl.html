@@ -673,6 +673,21 @@ u.g { border-bottom: 3px solid var(--border-default); }
   font-size: 15px; line-height: 1.4; padding: 8px 12px; transition: opacity var(--motion-slow) ease-out;
 }
 #help.off { opacity: 0; pointer-events: none; }
+#stage:focus { outline: none; }
+#deck-nav {
+  position: fixed; right: 16px; bottom: 14px; z-index: 6; display: flex; align-items: center; gap: 4px;
+  background: rgba(22, 22, 22, 0.78); color: #ffffff; padding: 4px 6px; border-radius: 6px;
+  opacity: 0.32; transition: opacity 180ms ease-out; user-select: none;
+}
+#deck-nav:hover, #deck-nav:focus-within, #deck-nav.wake { opacity: 0.94; }
+#deck-nav button {
+  appearance: none; border: 1px solid rgba(255, 255, 255, 0.24); background: transparent; color: #ffffff;
+  font: inherit; font-size: 14px; font-weight: 700; line-height: 1; padding: 5px 9px; border-radius: 4px; cursor: pointer;
+}
+#deck-nav button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.55); }
+#deck-nav button:disabled { opacity: 0.35; cursor: default; }
+#deck-nav .dn-idx { font-size: 13px; font-weight: 600; padding: 0 6px; font-variant-numeric: tabular-nums; }
+#deck-nav.off { opacity: 0; pointer-events: none; }
 #notes-panel {
   position: fixed; left: 0; right: 0; bottom: 0; max-height: 38vh; overflow: auto; z-index: 7;
   background: var(--bg-base); border-top: 4px solid var(--kp-ink); padding: 18px 28px 24px;
@@ -874,13 +889,19 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
 </head>
 <body>
 <!--__SPRITE__-->
-<div id="stage">
+<div id="stage" tabindex="-1">
 <main id="deck" aria-roledescription="발표 자료" aria-label="__HTML_TITLE__">
 <!--__SLIDES__-->
 </main>
 </div>
 <div id="progress" class="ui" aria-hidden="true"></div>
 <div id="help" class="ui">← → 이동, O 전체 장 보기, N 발표자 노트, F 전체 화면</div>
+<nav id="deck-nav" class="ui" aria-label="슬라이드 이동">
+  <button type="button" id="dn-prev" aria-label="이전 장 (←)" title="이전 장 (←)">‹</button>
+  <span class="dn-idx" id="dn-idx">1 / 24</span>
+  <button type="button" id="dn-next" aria-label="다음 장 (→)" title="다음 장 (→)">›</button>
+  <button type="button" id="dn-ov" aria-label="전체 장 보기 (O)" title="전체 장 보기 (O)">전체</button>
+</nav>
 <section id="notes-panel" class="ui" aria-label="발표자 노트"><p class="nh"></p><div class="nb"></div></section>
 <section id="overview" class="ui" aria-label="전체 장 보기"><p class="oh">전체 장 보기. 장을 클릭하면 이동합니다(O 키나 Esc로 닫기).</p><div class="grid"></div></section>
 <p id="live" class="sr ui" aria-live="polite"></p>
@@ -899,6 +920,26 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
   var swiped = false;
 
   var stage = document.getElementById("stage");
+  var dnPrev = document.getElementById("dn-prev");
+  var dnNext = document.getElementById("dn-next");
+  var dnIdx = document.getElementById("dn-idx");
+  var dnOv = document.getElementById("dn-ov");
+  var deckNav = document.getElementById("deck-nav");
+  var wakeTimer = null;
+
+  function focusStage() {
+    try { window.focus(); } catch (e) {}
+    if (stage && stage.focus) {
+      try { stage.focus({ preventScroll: true }); } catch (e) { try { stage.focus(); } catch (e2) {} }
+    }
+  }
+
+  function wakeNav() {
+    if (!deckNav) { return; }
+    deckNav.classList.add("wake");
+    if (wakeTimer) { clearTimeout(wakeTimer); }
+    wakeTimer = setTimeout(function () { deckNav.classList.remove("wake"); }, 2200);
+  }
   function fit() {
     var w = stage.clientWidth || document.documentElement.clientWidth;
     var h = stage.clientHeight || document.documentElement.clientHeight;
@@ -950,7 +991,12 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
     i = Math.max(0, Math.min(total - 1, i));
     if (i === cur && !force) { return; }
     var prev = cur >= 0 ? slides[cur] : null;
-    if (prev) { help.classList.add("off"); }
+    if (prev) {
+      help.classList.add("off");
+      if (document.activeElement && prev.contains(document.activeElement) && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+    }
     slides.forEach(function (s, k) {
       var on = k === i;
       s.classList.toggle("active", on);
@@ -962,11 +1008,15 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
     cur = i;
     enterVideo(slides[i]);
     progress.style.width = ((i + 1) / total * 100) + "%";
+    if (dnIdx) { dnIdx.textContent = (i + 1) + " / " + total; }
+    if (dnPrev) { dnPrev.disabled = (i <= 0); }
+    if (dnNext) { dnNext.disabled = (i >= total - 1); }
     if (window.location.hash !== "#" + (i + 1)) {
       try { history.replaceState(null, "", "#" + (i + 1)); } catch (e) { window.location.hash = "#" + (i + 1); }
     }
     updateNotes();
     live.textContent = (slides[i].getAttribute("data-pg") || ((i + 1) + " / " + total)) + ", " + (slides[i].getAttribute("data-title") || "");
+    if (!overview.classList.contains("on")) { focusStage(); }
   }
 
   function next() { go(cur + 1); }
@@ -1009,7 +1059,7 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
     var c = overview.querySelector(".thumb.cur");
     if (c) { c.focus(); c.scrollIntoView({ block: "center" }); }
   }
-  function closeOverview() { overview.classList.remove("on"); }
+  function closeOverview() { overview.classList.remove("on"); focusStage(); }
   function toggleNotes() { notesPanel.classList.toggle("on"); }
   function toggleFullscreen() {
     if (document.fullscreenElement) {
@@ -1019,11 +1069,60 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
     }
   }
 
+  function normKey(e) {
+    var k = e.key || "";
+    var c = e.code || "";
+    var kc = e.keyCode || 0;
+    if (k === "ArrowRight" || k === "Right" || c === "ArrowRight" || kc === 39) { return "ArrowRight"; }
+    if (k === "ArrowLeft" || k === "Left" || c === "ArrowLeft" || kc === 37) { return "ArrowLeft"; }
+    if (k === "ArrowDown" || k === "Down" || c === "ArrowDown" || kc === 40) { return "ArrowDown"; }
+    if (k === "ArrowUp" || k === "Up" || c === "ArrowUp" || kc === 38) { return "ArrowUp"; }
+    if (k === "PageDown" || c === "PageDown" || kc === 34) { return "PageDown"; }
+    if (k === "PageUp" || c === "PageUp" || kc === 33) { return "PageUp"; }
+    if (k === "Home" || c === "Home" || kc === 36) { return "Home"; }
+    if (k === "End" || c === "End" || kc === 35) { return "End"; }
+    if (k === " " || k === "Spacebar" || c === "Space" || kc === 32) { return " "; }
+    if (k === "Escape" || k === "Esc" || c === "Escape" || kc === 27) { return "Escape"; }
+    if (k === "Enter" || c === "Enter" || kc === 13) { return "Enter"; }
+    return k;
+  }
+
+  // 캡처 단계(true)에서 키를 먼저 받아 영상 재생기 내부 버튼 등이 방향키 전파를 막아도 슬라이드 이동이 항상 동작하게 함
   window.addEventListener("keydown", function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) { return; }
-    var k = e.key;
+    var k = normKey(e);
     if (overview.classList.contains("on")) {
-      if (k === "Escape" || k === "o" || k === "O") { closeOverview(); e.preventDefault(); }
+      var thumbs = Array.prototype.slice.call(overview.querySelectorAll(".thumb"));
+      var fIdx = thumbs.indexOf(document.activeElement);
+      if (fIdx < 0) { fIdx = cur; }
+      if (k === "Escape" || k === "o" || k === "O") {
+        closeOverview();
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (k === "ArrowRight" || k === "ArrowDown") {
+        var ni = Math.min(thumbs.length - 1, fIdx + 1);
+        if (thumbs[ni]) { thumbs[ni].focus(); thumbs[ni].scrollIntoView({ block: "nearest" }); }
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (k === "ArrowLeft" || k === "ArrowUp") {
+        var pi = Math.max(0, fIdx - 1);
+        if (thumbs[pi]) { thumbs[pi].focus(); thumbs[pi].scrollIntoView({ block: "nearest" }); }
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (k === "Home" && thumbs[0]) {
+        thumbs[0].focus(); thumbs[0].scrollIntoView({ block: "nearest" });
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (k === "End" && thumbs.length) {
+        thumbs[thumbs.length - 1].focus(); thumbs[thumbs.length - 1].scrollIntoView({ block: "nearest" });
+        e.preventDefault();
+        e.stopPropagation();
+      } else if ((k === "Enter" || k === " ") && thumbs[fIdx]) {
+        closeOverview();
+        go(fIdx);
+        e.preventDefault();
+        e.stopPropagation();
+      }
       return;
     }
     var t = e.target;
@@ -1041,7 +1140,13 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
       default: return;
     }
     e.preventDefault();
-  });
+    e.stopPropagation();
+  }, true);
+
+  if (dnPrev) { dnPrev.addEventListener("click", function () { prev(); focusStage(); }); }
+  if (dnNext) { dnNext.addEventListener("click", function () { next(); focusStage(); }); }
+  if (dnOv) { dnOv.addEventListener("click", function () { if (overview.classList.contains("on")) { closeOverview(); } else { openOverview(); } }); }
+  window.addEventListener("mousemove", wakeNav, { passive: true });
 
   deck.addEventListener("click", function (e) {
     if (swiped) { swiped = false; return; }
@@ -1071,6 +1176,16 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
   slides.forEach(function (s) {
     var v = s.querySelector("video");
     if (!v) { return; }
+    v.setAttribute("tabindex", "-1");
+    function releaseVideoFocus() {
+      setTimeout(function () {
+        if (document.activeElement === v && v.blur) { v.blur(); }
+        if (!overview.classList.contains("on")) { focusStage(); }
+      }, 0);
+    }
+    ["focus", "mouseup", "click", "play", "pause", "volumechange", "seeked"].forEach(function (ev) {
+      v.addEventListener(ev, releaseVideoFocus);
+    });
     v.addEventListener("loadedmetadata", function () {
       s.classList.add("has-video");
       if (s.classList.contains("active")) { playVideo(v); }
@@ -1109,7 +1224,7 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
 
   // 점검 도구(shot.py 의 NO_ANIM)가 .dg 의 애니메이션을 끈 경우 하위 마이크로 모션도 함께 비활성화해 최종 프레임을 찍게 함
   function syncNoMotion() {
-    var probeDg = document.querySelector(".slide.active .dg") || document.querySelector(".slide .dg");
+    var probeDg = document.querySelector(".slide:not(.cover).active .dg");
     if (probeDg && window.getComputedStyle(probeDg).animationName === "none") {
       document.documentElement.classList.add("no-motion");
       return true;

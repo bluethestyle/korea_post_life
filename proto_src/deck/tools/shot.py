@@ -178,8 +178,8 @@ def inspect(html: Path, numbers: list[int] | None, out_dir: Path, size: tuple[in
         page.add_style_tag(content=NO_ANIM)
         page.wait_for_timeout(1200)
         minvis = MIN_VISIBLE_PX if tuple(size) == TABLET else 0
-        # 키보드 안내(#help)는 실제 화면에서 첫 이동이나 5초 뒤에 사라진다. 사진에는 넣지 않는다
-        page.evaluate("var h = document.getElementById('help'); if (h) { h.classList.add('off'); }")
+        # 키보드 안내(#help)와 하단 이동 막대(#deck-nav)는 사진에는 넣지 않는다
+        page.evaluate("['help','deck-nav'].forEach(id => { var el = document.getElementById(id); if (el) el.classList.add('off'); });")
         present =page.evaluate("Array.from(document.querySelectorAll('.slide')).map(s => +s.dataset.no)")
         nos = [n for n in (numbers or present) if n in present]
         missing = [n for n in (numbers or []) if n not in present]

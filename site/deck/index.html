@@ -686,6 +686,21 @@ u.g { border-bottom: 3px solid var(--border-default); }
   font-size: 15px; line-height: 1.4; padding: 8px 12px; transition: opacity var(--motion-slow) ease-out;
 }
 #help.off { opacity: 0; pointer-events: none; }
+#stage:focus { outline: none; }
+#deck-nav {
+  position: fixed; right: 16px; bottom: 14px; z-index: 6; display: flex; align-items: center; gap: 4px;
+  background: rgba(22, 22, 22, 0.78); color: #ffffff; padding: 4px 6px; border-radius: 6px;
+  opacity: 0.32; transition: opacity 180ms ease-out; user-select: none;
+}
+#deck-nav:hover, #deck-nav:focus-within, #deck-nav.wake { opacity: 0.94; }
+#deck-nav button {
+  appearance: none; border: 1px solid rgba(255, 255, 255, 0.24); background: transparent; color: #ffffff;
+  font: inherit; font-size: 14px; font-weight: 700; line-height: 1; padding: 5px 9px; border-radius: 4px; cursor: pointer;
+}
+#deck-nav button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.55); }
+#deck-nav button:disabled { opacity: 0.35; cursor: default; }
+#deck-nav .dn-idx { font-size: 13px; font-weight: 600; padding: 0 6px; font-variant-numeric: tabular-nums; }
+#deck-nav.off { opacity: 0; pointer-events: none; }
 #notes-panel {
   position: fixed; left: 0; right: 0; bottom: 0; max-height: 38vh; overflow: auto; z-index: 7;
   background: var(--bg-base); border-top: 4px solid var(--kp-ink); padding: 18px 28px 24px;
@@ -887,7 +902,7 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
 </head>
 <body>
 <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false"><defs><pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#ffffff"/><path d="M0 0v10" stroke="#3d3935" stroke-width="3"/></pattern><pattern id="hatch-m" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0v8" stroke="#5c5650" stroke-width="2"/></pattern><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5c5650"/></marker><marker id="ah-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#da291c"/></marker></defs><symbol id="i-ai" viewBox="0 0 48 48"><rect x="13" y="13" width="22" height="22" rx="3"/><path d="M19 13V7M29 13V7M19 41v-6M29 41v-6M13 19H7M13 29H7M41 19h-6M41 29h-6"/><path d="M19.5 29.5l4.5-11 4.5 11M21 26h6"/></symbol><symbol id="i-arrow" viewBox="0 0 48 48"><path d="M6 24h34M30 14l10 10-10 10"/></symbol><symbol id="i-building" viewBox="0 0 48 48"><path d="M6 42h36M9 18h30M24 6l16 10H8z"/><path d="M13 22v16M21 22v16M27 22v16M35 22v16"/></symbol><symbol id="i-copy" viewBox="0 0 48 48"><rect x="15" y="15" width="24" height="26" rx="2"/><path d="M10 33V8h22"/></symbol><symbol id="i-dot" viewBox="0 0 48 48"><circle cx="24" cy="24" r="13" fill="currentColor"/></symbol><symbol id="i-person" viewBox="0 0 48 48"><circle cx="24" cy="15" r="7"/><path d="M9 42c0-9 7-14 15-14s15 5 15 14"/></symbol><symbol id="i-square" viewBox="0 0 48 48"><rect x="11" y="11" width="26" height="26" fill="currentColor"/></symbol><symbol id="ic-badge-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /><path d="m9 12 2 2 4-4" /></g></symbol><symbol id="ic-building-2" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4" /><path d="M10 8h4" /><path d="M14 21v-3a2 2 0 0 0-4 0v3" /><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" /><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" /></g></symbol><symbol id="ic-calculator" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></g></symbol><symbol id="ic-clipboard-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="m9 14 2 2 4-4" /></g></symbol><symbol id="ic-database" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" /></g></symbol><symbol id="ic-file-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><circle cx="11.5" cy="14.5" r="2.5" /><path d="M13.3 16.3 15 18" /></g></symbol><symbol id="ic-file-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></g></symbol><symbol id="ic-headset" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z" /><path d="M21 16v2a4 4 0 0 1-4 4h-5" /></g></symbol><symbol id="ic-layout-dashboard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></g></symbol><symbol id="ic-megaphone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" /><path d="M8 6v8" /></g></symbol><symbol id="ic-network" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="16" y="16" width="6" height="6" rx="1" /><rect x="2" y="16" width="6" height="6" rx="1" /><rect x="9" y="2" width="6" height="6" rx="1" /><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" /><path d="M12 12V8" /></g></symbol><symbol id="ic-scan-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><circle cx="12" cy="12" r="3" /><path d="m16 16-1.9-1.9" /></g></symbol><symbol id="ic-shield-alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="M12 8v4" /><path d="M12 16h.01" /></g></symbol><symbol id="ic-target" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></g></symbol><symbol id="ic-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><path d="M16 3.128a4 4 0 0 1 0 7.744" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><circle cx="9" cy="7" r="4" /></g></symbol><symbol id="ic-waypoints" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.586 5.414-5.172 5.172" /><path d="m18.586 13.414-5.172 5.172" /><path d="M6 12h12" /><circle cx="12" cy="20" r="2" /><circle cx="12" cy="4" r="2" /><circle cx="20" cy="12" r="2" /><circle cx="4" cy="12" r="2" /></g></symbol></svg>
-<div id="stage">
+<div id="stage" tabindex="-1">
 <main id="deck" aria-roledescription="발표 자료" aria-label="우체국보험 상품-영업 분석 발표 자료">
 <section class="slide cover" id="s1" data-no="1" data-badge="1" data-pg="01 / 20" data-status="revised" data-title="AI와 온톨로지로 회사마다 다른 보험 조건을 한 화면에서 비교합니다" aria-roledescription="장" aria-label="01 / 20: AI와 온톨로지로 회사마다 다른 보험 조건을 한 화면에서 비교합니다"><div class="spine"></div><div class="cover-body"><p class="badge">AI 도구와 에이전트 활용 공모전 출품작</p><h1 class="cover-h1">우체국보험<br>상품-영업 분석</h1><p class="cover-sub">AI 의사결정 모델 × 온톨로지(지식그래프) 기반 상품·영업 지원 도구</p><p class="cover-lead">AI와 온톨로지로 회사마다 다른 보험 조건을 한 화면에서 비교합니다</p><div class="cover-meta"><div class="cm"><p class="l">자료 기준</p><p class="v">2026-11-26</p></div><div class="cm"><p class="l">핵심 기술</p><p class="v">AI · 의사결정 모델 · 온톨로지</p></div><div class="cm"><p class="l">배포 형태</p><p class="v">웹 주소와 파일 하나</p></div></div></div><div class="dg" data-region="1920x1080" style="left:0px;top:0px;width:1920px;height:1080px"><div class="blk" style="left:1180px;top:90px;width:660px;height:756px"><div class="c3" style="height:756px"><div class="c3-row c3-v"><div class="c3-n"><span class="c3-num">1</span><div class="c3-fig" style="width:620px;height:96px"><div class="c18 stack" style="height:96px"><svg width="620" height="90" aria-hidden="true"><path d="M168 0H470L452 60H150Z" class="c18-top"/><path d="M150 60H452V90H150Z" class="c18-side"/><path d="M452 60L470 0V30L452 90Z" class="c18-edge"/><path d="M150 65H452" class="c18-ln"/><path d="M150 70H452" class="c18-ln"/><path d="M150 75H452" class="c18-ln"/><path d="M150 80H452" class="c18-ln"/><path d="M150 85H452" class="c18-ln"/><path d="M246 21H390M233.2 37.2H342" class="c18-ln"/></svg></div></div><p class="c3-l">수백 쪽 공시 문서</p></div><div class="c3-a c3-av"><svg class="chev" width="36" height="36" viewBox="0 0 40 40" aria-hidden="true"><path d="M6 10l14 16 14-16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="c3-n"><span class="c3-num">2</span><div class="c3-fig" style="width:620px;height:120px"><div class="c12" style="height:120px"><div class="c12-im im-summary" role="img" aria-label="요약 비교 화면" style="left:203.3px;top:0px;width:213.3px;height:120px"></div><svg width="620" height="120" aria-hidden="true"></svg></div></div><p class="c3-l">AI·온톨로지 비교 화면</p></div><div class="c3-a c3-av"><svg class="chev" width="36" height="36" viewBox="0 0 40 40" aria-hidden="true"><path d="M6 10l14 16 14-16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="c3-n hero"><span class="c3-num">3</span><div class="c3-fig" style="width:620px;height:104px"><div class="c19-w" style="height:104px"><div class="c19 s tiny" style="width:73.7px;height:104px"><p class="c19-hd"></p><div class="c19-bk"><i></i><i></i></div><div class="c19-bk"><i></i><i></i></div><div class="c19-bk"><i></i><i></i></div></div></div></div><p class="c3-l">실무용 A4 비교 요약지</p></div></div></div></div></div><div class="dg" style="left:80px;top:880px;width:1760px;height:120px"><div class="blk" style="left:0px;top:0px;width:1760px;height:120px"><div class="c1b"><div class="c1b-i"><span class="c1-n">1</span><span class="c1b-q">왜 AI와 온톨로지인가</span></div><div class="c1b-i"><span class="c1-n">2</span><span class="c1b-q">실무가 어떻게 좋아지나</span></div><div class="c1b-i"><span class="c1-n">3</span><span class="c1b-q">AI와 의사결정 모델 역할</span></div><div class="c1b-i"><span class="c1-n">4</span><span class="c1b-q">온톨로지와 지식그래프 원리</span></div><div class="c1b-i"><span class="c1-n">5</span><span class="c1b-q">현업에서 어떻게 활용하나</span></div><div class="c1b-i"><span class="c1-n">6</span><span class="c1b-q">향후 어떻게 넓혀 가나</span></div></div></div></div><aside class="notes">우체국보험 상품-영업 분석은 본부의 보험영업 기획과 상품 분석 담당자가 공개된 공시 문서만으로 우체국과 타사의 차이를 판단하도록 돕는 도구입니다. AI가 수백 쪽 공시 문서에서 조건과 보장 원문을 추출하고, AI 의사결정 모델이 정답 확률로 오류를 가려내며, 온톨로지와 지식그래프가 회사마다 다른 보장 용어를 표준담보 하나로 연결합니다. 비교 대상은 우체국과 타사 2곳(한화생명, 삼성화재)이며, 기본 비교 기준은 간편심사 가입 유형(종형)(2종(간편가입325))입니다. 실무자 1명이 AI 에이전트들과 함께 구축했고, 웹 주소와 인터넷 없이 열리는 HTML 파일 하나로 배포합니다. 발표는 아래 여섯 장의 흐름 - 배경과 해법, 실무 변화, AI와 의사결정 모델, 온톨로지와 지식그래프, 현업 활용 방향, 확장 계획 - 순서로 진행합니다.</aside></section>
 <section class="slide body-slide" id="s2" data-no="2" data-badge="2" data-pg="02 / 20" data-status="revised" data-title="수백 쪽 문서와 다른 용어 때문에 타사 비교에 2~3일이 걸립니다" aria-roledescription="장" aria-label="02 / 20: 수백 쪽 문서와 다른 용어 때문에 타사 비교에 2~3일이 걸립니다"><header class="hd"><p class="doc">우체국보험 상품-영업 분석</p><div class="cb"><span class="cb-l">왜 AI와 온톨로지인가</span><svg class="cb-svg" width="400" height="40" viewBox="0 0 400 40" aria-label="챕터 1 / 6"><circle cx="20.0" cy="20" r="17.0" class="cb-on"/><text x="20.0" y="27" text-anchor="middle" class="cb-on-t">1</text><path d="M44.0 20H68.0" class="cb-ln"/><circle cx="92.0" cy="20" r="17.0" class="cb-off"/><text x="92.0" y="27" text-anchor="middle" class="cb-off-t">2</text><path d="M116.0 20H140.0" class="cb-ln"/><circle cx="164.0" cy="20" r="17.0" class="cb-off"/><text x="164.0" y="27" text-anchor="middle" class="cb-off-t">3</text><path d="M188.0 20H212.0" class="cb-ln"/><circle cx="236.0" cy="20" r="17.0" class="cb-off"/><text x="236.0" y="27" text-anchor="middle" class="cb-off-t">4</text><path d="M260.0 20H284.0" class="cb-ln"/><circle cx="308.0" cy="20" r="17.0" class="cb-off"/><text x="308.0" y="27" text-anchor="middle" class="cb-off-t">5</text><path d="M332.0 20H356.0" class="cb-ln"/><circle cx="380.0" cy="20" r="17.0" class="cb-off"/><text x="380.0" y="27" text-anchor="middle" class="cb-off-t">6</text></svg></div></header><h2 class="hl">수백 쪽 문서와 다른 용어 때문에 타사 비교에 2~3일이 걸립니다</h2><div class="dg" data-region="1760x656" style="left:80px;top:240px;width:1760px;height:656px"><div class="blk" data-build="1" style="left:0px;top:0px;width:520px;height:240px;--bd:1"><div class="c18 stack" style="height:240px"><svg width="520" height="234" aria-hidden="true"><path d="M118 0H420L402 60H100Z" class="c18-top"/><path d="M100 60H402V234H100Z" class="c18-side"/><path d="M402 60L420 0V174L402 234Z" class="c18-edge"/><path d="M100 69.2H402" class="c18-ln"/><path d="M100 78.3H402" class="c18-ln"/><path d="M100 87.5H402" class="c18-ln"/><path d="M100 96.6H402" class="c18-ln"/><path d="M100 105.8H402" class="c18-ln"/><path d="M100 114.9H402" class="c18-ln"/><path d="M100 124.1H402" class="c18-ln"/><path d="M100 133.3H402" class="c18-ln"/><path d="M100 142.4H402" class="c18-ln"/><path d="M100 151.6H402" class="c18-ln"/><path d="M100 160.7H402" class="c18-ln"/><path d="M100 169.9H402" class="c18-ln"/><path d="M100 179.1H402" class="c18-ln"/><path d="M100 188.2H402" class="c18-ln"/><path d="M100 197.4H402" class="c18-ln"/><path d="M100 206.5H402" class="c18-ln"/><path d="M100 215.7H402" class="c18-ln"/><path d="M100 224.8H402" class="c18-ln"/><path d="M196 21H340M183.2 37.2H292" class="c18-ln"/></svg></div></div><div class="blk" data-build="1" style="left:0px;top:260px;width:560px;height:316px;--bd:1"><div class="c10 small"><p class="c10-r"><span class="c10-v">567</span><span class="c10-u">쪽</span></p><p class="c10-c">한화생명 요약서 1권 분량</p><p class="c10-sc ax">제작자 경험: 비교표에 2~3일</p></div></div><div class="blk" data-build="2" style="left:620px;top:0px;width:1140px;height:576px;--bd:2"><div class="c4"><p class="c4-head"><span class="term">간편심사</span> 병력 질문: 같은 유형도 회사마다 다릅니다</p><div class="c4-r c4-hr" style="grid-template-columns:200px repeat(3,1fr)"><span></span><span><span class="org org-epost">우체국</span></span><span><span class="org org-peer1">한화생명</span></span><span><span class="org org-peer2">삼성화재</span></span></div><div class="c4-r hero" style="grid-template-columns:200px repeat(3,1fr)"><span class="c4-l">묻는 병력</span><span class="c4-v">최근 1년, 2년, 5년 이내 입원만</span><span class="c4-v">입원 또는 <u>수술</u>(제왕절개 포함)</span><span class="c4-v">입원 또는 <u>수술</u></span></div><div class="c4-r" style="grid-template-columns:200px repeat(3,1fr)"><span class="c4-l">중대질병 수</span><span class="c4-v">6개</span><span class="c4-v">7개</span><span class="c4-v">5개</span></div><p class="c4-tag">세 상품 중 우체국만 수술 이력을 묻지 않습니다</p></div></div></div><div class="gl" style="top:912px"><p class="gl-c"><span><b>공시 문서</b> 보험사가 홈페이지에 공개하는 상품요약서·사업방법서·약관</span></p><p class="gl-c"><span><b>간편심사</b> 질문 항목을 줄여 유병자·고령자 가입 문턱을 낮춘 심사</span></p><p class="gl-c"><span><b>인수기준</b> 보험사가 가입 가능 여부를 보는 나이·병력·한도 기준</span></p></div><footer class="ft"><p class="src"></p><p class="pg">02 / 20</p></footer><aside class="notes">보험사는 상품마다 수백 쪽 분량의 상품요약서와 사업방법서를 공시실에 올립니다. 한화생명 상품 하나의 요약서만 567쪽이고, 회사마다 특약 이름과 면책·감액기간, 병력 질문이 다릅니다. 제작자의 실무 경험 기준으로는 타사 비교표 한 건을 만드는 데 2~3일이 걸립니다(실측값이 아닌 제작자 경험 기준). 오른쪽 표는 간편심사 고지사항의 차이 예입니다. 같은 간편심사인데 우체국은 입원 이력만 묻고, 한화생명과 삼성화재는 수술 이력까지 묻습니다. 중대질병 질문 개수 역시 6개, 7개, 5개로 다릅니다. 이처럼 문장 속에 숨은 인수기준과 담보 조건을 사람이 일일이 대조하는 한계를 AI와 온톨로지로 해결하고자 했습니다.</aside></section>
@@ -917,6 +932,12 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
 </div>
 <div id="progress" class="ui" aria-hidden="true"></div>
 <div id="help" class="ui">← → 이동, O 전체 장 보기, N 발표자 노트, F 전체 화면</div>
+<nav id="deck-nav" class="ui" aria-label="슬라이드 이동">
+  <button type="button" id="dn-prev" aria-label="이전 장 (←)" title="이전 장 (←)">‹</button>
+  <span class="dn-idx" id="dn-idx">1 / 24</span>
+  <button type="button" id="dn-next" aria-label="다음 장 (→)" title="다음 장 (→)">›</button>
+  <button type="button" id="dn-ov" aria-label="전체 장 보기 (O)" title="전체 장 보기 (O)">전체</button>
+</nav>
 <section id="notes-panel" class="ui" aria-label="발표자 노트"><p class="nh"></p><div class="nb"></div></section>
 <section id="overview" class="ui" aria-label="전체 장 보기"><p class="oh">전체 장 보기. 장을 클릭하면 이동합니다(O 키나 Esc로 닫기).</p><div class="grid"></div></section>
 <p id="live" class="sr ui" aria-live="polite"></p>
@@ -935,6 +956,26 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
   var swiped = false;
 
   var stage = document.getElementById("stage");
+  var dnPrev = document.getElementById("dn-prev");
+  var dnNext = document.getElementById("dn-next");
+  var dnIdx = document.getElementById("dn-idx");
+  var dnOv = document.getElementById("dn-ov");
+  var deckNav = document.getElementById("deck-nav");
+  var wakeTimer = null;
+
+  function focusStage() {
+    try { window.focus(); } catch (e) {}
+    if (stage && stage.focus) {
+      try { stage.focus({ preventScroll: true }); } catch (e) { try { stage.focus(); } catch (e2) {} }
+    }
+  }
+
+  function wakeNav() {
+    if (!deckNav) { return; }
+    deckNav.classList.add("wake");
+    if (wakeTimer) { clearTimeout(wakeTimer); }
+    wakeTimer = setTimeout(function () { deckNav.classList.remove("wake"); }, 2200);
+  }
   function fit() {
     var w = stage.clientWidth || document.documentElement.clientWidth;
     var h = stage.clientHeight || document.documentElement.clientHeight;
@@ -986,7 +1027,12 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
     i = Math.max(0, Math.min(total - 1, i));
     if (i === cur && !force) { return; }
     var prev = cur >= 0 ? slides[cur] : null;
-    if (prev) { help.classList.add("off"); }
+    if (prev) {
+      help.classList.add("off");
+      if (document.activeElement && prev.contains(document.activeElement) && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+    }
     slides.forEach(function (s, k) {
       var on = k === i;
       s.classList.toggle("active", on);
@@ -998,11 +1044,15 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
     cur = i;
     enterVideo(slides[i]);
     progress.style.width = ((i + 1) / total * 100) + "%";
+    if (dnIdx) { dnIdx.textContent = (i + 1) + " / " + total; }
+    if (dnPrev) { dnPrev.disabled = (i <= 0); }
+    if (dnNext) { dnNext.disabled = (i >= total - 1); }
     if (window.location.hash !== "#" + (i + 1)) {
       try { history.replaceState(null, "", "#" + (i + 1)); } catch (e) { window.location.hash = "#" + (i + 1); }
     }
     updateNotes();
     live.textContent = (slides[i].getAttribute("data-pg") || ((i + 1) + " / " + total)) + ", " + (slides[i].getAttribute("data-title") || "");
+    if (!overview.classList.contains("on")) { focusStage(); }
   }
 
   function next() { go(cur + 1); }
@@ -1045,7 +1095,7 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
     var c = overview.querySelector(".thumb.cur");
     if (c) { c.focus(); c.scrollIntoView({ block: "center" }); }
   }
-  function closeOverview() { overview.classList.remove("on"); }
+  function closeOverview() { overview.classList.remove("on"); focusStage(); }
   function toggleNotes() { notesPanel.classList.toggle("on"); }
   function toggleFullscreen() {
     if (document.fullscreenElement) {
@@ -1055,11 +1105,60 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
     }
   }
 
+  function normKey(e) {
+    var k = e.key || "";
+    var c = e.code || "";
+    var kc = e.keyCode || 0;
+    if (k === "ArrowRight" || k === "Right" || c === "ArrowRight" || kc === 39) { return "ArrowRight"; }
+    if (k === "ArrowLeft" || k === "Left" || c === "ArrowLeft" || kc === 37) { return "ArrowLeft"; }
+    if (k === "ArrowDown" || k === "Down" || c === "ArrowDown" || kc === 40) { return "ArrowDown"; }
+    if (k === "ArrowUp" || k === "Up" || c === "ArrowUp" || kc === 38) { return "ArrowUp"; }
+    if (k === "PageDown" || c === "PageDown" || kc === 34) { return "PageDown"; }
+    if (k === "PageUp" || c === "PageUp" || kc === 33) { return "PageUp"; }
+    if (k === "Home" || c === "Home" || kc === 36) { return "Home"; }
+    if (k === "End" || c === "End" || kc === 35) { return "End"; }
+    if (k === " " || k === "Spacebar" || c === "Space" || kc === 32) { return " "; }
+    if (k === "Escape" || k === "Esc" || c === "Escape" || kc === 27) { return "Escape"; }
+    if (k === "Enter" || c === "Enter" || kc === 13) { return "Enter"; }
+    return k;
+  }
+
+  // 캡처 단계(true)에서 키를 먼저 받아 영상 재생기 내부 버튼 등이 방향키 전파를 막아도 슬라이드 이동이 항상 동작하게 함
   window.addEventListener("keydown", function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) { return; }
-    var k = e.key;
+    var k = normKey(e);
     if (overview.classList.contains("on")) {
-      if (k === "Escape" || k === "o" || k === "O") { closeOverview(); e.preventDefault(); }
+      var thumbs = Array.prototype.slice.call(overview.querySelectorAll(".thumb"));
+      var fIdx = thumbs.indexOf(document.activeElement);
+      if (fIdx < 0) { fIdx = cur; }
+      if (k === "Escape" || k === "o" || k === "O") {
+        closeOverview();
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (k === "ArrowRight" || k === "ArrowDown") {
+        var ni = Math.min(thumbs.length - 1, fIdx + 1);
+        if (thumbs[ni]) { thumbs[ni].focus(); thumbs[ni].scrollIntoView({ block: "nearest" }); }
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (k === "ArrowLeft" || k === "ArrowUp") {
+        var pi = Math.max(0, fIdx - 1);
+        if (thumbs[pi]) { thumbs[pi].focus(); thumbs[pi].scrollIntoView({ block: "nearest" }); }
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (k === "Home" && thumbs[0]) {
+        thumbs[0].focus(); thumbs[0].scrollIntoView({ block: "nearest" });
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (k === "End" && thumbs.length) {
+        thumbs[thumbs.length - 1].focus(); thumbs[thumbs.length - 1].scrollIntoView({ block: "nearest" });
+        e.preventDefault();
+        e.stopPropagation();
+      } else if ((k === "Enter" || k === " ") && thumbs[fIdx]) {
+        closeOverview();
+        go(fIdx);
+        e.preventDefault();
+        e.stopPropagation();
+      }
       return;
     }
     var t = e.target;
@@ -1077,7 +1176,13 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
       default: return;
     }
     e.preventDefault();
-  });
+    e.stopPropagation();
+  }, true);
+
+  if (dnPrev) { dnPrev.addEventListener("click", function () { prev(); focusStage(); }); }
+  if (dnNext) { dnNext.addEventListener("click", function () { next(); focusStage(); }); }
+  if (dnOv) { dnOv.addEventListener("click", function () { if (overview.classList.contains("on")) { closeOverview(); } else { openOverview(); } }); }
+  window.addEventListener("mousemove", wakeNav, { passive: true });
 
   deck.addEventListener("click", function (e) {
     if (swiped) { swiped = false; return; }
@@ -1107,6 +1212,16 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
   slides.forEach(function (s) {
     var v = s.querySelector("video");
     if (!v) { return; }
+    v.setAttribute("tabindex", "-1");
+    function releaseVideoFocus() {
+      setTimeout(function () {
+        if (document.activeElement === v && v.blur) { v.blur(); }
+        if (!overview.classList.contains("on")) { focusStage(); }
+      }, 0);
+    }
+    ["focus", "mouseup", "click", "play", "pause", "volumechange", "seeked"].forEach(function (ev) {
+      v.addEventListener(ev, releaseVideoFocus);
+    });
     v.addEventListener("loadedmetadata", function () {
       s.classList.add("has-video");
       if (s.classList.contains("active")) { playVideo(v); }
@@ -1145,7 +1260,7 @@ html.no-motion .slide *, html.no-motion .slide *::before, html.no-motion .slide 
 
   // 점검 도구(shot.py 의 NO_ANIM)가 .dg 의 애니메이션을 끈 경우 하위 마이크로 모션도 함께 비활성화해 최종 프레임을 찍게 함
   function syncNoMotion() {
-    var probeDg = document.querySelector(".slide.active .dg") || document.querySelector(".slide .dg");
+    var probeDg = document.querySelector(".slide:not(.cover).active .dg");
     if (probeDg && window.getComputedStyle(probeDg).animationName === "none") {
       document.documentElement.classList.add("no-motion");
       return true;
