@@ -24,6 +24,11 @@ def num(n) -> str:
     return f"{n:,}"
 
 
+def console_tabs() -> dict:
+    """출품 데모 분석 화면의 탭 개수와 이름 목록을 조회한다."""
+    return next(v["value"] for k, v in _FACTS.items() if k.startswith("console") and k.endswith("_tabs"))
+
+
 # ---------------------------------------------------------------------------
 # Clinical Insurance & IT Terminology Constants (실무 용어 상수 및 표시 매핑)
 # ---------------------------------------------------------------------------
@@ -67,7 +72,9 @@ TERM: dict[str, str] = {
     "disc_range": "고지 범위",
     "base_cond": "기본 조건",
     "seg_status": "고객군별 가입 가능 현황",
-    "script_doc": "응대 화법",
+    "script_doc": "비교 요약지",
+    "dec_model": "의사결정 모델",
+    "dec_model_ai": "AI 의사결정 모델",
     "main_limit": "주계약 가입한도",
     "rider_limit": "특약 가입한도",
     "rel_cov": "관련 담보",
@@ -811,7 +818,7 @@ def make_npu_chip(
     label_mob: Mobject | None = None,
     z: int = 6,
 ) -> VGroup:
-    """회로 리드 핀과 내부 실리콘 다이 프레임을 갖춘 확률 산정 모델 칩."""
+    """회로 리드 핀과 내부 실리콘 다이 프레임을 갖춘 AI 의사결정 모델 칩."""
     p = np.array(pos, dtype=float)
     pins = VGroup()
     for i in range(6):

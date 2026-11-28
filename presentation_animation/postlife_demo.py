@@ -17,7 +17,7 @@ class Part2CollectExtractScene(_Part2CollectExtractScene):
 
 
 class Part3DecisionScene(_Part3DecisionScene):
-    """확률 산정 모델 원리와 검증, 분류 단계 장면."""
+    """AI 의사결정 모델 원리와 검증, 분류 단계 장면."""
 
 
 class Part4OntologyImpactScene(_Part4OntologyImpactScene):

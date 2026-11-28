@@ -79,16 +79,16 @@ class Part3DecisionScene(PostLifeBaseScene):
         quota_fails = fact("decide_quota_failures_logged")
 
         # ===================================================================
-        # 5장: 확률 산정 모델의 원리와 단일 호출 아키텍처
+        # 5장: AI 의사결정 모델의 원리와 단일 호출 아키텍처
         # ===================================================================
         hl, hr, hb = self.make_hud(
             5,
-            f"확률 산정 모델 {decide_model}: 선택지 확률 반환 방식",
-            "확률 산정 모델은 텍스트를 생성하지 않고 지정된 선택지별 확률만 반환합니다",
+            f"{TERM['dec_model_ai']} {decide_model}: 선택지 확률 반환 방식",
+            f"{TERM['dec_model']}은 텍스트를 생성하지 않고 지정된 선택지별 확률만 반환합니다",
         )
 
         # -------------------------------------------------------------------
-        # Beat 5A: 상하 듀얼 트랙(생성형 토큰 스트림 vs 비생성 확률 엔진) + 우측 적용 버스
+        # Beat 5A: 상하 듀얼 트랙(생성형 토큰 스트림 vs 의사결정 모델) + 우측 적용 버스
         # -------------------------------------------------------------------
         gen_lane = RoundedRectangle(
             corner_radius=0.09, width=7.72, height=2.08, fill_color=C_PANEL, fill_opacity=0.96, stroke_color=C_SLATE, stroke_width=2.0
@@ -128,7 +128,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         dec_hdr_row = fit(
             VGroup(
                 pill(f"{rel_date} 출시", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=13.0, px=0.11, py=0.04),
-                txt(f"비생성 확률 산정 모델 {decide_model} (최대 {num(d_spec['items_per_call'])}문항 사양)", size=14.8, color=C_GOLD, bold=True, z=7),
+                txt(f"{TERM['dec_model_ai']} {decide_model} (최대 {num(d_spec['items_per_call'])}문항 사양)", size=14.8, color=C_GOLD, bold=True, z=7),
             ).arrange(RIGHT, buff=0.14),
             max_w=7.40,
         ).move_to([-2.26, -0.44, 0]).set_z_index(7)
@@ -162,7 +162,7 @@ class Part3DecisionScene(PostLifeBaseScene):
 
         # 우측 적용 파이프라인 스택
         use_hdr = fit(
-            pill(f"확률 산정 모델 적용 {num(len(d_uses))}개 영역", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=14.8, z=8),
+            pill(f"{TERM['dec_model']} 적용 {num(len(d_uses))}개 영역", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=14.8, z=8),
             max_w=4.16,
         ).move_to([4.20, 2.38, 0])
         use_specs = [
@@ -288,7 +288,7 @@ class Part3DecisionScene(PostLifeBaseScene):
         pkt_ex_note = txt("(문항 배열 예시 그림)", size=12.8, color=C_INK_1, bold=True, z=7).move_to([-4.22, -1.72, 0])
         st5_left = VGroup(pkt_box, pkt_hdr, pkt_top, pkt_top_c, plus_badge, pkt_bot, pkt_bot_t, q_dots, pkt_ex_note)
 
-        # Stage 2 (Center): 비생성 선택지 확률 산정 코어 & 정형 문항 사양
+        # Stage 2 (Center): 의사결정 모델 코어 & 정형 문항 사양
         d1_c = np.array([0.0, 0.12, 0.0])
         d1_outer_dash = DashedVMobject(Circle(radius=1.34, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=2.2).move_to(d1_c), num_dashes=28).set_z_index(6)
         d1_core = Circle(radius=1.14, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_VIOLET, stroke_width=3.0).move_to(d1_c).set_z_index(7)

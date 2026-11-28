@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import numpy as np
 from manim import *
 
 from common import (
@@ -26,12 +25,14 @@ from common import (
     TERM,
     arrow_2d,
     bb_badge,
+    console_tabs,
     cross_mark,
     fact,
     fit,
     floor_grid_3d,
     glow_dot,
     label_ko,
+    make_doc_icon,
     make_refinery_funnel,
     num,
     pillar_3d,
@@ -56,7 +57,6 @@ class Part1ServiceScene(PostLifeBaseScene):
         hw_pages = fact("hanwha_summary_pages")
         img_pages = fact("image_doc", "pages")
 
-        rev_old = fact("example_targeted_anticancer", "revisions", 0)
         rev_new = fact("example_targeted_anticancer", "revisions", -1)
         basis_mw = rev_new["basis_manwon"]
         pay_new_mw = rev_new["pay_manwon"]
@@ -77,13 +77,19 @@ class Part1ServiceScene(PostLifeBaseScene):
         cov_in_use = fact("standard_coverage_in_use")
         cmp_pairs = fact("compared_coverage_pairs")
         forb_cnt = len(fact("forbidden_words"))
-        prem_rows = fact("premium_example_rows")
         card_order = fact("card_category_order")
-        scr_cnt = fact("site_screen_count")
-        wk_news = fact("screen_market_news")
+        c4_tabs = console_tabs()
+        c4_cnt = c4_tabs["count"]
+        t_names = c4_tabs["names"]
+        seg_cnt = fact("segment_map_cell_count")
         rev_chg_total = fact("revision_changes", "전체")
-        wlog_site = fact("work_log_count_site")
-        wlog_res = fact("work_log_by_result")
+        mnews_cnt = fact("market_news_count")
+        main_lim = fact("reference_main_contract_limit_manwon")
+        ep_comb = fact("combination_constraints_by_org", "EPOST")
+        pend_site = fact("mapping_status_site", "대기")
+        n_ins_cats = len(fact("sales_insight_categories"))
+        ins_cnt = fact("sales_insight_count")
+        g_cnts = fact("graph_counts")
 
         # ===================================================================
         # 1장: 구현 목표 서비스
@@ -327,7 +333,7 @@ class Part1ServiceScene(PostLifeBaseScene):
         f_ic_doc = svg_icon("doc_text", size=0.46, col=C_SLATE, accent=C_CORAL, z=7).move_to([3.20, 0.36, 0])
         f_row1_t = fit(
             VGroup(
-                txt("원문 근거 쪽수 미연결", size=13.8, color=C_CORAL, bold=True, z=7),
+                txt("원문 근거 쪽수 미표시", size=13.8, color=C_CORAL, bold=True, z=7),
                 txt("수백 쪽 공시 문서 즉시 대조 불가", size=12.8, color=C_INK_0, bold=True, z=7),
             ).arrange(DOWN, aligned_edge=LEFT, buff=0.05),
             max_w=2.58,
@@ -384,11 +390,11 @@ class Part1ServiceScene(PostLifeBaseScene):
         self.wait(4.20)
 
         # -------------------------------------------------------------------
-        # Beat 1B: 벡터 파이프라인 + 다크 슬레이트 A4 응대 화법 장표로 2D 아키텍처 완성
+        # Beat 1B: 벡터 파이프라인 + 다크 슬레이트 A4 비교 요약지 장표로 2D 아키텍처 완성
         # -------------------------------------------------------------------
         hb = self.update_subtitle(
             hb,
-            f"{TERM['sheet_master']}를 {TERM['snapshot']}로 보관해 본부 단독 HTML 화면과 창구 A4 단일 {TERM['script_doc']} 문서를 제공합니다",
+            f"{TERM['sheet_master']}를 {TERM['snapshot']}로 보관해 본부 단독 HTML 화면과 실무용 A4 {TERM['script_doc']}를 제공합니다",
         )
 
         srv_top_pill = fit(
@@ -437,64 +443,73 @@ class Part1ServiceScene(PostLifeBaseScene):
                 .set_z_index(6)
             )
         ledger_sub = fit(txt(f"외부 요청 {num(browser_problems)}건 ✓", size=13.2, color=C_INK_0, bold=True, z=7), max_w=2.38).move_to([-4.96, -1.68, 0])
-        left_refinery = VGroup(raw_docs, raw_lbl, refinery_funnel, ledger_frame, db_ic, ledger_hdr, ledger_cells, ledger_sub)
+        left_refinery = VGroup(raw_docs, raw_lbl, refinery_funnel, ledger_frame, db_ic, ledger_hdr, ledger_cells, ledger_sub).shift(LEFT * 0.08)
 
-        dash_frame = RoundedRectangle(corner_radius=0.10, width=5.48, height=4.00, fill_color=C_PANEL, fill_opacity=0.97, stroke_color=C_GOLD, stroke_width=2.5).move_to([-0.30, 0.04, 0]).set_z_index(4)
+        dash_frame = RoundedRectangle(corner_radius=0.10, width=5.32, height=4.00, fill_color=C_PANEL, fill_opacity=0.97, stroke_color=C_GOLD, stroke_width=2.5).move_to([-0.56, 0.04, 0]).set_z_index(4)
         dash_title = fit(
             VGroup(
                 svg_icon("hq_console", size=0.44, col=C_GOLD, accent=C_CYAN, z=8),
                 pill(f"① {SCREEN_TITLE} (오프라인 단독 HTML)", fg=C_GOLD, bg=C_PANEL_HI, border=C_GOLD_DEEP, size=14.6, px=0.12, py=0.05, z=7),
             ).arrange(RIGHT, buff=0.08),
-            max_w=5.24,
-        ).move_to([-0.30, 1.64, 0])
+            max_w=5.08,
+        ).move_to([-0.56, 1.64, 0])
         c_age = pill(f"{num(ref_age)}세", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=13.0, px=0.10, py=0.04, z=7)
         c_sex = pill(ref_sex_ko, fg=C_WHITE, bg=C_BG_SUB, border=C_SLATE, size=13.0, px=0.10, py=0.04, z=7)
         c_uw = pill(f"{base_var_name} ✓", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=13.0, px=0.11, py=0.04, z=7)
-        cond_strip = fit(VGroup(c_age, c_sex, c_uw).arrange(RIGHT, buff=0.10), max_w=5.22).move_to([-0.30, 1.06, 0])
+        c_tabs = pill(f"{num(c4_cnt)}개 탭 통합 비교", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=13.0, px=0.10, py=0.04, z=7)
+        cond_strip = fit(VGroup(c_age, c_sex, c_uw, c_tabs).arrange(RIGHT, buff=0.08), max_w=5.08).move_to([-0.56, 1.06, 0])
 
-        w1_box = RoundedRectangle(corner_radius=0.06, width=1.78, height=1.96, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_GOLD_DEEP, stroke_width=1.5).move_to([-2.05, -0.18, 0]).set_z_index(5)
-        w1_h = txt(TERM["uw_cmp"], size=13.4, color=C_GOLD, bold=True, z=7).move_to([-2.05, 0.56, 0])
+        w1_box = RoundedRectangle(corner_radius=0.06, width=1.74, height=1.96, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_GOLD_DEEP, stroke_width=1.5).move_to([-2.26, -0.18, 0]).set_z_index(5)
+        w1_h = txt(TERM["uw_cmp"], size=13.4, color=C_GOLD, bold=True, z=7).move_to([-2.26, 0.56, 0])
         w1_g_open = VGroup(
-            RoundedRectangle(corner_radius=0.04, width=1.68, height=0.48, fill_color="#383016", fill_opacity=0.96, stroke_color=C_GOLD, stroke_width=1.8),
-            fit(txt(f"{epost_name}: 입원만 ▲", size=12.8, color=C_GOLD, bold=True, z=8), max_w=1.64),
-        ).move_to([-2.05, 0.02, 0]).set_z_index(7)
+            RoundedRectangle(corner_radius=0.04, width=1.64, height=0.48, fill_color="#383016", fill_opacity=0.96, stroke_color=C_GOLD, stroke_width=1.8),
+            fit(txt(f"{epost_name}: 입원만 ▲", size=12.8, color=C_GOLD, bold=True, z=8), max_w=1.60),
+        ).move_to([-2.26, 0.02, 0]).set_z_index(7)
         w1_g_shut = VGroup(
-            RoundedRectangle(corner_radius=0.04, width=1.68, height=0.48, fill_color=C_CORAL_DIM, fill_opacity=0.96, stroke_color=C_CORAL, stroke_width=1.5),
-            fit(txt(f"{TERM['peer']}: 입원·수술 ×", size=12.8, color=C_CORAL, bold=True, z=8), max_w=1.64),
-        ).move_to([-2.05, -0.58, 0]).set_z_index(7)
+            RoundedRectangle(corner_radius=0.04, width=1.64, height=0.48, fill_color=C_CORAL_DIM, fill_opacity=0.96, stroke_color=C_CORAL, stroke_width=1.5),
+            fit(txt(f"{TERM['peer']}: 입원·수술 ×", size=12.8, color=C_CORAL, bold=True, z=8), max_w=1.60),
+        ).move_to([-2.26, -0.58, 0]).set_z_index(7)
 
-        w2_box = RoundedRectangle(corner_radius=0.06, width=1.74, height=1.96, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_CYAN, stroke_width=1.5).move_to([-0.21, -0.18, 0]).set_z_index(5)
-        w2_h = fit(txt(f"담보 {num(cov_in_use)}개, 비교 {num(cmp_pairs)}건", size=13.4, color=C_CYAN, bold=True, z=7), max_w=1.66).move_to([-0.21, 0.56, 0])
+        w2_box = RoundedRectangle(corner_radius=0.06, width=1.70, height=1.96, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_CYAN, stroke_width=1.5).move_to([-0.46, -0.18, 0]).set_z_index(5)
+        w2_h = fit(txt(f"담보 {num(cov_in_use)}개, 비교 {num(cmp_pairs)}건", size=13.4, color=C_CYAN, bold=True, z=7), max_w=1.62).move_to([-0.46, 0.56, 0])
         hm_cells = VGroup(
             *[
-                RoundedRectangle(corner_radius=0.03, width=0.36, height=0.26, fill_color=hcol, fill_opacity=0.90, stroke_width=0)
-                .move_to([-0.63 + (k % 3) * 0.42, 0.12 - (k // 3) * 0.32, 0])
+                RoundedRectangle(corner_radius=0.03, width=0.35, height=0.26, fill_color=hcol, fill_opacity=0.90, stroke_width=0)
+                .move_to([-0.87 + (k % 3) * 0.41, 0.12 - (k // 3) * 0.32, 0])
                 .set_z_index(7)
                 for k, hcol in enumerate([C_GOLD, C_CYAN, C_GOLD, C_MINT, C_GOLD, C_CORAL, C_MINT, C_CYAN, C_GOLD])
             ]
         )
-        w2_pg = fit(pill(f"{doc_kind} {num(doc_page)}쪽 표시", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=12.8, px=0.08, py=0.035, z=8), max_w=1.64).move_to([-0.21, -0.86, 0])
+        w2_pg = fit(pill(f"{doc_kind} {num(doc_page)}쪽 표시", fg=C_CYAN, bg=C_PANEL_HI, border=C_CYAN, size=12.8, px=0.08, py=0.035, z=8), max_w=1.60).move_to([-0.46, -0.86, 0])
 
-        w3_box = RoundedRectangle(corner_radius=0.06, width=1.60, height=1.96, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_MINT, stroke_width=1.5).move_to([1.54, -0.18, 0]).set_z_index(5)
-        w3_h = txt("실제 지급액", size=13.4, color=C_MINT, bold=True, z=7).move_to([1.54, 0.56, 0])
-        w3_ax = Line([0.92, -0.64, 0], [2.16, -0.64, 0], color=C_SLATE, stroke_width=1.6).set_z_index(6)
+        w3_box = RoundedRectangle(corner_radius=0.06, width=1.56, height=1.96, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_MINT, stroke_width=1.5).move_to([1.24, -0.18, 0]).set_z_index(5)
+        w3_h = txt("실제 지급액", size=13.4, color=C_MINT, bold=True, z=7).move_to([1.24, 0.56, 0])
+        w3_ax = Line([0.62, -0.64, 0], [1.86, -0.64, 0], color=C_SLATE, stroke_width=1.6).set_z_index(6)
         full_bar_h = 0.86
         red_bar_h = full_bar_h * red_rate
-        w3_b1 = Rectangle(width=0.34, height=red_bar_h, fill_color=C_CYAN, fill_opacity=0.88, stroke_width=0).move_to([1.28, -0.64 + red_bar_h / 2, 0]).set_z_index(7)
-        w3_b2 = Rectangle(width=0.38, height=full_bar_h, fill_color=C_GOLD, fill_opacity=0.96, stroke_color=WHITE, stroke_width=1.1).move_to([1.78, -0.64 + full_bar_h / 2, 0]).set_z_index(7)
-        w3_cap = fit(txt(f"{num(red_months)}개월 {num(red_pct)}% 감액", size=12.8, color=C_MINT, bold=True, z=7), max_w=1.52).move_to([1.54, -0.90, 0])
-        dash_foot = fit(txt(f"금지 표현 {num(forb_cnt)}개 빌드 차단, 기준 가입금액 {num(basis_mw)}만 원 예시 ✓", size=13.0, color=C_MINT, bold=True, z=7), max_w=5.24).move_to([-0.30, -1.56, 0])
-        hq_dash_grp = VGroup(dash_frame, dash_title, cond_strip, w1_box, w1_h, w1_g_open, w1_g_shut, w2_box, w2_h, hm_cells, w2_pg, w3_box, w3_h, w3_ax, w3_b1, w3_b2, w3_cap, dash_foot)
+        w3_b1 = Rectangle(width=0.34, height=red_bar_h, fill_color=C_CYAN, fill_opacity=0.88, stroke_width=0).move_to([0.98, -0.64 + red_bar_h / 2, 0]).set_z_index(7)
+        w3_b2 = Rectangle(width=0.38, height=full_bar_h, fill_color=C_GOLD, fill_opacity=0.96, stroke_color=WHITE, stroke_width=1.1).move_to([1.48, -0.64 + full_bar_h / 2, 0]).set_z_index(7)
+        w3_cap = fit(txt(f"{num(red_months)}개월 {num(red_pct)}% 감액", size=12.8, color=C_MINT, bold=True, z=7), max_w=1.48).move_to([1.24, -0.90, 0])
+        dash_foot = fit(txt(f"금지 표현 {num(forb_cnt)}개 빌드 차단, 기준 가입금액 {num(basis_mw)}만 원 예시 ✓", size=13.0, color=C_MINT, bold=True, z=7), max_w=5.08).move_to([-0.56, -1.56, 0])
+        hq_dash_grp = VGroup(dash_frame, dash_title, cond_strip, w1_box, w1_h, w1_g_open, w1_g_shut, w2_box, w2_h, hm_cells, w2_pg, w3_box, w3_h, w3_ax, w3_b1, w3_b2, w3_cap, dash_foot).shift(LEFT * 0.22)
 
-        feed_to_dash = arrow_2d([-3.62, -0.55, 0], [-3.08, -0.18, 0], color=C_MINT, sw=2.8, tip=0.14, z=7)
-        bridge_to_a4 = arrow_2d([2.48, 0.04, 0], [3.42, 0.04, 0], color=C_GOLD, sw=3.4, tip=0.16, z=8)
-        bridge_lbl = pill(f"A4 {TERM['script_doc']}", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=12.8, px=0.08, py=0.04, z=9).move_to([2.95, 0.48, 0])
+        feed_to_dash = arrow_2d([-3.71, -0.55, 0], [-3.47, -0.18, 0], color=C_MINT, sw=2.8, tip=0.14, z=7)
+        bridge_to_a4 = arrow_2d([1.93, 0.04, 0], [2.96, 0.04, 0], color=C_GOLD, sw=3.4, tip=0.16, z=8)
+        bridge_lbl_bg = RoundedRectangle(corner_radius=0.06, width=0.90, height=0.58, fill_color=C_GOLD, fill_opacity=0.98, stroke_color=WHITE, stroke_width=1.5).move_to([2.445, 0.56, 0]).set_z_index(9)
+        bridge_lbl_tx = fit(
+            VGroup(
+                txt("A4", size=13.0, color=C_DARK_INK, bold=True, z=10),
+                txt(TERM["script_doc"], size=12.8, color=C_DARK_INK, bold=True, z=10),
+            ).arrange(DOWN, buff=0.03),
+            max_w=0.82,
+        ).move_to(bridge_lbl_bg)
+        bridge_lbl = VGroup(bridge_lbl_bg, bridge_lbl_tx)
 
         a4_srv_grp = make_dark_a4_sheet(
-            [4.86, 0.04, 0],
-            w=2.78,
+            [4.64, 0.04, 0],
+            w=3.26,
             h=4.00,
-            badge_s="대외 배포 금지, A4 단일 장표",
+            badge_s="내부 교육, 비교 참고용 (대외 배포 금지)",
             title_s=f"② 창구, 설계사 {TERM['script_doc']}",
             rows=[
                 (C_GOLD, f"▲ {label_ko(card_order[0])}: 통원수술 고지"),
@@ -511,12 +526,12 @@ class Part1ServiceScene(PostLifeBaseScene):
         ).move_to([0.0, -2.58, 0])
 
         funnel_drops = VGroup(
-            *[glow_dot([-4.96, 0.12, 0], color=C_MINT if k % 2 == 0 else C_GOLD, r=0.052, z=11) for k in range(3)]
+            *[glow_dot([-5.04, 0.12, 0], color=C_MINT if k % 2 == 0 else C_GOLD, r=0.052, z=11) for k in range(3)]
         )
         self.add(funnel_drops)
         self.cam_move(
             zoom=1.34,
-            center=[-4.65, 0.12, 0],
+            center=[-4.68, 0.12, 0],
             anims=[
                 FadeOut(beat1a_all, shift=UP * 0.10),
                 FadeIn(raw_lbl),
@@ -525,7 +540,7 @@ class Part1ServiceScene(PostLifeBaseScene):
                 *[
                     Succession(
                         Wait(0.35 + k * 0.22),
-                        MoveAlongPath(funnel_drops[k], Line([-4.96, 0.12, 0], [-4.96, -0.45, 0]), run_time=0.65),
+                        MoveAlongPath(funnel_drops[k], Line([-5.04, 0.12, 0], [-5.04, -0.45, 0]), run_time=0.65),
                     )
                     for k in range(3)
                 ],
@@ -540,10 +555,10 @@ class Part1ServiceScene(PostLifeBaseScene):
         # 규칙 A: 본부 화면으로 초점이 이동하는 동안 왼쪽 정제 열(라벨, 깔때기, 시트 박스)이 좌측 경계 안에 남도록 중심을 정함
         self.cam_move(
             zoom=1.34,
-            center=[-1.80, 0.04, 0],
+            center=[-2.04, 0.04, 0],
             anims=[
                 GrowArrow(feed_to_dash),
-                FadeIn(VGroup(dash_frame, dash_title, c_age, c_sex, dash_foot)),
+                FadeIn(VGroup(dash_frame, dash_title, c_age, c_sex, c_tabs, dash_foot)),
                 FadeIn(c_uw, scale=1.22),
                 FadeIn(VGroup(w1_box, w1_h)),
                 FadeIn(w1_g_open, shift=UP * 0.12),
@@ -558,18 +573,18 @@ class Part1ServiceScene(PostLifeBaseScene):
         )
         self.wait(2.40)
 
-        print_laser = Line([3.44, 1.96, 0], [6.28, 1.96, 0], color=C_GOLD, stroke_width=4.0).set_z_index(12)
+        print_laser = Line([3.02, 1.96, 0], [6.26, 1.96, 0], color=C_GOLD, stroke_width=4.0).set_z_index(12)
         self.add(print_laser)
         # 규칙 A: A4 장표로 초점이 이동하는 동안 본부 화면(제목 pill, 인수기준 비교, 나이 칩)이 좌측 경계에서 잘리지 않도록 중심과 배율을 정함
         self.cam_move(
             zoom=1.36,
-            center=[1.82, 0.04, 0],
+            center=[1.46, 0.04, 0],
             anims=[
                 feed_to_dash.animate.set_opacity(0.0),
                 GrowArrow(bridge_to_a4),
                 FadeIn(bridge_lbl, scale=0.88),
                 FadeIn(a4_srv_grp[:7]),
-                print_laser.animate.move_to([4.86, -1.90, 0]),
+                print_laser.animate.move_to([4.64, -1.90, 0]),
                 LaggedStart(*[FadeIn(ab, shift=DOWN * 0.08) for ab in a4_srv_grp[7]], lag_ratio=0.15),
                 FadeIn(a4_srv_grp[8:]),
             ],
@@ -592,7 +607,7 @@ class Part1ServiceScene(PostLifeBaseScene):
         self.wait(4.80)
 
         # ===================================================================
-        # 2장: 각 화면을 중앙에서 크게 동적 시연한 뒤 연결 차트로 조립
+        # 2장: 제출 데모 상단 통합 조건 바 및 6개 분석 탭 아키텍처
         # ===================================================================
         hl, hr, hb = self.switch_hud(
             ch1_stage,
@@ -600,233 +615,322 @@ class Part1ServiceScene(PostLifeBaseScene):
             hr,
             hb,
             2,
-            f"구현한 운영 화면 {num(scr_cnt)}개: 조건 연동 화면과 조건 무관 화면",
-            f"{TERM['uw_first']}, 담보 비교, 조합 지급액, 개정 비교는 선택한 조건을 따르고, 주간 요약과 작업 내역은 조건과 무관합니다",
+            f"구현한 분석 화면 ({num(c4_cnt)}개 탭): 상단 조건 제어 바와 탭별 핵심 기능",
+            f"상단 제어 바에서 조건({num(ref_age)}세 {ref_sex_ko}, {base_var_name})과 비교 {TERM['peer']}를 선택하면 {num(c4_cnt)}개 탭이 한 화면에서 연동됩니다",
         )
 
-        hub_c = np.array([0.0, 0.28, 0.0])
-        hub_halo = Circle(radius=1.28, fill_opacity=0.0, stroke_color=C_GOLD_DEEP, stroke_width=1.6, stroke_opacity=0.72).move_to(hub_c).set_z_index(6)
-        hub_outer_ring = DashedVMobject(Circle(radius=1.14, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=2.4).move_to(hub_c), num_dashes=28).set_z_index(7)
-        hub_core = Circle(radius=0.96, fill_color=C_PANEL_HI, fill_opacity=0.98, stroke_color=C_GOLD, stroke_width=3.0).move_to(hub_c).set_z_index(8)
-        hub_ticks = VGroup(
+        # 상단 통합 조건, 비교 타사 제어 바 (부분 줌 동안에도 제목 바 아래에 고정 유지)
+        tb_bg = RoundedRectangle(
+            corner_radius=0.09,
+            width=12.52,
+            height=0.68,
+            fill_color=C_PANEL_HI,
+            fill_opacity=0.98,
+            stroke_color=C_GOLD,
+            stroke_width=2.0,
+        ).move_to([0.0, 2.52, 0]).set_z_index(24)
+        tb_c0 = pill(f"{SCREEN_TITLE} 제어 바", fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=13.2, px=0.13, py=0.05, z=25)
+        tb_c1 = pill(f"조건: {num(ref_age)}세 {ref_sex_ko} | {base_var_name}", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=13.0, px=0.12, py=0.05, z=25)
+        tb_c2 = pill(f"비교 {TERM['peer']}: {epost_name} 포함 {num(site_org_cnt)}개사", fg=C_INK_0, bg=C_BG_SUB, border=C_SLATE, size=13.0, px=0.12, py=0.05, z=25)
+        tb_c3 = pill("단일 뷰포트 탭 전환 ✓", fg=C_MINT, bg=C_BG_SUB, border=C_MINT, size=13.0, px=0.12, py=0.05, z=25)
+        tb_chips = fit(VGroup(tb_c0, tb_c1, tb_c2, tb_c3).arrange(RIGHT, buff=0.22), max_w=12.16).move_to(tb_bg)
+        toolbar = VGroup(tb_bg, tb_chips)
+        self.add_fixed_in_frame_mobjects(toolbar)
+        self.remove(toolbar)
+
+        # 상단 제어 바에서 3열 x 2행 탭 카드로 내려가는 병렬 버스 배선
+        bus_trunk = VGroup(
+            Line([0.0, 2.18, 0], [0.0, 2.05, 0], color=C_GOLD, stroke_width=2.4).set_z_index(5),
+            Dot([0.0, 2.05, 0], radius=0.045, color=C_GOLD).set_z_index(6),
+        )
+        bus_r1_left_arm = VGroup(
+            Line([0.0, 2.05, 0], [-4.18, 2.05, 0], color=C_CYAN, stroke_width=2.0).set_z_index(5),
+            arrow_2d([-4.18, 2.05, 0], [-4.18, 1.92, 0], color=C_CYAN, sw=2.0, tip=0.08, z=6),
+        )
+        drop_2 = arrow_2d([0.0, 2.05, 0], [0.0, 1.92, 0], color=C_VIOLET, sw=2.0, tip=0.08, z=6)
+        bus_r1_left = VGroup(bus_r1_left_arm, drop_2)
+        bus_r1_right = VGroup(
+            Line([0.0, 2.05, 0], [4.18, 2.05, 0], color=C_AMBER, stroke_width=2.0).set_z_index(5),
+            arrow_2d([4.18, 2.05, 0], [4.18, 1.92, 0], color=C_AMBER, sw=2.0, tip=0.08, z=6),
+        )
+        bus_risers = VGroup(
+            Line([-2.09, 2.05, 0], [-2.09, -0.35, 0], color=C_SLATE, stroke_width=1.8).set_z_index(4),
+            Line([2.09, 2.05, 0], [2.09, -0.35, 0], color=C_SLATE, stroke_width=1.8).set_z_index(4),
+            Dot([-2.09, 2.05, 0], radius=0.040, color=C_CYAN).set_z_index(6),
+            Dot([2.09, 2.05, 0], radius=0.040, color=C_AMBER).set_z_index(6),
+            Dot([-2.09, -0.35, 0], radius=0.040, color=C_MINT).set_z_index(6),
+            Dot([2.09, -0.35, 0], radius=0.040, color=C_GOLD).set_z_index(6),
+        )
+        bus_r2_left_arm = VGroup(
+            Line([-2.09, -0.35, 0], [-4.18, -0.35, 0], color=C_MINT, stroke_width=2.0).set_z_index(5),
+            Line([-2.09, -0.35, 0], [0.0, -0.35, 0], color=C_GOLD, stroke_width=2.2).set_z_index(5),
+            arrow_2d([-4.18, -0.35, 0], [-4.18, -0.50, 0], color=C_MINT, sw=2.0, tip=0.08, z=6),
+        )
+        drop_5 = arrow_2d([0.0, -0.35, 0], [0.0, -0.50, 0], color=C_GOLD, sw=2.2, tip=0.08, z=6)
+        bus_r2_left = VGroup(bus_r2_left_arm, drop_5)
+        bus_r2_right = VGroup(
+            Line([0.0, -0.35, 0], [4.18, -0.35, 0], color=C_CYAN, stroke_width=2.0).set_z_index(5),
+            arrow_2d([4.18, -0.35, 0], [4.18, -0.50, 0], color=C_CYAN, sw=2.0, tip=0.08, z=6),
+        )
+        bus_all = VGroup(bus_trunk, bus_r1_left, bus_r1_right, bus_risers, bus_r2_left, bus_r2_right)
+
+        def make_tab_card(
+            cx: float,
+            cy: float,
+            col: str,
+            ic_nm: str,
+            tab_no: str,
+            title_s: str,
+            mini_viz: Mobject,
+            mid_s: str,
+            bot_s: str,
+            highlight: bool = False,
+        ) -> VGroup:
+            frame = RoundedRectangle(
+                corner_radius=0.09,
+                width=4.00,
+                height=2.12,
+                fill_color="#1A180E" if highlight else C_PANEL,
+                fill_opacity=0.97,
+                stroke_color=col,
+                stroke_width=3.0 if highlight else 2.1,
+            ).move_to([cx, cy, 0]).set_z_index(4)
+            dark_fg = col in (C_GOLD, C_MINT, C_CYAN, C_AMBER)
+            ic_m = svg_icon(ic_nm, size=0.40, col=col, accent=C_GOLD, z=8)
+            no_pill = pill(tab_no, fg=C_DARK_INK if dark_fg else C_WHITE, bg=col, border=WHITE, size=13.0, px=0.09, py=0.03, z=7)
+            hdr = fit(
+                VGroup(ic_m, no_pill, txt(title_s, size=14.6, color=col, bold=True, z=7)).arrange(RIGHT, buff=0.09),
+                max_w=3.76,
+            ).move_to([cx, cy + 0.72, 0])
+            div = Line([cx - 1.82, cy + 0.41, 0], [cx + 1.82, cy + 0.41, 0], color=col, stroke_width=1.2, stroke_opacity=0.50).set_z_index(5)
+            mid_pill = pill(mid_s, fg=C_WHITE, bg=C_BG_SUB, border=col, size=13.2, px=0.10, py=0.045, z=7)
+            mid_row = fit(VGroup(mini_viz, mid_pill).arrange(RIGHT, buff=0.12), max_w=3.76).move_to([cx, cy - 0.04, 0]).set_z_index(7)
+            bot_t = fit(
+                txt(bot_s, size=12.8, color=C_GOLD if highlight else C_INK_0, bold=True, z=7),
+                max_w=3.76,
+            ).move_to([cx, cy - 0.68, 0])
+            return VGroup(frame, hdr, div, mid_row, bot_t)
+
+        # 탭 ① 전체 요약: 5개 미니 가로 막대 + 5대 분석 영역 기준축 요약
+        t1_bars = VGroup(
             *[
-                Line(
-                    hub_c + np.array([np.cos(k * PI / 6) * 0.83, np.sin(k * PI / 6) * 0.83, 0]),
-                    hub_c + np.array([np.cos(k * PI / 6) * 0.93, np.sin(k * PI / 6) * 0.93, 0]),
-                    color=C_GOLD if k % 3 == 0 else C_SLATE,
-                    stroke_width=1.8 if k % 3 == 0 else 1.1,
+                RoundedRectangle(
+                    corner_radius=0.02,
+                    width=bw,
+                    height=0.065,
+                    fill_color=bc,
+                    fill_opacity=0.94,
+                    stroke_width=0,
+                ).move_to([bw / 2, -idx * 0.105, 0])
+                for idx, (bw, bc) in enumerate(
+                    [(0.52, C_CYAN), (0.40, C_GOLD), (0.46, C_MINT), (0.30, C_VIOLET), (0.36, C_AMBER)]
                 )
-                for k in range(12)
             ]
-        ).set_z_index(8)
-        dial_needle = Arrow(hub_c + UP * 0.66, hub_c + UP * 1.18, buff=0, color=C_GOLD, stroke_width=3.4, tip_length=0.15).set_z_index(12)
-        hub_txt = fit(
-            VGroup(
-                txt(f"{TERM['base_cond']}, 기준 종형", size=13.4, color=C_GOLD, bold=True, z=9),
-                pill(f"{num(ref_age)}세, {ref_sex_ko}", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=13.0, px=0.09, py=0.035, z=9),
-                pill(base_var_name, fg=C_DARK_INK, bg=C_GOLD, border=WHITE, size=13.0, px=0.08, py=0.035, z=9),
-            ).arrange(DOWN, buff=0.075),
-            max_w=1.70,
-        ).move_to(hub_c)
-        central_hub_body = VGroup(hub_halo, hub_outer_ring, hub_core, hub_ticks, hub_txt)
-        central_hub = VGroup(hub_halo, hub_outer_ring, hub_core, hub_ticks, dial_needle, hub_txt)
-
-        def make_radial_module(cx: float, cy: float, col: str, ic_nm: str, badge_s: str, title_s: str, cap_s: str, widget: VGroup) -> VGroup:
-            card = RoundedRectangle(corner_radius=0.09, width=3.88, height=1.74, fill_color=C_PANEL, fill_opacity=0.96, stroke_color=col, stroke_width=2.2).move_to([cx, cy, 0]).set_z_index(4)
-            dark_fg = col in (C_GOLD, C_MINT, C_CYAN, C_AMBER, "#93C5FD")
-            ic_m = svg_icon(ic_nm, size=0.38, col=col, accent=C_GOLD, z=8)
-            bdg = pill(badge_s, fg=C_DARK_INK if dark_fg else WHITE, bg=col, border=WHITE, size=12.8, px=0.08, py=0.03, z=7)
-            hdr = fit(VGroup(ic_m, bdg, txt(title_s, size=14.6, color=col, bold=True, z=7)).arrange(RIGHT, buff=0.07), max_w=3.70).move_to([cx, cy + 0.58, 0])
-            widget = fit(widget, max_w=3.70).move_to([cx, cy - 0.03, 0]).set_z_index(7)
-            cap = fit(txt(cap_s, size=12.8, color=C_INK_0, bold=True, z=7), max_w=3.70).move_to([cx, cy - 0.62, 0])
-            return VGroup(card, hdr, widget, cap)
-
-        wg1 = VGroup(
-            pill(f"{wk_news['week']} 동향 {num(wk_news['count'])}건", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD, size=12.8, px=0.09, py=0.03),
-            pill(f"조건 무관 ({TERM['base_cond']} 산출)", fg=C_VIOLET, bg=C_BG_SUB, border=C_VIOLET, size=12.8, px=0.09, py=0.03),
-        ).arrange(DOWN, buff=0.055)
-        m_1 = make_radial_module(
-            -4.36, 2.16, C_VIOLET, "search_globe", "화면 ①", "종합 요약과 주간 동향",
-            f"{num(news_inst_cnt)}개 기관 {TERM['trend']} (우열 변화: {TERM['snapshot']} 누적 후)", wg1,
+        ).set_z_index(7)
+        tab_1 = make_tab_card(
+            -4.18,
+            0.86,
+            C_CYAN,
+            "hq_console",
+            "탭 ①",
+            t_names[0],
+            t1_bars,
+            f"{num(n_ins_cats)}대 분석 영역 기준축 요약",
+            "핵심 결론 문장 및 요약표 확인",
         )
 
-        wg2 = VGroup(
-            pill(f"{epost_name}: 입원만 ▲", fg=C_AMBER, bg=C_BG_SUB, border=C_AMBER, size=12.8, px=0.09, py=0.03),
-            pill(f"{peer_site_names}: 입원·수술 ×", fg=C_CORAL, bg=C_BG_SUB, border=C_CORAL, size=12.8, px=0.09, py=0.03),
-        ).arrange(DOWN, buff=0.055)
-        m_2 = make_radial_module(-4.36, 0.28, C_GOLD, "shield_check", "화면 ②", TERM["uw_cmp"], f"이력과 나이 구간별 {TERM['disc_item']} 차이 대조", wg2)
+        # 탭 ② 고객군과 시장: 미니 링/도넛 차트 + 48개 고객군 가입 가능 링 차트
+        t2_ring = VGroup(
+            Circle(radius=0.23, fill_color=C_BG_SUB, fill_opacity=0.96, stroke_color=C_SLATE, stroke_width=3.6),
+            Arc(radius=0.23, start_angle=0.2, angle=2.8, color=C_MINT, stroke_width=4.4),
+            Arc(radius=0.23, start_angle=3.1, angle=1.7, color=C_GOLD, stroke_width=4.4),
+            Arc(radius=0.23, start_angle=4.9, angle=1.1, color=C_VIOLET, stroke_width=4.4),
+            Dot(ORIGIN, radius=0.045, color=C_VIOLET),
+        ).set_z_index(7)
+        tab_2 = make_tab_card(
+            0.0,
+            0.86,
+            C_VIOLET,
+            "search_globe",
+            "탭 ②",
+            t_names[1],
+            t2_ring,
+            f"{num(seg_cnt)}개 고객군 가입 가능 링 차트",
+            f"개정 변경 {num(rev_chg_total)}건, {TERM['trend']} {num(mnews_cnt)}건",
+        )
 
-        wg3_step = VMobject(color=C_MINT, stroke_width=2.8)
-        wg3_step.set_points_as_corners([[0.0, -0.17, 0], [0.34, -0.17, 0], [0.34, 0.17, 0], [0.74, 0.17, 0]])
-        wg3 = VGroup(
-            pill("주계약", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=13.0, px=0.09, py=0.035),
-            arrow_2d([0, 0, 0], [0.28, 0, 0], color=C_MINT, sw=2.0, tip=0.08),
-            pill("특약 선택", fg=C_GOLD, bg=C_BG_SUB, border=C_GOLD, size=13.0, px=0.09, py=0.035),
-            wg3_step,
-        ).arrange(RIGHT, buff=0.10)
-        m_3 = make_radial_module(-4.36, -1.60, C_MINT, "code_calc", "화면 ④", "특약 조합별 실제 지급액", f"{TERM['rider_cond']}과 감액기간 반영 지급액 산출", wg3)
+        # 탭 ③ 인수기준 비교: 통과 단계 막대 기호 + 고지항목 통과 단계, 한도 4,000만 원
+        t3_steps = VGroup(
+            RoundedRectangle(corner_radius=0.03, width=0.46, height=0.14, fill_color=C_MINT, fill_opacity=0.90, stroke_color=WHITE, stroke_width=0.9).move_to([0, 0.12, 0]),
+            RoundedRectangle(corner_radius=0.03, width=0.36, height=0.14, fill_color=C_AMBER, fill_opacity=0.92, stroke_color=WHITE, stroke_width=0.9).move_to([-0.05, -0.10, 0]),
+        ).set_z_index(7)
+        tab_3 = make_tab_card(
+            4.18,
+            0.86,
+            C_AMBER,
+            "shield_check",
+            "탭 ③",
+            t_names[2],
+            t3_steps,
+            f"{TERM['disc_item']} 통과 단계, 한도 {num(main_lim)}만 원",
+            f"목적별 특약 구성, {TERM['rider_cond']} {num(ep_comb)}건",
+        )
 
-        wg4_cells = VGroup(
+        # 탭 ④ 담보 비교: 고정 헤더 미니 비교표 격자 + 표준담보 86개, 공통 비교 20건
+        t4_hdr = RoundedRectangle(corner_radius=0.02, width=0.56, height=0.10, fill_color=C_MINT, fill_opacity=0.92, stroke_width=0)
+        t4_grid = VGroup(
             *[
-                RoundedRectangle(corner_radius=0.03, width=0.30, height=0.22, fill_color=c, fill_opacity=0.92, stroke_width=0)
-                for c in (C_GOLD, C_CYAN, C_MINT, C_CORAL)
+                RoundedRectangle(corner_radius=0.02, width=0.25, height=0.14, fill_color=hc, fill_opacity=0.90, stroke_width=0)
+                for hc in (C_GOLD, C_CYAN, C_MINT, C_CORAL)
             ]
-        ).arrange_in_grid(rows=2, cols=2, buff=0.05)
-        wg4 = VGroup(
-            wg4_cells,
-            arrow_2d([0, 0, 0], [0.28, 0, 0], color=C_GOLD, sw=2.0, tip=0.08),
-            pill(f"근거 쪽수, A4 {TERM['script_doc']}", fg=C_CYAN, bg=C_BG_SUB, border=C_CYAN, size=12.8, px=0.09, py=0.035),
-        ).arrange(RIGHT, buff=0.10)
-        m_4 = make_radial_module(
-            4.36, 2.16, C_CYAN, "book_dict", "화면 ③", f"표준담보 {num(cov_in_use)}개와 {TERM['unheld_cov']}",
-            f"비교 담보 {num(cmp_pairs)}건 대조 및 A4 단일 {TERM['script_doc']} 출력", wg4,
+        ).arrange_in_grid(rows=2, cols=2, buff=0.04)
+        t4_tbl = VGroup(t4_hdr, t4_grid).arrange(DOWN, buff=0.04).set_z_index(7)
+        tab_4 = make_tab_card(
+            -4.18,
+            -1.56,
+            C_MINT,
+            "book_dict",
+            "탭 ④",
+            t_names[3],
+            t4_tbl,
+            f"표준담보 {num(cov_in_use)}개, 공통 비교 {num(cmp_pairs)}건",
+            f"고정 헤더 비교표 복사, {TERM['review_wait']} {num(pend_site)}건 분리",
         )
 
-        old_yr = rev_old["reduce"][0]["months"] // 12
-        new_yr = rev_new["reduce"][0]["months"] // 12
-        wg5 = VGroup(
-            pill(f"개정 전 {rev_old['revision_no']}: {num(rev_old['pay_manwon'])}만, 감액 {num(old_yr)}년", fg=C_INK_0, bg=C_BG_SUB, border=C_SLATE, size=12.8, px=0.09, py=0.03),
-            pill(f"개정 후 {rev_new['revision_no']}: {num(rev_new['pay_manwon'])}만, 감액 {num(new_yr)}년 ▲", fg=C_GOLD, bg="#383016", border=C_GOLD, size=12.8, px=0.09, py=0.03),
-        ).arrange(DOWN, buff=0.055)
-        m_5 = make_radial_module(
-            4.36, 0.28, C_AMBER, "git_lineage", "화면 ⑤", "개정 전후 비교",
-            f"기준 {num(basis_mw)}만 원 예시, 변경 담보 {num(rev_chg_total)}개 연결", wg5,
+        # 탭 ⑤ 영업 인사이트 (금색 강조 테두리): 미니 A4 시트 + 5분류 35건 도출
+        t5_sheet = make_doc_icon(w=0.38, h=0.46, col=C_GOLD, fill="#221D0E", z=7)
+        tab_5 = make_tab_card(
+            0.0,
+            -1.56,
+            C_GOLD,
+            "brief_sheet",
+            "탭 ⑤",
+            t_names[4],
+            t5_sheet,
+            f"{num(n_ins_cats)}분류 {num(ins_cnt)}건 도출, 원문 쪽수 표시",
+            f"우측 패널 A4 {TERM['script_doc']} 인쇄, 복사 ✓",
+            highlight=True,
         )
 
-        # 막대 높이는 work_log_by_result(모든 기관), pill 건수는 work_log_count_site(화면에 올린 기관)라 기준이 달라 문구로 구분
-        max_wlog_r = max(wlog_res.values())
-        wg6_bar_cols = [C_GOLD, C_CYAN, C_CORAL]
-        wg6_bar_cols_grp = VGroup()
-        for b_idx, (res_name, res_cnt) in enumerate(wlog_res.items()):
-            b_h = max((res_cnt / max_wlog_r) * 0.34, 0.04)
-            b_rect = Rectangle(width=0.22, height=b_h, fill_color=wg6_bar_cols[b_idx % len(wg6_bar_cols)], fill_opacity=0.95, stroke_width=0)
-            b_rect.move_to([b_idx * 0.44, b_h / 2, 0])
-            b_lbl = txt(res_name, size=13.8, color=C_INK_0, bold=True).next_to([b_idx * 0.44, 0, 0], DOWN, buff=0.04)
-            wg6_bar_cols_grp.add(VGroup(b_rect, b_lbl))
-        wg6_base = Line([-0.18, 0, 0], [0.18 + 0.44 * (len(wlog_res) - 1), 0, 0], color=C_SLATE, stroke_width=1.2)
-        wg6_bars = VGroup(wg6_base, wg6_bar_cols_grp)
-        wg6_info = VGroup(
-            pill(f"로그 {num(wlog_site)}건, 조건 무관", fg="#93C5FD", bg=C_BG_SUB, border="#93C5FD", size=12.8, px=0.08, py=0.025),
-            txt(f"{TERM['ours']} 포함 {num(site_org_cnt)}개사 기준", size=12.6, color=C_INK_0, bold=True),
-            txt("막대: 결과별 건수(모든 기관)", size=12.6, color=C_INK_1, bold=True),
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.035)
-        wg6 = VGroup(wg6_bars, wg6_info).arrange(RIGHT, buff=0.14)
-        m_6 = make_radial_module(4.36, -1.60, "#93C5FD", "cpu_decide", "화면 ⑥", "AI 작업 내역", f"{TERM['extract']}, 코드 대조, 확률 산정, {TERM['review_wait']} 이관 기록 공개", wg6)
+        # 탭 ⑥ 관계 그래프: 미니 3노드 삼각 연결 + 노드 9,881개, 엣지 14,349개 탐색
+        g_p0, g_p1, g_p2 = [0.0, 0.22, 0], [-0.22, -0.16, 0], [0.22, -0.16, 0]
+        t6_graph = VGroup(
+            Line(g_p0, g_p1, color=C_CYAN, stroke_width=2.0),
+            Line(g_p0, g_p2, color=C_GOLD, stroke_width=2.0),
+            Line(g_p1, g_p2, color=C_MINT, stroke_width=2.0),
+            Dot(g_p0, radius=0.065, color=C_GOLD),
+            Dot(g_p1, radius=0.065, color=C_CYAN),
+            Dot(g_p2, radius=0.065, color=C_MINT),
+        ).set_z_index(7)
+        tab_6 = make_tab_card(
+            4.18,
+            -1.56,
+            C_CYAN,
+            "git_lineage",
+            "탭 ⑥",
+            t_names[5],
+            t6_graph,
+            f"노드 {num(g_cnts['nodes'])}개, 엣지 {num(g_cnts['edges'])}개 탐색",
+            "담보 연결, 종형 구성, 동향 뷰",
+        )
 
-        self.add(dial_needle)
+        # Beat 2A: 상단 조건 도구줄 등장 및 조건, 타사 선택 강조 (3.35s)
+        self.play(FadeIn(toolbar, shift=DOWN * 0.08), Create(bus_trunk), run_time=1.20)
+        self.play(
+            Circumscribe(tb_c1, color=C_CYAN, stroke_width=2.4, buff=0.04),
+            Circumscribe(tb_c2, color=C_GOLD, stroke_width=2.4, buff=0.04),
+            run_time=0.85,
+        )
+        self.wait(1.30)
+
+        # Beat 2B: 상단 행 좌, 중(탭 ① 전체 요약, 탭 ② 고객군과 시장) 줌 시연 (3.40s)
         self.cam_move(
-            phi=0 * DEGREES,
-            theta=-90 * DEGREES,
-            zoom=1.56,
-            center=[0.0, 0.28, 0.0],
+            zoom=1.38,
+            center=[-2.09, 1.18, 0],
             anims=[
-                FadeIn(central_hub_body, scale=0.84),
-                Rotate(dial_needle, angle=-TAU, about_point=hub_c),
+                Create(bus_r1_left),
+                FadeIn(tab_1, shift=UP * 0.10),
+                FadeIn(tab_2, shift=UP * 0.10),
             ],
-            rt=1.45,
+            rt=1.30,
         )
-        self.wait(1.80)
-        self.reset_cam_2d(rt=0.95)
+        self.wait(2.10)
 
-        central_hub.save_state()
-        m_2_pos, m_3_pos = m_2.get_center().copy(), m_3.get_center().copy()
-        m_2.scale(1.30).move_to([-3.24, 0.28, 0]).set_z_index(15)
-        m_3.scale(1.30).move_to([3.24, 0.28, 0]).set_z_index(15)
-        self.play(
-            central_hub.animate.set_opacity(0.18),
-            FadeIn(m_2, shift=UP * 0.14),
-            FadeIn(m_3, shift=UP * 0.14),
-            run_time=1.15,
+        # Beat 2C: 상단 행 중, 우(탭 ③ 인수기준 비교) 줌 시연 - 규칙 A로 좌측 탭 ① 일시 FadeOut (3.20s)
+        self.cam_move(
+            zoom=1.38,
+            center=[2.09, 1.18, 0],
+            anims=[
+                FadeOut(VGroup(tab_1, bus_r1_left_arm), shift=LEFT * 0.10),
+                Create(bus_r1_right),
+                FadeIn(tab_3, shift=UP * 0.10),
+            ],
+            rt=1.20,
         )
-        self.play(
-            Circumscribe(m_2[0], color=C_GOLD, stroke_width=2.6, buff=0.04),
-            Circumscribe(m_3[0], color=C_MINT, stroke_width=2.6, buff=0.04),
-            run_time=0.90,
-        )
-        self.wait(3.10)
-        self.play(
-            m_2.animate.scale(1.0 / 1.30).move_to(m_2_pos).set_z_index(4),
-            m_3.animate.scale(1.0 / 1.30).move_to(m_3_pos).set_z_index(4),
-            run_time=1.10,
-        )
-        m_2.save_state()
-        m_3.save_state()
-
-        m_4_pos, m_5_pos = m_4.get_center().copy(), m_5.get_center().copy()
-        m_4.scale(1.30).move_to([-3.24, 0.28, 0]).set_z_index(15)
-        m_5.scale(1.30).move_to([3.24, 0.28, 0]).set_z_index(15)
-        self.play(
-            m_2.animate.set_opacity(0.14),
-            m_3.animate.set_opacity(0.14),
-            FadeIn(m_4, shift=UP * 0.14),
-            FadeIn(m_5, shift=UP * 0.14),
-            run_time=1.15,
-        )
-        self.play(
-            Circumscribe(m_4[0], color=C_CYAN, stroke_width=2.6, buff=0.04),
-            Circumscribe(m_5[0], color=C_AMBER, stroke_width=2.6, buff=0.04),
-            run_time=0.90,
-        )
-        self.wait(3.10)
-        self.play(
-            Restore(central_hub),
-            Restore(m_2),
-            Restore(m_3),
-            m_4.animate.scale(1.0 / 1.30).move_to(m_4_pos).set_z_index(4),
-            m_5.animate.scale(1.0 / 1.30).move_to(m_5_pos).set_z_index(4),
-            run_time=1.15,
-        )
-
-        modules_6 = VGroup(m_1, m_2, m_3, m_4, m_5, m_6)
-        cond_spoke_pairs = [
-            (hub_c + np.array([-1.08, 0.0, 0]), np.array([-2.42, 0.28, 0]), C_GOLD),
-            (hub_c + np.array([-0.90, -0.60, 0]), np.array([-2.42, -1.48, 0]), C_MINT),
-            (hub_c + np.array([0.90, 0.60, 0]), np.array([2.42, 2.04, 0]), C_CYAN),
-            (hub_c + np.array([1.08, 0.0, 0]), np.array([2.42, 0.28, 0]), C_AMBER),
-        ]
-        indep_links = VGroup(
-            DashedLine(hub_c + np.array([-0.90, 0.60, 0]), np.array([-2.42, 2.04, 0]), dash_length=0.09, color=C_SLATE, stroke_width=1.8).set_z_index(5),
-            DashedLine(hub_c + np.array([0.90, -0.60, 0]), np.array([2.42, -1.48, 0]), dash_length=0.09, color=C_SLATE, stroke_width=1.8).set_z_index(5),
-        )
-        spokes = VGroup(*[arrow_2d(s0, s1, color=scol, sw=2.2, tip=0.11, z=6) for s0, s1, scol in cond_spoke_pairs], *indep_links)
-        guard_ribbon = fit(
-            pill(
-                f"안전장치: 금지 표현 {num(forb_cnt)}개 빌드 차단, 공시에 없는 특약 보험료(적재 {num(prem_rows)}행) 추정 표시 제외 ✓",
-                fg=C_MINT,
-                bg=C_PANEL_HI,
-                border=C_MINT,
-                size=13.2,
-                px=0.14,
-                py=0.05,
-                z=9,
-            ),
-            max_w=12.50,
-        ).move_to([0.0, -2.82, 0])
-
-        shockwave = Circle(radius=0.88, fill_opacity=0.0, stroke_color=C_GOLD, stroke_width=3.8, stroke_opacity=0.95).move_to(hub_c).set_z_index(11)
-        spoke_pulses = VGroup(*[glow_dot(s0, color=scol, r=0.070, z=14) for s0, _, scol in cond_spoke_pairs])
-
-        self.add(shockwave, spoke_pulses)
-        self.play(
-            FadeIn(m_1, shift=DOWN * 0.10),
-            FadeIn(m_6, shift=UP * 0.10),
-            Rotate(hub_outer_ring, angle=PI / 3, about_point=hub_c),
-            LaggedStart(*[Create(sp) for sp in spokes], lag_ratio=0.06),
-            shockwave.animate.scale(5.2).set_stroke(opacity=0.0),
-            *[MoveAlongPath(spoke_pulses[k], Line(cond_spoke_pairs[k][0], cond_spoke_pairs[k][1])) for k in range(len(cond_spoke_pairs))],
-            run_time=1.60,
-        )
-        self.remove(shockwave, spoke_pulses, *spoke_pulses)
-        self.wait(1.80)
+        self.wait(2.00)
 
         hb = self.update_subtitle(
             hb,
-            "이어서 수집, 추출, 검증, 표준담보 매핑 단계별 발생 문제와 해결 구조를 살펴봅니다",
+            f"{t_names[0]}부터 {t_names[4]}(A4 {TERM['script_doc']}), {t_names[5]}까지 공시 근거와 함께 확인합니다",
         )
-        self.play(FadeIn(guard_ribbon, shift=UP * 0.08), run_time=0.90)
 
-        ch2_stage = VGroup(central_hub, spokes, modules_6, guard_ribbon)
-        self.check_bounds(ch2_stage, "RADIAL INFOGRAPHIC")
-        self.wait(5.00)
+        # Beat 2D: 하단 행 좌, 중(탭 ④ 담보 비교, 탭 ⑤ 영업 인사이트) 줌 시연 - 규칙 A로 상단 행 일시 FadeOut (3.65s)
+        self.cam_move(
+            zoom=1.38,
+            center=[-2.09, -1.24, 0],
+            anims=[
+                FadeOut(VGroup(tab_2, tab_3, bus_trunk, drop_2, bus_r1_right), shift=UP * 0.10),
+                Create(bus_r2_left),
+                FadeIn(tab_4, shift=UP * 0.10),
+                FadeIn(tab_5, shift=UP * 0.10),
+            ],
+            rt=1.35,
+        )
+        self.wait(2.30)
 
+        # Beat 2E: 하단 행 중, 우(탭 ⑥ 관계 그래프) 줌 시연 - 규칙 A로 좌측 탭 ④ 일시 FadeOut (3.55s)
+        self.cam_move(
+            zoom=1.38,
+            center=[2.09, -1.24, 0],
+            anims=[
+                FadeOut(VGroup(tab_4, bus_r2_left_arm), shift=LEFT * 0.10),
+                Create(bus_r2_right),
+                FadeIn(tab_6, shift=UP * 0.10),
+            ],
+            rt=1.25,
+        )
+        self.wait(2.30)
+
+        # Beat 2F: 전체 6개 탭 통합 뷰포트 복원 및 조건 연동 펄스 시연 (9.07s + fade_out 0.60s)
+        self.reset_cam_2d(
+            anims=[
+                FadeIn(VGroup(tab_1, tab_2, tab_3, tab_4, bus_trunk, bus_r1_left_arm, drop_2, bus_r1_right, bus_risers, bus_r2_left_arm), shift=DOWN * 0.06),
+            ],
+            rt=1.20,
+        )
+
+        pulse_paths = [
+            (Line([0.0, 2.05, 0], [-4.18, 2.05, 0]), C_CYAN),
+            (Line([0.0, 2.05, 0], [4.18, 2.05, 0]), C_AMBER),
+            (Line([-2.09, -0.35, 0], [-4.18, -0.35, 0]), C_MINT),
+            (Line([0.0, -0.35, 0], [4.18, -0.35, 0]), C_CYAN),
+        ]
+        bus_pulses = VGroup(*[glow_dot(lp.get_start(), color=lc, r=0.060, z=14) for lp, lc in pulse_paths])
+        self.add(bus_pulses)
+        self.play(
+            *[MoveAlongPath(bus_pulses[k], pulse_paths[k][0]) for k in range(len(pulse_paths))],
+            Circumscribe(tab_5[0], color=C_GOLD, stroke_width=2.8, buff=0.04),
+            run_time=1.25,
+        )
+        self.remove(bus_pulses, *bus_pulses)
+
+        tabs_6 = VGroup(tab_1, tab_2, tab_3, tab_4, tab_5, tab_6)
+        ch2_world = VGroup(bus_all, tabs_6)
+        self.check_bounds(toolbar, "MAIN TOOLBAR")
+        self.check_bounds(ch2_world, "TAB ARCHITECTURE")
+        self.wait(6.62)
+
+        ch2_stage = VGroup(toolbar, ch2_world)
         self.fade_out_part(ch2_stage, hl, hr, hb)
+        self.remove_fixed_in_frame_mobjects(toolbar)
+        self.remove(toolbar)

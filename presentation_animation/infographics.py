@@ -149,7 +149,7 @@ _ICON_SPECS: dict[str, list[tuple[str, Any, bool, float]]] = {
         ("open", [(15.2, 9.2), (18.2, 12.0), (15.2, 14.8)], True, 0.0),
         ("segs", [((13.2, 8.5), (10.8, 15.5))], False, 0.0),
     ],
-    # 비생성 판정 NPU 프로세서 칩
+    # AI 의사결정 모델 프로세서 칩
     "cpu_decide": [
         ("poly", [(6.5, 6.5), (17.5, 6.5), (17.5, 17.5), (6.5, 17.5)], False, 0.20),
         ("poly", [(9.5, 9.5), (14.5, 9.5), (14.5, 14.5), (9.5, 14.5)], True, 0.34),
@@ -226,7 +226,7 @@ _ICON_SPECS: dict[str, list[tuple[str, Any, bool, float]]] = {
         ("segs", [((12, 9.5), (12, 14.2))], True, 0.0),
         ("circle", (12.0, 16.8, 0.55), True, 0.90),
     ],
-    # A4 응대 화법 브리프 장표
+    # A4 비교 요약지 장표
     "brief_sheet": [
         ("poly", [(5.5, 3), (15.5, 3), (19, 6.5), (19, 21), (5.5, 21)], False, 0.18),
         ("segs", [((5.5, 5.2), (17.5, 5.2))], True, 0.0),
@@ -363,7 +363,7 @@ def make_claude_orchestrator_hub(
             Dot(p1, radius=0.036, color=p_col).set_z_index(z + 3),
         )
 
-    # 두 줄 라벨일 때는 아이콘을 줄여 위로 두고 라벨을 링 지름이 넓은 가운데 쪽으로 올려, 글자 끝이 금색 링에 닿지 않게 한다.
+    # 복수 행 라벨일 때는 아이콘을 줄여 위로 두고 라벨을 링 지름이 넓은 가운데 쪽으로 올려, 글자 끝이 금색 링에 닿지 않게 한다.
     ic = svg_icon("cpu_decide", size=radius * (0.46 if sub_s else 0.52), col=C_GOLD, accent=C_CYAN, tile=False, sw=2.3, z=z + 3).move_to(
         pt + UP * (radius * 0.32 if sub_s else radius * 0.20)
     )
@@ -388,7 +388,7 @@ def make_dark_a4_sheet(
     foot_s: str,
     z: int = 5,
 ) -> VGroup:
-    """전체 다크 테마와 조화를 이루는 세련된 다크 슬레이트, 골드 A4 응대 화법 장표 인포그래픽."""
+    """전체 다크 테마와 조화를 이루는 세련된 다크 슬레이트, 골드 A4 비교 요약지 장표 인포그래픽."""
     pt = np.array(center, dtype=float)
     x0, y0 = pt[0], pt[1]
     fold = min(w, h) * 0.11
